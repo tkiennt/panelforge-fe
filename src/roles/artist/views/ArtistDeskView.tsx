@@ -6,48 +6,25 @@ import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { scriptLineService } from '@/services/scriptLine.service';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
-import { pipelineService, PipelineStageDto } from '@/services/pipeline.service';
+import { pipelineService } from '@/services/pipeline.service';
 import { assignmentService, AssignmentDto } from '@/services/assignment.service';
 import { frameTemplateService, FrameTemplateDto } from '@/services/frameTemplate.service';
 import { artworkService } from '@/services/artwork.service';
 import { PanelDto, ChangeRequestDto } from '@/types/pipeline';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
 import { useToast } from '@/shared/context/ToastContext';
-import {
-  UploadCloud,
-  ImagePlus,
-  Eye,
-  EyeOff,
-  Trash2,
-  CheckCircle2,
-  Check,
-  Loader2,
-  RotateCcw,
-  AlertTriangle,
-  Lock,
-  Unlock,
-  X,
-  LayoutTemplate,
-  Sparkles,
-  Wand2,
-  Scissors,
-  Upload,
-  ZoomIn,
-  ZoomOut,
-  Copy,
-} from 'lucide-react';
 import { detectPanelsFromSketchImage, cropImageByBoundingBox } from '../lib/panelDetection';
 import { getRoleDefaultPath } from '@/roles/roles';
 import {
   formatChapterLabel,
   stageKindOf,
 } from '@/shared/features/pipeline-board/productionBoard.utils';
+import { getArtistStageKind } from '../utils/artistStage';
 import {
   FocusStageItem,
   FocusStudioHeaderBar,
   useFocusHeaderContext,
 } from '@/app/FocusWorkspaceLayout';
-import { getArtistStageKind } from '../utils/artistStage';
 import {
   ArtistCanvaSidebar,
   CanvaSidebarTab,
@@ -55,13 +32,25 @@ import {
   BibleEntityItem,
   DEFAULT_FRAME_TEMPLATES,
 } from '../components/desk/ArtistCanvaSidebar';
-import { ElementSnapshotDto } from '@/services/element.service';
-import {
-  createSpeechBalloonPath,
-  createThoughtBalloonPath,
-} from '@/roles/letterer/lib/lettererView';
 import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip';
 import { PageStage } from '../components/desk/ArtistPageSidebar';
+import { ArtistCanvasViewport, type PageSketch } from '../components/desk/ArtistCanvasViewport';
+import { PanelFrameOverlay, type PanelArtworkData } from '../components/desk/PanelFrameOverlay';
+import { LetteringBalloonOverlay } from '../components/desk/LetteringBalloonOverlay';
+import { ArtworkPreviewDialog, UnlockLayoutDialog } from '../components/desk/ArtistDeskDialogs';
+import { useLetteringBalloons } from '../hooks/useLetteringBalloons';
+import {
+  DEFAULT_ARTIST_STAGES,
+  DEFAULT_INITIAL_PAGES,
+  extractBibleVisualDetails,
+  getBibleCategoryTag,
+  getDeterministicColor,
+  localizeArtistStageLabel,
+  mapBibleCategory,
+  resolveStageKey,
+} from '../lib/artistDeskHelpers';
+
+export type { PanelArtworkData };
 
 export interface ArtistDeskViewProps {
   workspaceRole?: string | null;
@@ -70,234 +59,13 @@ export interface ArtistDeskViewProps {
   initialSidebarTab?: CanvaSidebarTab;
 }
 
-export interface PanelArtworkData {
-  id: string;
-  panelId: string;
-  panelNumber: number;
-  imageUrl: string;
-  fileName: string;
-  uploadedAt: string;
-}
-
 interface RawLoadedScriptLine extends ScriptLineItem {
   speakerCharacterId?: string | null;
 }
 
-const CHARACTER_COLORS = [
-  '#F97316',
-  '#06B6D4',
-  '#8B5CF6',
-  '#10B981',
-  '#E11D48',
-  '#D97706',
-  '#2563EB',
-];
-
-const DEFAULT_ARTIST_STAGES: FocusStageItem[] = [
-  { id: 'stage-pencil', label: 'Pencil', key: 'pencil' },
-  { id: 'stage-ink', label: 'Ink', key: 'ink' },
-  { id: 'stage-letter', label: 'Letter', key: 'lettering' },
-];
-
-function localizeArtistStageLabel(stage: Pick<PipelineStageDto, 'name' | 'slug'>): string {
-  const kind = getArtistStageKind(stage);
-  if (kind === 'pencil') return 'Pencil';
-  if (kind === 'ink') return 'Ink';
-  if (kind === 'lettering') return 'Letter';
-
-  const lower = `${stage.slug || ''} ${stage.name || ''}`.toLowerCase();
-  if (lower.includes('letter') || lower.includes('dialogue') || lower.includes('thoại')) return 'Letter';
-  if (lower.includes('ink') || lower.includes('mực') || lower.includes('nét')) return 'Ink';
-  if (lower.includes('pencil') || lower.includes('chì') || lower.includes('layout') || lower.includes('bố cục') || lower.includes('thumbnail')) return 'Pencil';
-
-  const boardKind = stageKindOf(stage.name || '');
-  if (boardKind === 'letter') return 'Letter';
-  if (boardKind === 'ink') return 'Ink';
-  if (boardKind === 'pencil' || boardKind === 'thumbnail') return 'Pencil';
-
-  const cleaned = (stage.name || '').replace(/\s*\([A-Za-z0-9\s/-]+\)\s*/g, '').trim();
-  return cleaned || 'Pencil';
-}
-
-function resolveStageKey(stage: Pick<PipelineStageDto, 'name' | 'slug'>): PageStage {
-  const kind = getArtistStageKind(stage);
-  if (kind === 'ink') return 'ink';
-  if (kind === 'lettering') return 'lettering';
-  const boardKind = stageKindOf(stage.name || '');
-  if (boardKind === 'letter') return 'lettering';
-  if (boardKind === 'color') return 'completed';
-  return 'pencil';
-}
-
-function getDeterministicColor(key: string): string {
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) {
-    hash = (hash * 31 + key.charCodeAt(i)) | 0;
-  }
-  return CHARACTER_COLORS[Math.abs(hash) % CHARACTER_COLORS.length];
-}
-
-function mapBibleCategory(cat: string | number): 'character' | 'location' | 'lore' {
-  if (typeof cat === 'string') {
-    const s = cat.toLowerCase();
-    if (s.includes('char')) return 'character';
-    if (s.includes('loc')) return 'location';
-    return 'lore';
-  }
-  if (cat === 0 || cat === 1) return 'character';
-  if (cat === 2) return 'location';
-  return 'lore';
-}
-
-function getBibleCategoryTag(cat: string | number, subtitle?: string | null): string {
-  if (subtitle?.trim()) return subtitle.trim();
-  const s = String(cat).toLowerCase();
-  if (s.includes('char') || s === '0' || s === '1') return 'Nhân vật';
-  if (s.includes('loc') || s === '2') return 'Bối cảnh';
-  if (s.includes('style') || s === '4') return 'Quy tắc mỹ thuật';
-  if (s.includes('prop') || s === '3') return 'Đạo cụ & Thuật ngữ';
-  return 'Thiết lập thế giới';
-}
-
-const ATTRIBUTE_LABELS: Record<string, string> = {
-  appearance: 'Ngoại hình',
-  costume: 'Trang phục',
-  hair: 'Kiểu tóc',
-  eyes: 'Màu mắt',
-  height: 'Chiều cao',
-  weapon: 'Vũ khí / Đạo cụ',
-  distinguishingMarks: 'Dấu ấn đặc trưng',
-  personality: 'Tính cách',
-  role: 'Vai trò',
-  atmosphere: 'Không khí / Ánh sáng',
-  architecture: 'Kiến trúc',
-};
-
-function extractBibleVisualDetails(entry: BibleEntryDto): {
-  visualNotes: string[];
-  gallery?: Array<{ url: string; label?: string }>;
-} {
-  const notes: string[] = [];
-  let gallery: Array<{ url: string; label?: string }> | undefined;
-
-  const parseJsonSafe = (raw?: string | null): Record<string, any> | null => {
-    if (!raw || typeof raw !== 'string') return null;
-    try {
-      const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === 'object' ? parsed : null;
-    } catch {
-      return null;
-    }
-  };
-
-  let details = parseJsonSafe(entry.detailsJson);
-  if (!details && entry.effectiveRevision?.snapshotJson) {
-    const snap = parseJsonSafe(entry.effectiveRevision.snapshotJson);
-    const nestedRaw = snap?.DetailsJson || snap?.detailsJson;
-    details = parseJsonSafe(nestedRaw) || snap;
-  }
-
-  if (details) {
-    if (Array.isArray(details.visualNotes)) {
-      details.visualNotes.forEach((n: unknown) => {
-        if (typeof n === 'string' && n.trim()) notes.push(n.trim());
-      });
-    }
-
-    if (details.attributes && typeof details.attributes === 'object') {
-      Object.entries(details.attributes).forEach(([k, v]) => {
-        if (typeof v === 'string' && v.trim()) {
-          const label = ATTRIBUTE_LABELS[k] || k;
-          notes.push(`${label}: ${v.trim()}`);
-        } else if (Array.isArray(v)) {
-          v.forEach((item) => {
-            if (typeof item === 'string' && item.trim()) notes.push(item.trim());
-          });
-        }
-      });
-    }
-
-    if (Array.isArray(details.turnaroundGallery)) {
-      const mapped = details.turnaroundGallery
-        .filter((g: any) => g && typeof g.url === 'string' && g.url.trim())
-        .map((g: any) => ({ url: g.url, label: g.label || g.angle || undefined }));
-      if (mapped.length > 0) gallery = mapped;
-    }
-  }
-
-  return { visualNotes: notes, gallery };
-}
-
-// Dữ liệu trang khởi tạo mặc định nếu chương chưa có trang
-const DEFAULT_INITIAL_PAGES: PageDto[] = [
-  {
-    id: 'page-default-1',
-    chapterId: 'chap-1',
-    pageNumber: 1,
-    layoutFormat: 'B5',
-    widthPx: 1200,
-    heightPx: 1800,
-    dpi: 600,
-    elementsCount: 0,
-  },
-  {
-    id: 'page-default-2',
-    chapterId: 'chap-1',
-    pageNumber: 2,
-    layoutFormat: 'B5',
-    widthPx: 1200,
-    heightPx: 1800,
-    dpi: 600,
-    elementsCount: 0,
-  },
-  {
-    id: 'page-default-3',
-    chapterId: 'chap-1',
-    pageNumber: 3,
-    layoutFormat: 'B5',
-    widthPx: 1200,
-    heightPx: 1800,
-    dpi: 600,
-    elementsCount: 0,
-  },
-  {
-    id: 'page-default-4',
-    chapterId: 'chap-1',
-    pageNumber: 4,
-    layoutFormat: 'B5',
-    widthPx: 1200,
-    heightPx: 1800,
-    dpi: 600,
-    elementsCount: 0,
-  },
-  {
-    id: 'page-default-5',
-    chapterId: 'chap-1',
-    pageNumber: 5,
-    layoutFormat: 'B5',
-    widthPx: 1200,
-    heightPx: 1800,
-    dpi: 600,
-    elementsCount: 0,
-  },
-  {
-    id: 'page-default-6',
-    chapterId: 'chap-1',
-    pageNumber: 6,
-    layoutFormat: 'B5',
-    widthPx: 1200,
-    heightPx: 1800,
-    dpi: 600,
-    elementsCount: 0,
-  },
-];
-
 /**
- * ArtistDeskView - Không gian vẽ dành riêng cho Họa sĩ
- * - Header hệ thống hiển thị đường dẫn Bộ truyện / Chương, các công đoạn vẽ và nút Nộp chuyển công đoạn.
- * - Bên trái: Sidebar công cụ (Kịch bản tham chiếu và Hồ sơ nhân vật & bối cảnh).
- * - Trung tâm: Bàn vẽ trang giấy trắng tỷ lệ chuẩn căn giữa màn hình.
- * - Cạnh đáy: Thanh quản lý trang nền trong suốt, căn giữa màn hình.
+ * Artist desk: script and bible reference on the left, a B5 manga sheet in the centre,
+ * the page filmstrip along the bottom. Stage submission lives in the focus header.
  */
 export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   workspaceRole,
@@ -305,7 +73,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   initialBibleEntities,
   initialSidebarTab,
 }) => {
-  const { workspaceId, seriesId, chapterId: chapterIdFromParam } = useParams<{
+  const {
+    workspaceId,
+    seriesId,
+    chapterId: chapterIdFromParam,
+  } = useParams<{
     workspaceId?: string;
     seriesId?: string;
     chapterId?: string;
@@ -353,64 +125,28 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
   const [templateError, setTemplateError] = useState<string | null>(null);
 
-  // Trạng thái chốt / khóa bố cục mẫu khung của từng trang (chốt mới được tải tranh)
+  // Artwork uploads unlock only after the page layout has been locked.
   const [lockedTemplateByPageId, setLockedTemplateByPageId] = useState<Record<string, boolean>>({});
-  // Tranh đã nạp vào từng khung của từng trang: pageId -> (panelId -> PanelArtworkData)
   const [panelArtworksByPageId, setPanelArtworksByPageId] = useState<
     Record<string, Record<string, PanelArtworkData>>
   >({});
-  // Ảnh phác thảo toàn trang của từng trang (dành cho tính năng Tự động tách panel ở khâu Pencil)
   const [fullPageSketchesByPageId, setFullPageSketchesByPageId] = useState<
-    Record<string, { imageUrl: string; fileName: string; isVisible: boolean }>
+    Record<string, PageSketch>
   >({});
   const [isDetectingPanels, setIsDetectingPanels] = useState(false);
-  const sketchFileInputRef = useRef<HTMLInputElement | null>(null);
-  // Modal xác nhận an toàn khi mở khóa đổi mẫu khung nếu đã có tranh
   const [isUnlockConfirmOpen, setIsUnlockConfirmOpen] = useState(false);
-  // Modal xem tranh phóng to
-  const [previewArtwork, setPreviewArtwork] = useState<{ imageUrl: string; title: string } | null>(null);
-  // Input file ref cho từng panel
-  const panelFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [previewArtwork, setPreviewArtwork] = useState<{ imageUrl: string; title: string } | null>(
+    null,
+  );
 
   const tabFromUrl = searchParams.get('tab') as CanvaSidebarTab | null;
   const isLettererRoute = location.pathname.includes('/letterer');
   const defaultTab = initialSidebarTab || tabFromUrl || (isLettererRoute ? 'lettering' : undefined);
 
-  // Điều khiển Sidebar tab & ngăn phụ Drawer từ bên ngoài
   const [activeSidebarTab, setActiveSidebarTab] = useState<CanvaSidebarTab | undefined>(defaultTab);
   const [isSidebarDrawerOpen, setIsSidebarDrawerOpen] = useState<boolean | undefined>(
-    defaultTab ? true : undefined
+    defaultTab ? true : undefined,
   );
-
-  // Danh sách phần tử bóng thoại (Lettering Elements) theo trang: pageId -> ElementSnapshotDto[]
-  const [letteringElementsByPageId, setLetteringElementsByPageId] = useState<
-    Record<string, ElementSnapshotDto[]>
-  >({});
-  const [selectedLetteringElementId, setSelectedLetteringElementId] = useState<string | null>(null);
-
-  // Kéo di chuyển bóng thoại (Interactive Dragging)
-  const [draggingBalloonInfo, setDraggingBalloonInfo] = useState<{
-    elementId: string;
-    startX: number;
-    startY: number;
-    initialElemX: number;
-    initialElemY: number;
-  } | null>(null);
-
-  // Kéo thay đổi kích thước bóng thoại (Interactive Resizing)
-  const [resizingBalloonInfo, setResizingBalloonInfo] = useState<{
-    elementId: string;
-    handle: 'se' | 'sw' | 'ne' | 'nw';
-    startX: number;
-    startY: number;
-    initialX: number;
-    initialY: number;
-    initialW: number;
-    initialH: number;
-  } | null>(null);
-
-  // Bộ nhớ tạm sao chép bóng thoại (Copy & Paste Clipboard)
-  const [copiedLetteringElement, setCopiedLetteringElement] = useState<ElementSnapshotDto | null>(null);
 
   // Yêu cầu chỉnh sửa công đoạn (Sidetab Change Requests)
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
@@ -765,7 +501,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         }
       }
 
-      toast.info('Yêu cầu chỉnh sửa', cr.description?.slice(0, 80) || 'Kiểm tra bản vẽ của trang hiện tại.');
+      toast.info(
+        'Yêu cầu chỉnh sửa',
+        cr.description?.slice(0, 80) || 'Kiểm tra bản vẽ của trang hiện tại.',
+      );
     },
     [panelsByPageId, toast],
   );
@@ -777,11 +516,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       if (!targetPage || !pageService?.restorePageVersion || !pageHistory) return;
       setIsRestoringVersion(true);
       try {
-        await pageService.restorePageVersion(
-          targetPage.id,
-          version,
-          pageHistory.currentVersion,
-        );
+        await pageService.restorePageVersion(targetPage.id, version, pageHistory.currentVersion);
         toast.success(
           'Khôi phục thành công!',
           `Trang ${targetPage.pageNumber} đã được khôi phục về phiên bản v${version}.`,
@@ -800,7 +535,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   );
 
   const currentChapterIdRef = useRef<string | null>(currentChapterId);
-  currentChapterIdRef.current = currentChapterId;
+  useEffect(() => {
+    currentChapterIdRef.current = currentChapterId;
+  }, [currentChapterId]);
 
   // Tải thông tin Bộ truyện & danh sách Chương (tự động chọn chương đầu tiên nếu URL chưa có chapterId)
   useEffect(() => {
@@ -938,9 +675,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         const matchingAssignment =
           (assignmentIdFromUrl
             ? chapterAssignments.find(
-                (a) =>
-                  a.id === assignmentIdFromUrl &&
-                  a.pipelineStageId === currentStage.id,
+                (a) => a.id === assignmentIdFromUrl && a.pipelineStageId === currentStage.id,
               )
             : undefined) ||
           chapterAssignments.find((a) => {
@@ -986,10 +721,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         );
       } else {
         setIsStageFlowCompleted(true);
-        toast.success(
-          'Hoàn tất bản vẽ',
-          `Đã nộp "${currentStage.label}" để chờ kiểm duyệt.`,
-        );
+        toast.success('Hoàn tất bản vẽ', `Đã nộp "${currentStage.label}" để chờ kiểm duyệt.`);
       }
     } finally {
       setIsSubmittingStage(false);
@@ -1155,10 +887,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         cleanText = atMatch[2].trim();
       } else {
         // 3. Tách cú pháp Tên: "Lời thoại" hoặc Tên: Lời thoại
-        const colonMatch = rawText.match(/^([A-ZÀ-Ỹ][a-zA-ZÀ-ỹ0-9_\s]{1,25})\s*:\s*["“]?(.*?)["”]?$/);
+        const colonMatch = rawText.match(
+          /^([A-ZÀ-Ỹ][a-zA-ZÀ-ỹ0-9_\s]{1,25})\s*:\s*["“]?(.*?)["”]?$/,
+        );
         if (colonMatch) {
           const prefix = colonMatch[1].trim();
-          const isCaption = /^(Lời dẫn|Dẫn chuyện|Caption|Ghi chú|Hồi tưởng|Bối cảnh)$/i.test(prefix);
+          const isCaption = /^(Lời dẫn|Dẫn chuyện|Caption|Ghi chú|Hồi tưởng|Bối cảnh)$/i.test(
+            prefix,
+          );
           if (isCaption) {
             if (!speaker) speaker = prefix;
             cleanText = colonMatch[2].trim();
@@ -1200,14 +936,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         dialogueText: cleanText || line.dialogueText,
       };
     });
-  }, [
-    hasLoadedRealScript,
-    rawScriptLines,
-    initialScriptLines,
-    pages,
-    panelPageMap,
-    characterById,
-  ]);
+  }, [hasLoadedRealScript, rawScriptLines, initialScriptLines, pages, panelPageMap, characterById]);
 
   const firstSceneMeta = useMemo(() => {
     const first = resolvedScriptLines?.find((l) => l.sceneTitle || l.sceneSlugline);
@@ -1309,7 +1038,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     [selectedPage, fullPageSketchesByPageId],
   );
 
-  const isCurrentPageLayoutLocked = Boolean(selectedPage && lockedTemplateByPageId[selectedPage.id]);
+  const isCurrentPageLayoutLocked = Boolean(
+    selectedPage && lockedTemplateByPageId[selectedPage.id],
+  );
   const currentPageArtworks = useMemo(
     () => (selectedPage ? panelArtworksByPageId[selectedPage.id] || {} : {}),
     [selectedPage, panelArtworksByPageId],
@@ -1433,10 +1164,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         },
       }));
 
-      toast.success(
-        'Đã nạp tranh vào ô',
-        `Tệp "${file.name}" đã được tải vào Khung #${panelNum}.`,
-      );
+      toast.success('Đã nạp tranh vào ô', `Tệp "${file.name}" đã được tải vào Khung #${panelNum}.`);
 
       if (
         currentChapterId &&
@@ -1685,431 +1413,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   };
 
-  // Giới hạn tọa độ bóng thoại nằm trọn vẹn trong khung truyện (Panel Bounding Box)
-  const clampBalloonToPanel = useCallback(
-    (targetX: number, targetY: number, elemW: number, elemH: number) => {
-      const pageWidth = selectedPage?.widthPx || 1200;
-      const pageHeight = selectedPage?.heightPx || 1800;
-
-      if (!currentPagePanels || currentPagePanels.length === 0) {
-        // Trang chưa có khung panel: giới hạn theo lề an toàn của trang
-        const minX = 40;
-        const minY = 40;
-        const maxX = Math.max(minX, pageWidth - 40 - elemW);
-        const maxY = Math.max(minY, pageHeight - 40 - elemH);
-        return {
-          x: Math.round(Math.max(minX, Math.min(maxX, targetX))),
-          y: Math.round(Math.max(minY, Math.min(maxY, targetY))),
-        };
-      }
-
-      // Danh sách bounding box các panel của trang (tọa độ pixel thực tế)
-      const panelBoxes = currentPagePanels.map((p) => {
-        const parsed = parseBoundingBox(p.boundingBox, pageWidth, pageHeight);
-        return {
-          id: p.id,
-          minX: parsed.pixelX,
-          minY: parsed.pixelY,
-          maxX: parsed.pixelX + parsed.pixelW,
-          maxY: parsed.pixelY + parsed.pixelH,
-          width: parsed.pixelW,
-          height: parsed.pixelH,
-        };
-      });
-
-      // Tâm dự kiến của bóng thoại
-      const centerX = targetX + elemW / 2;
-      const centerY = targetY + elemH / 2;
-
-      // Tìm panel chứa tâm bóng thoại
-      let matchedPanel = panelBoxes.find(
-        (b) => centerX >= b.minX && centerX <= b.maxX && centerY >= b.minY && centerY <= b.maxY
-      );
-
-      // Nếu con trỏ chuột nằm ở ngoài (rãnh ngăn hoặc lề), tìm panel gần nhất theo khoảng cách tâm
-      if (!matchedPanel) {
-        let minDist = Infinity;
-        for (const b of panelBoxes) {
-          const pCenterX = b.minX + b.width / 2;
-          const pCenterY = b.minY + b.height / 2;
-          const dist = Math.hypot(centerX - pCenterX, centerY - pCenterY);
-          if (dist < minDist) {
-            minDist = dist;
-            matchedPanel = b;
-          }
-        }
-      }
-
-      const activeBox = matchedPanel || panelBoxes[0];
-      const maxClampX = Math.max(activeBox.minX, activeBox.maxX - elemW);
-      const maxClampY = Math.max(activeBox.minY, activeBox.maxY - elemH);
-
-      return {
-        x: Math.round(Math.max(activeBox.minX, Math.min(maxClampX, targetX))),
-        y: Math.round(Math.max(activeBox.minY, Math.min(maxClampY, targetY))),
-      };
-    },
-    [selectedPage, currentPagePanels]
-  );
-
-  // Phóng to / Thu nhỏ bóng thoại theo tỷ lệ (Phím + / - hoặc nút toolbar)
-  const handleScaleBalloon = useCallback(
-    (elementId: string, factor: number) => {
-      if (!selectedPage) return;
-      setLetteringElementsByPageId((prev) => {
-        const list = prev[selectedPage.id] || [];
-        return {
-          ...prev,
-          [selectedPage.id]: list.map((item) => {
-            if (item.elementId !== elementId) return item;
-            const newW = Math.max(80, Math.min(800, Math.round(item.width * factor)));
-            const newH = Math.max(45, Math.min(600, Math.round(item.height * factor)));
-            // Giữ nguyên tâm bóng thoại khi phóng to thu nhỏ
-            const deltaW = newW - item.width;
-            const deltaH = newH - item.height;
-            const targetX = item.x - deltaW / 2;
-            const targetY = item.y - deltaH / 2;
-            const clamped = clampBalloonToPanel(targetX, targetY, newW, newH);
-            return {
-              ...item,
-              x: clamped.x,
-              y: clamped.y,
-              width: newW,
-              height: newH,
-            };
-          }),
-        };
-      });
-    },
-    [selectedPage, clampBalloonToPanel]
-  );
-
-  // Thêm mới / Gắn câu thoại vào bóng thoại trên trang (Lettering P0)
-  const handleAddLetteringElement = (
-    type: 'SPEECH_BALLOON' | 'THOUGHT_BALLOON' | 'NARRATION_BOX',
-    scriptLine?: ScriptLineItem
-  ) => {
-    if (!selectedPage) return;
-    const targetPage = selectedPage;
-    const currentList = letteringElementsByPageId[targetPage.id] || [];
-
-    const newId = `elem-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const defaultW = type === 'NARRATION_BOX' ? 320 : 260;
-    const defaultH = type === 'NARRATION_BOX' ? 120 : 160;
-
-    // Phân bổ toạ độ: Ưu tiên đặt trực tiếp vào khung truyện (panel) tương ứng với câu thoại
-    const targetPanelIndex = scriptLine?.panelNumber ? Math.max(0, scriptLine.panelNumber - 1) : 0;
-    const targetPanel = currentPagePanels[targetPanelIndex] || currentPagePanels[0];
-
-    let defaultX = 60;
-    let defaultY = 80;
-    if (targetPanel) {
-      const pBox = parseBoundingBox(
-        targetPanel.boundingBox,
-        targetPage.widthPx || 1200,
-        targetPage.heightPx || 1800
-      );
-      defaultX = pBox.pixelX + Math.max(10, Math.round((pBox.pixelW - defaultW) / 2));
-      defaultY = pBox.pixelY + Math.max(10, Math.round((pBox.pixelH - defaultH) / 2));
-    } else {
-      const stepIdx = currentList.length % 5;
-      defaultX = Math.max(50, (targetPage.widthPx || 1200) - defaultW - 60 - stepIdx * 40);
-      defaultY = 80 + stepIdx * 180;
-    }
-    const clamped = clampBalloonToPanel(defaultX, defaultY, defaultW, defaultH);
-
-    const newElement: ElementSnapshotDto = {
-      elementId: newId,
-      elementType: type,
-      x: clamped.x,
-      y: clamped.y,
-      width: defaultW,
-      height: defaultH,
-      zIndex: currentList.length + 1,
-      content: scriptLine ? scriptLine.dialogueText || scriptLine.stageDirection || '' : 'Lời thoại mới...',
-      scriptLineId: scriptLine ? scriptLine.id : null,
-      readingOrder: currentList.length + 1,
-      version: 1,
-      isRemoved: false,
-    };
-
-    setLetteringElementsByPageId((prev) => ({
-      ...prev,
-      [targetPage.id]: [...(prev[targetPage.id] || []), newElement],
-    }));
-    setSelectedLetteringElementId(newId);
-    toast.success('Đã thêm bóng thoại', '');
-  };
-
-  // Xóa bóng thoại khỏi trang
-  const handleDeleteLetteringElement = (elementId: string) => {
-    if (!selectedPage) return;
-    const targetPage = selectedPage;
-    setLetteringElementsByPageId((prev) => ({
-      ...prev,
-      [targetPage.id]: (prev[targetPage.id] || []).filter((e) => e.elementId !== elementId),
-    }));
-    if (selectedLetteringElementId === elementId) {
-      setSelectedLetteringElementId(null);
-    }
-    toast.info('Đã xóa bóng thoại', '');
-  };
-
-  // Xử lý di chuyển bóng thoại (Pointer Drag) đồng bộ trỏ chuột và giới hạn trong khung truyện
-  const handleBalloonPointerDown = (e: React.PointerEvent, elementId: string) => {
-    if (e.button !== 0) return; // Chỉ bắt chuột trái
-    e.stopPropagation();
-    const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
-
-    const currentList = selectedPage ? letteringElementsByPageId[selectedPage.id] || [] : [];
-    const elem = currentList.find((item) => item.elementId === elementId);
-    if (!elem) return;
-
-    setSelectedLetteringElementId(elementId);
-    setDraggingBalloonInfo({
-      elementId,
-      startX: e.clientX,
-      startY: e.clientY,
-      initialElemX: elem.x,
-      initialElemY: elem.y,
-    });
-  };
-
-  const handleBalloonPointerMove = (e: React.PointerEvent) => {
-    if (!draggingBalloonInfo || !selectedPage) return;
-    const dx = (e.clientX - draggingBalloonInfo.startX) / zoomScale;
-    const dy = (e.clientY - draggingBalloonInfo.startY) / zoomScale;
-
-    setLetteringElementsByPageId((prev) => {
-      const pageList = prev[selectedPage.id] || [];
-      return {
-        ...prev,
-        [selectedPage.id]: pageList.map((item) => {
-          if (item.elementId !== draggingBalloonInfo.elementId) return item;
-          const targetX = draggingBalloonInfo.initialElemX + dx;
-          const targetY = draggingBalloonInfo.initialElemY + dy;
-          const clamped = clampBalloonToPanel(targetX, targetY, item.width, item.height);
-          return { ...item, x: clamped.x, y: clamped.y };
-        }),
-      };
-    });
-  };
-
-  const handleBalloonPointerUp = (e: React.PointerEvent) => {
-    if (draggingBalloonInfo) {
-      try {
-        const target = e.currentTarget as HTMLElement;
-        target.releasePointerCapture(e.pointerId);
-      } catch {
-        // bỏ qua nếu đã tự release
-      }
-      setDraggingBalloonInfo(null);
-    }
-  };
-
-  // Xử lý thay đổi kích thước bóng thoại bằng cách kéo 4 góc (Resize Drag)
-  const handleBalloonResizeStart = (
-    e: React.PointerEvent,
-    elementId: string,
-    handle: 'se' | 'sw' | 'ne' | 'nw'
-  ) => {
-    e.stopPropagation();
-    const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
-
-    const currentList = selectedPage ? letteringElementsByPageId[selectedPage.id] || [] : [];
-    const elem = currentList.find((item) => item.elementId === elementId);
-    if (!elem) return;
-
-    setSelectedLetteringElementId(elementId);
-    setResizingBalloonInfo({
-      elementId,
-      handle,
-      startX: e.clientX,
-      startY: e.clientY,
-      initialX: elem.x,
-      initialY: elem.y,
-      initialW: elem.width,
-      initialH: elem.height,
-    });
-  };
-
-  const handleBalloonResizeMove = (e: React.PointerEvent) => {
-    if (!resizingBalloonInfo || !selectedPage) return;
-    const dx = (e.clientX - resizingBalloonInfo.startX) / zoomScale;
-    const dy = (e.clientY - resizingBalloonInfo.startY) / zoomScale;
-
-    setLetteringElementsByPageId((prev) => {
-      const pageList = prev[selectedPage.id] || [];
-      return {
-        ...prev,
-        [selectedPage.id]: pageList.map((item) => {
-          if (item.elementId !== resizingBalloonInfo.elementId) return item;
-
-          let newX = resizingBalloonInfo.initialX;
-          let newY = resizingBalloonInfo.initialY;
-          let newW = resizingBalloonInfo.initialW;
-          let newH = resizingBalloonInfo.initialH;
-
-          if (resizingBalloonInfo.handle === 'se') {
-            newW = Math.max(90, resizingBalloonInfo.initialW + dx);
-            newH = Math.max(50, resizingBalloonInfo.initialH + dy);
-          } else if (resizingBalloonInfo.handle === 'sw') {
-            const rawW = resizingBalloonInfo.initialW - dx;
-            newW = Math.max(90, rawW);
-            newX = resizingBalloonInfo.initialX + (resizingBalloonInfo.initialW - newW);
-            newH = Math.max(50, resizingBalloonInfo.initialH + dy);
-          } else if (resizingBalloonInfo.handle === 'ne') {
-            newW = Math.max(90, resizingBalloonInfo.initialW + dx);
-            const rawH = resizingBalloonInfo.initialH - dy;
-            newH = Math.max(50, rawH);
-            newY = resizingBalloonInfo.initialY + (resizingBalloonInfo.initialH - newH);
-          } else if (resizingBalloonInfo.handle === 'nw') {
-            const rawW = resizingBalloonInfo.initialW - dx;
-            newW = Math.max(90, rawW);
-            newX = resizingBalloonInfo.initialX + (resizingBalloonInfo.initialW - newW);
-            const rawH = resizingBalloonInfo.initialH - dy;
-            newH = Math.max(50, rawH);
-            newY = resizingBalloonInfo.initialY + (resizingBalloonInfo.initialH - newH);
-          }
-
-          const clamped = clampBalloonToPanel(newX, newY, newW, newH);
-          return {
-            ...item,
-            x: clamped.x,
-            y: clamped.y,
-            width: Math.round(newW),
-            height: Math.round(newH),
-          };
-        }),
-      };
-    });
-  };
-
-  const handleBalloonResizeEnd = (e: React.PointerEvent) => {
-    if (resizingBalloonInfo) {
-      try {
-        const target = e.currentTarget as HTMLElement;
-        target.releasePointerCapture(e.pointerId);
-      } catch {
-        // ignore
-      }
-      setResizingBalloonInfo(null);
-    }
-  };
-
-  // Lắng nghe phím tắt thao tác bóng thoại (Delete, Copy Ctrl+C, Paste Ctrl+V, Duplicate Ctrl+D, Phóng to/Thu nhỏ +/-)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Bỏ qua nếu đang nhập liệu trong ô input/textarea
-      const activeEl = document.activeElement as HTMLElement | null;
-      const targetTag = activeEl?.tagName?.toUpperCase();
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(targetTag || '') || activeEl?.isContentEditable) {
-        return;
-      }
-
-      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-
-      // Xóa bóng: Phím Delete hoặc Backspace
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedLetteringElementId) {
-        e.preventDefault();
-        handleDeleteLetteringElement(selectedLetteringElementId);
-        return;
-      }
-
-      // Sao chép bóng: Ctrl+C / Cmd+C
-      if (isCtrlOrCmd && (e.key === 'c' || e.key === 'C') && selectedLetteringElementId) {
-        const currentList = selectedPage ? letteringElementsByPageId[selectedPage.id] || [] : [];
-        const elem = currentList.find((item) => item.elementId === selectedLetteringElementId);
-        if (elem) {
-          e.preventDefault();
-          setCopiedLetteringElement(elem);
-          toast.info('Đã sao chép bóng thoại', 'Nhấn Ctrl+V để dán');
-        }
-        return;
-      }
-
-      // Dán bóng: Ctrl+V / Cmd+V
-      if (isCtrlOrCmd && (e.key === 'v' || e.key === 'V') && copiedLetteringElement && selectedPage) {
-        e.preventDefault();
-        const currentList = letteringElementsByPageId[selectedPage.id] || [];
-        const newId = `elem-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-        const clamped = clampBalloonToPanel(
-          copiedLetteringElement.x + 24,
-          copiedLetteringElement.y + 24,
-          copiedLetteringElement.width,
-          copiedLetteringElement.height
-        );
-        const pasted: ElementSnapshotDto = {
-          ...copiedLetteringElement,
-          elementId: newId,
-          x: clamped.x,
-          y: clamped.y,
-          readingOrder: currentList.length + 1,
-          zIndex: currentList.length + 1,
-        };
-        setLetteringElementsByPageId((prev) => ({
-          ...prev,
-          [selectedPage.id]: [...(prev[selectedPage.id] || []), pasted],
-        }));
-        setSelectedLetteringElementId(newId);
-        toast.success('Đã dán bóng thoại', '');
-        return;
-      }
-
-      // Nhân bản: Ctrl+D
-      if (isCtrlOrCmd && (e.key === 'd' || e.key === 'D') && selectedLetteringElementId && selectedPage) {
-        e.preventDefault();
-        const currentList = letteringElementsByPageId[selectedPage.id] || [];
-        const elem = currentList.find((item) => item.elementId === selectedLetteringElementId);
-        if (elem) {
-          const newId = `elem-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-          const clamped = clampBalloonToPanel(elem.x + 24, elem.y + 24, elem.width, elem.height);
-          const duplicated: ElementSnapshotDto = {
-            ...elem,
-            elementId: newId,
-            x: clamped.x,
-            y: clamped.y,
-            readingOrder: currentList.length + 1,
-            zIndex: currentList.length + 1,
-          };
-          setLetteringElementsByPageId((prev) => ({
-            ...prev,
-            [selectedPage.id]: [...(prev[selectedPage.id] || []), duplicated],
-          }));
-          setSelectedLetteringElementId(newId);
-          toast.success('Đã nhân bản bóng thoại', '');
-        }
-        return;
-      }
-
-      // Phóng to (+ / =)
-      if (selectedLetteringElementId && (e.key === '+' || e.key === '=')) {
-        e.preventDefault();
-        handleScaleBalloon(selectedLetteringElementId, 1.15);
-        return;
-      }
-
-      // Thu nhỏ (- / _)
-      if (selectedLetteringElementId && (e.key === '-' || e.key === '_')) {
-        e.preventDefault();
-        handleScaleBalloon(selectedLetteringElementId, 0.85);
-        return;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    selectedLetteringElementId,
-    copiedLetteringElement,
-    selectedPage,
-    letteringElementsByPageId,
-    clampBalloonToPanel,
-    handleScaleBalloon,
-    toast,
-  ]);
+  const balloons = useLetteringBalloons(selectedPage, currentPagePanels, zoomScale, toast);
 
   // Bật/tắt toàn màn hình
   const handleToggleFullscreen = () => {
@@ -2219,542 +1523,66 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               loadPageHistory(selectedPageId);
             }
           }}
-          letteringElements={selectedPage ? letteringElementsByPageId[selectedPage.id] || [] : []}
-          onAddLetteringElement={handleAddLetteringElement}
-          onDeleteLetteringElement={handleDeleteLetteringElement}
-          selectedElementId={selectedLetteringElementId}
-          onSelectElementId={(id) => setSelectedLetteringElementId(id)}
+          letteringElements={balloons.pageElements}
+          onAddLetteringElement={balloons.addElement}
+          onDeleteLetteringElement={balloons.deleteElement}
+          selectedElementId={balloons.selectedElementId}
+          onSelectElementId={balloons.setSelectedElementId}
           theme='paper'
         />
 
-        {/* 2. KHU VỰC LÀM VIỆC CHÍNH (TRANG GIẤY TRẮNG Ở TRÊN + QUẢN LÝ TRANG Ở DƯỚI) */}
         <div className='flex-1 min-h-0 min-w-0 h-full flex flex-col overflow-hidden relative'>
-          <main
-            className='relative flex-1 min-h-0 min-w-0 w-full h-full flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden'
-            data-testid='artist-canvas-shell'
+          <ArtistCanvasViewport
+            pageKey={selectedPageId || 'default'}
+            zoomScale={zoomScale}
+            sketch={currentSketch}
+            hasPanels={currentPagePanels.length > 0}
+            isLayoutLocked={isCurrentPageLayoutLocked}
+            isDetectingPanels={isDetectingPanels}
+            isSavingLayout={isApplyingTemplate}
+            onCanvasClick={() => balloons.setSelectedElementId(null)}
+            onUploadSketch={handleUploadFullPageSketch}
+            onSplitPanels={handleAutoDetectPanels}
+            onOpenTemplates={() => {
+              setActiveSidebarTab('templates');
+              setIsSidebarDrawerOpen(true);
+            }}
+            onSaveLayout={handleSaveLayout}
           >
-            <div
-              className='w-full h-full flex items-center justify-center m-auto transition-transform duration-200 ease-out origin-center'
-              style={{ transform: `scale(${zoomScale})` }}
-            >
-              {/* Khung định vị trang giấy Manga B5 và nút thao tác gắn liền trang giấy */}
-              <div className='relative max-h-full max-w-full h-full w-auto aspect-[1/1.414] shrink-0 flex items-center justify-center'>
-                {/* Trang giấy trắng chuẩn in ấn Manga B5 (tỷ lệ 1:1.414, đầy đủ vùng Bleed, Trim Line & Safe Zone) */}
-                <div
-                  key={selectedPageId || 'default'}
-                  data-testid='artist-blank-sheet'
-                  className='w-full h-full bg-white rounded-[2px] shadow-[0_4px_24px_rgba(0,0,0,0.06),0_12px_44px_rgba(0,0,0,0.08)] border border-stone-300/80 relative flex flex-col items-center justify-center p-0 overflow-hidden transition-all duration-300 ease-out animate-in fade-in zoom-in-98'
-                >
-                {/* Vùng vẽ trang giấy trắng - Khung toạ độ 1:1 chuẩn theo khổ trang */}
-                <div
-                  className='w-full h-full relative overflow-hidden bg-white'
-                  data-testid='artist-canvas-surface'
-                  onClick={() => setSelectedLetteringElementId(null)}
-                >
-                  {/* 1. Đường viền xén Trim Line chuẩn in ấn (3mm ~ 1.8% từ mép tràn lề Bleed) */}
-                  <div
-                    className='absolute inset-[1.8%] border border-dashed border-stone-300/50 pointer-events-none z-10'
-                    title='Đường xén thành phẩm (Trim Line - 3mm Bleed)'
-                  />
+            {currentPagePanels.length > 0 && (
+              <PanelFrameOverlay
+                panels={currentPagePanels}
+                pageWidth={selectedPage?.widthPx || 1200}
+                pageHeight={selectedPage?.heightPx || 1800}
+                templateCode={currentTemplate?.code}
+                artworks={currentPageArtworks}
+                isLayoutLocked={isCurrentPageLayoutLocked}
+                onUploadArtwork={handleUploadPanelArtwork}
+                onRemoveArtwork={handleRemovePanelArtwork}
+                onPreviewArtwork={setPreviewArtwork}
+              />
+            )}
+            {selectedPage && balloons.pageElements.length > 0 && (
+              <LetteringBalloonOverlay
+                elements={balloons.pageElements}
+                pageWidth={selectedPage.widthPx || 1200}
+                pageHeight={selectedPage.heightPx || 1800}
+                selectedId={balloons.selectedElementId}
+                activeGestureId={balloons.draggingId || balloons.resizingId}
+                onSelect={balloons.setSelectedElementId}
+                onScale={balloons.scaleElement}
+                onCopy={balloons.copyElement}
+                onDelete={balloons.deleteElement}
+                onDragStart={balloons.onDragStart}
+                onDragMove={balloons.onDragMove}
+                onDragEnd={balloons.onDragEnd}
+                onResizeStart={balloons.onResizeStart}
+                onResizeMove={balloons.onResizeMove}
+                onResizeEnd={balloons.onResizeEnd}
+              />
+            )}
+          </ArtistCanvasViewport>
 
-                  {/* 2. Đường biên vùng an toàn nội dung (Safe Zone / Live Area: 0.375" từ vết xén) */}
-                  <div
-                    className='absolute top-[2.8%] bottom-[2.8%] left-[2.8%] right-[2.8%] border border-dotted border-stone-200/60 pointer-events-none z-10'
-                    title='Vùng an toàn nội dung thoại & hình vẽ chính (Live Safe Area)'
-                  />
-
-                  {/* Dấu định vị xén (Crop Marks) 4 góc trang chuẩn in ấn tại Trim Line */}
-                  <div className='absolute top-[1.8%] left-[1.8%] w-3 h-3 border-t border-l border-stone-400/80 pointer-events-none z-10' />
-                  <div className='absolute top-[1.8%] right-[1.8%] w-3 h-3 border-t border-r border-stone-400/80 pointer-events-none z-10' />
-                  <div className='absolute bottom-[1.8%] left-[1.8%] w-3 h-3 border-b border-l border-stone-400/80 pointer-events-none z-10' />
-                  <div className='absolute bottom-[1.8%] right-[1.8%] w-3 h-3 border-b border-r border-stone-400/80 pointer-events-none z-10' />
-
-                  {/* Lớp hiển thị ảnh phác thảo toàn trang (Pencil Stage Sketch Underlay) */}
-                  {currentSketch && (
-                    <img
-                      src={currentSketch.imageUrl}
-                      alt={currentSketch.fileName}
-                      className='absolute inset-0 w-full h-full object-contain pointer-events-none z-5 select-none transition-opacity duration-300'
-                      style={{ opacity: currentSketch.isVisible ? 0.5 : 0 }}
-                    />
-                  )}
-
-                  {/* Nút Tách khung đơn giản ở góc phải trên sau khi tải ảnh phác thảo */}
-                  {currentSketch && currentPagePanels.length === 0 && (
-                    <div
-                      data-testid='pencil-sketch-split-btn'
-                      className='absolute top-3.5 right-3.5 z-30 pointer-events-auto'
-                    >
-                      <button
-                        type='button'
-                        onClick={handleAutoDetectPanels}
-                        disabled={isDetectingPanels}
-                        data-testid='btn-split-panels-simple'
-                        className='px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors disabled:opacity-60'
-                      >
-                        {isDetectingPanels ? (
-                          <>
-                            <Loader2 className='w-3.5 h-3.5 animate-spin text-white' />
-                            <span>Đang tách khung...</span>
-                          </>
-                        ) : (
-                          <span>Tách khung</span>
-                        )}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Hiệu ứng quét Scanner khi đang tách panel */}
-                  {isDetectingPanels && (
-                    <div className='absolute inset-0 z-35 pointer-events-none overflow-hidden animate-in fade-in duration-150'>
-                      <div className='w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_12px_#f59e0b] animate-bounce' />
-                      <div className='absolute inset-0 bg-stone-900/10 backdrop-blur-[0.5px] flex items-center justify-center'>
-                        <div className='px-4 py-2 rounded-xl bg-stone-900/90 text-white text-xs font-semibold shadow-xl flex items-center gap-2 border border-amber-400/30'>
-                          <Loader2 className='w-4 h-4 text-amber-400 animate-spin' />
-                          <span>AI đang quét rãnh và tách các ô panel...</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 2 nút bấm thao tác trực tiếp trên trang giấy trắng */}
-                  {currentPagePanels.length === 0 && !currentSketch && (
-                    <div
-                      data-testid='artist-blank-state-actions'
-                      className='absolute inset-0 z-20 flex items-center justify-center pointer-events-auto'
-                    >
-                      <div className='flex items-center gap-2.5'>
-                        <button
-                          type='button'
-                          onClick={() => sketchFileInputRef.current?.click()}
-                          data-testid='btn-upload-sketch-simple'
-                          className='px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition-all hover:scale-105 active:scale-95'
-                        >
-                          <Upload className='w-3.5 h-3.5' />
-                          <span>Tải phác thảo</span>
-                        </button>
-                        <button
-                          type='button'
-                          onClick={() => {
-                            setActiveSidebarTab('templates');
-                            setIsSidebarDrawerOpen(true);
-                          }}
-                          data-testid='btn-open-templates-simple'
-                          className='px-4 py-2 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all hover:scale-105 active:scale-95'
-                        >
-                          <LayoutTemplate className='w-3.5 h-3.5 text-stone-600' />
-                          <span>Chọn mẫu khung</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Hidden File Input cho ảnh phác thảo toàn trang */}
-                  <input
-                    ref={sketchFileInputRef}
-                    type='file'
-                    accept='image/png,image/jpeg,image/webp'
-                    className='hidden'
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files.length > 0) {
-                        handleUploadFullPageSketch(e.target.files[0]);
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-
-                  {/* Lớp hiển thị các khung Panel */}
-                  {currentPagePanels.length > 0 && (
-                    <div
-                      data-testid='canvas-panel-template-overlay'
-                      className='absolute inset-0 z-20 pointer-events-none'
-                    >
-                      {currentPagePanels.map((pnl, idx) => {
-                        const box = parseBoundingBox(
-                          pnl.boundingBox,
-                          selectedPage?.widthPx || 1200,
-                          selectedPage?.heightPx || 1800,
-                        );
-                        const panelNum = pnl.panelNumber || idx + 1;
-                        const artwork = currentPageArtworks[pnl.id];
-                        const hasCorners = Boolean(box.corners && box.corners.length >= 3);
-                        // Nhận diện Inset Panel (Khung lồng) khi có khung nhỏ nằm đè lên khung lớn
-                        const isInsetChild = Boolean(
-                          (currentTemplate?.code === 'TPL-MANGA-06' && idx > 0) ||
-                          (box.percentW < 50 && box.percentH < 50 && currentPagePanels.some((_, i) => i !== idx && parseBoundingBox(currentPagePanels[i].boundingBox, selectedPage?.widthPx || 1200, selectedPage?.heightPx || 1800).percentW > 80))
-                        );
-
-                        return (
-                          <div
-                            key={pnl.id}
-                            data-testid={`canvas-panel-frame-${panelNum}`}
-                            className={`absolute transition-all duration-200 overflow-hidden ${
-                              isInsetChild ? 'z-30 shadow-md bg-white' : 'z-20'
-                            } ${
-                              hasCorners
-                                ? ''
-                                : box.borderless
-                                  ? 'border-2 border-dashed border-orange-500/85 bg-orange-50/15'
-                                  : isCurrentPageLayoutLocked
-                                    ? isInsetChild
-                                      ? 'border-2 border-stone-900 bg-white'
-                                      : 'border-2 border-stone-900 bg-stone-50/20 shadow-2xs'
-                                    : isInsetChild
-                                      ? 'border-2 border-dashed border-stone-600 bg-white'
-                                      : 'border-2 border-dashed border-stone-400/80 bg-stone-100/30'
-                            } ${isCurrentPageLayoutLocked ? 'pointer-events-auto' : 'pointer-events-none'}`}
-                            style={{
-                              left: `${box.percentX}%`,
-                              top: `${box.percentY}%`,
-                              width: `${box.percentW}%`,
-                              height: `${box.percentH}%`,
-                              clipPath: hasCorners
-                                ? `polygon(${box.corners!
-                                    .map((c) => `${c.x * 100}% ${c.y * 100}%`)
-                                    .join(', ')})`
-                                : undefined,
-                            }}
-                          >
-                            {/* Viền SVG stroke cho các khung cắt chéo (Slanted Polygon) */}
-                            {hasCorners && (
-                              <svg
-                                className='absolute inset-0 w-full h-full pointer-events-none z-10'
-                                viewBox='0 0 100 100'
-                                preserveAspectRatio='none'
-                              >
-                                <polygon
-                                  points={box.corners!.map((c) => `${c.x * 100},${c.y * 100}`).join(' ')}
-                                  fill={
-                                    isInsetChild
-                                      ? '#ffffff'
-                                      : isCurrentPageLayoutLocked
-                                        ? 'rgba(250, 250, 249, 0.2)'
-                                        : 'rgba(245, 245, 244, 0.3)'
-                                  }
-                                  stroke={
-                                    box.borderless
-                                      ? '#f97316'
-                                      : isCurrentPageLayoutLocked
-                                        ? '#1c1917'
-                                        : '#78716c'
-                                  }
-                                  strokeWidth={isCurrentPageLayoutLocked ? '2.5' : '2'}
-                                  strokeDasharray={
-                                    box.borderless || !isCurrentPageLayoutLocked ? '6 4' : undefined
-                                  }
-                                  vectorEffect='non-scaling-stroke'
-                                />
-                              </svg>
-                            )}
-
-                            {/* Số thứ tự đọc Manga */}
-                            <span className='absolute top-1 left-1.5 z-20 px-1 py-0.2 rounded text-[10px] font-mono font-bold bg-white/95 text-stone-800 border border-stone-300/80 shadow-2xs'>
-                              #{panelNum}
-                            </span>
-
-                            {/* Nếu ĐÃ CHỐT BỐ CỤC: Cho phép hiển thị / nạp tranh */}
-                            {isCurrentPageLayoutLocked ? (
-                              artwork ? (
-                                <div className='relative w-full h-full group'>
-                                  <img
-                                    src={artwork.imageUrl}
-                                    alt={artwork.fileName}
-                                    className='w-full h-full object-cover select-none'
-                                  />
-                                  {/* Thanh công cụ khi hover vào khung có tranh */}
-                                  <div className='absolute inset-0 bg-stone-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2'>
-                                    <button
-                                      type='button'
-                                      onClick={() =>
-                                        setPreviewArtwork({
-                                          imageUrl: artwork.imageUrl,
-                                          title: `Khung #${panelNum} - ${artwork.fileName}`,
-                                        })
-                                      }
-                                      data-testid={`panel-btn-view-${panelNum}`}
-                                      className='p-1.5 rounded-lg bg-white/90 hover:bg-white text-stone-800 shadow-sm cursor-pointer transition-transform hover:scale-105'
-                                      title='Xem phóng to tranh'
-                                    >
-                                      <Eye className='w-4 h-4' />
-                                    </button>
-                                    <button
-                                      type='button'
-                                      onClick={() => panelFileInputRefs.current[pnl.id]?.click()}
-                                      data-testid={`panel-btn-replace-${panelNum}`}
-                                      className='p-1.5 rounded-lg bg-white/90 hover:bg-white text-stone-800 shadow-sm cursor-pointer transition-transform hover:scale-105'
-                                      title='Thay đổi ảnh'
-                                    >
-                                      <UploadCloud className='w-4 h-4' />
-                                    </button>
-                                    <button
-                                      type='button'
-                                      onClick={() => handleRemovePanelArtwork(pnl.id, panelNum)}
-                                      data-testid={`panel-btn-remove-${panelNum}`}
-                                      className='p-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-sm cursor-pointer transition-transform hover:scale-105'
-                                      title='Gỡ tranh'
-                                    >
-                                      <Trash2 className='w-4 h-4' />
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div
-                                  onDragOver={(e) => e.preventDefault()}
-                                  onDrop={(e) => {
-                                    e.preventDefault();
-                                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                                      handleUploadPanelArtwork(pnl.id, panelNum, e.dataTransfer.files[0]);
-                                    }
-                                  }}
-                                  onClick={() => panelFileInputRefs.current[pnl.id]?.click()}
-                                  data-testid={`panel-dropzone-${panelNum}`}
-                                  className='w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-50/50 cursor-pointer transition-all border border-dashed border-stone-300 hover:border-stone-500 rounded-xs'
-                                >
-                                  <div className='p-2 rounded-full bg-white/80 border border-stone-200/80 shadow-2xs'>
-                                    <ImagePlus className='w-4 h-4 text-stone-600' />
-                                  </div>
-                                  <span className='text-[10.5px] font-semibold'>+ Nạp tranh Khung #{panelNum}</span>
-                                  <span className='text-[9px] text-stone-400'>Kéo thả hoặc nhấn để chọn</span>
-                                </div>
-                              )
-                            ) : (
-                              /* Chưa lưu bố cục: Không cho tải ảnh */
-                              <div className='w-full h-full flex items-center justify-center p-2 select-none pointer-events-none' />
-                            )}
-
-                            {/* Hidden File Input cho từng khung */}
-                            <input
-                              type='file'
-                              ref={(el) => {
-                                panelFileInputRefs.current[pnl.id] = el;
-                              }}
-                              accept='image/png,image/jpeg,image/webp'
-                              className='hidden'
-                              onChange={(e) => {
-                                if (e.target.files && e.target.files.length > 0) {
-                                  handleUploadPanelArtwork(pnl.id, panelNum, e.target.files[0]);
-                                  e.target.value = '';
-                                }
-                              }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Lớp hiển thị các phần tử bóng thoại (Lettering Balloons & Narration) */}
-                  {selectedPage && (letteringElementsByPageId[selectedPage.id] || []).length > 0 && (
-                    <div
-                      data-testid='canvas-lettering-overlay'
-                      className='absolute inset-0 z-25 pointer-events-none'
-                    >
-                      {(letteringElementsByPageId[selectedPage.id] || []).map((b, idx) => {
-                        const isSelected = selectedLetteringElementId === b.elementId;
-                        const pageWidth = selectedPage.widthPx || 1200;
-                        const pageHeight = selectedPage.heightPx || 1800;
-
-                        const leftPct = (b.x / pageWidth) * 100;
-                        const topPct = (b.y / pageHeight) * 100;
-                        const widthPct = (b.width / pageWidth) * 100;
-                        const heightPct = (b.height / pageHeight) * 100;
-
-                        const isThought = b.elementType === 'THOUGHT_BALLOON';
-                        const isNarration = b.elementType === 'NARRATION_BOX';
-                        const isSpeech = !isThought && !isNarration;
-
-                        const shapePath = isSpeech
-                          ? createSpeechBalloonPath(b.width, b.height, b.width / 2, b.height + 30)
-                          : isThought
-                          ? createThoughtBalloonPath(b.width, b.height)
-                          : null;
-
-                        const isDragging = draggingBalloonInfo?.elementId === b.elementId;
-                        const isResizing = resizingBalloonInfo?.elementId === b.elementId;
-
-                        return (
-                          <div
-                            key={b.elementId}
-                            data-testid={`lettering-element-${b.elementId}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedLetteringElementId(b.elementId);
-                            }}
-                            onPointerDown={(e) => handleBalloonPointerDown(e, b.elementId)}
-                            onPointerMove={handleBalloonPointerMove}
-                            onPointerUp={handleBalloonPointerUp}
-                            className={`absolute pointer-events-auto cursor-move select-none touch-none ${
-                              isDragging || isResizing ? 'transition-none z-40 shadow-lg' : 'transition-shadow'
-                            } ${
-                              isSelected ? 'ring-2 ring-orange-500 ring-offset-2 z-30' : 'z-20 hover:ring-1 hover:ring-orange-400'
-                            }`}
-                            style={{
-                              left: `${leftPct}%`,
-                              top: `${topPct}%`,
-                              width: `${widthPct}%`,
-                              height: `${heightPct}%`,
-                            }}
-                          >
-                            {/* Thanh công cụ nổi khi bóng được chọn (Phóng to, Thu nhỏ, Sao chép, Xóa) */}
-                            {isSelected && (
-                              <div
-                                data-testid={`lettering-toolbar-${b.elementId}`}
-                                className='absolute -top-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-stone-900/95 text-white px-2 py-1 rounded-xl shadow-lg border border-stone-700/80 backdrop-blur-xs text-[11px] select-none pointer-events-auto'
-                                onClick={(e) => e.stopPropagation()}
-                                onPointerDown={(e) => e.stopPropagation()}
-                              >
-                                <button
-                                  type='button'
-                                  onClick={() => handleScaleBalloon(b.elementId, 1.15)}
-                                  className='p-1 hover:bg-stone-800 rounded text-stone-200 hover:text-white transition-colors cursor-pointer'
-                                  title='Phóng to (Phím +)'
-                                  data-testid={`btn-zoom-in-${b.elementId}`}
-                                >
-                                  <ZoomIn className='w-3.5 h-3.5' />
-                                </button>
-                                <button
-                                  type='button'
-                                  onClick={() => handleScaleBalloon(b.elementId, 0.85)}
-                                  className='p-1 hover:bg-stone-800 rounded text-stone-200 hover:text-white transition-colors cursor-pointer'
-                                  title='Thu nhỏ (Phím -)'
-                                  data-testid={`btn-zoom-out-${b.elementId}`}
-                                >
-                                  <ZoomOut className='w-3.5 h-3.5' />
-                                </button>
-                                <div className='w-px h-3 bg-stone-700' />
-                                <button
-                                  type='button'
-                                  onClick={() => {
-                                    setCopiedLetteringElement(b);
-                                    toast.info('Đã sao chép bóng thoại', 'Nhấn Ctrl+V để dán');
-                                  }}
-                                  className='p-1 hover:bg-stone-800 rounded text-stone-200 hover:text-white transition-colors cursor-pointer'
-                                  title='Sao chép (Ctrl+C)'
-                                  data-testid={`btn-copy-${b.elementId}`}
-                                >
-                                  <Copy className='w-3.5 h-3.5' />
-                                </button>
-                                <button
-                                  type='button'
-                                  onClick={() => handleDeleteLetteringElement(b.elementId)}
-                                  className='p-1 hover:bg-rose-500/30 text-rose-300 hover:text-rose-200 rounded transition-colors cursor-pointer'
-                                  title='Xóa bóng (Del / Backspace)'
-                                  data-testid={`btn-delete-${b.elementId}`}
-                                >
-                                  <Trash2 className='w-3.5 h-3.5' />
-                                </button>
-                              </div>
-                            )}
-
-                            {/* 4 điểm kéo thay đổi kích thước ở góc (Resize Handles) */}
-                            {isSelected && (
-                              <>
-                                <div
-                                  data-testid={`lettering-resize-nw-${b.elementId}`}
-                                  onPointerDown={(e) => handleBalloonResizeStart(e, b.elementId, 'nw')}
-                                  onPointerMove={handleBalloonResizeMove}
-                                  onPointerUp={handleBalloonResizeEnd}
-                                  className='absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-orange-500 rounded-full cursor-nwse-resize z-40 shadow-xs pointer-events-auto touch-none'
-                                  title='Kéo để thay đổi kích thước'
-                                />
-                                <div
-                                  data-testid={`lettering-resize-ne-${b.elementId}`}
-                                  onPointerDown={(e) => handleBalloonResizeStart(e, b.elementId, 'ne')}
-                                  onPointerMove={handleBalloonResizeMove}
-                                  onPointerUp={handleBalloonResizeEnd}
-                                  className='absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-orange-500 rounded-full cursor-nesw-resize z-40 shadow-xs pointer-events-auto touch-none'
-                                  title='Kéo để thay đổi kích thước'
-                                />
-                                <div
-                                  data-testid={`lettering-resize-se-${b.elementId}`}
-                                  onPointerDown={(e) => handleBalloonResizeStart(e, b.elementId, 'se')}
-                                  onPointerMove={handleBalloonResizeMove}
-                                  onPointerUp={handleBalloonResizeEnd}
-                                  className='absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-orange-500 rounded-full cursor-nwse-resize z-40 shadow-xs pointer-events-auto touch-none'
-                                  title='Kéo để thay đổi kích thước'
-                                />
-                                <div
-                                  data-testid={`lettering-resize-sw-${b.elementId}`}
-                                  onPointerDown={(e) => handleBalloonResizeStart(e, b.elementId, 'sw')}
-                                  onPointerMove={handleBalloonResizeMove}
-                                  onPointerUp={handleBalloonResizeEnd}
-                                  className='absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-orange-500 rounded-full cursor-nesw-resize z-40 shadow-xs pointer-events-auto touch-none'
-                                  title='Kéo để thay đổi kích thước'
-                                />
-                              </>
-                            )}
-
-                            {/* Vẽ hình dạng bóng qua SVG hoặc Box */}
-                            {isNarration ? (
-                              <div className='w-full h-full bg-amber-50/90 border-2 border-stone-800 rounded-xs shadow-sm p-2 flex items-center justify-center text-center'>
-                                <span className='text-[11px] font-sans font-medium text-stone-900 line-clamp-3 select-none'>
-                                  {b.content}
-                                </span>
-                              </div>
-                            ) : (
-                              <div className='relative w-full h-full flex items-center justify-center'>
-                                {shapePath && (
-                                  <svg
-                                    viewBox={`0 0 ${b.width} ${b.height}`}
-                                    className='absolute inset-0 w-full h-full overflow-visible pointer-events-none drop-shadow-xs'
-                                  >
-                                    <path
-                                      d={shapePath}
-                                      fill='#ffffff'
-                                      stroke='#1c1917'
-                                      strokeWidth='2.5'
-                                    />
-                                  </svg>
-                                )}
-                                <div className='relative z-10 p-2 text-center'>
-                                  <span className='text-[11px] font-comic font-medium text-stone-900 line-clamp-3 select-none'>
-                                    {b.content}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Badge thứ tự đọc Manga */}
-                            <span className='absolute -top-1.5 -left-1.5 z-20 w-4 h-4 rounded-full bg-stone-900 text-white font-mono text-[9px] font-bold flex items-center justify-center shadow-xs'>
-                              #{b.readingOrder ?? idx + 1}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Nút LƯU phong cách Lucian UX/UI: Đặt bên phải dưới ngay bên cạnh / góc trang giấy, sau khi lưu thì tắt nút */}
-              {currentPagePanels.length > 0 && !isCurrentPageLayoutLocked && (
-                <div
-                  data-testid='canvas-bottom-layout-bar'
-                  className='absolute bottom-3 right-3 z-30 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto'
-                >
-                  <button
-                    type='button'
-                    onClick={handleSaveLayout}
-                    disabled={isApplyingTemplate}
-                    data-testid='canvas-btn-save-layout'
-                    data-btn-lock-alias='canvas-btn-lock-layout'
-                    aria-label='Lưu bố cục'
-                    className='group relative inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-stone-900 hover:bg-black text-white dark:bg-stone-100 dark:hover:bg-white dark:text-stone-900 text-xs font-bold tracking-wide shadow-[0_8px_20px_-4px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.25)] border border-white/20 dark:border-black/15 backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-60'
-                  >
-                    {isApplyingTemplate ? (
-                      <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                    ) : (
-                      <Check className='w-3.5 h-3.5 text-emerald-400 dark:text-emerald-600 transition-transform group-hover:scale-110' />
-                    )}
-                    <span>Lưu</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </main>
-
-          {/* THANH QUẢN LÝ TRANG Ở ĐÁY MÀN HÌNH */}
           <ArtistBottomPageStrip
             pages={pages}
             selectedPageId={selectedPageId}
@@ -2773,82 +1601,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         </div>
       </div>
 
-      {/* Modal Xác nhận An toàn khi Mở khóa đổi mẫu khung nếu đã có tranh */}
       {isUnlockConfirmOpen && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-xs p-4'>
-          <div
-            data-testid='modal-unlock-layout-confirm'
-            className='w-full max-w-md rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95'
-          >
-            <div className='flex items-start gap-3'>
-              <div className='p-2.5 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0'>
-                <AlertTriangle className='w-5 h-5' />
-              </div>
-              <div className='space-y-1'>
-                <h3 className='text-sm font-bold text-stone-900 dark:text-stone-100'>
-                  Mở khóa đổi mẫu khung trang?
-                </h3>
-                <p className='text-xs text-stone-500 dark:text-stone-400 leading-relaxed'>
-                  Trang này hiện đang chứa bản vẽ trong các khung hình. Việc mở khóa và chọn mẫu khung khác có thể làm thay đổi tỷ lệ hoặc gỡ bỏ các bản vẽ hiện tại.
-                </p>
-              </div>
-            </div>
-
-            <div className='p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/80 dark:border-stone-700/60 text-[11px] text-stone-600 dark:text-stone-300'>
-              Bấm <strong className='text-rose-600 dark:text-rose-400'>Xác nhận mở khóa</strong> sẽ gỡ tranh tạm trên trang và đưa trang về chế độ chọn bố cục nháp.
-            </div>
-
-            <div className='flex items-center justify-end gap-2 pt-1'>
-              <button
-                type='button'
-                onClick={() => setIsUnlockConfirmOpen(false)}
-                data-testid='btn-cancel-unlock'
-                className='px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-semibold text-stone-700 dark:text-stone-300 cursor-pointer transition-colors'
-              >
-                Hủy bỏ (Giữ nguyên)
-              </button>
-              <button
-                type='button'
-                onClick={handleConfirmUnlockLayout}
-                data-testid='btn-confirm-unlock'
-                className='px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer transition-all'
-              >
-                Xác nhận mở khóa & Gỡ tranh
-              </button>
-            </div>
-          </div>
-        </div>
+        <UnlockLayoutDialog
+          onCancel={() => setIsUnlockConfirmOpen(false)}
+          onConfirm={handleConfirmUnlockLayout}
+        />
       )}
 
-      {/* Modal Xem Phóng to Tranh */}
       {previewArtwork && (
-        <div
-          onClick={() => setPreviewArtwork(null)}
-          className='fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 cursor-zoom-out'
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className='relative max-w-4xl max-h-[90vh] bg-stone-900 rounded-xl overflow-hidden border border-stone-700 shadow-2xl flex flex-col'
-          >
-            <div className='flex items-center justify-between px-4 py-2 bg-stone-900/90 border-b border-stone-800 text-stone-200 text-xs font-medium'>
-              <span>{previewArtwork.title}</span>
-              <button
-                type='button'
-                onClick={() => setPreviewArtwork(null)}
-                className='p-1 rounded hover:bg-stone-800 text-stone-400 hover:text-white cursor-pointer'
-              >
-                <X className='w-4 h-4' />
-              </button>
-            </div>
-            <div className='p-2 flex items-center justify-center overflow-auto'>
-              <img
-                src={previewArtwork.imageUrl}
-                alt={previewArtwork.title}
-                className='max-w-full max-h-[80vh] object-contain rounded'
-              />
-            </div>
-          </div>
-        </div>
+        <ArtworkPreviewDialog
+          imageUrl={previewArtwork.imageUrl}
+          title={previewArtwork.title}
+          onClose={() => setPreviewArtwork(null)}
+        />
       )}
     </div>
   );

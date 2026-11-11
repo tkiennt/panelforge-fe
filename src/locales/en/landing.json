@@ -8,7 +8,7 @@
     "register": "Sign Up"
   },
   "hero": {
-    "docket": "PF / 01 — COMIC PRODUCTION STUDIO",
+    "docket": "PF / 01 · COMIC PRODUCTION STUDIO",
     "titleLine1": "FROM SCRIPT TO",
     "titleLine2": "EVERY PANEL.",
     "subtitleLead": "Write, draw, and review comics in one shared workspace.",
@@ -44,7 +44,7 @@
   "workflow": {
     "tag": "03 / Production Pipeline",
     "title": "From raw script to polished artwork.",
-    "subtitle": "Four seamless stages visualizing your creative journey from outline draft to final color print.",
+    "subtitle": "Script, sketch, ink and color: each page passes four stages, with a review gate before the next one starts.",
     "stages": {
       "script": "Script",
       "sketch": "Sketch",

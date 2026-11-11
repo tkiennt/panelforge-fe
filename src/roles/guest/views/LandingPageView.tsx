@@ -472,13 +472,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   // Manage page title and description for landing page
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'PanelForge — Không gian cộng tác sản xuất manga';
+    document.title = 'PanelForge · Không gian cộng tác sản xuất manga';
     const metaDesc = document.querySelector('meta[name="description"]');
     const previousDesc = metaDesc ? metaDesc.getAttribute('content') : null;
     if (metaDesc) {
       metaDesc.setAttribute(
         'content',
-        'PanelForge — Nền tảng cộng tác sản xuất truyện tranh có cấu trúc. Đồng bộ kịch bản, nét vẽ, xét duyệt và lịch sử phiên bản trong một không gian duy nhất.',
+        'PanelForge · Nền tảng cộng tác sản xuất truyện tranh có cấu trúc. Đồng bộ kịch bản, nét vẽ, xét duyệt và lịch sử phiên bản trong một không gian duy nhất.',
       );
     }
     return () => {
@@ -1347,7 +1347,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
         {/* Left margin guideline indicator (as seen in Reference Image 2) */}
         <div
-          className='hidden 2xl:flex absolute left-4 sm:left-7 top-1/2 -translate-y-1/2 [writing-mode:vertical-rl] rotate-180 text-[11px] font-mono tracking-[0.2em] text-[#0284C7]/75 select-none pointer-events-none items-center gap-2 z-10'
+          className='hidden 2xl:flex absolute left-4 sm:left-7 top-1/2 -translate-y-1/2 [writing-mode:vertical-rl] rotate-180 text-xs font-mono tracking-[0.2em] text-[#0284C7]/75 select-none pointer-events-none items-center gap-2 z-10'
           aria-hidden='true'
         >
           <span>01 / Bắt đầu một câu chuyện</span>
@@ -1402,7 +1402,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className='hero-stagger-1 inline-flex items-center gap-2 text-xs sm:text-[13px] font-medium text-[#57534E] mb-[clamp(14px,2.2vh,24px)] select-none'>
                 <span className='font-mono font-bold text-[#1C1917] tracking-wider'>PF / 01</span>
                 <span className='text-[#D8D2C5]' aria-hidden='true'>
-                  —
+                  ·
                 </span>
                 <span className='font-sans uppercase tracking-[0.16em] text-[#57534E] font-semibold'>
                   XƯỞNG SÁNG TÁC TRUYỆN TRANH
@@ -1710,7 +1710,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <article className='relative z-10 w-full select-text'>
                     {/* Inner Content (Kept level and upright) */}
                     <div className='note-content relative z-10 w-full p-8 sm:p-10 lg:p-12 pt-12 sm:pt-14 lg:pt-16 pb-12 sm:pb-14 lg:pb-16 transition-transform'>
-                      <div className='inline-flex items-center gap-2.5 text-[11px] font-semibold text-[#9A3412] uppercase tracking-[0.2em] font-mono mb-3.5 select-none'>
+                      <div className='inline-flex items-center gap-2.5 text-xs font-semibold text-[#9A3412] uppercase tracking-[0.2em] font-mono mb-3.5 select-none'>
                         <span className='w-7 h-px bg-[#C2410C]' aria-hidden='true' />
                         Dành cho đội ngũ sáng tác truyện tranh
                       </div>
@@ -1922,7 +1922,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         <div className='max-w-[1780px] mx-auto px-[clamp(20px,4.2vw,72px)] w-full'>
           {/* Section Lead */}
           <div className='text-center w-full max-w-4xl mx-auto animate-on-scroll mb-14'>
-            <div className='inline-flex items-center gap-2 text-[11px] font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
+            <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
               02 / Vì sao chọn PanelForge
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
@@ -1950,7 +1950,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <div className='w-11 h-11 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5] flex items-center justify-center text-[#1C1917] mb-5'>
                   <FolderTree className='w-5 h-5 text-[#1C1917]' />
                 </div>
-                <div className='text-[10px] uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
+                <div className='text-xs uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
                   01 / Phân cấp
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
@@ -1973,7 +1973,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <div className='w-11 h-11 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5] flex items-center justify-center text-[#1C1917] mb-5'>
                   <History className='w-5 h-5 text-[#1C1917]' />
                 </div>
-                <div className='text-[10px] uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
+                <div className='text-xs uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
                   02 / Minh bạch
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
@@ -1994,9 +1994,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <FrameInk />
               <div>
                 <div className='w-11 h-11 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5] flex items-center justify-center text-[#1C1917] mb-5'>
-                  <Sparkles className='w-5 h-5 text-[#F97316]' />
+                  <BookMarked className='w-5 h-5 text-[#F97316]' aria-hidden='true' />
                 </div>
-                <div className='text-[10px] uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
+                <div className='text-xs uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
                   03 / Nhất quán
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
@@ -2018,7 +2018,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           {/* ============================================================== */}
           <div className='grid grid-cols-1 lg:grid-cols-[minmax(0,50%)_minmax(0,50%)] gap-10 lg:gap-16 xl:gap-20 items-center w-full'>
             <div className='animate-on-scroll'>
-              <div className='inline-flex items-center gap-2 text-[11px] font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
+              <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
                 <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
                 01 / Nội dung có cấu trúc
               </div>
@@ -2027,22 +2027,22 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <em className='font-normal text-[#57534E] italic'>tư duy làm manga.</em>
               </h3>
               <p className='mt-4 text-base sm:text-lg text-[#57534E] leading-relaxed [text-wrap:pretty] max-w-[52ch]'>
-                Phân cấp từ bộ truyện, tập, chương, phân cảnh đến khung truyện — liên kết kịch bản,
+                Phân cấp từ bộ truyện, tập, chương, phân cảnh đến khung truyện, liên kết kịch bản,
                 hình ảnh tham chiếu và trạng thái xét duyệt mà không bị thất lạc trong thư mục.
               </p>
               <ul className='mt-6 space-y-3.5 text-sm text-[#1C1917] max-w-[55ch]'>
                 {[
                   {
                     bold: 'Dữ liệu chi tiết từng khung truyện',
-                    rest: '— quản lý lời thoại, hiệu ứng âm thanh (SFX) và trạng thái sản xuất.',
+                    rest: 'quản lý lời thoại, hiệu ứng âm thanh (SFX) và trạng thái sản xuất.',
                   },
                   {
                     bold: 'Phân cấp trực quan',
-                    rest: '— liên kết mạch lạc giữa tập, chương, phân cảnh và khung tranh.',
+                    rest: 'liên kết mạch lạc giữa tập, chương, phân cảnh và khung tranh.',
                   },
                   {
                     bold: 'Phân công trách nhiệm rõ ràng',
-                    rest: '— nắm rõ ai đang phụ trách bản vẽ và khâu nào cần xét duyệt.',
+                    rest: 'nắm rõ ai đang phụ trách bản vẽ và khâu nào cần xét duyệt.',
                   },
                 ].map((item, i) => (
                   <li key={i} className='flex items-start gap-3'>
@@ -2050,7 +2050,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <Check className='w-3 h-3 text-white' />
                     </span>
                     <span>
-                      <strong className='text-[#1C1917] font-semibold'>{item.bold}</strong>{' '}
+                      <strong className='text-[#1C1917] font-semibold'>{item.bold}</strong>:{' '}
                       <span className='text-[#57534E]'>{item.rest}</span>
                     </span>
                   </li>
@@ -2062,10 +2062,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className='animate-on-scroll delay-100 relative w-full'>
               <div className='relative bg-[#FFFEFA] rounded-2xl shadow-sm border border-[#D8D2C5] p-5 sm:p-6 overflow-hidden w-full'>
                 <div className='flex items-center justify-between pb-3 border-b border-[#E2DDD2]'>
-                  <div className='text-[11px] uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
+                  <div className='text-xs uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
                     Mô hình phân cấp truyện
                   </div>
-                  <div className='flex items-center gap-1.5 text-[10.5px] text-[#57534E] font-mono'>
+                  <div className='flex items-center gap-1.5 text-xs text-[#57534E] font-mono'>
                     <Database className='w-3 h-3 text-[#1C1917]' /> Minh họa cấu trúc
                   </div>
                 </div>
@@ -2081,11 +2081,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <div
                         className={`${indent > 0 ? 'pl-3.5 border-l border-dashed border-[#D8D2C5]' : ''} flex items-center gap-2 text-stone-700 py-1`}
                       >
-                        <span className='text-stone-400 text-[10px] w-3 inline-block'>
+                        <span className='text-stone-400 text-xs w-3 inline-block'>
                           {indent < 3 ? '▾' : '▸'}
                         </span>
                         <span>{level}</span>
-                        <span className='ml-auto text-[10px] text-[#57534E] font-mono tabular-nums'>
+                        <span className='ml-auto text-xs text-[#57534E] font-mono tabular-nums'>
                           {count}
                         </span>
                       </div>
@@ -2099,7 +2099,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     <div className='flex items-center gap-2 text-[#C2410C] font-medium py-1'>
                       <span className='w-3 inline-block'>·</span>
                       <span>Khung truyện #14.3.2</span>
-                      <span className='ml-auto text-[10px] text-[#C2410C] font-mono font-semibold'>
+                      <span className='ml-auto text-xs text-[#C2410C] font-mono font-semibold'>
                         Đang đi nét
                       </span>
                     </div>
@@ -2108,9 +2108,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
                 {/* Sub-panel details */}
                 <div className='mt-4 pt-4 border-t border-[#E2DDD2]'>
-                  <div className='grid grid-cols-3 gap-3 text-[11px]'>
+                  <div className='grid grid-cols-3 gap-3 text-xs'>
                     <div className='bg-[#FAF8F5] rounded-lg p-3 border border-[#D8D2C5]'>
-                      <div className='text-[#57534E] uppercase tracking-wider text-[9px] font-semibold font-mono'>
+                      <div className='text-[#57534E] uppercase tracking-wider text-xs font-semibold font-mono'>
                         Lời thoại
                       </div>
                       <div className='text-[#1C1917] mt-1 font-medium leading-snug'>
@@ -2118,17 +2118,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       </div>
                     </div>
                     <div className='bg-[#FAF8F5] rounded-lg p-3 border border-[#D8D2C5]'>
-                      <div className='text-[#57534E] uppercase tracking-wider text-[9px] font-semibold font-mono'>
+                      <div className='text-[#57534E] uppercase tracking-wider text-xs font-semibold font-mono'>
                         Âm thanh (SFX)
                       </div>
-                      <div className='text-[#1C1917] mt-1 font-medium leading-snug'>— vút nhẹ</div>
+                      <div className='text-[#1C1917] mt-1 font-medium leading-snug'>vút nhẹ</div>
                     </div>
                     <div className='bg-[#FAF8F5] rounded-lg p-3 border border-[#D8D2C5]'>
-                      <div className='text-[#57534E] uppercase tracking-wider text-[9px] font-semibold font-mono'>
+                      <div className='text-[#57534E] uppercase tracking-wider text-xs font-semibold font-mono'>
                         Họa sĩ
                       </div>
                       <div className='text-[#1C1917] mt-1 font-medium leading-snug flex items-center gap-1.5'>
-                        <span className='w-4 h-4 rounded-full bg-orange-100 text-[#C2410C] text-[8.5px] font-bold flex items-center justify-center font-mono'>
+                        <span className='w-4 h-4 rounded-full bg-orange-100 text-[#C2410C] text-xs font-bold flex items-center justify-center font-mono'>
                           A
                         </span>
                         An (Họa sĩ)
@@ -2148,7 +2148,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           {/* ============================================================== */}
           <div className='grid grid-cols-1 lg:grid-cols-[minmax(0,50%)_minmax(0,50%)] gap-10 lg:gap-16 xl:gap-20 items-center w-full'>
             <div className='animate-on-scroll lg:order-2'>
-              <div className='inline-flex items-center gap-2 text-[11px] font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
+              <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
                 <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
                 02 / Lịch sử phiên bản
               </div>
@@ -2164,15 +2164,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 {[
                   {
                     bold: 'Nhật ký thay đổi theo mốc thời gian',
-                    rest: '— nắm rõ ai đã chỉnh sửa và vào thời điểm nào.',
+                    rest: 'nắm rõ ai đã chỉnh sửa và vào thời điểm nào.',
                   },
                   {
                     bold: 'Đối chiếu các lượt cập nhật',
-                    rest: '— so sánh bản nháp và bản đi nét để đánh giá tiến độ.',
+                    rest: 'so sánh bản nháp và bản đi nét để đánh giá tiến độ.',
                   },
                   {
                     bold: 'Giữ an toàn tài nguyên',
-                    rest: '— hạn chế thất lạc ý tưởng hoặc ghi đè nhầm bản vẽ.',
+                    rest: 'hạn chế thất lạc ý tưởng hoặc ghi đè nhầm bản vẽ.',
                   },
                 ].map((item, i) => (
                   <li key={i} className='flex items-start gap-3'>
@@ -2180,7 +2180,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <Check className='w-3 h-3 text-white' />
                     </span>
                     <span>
-                      <strong className='text-[#1C1917] font-semibold'>{item.bold}</strong>{' '}
+                      <strong className='text-[#1C1917] font-semibold'>{item.bold}</strong>:{' '}
                       <span className='text-[#57534E]'>{item.rest}</span>
                     </span>
                   </li>
@@ -2197,15 +2197,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <GitCommit className='w-4 h-4' />
                     </div>
                     <div>
-                      <div className='text-[11px] uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
+                      <div className='text-xs uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
                         Nhật ký thay đổi
                       </div>
-                      <div className='text-[10px] text-stone-600 font-mono'>
+                      <div className='text-xs text-stone-600 font-mono'>
                         Chương 14 / Phân cảnh 04
                       </div>
                     </div>
                   </div>
-                  <span className='text-[9.5px] px-2 py-0.5 rounded-full bg-[#FAF8F5] text-[#1C1917] font-semibold font-mono tracking-wider border border-[#D8D2C5]'>
+                  <span className='text-xs px-2 py-0.5 rounded-full bg-[#FAF8F5] text-[#1C1917] font-semibold font-mono tracking-wider border border-[#D8D2C5]'>
                     DỮ LIỆU MINH HỌA
                   </span>
                 </div>
@@ -2248,11 +2248,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                           className={`absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full ${ev.dot} border-2 border-white ring-1 ring-stone-300`}
                         />
                         <div className='flex items-center justify-between'>
-                          <div className='font-mono text-[10.5px] text-[#57534E]'>{ev.time}</div>
-                          <div className='font-mono text-[9.5px] text-stone-400'>{ev.hash}</div>
+                          <div className='font-mono text-xs text-[#57534E]'>{ev.time}</div>
+                          <div className='font-mono text-xs text-stone-400'>{ev.hash}</div>
                         </div>
                         <div className='mt-0.5 text-[#1C1917] font-medium'>{ev.title}</div>
-                        <div className='text-[#57534E] text-[11.5px] leading-snug'>{ev.desc}</div>
+                        <div className='text-[#57534E] text-xs leading-snug'>{ev.desc}</div>
                       </div>
                     ))}
                   </div>
@@ -2269,7 +2269,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           {/* ============================================================== */}
           <div className='grid grid-cols-1 lg:grid-cols-[minmax(0,50%)_minmax(0,50%)] gap-10 lg:gap-16 xl:gap-20 items-center w-full'>
             <div className='animate-on-scroll'>
-              <div className='inline-flex items-center gap-2 text-[11px] font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
+              <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
                 <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
                 03 / Hồ sơ bộ truyện
               </div>
@@ -2285,15 +2285,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 {[
                   {
                     bold: 'Quản lý tư liệu tập trung',
-                    rest: '— tra cứu nhanh đặc điểm nhận diện, trang phục và bối cảnh.',
+                    rest: 'tra cứu nhanh đặc điểm nhận diện, trang phục và bối cảnh.',
                   },
                   {
                     bold: 'Gợi ý rà soát kịch bản',
-                    rest: '— AI hỗ trợ nhắc nhở các quy tắc nhân vật đã ghi trong hồ sơ.',
+                    rest: 'AI hỗ trợ nhắc nhở các quy tắc nhân vật đã ghi trong hồ sơ.',
                   },
                   {
                     bold: 'Giảm thiểu sai sót tiếp nối',
-                    rest: '— giúp thành viên mới nắm bắt nhanh thiết lập thế giới truyện.',
+                    rest: 'giúp thành viên mới nắm bắt nhanh thiết lập thế giới truyện.',
                   },
                 ].map((item, i) => (
                   <li key={i} className='flex items-start gap-3'>
@@ -2301,7 +2301,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <Check className='w-3 h-3 text-white' />
                     </span>
                     <span>
-                      <strong className='text-[#1C1917] font-semibold'>{item.bold}</strong>{' '}
+                      <strong className='text-[#1C1917] font-semibold'>{item.bold}</strong>:{' '}
                       <span className='text-[#57534E]'>{item.rest}</span>
                     </span>
                   </li>
@@ -2315,18 +2315,18 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <div className='flex items-center justify-between pb-3 border-b border-[#E2DDD2]'>
                   <div className='flex items-center gap-2'>
                     <div className='w-7 h-7 rounded-lg bg-[#FAF8F5] border border-[#D8D2C5] flex items-center justify-center text-[#1C1917]'>
-                      <Sparkles className='w-4 h-4 text-[#F97316]' />
+                      <BookMarked className='w-4 h-4 text-[#F97316]' aria-hidden='true' />
                     </div>
                     <div>
-                      <div className='text-[11px] uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
+                      <div className='text-xs uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
                         Hồ sơ bộ truyện
                       </div>
-                      <div className='text-[10px] text-stone-500 font-mono'>
+                      <div className='text-xs text-stone-500 font-mono'>
                         Biên Niên Sử Aria · Dữ liệu minh họa
                       </div>
                     </div>
                   </div>
-                  <div className='text-[10px] text-emerald-700 font-mono flex items-center gap-1.5'>
+                  <div className='text-xs text-emerald-700 font-mono flex items-center gap-1.5'>
                     <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' /> Đã liên kết
                   </div>
                 </div>
@@ -2336,17 +2336,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <div className='p-3 sm:p-3.5 rounded-xl border border-[#D8D2C5] bg-[#FAF8F5]'>
                     <div className='flex items-center justify-between mb-1'>
                       <div className='flex items-center gap-2'>
-                        <span className='w-5 h-5 rounded-full bg-[#EAE5DC] text-[#1C1917] text-[10px] font-bold flex items-center justify-center font-mono'>
+                        <span className='w-5 h-5 rounded-full bg-[#EAE5DC] text-[#1C1917] text-xs font-bold flex items-center justify-center font-mono'>
                           A
                         </span>
                         <span className='text-sm font-semibold text-[#1C1917]'>Aria</span>
-                        <span className='text-[9px] px-1.5 py-0.5 rounded bg-[#EAE5DC] text-[#1C1917] font-semibold font-mono tracking-wider'>
+                        <span className='text-xs px-1.5 py-0.5 rounded bg-[#EAE5DC] text-[#1C1917] font-semibold font-mono tracking-wider'>
                           NHÂN VẬT CHÍNH
                         </span>
                       </div>
-                      <span className='text-[9px] text-stone-500 font-mono'>v3.2</span>
+                      <span className='text-xs text-stone-500 font-mono'>v3.2</span>
                     </div>
-                    <div className='text-[11.5px] text-stone-700 leading-relaxed'>
+                    <div className='text-xs text-stone-700 leading-relaxed'>
                       Trầm tĩnh, kiên định · Vết sẹo mày trái giấu kín từ Tập 1 · Thoại ngắn gọn ·
                       Luôn mang huy hiệu studio.
                     </div>
@@ -2356,16 +2356,16 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <div className='p-3 sm:p-3.5 rounded-xl border border-[#D8D2C5] bg-[#FAF8F5]'>
                     <div className='flex items-center justify-between mb-1'>
                       <div className='flex items-center gap-2'>
-                        <span className='w-5 h-5 rounded-full bg-[#EAE5DC] text-[#1C1917] text-[10px] font-bold flex items-center justify-center font-mono'>
+                        <span className='w-5 h-5 rounded-full bg-[#EAE5DC] text-[#1C1917] text-xs font-bold flex items-center justify-center font-mono'>
                           ◇
                         </span>
                         <span className='text-sm font-semibold text-[#1C1917]'>Vương Miện Cổ</span>
-                        <span className='text-[9px] px-1.5 py-0.5 rounded bg-[#EAE5DC] text-[#1C1917] font-semibold font-mono tracking-wider'>
+                        <span className='text-xs px-1.5 py-0.5 rounded bg-[#EAE5DC] text-[#1C1917] font-semibold font-mono tracking-wider'>
                           ĐẠO CỤ
                         </span>
                       </div>
                     </div>
-                    <div className='text-[11.5px] text-stone-600 leading-relaxed'>
+                    <div className='text-xs text-stone-600 leading-relaxed'>
                       Di vật từ chương mở đầu · Nguồn cơn biến cố ở Tập 2.
                     </div>
                   </div>
@@ -2375,11 +2375,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <div className='mt-3.5 p-3 sm:p-3.5 rounded-xl border border-[#D8D2C5] bg-[#FAF8F5]'>
                   <div className='flex items-center gap-2 mb-1'>
                     <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
-                    <span className='text-[10px] font-bold uppercase tracking-[0.14em] text-[#1C1917] font-mono'>
+                    <span className='text-xs font-bold uppercase tracking-[0.14em] text-[#1C1917] font-mono'>
                       Gợi ý rà soát kịch bản (AI)
                     </span>
                   </div>
-                  <div className='text-[11.5px] text-stone-800 leading-relaxed'>
+                  <div className='text-xs text-stone-800 leading-relaxed'>
                     Phân cảnh 04: Nhắc nhở quy tắc{' '}
                     <strong className='font-semibold text-[#1C1917]'>vết sẹo giấu kín</strong> của
                     Aria. Đảm bảo góc nghiêng phù hợp với hồ sơ nhân vật.
@@ -2397,7 +2397,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           {/* ============================================================== */}
           <div className='grid grid-cols-1 lg:grid-cols-[minmax(0,50%)_minmax(0,50%)] gap-10 lg:gap-16 xl:gap-20 items-center w-full'>
             <div className='animate-on-scroll lg:order-2'>
-              <div className='inline-flex items-center gap-2 text-[11px] font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
+              <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
                 <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
                 04 / Quy trình sản xuất
               </div>
@@ -2413,15 +2413,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 {[
                   {
                     bold: 'Bảng tiến độ trực quan',
-                    rest: '— nắm bắt số lượng phân cảnh và trang trong từng khâu sản xuất.',
+                    rest: 'nắm bắt số lượng phân cảnh và trang trong từng khâu sản xuất.',
                   },
                   {
                     bold: 'Phối hợp liền mạch giữa các khâu',
-                    rest: '— chuyển giao kịch bản sang bản vẽ và xét duyệt thuận tiện.',
+                    rest: 'chuyển giao kịch bản sang bản vẽ và xét duyệt thuận tiện.',
                   },
                   {
                     bold: 'Giảm bớt trao đổi rời rạc',
-                    rest: '— kiểm tra trạng thái trên bảng thay vì hỏi dồn qua tin nhắn.',
+                    rest: 'kiểm tra trạng thái trên bảng thay vì hỏi dồn qua tin nhắn.',
                   },
                 ].map((item, i) => (
                   <li key={i} className='flex items-start gap-3'>
@@ -2429,7 +2429,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <Check className='w-3 h-3 text-[#FAF8F5]' />
                     </span>
                     <span>
-                      <strong className='text-[#1C1917] font-semibold'>{item.bold}</strong>{' '}
+                      <strong className='text-[#1C1917] font-semibold'>{item.bold}</strong>:{' '}
                       <span className='text-[#57534E]'>{item.rest}</span>
                     </span>
                   </li>
@@ -2441,10 +2441,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className='animate-on-scroll delay-100 lg:order-1 relative w-full'>
               <div className='relative bg-[#FFFEFA] rounded-2xl shadow-sm border border-[#D8D2C5] p-5 sm:p-6 overflow-hidden w-full'>
                 <div className='flex items-center justify-between pb-3 mb-3.5 border-b border-[#D8D2C5]'>
-                  <div className='text-[11px] uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
+                  <div className='text-xs uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
                     Chương 14 · Bảng tiến độ
                   </div>
-                  <div className='flex items-center gap-1.5 text-[10px] text-[#57534E] font-mono'>
+                  <div className='flex items-center gap-1.5 text-xs text-[#57534E] font-mono'>
                     <KanbanSquare className='w-3.5 h-3.5 text-[#1C1917]' /> Minh họa 4 công đoạn
                   </div>
                 </div>
@@ -2454,10 +2454,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   {/* Column 1: Kịch bản */}
                   <div className='min-w-[190px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                     <div className='flex items-center justify-between mb-2'>
-                      <span className='text-[10px] font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
+                      <span className='text-xs font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
                         Kịch bản
                       </span>
-                      <span className='text-[10px] text-[#57534E] font-mono font-bold tabular-nums'>
+                      <span className='text-xs text-[#57534E] font-mono font-bold tabular-nums'>
                         3
                       </span>
                     </div>
@@ -2467,9 +2467,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                           key={s}
                           className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'
                         >
-                          <div className='text-[11px] font-semibold text-[#1C1917]'>{s}</div>
+                          <div className='text-xs font-semibold text-[#1C1917]'>{s}</div>
                           {i === 2 && (
-                            <div className='text-[9px] text-[#57534E] mt-0.5 italic'>Bản nháp</div>
+                            <div className='text-xs text-[#57534E] mt-0.5 italic'>Bản nháp</div>
                           )}
                         </div>
                       ))}
@@ -2479,17 +2479,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   {/* Column 2: Đi nét */}
                   <div className='min-w-[190px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                     <div className='flex items-center justify-between mb-2'>
-                      <span className='text-[10px] font-bold text-[#F97316] uppercase tracking-wider font-mono'>
+                      <span className='text-xs font-bold text-[#F97316] uppercase tracking-wider font-mono'>
                         Đi nét
                       </span>
-                      <span className='text-[10px] text-[#F97316] font-mono font-bold tabular-nums'>
+                      <span className='text-xs text-[#F97316] font-mono font-bold tabular-nums'>
                         5
                       </span>
                     </div>
                     <div className='space-y-1.5'>
                       <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#F97316]/40 shadow-xs'>
-                        <div className='text-[11px] font-semibold text-[#1C1917]'>Trang 14.3</div>
-                        <div className='mt-1 text-[9px] text-[#F97316] font-medium'>
+                        <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.3</div>
+                        <div className='mt-1 text-xs text-[#F97316] font-medium'>
                           2/3 khung xong
                         </div>
                       </div>
@@ -2498,7 +2498,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                           key={p}
                           className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'
                         >
-                          <div className='text-[11px] font-semibold text-[#1C1917]'>{p}</div>
+                          <div className='text-xs font-semibold text-[#1C1917]'>{p}</div>
                         </div>
                       ))}
                     </div>
@@ -2507,22 +2507,22 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   {/* Column 3: Xét duyệt */}
                   <div className='min-w-[190px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                     <div className='flex items-center justify-between mb-2'>
-                      <span className='text-[10px] font-bold text-[#57534E] uppercase tracking-wider font-mono'>
+                      <span className='text-xs font-bold text-[#57534E] uppercase tracking-wider font-mono'>
                         Xét duyệt
                       </span>
-                      <span className='text-[10px] text-[#57534E] font-mono font-bold tabular-nums'>
+                      <span className='text-xs text-[#57534E] font-mono font-bold tabular-nums'>
                         2
                       </span>
                     </div>
                     <div className='space-y-1.5'>
                       <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                        <div className='text-[11px] font-semibold text-[#1C1917]'>Trang 14.1</div>
-                        <div className='text-[9px] text-[#1C1917] mt-0.5 font-medium inline-block bg-[#EAE5DC] px-1.5 py-0.5 rounded'>
+                        <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.1</div>
+                        <div className='text-xs text-[#1C1917] mt-0.5 font-medium inline-block bg-[#EAE5DC] px-1.5 py-0.5 rounded'>
                           1 lưu ý AI
                         </div>
                       </div>
                       <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                        <div className='text-[11px] font-semibold text-[#1C1917]'>Trang 14.2</div>
+                        <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.2</div>
                       </div>
                     </div>
                   </div>
@@ -2530,10 +2530,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   {/* Column 4: Hoàn tất */}
                   <div className='min-w-[190px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                     <div className='flex items-center justify-between mb-2'>
-                      <span className='text-[10px] font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
+                      <span className='text-xs font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
                         Hoàn tất
                       </span>
-                      <span className='text-[10px] text-[#1C1917] font-mono font-bold tabular-nums'>
+                      <span className='text-xs text-[#1C1917] font-mono font-bold tabular-nums'>
                         24
                       </span>
                     </div>
@@ -2543,8 +2543,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                           key={p}
                           className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'
                         >
-                          <div className='text-[11px] font-semibold text-[#57534E]'>{p}</div>
-                          <div className='text-[9px] text-[#1C1917] mt-0.5 flex items-center gap-1 font-medium'>
+                          <div className='text-xs font-semibold text-[#57534E]'>{p}</div>
+                          <div className='text-xs text-[#1C1917] mt-0.5 flex items-center gap-1 font-medium'>
                             <Check className='w-2.5 h-2.5 text-[#F97316]' /> Đã duyệt
                           </div>
                         </div>
@@ -2554,7 +2554,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 </div>
 
                 {/* Mobile scroll hint */}
-                <div className='md:hidden mt-2 text-center text-[10.5px] text-[#57534E] flex items-center justify-center gap-1.5'>
+                <div className='md:hidden mt-2 text-center text-xs text-[#57534E] flex items-center justify-center gap-1.5'>
                   <span>Vuốt ngang để xem đủ 4 công đoạn</span>
                   <span aria-hidden='true'>→</span>
                 </div>
@@ -2577,7 +2577,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       >
         <div className='relative max-w-[1780px] mx-auto px-[clamp(20px,4.2vw,72px)] w-full'>
           <div className='text-center w-full max-w-4xl mx-auto mb-14 animate-on-scroll'>
-            <div className='inline-flex items-center gap-2 text-[11px] font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
+            <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
               03 / Quy trình sản xuất
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
@@ -2586,8 +2586,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               Từ kịch bản đến trang truyện hoàn thiện.
             </h2>
             <p className='mt-4 text-base sm:text-lg text-[#57534E] leading-relaxed [text-wrap:pretty] max-w-[65ch] mx-auto'>
-              Bốn công đoạn nối tiếp nhịp nhàng, trực quan hóa tiến trình sáng tạo từ văn bản phác
-              thảo đến ấn phẩm màu sắc.
+              Kịch bản, phác thảo, đi nét và tô màu: mỗi trang qua bốn công đoạn, có cổng duyệt
+              trước khi sang công đoạn kế tiếp.
             </p>
           </div>
 
@@ -2596,10 +2596,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             {/* Step 01: Kịch bản (Biên kịch - Structured HTML/CSS Docket) */}
             <div className='flex flex-col rounded-2xl bg-[#FFFEFA] border border-[#D8D2C5] shadow-xs p-5 sm:p-6 select-none hover:border-[#1C1917]/40 transition-colors'>
               <div className='flex items-center justify-between mb-3.5'>
-                <span className='text-[11px] font-bold text-[#1C1917] font-mono uppercase tracking-wider'>
+                <span className='text-xs font-bold text-[#1C1917] font-mono uppercase tracking-wider'>
                   01 / Kịch bản
                 </span>
-                <span className='text-[10px] font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] border border-[#D8D2C5]'>
+                <span className='text-xs font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] border border-[#D8D2C5]'>
                   Biên kịch
                 </span>
               </div>
@@ -2608,8 +2608,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className='aspect-[4/5] w-full rounded-xl bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-5 flex flex-col justify-between overflow-hidden relative shadow-2xs'>
                 <div className='space-y-2.5 text-left'>
                   <div className='flex items-center justify-between pb-2 border-b border-[#E2DDD2]'>
-                    <span className='text-[10px] font-mono text-[#57534E]'>Cảnh 04 · Khung 02</span>
-                    <span className='text-[9px] font-mono font-bold text-[#F97316]'>TẬP 3</span>
+                    <span className='text-xs font-mono text-[#57534E]'>Cảnh 04 · Khung 02</span>
+                    <span className='text-xs font-mono font-bold text-[#F97316]'>TẬP 3</span>
                   </div>
                   <div className='text-xs text-[#57534E] leading-relaxed'>
                     <span className='font-semibold text-[#1C1917]'>[Bối cảnh]:</span> Xưởng vẽ gác
@@ -2618,12 +2618,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <div className='text-xs text-[#1C1917] font-serif italic bg-[#FFFEFA] p-2.5 rounded-lg border border-[#D8D2C5]'>
                     « Bản thảo này... câu chuyện bắt đầu ở đây. »
                   </div>
-                  <div className='text-[10.5px] font-mono text-stone-500'>
-                    SFX: — xoẹt nhẹ ngòi bút G-Pen
+                  <div className='text-xs font-mono text-stone-500'>
+                    SFX: xoẹt nhẹ ngòi bút G-Pen
                   </div>
                 </div>
 
-                <div className='pt-2 border-t border-[#E2DDD2] flex items-center justify-between text-[10px] font-mono text-[#57534E]'>
+                <div className='pt-2 border-t border-[#E2DDD2] flex items-center justify-between text-xs font-mono text-[#57534E]'>
                   <span>Trạng thái: Đã duyệt thoại</span>
                   <span>v1.0</span>
                 </div>
@@ -2638,10 +2638,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             {/* Step 02: Phác thảo (journey-sketch.webp) */}
             <div className='flex flex-col rounded-2xl bg-[#FFFEFA] border border-[#D8D2C5] shadow-xs p-5 sm:p-6 select-none hover:border-[#1C1917]/40 transition-colors'>
               <div className='flex items-center justify-between mb-3.5'>
-                <span className='text-[11px] font-bold text-[#1C1917] font-mono uppercase tracking-wider'>
+                <span className='text-xs font-bold text-[#1C1917] font-mono uppercase tracking-wider'>
                   02 / Phác thảo
                 </span>
-                <span className='text-[10px] font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] border border-[#D8D2C5]'>
+                <span className='text-xs font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] border border-[#D8D2C5]'>
                   Họa sĩ
                 </span>
               </div>
@@ -2665,10 +2665,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             {/* Step 03: Đi nét (journey-ink.webp) */}
             <div className='flex flex-col rounded-2xl bg-[#FFFEFA] border border-[#D8D2C5] shadow-xs p-5 sm:p-6 select-none hover:border-[#1C1917]/40 transition-colors'>
               <div className='flex items-center justify-between mb-3.5'>
-                <span className='text-[11px] font-bold text-[#1C1917] font-mono uppercase tracking-wider'>
+                <span className='text-xs font-bold text-[#1C1917] font-mono uppercase tracking-wider'>
                   03 / Đi nét
                 </span>
-                <span className='text-[10px] font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] border border-[#D8D2C5]'>
+                <span className='text-xs font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] border border-[#D8D2C5]'>
                   Họa sĩ
                 </span>
               </div>
@@ -2692,10 +2692,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             {/* Step 04: Hoàn thiện (journey-color.webp) */}
             <div className='flex flex-col rounded-2xl bg-[#FFFEFA] border border-[#D8D2C5] shadow-xs p-5 sm:p-6 select-none hover:border-[#1C1917]/40 transition-colors'>
               <div className='flex items-center justify-between mb-3.5'>
-                <span className='text-[11px] font-bold text-[#F97316] font-mono uppercase tracking-wider'>
+                <span className='text-xs font-bold text-[#F97316] font-mono uppercase tracking-wider'>
                   04 / Hoàn thiện
                 </span>
-                <span className='text-[10px] font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#F97316] border border-[#F97316]/30 font-semibold'>
+                <span className='text-xs font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#F97316] border border-[#F97316]/30 font-semibold'>
                   Biên tập & Màu
                 </span>
               </div>
@@ -2758,19 +2758,19 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     className='absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_rgba(0,0,0,0.6)] z-10 pointer-events-none'
                     style={{ left: `${comparisonSliderPos}%` }}
                   >
-                    <div className='absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-[#1C1917] border-2 border-white shadow-md flex items-center justify-center text-white text-[11px] font-bold font-mono'>
+                    <div className='absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-[#1C1917] border-2 border-white shadow-md flex items-center justify-center text-white text-xs font-bold font-mono'>
                       ↔
                     </div>
                   </div>
 
                   {/* Badges on Top of Slider */}
                   <div className='absolute top-3.5 left-3.5 z-10 pointer-events-none'>
-                    <span className='px-3 py-1 rounded-md bg-[#1C1917]/85 backdrop-blur-xs text-white text-[11px] font-mono font-medium shadow-xs'>
+                    <span className='px-3 py-1 rounded-md bg-[#1C1917]/85 backdrop-blur-xs text-white text-xs font-mono font-medium shadow-xs'>
                       Phác thảo (Sketch)
                     </span>
                   </div>
                   <div className='absolute top-3.5 right-3.5 z-10 pointer-events-none'>
-                    <span className='px-3 py-1 rounded-md bg-[#F97316]/90 backdrop-blur-xs text-white text-[11px] font-mono font-medium shadow-xs'>
+                    <span className='px-3 py-1 rounded-md bg-[#F97316]/90 backdrop-blur-xs text-white text-xs font-mono font-medium shadow-xs'>
                       Hoàn thiện (Color)
                     </span>
                   </div>
@@ -2799,7 +2799,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               {/* Right Column (52%): Overline, Heading, Description, Interactive Controls */}
               <div className='flex flex-col items-start text-left w-full'>
-                <div className='inline-flex items-center gap-2 text-[11px] font-mono font-semibold text-[#F97316] uppercase tracking-[0.2em] mb-3 select-none'>
+                <div className='inline-flex items-center gap-2 text-xs font-mono font-semibold text-[#F97316] uppercase tracking-[0.2em] mb-3 select-none'>
                   <span className='w-7 h-px bg-[#F97316]' aria-hidden='true' />
                   Đối chiếu công đoạn
                 </div>
@@ -2893,7 +2893,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       >
         <div className='relative max-w-[1780px] mx-auto px-[clamp(20px,4.2vw,72px)] w-full'>
           <div className='text-center w-full max-w-4xl mx-auto mb-12 animate-on-scroll'>
-            <div className='inline-flex items-center gap-2 text-[11px] font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
+            <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
               04 / Không gian làm việc
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
@@ -2917,14 +2917,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <div className='w-2.5 h-2.5 rounded-full bg-[#D8D2C5]' />
                   <div className='w-2.5 h-2.5 rounded-full bg-[#D8D2C5]' />
                 </div>
-                <div className='ml-2 flex items-center gap-1.5 text-[10.5px] text-[#57534E] font-mono truncate'>
+                <div className='ml-2 flex items-center gap-1.5 text-xs text-[#57534E] font-mono truncate'>
                   <Lock className='w-3 h-3 text-[#78716C]' />
                   <span className='truncate'>
                     panelforge.studio / bien-nien-su-aria / chuong-14
                   </span>
                 </div>
                 <div className='ml-auto flex items-center gap-2'>
-                  <span className='text-[10px] font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] font-medium border border-[#D8D2C5]'>
+                  <span className='text-xs font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] font-medium border border-[#D8D2C5]'>
                     Dữ liệu minh họa
                   </span>
                 </div>
@@ -2982,27 +2982,27 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       {/* Script Column */}
                       <div className='min-w-[210px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-2.5'>
-                          <span className='text-[10.5px] font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
+                          <span className='text-xs font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
                             Kịch bản
                           </span>
-                          <span className='text-[10px] text-[#57534E] font-mono font-bold tabular-nums'>
+                          <span className='text-xs text-[#57534E] font-mono font-bold tabular-nums'>
                             3
                           </span>
                         </div>
                         <div className='space-y-2'>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                            <div className='text-[11px] font-semibold text-[#1C1917]'>
+                            <div className='text-xs font-semibold text-[#1C1917]'>
                               Cảnh 04: Studio về đêm
                             </div>
-                            <div className='text-[9.5px] text-[#57534E] mt-0.5'>
+                            <div className='text-xs text-[#57534E] mt-0.5'>
                               « Bối cảnh: Thành phố lên đèn »
                             </div>
                           </div>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                            <div className='text-[11px] font-semibold text-[#1C1917]'>
+                            <div className='text-xs font-semibold text-[#1C1917]'>
                               Cảnh 05: Phố mưa
                             </div>
-                            <div className='text-[9.5px] text-[#57534E] mt-0.5'>
+                            <div className='text-xs text-[#57534E] mt-0.5'>
                               « Hành động: An nhìn lại »
                             </div>
                           </div>
@@ -3012,34 +3012,28 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       {/* Inking Column */}
                       <div className='min-w-[210px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-2.5'>
-                          <span className='text-[10.5px] font-bold text-[#F97316] uppercase tracking-wider font-mono'>
+                          <span className='text-xs font-bold text-[#F97316] uppercase tracking-wider font-mono'>
                             Đi nét
                           </span>
-                          <span className='text-[10px] text-[#F97316] font-mono font-bold tabular-nums'>
+                          <span className='text-xs text-[#F97316] font-mono font-bold tabular-nums'>
                             5
                           </span>
                         </div>
                         <div className='space-y-2'>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#F97316]/40 shadow-xs'>
                             <div className='flex items-center justify-between'>
-                              <div className='text-[11px] font-semibold text-[#1C1917]'>
-                                Trang 14.3
-                              </div>
-                              <span className='text-[8.5px] px-1.5 py-0.5 rounded bg-[#FAF8F5] text-[#F97316] font-bold border border-[#F97316]/30'>
+                              <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.3</div>
+                              <span className='text-xs px-1.5 py-0.5 rounded bg-[#FAF8F5] text-[#F97316] font-bold border border-[#F97316]/30'>
                                 Đang vẽ
                               </span>
                             </div>
-                            <div className='text-[9.5px] text-[#57534E] mt-0.5'>
+                            <div className='text-xs text-[#57534E] mt-0.5'>
                               Họa sĩ: An · 3/4 khung hoàn tất
                             </div>
                           </div>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                            <div className='text-[11px] font-semibold text-[#1C1917]'>
-                              Trang 14.4
-                            </div>
-                            <div className='text-[9.5px] text-[#57534E] mt-0.5'>
-                              Chờ dựng phối cảnh
-                            </div>
+                            <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.4</div>
+                            <div className='text-xs text-[#57534E] mt-0.5'>Chờ dựng phối cảnh</div>
                           </div>
                         </div>
                       </div>
@@ -3047,19 +3041,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       {/* Review Column */}
                       <div className='min-w-[210px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-2.5'>
-                          <span className='text-[10.5px] font-bold text-[#57534E] uppercase tracking-wider font-mono'>
+                          <span className='text-xs font-bold text-[#57534E] uppercase tracking-wider font-mono'>
                             Xét duyệt
                           </span>
-                          <span className='text-[10px] text-[#57534E] font-mono font-bold tabular-nums'>
+                          <span className='text-xs text-[#57534E] font-mono font-bold tabular-nums'>
                             2
                           </span>
                         </div>
                         <div className='space-y-2'>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                            <div className='text-[11px] font-semibold text-[#1C1917]'>
-                              Trang 14.1
-                            </div>
-                            <div className='text-[9.5px] text-[#1C1917] mt-0.5 font-medium inline-flex items-center gap-1 bg-[#EAE5DC] px-1.5 py-0.5 rounded'>
+                            <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.1</div>
+                            <div className='text-xs text-[#1C1917] mt-0.5 font-medium inline-flex items-center gap-1 bg-[#EAE5DC] px-1.5 py-0.5 rounded'>
                               <Sparkles className='w-2.5 h-2.5 text-[#F97316]' /> AI: Kiểm tra vết
                               sẹo
                             </div>
@@ -3070,19 +3062,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       {/* Done Column */}
                       <div className='min-w-[210px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-2.5'>
-                          <span className='text-[10.5px] font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
+                          <span className='text-xs font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
                             Đã duyệt
                           </span>
-                          <span className='text-[10px] text-[#1C1917] font-mono font-bold tabular-nums'>
+                          <span className='text-xs text-[#1C1917] font-mono font-bold tabular-nums'>
                             24
                           </span>
                         </div>
                         <div className='space-y-2'>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                            <div className='text-[11px] font-semibold text-[#1C1917]'>
-                              Trang 13.8
-                            </div>
-                            <div className='text-[9.5px] text-[#1C1917] mt-0.5 flex items-center gap-1 font-medium'>
+                            <div className='text-xs font-semibold text-[#1C1917]'>Trang 13.8</div>
+                            <div className='text-xs text-[#1C1917] mt-0.5 flex items-center gap-1 font-medium'>
                               <Check className='w-2.5 h-2.5 text-[#F97316]' /> Đã đóng gói xuất bản
                             </div>
                           </div>
@@ -3090,7 +3080,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       </div>
                     </div>
 
-                    <div className='md:hidden mt-2 text-center text-[10.5px] text-[#57534E]'>
+                    <div className='md:hidden mt-2 text-center text-xs text-[#57534E]'>
                       Vuốt ngang để xem đủ 4 công đoạn →
                     </div>
                   </div>
@@ -3112,7 +3102,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         </span>
                         <span className='text-[#57534E] ml-2'>· Tập 3, Chương 14</span>
                       </div>
-                      <span className='text-[10px] font-mono text-[#57534E]'>
+                      <span className='text-xs font-mono text-[#57534E]'>
                         Soạn thảo kịch bản phân khung
                       </span>
                     </div>
@@ -3120,10 +3110,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     <div className='grid md:grid-cols-3 gap-3'>
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-1'>
-                          <span className='text-[10.5px] font-bold text-[#1C1917] font-mono'>
+                          <span className='text-xs font-bold text-[#1C1917] font-mono'>
                             Khung #01 (Toàn cảnh)
                           </span>
-                          <span className='text-[9.5px] font-mono text-[#57534E]'>1/3 trang</span>
+                          <span className='text-xs font-mono text-[#57534E]'>1/3 trang</span>
                         </div>
                         <p className='text-xs text-[#57534E] leading-relaxed'>
                           <strong className='text-[#1C1917]'>Bối cảnh:</strong> Thành phố lên đèn từ
@@ -3133,10 +3123,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-1'>
-                          <span className='text-[10.5px] font-bold text-[#1C1917] font-mono'>
+                          <span className='text-xs font-bold text-[#1C1917] font-mono'>
                             Khung #02 (Cận cảnh)
                           </span>
-                          <span className='text-[9.5px] font-mono text-[#57534E]'>1/3 trang</span>
+                          <span className='text-xs font-mono text-[#57534E]'>1/3 trang</span>
                         </div>
                         <p className='text-xs text-[#57534E] leading-relaxed'>
                           <strong className='text-[#1C1917]'>Hành động:</strong> An cúi xuống bản
@@ -3149,18 +3139,16 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-1'>
-                          <span className='text-[10.5px] font-bold text-[#1C1917] font-mono'>
+                          <span className='text-xs font-bold text-[#1C1917] font-mono'>
                             Khung #03 (Chi tiết tay)
                           </span>
-                          <span className='text-[9.5px] font-mono text-[#57534E]'>1/3 trang</span>
+                          <span className='text-xs font-mono text-[#57534E]'>1/3 trang</span>
                         </div>
                         <p className='text-xs text-[#57534E] leading-relaxed'>
                           <strong className='text-[#1C1917]'>Chi tiết:</strong> Ngòi bút chạm nhẹ
                           trang giấy bản thảo. Lọ mực đen mở nắp phản chiếu ánh đèn bàn.
                         </p>
-                        <div className='text-[10.5px] text-[#57534E] mt-1 font-mono'>
-                          SFX: — xoẹt nhẹ
-                        </div>
+                        <div className='text-xs text-[#57534E] mt-1 font-mono'>SFX: xoẹt nhẹ</div>
                       </div>
                     </div>
                   </div>
@@ -3182,7 +3170,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         </span>
                         <span className='text-[#57534E] ml-2'>· Chuẩn mực tác phẩm</span>
                       </div>
-                      <span className='text-[10px] font-mono text-[#1C1917] bg-[#EAE5DC] px-2 py-0.5 rounded border border-[#D8D2C5]'>
+                      <span className='text-xs font-mono text-[#1C1917] bg-[#EAE5DC] px-2 py-0.5 rounded border border-[#D8D2C5]'>
                         Quy tắc nhất quán v3.2
                       </span>
                     </div>
@@ -3190,14 +3178,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     <div className='grid md:grid-cols-2 gap-3'>
                       <div className='p-3.5 rounded-xl border border-[#D8D2C5] bg-[#FAF8F5]'>
                         <div className='flex items-center gap-2 mb-2'>
-                          <span className='w-6 h-6 rounded-full bg-[#1C1917] text-[#FAF8F5] text-[10px] font-bold flex items-center justify-center font-mono'>
+                          <span className='w-6 h-6 rounded-full bg-[#1C1917] text-[#FAF8F5] text-xs font-bold flex items-center justify-center font-mono'>
                             A
                           </span>
                           <div>
                             <div className='text-xs font-bold text-[#1C1917]'>
                               Nhân vật: An (Họa sĩ chính)
                             </div>
-                            <div className='text-[10px] text-[#57534E]'>
+                            <div className='text-xs text-[#57534E]'>
                               Đặc điểm nhận diện & trang phục
                             </div>
                           </div>
@@ -3211,14 +3199,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
                       <div className='p-3.5 rounded-xl border border-[#D8D2C5] bg-[#FAF8F5]'>
                         <div className='flex items-center gap-2 mb-2'>
-                          <span className='w-6 h-6 rounded-full bg-[#EAE5DC] text-[#1C1917] text-[10px] font-bold flex items-center justify-center border border-[#D8D2C5]'>
+                          <span className='w-6 h-6 rounded-full bg-[#EAE5DC] text-[#1C1917] text-xs font-bold flex items-center justify-center border border-[#D8D2C5]'>
                             <Sparkles className='w-3 h-3 text-[#F97316]' />
                           </span>
                           <div>
                             <div className='text-xs font-bold text-[#1C1917]'>
                               Quy tắc AI đối chiếu nhất quán
                             </div>
-                            <div className='text-[10px] text-[#57534E]'>
+                            <div className='text-xs text-[#57534E]'>
                               Gợi ý rà soát khi nộp trang vẽ
                             </div>
                           </div>
@@ -3247,7 +3235,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         <span className='font-semibold text-[#1C1917]'>Nhật ký thay đổi</span>
                         <span className='text-[#57534E] ml-2'>· Lưu trữ từng phiên bản</span>
                       </div>
-                      <span className='text-[10px] font-mono text-[#57534E]'>Không thể ghi đè</span>
+                      <span className='text-xs font-mono text-[#57534E]'>Không thể ghi đè</span>
                     </div>
 
                     <div className='space-y-2 text-xs'>
@@ -3277,11 +3265,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         >
                           <div>
                             <div className='font-medium text-[#1C1917]'>{item.action}</div>
-                            <div className='text-[11px] text-[#57534E]'>
+                            <div className='text-xs text-[#57534E]'>
                               {item.time} · {item.detail}
                             </div>
                           </div>
-                          <span className='text-[9.5px] px-2 py-0.5 rounded bg-[#EAE5DC] text-[#1C1917] font-mono border border-[#D8D2C5]'>
+                          <span className='text-xs px-2 py-0.5 rounded bg-[#EAE5DC] text-[#1C1917] font-mono border border-[#D8D2C5]'>
                             {item.tag}
                           </span>
                         </div>
@@ -3306,14 +3294,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         </span>
                         <span className='text-[#57534E] ml-2'>· Bảng màu & tư liệu phối cảnh</span>
                       </div>
-                      <span className='text-[10px] font-mono text-[#57534E]'>
-                        Đã gắn vào kịch bản
-                      </span>
+                      <span className='text-xs font-mono text-[#57534E]'>Đã gắn vào kịch bản</span>
                     </div>
 
                     <div className='grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs'>
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
-                        <div className='text-[10px] font-bold text-[#57534E] uppercase tracking-wider mb-1 flex items-center gap-1 font-mono'>
+                        <div className='text-xs font-bold text-[#57534E] uppercase tracking-wider mb-1 flex items-center gap-1 font-mono'>
                           <Palette className='w-3 h-3 text-[#F97316]' /> Bảng màu chính
                         </div>
                         <div className='flex gap-1.5 mt-2'>
@@ -3337,31 +3323,31 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       </div>
 
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
-                        <div className='text-[10px] font-bold text-[#57534E] uppercase tracking-wider mb-1 flex items-center gap-1 font-mono'>
+                        <div className='text-xs font-bold text-[#57534E] uppercase tracking-wider mb-1 flex items-center gap-1 font-mono'>
                           <BookMarked className='w-3 h-3 text-[#1C1917]' /> Bối cảnh
                         </div>
                         <div className='font-semibold text-[#1C1917] mt-1'>Studio gác mái</div>
-                        <div className='text-[10.5px] text-[#57534E] mt-0.5'>
+                        <div className='text-xs text-[#57534E] mt-0.5'>
                           Cửa sổ nhìn ra đường chân trời đô thị
                         </div>
                       </div>
 
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
-                        <div className='text-[10px] font-bold text-[#57534E] uppercase tracking-wider mb-1 font-mono'>
+                        <div className='text-xs font-bold text-[#57534E] uppercase tracking-wider mb-1 font-mono'>
                           Đạo cụ tham chiếu
                         </div>
                         <div className='font-semibold text-[#1C1917] mt-1'>Bút vẽ G-Pen</div>
-                        <div className='text-[10.5px] text-[#57534E] mt-0.5'>
+                        <div className='text-xs text-[#57534E] mt-0.5'>
                           Góc cầm 45 độ, ngòi kim loại ánh vàng
                         </div>
                       </div>
 
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
-                        <div className='text-[10px] font-bold text-[#57534E] uppercase tracking-wider mb-1 font-mono'>
+                        <div className='text-xs font-bold text-[#57534E] uppercase tracking-wider mb-1 font-mono'>
                           Ánh sáng chủ đạo
                         </div>
                         <div className='font-semibold text-[#1C1917] mt-1'>Đèn bàn ấm</div>
-                        <div className='text-[10.5px] text-[#57534E] mt-0.5'>
+                        <div className='text-xs text-[#57534E] mt-0.5'>
                           Tương phản cao với bầu trời đêm ngoài cửa
                         </div>
                       </div>
@@ -3389,7 +3375,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div className='grid grid-cols-1 lg:grid-cols-[minmax(0,38%)_minmax(0,62%)] gap-10 lg:gap-14 xl:gap-20 items-start w-full animate-on-scroll'>
             {/* Left Column (38%): Overline, Heading & Editorial Description */}
             <div className='text-left w-full'>
-              <div className='inline-flex items-center gap-2 text-[11px] font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
+              <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
                 <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
                 05 / Giải đáp thắc mắc
               </div>
@@ -3462,7 +3448,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       >
         <div className='relative max-w-[1780px] mx-auto px-[clamp(20px,4.2vw,72px)] w-full text-center'>
           <div className='animate-on-scroll max-w-3xl mx-auto'>
-            <div className='inline-flex items-center gap-2 text-[11px] font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
+            <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
               Bắt đầu sáng tác
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
