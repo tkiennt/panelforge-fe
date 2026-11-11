@@ -75,5 +75,40 @@
     "subtitle": "Chọn mẫu phân chia ô tranh dựng sẵn cho trang",
     "applyConfirm": "Áp dụng mẫu này sẽ thay thế các khung hiện tại trên trang.",
     "noTemplates": "Chưa có mẫu khung nào."
+  },
+  "writerChangeRequests": {
+    "title": "Yêu cầu sửa từ Editor ({count})",
+    "summary": "{open} cần sửa · {resolved} chờ Editor xác nhận",
+    "close": "Đóng bảng yêu cầu sửa",
+    "toggle": "Yêu cầu sửa",
+    "toggleTitle": "Yêu cầu sửa từ Editor ({count} cần sửa)",
+    "gateBlocked": "Còn {count} yêu cầu cần sửa. Đánh dấu đã sửa hết mới gửi lại được cho Editor.",
+    "gateAwaitingVerify": "Đã sửa hết. {count} yêu cầu chờ Editor xác nhận, bạn có thể gửi lại kịch bản.",
+    "gateClear": "Không còn yêu cầu nào cần sửa.",
+    "generalNote": "Nhận xét chung của Editor",
+    "loading": "Đang tải yêu cầu sửa...",
+    "empty": "Editor chưa gửi yêu cầu sửa nào cho kịch bản này.",
+    "status": {
+      "Open": "Cần sửa",
+      "Resolved": "Chờ Editor xác nhận",
+      "Verified": "Editor đã xác nhận",
+      "Rejected": "Đã huỷ"
+    },
+    "jumpLine": "Tới dòng",
+    "jumpScene": "Tới phân cảnh",
+    "quotedAt": "Lúc Editor nhận xét",
+    "yourNote": "Ghi chú của bạn:",
+    "editorReply": "Editor phản hồi:",
+    "awaitingVerify": "Editor sẽ xem lại và xác nhận khi bạn gửi lại kịch bản.",
+    "markResolved": "Đánh dấu đã sửa",
+    "notePlaceholder": "Ghi chú cho Editor (không bắt buộc): đã sửa gì, vì sao giữ nguyên...",
+    "cancel": "Huỷ",
+    "saving": "Đang lưu...",
+    "confirmResolve": "Xác nhận đã sửa",
+    "resolvedToastTitle": "Đã đánh dấu sửa xong",
+    "resolvedToastDesc": "Yêu cầu chuyển sang chờ Editor xác nhận.",
+    "resolveFailed": "Không thể đánh dấu đã sửa",
+    "sceneMissingTitle": "Không tìm thấy phân cảnh",
+    "sceneMissingDesc": "Phân cảnh Editor nhận xét không còn trong chương này."
   }
 }
