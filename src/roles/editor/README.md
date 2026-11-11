@@ -10,6 +10,7 @@ Biên tập viên kiểm soát chất lượng tại các cổng duyệt (CF3): 
 | `editor/desk` | `EditorDeskView` | Hàng đợi bài chờ duyệt của cả Series, lọc Gate 1 / Gate 2 |
 | `chapters/:chapterId/script/review?assignmentId=` | `ScriptReviewView` | Duyệt kịch bản: nhận xét theo dòng/phân cảnh |
 | `chapters/:chapterId/review/:taskId` | `ReviewView` | Duyệt tranh của một việc Page/Panel; việc Review cả chương chuyển sang `ChapterReviewView` |
+| `editor/bible` | `BibleReviewView` | Duyệt thiết kế Series Bible: Artist nộp concept → Editor xác nhận (`WriterEndorsed`) hoặc yêu cầu vẽ lại (`ReworkRequired`); Producer khoá canon |
 
 ## 3. Bố cục chung của màn duyệt
 Bản nộp ở giữa, cột phải có hai tab **Nhận xét** / **Kiểm tra**, thanh quyết định ở đáy cột phải.

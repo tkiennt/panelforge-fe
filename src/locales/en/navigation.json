@@ -46,7 +46,8 @@
     "twoFactor": "Two-Factor Auth (2FA)",
     "switchWorkspace": "Switch Workspace",
     "logout": "Log Out",
-    "reviewDesk": "Review desk"
+    "reviewDesk": "Review desk",
+    "bibleReview": "Bible design review"
   },
   "header": {
     "searchPlaceholder": "Search frames, dialogues, assets...",
