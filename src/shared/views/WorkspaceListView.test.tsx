@@ -279,4 +279,28 @@ describe('WorkspaceListView Component', () => {
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(document.querySelector('header img')).not.toBeInTheDocument();
   });
+
+  it('renders Editor role styling, review queue badge and enter button for Editor', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([
+      ws({
+        id: 'ws-editor',
+        name: 'Mappa Japan Studio',
+        currentUserRole: 'EDITOR',
+        pendingEditorReviews: 4,
+      }),
+    ] as any);
+    const onSelectMock = vi.fn();
+    renderView({ onSelectWorkspace: onSelectMock });
+
+    await waitFor(() => {
+      expect(screen.getByText('Mappa Japan Studio')).toBeInTheDocument();
+    });
+    expect(screen.getByText('4 bài chờ duyệt')).toBeInTheDocument();
+    expect(screen.getByText('Vào Bàn Duyệt')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Mappa Japan Studio/ }));
+    expect(onSelectMock).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'ws-editor', currentUserRole: 'EDITOR' }),
+    );
+  });
 });

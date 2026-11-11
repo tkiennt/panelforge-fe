@@ -9,6 +9,7 @@ import {
   Users,
   Camera,
   Clock,
+  ShieldCheck,
 } from 'lucide-react';
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
@@ -78,6 +79,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
         ...ws,
         currentUserRole: normalizeWorkspaceRole(ws.currentUserRole),
         pendingTasks: (ws as Partial<WorkspaceDto>).pendingTasks ?? 0,
+        pendingEditorReviews: (ws as Partial<WorkspaceDto>).pendingEditorReviews ?? 0,
       }));
       setWorkspaces(mapped);
     } catch (error) {
@@ -384,7 +386,13 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                                 <h2 className='text-base font-serif font-bold text-[#1C1917] leading-snug line-clamp-1'>
                                   {ws.name}
                                 </h2>
-                                <span className='inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#E7E1D5]/60 text-[#57534E]'>
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${
+                                    ws.currentUserRole === 'EDITOR'
+                                      ? 'bg-rose-50 text-rose-700 border border-rose-200/80 font-semibold'
+                                      : 'bg-[#E7E1D5]/60 text-[#57534E]'
+                                  }`}
+                                >
                                   {roleLabel(ws.currentUserRole)}
                                 </span>
                               </div>
@@ -452,7 +460,23 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                               </span>
                             </div>
 
-                            {(ws.pendingTasks ?? 0) > 0 && (
+                            {/* Editor Review Queue Badge (Gate 1 & Gate 2) */}
+                            {(ws.currentUserRole === 'EDITOR' || (ws.pendingEditorReviews ?? 0) > 0) && (
+                              <span
+                                className='inline-flex items-center gap-1.5 font-semibold text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-md text-xs tabular-nums shrink-0 shadow-2xs'
+                                title='Số bài nộp chờ Editor kiểm tra và duyệt chất lượng (Gate 1 Storyboard & Gate 2 Composite)'
+                              >
+                                <span className='w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse' aria-hidden='true' />
+                                <ShieldCheck className='w-3 h-3 text-rose-600' aria-hidden='true' />
+                                <span>
+                                  {(ws.pendingEditorReviews ?? 0) > 0
+                                    ? `${ws.pendingEditorReviews} bài chờ duyệt`
+                                    : 'Sẵn sàng duyệt bài'}
+                                </span>
+                              </span>
+                            )}
+
+                            {(ws.pendingTasks ?? 0) > 0 && ws.currentUserRole !== 'EDITOR' && (
                               <span className='font-semibold text-[#B45309] text-xs tabular-nums shrink-0'>
                                 {t('workspace.shelf.pendingForYou', {
                                   count: ws.pendingTasks ?? 0,
@@ -469,10 +493,14 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                             <button
                               type='button'
                               onClick={() => onSelectWorkspace(ws)}
-                              className='ws-btn-enter ws-focus inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#C2410C] bg-[#FFF7ED] border border-[#FDBA74] hover:bg-[#FFEDD5]'
+                              className={`ws-btn-enter ws-focus inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                                ws.currentUserRole === 'EDITOR'
+                                  ? 'text-rose-700 bg-rose-50 border border-rose-300 hover:bg-rose-100 shadow-2xs'
+                                  : 'text-[#C2410C] bg-[#FFF7ED] border border-[#FDBA74] hover:bg-[#FFEDD5]'
+                              }`}
                               aria-label={`${t('workspace.shelf.enter')}: ${ws.name}`}
                             >
-                              <span>{t('workspace.shelf.enter')}</span>
+                              <span>{ws.currentUserRole === 'EDITOR' ? 'Vào Bàn Duyệt' : t('workspace.shelf.enter')}</span>
                               <ArrowRight className='ws-arrow w-3.5 h-3.5' aria-hidden='true' />
                             </button>
                           </div>

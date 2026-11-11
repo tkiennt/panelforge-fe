@@ -19,6 +19,7 @@ export interface WorkspaceDto {
   currentUserRole?: WorkspaceRole | null;
   memberCount: number;
   pendingTasks?: number;
+  pendingEditorReviews?: number;
   coverUrl?: string | null;
   description?: string | null;
   memberPreviews?: WorkspaceMemberPreviewDto[] | null;
