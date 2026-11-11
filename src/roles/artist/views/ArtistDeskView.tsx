@@ -52,6 +52,11 @@ import {
   BibleEntityItem,
   DEFAULT_FRAME_TEMPLATES,
 } from '../components/desk/ArtistCanvaSidebar';
+import { ElementSnapshotDto } from '@/services/element.service';
+import {
+  createSpeechBalloonPath,
+  createThoughtBalloonPath,
+} from '@/roles/letterer/lib/lettererView';
 import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip';
 import { PageStage } from '../components/desk/ArtistPageSidebar';
 
@@ -365,6 +370,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // Điều khiển Sidebar tab & ngăn phụ Drawer từ bên ngoài
   const [activeSidebarTab, setActiveSidebarTab] = useState<CanvaSidebarTab | undefined>(undefined);
   const [isSidebarDrawerOpen, setIsSidebarDrawerOpen] = useState<boolean | undefined>(undefined);
+
+  // Danh sách phần tử bóng thoại (Lettering Elements) theo trang: pageId -> ElementSnapshotDto[]
+  const [letteringElementsByPageId, setLetteringElementsByPageId] = useState<
+    Record<string, ElementSnapshotDto[]>
+  >({});
+  const [selectedLetteringElementId, setSelectedLetteringElementId] = useState<string | null>(null);
 
   // Yêu cầu chỉnh sửa công đoạn (Sidetab Change Requests)
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
@@ -1583,6 +1594,61 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   };
 
+  // Thêm mới / Gắn câu thoại vào bóng thoại trên trang (Lettering P0)
+  const handleAddLetteringElement = (
+    type: 'SPEECH_BALLOON' | 'THOUGHT_BALLOON' | 'NARRATION_BOX',
+    scriptLine?: ScriptLineItem
+  ) => {
+    if (!selectedPage) return;
+    const targetPage = selectedPage;
+    const currentList = letteringElementsByPageId[targetPage.id] || [];
+
+    const newId = `elem-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const defaultW = type === 'NARRATION_BOX' ? 320 : 260;
+    const defaultH = type === 'NARRATION_BOX' ? 120 : 160;
+
+    // Phân bổ toạ độ so le theo chuẩn Manga RTL
+    const stepIdx = currentList.length % 5;
+    const defaultX = Math.max(50, (targetPage.widthPx || 1200) - defaultW - 60 - stepIdx * 40);
+    const defaultY = 80 + stepIdx * 180;
+
+    const newElement: ElementSnapshotDto = {
+      elementId: newId,
+      elementType: type,
+      x: defaultX,
+      y: defaultY,
+      width: defaultW,
+      height: defaultH,
+      zIndex: currentList.length + 1,
+      content: scriptLine ? scriptLine.dialogueText || scriptLine.stageDirection || '' : 'Lời thoại mới...',
+      scriptLineId: scriptLine ? scriptLine.id : null,
+      readingOrder: currentList.length + 1,
+      version: 1,
+      isRemoved: false,
+    };
+
+    setLetteringElementsByPageId((prev) => ({
+      ...prev,
+      [targetPage.id]: [...(prev[targetPage.id] || []), newElement],
+    }));
+    setSelectedLetteringElementId(newId);
+    toast.success('Đã thêm bóng thoại', '');
+  };
+
+  // Xóa bóng thoại khỏi trang
+  const handleDeleteLetteringElement = (elementId: string) => {
+    if (!selectedPage) return;
+    const targetPage = selectedPage;
+    setLetteringElementsByPageId((prev) => ({
+      ...prev,
+      [targetPage.id]: (prev[targetPage.id] || []).filter((e) => e.elementId !== elementId),
+    }));
+    if (selectedLetteringElementId === elementId) {
+      setSelectedLetteringElementId(null);
+    }
+    toast.info('Đã xóa bóng thoại', '');
+  };
+
   // Bật/tắt toàn màn hình
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -1691,6 +1757,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               loadPageHistory(selectedPageId);
             }
           }}
+          letteringElements={selectedPage ? letteringElementsByPageId[selectedPage.id] || [] : []}
+          onAddLetteringElement={handleAddLetteringElement}
+          onDeleteLetteringElement={handleDeleteLetteringElement}
+          selectedElementId={selectedLetteringElementId}
+          onSelectElementId={(id) => setSelectedLetteringElementId(id)}
           theme='paper'
         />
 
@@ -2003,6 +2074,90 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                                 }
                               }}
                             />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Lớp hiển thị các phần tử bóng thoại (Lettering Balloons & Narration) */}
+                  {selectedPage && (letteringElementsByPageId[selectedPage.id] || []).length > 0 && (
+                    <div
+                      data-testid='canvas-lettering-overlay'
+                      className='absolute inset-0 z-25 pointer-events-none'
+                    >
+                      {(letteringElementsByPageId[selectedPage.id] || []).map((b, idx) => {
+                        const isSelected = selectedLetteringElementId === b.elementId;
+                        const pageWidth = selectedPage.widthPx || 1200;
+                        const pageHeight = selectedPage.heightPx || 1800;
+
+                        const leftPct = (b.x / pageWidth) * 100;
+                        const topPct = (b.y / pageHeight) * 100;
+                        const widthPct = (b.width / pageWidth) * 100;
+                        const heightPct = (b.height / pageHeight) * 100;
+
+                        const isThought = b.elementType === 'THOUGHT_BALLOON';
+                        const isNarration = b.elementType === 'NARRATION_BOX';
+                        const isSpeech = !isThought && !isNarration;
+
+                        const shapePath = isSpeech
+                          ? createSpeechBalloonPath(b.width, b.height, b.width / 2, b.height + 30)
+                          : isThought
+                          ? createThoughtBalloonPath(b.width, b.height)
+                          : null;
+
+                        return (
+                          <div
+                            key={b.elementId}
+                            data-testid={`lettering-element-${b.elementId}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedLetteringElementId(b.elementId);
+                            }}
+                            className={`absolute pointer-events-auto cursor-pointer transition-all ${
+                              isSelected ? 'ring-2 ring-orange-500 ring-offset-2' : ''
+                            }`}
+                            style={{
+                              left: `${leftPct}%`,
+                              top: `${topPct}%`,
+                              width: `${widthPct}%`,
+                              height: `${heightPct}%`,
+                            }}
+                          >
+                            {/* Vẽ hình dạng bóng qua SVG hoặc Box */}
+                            {isNarration ? (
+                              <div className='w-full h-full bg-amber-50/90 border-2 border-stone-800 rounded-xs shadow-sm p-2 flex items-center justify-center text-center'>
+                                <span className='text-[11px] font-sans font-medium text-stone-900 line-clamp-3 select-none'>
+                                  {b.content}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className='relative w-full h-full flex items-center justify-center'>
+                                {shapePath && (
+                                  <svg
+                                    viewBox={`0 0 ${b.width} ${b.height}`}
+                                    className='absolute inset-0 w-full h-full overflow-visible pointer-events-none drop-shadow-xs'
+                                  >
+                                    <path
+                                      d={shapePath}
+                                      fill='#ffffff'
+                                      stroke='#1c1917'
+                                      strokeWidth='2.5'
+                                    />
+                                  </svg>
+                                )}
+                                <div className='relative z-10 p-2 text-center'>
+                                  <span className='text-[11px] font-comic font-medium text-stone-900 line-clamp-3 select-none'>
+                                    {b.content}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Badge thứ tự đọc Manga */}
+                            <span className='absolute -top-1.5 -left-1.5 z-20 w-4 h-4 rounded-full bg-stone-900 text-white font-mono text-[9px] font-bold flex items-center justify-center shadow-xs'>
+                              #{b.readingOrder ?? idx + 1}
+                            </span>
                           </div>
                         );
                       })}

@@ -27,6 +27,9 @@ import {
   Check,
   ArrowUpRight,
   Loader2,
+  Type,
+  MessageSquare,
+  Volume2,
 } from 'lucide-react';
 import { ArtistPageItem, PageStage } from './ArtistPageSidebar';
 import { SidebarTheme } from '@/app/sidebarTheme';
@@ -34,9 +37,10 @@ import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { FrameTemplateDto } from '@/services/frameTemplate.service';
 import { ChangeRequestDto } from '@/types/pipeline';
 import { PageHistoryDto } from '@/services/page.service';
+import { ElementSnapshotDto } from '@/services/element.service';
 import '@/styles/modules/sidebar-theme.css';
 
-export type CanvaSidebarTab = 'pages' | 'script' | 'bible' | 'templates' | 'changes' | 'history';
+export type CanvaSidebarTab = 'pages' | 'script' | 'bible' | 'templates' | 'changes' | 'history' | 'lettering';
 
 export interface ScriptLineItem {
   id: string;
@@ -46,6 +50,7 @@ export interface ScriptLineItem {
   sceneNumber?: number;
   sceneTitle?: string;
   sceneSlugline?: string;
+  speakerCharacterId?: string | null;
   characterName?: string;
   characterColor?: string;
   dialogueText?: string;
@@ -135,6 +140,12 @@ export interface ArtistCanvaSidebarProps {
   onRestoreVersion?: (version: number) => Promise<void> | void;
   isRestoringVersion?: boolean;
   onRefreshHistory?: () => void;
+  // Lettering Sidetab Props (P0 Lõi MVP)
+  letteringElements?: ElementSnapshotDto[];
+  onAddLetteringElement?: (type: 'SPEECH_BALLOON' | 'THOUGHT_BALLOON' | 'NARRATION_BOX', scriptLine?: ScriptLineItem) => void;
+  onDeleteLetteringElement?: (id: string) => void;
+  selectedElementId?: string | null;
+  onSelectElementId?: (id: string | null) => void;
 }
 
 function formatNarrationMode(mode?: string): string | null {
@@ -760,6 +771,11 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   onRestoreVersion,
   isRestoringVersion = false,
   onRefreshHistory,
+  letteringElements = [],
+  onAddLetteringElement,
+  onDeleteLetteringElement,
+  selectedElementId = null,
+  onSelectElementId,
 }) => {
   // Đồng bộ theme hệ thống từ localStorage hoặc prop, mặc định theme màu sáng 'paper'
   const [currentTheme, setCurrentTheme] = useState<SidebarTheme>(() => {
@@ -1154,6 +1170,28 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               }`}
             />
             <span className='text-[10px] tracking-tight'>Mẫu khung</span>
+          </button>
+
+          {/* Nút Tab: Chèn thoại & Bóng thoại (Lettering Sidetab P0) */}
+          <button
+            type='button'
+            onClick={() => handleTabClick('lettering')}
+            data-testid='canva-tab-lettering'
+            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+              activeTab === 'lettering' && isDrawerOpen
+                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
+                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
+            }`}
+            title='Chèn thoại & Bóng thoại'
+          >
+            <Type
+              className={`w-5 h-5 mb-1 ${
+                activeTab === 'lettering' && isDrawerOpen
+                  ? 'text-[var(--sb-accent)]'
+                  : 'text-current'
+              }`}
+            />
+            <span className='text-[10px] tracking-tight'>Thoại</span>
           </button>
 
           {/* Nút Tab 5: Yêu cầu chỉnh sửa (Sidetab Change Requests) */}
@@ -2568,6 +2606,256 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     })}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {/* 7. NGĂN NỘI DUNG TAB 7: CHÈN THOẠI & BÓNG THOẠI (LETTERING SIDETAB P0) */}
+          {activeTab === 'lettering' && (
+            <div
+              data-testid='canva-drawer-lettering'
+              className='w-full h-full flex flex-col p-4 space-y-4 overflow-y-auto custom-scrollbar'
+            >
+              <div className='flex items-center justify-between'>
+                <div>
+                  <h3 className='text-sm font-bold text-[var(--sb-text)] flex items-center gap-1.5'>
+                    <Type className='w-4 h-4 text-orange-500' />
+                    <span>Chèn Thoại &amp; Bóng Thoại</span>
+                  </h3>
+                  <p className='text-[11px] text-[var(--sb-muted)]'>
+                    Kéo thả 3 dạng bóng cơ bản và ràng buộc với câu thoại
+                  </p>
+                </div>
+              </div>
+
+              {/* 3 Dạng bóng cơ bản: Speech, Thought, Narration */}
+              <div className='space-y-2'>
+                <label className='text-xs font-semibold text-[var(--sb-text)] flex items-center justify-between'>
+                  <span>3 Dạng bóng cơ bản</span>
+                  <span className='text-[10px] text-[var(--sb-muted)] font-normal'>Kéo thả vào trang</span>
+                </label>
+                <div className='grid grid-cols-3 gap-2'>
+                  {/* 1. Speech (Thoại) */}
+                  <div
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('application/json', JSON.stringify({ type: 'SPEECH_BALLOON' }));
+                      e.dataTransfer.setData('text/plain', 'SPEECH_BALLOON');
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() => onAddLetteringElement?.('SPEECH_BALLOON')}
+                    data-testid='lettering-drag-speech'
+                    className='flex flex-col items-center justify-center p-2.5 rounded-xl border border-stone-200 hover:border-orange-500 bg-white hover:bg-orange-50/20 cursor-grab active:cursor-grabbing transition-all text-center shadow-2xs group'
+                  >
+                    <div className='w-8 h-8 rounded-full border-2 border-stone-800 bg-white flex items-center justify-center mb-1.5 group-hover:border-orange-500 transition-colors'>
+                      <MessageSquare className='w-4 h-4 text-stone-700 group-hover:text-orange-500' />
+                    </div>
+                    <span className='text-xs font-bold text-stone-800'>Thoại</span>
+                    <span className='text-[10px] text-stone-400'>Speech</span>
+                  </div>
+
+                  {/* 2. Thought (Suy nghĩ) */}
+                  <div
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('application/json', JSON.stringify({ type: 'THOUGHT_BALLOON' }));
+                      e.dataTransfer.setData('text/plain', 'THOUGHT_BALLOON');
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() => onAddLetteringElement?.('THOUGHT_BALLOON')}
+                    data-testid='lettering-drag-thought'
+                    className='flex flex-col items-center justify-center p-2.5 rounded-xl border border-stone-200 hover:border-orange-500 bg-white hover:bg-orange-50/20 cursor-grab active:cursor-grabbing transition-all text-center shadow-2xs group'
+                  >
+                    <div className='w-8 h-8 rounded-full border-2 border-dashed border-stone-800 bg-white flex items-center justify-center mb-1.5 group-hover:border-orange-500 transition-colors'>
+                      <span className='text-xs'>💭</span>
+                    </div>
+                    <span className='text-xs font-bold text-stone-800'>Suy nghĩ</span>
+                    <span className='text-[10px] text-stone-400'>Thought</span>
+                  </div>
+
+                  {/* 3. Narration (Dẫn truyện) */}
+                  <div
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('application/json', JSON.stringify({ type: 'NARRATION_BOX' }));
+                      e.dataTransfer.setData('text/plain', 'NARRATION_BOX');
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() => onAddLetteringElement?.('NARRATION_BOX')}
+                    data-testid='lettering-drag-narration'
+                    className='flex flex-col items-center justify-center p-2.5 rounded-xl border border-stone-200 hover:border-orange-500 bg-white hover:bg-orange-50/20 cursor-grab active:cursor-grabbing transition-all text-center shadow-2xs group'
+                  >
+                    <div className='w-8 h-6 rounded-xs border-2 border-stone-800 bg-amber-50/60 flex items-center justify-center mb-2.5 group-hover:border-orange-500 transition-colors'>
+                      <span className='text-[9px] font-mono font-bold text-stone-700'>REC</span>
+                    </div>
+                    <span className='text-xs font-bold text-stone-800'>Dẫn truyện</span>
+                    <span className='text-[10px] text-stone-400'>Narration</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ràng buộc kịch bản (Script Binding) */}
+              <div className='space-y-2 pt-2 border-t border-[var(--sb-border)]'>
+                <div className='flex items-center justify-between'>
+                  <label className='text-xs font-semibold text-[var(--sb-text)] flex items-center gap-1.5'>
+                    <FileText className='w-3.5 h-3.5 text-stone-500' />
+                    <span>Gắn câu thoại kịch bản</span>
+                  </label>
+                  <span className='text-[10px] text-[var(--sb-muted)]'>
+                    {scriptLines.length} câu
+                  </span>
+                </div>
+
+                <div className='space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-1'>
+                  {scriptLines.length === 0 ? (
+                    <p className='text-xs text-[var(--sb-muted)] italic p-2 bg-[var(--sb-surface-hover)] rounded-lg'>
+                      Chưa có câu thoại nào trong phân cảnh.
+                    </p>
+                  ) : (
+                    scriptLines.map((line) => {
+                      const isLinked = letteringElements.some((el) => el.scriptLineId === line.id);
+                      return (
+                        <div
+                          key={line.id}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData(
+                              'application/json',
+                              JSON.stringify({
+                                type: line.speakerCharacterId || line.characterName ? 'SPEECH_BALLOON' : 'NARRATION_BOX',
+                                scriptLine: line,
+                              })
+                            );
+                            e.dataTransfer.setData('text/plain', line.dialogueText || line.id);
+                            e.dataTransfer.effectAllowed = 'copy';
+                          }}
+                          onClick={() => {
+                            const suggestedType = line.speakerCharacterId || line.characterName ? 'SPEECH_BALLOON' : 'NARRATION_BOX';
+                            onAddLetteringElement?.(suggestedType, line);
+                          }}
+                          data-testid={`lettering-script-line-${line.id}`}
+                          className={`p-2 rounded-lg border text-xs cursor-grab active:cursor-grabbing transition-all space-y-1 ${
+                            isLinked
+                              ? 'bg-emerald-50/50 border-emerald-200 text-stone-800'
+                              : 'bg-white hover:bg-orange-50/30 border-stone-200 hover:border-orange-400 text-stone-800'
+                          }`}
+                        >
+                          <div className='flex items-center justify-between gap-1'>
+                            <span
+                              className='font-bold text-[11px] truncate flex items-center gap-1'
+                              style={{ color: line.characterColor || '#EA580C' }}
+                            >
+                              {line.characterName || 'Người dẫn'}
+                            </span>
+                            {isLinked && (
+                              <span className='text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-semibold'>
+                                ✓ Đã gắn
+                              </span>
+                            )}
+                          </div>
+                          <p className='text-[11px] text-stone-600 line-clamp-2'>
+                            {line.dialogueText || line.stageDirection}
+                          </p>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Danh sách bóng thoại đã tạo trên trang & Cảnh báo P0 */}
+              <div className='space-y-2 pt-2 border-t border-[var(--sb-border)]'>
+                <div className='flex items-center justify-between'>
+                  <label className='text-xs font-semibold text-[var(--sb-text)] flex items-center gap-1.5'>
+                    <span>Bóng thoại trên trang ({letteringElements.length})</span>
+                  </label>
+                </div>
+
+                <div className='space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1'>
+                  {letteringElements.length === 0 ? (
+                    <p className='text-xs text-[var(--sb-muted)] italic p-2 bg-[var(--sb-surface-hover)] rounded-lg text-center'>
+                      Chưa có bóng thoại nào trên trang. Hãy kéo thả loại bóng ở trên vào canvas.
+                    </p>
+                  ) : (
+                    letteringElements.map((el, idx) => {
+                      const isSelected = selectedElementId === el.elementId;
+                      const textLen = (el.content || '').length;
+                      // Giả lập kiểm tra tràn chữ P0: chiều cao khung so với lượng chữ
+                      const isOverflow = textLen > 70 && (el.height || 100) < 120;
+                      // Giả lập kiểm tra ngược thứ tự đọc P0 (Manga RTL)
+                      const isOrderWarning = idx > 0 && el.x > letteringElements[idx - 1].x;
+
+                      return (
+                        <div
+                          key={el.elementId}
+                          onClick={() => onSelectElementId?.(el.elementId)}
+                          data-testid={`lettering-item-${el.elementId}`}
+                          className={`p-2 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between gap-2 ${
+                            isSelected
+                              ? 'bg-orange-50 border-orange-500 ring-1 ring-orange-500'
+                              : 'bg-white border-stone-200 hover:border-stone-300'
+                          }`}
+                        >
+                          <div className='flex-1 min-w-0 space-y-0.5'>
+                            <div className='flex items-center gap-1.5'>
+                              <span className='font-mono font-bold text-[10px] text-stone-500'>
+                                #{el.readingOrder ?? idx + 1}
+                              </span>
+                              <span className='font-semibold text-stone-800 truncate text-[11px]'>
+                                {el.elementType === 'SPEECH_BALLOON'
+                                  ? 'Bóng thoại'
+                                  : el.elementType === 'THOUGHT_BALLOON'
+                                  ? 'Suy nghĩ'
+                                  : 'Dẫn truyện'}
+                              </span>
+                            </div>
+                            <p className='text-[10px] text-stone-600 truncate'>
+                              {el.content || '(Chưa có nội dung)'}
+                            </p>
+
+                            {/* Cảnh báo P0: Text Overflow & Reading Order */}
+                            {(isOverflow || isOrderWarning) && (
+                              <div className='flex items-center gap-1 pt-0.5'>
+                                {isOverflow && (
+                                  <span
+                                    data-testid='lettering-warning-overflow'
+                                    className='inline-flex items-center gap-0.5 px-1 py-0.2 rounded bg-rose-50 text-rose-600 text-[9px] font-bold border border-rose-200'
+                                    title='Văn bản vượt quá kích thước bóng thoại'
+                                  >
+                                    <AlertTriangle className='w-2.5 h-2.5' /> Tràn chữ
+                                  </span>
+                                )}
+                                {isOrderWarning && (
+                                  <span
+                                    data-testid='lettering-warning-order'
+                                    className='inline-flex items-center gap-0.5 px-1 py-0.2 rounded bg-amber-50 text-amber-700 text-[9px] font-bold border border-amber-200'
+                                    title='Vị trí bóng có thể ngược thứ tự đọc Manga RTL'
+                                  >
+                                    <AlertCircle className='w-2.5 h-2.5' /> Đọc ngược
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {onDeleteLetteringElement && (
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteLetteringElement(el.elementId);
+                              }}
+                              data-testid={`btn-delete-lettering-${el.elementId}`}
+                              className='p-1 rounded text-stone-400 hover:text-rose-500 hover:bg-rose-50 cursor-pointer'
+                              title='Xóa bóng thoại'
+                            >
+                              <Trash2 className='w-3.5 h-3.5' />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
           )}
