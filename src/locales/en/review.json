@@ -68,7 +68,8 @@
     "antiSelfApproval": "4-Eyes Principle (BR-26): You are the author of this submission and cannot review your own work.",
     "openReviewAction": "Open Review",
     "continueReviewAction": "Continue Review",
-    "lockedSelfAction": "Locked: Requires Another Editor"
+    "lockedSelfAction": "Locked: Requires Another Editor",
+    "bibleReview": "Bible designs to review ({count})"
   },
   "scriptReview": {
     "common": {
@@ -306,6 +307,56 @@
       "notFound": "The work to review was not found.",
       "noChapter": "Missing chapter. Open the review from the review desk.",
       "artwork": "Could not load the submitted artwork."
+    }
+  },
+  "bibleReview": {
+    "title": "Series Bible design review",
+    "subtitle": "Compare the artist's design with the spec and story. You endorse or request a redraw; the Producer locks canon.",
+    "listLabel": "Bible entries to review",
+    "emptyTitle": "No designs waiting for review",
+    "emptyBody": "When an artist submits concept art or a model sheet for a Bible entry, it shows up here for you to check.",
+    "groups": {
+      "pending": "Waiting for you",
+      "pendingHint": "The artist submitted a design.",
+      "rework": "Being redrawn",
+      "reworkHint": "Changes requested, waiting for the artist.",
+      "endorsed": "Endorsed",
+      "endorsedHint": "Waiting for the Producer to lock canon."
+    },
+    "openImage": "Open full-size image",
+    "noImage": "No design image yet",
+    "chapters": "Ch.{from} → {to}",
+    "version": "revision #{version}",
+    "spec": "Writer's spec",
+    "noSpec": "No description.",
+    "currentFeedback": "Current change request",
+    "history": "Feedback history",
+    "event": {
+      "ReworkRequested": "Redraw requested",
+      "ConceptSubmitted": "Artist submitted"
+    },
+    "category": {
+      "Character": "Character",
+      "Location": "Location",
+      "Prop": "Prop",
+      "Terminology": "Terminology",
+      "StyleRule": "Style rule",
+      "PlotFact": "Plot fact"
+    },
+    "decisionHint": "Does the design match the spec and story? After you endorse, the Producer locks canon.",
+    "endorse": "Endorse design",
+    "requestRework": "Request redraw",
+    "reworkReason": "What needs to change? (the artist sees this note)",
+    "waitingProducer": "Endorsed. Waiting for the Producer to lock canon.",
+    "waitingArtist": "Redraw requested. Waiting for the artist's new version.",
+    "notReviewer": "Your role can view designs only.",
+    "toast": {
+      "endorsed": "Design endorsed",
+      "reworkRequested": "Redraw requested",
+      "failed": "Could not save the decision"
+    },
+    "errors": {
+      "load": "Could not load the Series Bible."
     }
   }
 }

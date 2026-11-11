@@ -15,6 +15,7 @@ import {
   User,
   ShieldAlert,
   SlidersHorizontal,
+  Palette,
 } from 'lucide-react';
 import {
   AssignmentPriority,
@@ -23,6 +24,7 @@ import {
   WorkspaceRole,
 } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
+import { bibleService } from '@/services/bible.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 
 export interface EditorDeskViewProps {
@@ -54,21 +56,32 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
   const [openingReviewId, setOpeningReviewId] = useState<string | null>(null);
 
   // Load Queue & Series Detail
+  const [pendingBibleConcepts, setPendingBibleConcepts] = useState(0);
+
   const loadData = useCallback(async () => {
     if (!seriesId) return;
     try {
       setLoading(true);
       setError(null);
 
-      const [items, series] = await Promise.all([
+      const [items, series, bible] = await Promise.all([
         assignmentService.getEditorReviewQueue(seriesId, {
           gate: activeGate !== 'all' ? activeGate : undefined,
           status: statusFilter !== 'all' ? statusFilter : undefined,
         }),
         seriesService.getSeriesById(seriesId).catch(() => null),
+        bibleService.getSeriesBible(seriesId).catch(() => null),
       ]);
 
       setQueueItems(items);
+      setPendingBibleConcepts(
+        (bible?.entries ?? []).filter((e) => {
+          const r = e.effectiveRevision;
+          return (
+            !!r && !r.isLocked && (r.reviewStatus === 'ConceptSubmitted' || r.reviewStatus === 2)
+          );
+        }).length,
+      );
       if (series) setSeriesInfo(series);
     } catch (err: any) {
       console.error('Lỗi tải hàng đợi thẩm định Editor:', err);
@@ -199,6 +212,14 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
 
           {/* Quick Refresh */}
           <div className='flex items-center gap-2 self-start md:self-auto'>
+            <button
+              type='button'
+              onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/editor/bible`)}
+              className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer'
+            >
+              <Palette className='w-3.5 h-3.5 text-[#C2410C]' />
+              <span>{t('desk.bibleReview', { count: pendingBibleConcepts })}</span>
+            </button>
             <button
               type='button'
               onClick={loadData}

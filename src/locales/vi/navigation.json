@@ -46,7 +46,8 @@
     "twoFactor": "Bảo mật hai lớp (2FA)",
     "switchWorkspace": "Đổi Workspace",
     "logout": "Đăng xuất",
-    "reviewDesk": "Bàn duyệt"
+    "reviewDesk": "Bàn duyệt",
+    "bibleReview": "Duyệt thiết kế Bible"
   },
   "header": {
     "searchPlaceholder": "Tìm kiếm khung tranh, thoại, tư liệu...",

@@ -43,6 +43,7 @@ import {
   KeyRound,
   Send,
   Menu,
+  Palette,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
@@ -165,6 +166,7 @@ const getRoleNavConfig = (
       section: t('navigation.sections.desk'),
       items: [
         { icon: ShieldCheck, label: t('navigation.menu.reviewDesk'), href: '/editor/desk' },
+        { icon: Palette, label: t('navigation.menu.bibleReview'), href: '/editor/bible' },
         { icon: BookMarked, label: t('navigation.menu.bible'), href: '/bible' },
       ],
     },

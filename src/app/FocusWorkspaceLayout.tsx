@@ -89,6 +89,7 @@ function getReadableWorkspaceTitle(pathname: string): string {
   if (pathname.includes('/script')) return 'Biên soạn kịch bản';
   if (pathname.includes('/letterer')) return 'Chèn chữ & bóng thoại';
   if (pathname.includes('/chapter-review')) return 'Duyệt toàn chương';
+  if (pathname.includes('/editor/bible')) return 'Duyệt thiết kế Bible';
   if (pathname.includes('/editor/desk')) return 'Bàn thẩm định biên tập';
   if (pathname.includes('/review/')) return 'Kiểm duyệt biên tập';
   if (pathname.includes('/task/')) return 'Chi tiết công việc';
@@ -161,7 +162,9 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
   const isEditorDesk = pathname.includes('/editor/desk');
   const isEditorReview =
     String(userRole ?? '').toUpperCase() === 'EDITOR' &&
-    (pathname.includes('/script/review') || pathname.includes('/review/'));
+    (pathname.includes('/script/review') ||
+      pathname.includes('/review/') ||
+      pathname.includes('/editor/bible'));
   const isReadOnlyReview = isEditorDesk || isEditorReview;
   const backPath =
     isEditorDesk && workspaceId ? `/workspaces/${workspaceId}/series` : resolvedSeriesPath;

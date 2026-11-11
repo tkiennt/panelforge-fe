@@ -68,7 +68,8 @@
     "antiSelfApproval": "Quy tắc 4 mắt (BR-26): Bạn là tác giả của bản nộp này nên không được tự duyệt.",
     "openReviewAction": "Mở Thẩm Định",
     "continueReviewAction": "Tiếp tục thẩm định",
-    "lockedSelfAction": "Khóa: Cần Editor khác duyệt"
+    "lockedSelfAction": "Khóa: Cần Editor khác duyệt",
+    "bibleReview": "Thiết kế Bible chờ duyệt ({count})"
   },
   "scriptReview": {
     "common": {
@@ -306,6 +307,56 @@
       "notFound": "Không tìm thấy việc cần duyệt.",
       "noChapter": "Thiếu chương. Hãy mở màn duyệt từ bàn thẩm định.",
       "artwork": "Không tải được ảnh bản nộp."
+    }
+  },
+  "bibleReview": {
+    "title": "Duyệt thiết kế Series Bible",
+    "subtitle": "Đối chiếu bản vẽ Artist nộp với đặc tả và cốt truyện. Bạn xác nhận hoặc yêu cầu vẽ lại; Producer khoá canon.",
+    "listLabel": "Danh sách mục Bible cần xem",
+    "emptyTitle": "Chưa có thiết kế nào chờ duyệt",
+    "emptyBody": "Khi Artist nộp concept art hoặc model sheet cho một mục Bible, mục đó sẽ hiện ở đây để bạn đối chiếu.",
+    "groups": {
+      "pending": "Chờ bạn duyệt",
+      "pendingHint": "Artist đã nộp bản vẽ.",
+      "rework": "Đang vẽ lại",
+      "reworkHint": "Đã yêu cầu sửa, chờ Artist nộp lại.",
+      "endorsed": "Đã xác nhận",
+      "endorsedHint": "Chờ Producer khoá canon."
+    },
+    "openImage": "Mở ảnh kích thước gốc",
+    "noImage": "Chưa có ảnh thiết kế",
+    "chapters": "Ch.{from} → {to}",
+    "version": "bản sửa #{version}",
+    "spec": "Đặc tả của Writer",
+    "noSpec": "Chưa có mô tả.",
+    "currentFeedback": "Yêu cầu sửa hiện tại",
+    "history": "Lịch sử góp ý",
+    "event": {
+      "ReworkRequested": "Yêu cầu vẽ lại",
+      "ConceptSubmitted": "Artist nộp"
+    },
+    "category": {
+      "Character": "Nhân vật",
+      "Location": "Bối cảnh",
+      "Prop": "Đạo cụ",
+      "Terminology": "Thuật ngữ",
+      "StyleRule": "Quy tắc mỹ thuật",
+      "PlotFact": "Sự kiện cốt truyện"
+    },
+    "decisionHint": "Bản vẽ khớp đặc tả và cốt truyện? Sau khi bạn xác nhận, Producer sẽ khoá canon.",
+    "endorse": "Xác nhận thiết kế",
+    "requestRework": "Yêu cầu vẽ lại",
+    "reworkReason": "Cần sửa gì? (Artist sẽ thấy nhận xét này)",
+    "waitingProducer": "Đã xác nhận. Chờ Producer khoá canon.",
+    "waitingArtist": "Đã yêu cầu vẽ lại. Chờ Artist nộp bản mới.",
+    "notReviewer": "Vai trò của bạn chỉ được xem thiết kế.",
+    "toast": {
+      "endorsed": "Đã xác nhận thiết kế",
+      "reworkRequested": "Đã yêu cầu vẽ lại",
+      "failed": "Không lưu được quyết định"
+    },
+    "errors": {
+      "load": "Không tải được Series Bible."
     }
   }
 }

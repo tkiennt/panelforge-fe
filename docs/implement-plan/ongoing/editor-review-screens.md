@@ -10,6 +10,8 @@ Goal: one review layout for every Editor gate (submission in the centre, Notes /
 - [x] Removed from the Editor review: swipe, onion-skin, pixel diff, fullscreen, Preview Link modal (still on the Producer screen), demo "approve everything" buttons
 - [x] Fixed `getAssignmentById` argument order in `ScriptReviewView` (script decisions were never available)
 
+- [x] Bible design review for Editor (`editor/bible`): endorse or request redraw of submitted concepts; Producer still locks canon
+
 ## Next
 - [ ] Chapter-level Review (`ChapterReviewView`): move to the same layout (page list on the left), return work per target assignment with the shared notes tab, drop the local-only checklist and remaining `window.prompt`
 - [ ] Editorial clearance before Producer release gate (BR-28 checklist)

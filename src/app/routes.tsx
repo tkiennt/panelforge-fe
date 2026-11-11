@@ -59,6 +59,9 @@ const ReviewView = lazy(() =>
 const EditorDeskView = lazy(() =>
   import('@/roles/editor/views/EditorDeskView').then((m) => ({ default: m.EditorDeskView })),
 );
+const BibleReviewView = lazy(() =>
+  import('@/roles/editor/views/BibleReviewView').then((m) => ({ default: m.BibleReviewView })),
+);
 const ScriptReviewView = lazy(() =>
   import('@/roles/editor/views/ScriptReviewView').then((m) => ({ default: m.ScriptReviewView })),
 );
@@ -599,6 +602,10 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               <Route
                 path='editor/desk'
                 element={<EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />}
+              />
+              <Route
+                path='editor/bible'
+                element={<BibleReviewView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />}
               />
               <Route
                 path='editor/desk/:chapterId'
