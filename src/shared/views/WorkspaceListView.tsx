@@ -22,6 +22,7 @@ import { StudioCoverFallback } from '@/shared/components/StudioCoverFallback';
 import { WorkspaceCoverPickerDialog } from '@/shared/components/WorkspaceCoverPickerDialog';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { LucianInlineAlert } from '@/shared/components/lucian';
+import { BlankPageSketch } from '@/shared/components/BlankPageSketch';
 import './workspaceShelf.css';
 
 interface WorkspaceListViewProps {
@@ -266,7 +267,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
               role='alert'
               className='max-w-md mx-auto mt-10 p-6 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-center shadow-xs'
             >
-              <AlertCircle className='w-6 h-6 text-red-600 mx-auto mb-3' aria-hidden='true' />
+              <AlertCircle className='w-6 h-6 text-rose-600 mx-auto mb-3' aria-hidden='true' />
               <p className='text-sm text-[#44403C] mb-4'>{t('workspace.shelf.loadError')}</p>
               <button
                 type='button'
@@ -279,13 +280,16 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </div>
           ) : workspaces.length === 0 ? (
             /* Empty State */
-            <div className='max-w-md mx-auto mt-10 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] p-8 text-center shadow-xs'>
-              <h1 className='text-2xl font-serif font-bold text-[#1C1917] mb-2 tracking-tight'>
-                {t('workspace.emptyTitle')}
-              </h1>
-              <p className='text-sm text-[#57534E] mb-6 leading-relaxed'>
-                {canCreate ? t('workspace.shelf.emptyCreate') : t('workspace.shelf.emptyInvite')}
-              </p>
+            <div className='mt-6 border-2 border-dashed border-[#D8D2C5] rounded-xl p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left'>
+              <BlankPageSketch />
+              <div className='flex-1'>
+                <h1 className='text-2xl font-serif font-bold text-[#1C1917] mb-2 tracking-tight'>
+                  {t('workspace.emptyTitle')}
+                </h1>
+                <p className='text-sm text-[#57534E] leading-relaxed'>
+                  {canCreate ? t('workspace.shelf.emptyCreate') : t('workspace.shelf.emptyInvite')}
+                </p>
+              </div>
               {canCreate && createButton}
             </div>
           ) : (
@@ -295,7 +299,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 <div>
                   <h1 className='text-[28px] leading-tight font-serif font-bold text-[#1C1917] tracking-tight'>
                     {t('workspace.shelf.title')}
-                    <span className='text-[#78716C] font-normal'> · {workspaces.length}</span>
+                    <span className='text-[#716B65] font-normal'> · {workspaces.length}</span>
                   </h1>
                   <p className='text-sm text-[#57534E] mt-1'>{t('workspace.shelf.subtitle')}</p>
                 </div>
@@ -387,7 +391,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                                   {ws.name}
                                 </h2>
                                 <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${
+                                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                                     ws.currentUserRole === 'EDITOR'
                                       ? 'bg-rose-50 text-rose-700 border border-rose-200/80 font-semibold'
                                       : 'bg-[#E7E1D5]/60 text-[#57534E]'
@@ -421,9 +425,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                                     <span
                                       key={member.userId}
                                       title={member.fullName}
-                                      className='relative inline-block w-6 h-6 rounded-full border-2 border-[#FCFBF8] bg-[#E7E1D5] overflow-hidden shrink-0'
+                                      className='relative inline-block w-7 h-7 rounded-full border-2 border-[#FCFBF8] bg-[#E7E1D5] overflow-hidden shrink-0'
                                     >
-                                      <span className='w-full h-full flex items-center justify-center text-[10px] font-bold text-[#44403C]'>
+                                      <span className='w-full h-full flex items-center justify-center text-xs font-bold text-[#44403C]'>
                                         {member.fullName.charAt(0).toUpperCase()}
                                       </span>
                                       {member.avatarUrl && (
@@ -441,7 +445,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                                   {ws.memberCount > ws.memberPreviews.length && (
                                     <span
                                       title={`${t('workspace.shelf.members', { count: ws.memberCount })}`}
-                                      className='inline-flex items-center justify-center w-6 h-6 rounded-full border-2 border-[#FCFBF8] bg-[#E7E1D5] text-[10px] font-bold text-[#57534E] shrink-0'
+                                      className='inline-flex items-center justify-center w-7 h-7 rounded-full border-2 border-[#FCFBF8] bg-[#E7E1D5] text-xs font-bold text-[#57534E] shrink-0'
                                     >
                                       +{ws.memberCount - ws.memberPreviews.length}
                                     </span>
@@ -461,12 +465,16 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                             </div>
 
                             {/* Editor Review Queue Badge (Gate 1 & Gate 2) */}
-                            {(ws.currentUserRole === 'EDITOR' || (ws.pendingEditorReviews ?? 0) > 0) && (
+                            {(ws.currentUserRole === 'EDITOR' ||
+                              (ws.pendingEditorReviews ?? 0) > 0) && (
                               <span
                                 className='inline-flex items-center gap-1.5 font-semibold text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-md text-xs tabular-nums shrink-0 shadow-2xs'
                                 title='Số bài nộp chờ Editor kiểm tra và duyệt chất lượng (Gate 1 Storyboard & Gate 2 Composite)'
                               >
-                                <span className='w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse' aria-hidden='true' />
+                                <span
+                                  className='w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse'
+                                  aria-hidden='true'
+                                />
                                 <ShieldCheck className='w-3 h-3 text-rose-600' aria-hidden='true' />
                                 <span>
                                   {(ws.pendingEditorReviews ?? 0) > 0
@@ -500,7 +508,11 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                               }`}
                               aria-label={`${t('workspace.shelf.enter')}: ${ws.name}`}
                             >
-                              <span>{ws.currentUserRole === 'EDITOR' ? 'Vào Bàn Duyệt' : t('workspace.shelf.enter')}</span>
+                              <span>
+                                {ws.currentUserRole === 'EDITOR'
+                                  ? 'Vào Bàn Duyệt'
+                                  : t('workspace.shelf.enter')}
+                              </span>
                               <ArrowRight className='ws-arrow w-3.5 h-3.5' aria-hidden='true' />
                             </button>
                           </div>

@@ -8,7 +8,7 @@
     "register": "Tạo tài khoản"
   },
   "hero": {
-    "docket": "PF / 01 — XƯỞNG SÁNG TÁC TRUYỆN TRANH",
+    "docket": "PF / 01 · XƯỞNG SÁNG TÁC TRUYỆN TRANH",
     "titleLine1": "TỪ Ý TƯỞNG ĐẾN",
     "titleLine2": "TỪNG KHUNG TRUYỆN.",
     "subtitleLead": "Cùng viết, vẽ và duyệt truyện trong một không gian.",
@@ -44,7 +44,7 @@
   "workflow": {
     "tag": "03 / Quy trình sản xuất",
     "title": "Từ kịch bản đến trang truyện hoàn thiện.",
-    "subtitle": "Bốn công đoạn nối tiếp nhịp nhàng, trực quan hóa tiến trình sáng tạo từ văn bản phác thảo đến ấn phẩm màu sắc.",
+    "subtitle": "Kịch bản, phác thảo, đi nét và tô màu: mỗi trang qua bốn công đoạn, có cổng duyệt trước khi sang công đoạn kế tiếp.",
     "stages": {
       "script": "Kịch bản",
       "sketch": "Phác thảo",

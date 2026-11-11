@@ -30,13 +30,14 @@ export interface EditorDeskViewProps {
   onShowToast?: (title: string, desc: string) => void;
 }
 
-export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
-  workspaceRole,
-  onShowToast,
-}) => {
+export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, onShowToast }) => {
   const { t } = useTranslation('review');
   const navigate = useNavigate();
-  const { workspaceId, seriesId, chapterId: paramChapterId } = useParams<{
+  const {
+    workspaceId,
+    seriesId,
+    chapterId: paramChapterId,
+  } = useParams<{
     workspaceId: string;
     seriesId: string;
     chapterId?: string;
@@ -83,13 +84,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
   // Helper to determine destination review URL
   const getReviewUrl = (item: EditorReviewQueueItemDto) => {
-    const isScriptReview =
-      item.scopeLabel?.toLowerCase().includes('kịch bản') ||
-      item.scopeLabel?.toLowerCase().includes('script') ||
-      item.stageName?.toLowerCase().includes('kịch bản') ||
-      item.stageName?.toLowerCase().includes('script');
-
-    return isScriptReview
+    return item.stageSlug === 'script'
       ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${item.chapterId}/script/review?assignmentId=${item.assignmentId}`
       : `/workspaces/${workspaceId}/series/${seriesId}/chapters/${item.chapterId}/review/${item.assignmentId}?chapterId=${item.chapterId}`;
   };
@@ -100,7 +95,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     if (item.isSelfSubmission) {
       onShowToast?.(
         'Quy tắc 4 mắt (BR-26)',
-        'Bạn không thể tự duyệt bài do chính mình nộp. Vui lòng chuyển giao cho Biên tập viên khác.'
+        'Bạn không thể tự duyệt bài do chính mình nộp. Vui lòng chuyển giao cho Biên tập viên khác.',
       );
       return;
     }
@@ -160,7 +155,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
           i.chapterNumber.toString().includes(q) ||
           i.assigneeName?.toLowerCase().includes(q) ||
           i.scopeLabel?.toLowerCase().includes(q) ||
-          i.stageName?.toLowerCase().includes(q)
+          i.stageName?.toLowerCase().includes(q),
       );
     }
 
@@ -211,7 +206,9 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
               title='Làm mới hàng đợi'
             >
-              <RotateCcw className={`w-3.5 h-3.5 text-[#C2410C] ${loading ? 'animate-spin' : ''}`} />
+              <RotateCcw
+                className={`w-3.5 h-3.5 text-[#C2410C] ${loading ? 'animate-spin' : ''}`}
+              />
               <span>Làm mới</span>
             </button>
           </div>
@@ -249,9 +246,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
             )}
           </div>
 
-          <div className='text-xs text-[#78716C] font-mono'>
-            Tổng: {metrics.total} bài nộp
-          </div>
+          <div className='text-xs text-[#78716C] font-mono'>Tổng: {metrics.total} bài nộp</div>
         </div>
       </div>
 
@@ -347,7 +342,9 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
         {loading && (
           <div className='p-12 text-center bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xs'>
             <RotateCcw className='w-7 h-7 text-[#C2410C] animate-spin mx-auto mb-2.5' />
-            <p className='text-xs font-semibold text-[#57534E]'>Đang nạp hàng đợi duyệt bài của Editor...</p>
+            <p className='text-xs font-semibold text-[#57534E]'>
+              Đang nạp hàng đợi duyệt bài của Editor...
+            </p>
           </div>
         )}
 
@@ -357,9 +354,12 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
             <div className='w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 mx-auto'>
               <CheckCircle2 className='w-5 h-5' />
             </div>
-            <h2 className='text-sm font-serif font-bold text-[#1C1917]'>Hàng Đợi Thẩm Định Đang Sạch (Inbox Zero)</h2>
+            <h2 className='text-sm font-serif font-bold text-[#1C1917]'>
+              Hàng Đợi Thẩm Định Đang Sạch (Inbox Zero)
+            </h2>
             <p className='text-xs text-[#78716C] max-w-md mx-auto leading-relaxed'>
-              Không có bài nộp nào đang chờ duyệt trong cổng này. Mọi tác phẩm đều đã được xử lý hoặc nghệ sĩ đang tiếp tục hoàn thiện.
+              Không có bài nộp nào đang chờ duyệt trong cổng này. Mọi tác phẩm đều đã được xử lý
+              hoặc nghệ sĩ đang tiếp tục hoàn thiện.
             </p>
           </div>
         )}
@@ -398,7 +398,11 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             isGate1 ? 'bg-purple-600' : 'bg-emerald-600'
                           }`}
                         />
-                        {isGate1 ? 'Gate 1: Storyboard' : 'Gate 2: Composite'}
+                        {item.stageSlug === 'script'
+                          ? t('desk.gate1Script', 'Gate 1: Kịch bản')
+                          : isGate1
+                            ? t('desk.gate1', 'Gate 1: Storyboard')
+                            : t('desk.gate2', 'Gate 2: Composite')}
                       </span>
 
                       <span className='flex items-center gap-1 text-[#57534E] font-medium'>
@@ -416,10 +420,12 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                     {/* Main Title: Chapter & Scope */}
                     <div className='mb-2'>
                       <h3 className='text-sm font-bold text-[#1C1917] leading-snug'>
-                        Chương {item.chapterNumber} · <span className='text-[#C2410C]'>{item.scopeLabel}</span>
+                        Chương {item.chapterNumber} ·{' '}
+                        <span className='text-[#C2410C]'>{item.scopeLabel}</span>
                       </h3>
                       <p className='text-xs text-[#57534E] mt-0.5 truncate'>
-                        {item.chapterTitle || 'Chưa đặt tên'} · <span className='font-medium text-[#1C1917]'>{item.stageName}</span>
+                        {item.chapterTitle || 'Chưa đặt tên'} ·{' '}
+                        <span className='font-medium text-[#1C1917]'>{item.stageName}</span>
                       </p>
                     </div>
 
@@ -465,7 +471,8 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                       <div className='mt-1 mb-2 p-2 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs flex items-start gap-1.5 leading-relaxed'>
                         <ShieldAlert className='w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5' />
                         <div>
-                          <span className='font-bold'>Quy tắc 4 mắt (BR-26):</span> Bạn là người đã nộp bài này. Vui lòng chuyển bài cho Biên tập viên khác.
+                          <span className='font-bold'>Quy tắc 4 mắt (BR-26):</span> Bạn là người đã
+                          nộp bài này. Vui lòng chuyển bài cho Biên tập viên khác.
                         </div>
                       </div>
                     )}
@@ -504,7 +511,9 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                         className='inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] active:bg-[#C2410C] shadow-soft-sm transition-colors cursor-pointer disabled:opacity-50'
                       >
                         <Eye className={`w-3.5 h-3.5 ${isOpening ? 'animate-spin' : ''}`} />
-                        <span>{isOpening ? 'Đang mở...' : t('desk.openReviewAction', 'Mở Thẩm Định')}</span>
+                        <span>
+                          {isOpening ? 'Đang mở...' : t('desk.openReviewAction', 'Mở Thẩm Định')}
+                        </span>
                       </button>
                     )}
                   </div>

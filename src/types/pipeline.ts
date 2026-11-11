@@ -348,6 +348,10 @@ export interface ChangeRequestDto {
   assetReferenceId?: string | null;
   /** Panel thuộc một Page của Chapter; null/undefined nếu khoanh chung cả trang. */
   panelId?: string | null;
+  /** Neo nhận xét kịch bản: phân cảnh, dòng (null = cả phân cảnh) và nguyên văn tại lần nộp. */
+  sceneId?: string | null;
+  scriptLineId?: string | null;
+  quotedText?: string | null;
 }
 
 export interface ChangeRequestItemRequest {
@@ -358,6 +362,10 @@ export interface ChangeRequestItemRequest {
   assetReferenceId?: string;
   /** Panel thuộc một Page của Chapter; null/undefined nếu khoanh chung cả trang. */
   panelId?: string | null;
+  sceneId?: string;
+  /** Phải đi kèm sceneId của phân cảnh chứa dòng. */
+  scriptLineId?: string;
+  quotedText?: string;
 }
 
 export interface RequestAssignmentChangesRequest {
@@ -646,9 +654,11 @@ export interface EditorReviewQueueItemDto {
   seriesTitle: string;
   pipelineStageId: string;
   stageName: string;
+  /** Định danh ổn định của công đoạn (vd. 'script', 'ink', 'letter') — dùng để rẽ nhánh, không dùng stageName. */
+  stageSlug: string;
   stageOrder: number;
   stageColorCode: string;
-  gate: 'gate1' | 'gate2' | 'other';
+  gate: 'gate1' | 'gate2';
   status: AssignmentStatus;
   entityType: WorkflowEntityType;
   targetEntityId?: string | null;

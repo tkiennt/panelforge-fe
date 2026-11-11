@@ -61,6 +61,7 @@
     "subtitle": "Editorial quality control inbox organized by Gate 1 & Gate 2",
     "gateAll": "All Gates",
     "gate1": "Gate 1: Storyboard / Layout",
+    "gate1Script": "Gate 1: Script",
     "gate2": "Gate 2: Quality & Composite",
     "statusSubmitted": "Pending Review",
     "statusUnderReview": "Under Review",
@@ -68,5 +69,169 @@
     "openReviewAction": "Open Review",
     "continueReviewAction": "Continue Review",
     "lockedSelfAction": "Locked: Requires Another Editor"
+  },
+  "scriptReview": {
+    "common": {
+      "cancel": "Cancel",
+      "retry": "Reload",
+      "backToDesk": "Back to review desk"
+    },
+    "header": {
+      "title": "Chapter {number}",
+      "submission": "Submission #{attempt} · {date}",
+      "noSubmission": "No submission yet",
+      "scenes": "{count} scenes"
+    },
+    "nav": {
+      "label": "Scene index",
+      "title": "Scenes"
+    },
+    "tabs": {
+      "notes": "Notes ({count})",
+      "checks": "Checks"
+    },
+    "composer": {
+      "label": "Note for the writer",
+      "placeholder": "What needs to change here, and why?",
+      "hint": "Ctrl+Enter to save · Esc to cancel",
+      "add": "Add note",
+      "update": "Save changes"
+    },
+    "manuscript": {
+      "unknownSpeaker": "No character linked",
+      "noteCount": "{count} notes",
+      "commentLine": "Note",
+      "commentLineTitle": "Note this line (becomes a change request when you return the script)",
+      "commentScene": "Note scene",
+      "sceneLabel": "SCENE {number}",
+      "emptyScene": "This scene has no script lines.",
+      "emptyTitle": "This chapter has no script",
+      "emptyBody": "The writer has not created any scenes for this chapter."
+    },
+    "location": {
+      "line": "Scene {scene} · line {line}",
+      "removedLine": "Scene {scene} · removed line",
+      "scene": "Scene {scene}",
+      "general": "General note"
+    },
+    "crStatus": {
+      "Open": "Open",
+      "Resolved": "Awaiting check",
+      "Verified": "Verified",
+      "Rejected": "Dropped"
+    },
+    "notes": {
+      "draftsTitle": "Notes in this review",
+      "draftsHint": "Not sent yet. Each note becomes a change request when you return the script.",
+      "editDraft": "Edit note",
+      "deleteDraft": "Delete note",
+      "resolvedTitle": "Writer marked as fixed",
+      "resolvedHint": "Compare with the current text, then verify or reopen with a reason.",
+      "openTitle": "Open change requests",
+      "closedTitle": "Closed",
+      "quotedAtReview": "When noted:",
+      "currentText": "Now:",
+      "lineRemoved": "This line was removed from the script.",
+      "writerReply": "Writer:",
+      "reviewerReply": "Editor:",
+      "verify": "Verified",
+      "reopen": "Not fixed",
+      "reopenReason": "Why is it not fixed? (sent to the writer)",
+      "reject": "Drop request",
+      "rejectTitle": "Accept the writer's objection and close this request",
+      "rejectReason": "Reason for dropping",
+      "empty": "No notes or change requests for this submission.",
+      "emptyCanComment": "No notes yet. Hover a script line and choose “Note”."
+    },
+    "checks": {
+      "bibleTitle": "Chapter Bible Gate",
+      "bibleUnavailable": "Bible Gate result is unavailable.",
+      "biblePassed": "Passed: {count} Bible entries are canon-locked",
+      "bibleFailed": "Not passed: {count} Bible entries are not canon-locked",
+      "notLocked": "Not canon-locked at this chapter",
+      "consistencyTitle": "Consistency check",
+      "run": "Run check",
+      "running": "Checking…",
+      "noFindings": "No findings yet.",
+      "findingSummary": "{open} findings to triage, {blocking} blocking",
+      "toComment": "Make it a note",
+      "confirm": "Confirm issue",
+      "notAnIssue": "Not an issue",
+      "ignore": "Ignore",
+      "ignoreReason": "Reason for ignoring (required, e.g. flashback scene)",
+      "clarify": "Needs clarification",
+      "clarifyQuestion": "Question for the writer",
+      "canonTitle": "Script freeze",
+      "frozen": "Frozen",
+      "notFrozen": "Not frozen",
+      "freeze": "Freeze script",
+      "freezeBlocked": "The Bible Gate must pass before freezing.",
+      "unfreeze": "Unfreeze script",
+      "unfreezeReason": "Reason for unfreezing (logged)",
+      "reopenRequested": "Writer asked to reopen the script",
+      "approveReopen": "Approve reopen",
+      "rejectReopen": "Decline"
+    },
+    "severity": {
+      "Blocking": "Blocking",
+      "Warning": "Warning",
+      "Info": "Info"
+    },
+    "findingStatus": {
+      "Open": "New",
+      "Confirmed": "Confirmed",
+      "NeedsClarification": "Awaiting clarification",
+      "Rejected": "Not an issue",
+      "Ignored": "Ignored",
+      "Resolved": "Resolved",
+      "Stale": "Stale"
+    },
+    "assignmentStatus": {
+      "Assigned": "is assigned",
+      "InProgress": "is being written",
+      "Submitted": "is submitted",
+      "UnderReview": "is under review",
+      "Approved": "is approved",
+      "ReworkRequired": "is waiting for the writer's fixes",
+      "Blocked": "is blocked"
+    },
+    "notice": {
+      "noAssignment": "Viewing the script without a submission, so notes and decisions are unavailable.",
+      "selfReview": "You are the assignee, so you cannot review your own work (reviewer must differ from submitter).",
+      "notReviewer": "Your role can view but not review scripts.",
+      "notOpened": "This submission is waiting. Open the review to start adding notes.",
+      "openAction": "Open review",
+      "status": "This work {status}; view only.",
+      "lastFeedback": "Previous general note:"
+    },
+    "decision": {
+      "summaryLabel": "General note to the writer",
+      "summaryPlaceholder": "Overall assessment of this submission",
+      "summaryRequired": "Returning requires a general note",
+      "return": "Return to writer",
+      "returnWithNotes": "Return · {count} change requests",
+      "approve": "Approve script",
+      "blockedByDrafts": "{count} notes not sent: return the script or delete them before approving.",
+      "blockedByUnclosed": "{count} change requests still open: verify or drop them before approving.",
+      "blockingFindings": "{count} blocking findings are unresolved. The chapter cannot be locked until they are handled."
+    },
+    "toast": {
+      "openFailed": "Could not open the review",
+      "returnedTitle": "Returned to writer",
+      "returnedBody": "Sent {count} change requests.",
+      "returnFailed": "Could not return the script",
+      "approvedTitle": "Script approved",
+      "approvedBody": "The script submission passed the gate.",
+      "approveFailed": "Could not approve",
+      "crFailed": "Could not update the change request",
+      "triageFailed": "Could not save the triage",
+      "checkFailed": "Could not run the consistency check",
+      "canonFailed": "Could not update the script state"
+    },
+    "errors": {
+      "loadTitle": "Could not open the script",
+      "load": "Could not load this chapter's script.",
+      "generic": "Something went wrong."
+    }
   }
 }
