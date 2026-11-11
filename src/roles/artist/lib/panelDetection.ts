@@ -269,3 +269,35 @@ function fallbackHeuristicPanels(panelCount: number = 4): PanelDetectionResult {
     method: 'adaptive-heuristic',
   };
 }
+
+/**
+ * Cắt ảnh ô tranh tương ứng từ ảnh phác thảo toàn trang
+ * Trả về Data URL dạng PNG để tự động gán thẳng vào panel artwork
+ */
+export async function cropImageByBoundingBox(
+  imageUrl: string,
+  box: { x: number; y: number; w: number; h: number }
+): Promise<string> {
+  const img = await loadImage(imageUrl);
+  const canvas = document.createElement('canvas');
+
+  // Tính tọa độ pixel thực tế trên ảnh gốc
+  const naturalW = img.naturalWidth || img.width;
+  const naturalH = img.naturalHeight || img.height;
+
+  const sx = Math.max(0, Math.floor(box.x * naturalW));
+  const sy = Math.max(0, Math.floor(box.y * naturalH));
+  const sw = Math.min(naturalW - sx, Math.max(1, Math.floor(box.w * naturalW)));
+  const sh = Math.min(naturalH - sy, Math.max(1, Math.floor(box.h * naturalH)));
+
+  canvas.width = sw;
+  canvas.height = sh;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Không thể khởi tạo 2D Context để cắt tranh panel.');
+  }
+
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  return canvas.toDataURL('image/png');
+}

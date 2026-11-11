@@ -69,11 +69,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       title,
       desc,
       type: resolvedType,
-      duration: options?.duration ?? 4500,
+      duration: options?.duration ?? 2200,
       action: options?.action,
     };
 
-    setToasts((prev) => [newToast, ...prev.slice(0, 4)]);
+    // Luôn giữ tối đa 1 toast đang hiển thị để tránh xếp chồng đè lên nhau
+    setToasts([newToast]);
   }, []);
 
   const success = useCallback(

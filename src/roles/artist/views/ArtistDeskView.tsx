@@ -33,7 +33,7 @@ import {
   Scissors,
   Upload,
 } from 'lucide-react';
-import { detectPanelsFromSketchImage } from '../lib/panelDetection';
+import { detectPanelsFromSketchImage, cropImageByBoundingBox } from '../lib/panelDetection';
 import { getRoleDefaultPath } from '@/roles/roles';
 import {
   formatChapterLabel,
@@ -1480,10 +1480,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       },
     }));
 
-    toast.success(
-      'Đã nạp ảnh phác thảo toàn trang',
-      'Bấm "Tự động tách panel" để AI phân tích rãnh và sinh các ô tranh Manga.',
-    );
+    toast.success('Đã tải ảnh phác thảo', '');
   };
 
   // Bật/tắt hiển thị ảnh phác thảo phía dưới
@@ -1508,7 +1505,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       delete next[targetPage.id];
       return next;
     });
-    toast.info('Đã gỡ ảnh phác thảo', 'Đã xóa bản phác thảo toàn trang.');
+    toast.info('Đã gỡ ảnh phác thảo', '');
   };
 
   // Tự động tách panel từ ảnh phác thảo toàn trang (Chỉ nhận diện Panel, KHÔNG đụng đến thoại)
@@ -1540,8 +1537,31 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         createdAt: nowIso,
       }));
 
+      // Tự động cắt các ô tranh tương ứng từ ảnh phác thảo toàn trang
+      const newArtworks: Record<string, PanelArtworkData> = {};
+      await Promise.all(
+        detection.panels.map(async (p, idx) => {
+          const panel = detectedPanels[idx];
+          try {
+            const croppedUrl = await cropImageByBoundingBox(currentSketch.imageUrl, p);
+            newArtworks[panel.id] = {
+              id: `art-${panel.id}-${Date.now()}`,
+              panelId: panel.id,
+              panelNumber: p.panelNumber,
+              imageUrl: croppedUrl,
+              fileName: `panel-${p.panelNumber}.png`,
+              uploadedAt: nowIso,
+            };
+          } catch (cropErr) {
+            console.warn(`Lỗi cắt tranh cho khung #${p.panelNumber}:`, cropErr);
+          }
+        }),
+      );
+
       setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: detectedPanels }));
-      setLockedTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: false }));
+      setPanelArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: newArtworks }));
+      // Tự động chốt bố cục và nạp tranh xong, không yêu cầu người dùng phải bấm lưu hay nạp tranh lại
+      setLockedTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: true }));
       setActiveTemplateByPageId((prev) => {
         const next = { ...prev };
         delete next[targetPage.id];
@@ -1554,13 +1574,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         ),
       );
 
-      toast.success(
-        'Tách panel thành công!',
-        `Đã nhận diện ${detectedPanels.length} ô khung theo chuẩn Manga RTL. Bấm "Lưu" để chốt bố cục.`,
-      );
+      toast.success('Đã tách khung', '');
     } catch (err) {
       console.error('Lỗi nhận diện panel:', err);
-      toast.error('Không thể tách panel', 'Vui lòng kiểm tra lại ảnh phác thảo hoặc chọn mẫu khung dựng sẵn.');
+      toast.error('Không thể tách khung', 'Vui lòng kiểm tra lại ảnh phác thảo.');
     } finally {
       setIsDetectingPanels(false);
     }
