@@ -1,7 +1,6 @@
 # CLAUDE.md – PanelForge Frontend
 
-React + TypeScript · Vite · Tailwind CSS · HTML5 Canvas editor · dnd-kit · TanStack Query · Vitest.
-(Konva and Playwright are planned in the stack but are not in `package.json` yet — do not add them without asking.)
+React 19 + TypeScript · Vite · Tailwind CSS v4 · HTML5 / Konva Canvas editor · dnd-kit · TanStack Query · Vitest · Playwright.
 
 ```bash
 npm run typecheck
@@ -9,9 +8,10 @@ npm run lint
 npm run test:run
 npm run build
 npm run quality   # typecheck + lint + tests
+npm run i18n:check # ensure 100% VI <-> EN key parity
 ```
 
-Frontend ↔ Backend coordination happens through `../../HANDOFF.md` (see the workspace-level `CLAUDE.md` and `../../.agent/rules/handoff-frontend.md`). Only call backend endpoints marked `DONE` there; take field names from Swagger, never guess.
+Frontend ↔ Backend coordination follows `.agents/CODEBASE_MAP.md` and Backend DTOs/Swagger. Take field names directly from Backend models (`PanelForge.Application/Features/<Domain>/...`), never guess.
 
 ## PanelForge Agent Rules
 
