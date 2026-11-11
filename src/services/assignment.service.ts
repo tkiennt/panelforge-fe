@@ -34,6 +34,7 @@ import {
   AssignmentPlanResultDto,
   AssignmentPlanTemplateStageDto,
   AssignmentPlanTemplateDto,
+  EditorReviewQueueItemDto,
 } from '@/types';
 
 export type {
@@ -51,6 +52,7 @@ export type {
   AssignmentPlanResultDto,
   AssignmentPlanTemplateStageDto,
   AssignmentPlanTemplateDto,
+  EditorReviewQueueItemDto,
   StageProgressDto,
   AssignmentStatus,
   WorkflowEntityType,
@@ -710,6 +712,22 @@ export const assignmentService = {
       return response.data;
     } catch (error: any) {
       throw new Error(extractError(error, 'Không thể chạy kiểm tra nhất quán hình ảnh'));
+    }
+  },
+
+  /** Lấy danh sách hàng đợi duyệt của Editor theo Series (GET /api/series/{seriesId}/editor/review-queue) */
+  getEditorReviewQueue: async (
+    seriesId: string,
+    params?: { gate?: string; status?: string }
+  ): Promise<EditorReviewQueueItemDto[]> => {
+    try {
+      const response = await axiosClient.get(`/series/${seriesId}/editor/review-queue`, {
+        params,
+      });
+      return response.data;
+    } catch (error: any) {
+      console.warn('Không thể nạp hàng đợi thẩm định Editor:', error);
+      throw new Error(extractError(error, 'Không thể nạp hàng đợi thẩm định Editor'));
     }
   },
 };
