@@ -164,6 +164,60 @@ Chiếc xe dừng lại.
     expect(page2To3.filteredText).toContain('! Trang 03');
     expect(page2To3.filteredText).not.toContain('! Trang 01');
   });
+
+  it('nhận diện chính xác kịch bản plain text tiếng Việt tự nhiên (Khung, Ô, Tên: Thoại, SFX, Dẫn chuyện)', () => {
+    const naturalScript = `
+Trang 1
+Khung 1: [Toàn cảnh]
+Khu phố Shibuya lúc nửa đêm.
+Dẫn chuyện: Một đêm mưa lạnh lẽo năm 2030.
+Minh: Chúng ta phải hành động ngay!
+Khung 2: [Cận cảnh]
+Lan (thì thầm): "Nhưng ngoài kia có bảo vệ..."
+(SFX: BÙM!)
+Khung 3: [Góc đặc tả]
+Khói bốc lên nghi ngút.
+    `.trim();
+
+    const blocks = parseScriptTextToBlocks(naturalScript);
+    expect(blocks.some((b) => b.type === 'page' && b.pageNumber === '01')).toBe(true);
+    expect(blocks.filter((b) => b.type === 'panel').length).toBe(3);
+
+    const dialogues = blocks.filter((b) => b.type === 'dialogue');
+    expect(dialogues.length).toBe(2);
+    expect(dialogues[0].character).toBe('Minh');
+    expect(dialogues[0].content).toBe('Chúng ta phải hành động ngay!');
+    expect(dialogues[1].character).toBe('Lan');
+    expect(dialogues[1].content).toBe('Nhưng ngoài kia có bảo vệ...');
+
+    const sfxBlock = blocks.find((b) => b.type === 'sfx');
+    expect(sfxBlock).toBeDefined();
+    expect(sfxBlock?.content).toContain('BÙM');
+
+    const captionBlock = blocks.find((b) => b.type === 'caption');
+    expect(captionBlock).toBeDefined();
+    expect(captionBlock?.content).toContain('Một đêm mưa lạnh lẽo');
+  });
+
+  it('tự động phân trang và phân panel (Auto-Pacing) khi plain text không có thẻ Trang hoặc Khung', () => {
+    const rawProseWithoutPanels = `
+Đêm đã về khuya trên ngã tư Shibuya.
+Minh: "Cẩn thận đấy!"
+Lan đáp: "Tôi biết rồi."
+Khói đen bốc lên cuồn cuộn.
+Minh: "Đi lối này nhanh lên!"
+Tiếng còi cảnh sát vang lên từ xa.
+    `.trim();
+
+    const blocks = parseScriptTextToBlocks(rawProseWithoutPanels, { targetPanelsPerPage: 4 });
+    // Phải tự động sinh Trang 01
+    expect(blocks.some((b) => b.type === 'page' && b.pageNumber === '01')).toBe(true);
+    // Phải tự động tạo các panel
+    const panels = blocks.filter((b) => b.type === 'panel');
+    expect(panels.length).toBeGreaterThanOrEqual(2);
+    expect(panels[0].panelNumber).toBe('1.1');
+    expect(panels[1].panelNumber).toBe('1.2');
+  });
 });
 
 

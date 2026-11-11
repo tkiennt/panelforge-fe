@@ -125,6 +125,101 @@ export function renumberEditorState(editor: any, preferredPos?: number): boolean
 }
 
 /**
+ * Tạo danh sách khối TipTap đại diện cho 1 trang Manga có sẵn 4 hoặc 5 panel tiêu chuẩn
+ * - Panel .1: [Toàn cảnh]
+ * - Panel .2: [Trung cảnh]
+ * - Panel .3: [Cận cảnh]
+ * - Panel .4: [Góc đặc tả]
+ * - (Tùy chọn) Panel .5: [Góc nghiêng / Kết trang]
+ */
+export function createStructuredMangaPageBlocks(
+  pageNumber: number = 1,
+  panelsCount: 4 | 5 = 4,
+  sceneId?: string | null,
+  speakerName?: string
+): any[] {
+  const pStr = String(pageNumber).padStart(2, '0');
+  const blocks: any[] = [];
+
+  // Khối tiêu đề trang
+  blocks.push({
+    type: 'scriptLineBlock',
+    attrs: {
+      scriptLineId: generateGuid(),
+      sceneId: sceneId || null,
+      blockType: 'page_heading' as MangaBlockType,
+      narrationMode: 'Present',
+      pageNumber,
+      panelNumber: 0,
+    },
+    content: [{ type: 'text', text: `Trang ${pStr}` }],
+  });
+
+  const shots4 = ['Toàn cảnh', 'Trung cảnh', 'Cận cảnh', 'Góc đặc tả'];
+  const shots5 = ['Toàn cảnh', 'Trung cảnh', 'Cận cảnh', 'Góc nghiêng', 'Góc đặc tả'];
+  const shots = panelsCount === 5 ? shots5 : shots4;
+
+  const defaultSpeaker = speakerName || 'Nhân vật';
+
+  shots.forEach((shot, idx) => {
+    const pNum = idx + 1;
+    // Tiêu đề Panel
+    blocks.push({
+      type: 'scriptLineBlock',
+      attrs: {
+        scriptLineId: generateGuid(),
+        sceneId: sceneId || null,
+        blockType: 'panel_heading' as MangaBlockType,
+        narrationMode: 'Present',
+        pageNumber,
+        panelNumber: pNum,
+      },
+      content: [{ type: 'text', text: `" Panel ${pageNumber}.${pNum}: [${shot}]` }],
+    });
+
+    // Khối hành động / mô tả bối cảnh
+    blocks.push({
+      type: 'scriptLineBlock',
+      attrs: {
+        scriptLineId: generateGuid(),
+        sceneId: sceneId || null,
+        blockType: 'stage_direction' as MangaBlockType,
+        narrationMode: 'Present',
+        pageNumber,
+        panelNumber: pNum,
+        inPanel: true,
+      },
+      content: [
+        {
+          type: 'text',
+          text: idx === 0 ? 'Mô tả không gian và bối cảnh phân cảnh.' : `Hành động diễn biến khung ${pNum}.`,
+        },
+      ],
+    });
+
+    // Khối thoại (mẫu cho panel 2 và 3)
+    if (idx === 1 || idx === 2) {
+      blocks.push({
+        type: 'scriptLineBlock',
+        attrs: {
+          scriptLineId: generateGuid(),
+          sceneId: sceneId || null,
+          blockType: 'dialogue' as MangaBlockType,
+          speakerName: defaultSpeaker,
+          narrationMode: 'Present',
+          pageNumber,
+          panelNumber: pNum,
+          inPanel: true,
+        },
+        content: [{ type: 'text', text: `@${defaultSpeaker} : "Lời thoại nhân vật tại khung ${pNum}."` }],
+      });
+    }
+  });
+
+  return blocks;
+}
+
+/**
  * Suy ra danh mục Bible từ tiền tố của mã định danh (CHR -> Character, LOC -> Location, PRP -> Prop, TRM -> Term/Concept...)
  */
 export function inferCategoryFromCode(code: string): string {
@@ -257,44 +352,9 @@ export function scenesToTipTapDoc(
 
     // 2. Thêm từng ScriptLine trong Scene
     if (!scene.scriptLines || scene.scriptLines.length === 0) {
-      content.push({
-        type: 'scriptLineBlock',
-        attrs: {
-          scriptLineId: generateGuid(),
-          sceneId: scene.id,
-          blockType: 'page_heading' as MangaBlockType,
-          narrationMode: 'Present',
-          lineOrder: 1,
-          panelId: null,
-          pageNumber: 1,
-        },
-        content: [
-          {
-            type: 'text',
-            text: 'Trang 01',
-          },
-        ],
-      });
-      content.push({
-        type: 'scriptLineBlock',
-        attrs: {
-          scriptLineId: generateGuid(),
-          sceneId: scene.id,
-          blockType: 'panel_heading' as MangaBlockType,
-          narrationMode: 'Present',
-          lineOrder: 2,
-          panelId: null,
-          pageNumber: 1,
-          panelNumber: 1,
-          hasThumbnail: false,
-        },
-        content: [
-          {
-            type: 'text',
-            text: '" Panel 1.1: [Toàn cảnh] ',
-          },
-        ],
-      });
+      const defaultSpeaker = allBibleEntries?.find((e) => e.category === 'Character')?.name || 'Nhân vật';
+      const initialPageBlocks = createStructuredMangaPageBlocks(1, 4, scene.id, defaultSpeaker);
+      content.push(...initialPageBlocks);
     } else {
       scene.scriptLines.forEach((line, index) => {
         const associatedPanel = line.panelId ? panelMap.get(line.panelId) : undefined;
@@ -418,34 +478,8 @@ export function scenesToTipTapDoc(
         },
       ],
     });
-    content.push({
-      type: 'scriptLineBlock',
-      attrs: {
-        scriptLineId: generateGuid(),
-        blockType: 'page_heading',
-        panelId: null,
-      },
-      content: [
-        {
-          type: 'text',
-          text: 'Trang 01',
-        },
-      ],
-    });
-    content.push({
-      type: 'scriptLineBlock',
-      attrs: {
-        scriptLineId: generateGuid(),
-        blockType: 'panel_heading',
-        panelId: null,
-      },
-      content: [
-        {
-          type: 'text',
-          text: '" Panel 1.1: [Toàn cảnh]',
-        },
-      ],
-    });
+    const defaultSpeaker = allBibleEntries?.find((e) => e.category === 'Character')?.name || 'Nhân vật';
+    content.push(...createStructuredMangaPageBlocks(1, 4, null, defaultSpeaker));
   }
 
   return renumberTipTapDoc({
@@ -596,6 +630,9 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
         speakerCharacterId: null,
         narrationMode: 'Present',
         lineOrder: order++,
+        panelId: currentPanelId || attrs.panelId || null,
+        pageNumber: currentPageNumber,
+        panelNumber: currentPanelNumber,
       });
       continue;
     }
@@ -611,6 +648,9 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
         speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
         narrationMode: attrs.narrationMode || 'Present',
         lineOrder: order++,
+        panelId: currentPanelId || attrs.panelId || null,
+        pageNumber: currentPageNumber,
+        panelNumber: currentPanelNumber,
       });
       currentSpeakerId = null;
       continue;
@@ -627,6 +667,9 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
         speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
         narrationMode: 'Present',
         lineOrder: order++,
+        panelId: currentPanelId || attrs.panelId || null,
+        pageNumber: currentPageNumber,
+        panelNumber: currentPanelNumber,
       });
       currentSpeakerId = null;
       continue;

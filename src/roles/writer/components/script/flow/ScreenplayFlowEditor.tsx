@@ -41,6 +41,7 @@ import {
   ExtractedScriptLinePayload,
   generateGuid,
   renumberEditorState,
+  createStructuredMangaPageBlocks,
 } from './scriptFlowAdapter';
 import { MangaBlockType } from './types';
 import { getNextPageNumber, getNextPanelNumber } from './comic-editor/comicCounting';
@@ -925,6 +926,26 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     onShowToast?.('Đã chèn Panel', `Đã thêm khối Panel ${pageNum}.${panelNum} (${shotName})`);
   };
 
+  // Chèn một Trang hoàn chỉnh có sẵn 4 hoặc 5 Panel cố định
+  const handleInsertStructuredPage = (panelsCount: 4 | 5 = 4) => {
+    if (!editor || !canEditScript || isChapterLocked) return;
+    const { state } = editor;
+    const nextNum = getNextPageNumber(state.doc);
+    const defaultSceneId = scenes[0]?.id || null;
+    const defaultSpeaker = allBibleEntries?.find((e) => e.category === 'Character')?.name || 'Nhân vật';
+
+    const newBlocks = createStructuredMangaPageBlocks(nextNum, panelsCount, defaultSceneId, defaultSpeaker);
+
+    editor.chain().focus().insertContent(newBlocks).run();
+    renumberEditorState(editor);
+    setHasUnsavedChanges(true);
+
+    onShowToast?.(
+      `Đã chèn Trang ${nextNum}`,
+      `Tạo sẵn Trang ${nextNum} với ${panelsCount} Panel tiêu chuẩn và các dòng thoại mẫu.`
+    );
+  };
+
   // Chèn mẫu cấu trúc Manga/Webtoon hoàn chỉnh
   const handleInsertComicTemplate = () => {
     if (!editor || !canEditScript || isChapterLocked) return;
@@ -1280,6 +1301,31 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               <Layers className="w-3.5 h-3.5" />
               <span>+ Trang (cam)</span>
             </button>
+
+            {/* Tạo trang cố định 4 hoặc 5 Panel chuẩn */}
+            <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+              <button
+                type="button"
+                disabled={!canEditScript || isChapterLocked}
+                onClick={() => handleInsertStructuredPage(4)}
+                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold text-stone-800 bg-[#FAF9F5] hover:bg-stone-100 border border-stone-300 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+                title="Tạo Trang mới có sẵn 4 Panel chuẩn (4-Koma / Webtoon)"
+              >
+                <Plus className="w-3 h-3 text-[#EA580C]" />
+                <span>Trang 4 Ô</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={!canEditScript || isChapterLocked}
+                onClick={() => handleInsertStructuredPage(5)}
+                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold text-stone-800 bg-[#FAF9F5] hover:bg-stone-100 border border-stone-300 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+                title="Tạo Trang mới có sẵn 5 Panel chuẩn (Manga Shonen)"
+              >
+                <Plus className="w-3 h-3 text-[#EA580C]" />
+                <span>Trang 5 Ô</span>
+              </button>
+            </div>
 
             <button
               type="button"
