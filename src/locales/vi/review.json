@@ -61,6 +61,7 @@
     "subtitle": "Hàng đợi kiểm soát chất lượng theo 2 cổng Gate 1 & Gate 2",
     "gateAll": "Tất cả cổng",
     "gate1": "Gate 1: Storyboard / Phân cảnh",
+    "gate1Script": "Gate 1: Kịch bản",
     "gate2": "Gate 2: Quality & Composite",
     "statusSubmitted": "Chờ mở duyệt",
     "statusUnderReview": "Đang thẩm định",

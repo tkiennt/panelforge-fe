@@ -61,6 +61,7 @@
     "subtitle": "Editorial quality control inbox organized by Gate 1 & Gate 2",
     "gateAll": "All Gates",
     "gate1": "Gate 1: Storyboard / Layout",
+    "gate1Script": "Gate 1: Script",
     "gate2": "Gate 2: Quality & Composite",
     "statusSubmitted": "Pending Review",
     "statusUnderReview": "Under Review",

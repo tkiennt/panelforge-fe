@@ -27,7 +27,11 @@ import {
   ShieldCheck,
   Layers,
 } from 'lucide-react';
-import { chapterService, type ChapterDto, type ChapterBibleGateResultDto } from '@/services/chapter.service';
+import {
+  chapterService,
+  type ChapterDto,
+  type ChapterBibleGateResultDto,
+} from '@/services/chapter.service';
 import {
   scriptLineService,
   type SceneDto,
@@ -40,6 +44,7 @@ import {
   type AssignmentDto,
 } from '@/services/assignment.service';
 import { seriesService, type SeriesDto } from '@/services/series.service';
+import { getWorkActions } from '@/shared/features/collaboration/collaborationRules';
 
 interface ScriptReviewViewProps {
   currentUserId?: string;
@@ -52,7 +57,11 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   workspaceRole,
   onShowToast,
 }) => {
-  const { workspaceId, seriesId, chapterId: paramChapterId } = useParams<{
+  const {
+    workspaceId,
+    seriesId,
+    chapterId: paramChapterId,
+  } = useParams<{
     workspaceId: string;
     seriesId: string;
     chapterId: string;
@@ -76,9 +85,26 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const [consistencyFindings, setConsistencyFindings] = useState<ConsistencyFindingDto[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
   const [assignment, setAssignment] = useState<AssignmentDto | null>(null);
+  const workActions = useMemo(
+    () =>
+      assignment
+        ? getWorkActions(assignment, {
+            userId: currentUserId,
+            workspaceRole,
+            changeRequests,
+            hasCurrentArtwork: null,
+          })
+        : null,
+    [assignment, currentUserId, workspaceRole, changeRequests],
+  );
+  // Chỉ tạo được yêu cầu sửa khi đang mở phiên duyệt một bài nộp (UnderReview) và không phải bài của chính mình.
+  const canDecide = workActions?.canDecide ?? false;
+  const approveBlockedReason = workActions?.approveBlockedReason ?? null;
 
   // Inspector Panel Tabs: 'bibleGate' | 'logicCheck' | 'changeRequests'
-  const [activeTab, setActiveTab] = useState<'bibleGate' | 'logicCheck' | 'changeRequests'>('bibleGate');
+  const [activeTab, setActiveTab] = useState<'bibleGate' | 'logicCheck' | 'changeRequests'>(
+    'bibleGate',
+  );
 
   // Action pending states
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -89,7 +115,6 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const [crReason, setCrReason] = useState<string>('');
   const [crSeverity, setCrSeverity] = useState<'Blocking' | 'Warning' | 'Info'>('Blocking');
   const [crTargetSceneId, setCrTargetSceneId] = useState<string>('');
-  const [crTargetLineId, setCrTargetLineId] = useState<string>('');
   const [crContextText, setCrContextText] = useState<string>('');
 
   // Unfreeze Reason Modal
@@ -118,7 +143,10 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
       setBibleGate(gateData);
 
       if (seriesId) {
-        seriesService.getSeriesById(seriesId).then(setSeries).catch(() => null);
+        seriesService
+          .getSeriesById(seriesId)
+          .then(setSeries)
+          .catch(() => null);
       }
 
       // Fetch detail for each scene to load script lines
@@ -131,7 +159,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
           } catch {
             // Scene might be empty
           }
-        })
+        }),
       );
       setSceneDetails(detailsMap);
 
@@ -186,7 +214,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
       setActiveTab('logicCheck');
       onShowToast?.(
         'Đã hoàn thành kiểm tra',
-        `Phát hiện ${res.findings?.length || 0} mục lưu ý về Canon và kịch bản.`
+        `Phát hiện ${res.findings?.length || 0} mục lưu ý về Canon và kịch bản.`,
       );
     } catch (err: any) {
       console.error('Lỗi kiểm tra tính nhất quán:', err);
@@ -205,7 +233,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
       setChapter(updated);
       onShowToast?.(
         'Đã đóng băng kịch bản',
-        'Kịch bản đã khoá Canon và tính mã băm SHA-256 thành công. Mở khoá công đoạn vẽ Storyboard.'
+        'Kịch bản đã khoá Canon và tính mã băm SHA-256 thành công. Mở khoá công đoạn vẽ Storyboard.',
       );
     } catch (err: any) {
       console.error('Lỗi đóng băng kịch bản:', err);
@@ -226,7 +254,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
       setUnfreezeReason('');
       onShowToast?.(
         'Đã mở lại kịch bản',
-        'Kịch bản đã chuyển về trạng thái bản thảo để Writer tiếp tục chỉnh sửa.'
+        'Kịch bản đã chuyển về trạng thái bản thảo để Writer tiếp tục chỉnh sửa.',
       );
     } catch (err: any) {
       console.error('Lỗi mở lại kịch bản:', err);
@@ -267,9 +295,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   };
 
   // Quick Open Change Request for a specific line/scene
-  const handlePromptChangeRequest = (sceneId: string, lineId?: string, textSnippet?: string) => {
+  const handlePromptChangeRequest = (sceneId: string, textSnippet?: string) => {
+    if (!canDecide) return;
     setCrTargetSceneId(sceneId);
-    setCrTargetLineId(lineId || '');
     setCrContextText(textSnippet || '');
     setCrReason('');
     setCrSeverity('Blocking');
@@ -283,33 +311,27 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
       return;
     }
 
-    if (!assignmentId) {
-      onShowToast?.(
-        'Ghi chú nội bộ',
-        'Đã lưu nhận xét thẩm định. (Để giao lại cho Writer, vui lòng mở từ nhiệm vụ phân công tương ứng).'
-      );
-      setShowCrModal(false);
-      return;
-    }
+    if (!assignmentId || !canDecide) return;
 
     setActionLoading('createCr');
     try {
+      // Kịch bản không có Panel: vị trí (cảnh/dòng) được ghi vào mô tả; PanelId của Backend là Guid của Panel tranh.
+      const scene = scenes.find((sc) => sc.id === crTargetSceneId);
+      const location = scene ? `Cảnh ${scene.sceneNumber}` : '';
       const changes = [
         {
-          panelId: crTargetLineId ? `line:${crTargetLineId}` : `scene:${crTargetSceneId}`,
-          description: `[${crSeverity}] ${crReason} ${
-            crContextText ? `(Nội dung: "${crContextText.substring(0, 80)}")` : ''
-          }`,
-          severity: crSeverity,
+          description: [
+            `[${crSeverity}]`,
+            location,
+            crReason.trim(),
+            crContextText ? `(Nội dung: "${crContextText.substring(0, 80)}")` : '',
+          ]
+            .filter(Boolean)
+            .join(' '),
         },
       ];
 
-      await assignmentService.requestAssignmentChanges(
-        chapterId,
-        assignmentId,
-        crReason,
-        changes
-      );
+      await assignmentService.requestAssignmentChanges(chapterId, assignmentId, crReason, changes);
 
       onShowToast?.('Đã gửi yêu cầu sửa', 'Yêu cầu sửa đổi kịch bản đã chuyển giao đến Writer.');
       setShowCrModal(false);
@@ -324,13 +346,10 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
 
   // Approve Assignment (Editor / Reviewer action)
   const handleApproveAssignment = async () => {
-    if (!assignmentId || !chapterId) return;
+    if (!assignmentId || !chapterId || !canDecide || approveBlockedReason) return;
     setActionLoading('approveAssignment');
     try {
-      await assignmentService.approveAssignment(
-        chapterId,
-        assignmentId
-      );
+      await assignmentService.approveAssignment(chapterId, assignmentId);
       onShowToast?.('Đã duyệt kịch bản', 'Bài nộp kịch bản đã được phê duyệt thành công.');
       loadData();
     } catch (err: any) {
@@ -344,7 +363,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   // Triage Finding (AI Continuity Finding)
   const handleDecideFinding = async (
     findingId: string,
-    decision: 'Confirmed' | 'Rejected' | 'Ignored' | 'NeedsClarification'
+    decision: 'Confirmed' | 'Rejected' | 'Ignored' | 'NeedsClarification',
   ) => {
     if (!chapterId) return;
     try {
@@ -391,7 +410,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         <h3 className='text-base font-serif font-bold text-[#1C1917]'>
           Không thể mở bản thảo kịch bản
         </h3>
-        <p className='text-xs text-[#78716C] mt-1 max-w-md font-sans'>{error || 'Chương không tồn tại.'}</p>
+        <p className='text-xs text-[#78716C] mt-1 max-w-md font-sans'>
+          {error || 'Chương không tồn tại.'}
+        </p>
         <button
           type='button'
           onClick={handleBackToDesk}
@@ -431,7 +452,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 </span>
               </div>
               <h1 className='text-base sm:text-lg font-serif font-bold text-[#1C1917] tracking-tight flex items-center gap-2 mt-0.5'>
-                <span>Chương {chapter.chapterNumber}: {chapter.title || 'Chưa đặt tiêu đề'}</span>
+                <span>
+                  Chương {chapter.chapterNumber}: {chapter.title || 'Chưa đặt tiêu đề'}
+                </span>
               </h1>
             </div>
           </div>
@@ -451,7 +474,11 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                     title={`Mã băm toàn vẹn SHA-256: ${scriptContentHash}`}
                   >
                     <span>{scriptContentHash.substring(0, 8)}...</span>
-                    {copiedHash ? <Check className='w-3 h-3 text-emerald-700' /> : <Copy className='w-3 h-3' />}
+                    {copiedHash ? (
+                      <Check className='w-3 h-3 text-emerald-700' />
+                    ) : (
+                      <Copy className='w-3 h-3' />
+                    )}
                   </button>
                 )}
               </div>
@@ -470,7 +497,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
               title='Quét tính nhất quán với Series Bible và luật nhân vật F-05'
             >
-              <Sparkles className={`w-3.5 h-3.5 text-purple-600 ${actionLoading === 'consistency' ? 'animate-spin' : ''}`} />
+              <Sparkles
+                className={`w-3.5 h-3.5 text-purple-600 ${actionLoading === 'consistency' ? 'animate-spin' : ''}`}
+              />
               <span>Kiểm tra Canon</span>
             </button>
 
@@ -486,7 +515,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                     title='Khóa nội dung kịch bản, tính mã băm SHA-256 và bắt đầu khâu vẽ phân cảnh'
                   >
                     <ShieldCheck className='w-3.5 h-3.5' />
-                    <span>{actionLoading === 'freeze' ? 'Đang đóng băng...' : 'Chốt Canon & Đóng Băng'}</span>
+                    <span>
+                      {actionLoading === 'freeze' ? 'Đang đóng băng...' : 'Chốt Canon & Đóng Băng'}
+                    </span>
                   </button>
                 ) : (
                   <button
@@ -509,7 +540,8 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 <button
                   type='button'
                   onClick={() => handlePromptChangeRequest(scenes[0]?.id || '')}
-                  className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-900 bg-amber-100/70 hover:bg-amber-200/80 border border-amber-300/60 shadow-2xs transition-colors cursor-pointer'
+                  disabled={!canDecide}
+                  className='disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-900 bg-amber-100/70 hover:bg-amber-200/80 border border-amber-300/60 shadow-2xs transition-colors cursor-pointer'
                 >
                   <MessageSquarePlus className='w-3.5 h-3.5 text-amber-700' />
                   <span>Yêu cầu sửa</span>
@@ -518,11 +550,16 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 <button
                   type='button'
                   onClick={handleApproveAssignment}
-                  disabled={actionLoading === 'approveAssignment'}
+                  disabled={
+                    !canDecide || !!approveBlockedReason || actionLoading === 'approveAssignment'
+                  }
+                  title={approveBlockedReason ?? undefined}
                   className='inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-[#C2410C] hover:bg-[#9A3412] active:bg-[#7C2D12] shadow-soft-sm transition-colors cursor-pointer disabled:opacity-50'
                 >
                   <CheckCircle2 className='w-3.5 h-3.5' />
-                  <span>{actionLoading === 'approveAssignment' ? 'Đang duyệt...' : 'Duyệt Kịch Bản'}</span>
+                  <span>
+                    {actionLoading === 'approveAssignment' ? 'Đang duyệt...' : 'Duyệt Kịch Bản'}
+                  </span>
                 </button>
               </div>
             )}
@@ -577,12 +614,11 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
             <div className='flex items-center gap-2'>
               <BookOpen className='w-4 h-4 text-[#C2410C] shrink-0' />
               <span>
-                <strong>Chế độ thẩm định (BR-27):</strong> Biên tập viên đọc, đánh giá tính logic và đặt ghi chú chỉnh sửa mà không can thiệp câu chữ trực tiếp của Biên kịch.
+                <strong>Chế độ thẩm định (BR-27):</strong> Biên tập viên đọc, đánh giá tính logic và
+                đặt ghi chú chỉnh sửa mà không can thiệp câu chữ trực tiếp của Biên kịch.
               </span>
             </div>
-            <span className='font-mono text-[#78716C] shrink-0'>
-              {scenes.length} Phân cảnh
-            </span>
+            <span className='font-mono text-[#78716C] shrink-0'>{scenes.length} Phân cảnh</span>
           </div>
 
           {scenes.length === 0 ? (
@@ -625,15 +661,22 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                         </span>
                       )}
 
-                      <button
-                        type='button'
-                        onClick={() => handlePromptChangeRequest(scene.id, undefined, scene.heading || `Cảnh ${scene.sceneNumber}`)}
-                        className='inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#FAF9F5] border border-[#D8D2C5] transition-colors cursor-pointer shadow-2xs'
-                        title='Thêm yêu cầu sửa cho toàn bộ phân cảnh này'
-                      >
-                        <MessageSquarePlus className='w-3 h-3 text-[#C2410C]' />
-                        <span>Ghi chú cảnh</span>
-                      </button>
+                      {canDecide && (
+                        <button
+                          type='button'
+                          onClick={() =>
+                            handlePromptChangeRequest(
+                              scene.id,
+                              scene.heading || `Cảnh ${scene.sceneNumber}`,
+                            )
+                          }
+                          className='inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#FAF9F5] border border-[#D8D2C5] transition-colors cursor-pointer shadow-2xs'
+                          title='Thêm yêu cầu sửa cho toàn bộ phân cảnh này'
+                        >
+                          <MessageSquarePlus className='w-3 h-3 text-[#C2410C]' />
+                          <span>Ghi chú cảnh</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -670,7 +713,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                               <div className='max-w-xl'>
                                 <div className='flex items-center gap-2 mb-0.5'>
                                   <span className='text-xs font-mono font-bold text-[#1C1917] uppercase tracking-wide'>
-                                    {line.speakerCharacterId ? `NHÂN VẬT #${line.speakerCharacterId.substring(0, 5)}` : 'LỜI THOẠI'}
+                                    {line.speakerCharacterId
+                                      ? `NHÂN VẬT #${line.speakerCharacterId.substring(0, 5)}`
+                                      : 'LỜI THOẠI'}
                                   </span>
                                   {line.narrationMode && (
                                     <span className='text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded font-medium'>
@@ -685,23 +730,24 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                             )}
 
                             {/* Hover Quick Action: Add Line Change Request */}
-                            <div className='absolute right-2 top-1 opacity-0 group-hover:opacity-100 transition-opacity'>
-                              <button
-                                type='button'
-                                onClick={() =>
-                                  handlePromptChangeRequest(
-                                    scene.id,
-                                    line.id,
-                                    line.dialogueText || line.stageDirection || ''
-                                  )
-                                }
-                                className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold text-[#57534E] bg-white hover:bg-[#F3F0E9] border border-[#D8D2C5] shadow-2xs transition-colors cursor-pointer'
-                                title='Đặt yêu cầu sửa hoặc nhận xét cho dòng kịch bản này'
-                              >
-                                <MessageSquarePlus className='w-3 h-3 text-[#C2410C]' />
-                                <span>Nhận xét dòng</span>
-                              </button>
-                            </div>
+                            {canDecide && (
+                              <div className='absolute right-2 top-1 opacity-0 group-hover:opacity-100 transition-opacity'>
+                                <button
+                                  type='button'
+                                  onClick={() =>
+                                    handlePromptChangeRequest(
+                                      scene.id,
+                                      line.dialogueText || line.stageDirection || '',
+                                    )
+                                  }
+                                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold text-[#57534E] bg-white hover:bg-[#F3F0E9] border border-[#D8D2C5] shadow-2xs transition-colors cursor-pointer'
+                                  title='Đặt yêu cầu sửa hoặc nhận xét cho dòng kịch bản này'
+                                >
+                                  <MessageSquarePlus className='w-3 h-3 text-[#C2410C]' />
+                                  <span>Nhận xét dòng</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })
@@ -787,14 +833,17 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 </div>
 
                 <p className='text-[#78716C] text-[11px] leading-relaxed'>
-                  Trước khi Producer Đóng băng Kịch bản, mọi nhân vật chính và bối cảnh xuất hiện trong chương cần có bản thiết kế Canon được khóa.
+                  Trước khi Producer Đóng băng Kịch bản, mọi nhân vật chính và bối cảnh xuất hiện
+                  trong chương cần có bản thiết kế Canon được khóa.
                 </p>
 
                 {/* Referenced Entries List */}
                 <div className='space-y-2 mt-3 pt-3 border-t border-[#E5E0D8]'>
                   <span className='font-semibold text-[#1C1917]'>Thực thể xuất hiện:</span>
                   {!bibleGate?.items || bibleGate.items.length === 0 ? (
-                    <p className='text-[#A8A29E] italic py-2'>Không có thực thể Bible nào được liên kết.</p>
+                    <p className='text-[#A8A29E] italic py-2'>
+                      Không có thực thể Bible nào được liên kết.
+                    </p>
                   ) : (
                     <div className='space-y-1.5 max-h-64 overflow-y-auto pr-1'>
                       {bibleGate.items.map((item) => (
@@ -837,7 +886,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                     disabled={actionLoading === 'consistency'}
                     className='text-[11px] font-semibold text-[#C2410C] hover:underline cursor-pointer flex items-center gap-1'
                   >
-                    <RotateCcw className={`w-3 h-3 ${actionLoading === 'consistency' ? 'animate-spin' : ''}`} />
+                    <RotateCcw
+                      className={`w-3 h-3 ${actionLoading === 'consistency' ? 'animate-spin' : ''}`}
+                    />
                     <span>Quét lại</span>
                   </button>
                 </div>
@@ -859,9 +910,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                   <div className='space-y-3'>
                     <div className='flex items-center justify-between p-2.5 bg-[#FAF9F5] rounded-lg border border-[#E5E0D8]'>
                       <span className='text-[#57534E]'>Số cảnh báo phát hiện:</span>
-                      <span className='font-bold text-[#1C1917]'>
-                        {consistencyFindings.length}
-                      </span>
+                      <span className='font-bold text-[#1C1917]'>{consistencyFindings.length}</span>
                     </div>
 
                     {/* Findings list */}
@@ -874,9 +923,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                           <span className='font-bold text-rose-700 font-mono text-[11px]'>
                             {f.ruleCode || 'CANON_MISMATCH'}
                           </span>
-                          <span className='text-[10px] text-[#78716C] font-mono'>
-                            {f.severity}
-                          </span>
+                          <span className='text-[10px] text-[#78716C] font-mono'>{f.severity}</span>
                         </div>
                         <p className='text-[#1C1917] leading-relaxed'>{f.message}</p>
                         {f.evidence && (
@@ -914,14 +961,16 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               <div className='p-4 space-y-4 text-xs'>
                 <div className='flex items-center justify-between'>
                   <span className='font-bold text-[#1C1917]'>Yêu Cầu Chỉnh Sửa</span>
-                  <button
-                    type='button'
-                    onClick={() => handlePromptChangeRequest(scenes[0]?.id || '')}
-                    className='inline-flex items-center gap-1 text-[11px] font-semibold text-[#C2410C] hover:underline cursor-pointer'
-                  >
-                    <MessageSquarePlus className='w-3 h-3' />
-                    <span>Tạo mới</span>
-                  </button>
+                  {canDecide && (
+                    <button
+                      type='button'
+                      onClick={() => handlePromptChangeRequest(scenes[0]?.id || '')}
+                      className='inline-flex items-center gap-1 text-[11px] font-semibold text-[#C2410C] hover:underline cursor-pointer'
+                    >
+                      <MessageSquarePlus className='w-3 h-3' />
+                      <span>Tạo mới</span>
+                    </button>
+                  )}
                 </div>
 
                 {changeRequests.length === 0 ? (
@@ -936,18 +985,16 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                         className='p-3 bg-[#FAF9F5] border border-[#E5E0D8] rounded-lg space-y-1.5'
                       >
                         <div className='flex items-center justify-between'>
-                          <span className='font-bold text-[#1C1917]'>
-                            #{cr.id.substring(0, 6)}
-                          </span>
+                          <span className='font-bold text-[#1C1917]'>#{cr.id.substring(0, 6)}</span>
                           <span
                             className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
                               cr.status === 'Open'
                                 ? 'bg-amber-100 text-amber-800'
                                 : cr.status === 'Resolved'
-                                ? 'bg-sky-100 text-sky-800'
-                                : cr.status === 'Verified'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-rose-100 text-rose-800'
+                                  ? 'bg-sky-100 text-sky-800'
+                                  : cr.status === 'Verified'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-rose-100 text-rose-800'
                             }`}
                           >
                             {cr.status}
@@ -1003,7 +1050,11 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                         : 'bg-[#FAF9F5] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9]'
                     }`}
                   >
-                    {sev === 'Blocking' ? 'Ngăn chặn (Blocking)' : sev === 'Warning' ? 'Cảnh báo' : 'Góp ý'}
+                    {sev === 'Blocking'
+                      ? 'Ngăn chặn (Blocking)'
+                      : sev === 'Warning'
+                        ? 'Cảnh báo'
+                        : 'Góp ý'}
                   </button>
                 ))}
               </div>
@@ -1060,7 +1111,8 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
             </div>
 
             <p className='text-xs text-[#57534E] leading-relaxed'>
-              Khi mở lại kịch bản, các công đoạn vẽ tiếp theo (như Storyboard/Thumbnail) có thể bị ảnh hưởng nếu câu chuyện thay đổi lớn. Vui lòng ghi rõ lý do.
+              Khi mở lại kịch bản, các công đoạn vẽ tiếp theo (như Storyboard/Thumbnail) có thể bị
+              ảnh hưởng nếu câu chuyện thay đổi lớn. Vui lòng ghi rõ lý do.
             </p>
 
             <div className='space-y-1.5 text-xs'>
