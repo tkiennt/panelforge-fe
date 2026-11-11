@@ -91,7 +91,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
     return isScriptReview
       ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${item.chapterId}/script/review?assignmentId=${item.assignmentId}`
-      : `/workspaces/${workspaceId}/series/${seriesId}/review/${item.assignmentId}`;
+      : `/workspaces/${workspaceId}/series/${seriesId}/chapters/${item.chapterId}/review/${item.assignmentId}?chapterId=${item.chapterId}`;
   };
 
   // Handle Open Review
