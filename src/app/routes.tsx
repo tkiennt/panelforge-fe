@@ -99,11 +99,13 @@ const PublisherSeriesView = lazy(() =>
   })),
 );
 const ScriptEditorView = lazy(() =>
-  import('@/roles/writer/views/ScriptEditorView').then((m) => ({ default: m.ScriptEditorView })),
+  import('@/roles/writer/views/ScriptEditorView').then((m) => ({
+    default: m.default || m.ScriptEditorView,
+  })),
 );
 const ScriptChapterSelectionView = lazy(() =>
   import('@/roles/writer/views/ScriptChapterSelectionView').then((m) => ({
-    default: m.ScriptChapterSelectionView,
+    default: m.default || m.ScriptChapterSelectionView,
   })),
 );
 const LettererDeskView = lazy(() => import('@/roles/letterer/views/LettererDeskView'));

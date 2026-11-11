@@ -93,35 +93,12 @@ interface ScriptEditorViewProps {
   currentUserId?: string | null;
 }
 
-/**
- * Định dạng nhãn hiển thị chương trong dropdown để tránh lặp "Chương 1: Chương 1".
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export const formatChapterOption = (chapterNumber: number, title?: string | null): string => {
-  if (!title || !title.trim()) return `Chương ${chapterNumber}`;
-  let clean = title.trim();
-
-  // Xóa mọi tiền tố lặp như: "Chương 1:", "Chuong 1:", "Chapter 1 -", "Chap 1:"
-  const prefixRegex = new RegExp(
-    `^(?:chương|chuong|chapter|chap|c)\\s*#?${chapterNumber}\\s*[:\\-–—.]?\\s*`,
-    'i'
-  );
-  if (prefixRegex.test(clean)) {
-    clean = clean.replace(prefixRegex, '').trim();
-  } else {
-    const genericPrefix = /^(?:chương|chuong|chapter|chap)\\s*[:\\-–—.]\\s*/i;
-    if (genericPrefix.test(clean)) {
-      clean = clean.replace(genericPrefix, '').trim();
-    }
-  }
-
-  return clean ? `Chương ${chapterNumber}: ${clean}` : `Chương ${chapterNumber}`;
-};
+import { formatChapterOption } from '../utils/chapterFormat';
 
 /**
  * Trả về tên kèm giai đoạn (stageName) hoặc phụ đề (subtitle) để phân biệt các phiên bản nhân vật.
  */
-export const getBibleEntryNameWithStage = (entry?: BibleEntryDto | null): string => {
+const getBibleEntryNameWithStage = (entry?: BibleEntryDto | null): string => {
   if (!entry) return '';
   const stage = entry.effectiveRevision?.stageName?.trim() || entry.subtitle?.trim();
   return stage ? `${entry.name} (${stage})` : entry.name;
@@ -3571,3 +3548,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     </div>
   );
 };
+
+export default ScriptEditorView;
+

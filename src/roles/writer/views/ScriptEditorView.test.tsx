@@ -642,7 +642,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
   });
 
   it('formatChapterOption không làm lặp "Chương 1: Chương 1"', async () => {
-    const { formatChapterOption } = await import('./ScriptEditorView');
+    const { formatChapterOption } = await import('../utils/chapterFormat');
     expect(formatChapterOption(1, 'Chương 1: Cơn Bão Deadline')).toBe('Chương 1: Cơn Bão Deadline');
     expect(formatChapterOption(1, 'Chương 1')).toBe('Chương 1');
     expect(formatChapterOption(1, 'chương 1 - Tiếng sấm')).toBe('Chương 1: Tiếng sấm');

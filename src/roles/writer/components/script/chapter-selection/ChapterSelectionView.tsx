@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { ChapterDto, CreateChapterRequest } from '@/services/chapter.service';
 import { SeriesDetailDto } from '@/services/series.service';
-import { formatChapterOption } from '../../../views/ScriptEditorView';
+import { formatChapterOption } from '@/roles/writer/utils/chapterFormat';
 
 interface ChapterSelectionViewProps {
   chapters: ChapterDto[];

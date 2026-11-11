@@ -88,3 +88,6 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
     />
   );
 };
+
+export default ScriptChapterSelectionView;
+
