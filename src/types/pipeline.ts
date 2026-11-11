@@ -348,6 +348,10 @@ export interface ChangeRequestDto {
   assetReferenceId?: string | null;
   /** Panel thuộc một Page của Chapter; null/undefined nếu khoanh chung cả trang. */
   panelId?: string | null;
+  /** Neo nhận xét kịch bản: phân cảnh, dòng (null = cả phân cảnh) và nguyên văn tại lần nộp. */
+  sceneId?: string | null;
+  scriptLineId?: string | null;
+  quotedText?: string | null;
 }
 
 export interface ChangeRequestItemRequest {
@@ -358,6 +362,10 @@ export interface ChangeRequestItemRequest {
   assetReferenceId?: string;
   /** Panel thuộc một Page của Chapter; null/undefined nếu khoanh chung cả trang. */
   panelId?: string | null;
+  sceneId?: string;
+  /** Phải đi kèm sceneId của phân cảnh chứa dòng. */
+  scriptLineId?: string;
+  quotedText?: string;
 }
 
 export interface RequestAssignmentChangesRequest {
