@@ -69,5 +69,169 @@
     "openReviewAction": "Mở Thẩm Định",
     "continueReviewAction": "Tiếp tục thẩm định",
     "lockedSelfAction": "Khóa: Cần Editor khác duyệt"
+  },
+  "scriptReview": {
+    "common": {
+      "cancel": "Hủy",
+      "retry": "Tải lại",
+      "backToDesk": "Về bàn thẩm định"
+    },
+    "header": {
+      "title": "Chương {number}",
+      "submission": "Bản nộp lần {attempt} · {date}",
+      "noSubmission": "Chưa có bản nộp",
+      "scenes": "{count} phân cảnh"
+    },
+    "nav": {
+      "label": "Mục lục phân cảnh",
+      "title": "Phân cảnh"
+    },
+    "tabs": {
+      "notes": "Nhận xét ({count})",
+      "checks": "Kiểm tra"
+    },
+    "composer": {
+      "label": "Nhận xét cho Writer",
+      "placeholder": "Cần sửa gì ở đây, và vì sao?",
+      "hint": "Ctrl+Enter để lưu · Esc để hủy",
+      "add": "Thêm nhận xét",
+      "update": "Lưu thay đổi"
+    },
+    "manuscript": {
+      "unknownSpeaker": "Chưa gán nhân vật",
+      "noteCount": "{count} nhận xét",
+      "commentLine": "Nhận xét",
+      "commentLineTitle": "Nhận xét dòng này (thành yêu cầu sửa khi trả bài)",
+      "commentScene": "Nhận xét cảnh",
+      "sceneLabel": "CẢNH {number}",
+      "emptyScene": "Phân cảnh chưa có dòng kịch bản.",
+      "emptyTitle": "Chương chưa có kịch bản",
+      "emptyBody": "Writer chưa tạo phân cảnh nào cho chương này."
+    },
+    "location": {
+      "line": "Cảnh {scene} · dòng {line}",
+      "removedLine": "Cảnh {scene} · dòng đã xoá",
+      "scene": "Cảnh {scene}",
+      "general": "Nhận xét chung"
+    },
+    "crStatus": {
+      "Open": "Đang mở",
+      "Resolved": "Chờ xác minh",
+      "Verified": "Đã đạt",
+      "Rejected": "Đã bỏ"
+    },
+    "notes": {
+      "draftsTitle": "Nhận xét lần duyệt này",
+      "draftsHint": "Chưa gửi. Mỗi nhận xét thành một yêu cầu sửa khi bạn trả bài cho Writer.",
+      "editDraft": "Sửa nhận xét",
+      "deleteDraft": "Xoá nhận xét",
+      "resolvedTitle": "Writer báo đã sửa",
+      "resolvedHint": "Đối chiếu bản hiện tại rồi xác minh, hoặc mở lại kèm lý do.",
+      "openTitle": "Yêu cầu sửa đang mở",
+      "closedTitle": "Đã đóng",
+      "quotedAtReview": "Lúc nhận xét:",
+      "currentText": "Hiện tại:",
+      "lineRemoved": "Dòng này đã bị xoá khỏi kịch bản.",
+      "writerReply": "Writer:",
+      "reviewerReply": "Biên tập:",
+      "verify": "Đạt",
+      "reopen": "Chưa đạt",
+      "reopenReason": "Vì sao chưa đạt? (gửi lại cho Writer)",
+      "reject": "Bỏ yêu cầu",
+      "rejectTitle": "Chấp nhận phản hồi của Writer và đóng yêu cầu này",
+      "rejectReason": "Lý do bỏ yêu cầu",
+      "empty": "Chưa có nhận xét hay yêu cầu sửa nào cho bài nộp này.",
+      "emptyCanComment": "Chưa có nhận xét. Rê chuột lên một dòng kịch bản và bấm “Nhận xét”."
+    },
+    "checks": {
+      "bibleTitle": "Bible Gate của chương",
+      "bibleUnavailable": "Chưa lấy được kết quả Bible Gate.",
+      "biblePassed": "Đạt: {count} mục Bible đã khoá canon",
+      "bibleFailed": "Chưa đạt: {count} mục Bible chưa khoá canon",
+      "notLocked": "Chưa khoá canon tại chương này",
+      "consistencyTitle": "Kiểm tra nhất quán",
+      "run": "Chạy kiểm tra",
+      "running": "Đang kiểm tra…",
+      "noFindings": "Chưa có phát hiện nào.",
+      "findingSummary": "{open} phát hiện cần xử lý, {blocking} mức chặn",
+      "toComment": "Thành nhận xét",
+      "confirm": "Xác nhận lỗi",
+      "notAnIssue": "Không phải lỗi",
+      "ignore": "Bỏ qua",
+      "ignoreReason": "Lý do bỏ qua (bắt buộc, ví dụ: cảnh hồi tưởng)",
+      "clarify": "Cần làm rõ",
+      "clarifyQuestion": "Câu hỏi cần Writer làm rõ",
+      "canonTitle": "Đóng băng kịch bản",
+      "frozen": "Đã đóng băng",
+      "notFrozen": "Chưa đóng băng",
+      "freeze": "Đóng băng kịch bản",
+      "freezeBlocked": "Cần qua Bible Gate trước khi đóng băng.",
+      "unfreeze": "Mở lại kịch bản",
+      "unfreezeReason": "Lý do mở lại (ghi vào nhật ký)",
+      "reopenRequested": "Writer xin mở lại kịch bản",
+      "approveReopen": "Đồng ý mở lại",
+      "rejectReopen": "Từ chối"
+    },
+    "severity": {
+      "Blocking": "Chặn",
+      "Warning": "Cảnh báo",
+      "Info": "Thông tin"
+    },
+    "findingStatus": {
+      "Open": "Mới",
+      "Confirmed": "Đã xác nhận",
+      "NeedsClarification": "Chờ làm rõ",
+      "Rejected": "Không phải lỗi",
+      "Ignored": "Đã bỏ qua",
+      "Resolved": "Đã xử lý",
+      "Stale": "Lỗi thời"
+    },
+    "assignmentStatus": {
+      "Assigned": "đã giao",
+      "InProgress": "đang viết",
+      "Submitted": "đã nộp",
+      "UnderReview": "đang duyệt",
+      "Approved": "đã duyệt",
+      "ReworkRequired": "đang chờ Writer sửa",
+      "Blocked": "đang bị chặn"
+    },
+    "notice": {
+      "noAssignment": "Đang xem kịch bản, không gắn với bài nộp nào nên không thể nhận xét hay duyệt.",
+      "selfReview": "Bạn là người nhận việc này nên không thể tự duyệt (người duyệt phải khác người nộp).",
+      "notReviewer": "Vai trò của bạn chỉ được xem, không duyệt kịch bản.",
+      "notOpened": "Bài nộp đang chờ. Mở duyệt để bắt đầu nhận xét.",
+      "openAction": "Mở duyệt",
+      "status": "Bài này {status}, hiện chỉ xem được.",
+      "lastFeedback": "Nhận xét chung lần trước:"
+    },
+    "decision": {
+      "summaryLabel": "Nhận xét chung gửi Writer",
+      "summaryPlaceholder": "Đánh giá tổng quát bản nộp này",
+      "summaryRequired": "Trả bài bắt buộc có nhận xét chung",
+      "return": "Trả bài cho Writer",
+      "returnWithNotes": "Trả bài · {count} yêu cầu sửa",
+      "approve": "Duyệt kịch bản",
+      "blockedByDrafts": "Còn {count} nhận xét chưa gửi: trả bài hoặc xoá chúng trước khi duyệt.",
+      "blockedByUnclosed": "Còn {count} yêu cầu sửa chưa đóng: xác minh hoặc bỏ trước khi duyệt.",
+      "blockingFindings": "Còn {count} phát hiện mức chặn chưa xử lý. Chương sẽ không khoá được cho tới khi xử lý xong."
+    },
+    "toast": {
+      "openFailed": "Không mở được phiên duyệt",
+      "returnedTitle": "Đã trả bài cho Writer",
+      "returnedBody": "Đã gửi {count} yêu cầu sửa.",
+      "returnFailed": "Không trả bài được",
+      "approvedTitle": "Đã duyệt kịch bản",
+      "approvedBody": "Bài nộp kịch bản đã qua cổng duyệt.",
+      "approveFailed": "Không duyệt được",
+      "crFailed": "Không cập nhật được yêu cầu sửa",
+      "triageFailed": "Không lưu được phân loại",
+      "checkFailed": "Không chạy được kiểm tra nhất quán",
+      "canonFailed": "Không cập nhật được trạng thái kịch bản"
+    },
+    "errors": {
+      "loadTitle": "Không mở được kịch bản",
+      "load": "Không tải được dữ liệu kịch bản của chương này.",
+      "generic": "Đã có lỗi xảy ra."
+    }
   }
 }
