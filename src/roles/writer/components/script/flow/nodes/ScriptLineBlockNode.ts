@@ -10,6 +10,9 @@ import {
 import { MangaBlockType } from '../types';
 import { generateGuid, renumberEditorState } from '../scriptFlowAdapter';
 
+const ADD_BUTTON_CLASS =
+  'cursor-pointer select-none text-xs font-semibold px-2 py-0.5 rounded-md border bg-white transition-colors shadow-2xs';
+
 export const ScriptLineBlockNode = Node.create({
   name: 'scriptLineBlock',
   group: 'block',
@@ -167,6 +170,16 @@ export const ScriptLineBlockNode = Node.create({
             'button',
             {
               type: 'button',
+              class: `page-add-panel-btn ${ADD_BUTTON_CLASS} text-[#C2410C] border-[#C2410C]/30 hover:bg-orange-50`,
+              contenteditable: 'false',
+              title: 'Thêm panel trống vào cuối trang này',
+            },
+            '+ Panel',
+          ],
+          [
+            'button',
+            {
+              type: 'button',
               class:
                 'page-delete-btn ml-auto cursor-pointer select-none text-[11px] font-semibold text-rose-600 bg-white/70 hover:bg-rose-50 hover:text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md transition-all shadow-2xs opacity-0 group-hover:opacity-100 focus:opacity-100',
               contenteditable: 'false',
@@ -193,6 +206,16 @@ export const ScriptLineBlockNode = Node.create({
           'div',
           mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
           ['span', { class: 'panel-heading-text flex-1' }, 0],
+          [
+            'button',
+            {
+              type: 'button',
+              class: `panel-add-dialogue-btn ${ADD_BUTTON_CLASS} text-[#4F46E5] border-indigo-200 hover:bg-indigo-50`,
+              contenteditable: 'false',
+              title: 'Thêm bóng thoại vào cuối panel này',
+            },
+            '+ Thoại',
+          ],
           [
             'button',
             {

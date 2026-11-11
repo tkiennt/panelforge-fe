@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { scenesToTipTapDoc, extractScriptLinesFromDoc, renumberTipTapDoc } from './scriptFlowAdapter';
+import {
+  scenesToTipTapDoc,
+  extractScriptLinesFromDoc,
+  renumberTipTapDoc,
+  createStructuredMangaPageBlocks,
+} from './scriptFlowAdapter';
 import { SceneDetailDto } from '@/services/scriptLine.service';
 
 describe('scriptFlowAdapter (Dual-Mode Single Source of Truth)', () => {
@@ -45,17 +50,14 @@ describe('scriptFlowAdapter (Dual-Mode Single Source of Truth)', () => {
     expect(doc.content[0].attrs.blockType).toBe('scene_heading');
     expect(doc.content[0].content[0].text).toContain('CẢNH 1: LÂU ĐÀI BÓNG ĐÊM');
 
-    // Block 2: Character
-    expect(doc.content[1].attrs.blockType).toBe('character');
-    expect(doc.content[1].content[0].text).toBe('ANH HÙNG');
+    // Block 2: Dialogue mang luôn tên người nói, không sinh khối Character riêng
+    expect(doc.content[1].attrs.blockType).toBe('dialogue');
+    expect(doc.content[1].attrs.speakerCharacterId).toBe('char-hero');
+    expect(doc.content[1].content[0].text).toBe('@Anh Hùng : "Cuối cùng ta cũng đã tìm thấy ngươi!"');
 
-    // Block 3: Dialogue
-    expect(doc.content[2].attrs.blockType).toBe('dialogue');
-    expect(doc.content[2].content[0].text).toContain('Cuối cùng ta cũng đã tìm thấy ngươi!');
-
-    // Block 4: Stage direction
-    expect(doc.content[3].attrs.blockType).toBe('stage_direction');
-    expect(doc.content[3].content[0].text).toBe('Gió rít dữ dội qua khung cửa sổ vỡ vụn.');
+    // Block 3: Stage direction
+    expect(doc.content[2].attrs.blockType).toBe('stage_direction');
+    expect(doc.content[2].content[0].text).toBe('Gió rít dữ dội qua khung cửa sổ vỡ vụn.');
   });
 
   it('trích xuất ngược từ TipTap JSON doc thành danh sách ScriptLinePayload chuẩn xác', () => {
@@ -422,3 +424,73 @@ describe('scriptFlowAdapter (Dual-Mode Single Source of Truth)', () => {
     });
   });
 });
+
+describe('Trang mẫu 4/5 panel', () => {
+  it('tạo đúng số panel, ô trống không bị lưu thành ScriptLine', () => {
+    const blocks = createStructuredMangaPageBlocks(2, 5, 'sc-1');
+    expect(blocks.filter((b) => b.attrs.blockType === 'panel_heading')).toHaveLength(5);
+
+    const extracted = extractScriptLinesFromDoc({ type: 'doc', content: blocks }, 'sc-1');
+    // Chỉ còn tiêu đề trang + 5 tiêu đề panel
+    expect(extracted).toHaveLength(6);
+    expect(extracted.every((l) => l.pageNumber === 2)).toBe(true);
+  });
+
+  it('thoại điền vào ô trống được neo vào đúng Trang/Panel; bóng thoại rỗng bị bỏ qua', () => {
+    const blocks = createStructuredMangaPageBlocks(1, 4, 'sc-1');
+    const panel3Dialogue = blocks.filter((b) => b.attrs.blockType === 'dialogue')[2];
+    panel3Dialogue.content = [{ type: 'text', text: '@Minh : "Cẩn thận!"' }];
+    const panel1Dialogue = blocks.filter((b) => b.attrs.blockType === 'dialogue')[0];
+    panel1Dialogue.content = [{ type: 'text', text: '@Minh : ""' }];
+
+    const extracted = extractScriptLinesFromDoc({ type: 'doc', content: blocks }, 'sc-1');
+    const dialogues = extracted.filter((l) => l.dialogueText);
+    expect(dialogues).toHaveLength(1);
+    expect(dialogues[0]).toMatchObject({ pageNumber: 1, panelNumber: 3 });
+  });
+});
+
+describe('Lưu đúng cấu trúc Nhân vật -> Lời thoại', () => {
+  it('thoại gõ bằng @mention được lưu là DialogueText kèm SpeakerCharacterId', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        { type: 'scriptLineBlock', attrs: { blockType: 'page_heading', pageNumber: 1 }, content: [{ type: 'text', text: 'Trang 01' }] },
+        { type: 'scriptLineBlock', attrs: { blockType: 'panel_heading' }, content: [{ type: 'text', text: 'PANEL 1.1' }] },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'stage_direction' },
+          content: [
+            { type: 'bibleMention', attrs: { id: 'chr-iruka', code: 'IRUKA', label: 'Iruka', category: 'Character' } },
+            { type: 'text', text: ' : "Chào Naruto"' },
+          ],
+        },
+      ],
+    };
+    const line = extractScriptLinesFromDoc(doc, 'sc-1').find((l) => l.dialogueText);
+    expect(line).toMatchObject({
+      dialogueText: '(IRUKA) : "Chào Naruto"',
+      stageDirection: null,
+      speakerCharacterId: 'chr-iruka',
+      pageNumber: 1,
+      panelNumber: 1,
+    });
+  });
+
+  it('tải rồi lưu lại không nhân bản dòng tên người nói', () => {
+    const scenes: SceneDetailDto[] = [
+      {
+        id: 'sc-1', chapterId: 'c-1', sceneNumber: 1, heading: 'A', summary: null,
+        defaultNarrationMode: 'Present', createdAt: '2026-01-01', version: 1,
+        scriptLines: [
+          { id: 'l-1', lineOrder: 1, speakerCharacterId: 'chr-1', dialogueText: 'Xin chào', stageDirection: null, narrationMode: 'Present' },
+        ],
+      },
+    ];
+    const doc = scenesToTipTapDoc(scenes, () => 'Minh');
+    const lines = extractScriptLinesFromDoc(doc, 'sc-1').filter((l) => l.blockType !== 'scene_heading');
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ dialogueText: '@Minh : "Xin chào"', speakerCharacterId: 'chr-1' });
+  });
+});
+

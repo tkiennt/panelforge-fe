@@ -942,3 +942,26 @@ body {
     grid-template-columns: 52fr 48fr !important;
   }
 }
+
+/* Script editor: gợi ý cho ô trống trong template Trang/Panel.
+   Chỉ dùng CSS (:has trailingBreak) — placeholder bằng ProseMirror decoration làm mất ký tự
+   khi gõ tiếng Việt vào khối rỗng trên Chromium. */
+.ProseMirror .script-block:has(> br.ProseMirror-trailingBreak:only-child)::before {
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-style: normal;
+  color: var(--color-stone-400);
+}
+.ProseMirror .script-block[data-block-type='stage_direction']:has(> br.ProseMirror-trailingBreak:only-child)::before {
+  content: 'Mô tả hành động, bối cảnh, góc máy…';
+}
+.ProseMirror .script-block[data-block-type='dialogue']:has(> br.ProseMirror-trailingBreak:only-child)::before {
+  content: 'Gõ @ để chọn nhân vật, rồi : "lời thoại"';
+}
+.ProseMirror .script-block[data-block-type='caption']:has(> br.ProseMirror-trailingBreak:only-child)::before {
+  content: 'Lời dẫn truyện…';
+}
+.ProseMirror .script-block[data-block-type='sfx']:has(> br.ProseMirror-trailingBreak:only-child)::before {
+  content: 'Tiếng động (SFX)…';
+}

@@ -218,6 +218,31 @@ Tiếng còi cảnh sát vang lên từ xa.
     expect(panels[0].panelNumber).toBe('1.1');
     expect(panels[1].panelNumber).toBe('1.2');
   });
+
+  it('tách tên nhân vật khỏi động từ nói, cảm xúc và dấu /', () => {
+    const blocks = parseScriptTextToBlocks(
+      ['Trang 1', 'Panel 1', 'Lan đáp: "Tôi biết rồi."', 'Minh / Hét: Đứng lại!', 'Minh nói: "Đi thôi"'].join('\n')
+    );
+    const dialogues = blocks.filter((b) => b.type === 'dialogue');
+    expect(dialogues.map((d) => d.character)).toEqual(['Lan', 'Minh', 'Minh']);
+    expect(dialogues[1].content).toBe('Đứng lại!');
+  });
+
+  it('không coi câu mô tả có dấu hai chấm là lời thoại', () => {
+    const blocks = parseScriptTextToBlocks(
+      ['Trang 1', 'Panel 1', 'Góc máy thấp: nhìn lên tòa tháp', 'Khói đen bốc lên nghi ngút khắp nơi: rất dày'].join('\n')
+    );
+    expect(blocks.filter((b) => b.type === 'dialogue')).toHaveLength(0);
+  });
+
+  it('gán speakerCharacterId theo tên Bible, không phân biệt hoa thường và dấu', () => {
+    const nodes = convertScriptTextToScreenplayBlocks('Trang 1\nPanel 1\nMINH: Chạy mau!', {
+      characters: [{ id: 'chr-minh', name: 'Minh', code: 'CHR-01' }],
+    });
+    const dialogue = nodes.find((n) => n.attrs.blockType === 'dialogue');
+    expect(dialogue.attrs.speakerCharacterId).toBe('chr-minh');
+    expect(dialogue.attrs.speakerName).toBe('Minh');
+    expect(dialogue.attrs.pageNumber).toBe(1);
+    expect(dialogue.attrs.panelNumber).toBe(1);
+  });
 });
-
-

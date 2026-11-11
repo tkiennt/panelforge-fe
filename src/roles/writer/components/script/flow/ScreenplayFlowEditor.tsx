@@ -42,6 +42,8 @@ import {
   generateGuid,
   renumberEditorState,
   createStructuredMangaPageBlocks,
+  createPanelSlotBlocks,
+  getDefaultPanelShot,
 } from './scriptFlowAdapter';
 import { MangaBlockType } from './types';
 import { getNextPageNumber, getNextPanelNumber } from './comic-editor/comicCounting';
@@ -313,6 +315,70 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             }
             return true;
           }
+        }
+
+        // 1b. "+ Thoại" trên tiêu đề Panel: thêm bóng thoại trống ở cuối Panel đó
+        // 1c. "+ Panel" trên tiêu đề Trang: thêm Panel trống ở cuối Trang đó
+        const addDialogueBtn = target.closest('.panel-add-dialogue-btn');
+        const addPanelBtn = target.closest('.page-add-panel-btn');
+        if (addDialogueBtn || addPanelBtn) {
+          const isPanelAction = Boolean(addDialogueBtn);
+          const headingEl = (addDialogueBtn || addPanelBtn)!.closest(
+            isPanelAction ? '[data-block-type="panel_heading"]' : '[data-block-type="page_heading"]'
+          );
+          if (!headingEl || !view.editable) return true;
+          const { doc } = view.state;
+          const $heading = doc.resolve(view.posAtDOM(headingEl, 0));
+          let depth = $heading.depth;
+          while (depth > 0 && $heading.node(depth).type.name !== 'scriptLineBlock') depth--;
+          if (depth === 0) return true;
+          const headingPos = $heading.before(depth);
+          const heading = $heading.node(depth);
+
+          // Panel kết thúc ở tiêu đề Panel/Trang/Cảnh kế tiếp; Trang kết thúc ở tiêu đề Trang/Cảnh kế tiếp
+          const stopTypes = isPanelAction
+            ? ['panel_heading', 'page_heading', 'scene_heading']
+            : ['page_heading', 'scene_heading'];
+          let insertPos = doc.content.size;
+          let panelsInPage = 0;
+          doc.forEach((node, offset) => {
+            if (offset <= headingPos || insertPos !== doc.content.size) return;
+            if (stopTypes.includes(node.attrs?.blockType)) {
+              insertPos = offset;
+              return;
+            }
+            if (node.attrs?.blockType === 'panel_heading') panelsInPage++;
+          });
+
+          const pageNumber = heading.attrs.pageNumber || 1;
+          const sceneId = heading.attrs.sceneId || null;
+          const json = isPanelAction
+            ? [
+                {
+                  type: 'scriptLineBlock',
+                  attrs: {
+                    scriptLineId: generateGuid(),
+                    sceneId,
+                    blockType: 'dialogue',
+                    narrationMode: 'Present',
+                    pageNumber,
+                    panelNumber: heading.attrs.panelNumber,
+                    inPanel: true,
+                  },
+                },
+              ]
+            : createPanelSlotBlocks(pageNumber, panelsInPage + 1, getDefaultPanelShot(panelsInPage + 1), sceneId);
+
+          const nodes = json.map((n) => view.state.schema.nodeFromJSON(n));
+          const tr = view.state.tr.insert(insertPos, nodes);
+          // Panel mới: con trỏ vào ô mô tả (bỏ qua tiêu đề panel). Thoại mới: con trỏ vào chính nó.
+          const cursorPos = isPanelAction ? insertPos + 1 : insertPos + nodes[0].nodeSize + 1;
+          tr.setSelection(TextSelection.create(tr.doc, cursorPos)).scrollIntoView();
+          view.dispatch(tr);
+          view.focus();
+          if (!isPanelAction) renumberEditorState(editor, cursorPos);
+          setHasUnsavedChanges(true);
+          return true;
         }
 
         // 2. Nút Xóa khung (Panel Delete Button)
@@ -792,6 +858,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     try {
       renumberEditorState(editor);
       const defaultSceneId = scenes[0]?.id || '';
+    const characters = allBibleEntries
+      .filter((e) => e.category === 'Character' && e.isActive)
+      .map((e) => ({ id: e.id, name: e.name, code: e.code }));
       const extracted = extractScriptLinesFromDoc(editor.getJSON(), defaultSceneId);
 
       await onSaveLines(extracted);
@@ -926,24 +995,34 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     onShowToast?.('Đã chèn Panel', `Đã thêm khối Panel ${pageNum}.${panelNum} (${shotName})`);
   };
 
-  // Chèn một Trang hoàn chỉnh có sẵn 4 hoặc 5 Panel cố định
+  // Thêm Trang mới ở cuối kịch bản, có sẵn 4 hoặc 5 Panel trống
   const handleInsertStructuredPage = (panelsCount: 4 | 5 = 4) => {
     if (!editor || !canEditScript || isChapterLocked) return;
-    const { state } = editor;
-    const nextNum = getNextPageNumber(state.doc);
-    const defaultSceneId = scenes[0]?.id || null;
-    const defaultSpeaker = allBibleEntries?.find((e) => e.category === 'Character')?.name || 'Nhân vật';
-
-    const newBlocks = createStructuredMangaPageBlocks(nextNum, panelsCount, defaultSceneId, defaultSpeaker);
-
-    editor.chain().focus().insertContent(newBlocks).run();
+    const nextNum = getNextPageNumber(editor.state.doc);
+    const newBlocks = createStructuredMangaPageBlocks(nextNum, panelsCount, scenes[0]?.id || null);
+    const endPos = editor.state.doc.content.size;
+    // Con trỏ đặt vào ô mô tả của Panel đầu tiên: sau page heading và panel heading
+    editor.chain().insertContentAt(endPos, newBlocks).run();
     renumberEditorState(editor);
+    focusFirstEmptySlotAfter(endPos);
     setHasUnsavedChanges(true);
+    onShowToast?.(`Đã thêm Trang ${nextNum}`, `Trang ${nextNum} có sẵn ${panelsCount} Panel trống.`);
+  };
 
-    onShowToast?.(
-      `Đã chèn Trang ${nextNum}`,
-      `Tạo sẵn Trang ${nextNum} với ${panelsCount} Panel tiêu chuẩn và các dòng thoại mẫu.`
-    );
+  // Đặt con trỏ vào khối scriptLineBlock rỗng đầu tiên kể từ vị trí `fromPos`
+  const focusFirstEmptySlotAfter = (fromPos: number) => {
+    if (!editor) return;
+    let target: number | null = null;
+    editor.state.doc.descendants((node, pos) => {
+      if (target !== null) return false;
+      if (pos >= fromPos && node.type.name === 'scriptLineBlock' && node.content.size === 0) {
+        target = pos + 1;
+      }
+      return false;
+    });
+    if (target !== null) {
+      editor.chain().focus().setTextSelection(target).scrollIntoView().run();
+    }
   };
 
   // Chèn mẫu cấu trúc Manga/Webtoon hoàn chỉnh
@@ -989,11 +1068,15 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const handleApplyConvertedScript = (scriptText: string, mode: 'append' | 'insert' | 'replace') => {
     if (!editor) return;
     const defaultSceneId = scenes[0]?.id || '';
+    const characters = allBibleEntries
+      .filter((e) => e.category === 'Character' && e.isActive)
+      .map((e) => ({ id: e.id, name: e.name, code: e.code }));
 
     if (mode === 'replace') {
       const blocks = convertScriptTextToScreenplayBlocks(scriptText, {
         startingPageNumber: 1,
         sceneId: defaultSceneId,
+        characters,
       });
       editor.commands.setContent({ type: 'doc', content: blocks });
       setHasUnsavedChanges(true);
@@ -1006,6 +1089,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       const blocks = convertScriptTextToScreenplayBlocks(scriptText, {
         startingPageNumber: nextNum,
         sceneId: defaultSceneId,
+        characters,
       });
       const endPos = editor.state.doc.content.size;
       editor.chain().focus().insertContentAt(endPos, blocks).run();
@@ -1020,6 +1104,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       const blocks = convertScriptTextToScreenplayBlocks(scriptText, {
         startingPageNumber: currentNum,
         sceneId: defaultSceneId,
+        characters,
       });
       editor.chain().focus().insertContent(blocks).run();
       setHasUnsavedChanges(true);
@@ -1308,22 +1393,22 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                 type="button"
                 disabled={!canEditScript || isChapterLocked}
                 onClick={() => handleInsertStructuredPage(4)}
-                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold text-stone-800 bg-[#FAF9F5] hover:bg-stone-100 border border-stone-300 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-                title="Tạo Trang mới có sẵn 4 Panel chuẩn (4-Koma / Webtoon)"
+                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-stone-800 bg-[#FAF9F5] hover:bg-stone-100 border border-stone-300 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+                title="Thêm trang mới ở cuối kịch bản, có sẵn 4 panel trống"
               >
                 <Plus className="w-3 h-3 text-[#EA580C]" />
-                <span>Trang 4 Ô</span>
+                <span>Trang 4 ô</span>
               </button>
 
               <button
                 type="button"
                 disabled={!canEditScript || isChapterLocked}
                 onClick={() => handleInsertStructuredPage(5)}
-                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold text-stone-800 bg-[#FAF9F5] hover:bg-stone-100 border border-stone-300 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-                title="Tạo Trang mới có sẵn 5 Panel chuẩn (Manga Shonen)"
+                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-stone-800 bg-[#FAF9F5] hover:bg-stone-100 border border-stone-300 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+                title="Thêm trang mới ở cuối kịch bản, có sẵn 5 panel trống"
               >
                 <Plus className="w-3 h-3 text-[#EA580C]" />
-                <span>Trang 5 Ô</span>
+                <span>Trang 5 ô</span>
               </button>
             </div>
 

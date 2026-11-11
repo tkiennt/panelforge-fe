@@ -7,6 +7,49 @@ export interface ConverterAdapterOptions {
   sceneId?: string;
   defaultNarrationMode?: 'Present' | 'VoiceOver' | 'Flashback';
   targetPanelsPerPage?: number;
+  /** Nhân vật trong Series Bible để gán speakerCharacterId theo tên/mã khi import */
+  characters?: { id: string; name: string; code?: string | null }[];
+}
+
+const SPEECH_VERB_SUFFIX = /\s+(?:nói|hét(?:\s+lên)?|bảo|thì thầm|gọi|kêu|hỏi|đáp|nghĩ|lẩm bẩm|says?|shouts?|whispers?)$/iu;
+
+function normalizeName(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/gi, 'd')
+    .replace(/[\s_-]+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/** Tách "Minh (thì thầm)", "Minh / Hét", "Minh nói" về tên nhân vật "Minh"; null nếu không giống tên người nói */
+export function extractSpeakerName(rawSpeaker: string): string | null {
+  let name = rawSpeaker
+    .replace(/^@/, '')
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/\s*\/.*$/, '')
+    .trim();
+  name = name.replace(SPEECH_VERB_SUFFIX, '').trim();
+  if (name.length < 2 || name.split(/\s+/).length > 4) return null;
+  if (!/^[\p{L}0-9_ ]+$/u.test(name) || /^\d+$/.test(name)) return null;
+  const lower = name.toLowerCase();
+  for (const keyword of NON_SPEAKER_KEYWORDS) {
+    if (lower === keyword || lower.startsWith(`${keyword} `)) return null;
+  }
+  return name;
+}
+
+export function matchBibleCharacter(
+  speaker: string,
+  characters: ConverterAdapterOptions['characters']
+): { id: string; name: string } | null {
+  if (!characters?.length) return null;
+  const key = normalizeName(speaker);
+  const found = characters.find(
+    (c) => normalizeName(c.name) === key || (c.code ? normalizeName(c.code) === key : false)
+  );
+  return found ? { id: found.id, name: found.name } : null;
 }
 
 export interface ParsedScriptBlock {
@@ -175,8 +218,8 @@ export function parseScriptTextToBlocks(
     const sfxMatch =
       trimmed.match(/^(?:SFX|Âm\s*thanh)\s*:\s*(.*)/i) ||
       trimmed.match(/^\*\s*(.*?)\s*\*$/) ||
-      trimmed.match(/^\((?:SFX|Tiếng\s*[^)]+|tiếng\s*[^)]+|[A-ZÀ-Ỹ0-9_! -]{2,20}!)\)$/i) ||
-      trimmed.match(/^\[(?:SFX|Âm\s*thanh)\s*:\s*(.*)\]$/i);
+      trimmed.match(/^[[(]\s*(?:SFX|Âm\s*thanh)\s*:\s*(.*?)\s*[\])]$/i) ||
+      trimmed.match(/^\(((?:Tiếng\s*[^)]+)|[A-ZÀ-Ỹ0-9_! -]{2,20}!)\)$/i);
 
     if (sfxMatch) {
       const sfxBody = (sfxMatch[1] || trimmed).replace(/^\*|\*$/g, '').trim().toUpperCase() || 'TIẾNG ĐỘNG';
@@ -224,43 +267,21 @@ export function parseScriptTextToBlocks(
       continue;
     }
 
-    const speakerDialogueMatch = trimmed.match(
-      /^(?:@)?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})(?:[\(\/]([a-zA-ZÀ-Ỹ0-9_\s]+)[\)])?\s*[:\-]\s*(.+)$/u
-    );
-
-    if (speakerDialogueMatch) {
-      const candidateName = speakerDialogueMatch[1].trim();
-      const lowerCandidate = candidateName.toLowerCase();
-
-      if (!NON_SPEAKER_KEYWORDS.has(lowerCandidate) && !/^\d+$/.test(candidateName)) {
-        let dialogueContent = speakerDialogueMatch[3].trim();
-        // Làm sạch ngoặc kép nếu có
-        dialogueContent = dialogueContent.replace(/^["“](.*)["”]$/, '$1').trim();
-
+    // TÊN: thoại | Tên (cảm xúc): "thoại" | Tên / Hét: thoại | Tên nói: "thoại"
+    const speakerDialogueMatch = trimmed.match(/^([^:"“”]{2,60}?)\s*:\s*(.+)$/u);
+    const speakerName = speakerDialogueMatch ? extractSpeakerName(speakerDialogueMatch[1]) : null;
+    if (speakerDialogueMatch && speakerName) {
+      const dialogueContent = speakerDialogueMatch[2].trim().replace(/^["“](.*)["”]$/u, '$1').trim();
+      if (dialogueContent) {
         rawBlocks.push({
           type: 'dialogue',
-          character: candidateName,
+          character: speakerName,
           pageNumber: String(currentPageIndex || 1).padStart(2, '0'),
           panelNumber: panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
           content: dialogueContent,
         });
         continue;
       }
-    }
-
-    // Nhận diện kiểu văn xuôi: Minh nói: "..." hoặc Minh hét lên: "..."
-    const speechVerbMatch = trimmed.match(
-      /^([A-ZÀ-Ỹ][a-zà-ỹ0-9_\s]{1,25})\s+(?:nói|hét|bảo|thì thầm|gọi|kêu|hỏi|đáp|nghĩ)\s*:\s*["“]([^"”]+)["”]/u
-    );
-    if (speechVerbMatch) {
-      rawBlocks.push({
-        type: 'dialogue',
-        character: speechVerbMatch[1].trim(),
-        pageNumber: String(currentPageIndex || 1).padStart(2, '0'),
-        panelNumber: panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
-        content: speechVerbMatch[2].trim(),
-      });
-      continue;
     }
 
     // 6. Mặc định là đoạn văn mô tả hành động (Action / Stage Direction)
@@ -440,6 +461,7 @@ export function convertScriptTextToScreenplayBlocks(
     let blockType: MangaBlockType = 'stage_direction';
     let textToDisplay = block.content;
     let speakerName: string | null = null;
+    let speakerCharacterId: string | null = null;
 
     const pageNum = block.pageNumber ? parseInt(block.pageNumber, 10) : undefined;
     const panelNum = block.panelNumber
@@ -459,11 +481,14 @@ export function convertScriptTextToScreenplayBlocks(
         textToDisplay = `" Panel ${block.panelNumber || '1.1'}: [${block.cameraAngle || 'Toàn cảnh'}]`;
         break;
 
-      case 'dialogue':
+      case 'dialogue': {
         blockType = 'dialogue';
-        speakerName = block.character || null;
-        textToDisplay = `@${block.character || 'Nhân vật'} : "${block.content}"`;
+        const matched = block.character ? matchBibleCharacter(block.character, options?.characters) : null;
+        speakerName = matched?.name || block.character || null;
+        speakerCharacterId = matched?.id || null;
+        textToDisplay = `@${speakerName || 'Nhân vật'} : "${block.content}"`;
         break;
+      }
 
       case 'sfx':
         blockType = 'sfx';
@@ -489,6 +514,7 @@ export function convertScriptTextToScreenplayBlocks(
         sceneId: defaultSceneId,
         blockType,
         speakerName,
+        speakerCharacterId,
         narrationMode,
         lineOrder: order++,
         pageNumber: pageNum,
