@@ -29,7 +29,7 @@ import { getRoleDefaultPath } from '@/roles/roles';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { StudioGovernanceBar } from './studio-overview/StudioGovernanceBar';
 import { SeriesFilterBar } from './studio-overview/SeriesFilterBar';
-import { SeriesCardItem } from './studio-overview/SeriesCardItem';
+import { SeriesShelf } from './studio-overview/SeriesShelf';
 import { MembersTabContent } from './studio-overview/MembersTabContent';
 import {
   CoverPickerModal,
@@ -659,7 +659,7 @@ export const StudioOverviewView: React.FC = () => {
   };
 
   return (
-    <div className='flex-1 bg-[#F3F0E9] min-h-screen p-6 md:p-8 space-y-6 text-[#1C1917] font-sans'>
+    <div className='flex-1 bg-[#F3F0E9] min-h-screen p-4 md:p-6 space-y-5 text-[#1C1917] font-sans'>
       {/* Chọn ảnh bìa có sẵn của hệ thống */}
       <CoverPickerModal
         series={coverPickerSeries}
@@ -669,10 +669,10 @@ export const StudioOverviewView: React.FC = () => {
       />
 
       {/* Header Banner: Studio Series Library Header */}
-      <div className='bg-[#FCFBF8] p-6 rounded-xl border border-[#D8D2C5] shadow-2xs space-y-4'>
+      <div className='bg-[#FCFBF8] p-4 sm:p-5 rounded-xl border border-[#D8D2C5] shadow-2xs space-y-4'>
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
           <div>
-            <div className='flex items-center gap-2 text-xs font-semibold text-[#57534E] uppercase tracking-wider font-mono'>
+            <div className='flex items-center gap-2 text-xs font-semibold text-[#57534E]'>
               <Briefcase className='w-4 h-4 text-[#F97316] shrink-0' />
               <span>{activeWorkspace?.name || 'Studio Workspace'}</span>
             </div>
@@ -680,8 +680,7 @@ export const StudioOverviewView: React.FC = () => {
               Thư viện Bộ truyện
             </h1>
             <p className='text-xs sm:text-sm text-[#57534E] mt-1 leading-relaxed max-w-2xl'>
-              Không gian quản lý, theo dõi tiến độ sản xuất và điều phối các bộ truyện tranh trong
-              Studio.
+              Mở một bộ truyện để giao việc, theo dõi công đoạn và duyệt chương.
             </p>
           </div>
 
@@ -790,16 +789,6 @@ export const StudioOverviewView: React.FC = () => {
                 <span>Mời thành viên mới</span>
               </button>
             )}
-            {isProducerOrAdmin && activeTab === 'series' && (
-              <button
-                type='button'
-                onClick={() => setCreateSeriesModalOpen(true)}
-                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer'
-              >
-                <Plus className='w-4 h-4' />
-                <span>Tạo bộ truyện mới</span>
-              </button>
-            )}
           </div>
         </div>
 
@@ -813,15 +802,18 @@ export const StudioOverviewView: React.FC = () => {
           >
             {/* Error Message with Retry */}
             {loadError && (
-              <div className='p-4 bg-red-50 border border-red-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-red-800 text-xs sm:text-sm shadow-soft-xs'>
+              <div
+                role='alert'
+                className='p-4 bg-rose-50 border border-rose-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-800 text-xs sm:text-sm'
+              >
                 <div className='flex items-center gap-2.5'>
-                  <AlertTriangle className='w-5 h-5 text-red-600 shrink-0' />
+                  <AlertTriangle className='w-5 h-5 text-rose-600 shrink-0' aria-hidden='true' />
                   <span>{loadError}</span>
                 </div>
                 <button
                   type='button'
                   onClick={() => loadData()}
-                  className='px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold cursor-pointer shrink-0 transition-colors'
+                  className='btn-cta-danger focus-ring min-h-9 px-3.5 text-xs font-semibold cursor-pointer shrink-0'
                 >
                   Thử lại
                 </button>
@@ -846,107 +838,25 @@ export const StudioOverviewView: React.FC = () => {
               totalCount={seriesList.length}
             />
 
-            {/* Series Cards Container / Grid */}
-            {loading ? (
-              <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6'>
-                {[1, 2, 3].map((n) => (
-                  <div
-                    key={n}
-                    className='h-72 rounded-2xl bg-white border border-stone-200/80 p-5 space-y-4 animate-pulse'
-                  >
-                    <div className='flex gap-3.5'>
-                      <div className='w-20 sm:w-24 aspect-[3/4] bg-stone-200 rounded-xl shrink-0' />
-                      <div className='flex-1 space-y-2.5 pt-1'>
-                        <div className='h-4 bg-stone-200 rounded w-1/3' />
-                        <div className='h-5 bg-stone-200 rounded w-3/4' />
-                        <div className='h-3 bg-stone-100 rounded w-full' />
-                        <div className='h-3 bg-stone-100 rounded w-2/3' />
-                      </div>
-                    </div>
-                    <div className='pt-3 border-t border-stone-100 flex justify-between'>
-                      <div className='h-3 bg-stone-100 rounded w-1/4' />
-                      <div className='h-3 bg-stone-100 rounded w-1/4' />
-                    </div>
-                    <div className='pt-3 border-t border-stone-100 flex gap-2'>
-                      <div className='h-11 bg-stone-200 rounded-xl flex-1' />
-                      <div className='h-11 bg-stone-100 rounded-xl w-28' />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : seriesList.length === 0 ? (
-              /* Empty State: No series in workspace */
-              <div className='py-16 px-6 text-center bg-white rounded-3xl border border-dashed border-stone-300 max-w-lg mx-auto my-6 space-y-4 shadow-soft-sm'>
-                <div className='w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mx-auto shadow-inner'>
-                  <BookOpen className='w-7 h-7' />
-                </div>
-                <div className='space-y-1.5'>
-                  <h3 className='text-base font-bold text-stone-900'>
-                    Chưa có bộ truyện nào trong Studio này
-                  </h3>
-                  <p className='text-xs text-stone-500 leading-relaxed max-w-sm mx-auto'>
-                    Khởi tạo bộ truyện đầu tiên để thiết lập thể loại, định dạng đọc, quy trình sản
-                    xuất và không gian sáng tác.
-                  </p>
-                </div>
-                {isProducerOrAdmin && (
-                  <button
-                    type='button'
-                    onClick={() => setCreateSeriesModalOpen(true)}
-                    className='inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-xl shadow-soft-sm transition-all cursor-pointer'
-                  >
-                    <Plus className='w-4 h-4' />
-                    <span>Tạo bộ truyện ngay</span>
-                  </button>
-                )}
-              </div>
-            ) : filteredAndSortedSeries.length === 0 ? (
-              /* Empty State: Filter matched nothing */
-              <div className='py-14 px-6 text-center bg-white rounded-3xl border border-stone-200/80 max-w-md mx-auto my-6 space-y-3 shadow-soft-sm'>
-                <div className='w-12 h-12 rounded-xl bg-stone-100 text-stone-400 flex items-center justify-center mx-auto'>
-                  <Search className='w-6 h-6' />
-                </div>
-                <h3 className='text-sm font-bold text-stone-800'>
-                  Không tìm thấy bộ truyện phù hợp
-                </h3>
-                <p className='text-xs text-stone-500 leading-relaxed'>
-                  Không có bộ truyện nào khớp với từ khóa tìm kiếm hoặc bộ lọc đã chọn.
-                </p>
-                <button
-                  type='button'
-                  onClick={handleClearFilters}
-                  className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl transition-colors cursor-pointer'
-                >
-                  <X className='w-3.5 h-3.5' />
-                  <span>Xóa tất cả bộ lọc</span>
-                </button>
-              </div>
-            ) : (
-              /* Series Cards Grid */
-              <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6'>
-                {filteredAndSortedSeries.map((s) => (
-                  <SeriesCardItem
-                    key={s.id}
-                    series={s}
-                    isProducerOrAdmin={isProducerOrAdmin}
-                    isOpenMenu={openMenuSeriesId === s.id}
-                    onToggleMenu={(e) => {
-                      e.stopPropagation();
-                      setOpenMenuSeriesId(openMenuSeriesId === s.id ? null : s.id);
-                    }}
-                    onOpenSeries={handleOpenSeries}
-                    onOpenChapters={(ser) => setSelectedChapterSeries(ser)}
-                    onOpenPipeline={(ser) => setSelectedPipelineSeries(ser)}
-                    onOpenPresets={(ser) => setSelectedPresetsSeries(ser)}
-                    onOpenMembers={(ser) => setSelectedMembersSeries(ser)}
-                    onPickCover={(ser) => setCoverPickerSeries(ser)}
-                    onClearCover={(sId) => void handleClearCover(sId)}
-                    onEditSeries={handleOpenEditSeries}
-                    onDeleteSeries={handleDeleteSeries}
-                  />
-                ))}
-              </div>
-            )}
+            <SeriesShelf
+              loading={loading}
+              totalCount={seriesList.length}
+              series={filteredAndSortedSeries}
+              canCreate={isProducerOrAdmin}
+              openMenuSeriesId={openMenuSeriesId}
+              onToggleMenu={(id) => setOpenMenuSeriesId(openMenuSeriesId === id ? null : id)}
+              onCreateSeries={() => setCreateSeriesModalOpen(true)}
+              onClearFilters={handleClearFilters}
+              onOpenSeries={handleOpenSeries}
+              onOpenChapters={(ser) => setSelectedChapterSeries(ser)}
+              onOpenPipeline={(ser) => setSelectedPipelineSeries(ser)}
+              onOpenPresets={(ser) => setSelectedPresetsSeries(ser)}
+              onOpenMembers={(ser) => setSelectedMembersSeries(ser)}
+              onPickCover={(ser) => setCoverPickerSeries(ser)}
+              onClearCover={(sId) => void handleClearCover(sId)}
+              onEditSeries={handleOpenEditSeries}
+              onDeleteSeries={handleDeleteSeries}
+            />
           </div>
         )}
 
