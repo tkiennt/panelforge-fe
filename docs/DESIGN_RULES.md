@@ -183,3 +183,21 @@ Shared screens (such as the Studio Overview / Series Selection screen) must insp
 - **Preserve 100% of `data-testid` Attributes & API Contracts:** Never delete or rename existing `data-testid` attributes required by unit and integration tests.
 - **Enforce ESLint Role Boundaries:** Files inside `src/roles/<role>/` may only import from their own role folder or `src/shared/`. Cross-role imports are strictly forbidden.
 - **Mandatory Verification After Every Change Batch:** Always run `npm run quality` (`tsc --noEmit`, `eslint --max-warnings 0`, `vitest run`) and `npm run build` with 0 errors and 0 warnings.
+
+---
+
+## 8. ANTI-SLOP CONSTITUTION (ZERO GENERIC AI ARTIFACTS)
+
+PanelForge must look and feel like an authentic, high-end editorial manga workstation—crafted by dedicated UI/UX designers, not an auto-generated AI template.
+
+1. **Strictly Forbidden Visual Tropes (AI Slop Checklist):**
+   - ❌ **No Purple/Violet Default Bias:** Never use violet/purple unless explicitly representing AI features (`PanelForge.AI`, Series Bible Lore, Consistency Checking).
+   - ❌ **No Generic Glow Orbs / Neon Gradients:** Zero background blur blobs, zero animated glowing borders. Surfaces must rely on crisp borders (`border-stone-200/80`) and clean paper elevation.
+   - ❌ **No Gratuitous Sparkle Icons:** Do not sprinkle `Sparkles` or `Wand` icons on standard buttons, headers, or empty states.
+   - ❌ **No Fake Dashboard Analytics:** Never invent arbitrary "+12.4% vs last week" percentage pills or fake sparklines on screens that lack real telemetry metrics.
+   - ❌ **No Vast Empty Center Cards:** Never drop a lonely card in the center of a wide desktop view. PanelForge interfaces must feel like high-productivity workbenches with balanced information density.
+2. **Copywriting Integrity:**
+   - ❌ Banned buzzwords: *"Delve"*, *"Tapestry"*, *"Revolutionize"*, *"Seamless"*, *"Elevate"*, *"Powerhouse"*, *"Unleash"*.
+   - ✅ Use concrete manga publishing terminology: "Chapter Script", "Frame Template", "Lettering Canvas", "Stage Gate Review", "Character Bible".
+3. **Skill Verification:**
+   - Always run the Purpose Test (`@skill:antislop` & `@skill:antislop-ui`): If a visual technique cannot state its exact usability or hierarchy purpose, remove it.
