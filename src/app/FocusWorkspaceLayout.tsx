@@ -95,6 +95,7 @@ function getReadableWorkspaceTitle(pathname: string): string {
   if (pathname.includes('/script')) return 'Biên soạn kịch bản';
   if (pathname.includes('/letterer')) return 'Chèn chữ & bóng thoại';
   if (pathname.includes('/chapter-review')) return 'Duyệt toàn chương';
+  if (pathname.includes('/editor/desk')) return 'Bàn thẩm định biên tập';
   if (pathname.includes('/review/')) return 'Kiểm duyệt biên tập';
   if (pathname.includes('/task/')) return 'Chi tiết công việc';
   return 'Phòng làm việc';

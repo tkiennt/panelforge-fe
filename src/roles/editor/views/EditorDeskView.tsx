@@ -5,24 +5,19 @@ import {
   ShieldCheck,
   Eye,
   Clock,
-  AlertTriangle,
-  ArrowLeft,
   Layers,
   Lock,
   RotateCcw,
   Search,
-  Filter,
   CheckCircle2,
   AlertCircle,
   Calendar,
   User,
-  ExternalLink,
-  ChevronRight,
   ShieldAlert,
+  SlidersHorizontal,
 } from 'lucide-react';
 import {
   AssignmentPriority,
-  AssignmentStatus,
   EditorQualityGate,
   EditorReviewQueueItemDto,
   WorkspaceRole,
@@ -161,11 +156,11 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
   // Date formatter
   const formatDate = (isoString?: string | null) => {
-    if (!isoString) return 'Chưa ghi nhận';
+    if (!isoString) return 'Vừa xong';
     try {
       const d = new Date(isoString);
       return d.toLocaleDateString('vi-VN', {
-        month: 'short',
+        month: 'numeric',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
@@ -175,168 +170,91 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     }
   };
 
-  // Priority color
-  const getPriorityBadge = (p: AssignmentPriority) => {
-    switch (p) {
-      case 'Urgent':
-      case 4:
-        return (
-          <span className='px-2 py-0.5 text-xs font-semibold rounded bg-rose-100 text-rose-700 border border-rose-200'>
-            Khẩn cấp
-          </span>
-        );
-      case 'High':
-      case 3:
-        return (
-          <span className='px-2 py-0.5 text-xs font-semibold rounded bg-orange-100 text-orange-700 border border-orange-200'>
-            Ưu tiên cao
-          </span>
-        );
-      case 'Low':
-      case 1:
-        return (
-          <span className='px-2 py-0.5 text-xs font-semibold rounded bg-stone-100 text-stone-600 border border-stone-200'>
-            Thấp
-          </span>
-        );
-      default:
-        return (
-          <span className='px-2 py-0.5 text-xs font-semibold rounded bg-stone-100 text-stone-700 border border-stone-200'>
-            Bình thường
-          </span>
-        );
-    }
-  };
-
   return (
-    <div className='flex flex-col min-h-screen bg-[#FAF9F5] text-stone-900'>
-      {/* Top Header */}
-      <header className='sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-stone-200/80 px-6 py-4 shadow-xs'>
+    <div className='flex flex-col min-h-full bg-[#FAF8F5] text-[#1C1917] font-sans'>
+      {/* Studio Workbench Header (Clean Editorial Header, integrated with Focus Studio) */}
+      <div className='px-4 sm:px-6 lg:px-8 pt-6 pb-4 border-b border-[#E5E0D8] bg-[#FCFBF8] shadow-2xs'>
         <div className='max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4'>
-          {/* Left: Navigation and Titles */}
-          <div className='flex items-start md:items-center gap-3'>
-            <button
-              type='button'
-              onClick={() => navigate(`/workspaces/${workspaceId}/series`)}
-              className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-600 hover:text-stone-900 hover:bg-stone-100 border border-stone-200 transition-colors shrink-0'
-              aria-label='Về danh sách Series'
-            >
-              <ArrowLeft className='w-4 h-4' />
-              <span>Về Series</span>
-            </button>
-
-            <div className='h-6 w-[1px] bg-stone-200 hidden md:block' />
-
-            <div>
-              <div className='flex items-center gap-2 flex-wrap'>
-                <span className='w-6 h-6 rounded-md bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center font-bold text-xs'>
-                  ED
-                </span>
-                <h1 className='text-base font-bold text-stone-900 flex items-center gap-2'>
-                  {t('desk.title', 'Bàn Thẩm Định Biên Tập (Editor Desk)')}
-                  <span className='px-2 py-0.5 rounded text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200'>
-                    Quality Gates
-                  </span>
-                </h1>
-              </div>
-              <p className='text-xs text-stone-500 mt-0.5 flex items-center gap-1'>
-                <span className='font-medium text-stone-700'>
-                  {seriesInfo?.title || 'Bộ truyện'}
-                </span>
-                <ChevronRight className='w-3 h-3 text-stone-400' />
-                <span>{t('desk.subtitle', 'Hàng đợi kiểm soát chất lượng theo 2 cổng Gate 1 & Gate 2')}</span>
-              </p>
+          <div>
+            <div className='flex items-center gap-2.5'>
+              <h1 className='text-lg font-serif font-bold text-[#1C1917] tracking-tight'>
+                {t('desk.title', 'Bàn Thẩm Định Biên Tập (Editor Desk)')}
+              </h1>
+              <span className='text-xs text-[#57534E] font-medium'>
+                · {seriesInfo?.title || 'Bộ truyện'}
+              </span>
             </div>
+            <p className='text-xs text-[#78716C] mt-0.5'>
+              {t('desk.subtitle', 'Hàng đợi kiểm soát chất lượng theo 2 cổng Gate 1 & Gate 2')}
+            </p>
           </div>
 
-          {/* Right: Refresh & Actions */}
-          <div className='flex items-center gap-2 self-end md:self-auto'>
+          {/* Quick Refresh */}
+          <div className='flex items-center gap-2 self-start md:self-auto'>
             <button
               type='button'
               onClick={loadData}
               disabled={loading}
-              className='inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-stone-600 bg-white hover:bg-stone-50 border border-stone-200/80 shadow-xs transition-all disabled:opacity-50'
+              className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
               title='Làm mới hàng đợi'
             >
-              <RotateCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-orange-500' : ''}`} />
+              <RotateCcw className={`w-3.5 h-3.5 text-[#C2410C] ${loading ? 'animate-spin' : ''}`} />
               <span>Làm mới</span>
             </button>
           </div>
         </div>
-      </header>
 
-      {/* Main Body */}
-      <main className='flex-1 max-w-7xl mx-auto w-full p-6 space-y-6'>
-        {/* KPI Metrics Summary Bar */}
-        <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-          {/* Card 1: Chờ mở duyệt */}
-          <div className='bg-white border border-stone-200/80 rounded-xl p-4 shadow-xs flex items-center justify-between'>
-            <div>
-              <p className='text-xs font-medium text-stone-500'>Chờ mở duyệt</p>
-              <p className='text-2xl font-bold text-amber-600 mt-1'>{metrics.submittedCount}</p>
-              <span className='text-xs text-stone-400'>Bài nộp mới từ hoạ sĩ</span>
+        {/* Minimalist Summary KPIs Row (Clean Paper Strip) */}
+        <div className='max-w-7xl mx-auto mt-4 pt-3 border-t border-[#E5E0D8]/70 flex items-center justify-between gap-4 flex-wrap text-xs'>
+          <div className='flex items-center gap-4 sm:gap-6 flex-wrap'>
+            <div className='flex items-center gap-1.5'>
+              <span className='w-2 h-2 rounded-full bg-amber-500' />
+              <span className='text-[#57534E] font-medium'>Chờ mở duyệt:</span>
+              <span className='font-bold text-[#1C1917]'>{metrics.submittedCount}</span>
             </div>
-            <div className='w-10 h-10 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600'>
-              <Clock className='w-5 h-5' />
+            <div className='flex items-center gap-1.5'>
+              <span className='w-2 h-2 rounded-full bg-sky-500' />
+              <span className='text-[#57534E] font-medium'>Đang thẩm định:</span>
+              <span className='font-bold text-[#1C1917]'>{metrics.underReviewCount}</span>
             </div>
-          </div>
-
-          {/* Card 2: Đang thẩm định */}
-          <div className='bg-white border border-stone-200/80 rounded-xl p-4 shadow-xs flex items-center justify-between'>
-            <div>
-              <p className='text-xs font-medium text-stone-500'>Đang thẩm định</p>
-              <p className='text-2xl font-bold text-sky-600 mt-1'>{metrics.underReviewCount}</p>
-              <span className='text-xs text-stone-400'>Đang trong phiên kiểm tra</span>
+            <div className='flex items-center gap-1.5'>
+              <span className='w-2 h-2 rounded-full bg-purple-500' />
+              <span className='text-[#57534E] font-medium'>Gate 1: Storyboard:</span>
+              <span className='font-bold text-[#1C1917]'>{metrics.gate1Count}</span>
             </div>
-            <div className='w-10 h-10 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600'>
-              <Eye className='w-5 h-5' />
+            <div className='flex items-center gap-1.5'>
+              <span className='w-2 h-2 rounded-full bg-emerald-500' />
+              <span className='text-[#57534E] font-medium'>Gate 2: Composite:</span>
+              <span className='font-bold text-[#1C1917]'>{metrics.gate2Count}</span>
             </div>
-          </div>
-
-          {/* Card 3: Phân loại theo Gate */}
-          <div className='bg-white border border-stone-200/80 rounded-xl p-4 shadow-xs flex items-center justify-between'>
-            <div>
-              <p className='text-xs font-medium text-stone-500'>Tỷ lệ Gates</p>
-              <div className='flex items-center gap-3 mt-1'>
-                <span className='text-sm font-bold text-purple-700'>
-                  G1: {metrics.gate1Count}
-                </span>
-                <span className='text-stone-300'>|</span>
-                <span className='text-sm font-bold text-emerald-700'>
-                  G2: {metrics.gate2Count}
-                </span>
+            {metrics.selfSubmissionCount > 0 && (
+              <div className='flex items-center gap-1.5 text-rose-700 bg-rose-50/80 px-2 py-0.5 rounded-md border border-rose-200/60'>
+                <ShieldAlert className='w-3 h-3 text-rose-600' />
+                <span className='font-medium'>Khóa 4 mắt (BR-26):</span>
+                <span className='font-bold'>{metrics.selfSubmissionCount}</span>
               </div>
-              <span className='text-xs text-stone-400'>Phân cảnh vs Hoàn thiện</span>
-            </div>
-            <div className='w-10 h-10 rounded-lg bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600'>
-              <Layers className='w-5 h-5' />
-            </div>
+            )}
           </div>
 
-          {/* Card 4: Chặn tự duyệt (BR-26) */}
-          <div className='bg-white border border-stone-200/80 rounded-xl p-4 shadow-xs flex items-center justify-between'>
-            <div>
-              <p className='text-xs font-medium text-stone-500'>Khóa 4 mắt (BR-26)</p>
-              <p className='text-2xl font-bold text-rose-600 mt-1'>{metrics.selfSubmissionCount}</p>
-              <span className='text-xs text-stone-400'>Cần Editor khác duyệt hộ</span>
-            </div>
-            <div className='w-10 h-10 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600'>
-              <ShieldAlert className='w-5 h-5' />
-            </div>
+          <div className='text-xs text-[#78716C] font-mono'>
+            Tổng: {metrics.total} bài nộp
           </div>
         </div>
+      </div>
 
-        {/* Filter & Search Toolbar */}
-        <div className='bg-white border border-stone-200/80 rounded-xl p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4'>
-          {/* Gate Tabs */}
-          <div className='flex items-center gap-1.5 p-1 bg-stone-100 rounded-lg border border-stone-200/80 overflow-x-auto'>
+      {/* Main Container */}
+      <main className='flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 space-y-5'>
+        {/* Filter & Search Bar (Sleek Segmented Track) */}
+        <div className='flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#FCFBF8] p-2.5 rounded-xl border border-[#D8D2C5] shadow-2xs'>
+          {/* Segmented Gate Switcher */}
+          <div className='flex items-center gap-1 p-1 bg-[#F3F0E9] rounded-lg border border-[#E5E0D8] overflow-x-auto'>
             <button
               type='button'
               onClick={() => setActiveGate('all')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                 activeGate === 'all'
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
+                  ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
+                  : 'text-[#57534E] hover:text-[#1C1917]'
               }`}
             >
               {t('desk.gateAll', 'Tất cả cổng')} ({metrics.total})
@@ -344,54 +262,52 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
             <button
               type='button'
               onClick={() => setActiveGate('gate1')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 activeGate === 'gate1'
-                  ? 'bg-purple-600 text-white shadow-xs'
-                  : 'text-stone-600 hover:text-purple-700'
+                  ? 'bg-[#FCFBF8] text-purple-900 shadow-soft-sm font-bold'
+                  : 'text-[#57534E] hover:text-purple-800'
               }`}
             >
-              <span className='w-2 h-2 rounded-full bg-purple-300' />
+              <span className='w-2 h-2 rounded-full bg-purple-500' />
               {t('desk.gate1', 'Gate 1: Storyboard')} ({metrics.gate1Count})
             </button>
             <button
               type='button'
               onClick={() => setActiveGate('gate2')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 activeGate === 'gate2'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-stone-600 hover:text-emerald-700'
+                  ? 'bg-[#FCFBF8] text-emerald-900 shadow-soft-sm font-bold'
+                  : 'text-[#57534E] hover:text-emerald-800'
               }`}
             >
-              <span className='w-2 h-2 rounded-full bg-emerald-300' />
+              <span className='w-2 h-2 rounded-full bg-emerald-500' />
               {t('desk.gate2', 'Gate 2: Composite')} ({metrics.gate2Count})
             </button>
           </div>
 
           {/* Search & Status Filter */}
-          <div className='flex items-center gap-3 flex-wrap md:flex-nowrap'>
+          <div className='flex items-center gap-2.5 flex-wrap md:flex-nowrap'>
             {/* Status Select */}
-            <div className='relative'>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                aria-label='Lọc theo trạng thái'
-                className='px-3 py-1.5 pr-8 bg-stone-50 border border-stone-200/80 rounded-lg text-xs font-medium text-stone-700 focus:outline-none focus:border-orange-500'
-              >
-                <option value='all'>Tất cả trạng thái</option>
-                <option value='Submitted'>Chờ mở duyệt (Submitted)</option>
-                <option value='UnderReview'>Đang thẩm định (UnderReview)</option>
-              </select>
-            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              aria-label='Lọc theo trạng thái'
+              className='px-3 py-1.5 bg-[#F3F0E9] border border-[#E5E0D8] rounded-lg text-xs font-medium text-[#1C1917] focus:outline-none focus:border-[#C2410C] cursor-pointer'
+            >
+              <option value='all'>Tất cả trạng thái</option>
+              <option value='Submitted'>Chờ mở duyệt (Submitted)</option>
+              <option value='UnderReview'>Đang thẩm định (UnderReview)</option>
+            </select>
 
             {/* Search Input */}
             <div className='relative flex-1 md:w-64'>
-              <Search className='w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400' />
+              <Search className='w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#78716C]' />
               <input
                 type='text'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder='Tìm theo chương, tác giả, trang...'
-                className='w-full pl-9 pr-3 py-1.5 bg-stone-50 border border-stone-200/80 rounded-lg text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-orange-500'
+                placeholder='Tìm chương, họa sĩ, trang...'
+                className='w-full pl-9 pr-3 py-1.5 bg-[#F3F0E9] border border-[#E5E0D8] rounded-lg text-xs text-[#1C1917] placeholder-[#78716C] focus:outline-none focus:border-[#C2410C]'
               />
             </div>
           </div>
@@ -399,15 +315,15 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
         {/* Error Alert */}
         {error && (
-          <div className='p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between'>
+          <div className='p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center justify-between shadow-2xs'>
             <div className='flex items-center gap-2'>
-              <AlertCircle className='w-4 h-4 text-rose-600 shrink-0' />
+              <AlertCircle className='w-4 h-4 text-red-600 shrink-0' />
               <span>{error}</span>
             </div>
             <button
               type='button'
               onClick={loadData}
-              className='px-2.5 py-1 bg-white border border-rose-300 rounded font-semibold text-rose-700 hover:bg-rose-100 transition-colors'
+              className='px-2.5 py-1 bg-white border border-red-300 rounded font-semibold text-red-700 hover:bg-red-50 transition-colors cursor-pointer'
             >
               Thử lại
             </button>
@@ -416,26 +332,26 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
         {/* Loading Spinner */}
         {loading && (
-          <div className='p-12 text-center bg-white border border-stone-200/80 rounded-2xl shadow-xs'>
-            <RotateCcw className='w-8 h-8 text-orange-500 animate-spin mx-auto mb-3' />
-            <p className='text-xs font-semibold text-stone-600'>Đang nạp hàng đợi duyệt bài của Editor...</p>
+          <div className='p-12 text-center bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xs'>
+            <RotateCcw className='w-7 h-7 text-[#C2410C] animate-spin mx-auto mb-2.5' />
+            <p className='text-xs font-semibold text-[#57534E]'>Đang nạp hàng đợi duyệt bài của Editor...</p>
           </div>
         )}
 
         {/* Empty State */}
         {!loading && !error && filteredItems.length === 0 && (
-          <div className='p-12 text-center bg-white border border-stone-200/80 rounded-2xl shadow-xs space-y-3'>
-            <div className='w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mx-auto'>
-              <CheckCircle2 className='w-6 h-6' />
+          <div className='p-12 text-center bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xs space-y-2.5'>
+            <div className='w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 mx-auto'>
+              <CheckCircle2 className='w-5 h-5' />
             </div>
-            <h2 className='text-sm font-bold text-stone-800'>Hàng Đợi Thẩm Định Đang Sạch (Inbox Zero)</h2>
-            <p className='text-xs text-stone-500 max-w-md mx-auto leading-relaxed'>
+            <h2 className='text-sm font-serif font-bold text-[#1C1917]'>Hàng Đợi Thẩm Định Đang Sạch (Inbox Zero)</h2>
+            <p className='text-xs text-[#78716C] max-w-md mx-auto leading-relaxed'>
               Không có bài nộp nào đang chờ duyệt trong cổng này. Mọi tác phẩm đều đã được xử lý hoặc nghệ sĩ đang tiếp tục hoàn thiện.
             </p>
           </div>
         )}
 
-        {/* Queue Items Grid */}
+        {/* Queue Items Grid (Clean Editorial Paper Cards) */}
         {!loading && !error && filteredItems.length > 0 && (
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
             {filteredItems.map((item) => {
@@ -446,35 +362,33 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
               return (
                 <div
                   key={item.assignmentId}
-                  className={`bg-white border rounded-xl p-5 shadow-xs flex flex-col justify-between transition-all hover:shadow-md ${
+                  className={`relative flex flex-col justify-between bg-[#FCFBF8] border rounded-xl p-4 sm:p-5 shadow-soft-sm transition-all hover:shadow-md ${
                     item.isSelfSubmission
-                      ? 'border-rose-300/80 bg-rose-50/20'
-                      : 'border-stone-200/80 hover:border-orange-300'
+                      ? 'border-rose-300 bg-rose-50/20'
+                      : 'border-[#D8D2C5] hover:border-[#F97316]'
                   }`}
                 >
-                  {/* Card Header: Gate & Stage Badges */}
+                  {/* Subtle top indicator bar */}
+                  <div
+                    className={`absolute top-0 left-4 right-4 h-[2px] rounded-t-full ${
+                      isGate1 ? 'bg-purple-500' : 'bg-emerald-500'
+                    }`}
+                  />
+
+                  {/* Top: Metadata & Title */}
                   <div>
-                    <div className='flex items-center justify-between gap-2 mb-3'>
-                      {/* Gate Pill */}
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs font-bold tracking-tight uppercase flex items-center gap-1 ${
-                          isGate1
-                            ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                            : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                        }`}
-                      >
-                        <Layers className='w-3 h-3' />
+                    {/* Gate & Status Row */}
+                    <div className='flex items-center justify-between text-xs mb-2 pt-1'>
+                      <span className='font-semibold flex items-center gap-1.5 text-[#57534E]'>
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            isGate1 ? 'bg-purple-600' : 'bg-emerald-600'
+                          }`}
+                        />
                         {isGate1 ? 'Gate 1: Storyboard' : 'Gate 2: Composite'}
                       </span>
 
-                      {/* Status Badge */}
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 ${
-                          isUnderReview
-                            ? 'bg-sky-50 text-sky-700 border border-sky-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}
-                      >
+                      <span className='flex items-center gap-1 text-[#57534E] font-medium'>
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             isUnderReview ? 'bg-sky-500' : 'bg-amber-500 animate-pulse'
@@ -486,97 +400,85 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                       </span>
                     </div>
 
-                    {/* Chapter & Scope Info */}
-                    <div className='mb-3'>
-                      <div className='flex items-baseline gap-1.5 flex-wrap'>
-                        <span className='text-xs font-bold text-stone-500'>
-                          Chương {item.chapterNumber}:
-                        </span>
-                        <h3 className='text-sm font-bold text-stone-900 leading-snug line-clamp-1'>
-                          {item.chapterTitle || 'Chưa đặt tên'}
-                        </h3>
-                      </div>
-                      <p className='text-xs font-semibold text-stone-700 mt-0.5 flex items-center gap-1.5'>
-                        <span className='px-1.5 py-0.5 rounded bg-stone-100 text-stone-700 text-xs border border-stone-200'>
-                          {item.scopeLabel}
-                        </span>
-                        <span className='text-stone-300'>•</span>
-                        <span
-                          className='inline-block w-2 h-2 rounded-full'
-                          style={{ backgroundColor: item.stageColorCode || '#94A3B8' }}
-                        />
-                        <span className='text-stone-600 text-xs'>{item.stageName}</span>
+                    {/* Main Title: Chapter & Scope */}
+                    <div className='mb-2'>
+                      <h3 className='text-sm font-bold text-[#1C1917] leading-snug'>
+                        Chương {item.chapterNumber} · <span className='text-[#C2410C]'>{item.scopeLabel}</span>
+                      </h3>
+                      <p className='text-xs text-[#57534E] mt-0.5 truncate'>
+                        {item.chapterTitle || 'Chưa đặt tên'} · <span className='font-medium text-[#1C1917]'>{item.stageName}</span>
                       </p>
                     </div>
 
-                    {/* Artist & Submission Metadata */}
-                    <div className='bg-stone-50 rounded-lg p-2.5 border border-stone-200/60 mb-3 space-y-1.5'>
-                      <div className='flex items-center justify-between text-xs'>
-                        <div className='flex items-center gap-1.5 text-stone-700 font-medium truncate'>
+                    {/* Artist & Submission Context */}
+                    <div className='pt-2.5 pb-2 border-t border-[#E5E0D8]/70 text-xs text-[#57534E] space-y-1.5'>
+                      <div className='flex items-center justify-between'>
+                        <div className='flex items-center gap-1.5 truncate font-medium text-[#1C1917]'>
                           {item.assigneeAvatarUrl ? (
                             <img
                               src={item.assigneeAvatarUrl}
                               alt={item.assigneeName || 'Avatar'}
-                              className='w-4 h-4 rounded-full object-cover'
+                              className='w-4 h-4 rounded-full object-cover shrink-0'
                             />
                           ) : (
-                            <User className='w-3.5 h-3.5 text-stone-400' />
+                            <span className='w-4 h-4 rounded-full bg-[#E5E0D8] text-[#57534E] flex items-center justify-center font-bold text-[10px] shrink-0'>
+                              {item.assigneeName ? item.assigneeName.charAt(0).toUpperCase() : 'A'}
+                            </span>
                           )}
                           <span className='truncate'>{item.assigneeName || 'Chưa rõ nghệ sĩ'}</span>
                         </div>
-                        <span className='px-1.5 py-0.5 rounded bg-white text-stone-600 border border-stone-200 font-semibold text-xs shrink-0'>
-                          Lần nộp #{item.submissionAttempt}
+                        <span className='text-[#78716C] font-mono'>
+                          Lần #{item.submissionAttempt}
                         </span>
                       </div>
 
-                      <div className='flex items-center justify-between text-xs text-stone-500'>
-                        <span className='flex items-center gap-1'>
-                          <Calendar className='w-3 h-3 text-stone-400' />
-                          {formatDate(item.submittedAt)}
-                        </span>
-                        {getPriorityBadge(item.priority)}
+                      <div className='flex items-center justify-between text-[#78716C]'>
+                        <span>Nộp: {formatDate(item.submittedAt)}</span>
+                        {item.priority === 'Urgent' || item.priority === 4 ? (
+                          <span className='text-rose-700 font-semibold'>Khẩn cấp</span>
+                        ) : null}
                       </div>
 
                       {item.openChangeRequestsCount > 0 && (
-                        <div className='pt-1 border-t border-stone-200/60 flex items-center gap-1 text-xs text-amber-700 font-medium'>
-                          <AlertTriangle className='w-3.5 h-3.5 text-amber-500 shrink-0' />
-                          <span>{item.openChangeRequestsCount} yêu cầu sửa chưa hoàn tất</span>
+                        <div className='pt-1 text-amber-800 flex items-center gap-1 font-medium'>
+                          <span className='w-1.5 h-1.5 rounded-full bg-amber-500' />
+                          <span>{item.openChangeRequestsCount} yêu cầu sửa cần xác nhận</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Anti-Self-Approval Warning (Rule BR-26) */}
+                    {/* Anti-Self-Approval Note (Rule BR-26) */}
                     {item.isSelfSubmission && (
-                      <div className='mb-3 p-2.5 rounded-lg bg-rose-50 border border-rose-200/90 text-rose-800 text-xs flex items-start gap-2'>
-                        <ShieldAlert className='w-4 h-4 text-rose-600 shrink-0 mt-0.5' />
-                        <div className='leading-relaxed'>
-                          <span className='font-bold'>Quy tắc 4 mắt (BR-26):</span> Bạn là người đã nộp bài này. Để đảm bảo tính khách quan, hệ thống khóa quyền tự duyệt. Vui lòng chuyển bài cho Biên tập viên khác.
+                      <div className='mt-1 mb-2 p-2 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs flex items-start gap-1.5 leading-relaxed'>
+                        <ShieldAlert className='w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5' />
+                        <div>
+                          <span className='font-bold'>Quy tắc 4 mắt (BR-26):</span> Bạn là người đã nộp bài này. Vui lòng chuyển bài cho Biên tập viên khác.
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Card Action Footer */}
-                  <div className='pt-2 border-t border-stone-100 flex items-center justify-between gap-2'>
-                    <span className='text-xs text-stone-400 font-mono'>
-                      #{item.assignmentId.substring(0, 8)}
+                  {/* Footer & Action Button */}
+                  <div className='pt-2.5 mt-2 border-t border-[#E5E0D8]/70 flex items-center justify-between gap-2'>
+                    <span className='text-[11px] text-[#A8A29E] font-mono'>
+                      #{item.assignmentId.substring(0, 6)}
                     </span>
 
                     {item.isSelfSubmission ? (
                       <button
                         type='button'
                         disabled
-                        className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-400 bg-stone-100 border border-stone-200 cursor-not-allowed'
+                        className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#A8A29E] bg-[#F3F0E9] border border-[#E5E0D8] cursor-not-allowed'
                         title='Bạn không thể tự duyệt bài do chính mình nộp'
                       >
-                        <Lock className='w-3.5 h-3.5' />
+                        <Lock className='w-3 h-3' />
                         <span>{t('desk.lockedSelfAction', 'Khóa: Cần Editor khác duyệt')}</span>
                       </button>
                     ) : isUnderReview ? (
                       <button
                         type='button'
                         onClick={() => handleContinueReview(item)}
-                        className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 active:bg-sky-800 shadow-xs transition-colors'
+                        className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] active:bg-[#0C0A09] shadow-soft-sm transition-colors cursor-pointer'
                       >
                         <Eye className='w-3.5 h-3.5' />
                         <span>{t('desk.continueReviewAction', 'Tiếp tục thẩm định')}</span>
@@ -586,7 +488,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                         type='button'
                         onClick={() => handleOpenReview(item)}
                         disabled={isOpening}
-                        className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] active:bg-[#C2410C] shadow-xs transition-colors disabled:opacity-50'
+                        className='inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] active:bg-[#C2410C] shadow-soft-sm transition-colors cursor-pointer disabled:opacity-50'
                       >
                         <Eye className={`w-3.5 h-3.5 ${isOpening ? 'animate-spin' : ''}`} />
                         <span>{isOpening ? 'Đang mở...' : t('desk.openReviewAction', 'Mở Thẩm Định')}</span>
