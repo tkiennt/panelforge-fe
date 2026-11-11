@@ -651,26 +651,24 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(formatChapterOption(3, '')).toBe('Chương 3');
   });
 
-  it('cho phép thu gọn và mở rộng thanh điều hướng phân cảnh', async () => {
+  it('mở và đóng ngăn kéo phân cảnh từ thanh biểu tượng', async () => {
     const user = userEvent.setup();
     renderView();
 
-    const collapseBtn = await screen.findByTitle('Thu gọn danh sách cảnh');
-    await user.click(collapseBtn);
+    expect(screen.queryByTestId('script-scenes-drawer')).not.toBeInTheDocument();
+    await user.click(await screen.findByTestId('rail-scenes-btn'));
+    const drawer = await screen.findByTestId('script-scenes-drawer');
+    expect(within(drawer).getByText('Cảnh 1: Neo Tokyo - Đêm')).toBeInTheDocument();
 
-    expect(screen.getByTitle('Mở rộng danh sách cảnh')).toBeInTheDocument();
-
-    const expandBtn = screen.getByTitle('Mở rộng danh sách cảnh');
-    await user.click(expandBtn);
-
-    expect(await screen.findByTitle('Thu gọn danh sách cảnh')).toBeInTheDocument();
+    await user.click(within(drawer).getByRole('button', { name: 'Đóng' }));
+    expect(screen.queryByTestId('script-scenes-drawer')).not.toBeInTheDocument();
   });
 
   it('cho phép mở danh mục Nhân vật Series Bible qua nút trên header', async () => {
     const user = userEvent.setup();
     renderView();
 
-    const bibleBtn = await screen.findByRole('button', { name: /Nhân vật Bible/i });
+    const bibleBtn = await screen.findByTestId('rail-characters-btn');
     await user.click(bibleBtn);
 
     expect(await screen.findByText('Nhân vật Series Bible (1)')).toBeInTheDocument();
@@ -727,6 +725,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     it('hiển thị nút Phân khung bằng AI (open-ai-storyboard-btn) và mở Storyboard panel khi bấm', async () => {
       const user = userEvent.setup();
       renderView();
+      await user.click(await screen.findByTestId('rail-ai-btn'));
       const storyboardBtn = await screen.findByTestId('open-ai-storyboard-btn');
       expect(storyboardBtn).toBeInTheDocument();
       expect(storyboardBtn).toHaveTextContent('Phân khung bằng AI');
@@ -748,12 +747,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
         ],
       });
       renderView();
+      fireEvent.click(await screen.findByTestId('rail-ai-btn'));
       const storyboardBtn = await screen.findByTestId('open-ai-storyboard-btn');
-      expect(storyboardBtn).toHaveTextContent('Đã có khung');
-      expect(storyboardBtn).toHaveAttribute(
-        'title',
-        'Phân cảnh đã có khung tranh (khóa tự tạo; dùng Tự động phân bổ trên Bàn vẽ)',
-      );
+      expect(storyboardBtn).toHaveTextContent('Cảnh đã có khung');
     });
   });
 
@@ -800,13 +796,15 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     // 1. Khi vai trò là WRITER
     renderView({ workspaceRole: 'WRITER' });
     await screen.findByText(/Khởi đầu/i);
-    expect(await screen.findByRole('combobox')).toBeInTheDocument();
+    fireEvent.click(await screen.findByTestId('rail-scenes-btn'));
+    await screen.findByTestId('script-scenes-drawer');
     // Nút xoá chapter không xuất hiện cho Writer
     expect(screen.queryByTestId('delete-current-chapter-btn')).not.toBeInTheDocument();
 
     // 2. Khi vai trò là PRODUCER
     cleanup();
     renderView({ workspaceRole: 'PRODUCER' });
+    fireEvent.click(await screen.findByTestId('rail-scenes-btn'));
     expect(await screen.findByTestId('delete-current-chapter-btn')).toBeInTheDocument();
   });
 
@@ -842,18 +840,15 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     const sheet = await screen.findByTestId('paper-editor-sheet');
     expect(sheet).toBeInTheDocument();
 
-    const insertPageBtn = screen.getByRole('button', { name: /\+ Trang/i });
-    const insertPanelBtn = screen.getByRole('button', { name: /\+ Panel/i });
-    expect(insertPageBtn).toBeInTheDocument();
-    expect(insertPanelBtn).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('dock-add-page-btn'));
+    fireEvent.click(await screen.findByTestId('dock-add-page-5'));
 
-    fireEvent.click(insertPageBtn);
-    const pages = await screen.findAllByText(/TRANG 1/i);
-    expect(pages.length).toBeGreaterThan(0);
-
-    fireEvent.click(insertPanelBtn);
-    const panels = await screen.findAllByText(/PANEL 1.1/i);
-    expect(panels.length).toBeGreaterThan(0);
+    // Trang mới có sẵn 5 panel, mỗi panel có nút "+ Thoại", mỗi trang có nút "+ Panel"
+    const pageHeadings = await screen.findAllByText(/^TRANG \d+$/i);
+    expect(pageHeadings.length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/PANEL \d+\.5/i)).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: '+ Panel' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: '+ Thoại' }).length).toBeGreaterThanOrEqual(5);
   });
 
   it('hỗ trợ tạo mã tạm và lưu vào tempBibleCodes', async () => {

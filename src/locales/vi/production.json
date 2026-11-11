@@ -75,5 +75,76 @@
     "subtitle": "Chọn mẫu phân chia ô tranh dựng sẵn cho trang",
     "applyConfirm": "Áp dụng mẫu này sẽ thay thế các khung hiện tại trên trang.",
     "noTemplates": "Chưa có mẫu khung nào."
+  },
+  "scriptStudio": {
+    "rail": {
+      "scenes": "Phân cảnh",
+      "outline": "Đề cương",
+      "characters": "Nhân vật",
+      "consistency": "Nhất quán",
+      "import": "Nhập",
+      "ai": "Trợ lý AI",
+      "history": "Lịch sử",
+      "bibleGate": "Bible Gate",
+      "label": "Công cụ biên kịch"
+    },
+    "ai": {
+      "draft": "Viết nháp cảnh đang chọn",
+      "storyboard": "Phân khung bằng AI",
+      "storyboardLocked": "Cảnh đã có khung",
+      "needScene": "Chọn một phân cảnh trước"
+    },
+    "stages": {
+      "write": "Viết",
+      "review": "Editor duyệt",
+      "lock": "Khóa kịch bản"
+    },
+    "submit": {
+      "writer": "Gửi Editor duyệt",
+      "producer": "Duyệt kịch bản"
+    },
+    "views": {
+      "label": "Chế độ xem",
+      "paper": "Trang giấy",
+      "cards": "Thẻ dòng",
+      "thumbnail": "Thumbnail"
+    },
+    "dock": {
+      "addPage": "Thêm trang",
+      "fourPanels": "Trang 4 khung",
+      "fivePanels": "Trang 5 khung",
+      "page": "Trang {n}",
+      "pages": "Trang trong chương",
+      "saving": "Đang lưu…",
+      "unsaved": "Chưa lưu · Ctrl+S",
+      "saved": "Đã lưu lúc {time}",
+      "idle": "Ctrl+S để lưu",
+      "blockType": "Loại dòng",
+      "syntaxHint": "# trang · - panel · @ nhân vật"
+    },
+    "blocks": {
+      "dialogue": "Thoại",
+      "character": "Tên nhân vật",
+      "caption": "Lời dẫn",
+      "stage_direction": "Hành động",
+      "sfx": "Tiếng động",
+      "scene_heading": "Cảnh mới",
+      "transition": "Chuyển cảnh",
+      "page_heading": "Trang",
+      "panel_heading": "Panel"
+    },
+    "scenes": {
+      "title": "Phân cảnh",
+      "add": "Thêm cảnh",
+      "rename": "Đổi tên cảnh",
+      "delete": "Xoá cảnh",
+      "empty": "Chương này chưa có phân cảnh.",
+      "untitled": "Chưa đặt tiêu đề",
+      "lines": "{count} dòng",
+      "search": "Tìm phân cảnh…",
+      "deleteChapter": "Xoá chương này",
+      "close": "Đóng",
+      "scene": "Cảnh {n}"
+    }
   }
 }

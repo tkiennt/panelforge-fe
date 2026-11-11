@@ -75,5 +75,76 @@
     "subtitle": "Choose a preset panel grid for this page",
     "applyConfirm": "Applying this template will replace existing panels on this page.",
     "noTemplates": "No templates available."
+  },
+  "scriptStudio": {
+    "rail": {
+      "scenes": "Scenes",
+      "outline": "Outline",
+      "characters": "Cast",
+      "consistency": "Consistency",
+      "import": "Import",
+      "ai": "AI assist",
+      "history": "History",
+      "bibleGate": "Bible Gate",
+      "label": "Writer tools"
+    },
+    "ai": {
+      "draft": "Draft the selected scene",
+      "storyboard": "AI panel breakdown",
+      "storyboardLocked": "Scene already has panels",
+      "needScene": "Select a scene first"
+    },
+    "stages": {
+      "write": "Write",
+      "review": "Editor review",
+      "lock": "Lock script"
+    },
+    "submit": {
+      "writer": "Send to editor",
+      "producer": "Approve script"
+    },
+    "views": {
+      "label": "View",
+      "paper": "Paper",
+      "cards": "Line cards",
+      "thumbnail": "Thumbnails"
+    },
+    "dock": {
+      "addPage": "Add page",
+      "fourPanels": "4-panel page",
+      "fivePanels": "5-panel page",
+      "page": "Page {n}",
+      "pages": "Pages in chapter",
+      "saving": "Saving…",
+      "unsaved": "Unsaved · Ctrl+S",
+      "saved": "Saved at {time}",
+      "idle": "Ctrl+S to save",
+      "blockType": "Line type",
+      "syntaxHint": "# page · - panel · @ character"
+    },
+    "blocks": {
+      "dialogue": "Dialogue",
+      "character": "Character name",
+      "caption": "Caption",
+      "stage_direction": "Action",
+      "sfx": "Sound effect",
+      "scene_heading": "New scene",
+      "transition": "Transition",
+      "page_heading": "Page",
+      "panel_heading": "Panel"
+    },
+    "scenes": {
+      "title": "Scenes",
+      "add": "Add scene",
+      "rename": "Rename scene",
+      "delete": "Delete scene",
+      "empty": "This chapter has no scenes yet.",
+      "untitled": "Untitled",
+      "lines": "{count} lines",
+      "search": "Search scenes…",
+      "deleteChapter": "Delete this chapter",
+      "close": "Close",
+      "scene": "Scene {n}"
+    }
   }
 }
