@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react';
 import { TextSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
-import { AlertTriangle, Check, ChevronDown, Loader2, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { SceneDetailDto, NarrationMode } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
@@ -24,6 +24,7 @@ import {
   createStructuredMangaPageBlocks,
   createPanelSlotBlocks,
   getDefaultPanelShot,
+  splitSpeakerLine,
 } from './scriptFlowAdapter';
 import { MangaBlockType } from './types';
 import { getNextPageNumber, getNextPanelNumber } from './comic-editor/comicCounting';
@@ -83,16 +84,6 @@ function findActivePage(outline: PageOutlineItem[], pos: number): number | null 
   }
   return active;
 }
-
-const DOCK_BLOCK_TYPES: MangaBlockType[] = [
-  'stage_direction',
-  'dialogue',
-  'character',
-  'caption',
-  'sfx',
-  'transition',
-  'scene_heading',
-];
 
 interface LocalScriptDraft {
   doc: any;
@@ -334,6 +325,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     content: initialContent,
     editable: canEditScript && !isChapterLocked,
     editorProps: {
+      // Giữ con trỏ luôn nằm trên thanh công cụ nổi ở đáy khi gõ tới cuối trang
+      scrollMargin: { top: 80, bottom: 140, left: 0, right: 0 },
+      scrollThreshold: { top: 80, bottom: 140, left: 0, right: 0 },
       attributes: {
         class:
           'focus:outline-none min-h-[60vh] font-studio text-[15px] leading-7 text-stone-900 bg-transparent selection:bg-orange-100 selection:text-orange-900 caret-[#C2410C]',
@@ -525,6 +519,40 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         return false;
       },
       handleTextInput: (view, from, to, text) => {
+        // 0. Gõ "Tên:" ở đầu một dòng hành động / lời dẫn / thoại → dòng thành lời thoại có nhãn người nói
+        if (text === ':' && from === to) {
+          const { state } = view;
+          const { $from } = state.selection;
+          const block = $from.parent;
+          const type = block.attrs?.blockType;
+          if (
+            block.type.name === 'scriptLineBlock' &&
+            ['stage_direction', 'caption', 'dialogue'].includes(type) &&
+            !block.attrs.speakerName &&
+            $from.parentOffset === block.content.size
+          ) {
+            const onlyChild = block.childCount === 1 ? block.firstChild : null;
+            const mention = onlyChild?.type.name === 'bibleMention' ? onlyChild.attrs : null;
+            const speaker = mention
+              ? { speakerName: mention.label || mention.code, speakerCharacterId: mention.isStub ? null : mention.id }
+              : splitSpeakerLine(`${block.textContent}:`, bibleEntriesRef.current);
+            if (speaker?.speakerName) {
+              const blockPos = $from.before();
+              const tr = state.tr
+                .delete(blockPos + 1, blockPos + 1 + block.content.size)
+                .setNodeMarkup(blockPos, undefined, {
+                  ...block.attrs,
+                  blockType: 'dialogue',
+                  speakerName: speaker.speakerName,
+                  speakerCharacterId: speaker.speakerCharacterId,
+                });
+              tr.setSelection(TextSelection.create(tr.doc, blockPos + 1));
+              view.dispatch(tr);
+              return true;
+            }
+          }
+        }
+
         // A. Nhấn Space sau ký tự "#" / "!" hoặc "-" / '"' để chuyển đổi tức thì thành Trang hoặc Panel
         if (text === ' ') {
           const { state } = view;
@@ -978,13 +1006,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     setPendingDraft(null);
   };
 
-  const setBlockType = (type: MangaBlockType) => {
-    if (!editor) return;
-    editor.chain().focus().updateAttributes('scriptLineBlock', { blockType: type }).run();
-    setActiveBlockType(type);
-    setHasUnsavedChanges(true);
-  };
-
   // Thêm Trang mới ở cuối kịch bản, có sẵn 4 hoặc 5 Panel trống
   const handleInsertStructuredPage = (panelsCount: 4 | 5 = 4) => {
     if (!editor || !canEditScript || isChapterLocked) return;
@@ -1082,11 +1103,11 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         : t('scriptStudio.dock.idle');
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col bg-[#F3F0E9]">
-      {/* Bàn viết: tờ giấy đặt giữa nền giấy ấm, không có thanh công cụ chen vào vùng viết */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-8">
+    <div className="relative flex-1 min-h-0 flex flex-col bg-[#FAF9F5]">
+      {/* Bàn viết: một tờ giấy trên nền giấy ấm; công cụ nằm trong thanh nổi phía dưới, không chen vào vùng viết */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 pt-10 pb-28">
         <div
-          className="max-w-[820px] mx-auto bg-white rounded-sm border border-stone-200/80 shadow-[0_1px_2px_rgba(28,25,23,0.05),0_12px_32px_-16px_rgba(28,25,23,0.22)] relative"
+          className="max-w-[760px] mx-auto bg-white rounded-sm border border-stone-200/80 shadow-xs relative"
           onMouseOver={(e) => {
             const target = e.target as HTMLElement;
             const mentionEl = target.closest('.mention') as HTMLElement | null;
@@ -1137,7 +1158,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
           <div
             data-testid="paper-editor-sheet"
-            className="relative paper-editor-sheet px-8 sm:px-16 lg:px-20 py-12 sm:py-16"
+            className="relative paper-editor-sheet px-8 sm:px-16 lg:px-24 py-14 sm:py-20"
             onMouseOver={handleSheetMouseOver}
             onMouseOut={handleSheetMouseOut}
             onClick={() => {
@@ -1152,20 +1173,22 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               }
               .paper-editor-sheet .mention { user-select: text !important; }
               .paper-editor-sheet .script-block { position: relative; border-radius: 4px; }
-              .paper-editor-sheet .script-block[data-block-type="sfx"]::before {
+              .paper-editor-sheet .script-block[data-block-type="sfx"]:not(:has(> br.ProseMirror-trailingBreak:only-child))::before {
                 content: "SFX";
                 display: inline-block;
+                font-family: var(--font-sans, inherit);
                 font-size: 12px;
-                font-weight: 700;
-                letter-spacing: 0.08em;
-                color: #B45309;
-                margin-right: 10px;
+                font-weight: 600;
+                letter-spacing: 0.16em;
+                color: #78716C;
+                margin-right: 12px;
               }
             `}</style>
             {manuscriptTitle && (
-              <h2 className="font-serif text-3xl sm:text-4xl text-stone-900 text-center mb-12 select-none">
-                {manuscriptTitle}
-              </h2>
+              <header className="text-center mb-14 select-none">
+                <h2 className="font-serif text-3xl sm:text-4xl text-stone-900">{manuscriptTitle}</h2>
+                {!isReadOnly && <p className="mt-3 text-xs text-stone-500">{t('scriptStudio.paper.hint')}</p>}
+              </header>
             )}
             <EditorContent editor={editor} />
 
@@ -1213,65 +1236,45 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         </div>
       </div>
 
-      {/* Thanh đáy kiểu Bàn vẽ: loại dòng · dải trang · trạng thái lưu */}
-      <div
-        data-testid="script-bottom-dock"
-        className="shrink-0 border-t border-stone-200/80 bg-[#FCFBF8]/95 px-3 sm:px-5 py-2 flex items-center gap-3 sm:gap-4"
-      >
-        {dockLeading}
-
-        {!isReadOnly && (
-          <label className="hidden md:flex items-center gap-2 text-xs text-stone-500 shrink-0">
-            <span className="hidden 2xl:inline">{t('scriptStudio.dock.blockType')}</span>
-            <select
-              data-testid="dock-block-type-select"
-              value={activeBlockIsHeading ? '' : activeBlockType}
-              disabled={activeBlockIsHeading}
-              onChange={(e) => setBlockType(e.target.value as MangaBlockType)}
-              className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-sm text-stone-800 outline-none focus:border-orange-400 disabled:opacity-50 cursor-pointer"
-            >
-              {activeBlockIsHeading && <option value="">{t(`scriptStudio.blocks.${activeBlockType}`)}</option>}
-              {DOCK_BLOCK_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {t(`scriptStudio.blocks.${type}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-
-        <div className="flex-1 min-w-0 flex items-center justify-center-safe gap-1.5">
-        <nav
-          aria-label={t('scriptStudio.dock.pages')}
-          className="min-w-0 flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5"
+      {/* Thanh công cụ nổi kiểu Bàn vẽ: chế độ xem · dải trang · loại dòng hiện tại · lưu */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-3">
+        <div
+          data-testid="script-bottom-dock"
+          className="pointer-events-auto max-w-full flex items-center gap-2 rounded-xl border border-stone-200 bg-white/90 backdrop-blur-md shadow-sm px-2 py-1.5"
         >
-          {pageOutline.map((p) => {
-            const isActive = p.pageNumber === activePageNumber;
-            return (
-              <button
-                key={`${p.pageNumber}-${p.pos}`}
-                type="button"
-                onClick={() => scrollToPage(p.pos)}
-                title={t('scriptStudio.dock.page', { n: p.pageNumber })}
-                aria-current={isActive ? 'page' : undefined}
-                className={`shrink-0 w-9 h-11 rounded-[3px] border flex flex-col items-center justify-end pb-1 gap-1 transition-all cursor-pointer ${
-                  isActive
-                    ? 'border-[#EA580C] bg-white shadow-sm ring-1 ring-[#EA580C]/30'
-                    : 'border-stone-200 bg-white hover:border-stone-400'
-                }`}
-              >
-                <span className="flex flex-col gap-[2px] w-5">
-                  {Array.from({ length: Math.min(p.panels, 5) }).map((_, idx) => (
-                    <span key={idx} className={`h-[3px] rounded-full ${isActive ? 'bg-orange-300' : 'bg-stone-200'}`} />
-                  ))}
-                </span>
-                <span className={`text-xs font-mono leading-none ${isActive ? 'text-[#C2410C] font-bold' : 'text-stone-500'}`}>
-                  {p.pageNumber}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
+          {dockLeading}
+          {dockLeading && <span className="w-px h-6 bg-stone-200 shrink-0" aria-hidden="true" />}
+
+          <nav
+            aria-label={t('scriptStudio.dock.pages')}
+            className="min-w-0 flex items-center gap-1 overflow-x-auto custom-scrollbar"
+          >
+            {pageOutline.map((p) => {
+              const isActive = p.pageNumber === activePageNumber;
+              return (
+                <button
+                  key={`${p.pageNumber}-${p.pos}`}
+                  type="button"
+                  onClick={() => scrollToPage(p.pos)}
+                  title={t('scriptStudio.dock.page', { n: p.pageNumber })}
+                  aria-label={t('scriptStudio.dock.page', { n: p.pageNumber })}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`shrink-0 w-7 h-9 rounded-[3px] border flex flex-col items-center justify-end pb-0.5 gap-0.5 transition-colors cursor-pointer ${
+                    isActive ? 'border-orange-500 bg-orange-50' : 'border-stone-200 bg-white hover:border-orange-300'
+                  }`}
+                >
+                  <span className="flex flex-col gap-[2px] w-4">
+                    {Array.from({ length: Math.min(p.panels, 5) }).map((_, idx) => (
+                      <span key={idx} className={`h-[2px] rounded-full ${isActive ? 'bg-orange-300' : 'bg-stone-200'}`} />
+                    ))}
+                  </span>
+                  <span className={`text-xs leading-none ${isActive ? 'text-orange-700 font-semibold' : 'text-stone-500'}`}>
+                    {p.pageNumber}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
 
           {!isReadOnly && (
             <div className="relative shrink-0">
@@ -1280,16 +1283,16 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                 data-testid="dock-add-page-btn"
                 onClick={() => setAddPageMenuOpen((v) => !v)}
                 aria-expanded={addPageMenuOpen}
-                className="h-11 px-3 rounded-[3px] border border-dashed border-stone-300 text-stone-500 hover:text-[#C2410C] hover:border-[#EA580C] flex items-center gap-1 text-xs font-medium cursor-pointer"
+                title={t('scriptStudio.dock.addPage')}
+                aria-label={t('scriptStudio.dock.addPage')}
+                className="w-7 h-9 rounded-[3px] border border-dashed border-stone-300 text-stone-500 hover:text-orange-700 hover:border-orange-300 flex items-center justify-center cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>{t('scriptStudio.dock.addPage')}</span>
-                <ChevronDown className="w-3 h-3" />
               </button>
               {addPageMenuOpen && (
                 <div
                   role="menu"
-                  className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-44 rounded-xl border border-stone-200/80 bg-white p-1.5 shadow-lg z-40"
+                  className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-44 rounded-xl border border-stone-200 bg-white p-1.5 shadow-xl z-40"
                 >
                   {([4, 5] as const).map((count) => (
                     <button
@@ -1310,34 +1313,38 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               )}
             </div>
           )}
-        </div>
 
-        <div className="flex items-center gap-2 shrink-0">
           {!isReadOnly && (
-            <span className="hidden 2xl:inline text-xs text-stone-400 font-mono">{t('scriptStudio.dock.syntaxHint')}</span>
-          )}
-          {!isReadOnly && (
-            <button
-              type="button"
-              data-testid="dock-save-btn"
-              disabled={!hasUnsavedChanges || isSaving}
-              onClick={handleManualSave}
-              title="Ctrl + S"
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer disabled:cursor-default ${
-                hasUnsavedChanges
-                  ? 'bg-[#EA580C] text-white hover:bg-[#C2410C]'
-                  : 'text-stone-500 bg-transparent'
-              }`}
-            >
-              {isSaving ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : hasUnsavedChanges ? (
-                <Save className="w-3.5 h-3.5" />
-              ) : (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-              )}
-              <span>{saveStatus}</span>
-            </button>
+            <>
+              <span className="w-px h-6 bg-stone-200 shrink-0" aria-hidden="true" />
+              <span
+                data-testid="dock-line-type"
+                title={t('scriptStudio.dock.typingHelp')}
+                className="hidden sm:inline text-xs text-stone-600 whitespace-nowrap px-1"
+              >
+                {t(`scriptStudio.blocks.${activeBlockType}`)}
+                {!activeBlockIsHeading && <span className="text-stone-500"> · Tab</span>}
+              </span>
+              <button
+                type="button"
+                data-testid="dock-save-btn"
+                disabled={!hasUnsavedChanges || isSaving}
+                onClick={handleManualSave}
+                title="Ctrl + S"
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer disabled:cursor-default ${
+                  hasUnsavedChanges ? 'bg-[#EA580C] text-white hover:bg-[#C2410C]' : 'text-stone-500'
+                }`}
+              >
+                {isSaving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : hasUnsavedChanges ? (
+                  <Save className="w-3.5 h-3.5" />
+                ) : (
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                )}
+                <span className="whitespace-nowrap">{saveStatus}</span>
+              </button>
+            </>
           )}
         </div>
       </div>

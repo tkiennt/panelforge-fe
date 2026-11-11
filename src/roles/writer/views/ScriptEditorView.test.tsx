@@ -1066,7 +1066,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(trmChip).toBeInTheDocument();
     expect(trmChip.getAttribute('data-mention-chip')).toBe('true');
 
-    const stubChip = await screen.findByText(/@CHR-LAM-DU \(Chưa có trong Bible\)/);
+    const stubChip = await screen.findByText('@CHR-LAM-DU');
     expect(stubChip).toBeInTheDocument();
     expect(stubChip.getAttribute('data-is-stub')).toBe('true');
 

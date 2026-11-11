@@ -154,8 +154,7 @@
       "unsaved": "Chưa lưu · Ctrl+S",
       "saved": "Đã lưu lúc {time}",
       "idle": "Ctrl+S để lưu",
-      "blockType": "Loại dòng",
-      "syntaxHint": "# trang · - panel · @ nhân vật"
+      "typingHelp": "Tab / Shift+Tab: đổi loại dòng · \"Tên:\" đầu dòng: lời thoại · Enter trên dòng trống: về hành động · Ctrl+S: lưu"
     },
     "blocks": {
       "dialogue": "Thoại",
@@ -185,6 +184,9 @@
       "unlistedTitle": "Có trang không còn trong kịch bản",
       "unlistedDesc": "Trang {pages} vẫn còn trên Bàn vẽ nhưng kịch bản không nhắc tới. Trang không bị xoá; báo Producer hoặc Artist nếu cần bỏ.",
       "structureFailed": "Đã lưu lời thoại, chưa lưu được khung Trang / Panel"
+    },
+    "paper": {
+      "hint": "Cứ viết. Enter xuống dòng · gõ \"Tên:\" để viết lời thoại · Tab đổi loại dòng"
     }
   }
 }

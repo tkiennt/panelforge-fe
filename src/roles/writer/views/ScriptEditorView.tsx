@@ -2203,7 +2203,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     <div
       role='group'
       aria-label={t('scriptStudio.views.label')}
-      className='flex items-center gap-0.5 p-0.5 rounded-lg bg-[#F3F0E9] border border-stone-200/80 shrink-0'
+      className='flex items-center gap-0.5 p-0.5 rounded-lg bg-stone-100 shrink-0'
     >
       {viewModes.map(({ mode, icon: Icon, label, testId }) => {
         const isActive = editorMode === mode || (mode === 'thumbnail' && editorMode === 'storyboard');
@@ -2215,12 +2215,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             aria-pressed={isActive}
             title={label}
             onClick={() => setEditorMode(mode)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-              isActive ? 'bg-white text-stone-900 shadow-2xs' : 'text-stone-500 hover:text-stone-900'
+            aria-label={label}
+            className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors cursor-pointer ${
+              isActive ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-900'
             }`}
           >
-            <Icon className='w-3.5 h-3.5' />
-            <span className='hidden xl:inline'>{label}</span>
+            <Icon className='w-4 h-4' />
           </button>
         );
       })}

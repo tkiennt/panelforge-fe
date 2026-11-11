@@ -84,8 +84,9 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
     const json = editor.getJSON();
     expect(json.content?.[0]?.attrs?.blockType).toBe('dialogue');
     expect(json.content?.[0]?.attrs?.speakerName).toBe('Minh');
+    expect((json.content?.[0]?.content?.[0] as any)?.text).toBe('Mau chạy đi!');
     expect(json.content?.[1]?.type).toBe('scriptLineBlock');
-    expect(json.content?.[1]?.attrs?.blockType).toBe('caption');
+    expect(json.content?.[1]?.attrs?.blockType).toBe('stage_direction');
   });
 
   it('tự động nhận diện dòng SFX * TIẾNG NỔ * khi nhấn Enter', () => {
@@ -97,7 +98,7 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
 
     const json = editor.getJSON();
     expect(json.content?.[0]?.attrs?.blockType).toBe('sfx');
-    expect(json.content?.[1]?.attrs?.blockType).toBe('caption');
+    expect(json.content?.[1]?.attrs?.blockType).toBe('stage_direction');
   });
 
   it('tự động nhận diện dòng Caption: Lời dẫn khi nhấn Enter', () => {
@@ -109,7 +110,7 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
 
     const json = editor.getJSON();
     expect(json.content?.[0]?.attrs?.blockType).toBe('caption');
-    expect(json.content?.[1]?.attrs?.blockType).toBe('caption');
+    expect(json.content?.[1]?.attrs?.blockType).toBe('stage_direction');
   });
 
   // 4. Backspace: Cho phép xóa Panel và Page, không thể xóa tiêu đề trang
@@ -228,7 +229,7 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
       expect((panels[2]?.content?.[0] as any)?.text).toContain('Panel 2.1:');
     });
 
-    it('nhấn Enter sau panel_heading tạo dòng caption cho phép viết tự do, KHÔNG tự chuyển thành dialogue', () => {
+    it('nhấn Enter sau panel_heading tạo dòng hành động cho phép viết tự do, KHÔNG tự chuyển thành dialogue', () => {
       const editor = createTestFlowEditor('<div data-block-type="panel_heading">Panel 1.1: [Cận cảnh]</div>');
       editor.commands.setTextSelection(2);
       const handled = editor.commands.keyboardShortcut('Enter');
@@ -237,7 +238,7 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
       const json = editor.getJSON();
       expect(json.content?.[0]?.attrs?.blockType).toBe('panel_heading');
       expect(json.content?.[1]?.type).toBe('scriptLineBlock');
-      expect(json.content?.[1]?.attrs?.blockType).toBe('caption');
+      expect(json.content?.[1]?.attrs?.blockType).toBe('stage_direction');
     });
 
     it('chuyển @Minh: "Hello" thành dialogue, nhưng giữ nguyên @Minh walks away ở dạng tự do', () => {
@@ -278,5 +279,55 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
       expect(scriptBlocks[1]?.attrs?.blockType).toBe('caption');
       expect((scriptBlocks[1] as any)?.content?.[0]?.text).toBe('và dòng hai');
     });
+  });
+});
+
+describe('ScriptLineBlockNode - gõ kịch bản đơn giản', () => {
+  const typeOf = (editor: Editor, i = 0) => editor.getJSON().content?.[i]?.attrs?.blockType;
+
+  it('Tab / Shift+Tab xoay vòng Hành động → Thoại → Lời dẫn → SFX', () => {
+    const editor = createTestFlowEditor('<div data-block-type="stage_direction">Bùm</div>');
+    editor.commands.setTextSelection(4);
+    const seen = [1, 2, 3, 4].map(() => {
+      editor.commands.keyboardShortcut('Tab');
+      return typeOf(editor);
+    });
+    expect(seen).toEqual(['dialogue', 'caption', 'sfx', 'stage_direction']);
+    editor.commands.keyboardShortcut('Shift-Tab');
+    expect(typeOf(editor)).toBe('sfx');
+  });
+
+  it('Tab không đổi tiêu đề Trang / Panel', () => {
+    const editor = createTestFlowEditor('<div data-block-type="panel_heading">Panel 1.1</div>');
+    editor.commands.setTextSelection(3);
+    editor.commands.keyboardShortcut('Tab');
+    expect(typeOf(editor)).toBe('panel_heading');
+  });
+
+  it('Enter trên dòng thoại trống quay về dòng hành động', () => {
+    const editor = createTestFlowEditor('<div data-block-type="dialogue" data-speaker-name="Minh"></div>');
+    editor.commands.setTextSelection(1);
+    expect(editor.commands.keyboardShortcut('Enter')).toBe(true);
+    expect(typeOf(editor)).toBe('stage_direction');
+    expect(editor.getJSON().content?.[0]?.attrs?.speakerName).toBeNull();
+    // Không sinh thêm dòng kịch bản (StarterKit chỉ giữ một paragraph đuôi)
+    expect(editor.getJSON().content?.filter((n) => n.type === 'scriptLineBlock')).toHaveLength(1);
+  });
+
+  it('Backspace ở đầu lời thoại bỏ nhãn người nói, giữ lời thoại', () => {
+    const editor = createTestFlowEditor('<div data-block-type="dialogue" data-speaker-name="Minh">Chạy đi</div>');
+    editor.commands.setTextSelection(1);
+    expect(editor.commands.keyboardShortcut('Backspace')).toBe(true);
+    const node = editor.getJSON().content?.[0];
+    expect(node?.attrs?.speakerName).toBeNull();
+    expect((node?.content?.[0] as any)?.text).toBe('Chạy đi');
+  });
+
+  it('đọc lại HTML của thoại có nhãn: tên không lẫn vào lời thoại', () => {
+    const editor = createTestFlowEditor('<div data-block-type="dialogue" data-speaker-name="Minh">Chạy đi</div>');
+    const reparsed = createTestFlowEditor(editor.getHTML());
+    const node = reparsed.getJSON().content?.[0];
+    expect(node?.attrs?.speakerName).toBe('Minh');
+    expect((node?.content?.[0] as any)?.text).toBe('Chạy đi');
   });
 });
