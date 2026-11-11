@@ -64,6 +64,7 @@ export interface ArtistDeskViewProps {
   workspaceRole?: string | null;
   initialScriptLines?: ScriptLineItem[];
   initialBibleEntities?: BibleEntityItem[];
+  initialSidebarTab?: CanvaSidebarTab;
 }
 
 export interface PanelArtworkData {
@@ -299,6 +300,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   workspaceRole,
   initialScriptLines,
   initialBibleEntities,
+  initialSidebarTab,
 }) => {
   const { workspaceId, seriesId, chapterId: chapterIdFromParam } = useParams<{
     workspaceId?: string;
@@ -367,15 +369,30 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // Input file ref cho từng panel
   const panelFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  const tabFromUrl = searchParams.get('tab') as CanvaSidebarTab | null;
+  const isLettererRoute = location.pathname.includes('/letterer');
+  const defaultTab = initialSidebarTab || tabFromUrl || (isLettererRoute ? 'lettering' : undefined);
+
   // Điều khiển Sidebar tab & ngăn phụ Drawer từ bên ngoài
-  const [activeSidebarTab, setActiveSidebarTab] = useState<CanvaSidebarTab | undefined>(undefined);
-  const [isSidebarDrawerOpen, setIsSidebarDrawerOpen] = useState<boolean | undefined>(undefined);
+  const [activeSidebarTab, setActiveSidebarTab] = useState<CanvaSidebarTab | undefined>(defaultTab);
+  const [isSidebarDrawerOpen, setIsSidebarDrawerOpen] = useState<boolean | undefined>(
+    defaultTab ? true : undefined
+  );
 
   // Danh sách phần tử bóng thoại (Lettering Elements) theo trang: pageId -> ElementSnapshotDto[]
   const [letteringElementsByPageId, setLetteringElementsByPageId] = useState<
     Record<string, ElementSnapshotDto[]>
   >({});
   const [selectedLetteringElementId, setSelectedLetteringElementId] = useState<string | null>(null);
+
+  // Kéo di chuyển bóng thoại (Interactive Dragging)
+  const [draggingBalloonInfo, setDraggingBalloonInfo] = useState<{
+    elementId: string;
+    startX: number;
+    startY: number;
+    initialElemX: number;
+    initialElemY: number;
+  } | null>(null);
 
   // Yêu cầu chỉnh sửa công đoạn (Sidetab Change Requests)
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
@@ -1649,6 +1666,61 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     toast.info('Đã xóa bóng thoại', '');
   };
 
+  // Xử lý di chuyển bóng thoại (Pointer Drag)
+  const handleBalloonPointerDown = (e: React.PointerEvent, elementId: string) => {
+    if (e.button !== 0) return; // Chỉ bắt chuột trái
+    e.stopPropagation();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+
+    const currentList = selectedPage ? letteringElementsByPageId[selectedPage.id] || [] : [];
+    const elem = currentList.find((item) => item.elementId === elementId);
+    if (!elem) return;
+
+    setSelectedLetteringElementId(elementId);
+    setDraggingBalloonInfo({
+      elementId,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialElemX: elem.x,
+      initialElemY: elem.y,
+    });
+  };
+
+  const handleBalloonPointerMove = (e: React.PointerEvent) => {
+    if (!draggingBalloonInfo || !selectedPage) return;
+    const dx = (e.clientX - draggingBalloonInfo.startX) / zoomScale;
+    const dy = (e.clientY - draggingBalloonInfo.startY) / zoomScale;
+
+    const pageWidth = selectedPage.widthPx || 1200;
+    const pageHeight = selectedPage.heightPx || 1800;
+
+    setLetteringElementsByPageId((prev) => {
+      const pageList = prev[selectedPage.id] || [];
+      return {
+        ...prev,
+        [selectedPage.id]: pageList.map((item) => {
+          if (item.elementId !== draggingBalloonInfo.elementId) return item;
+          const newX = Math.max(0, Math.min(pageWidth - item.width, draggingBalloonInfo.initialElemX + dx));
+          const newY = Math.max(0, Math.min(pageHeight - item.height, draggingBalloonInfo.initialElemY + dy));
+          return { ...item, x: Math.round(newX), y: Math.round(newY) };
+        }),
+      };
+    });
+  };
+
+  const handleBalloonPointerUp = (e: React.PointerEvent) => {
+    if (draggingBalloonInfo) {
+      try {
+        const target = e.currentTarget as HTMLElement;
+        target.releasePointerCapture(e.pointerId);
+      } catch {
+        // bỏ qua nếu đã tự release
+      }
+      setDraggingBalloonInfo(null);
+    }
+  };
+
   // Bật/tắt toàn màn hình
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -2114,8 +2186,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                               e.stopPropagation();
                               setSelectedLetteringElementId(b.elementId);
                             }}
-                            className={`absolute pointer-events-auto cursor-pointer transition-all ${
-                              isSelected ? 'ring-2 ring-orange-500 ring-offset-2' : ''
+                            onPointerDown={(e) => handleBalloonPointerDown(e, b.elementId)}
+                            onPointerMove={handleBalloonPointerMove}
+                            onPointerUp={handleBalloonPointerUp}
+                            className={`absolute pointer-events-auto cursor-move select-none touch-none transition-shadow ${
+                              isSelected ? 'ring-2 ring-orange-500 ring-offset-2 z-30' : 'z-20 hover:ring-1 hover:ring-orange-400'
                             }`}
                             style={{
                               left: `${leftPct}%`,

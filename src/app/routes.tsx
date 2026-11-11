@@ -579,9 +579,18 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   />
                 }
               />
-              <Route path='letterer/desk' element={<LettererDeskView />} />
-              <Route path='letterer/desk/:chapterId' element={<LettererDeskView />} />
-              <Route path='chapters/:chapterId/letterer' element={<LettererDeskView />} />
+              <Route
+                path='letterer/desk'
+                element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
+              />
+              <Route
+                path='letterer/desk/:chapterId'
+                element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
+              />
+              <Route
+                path='chapters/:chapterId/letterer'
+                element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
+              />
               <Route
                 path='editor/desk'
                 element={<EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />}

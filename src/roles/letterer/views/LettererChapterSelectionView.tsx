@@ -123,7 +123,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
 
   const handleSelectChapter = (chapterId: string) => {
     if (!workspaceId || !seriesId) return;
-    navigate(`/workspaces/${workspaceId}/series/${seriesId}/letterer/desk?chapterId=${chapterId}`);
+    navigate(`/workspaces/${workspaceId}/series/${seriesId}/artist/desk?chapterId=${chapterId}&tab=lettering`);
   };
 
   const getStatusBadge = (chapter: ChapterDto) => {
