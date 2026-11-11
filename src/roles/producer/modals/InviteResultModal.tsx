@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, CheckCircle2, AlertTriangle, Copy, Check } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 export interface InviteResultItem {
   email: string;
@@ -21,6 +22,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
   results,
   workspaceName,
 }) => {
+  const { t } = useTranslation('members');
   const [copied, setCopied] = React.useState(false);
 
   if (!isOpen || results.length === 0) return null;
@@ -32,7 +34,11 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
     const text = results
       .map(
         (r) =>
-          `${r.email} - ${r.role}: ${r.success ? 'Thành công' : `Thất bại (${r.message || 'Lỗi'})`}`,
+          `${r.email} - ${r.role}: ${
+            r.success
+              ? t('inviteResult.successText', 'Thành công')
+              : t('inviteResult.failureText', { error: r.message || 'Lỗi' }, `Thất bại (${r.message || 'Lỗi'})`)
+          }`,
       )
       .join('\n');
     navigator.clipboard.writeText(text);
@@ -51,7 +57,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             </div>
             <div>
               <h3 className='font-bold text-sm text-[#171717]'>
-                Kết quả gửi lời mời
+                {t('inviteResult.title', 'Kết quả gửi lời mời')}
               </h3>
               {workspaceName && (
                 <p className='text-[11px] text-stone-500'>{workspaceName}</p>
@@ -60,7 +66,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            aria-label='Đóng'
+            aria-label={t('inviteResult.close', 'Đóng')}
             className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
           >
             <X className='w-4 h-4' />
@@ -74,8 +80,12 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
               {successCount}
             </div>
             <div className='text-xs'>
-              <div className='font-bold text-emerald-800'>Gửi thành công</div>
-              <div className='text-emerald-600 text-[11px]'>Chờ xác nhận email</div>
+              <div className='font-bold text-emerald-800'>
+                {t('inviteResult.successTitle', 'Gửi thành công')}
+              </div>
+              <div className='text-emerald-600 text-[11px]'>
+                {t('inviteResult.pendingConfirm', 'Chờ xác nhận email')}
+              </div>
             </div>
           </div>
 
@@ -96,9 +106,11 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
               {failureCount}
             </div>
             <div className='text-xs'>
-              <div className='font-bold'>Thất bại</div>
+              <div className='font-bold'>{t('inviteResult.failureTitle', 'Thất bại')}</div>
               <div className='text-[11px]'>
-                {failureCount > 0 ? 'Kiểm tra lại email' : 'Không có lỗi'}
+                {failureCount > 0
+                  ? t('inviteResult.checkEmail', 'Kiểm tra lại email')
+                  : t('inviteResult.noErrors', 'Không có lỗi')}
               </div>
             </div>
           </div>
@@ -107,7 +119,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
         {/* Detailed Results List */}
         <div className='p-4 overflow-y-auto space-y-2 flex-1 custom-scrollbar text-xs'>
           <div className='text-[11px] text-stone-500 font-semibold mb-1'>
-            Chi tiết ({results.length})
+            {t('inviteResult.details', { count: results.length }, `Chi tiết (${results.length})`)}
           </div>
 
           {results.map((item, idx) => (
@@ -140,8 +152,8 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
                     }`}
                   >
                     {item.success
-                      ? 'Đã gửi lời mời (Chờ xác nhận)'
-                      : item.message || 'Lỗi gửi lời mời'}
+                      ? t('inviteResult.sentPending', 'Đã gửi lời mời (Chờ xác nhận)')
+                      : item.message || t('inviteResult.sendError', 'Lỗi gửi lời mời')}
                   </p>
                 </div>
               </div>
@@ -153,7 +165,9 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
                     : 'bg-red-100 text-red-800'
                 }`}
               >
-                {item.success ? 'Chờ duyệt' : 'Lỗi'}
+                {item.success
+                  ? t('inviteResult.statusPending', 'Chờ duyệt')
+                  : t('inviteResult.statusError', 'Lỗi')}
               </span>
             </div>
           ))}
@@ -167,7 +181,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             className='px-3 py-1.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
           >
             {copied ? <Check className='w-3.5 h-3.5 text-emerald-600' /> : <Copy className='w-3.5 h-3.5 text-stone-500' />}
-            <span>{copied ? 'Đã sao chép' : 'Sao chép'}</span>
+            <span>{copied ? t('inviteResult.copied', 'Đã sao chép') : t('inviteResult.copy', 'Sao chép')}</span>
           </button>
 
           <button
@@ -175,7 +189,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             onClick={onClose}
             className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer'
           >
-            Đóng
+            {t('inviteResult.close', 'Đóng')}
           </button>
         </div>
       </div>

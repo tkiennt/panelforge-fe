@@ -33,6 +33,7 @@ import { SidebarTheme } from '@/app/sidebarTheme';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { FrameTemplateDto } from '@/services/frameTemplate.service';
 import { ChangeRequestDto } from '@/types/pipeline';
+import { hasChangeRequestLocation } from '../../utils/changeRequestLocation';
 import { PageHistoryDto } from '@/services/page.service';
 import '@/styles/modules/sidebar-theme.css';
 
@@ -2380,7 +2381,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                         )}
 
                         <div className='flex items-center justify-end gap-1.5 pt-1'>
-                          {onNavigateToChangeRequestTarget && (
+                          {onNavigateToChangeRequestTarget && hasChangeRequestLocation(cr) && (
                             <button
                               type='button'
                               onClick={() => onNavigateToChangeRequestTarget(cr)}

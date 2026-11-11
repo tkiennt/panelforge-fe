@@ -354,6 +354,7 @@ function AppContent() {
         const role = normalizeSystemRole(me.role);
         setCurrentRole(role);
         localStorage.setItem('userRole', role);
+        localStorage.setItem('pf_has_session', 'true');
 
         let avatar = me.avatarUrl || me.avatar || null;
         if (!avatar) {
@@ -404,6 +405,7 @@ function AppContent() {
           setCurrentUserInfo(null);
           localStorage.removeItem('user');
           localStorage.removeItem('userRole');
+          localStorage.removeItem('pf_has_session');
         }
       });
 
@@ -528,7 +530,7 @@ function AppContent() {
   const lastUnauthorizedAtRef = useRef<number>(0);
 
   useEffect(() => {
-    const onUnauthorized = () => {
+    const onUnauthorized = (event?: Event) => {
       const now = Date.now();
       // Chống xử lý trùng lặp khi nhiều request đồng thời nhận 401
       if (now - lastUnauthorizedAtRef.current < 4000) {
@@ -536,13 +538,32 @@ function AppContent() {
       }
       lastUnauthorizedAtRef.current = now;
 
+      // Kiểm tra xem trước đó có phiên đăng nhập hay không (state isAuthenticated, currentUserInfo, cờ hoặc token)
+      const customDetail = (event as CustomEvent)?.detail;
+      const hadSession =
+        customDetail?.hadSession ??
+        Boolean(
+          isAuthenticated ||
+          currentUserInfo ||
+          localStorage.getItem('pf_has_session') === 'true' ||
+          localStorage.getItem('user') ||
+          localStorage.getItem('userRole') ||
+          (localStorage.getItem('token') && !localStorage.getItem('token')?.startsWith('mock-'))
+        );
+
       localStorage.removeItem('user');
       localStorage.removeItem('userRole');
       localStorage.removeItem('activeWorkspace');
+      localStorage.removeItem('pf_has_session');
       setCurrentUserInfo(null);
       setIsAuthenticated(false);
       setCurrentRole('USER');
       setCurrentWorkspaceRole(null);
+
+      // Nếu trước đó KHÔNG hề có phiên đăng nhập (khách vãng lai), tuyệt đối KHÔNG hiện toast
+      if (!hadSession) {
+        return;
+      }
 
       const currentPath = window.location.pathname;
       const isAlreadyOnLogin = currentPath.startsWith('/login');
@@ -569,7 +590,7 @@ function AppContent() {
     };
     window.addEventListener('auth:unauthorized', onUnauthorized);
     return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
-  }, [navigate, showToast]);
+  }, [navigate, showToast, isAuthenticated, currentUserInfo]);
 
   // Keyboard shortcut for Command Palette
   useEffect(() => {
@@ -664,6 +685,7 @@ function AppContent() {
     localStorage.removeItem('demoRole');
     localStorage.removeItem('isDemoMode');
     localStorage.removeItem('activeWorkspace');
+    localStorage.removeItem('pf_has_session');
     setFirebaseUser(null);
     setCurrentUserInfo(null);
     setIsAuthenticated(false);
@@ -708,6 +730,7 @@ function AppContent() {
       localStorage.setItem('user', JSON.stringify(authResponse.user));
     }
     localStorage.setItem('userRole', role);
+    localStorage.setItem('pf_has_session', 'true');
 
     if (authResponse?.token) {
       localStorage.setItem('token', authResponse.token);
@@ -716,12 +739,15 @@ function AppContent() {
       localStorage.setItem('refreshToken', authResponse.refreshToken);
     }
 
+    const displayName =
+      authResponse?.user?.fullName ||
+      authResponse?.user?.name ||
+      authResponse?.user?.displayName ||
+      (authResponse?.user?.email ? authResponse.user.email.split('@')[0] : 'bạn');
+
     if (customRedirect) {
       navigate(customRedirect);
-      showToast(
-        'Đăng nhập thành công',
-        `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
-      );
+      showToast('Đăng nhập thành công', `Chào mừng ${displayName}!`);
       return;
     }
 
@@ -747,10 +773,7 @@ function AppContent() {
         );
       });
 
-    showToast(
-      'Đăng nhập thành công',
-      `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
-    );
+    showToast('Đăng nhập thành công', `Chào mừng ${displayName}!`);
   };
 
   const handleRegisterSuccess = (authResponse: any, customRedirect?: string) => {
@@ -911,9 +934,12 @@ function AppContent() {
                   : '/workspaces',
             );
             const displayName =
-              res?.user?.fullName || res?.user?.email || res?.displayName || res?.email || 'bạn';
-            const roleLabel = role === 'ADMINISTRATOR' ? 'Administrator' : 'User';
-            showToast('Đăng nhập thành công', `Chào mừng ${displayName} (Vai trò: ${roleLabel})!`);
+              res?.user?.fullName ||
+              res?.user?.name ||
+              res?.displayName ||
+              (res?.user?.email ? res.user.email.split('@')[0] : res?.email?.split('@')[0]) ||
+              'bạn';
+            showToast('Đăng nhập thành công', `Chào mừng ${displayName}!`);
           }}
           onApiLoginSuccess={handleApiLoginSuccess}
         />

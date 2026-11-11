@@ -288,24 +288,24 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 
       setStatusAlert({
         type: 'success',
-        title: 'Bổ sung nhân sự thành công',
-        message: `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`,
+        title: t('members.alerts.addSuccessTitle', 'Bổ sung thành viên thành công'),
+        message: t('members.alerts.addSuccessMsg', { name: memberName, seriesTitle }, `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`),
       });
 
       toast.success(
-        'Bổ sung nhân sự thành công',
-        `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`,
+        t('members.alerts.addSuccessTitle', 'Bổ sung thành viên thành công'),
+        t('members.alerts.addSuccessMsg', { name: memberName, seriesTitle }, `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`),
       );
       await loadData();
       onMembersChanged?.();
     } catch (err: any) {
-      const errorMsg = err.message || 'Không thể thêm nhân sự vào bộ truyện';
+      const errorMsg = err.message || t('members.alerts.addErrorTitle', 'Không thể thêm thành viên');
       setStatusAlert({
         type: 'danger',
-        title: 'Không thể thêm nhân sự',
+        title: t('members.alerts.addErrorTitle', 'Không thể thêm thành viên'),
         message: errorMsg,
       });
-      toast.error('Thêm thất bại', errorMsg);
+      toast.error(t('members.alerts.addErrorTitle', 'Thêm thất bại'), errorMsg);
     } finally {
       setActionLoadingId(null);
     }
@@ -317,12 +317,12 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
     if (isProducer) {
       setStatusAlert({
         type: 'warning',
-        title: 'Không thể xóa thành viên',
-        message: 'Producer là thành viên quản trị mặc định của Series (không thể xóa).',
+        title: t('members.alerts.cannotRemoveProducerTitle', 'Không thể xóa thành viên'),
+        message: t('members.alerts.cannotRemoveProducerMsg', 'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.'),
       });
       toast.warning(
-        'Không thể xóa thành viên',
-        'Producer là thành viên quản trị mặc định của Series (không thể xóa).',
+        t('members.alerts.cannotRemoveProducerTitle', 'Không thể xóa thành viên'),
+        t('members.alerts.cannotRemoveProducerMsg', 'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.'),
       );
       return;
     }
@@ -330,10 +330,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
     const memberName = member.fullName?.trim() || member.email?.split('@')[0] || 'nhân sự';
 
     const confirmed = await confirm({
-      title: 'Xóa thành viên?',
-      description: `Bạn có chắc muốn xóa "${memberName}" khỏi bộ truyện "${seriesTitle}"?`,
-      confirmText: 'Xóa thành viên',
-      cancelText: 'Hủy',
+      title: t('members.confirms.removeMemberTitle', 'Xóa thành viên?'),
+      description: t('members.confirms.removeMemberDesc', { name: memberName, seriesTitle }, `Bạn có chắc muốn xóa "${memberName}" khỏi bộ truyện "${seriesTitle}"?`),
+      confirmText: t('members.confirms.confirmRemoveBtn', 'Xóa thành viên'),
+      cancelText: t('members.confirms.cancelBtn', 'Hủy'),
       variant: 'danger',
     });
 
@@ -344,20 +344,23 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       await seriesService.removeSeriesMember(workspaceId, seriesId, member.userId);
       setStatusAlert({
         type: 'info',
-        title: `Đã xóa thành viên khỏi "${seriesTitle}"`,
-        message: `"${memberName}" đã được xóa khỏi "${seriesTitle}".`,
+        title: t('members.alerts.removeSuccessTitle', { seriesTitle }, `Đã xóa thành viên khỏi "${seriesTitle}"`),
+        message: t('members.alerts.removeSuccessMsg', { name: memberName, seriesTitle }, `"${memberName}" đã được xóa khỏi "${seriesTitle}".`),
       });
-      toast.success('Đã cập nhật danh sách', `"${memberName}" đã được xóa khỏi "${seriesTitle}".`);
+      toast.success(
+        t('members.alerts.updateRoleSuccessTitle', 'Đã cập nhật danh sách'),
+        t('members.alerts.removeSuccessMsg', { name: memberName, seriesTitle }, `"${memberName}" đã được xóa khỏi "${seriesTitle}".`),
+      );
       await loadData();
       onMembersChanged?.();
     } catch (err: any) {
-      const errorMsg = err.message || 'Không thể xóa thành viên khỏi bộ truyện';
+      const errorMsg = err.message || t('members.alerts.removeErrorTitle', 'Không thể xóa thành viên khỏi bộ truyện');
       setStatusAlert({
         type: 'danger',
-        title: 'Thao tác không thành công',
+        title: t('members.alerts.removeErrorTitle', 'Thao tác không thành công'),
         message: errorMsg,
       });
-      toast.error('Thao tác thất bại', errorMsg);
+      toast.error(t('members.alerts.removeErrorTitle', 'Thao tác thất bại'), errorMsg);
     } finally {
       setActionLoadingId(null);
     }

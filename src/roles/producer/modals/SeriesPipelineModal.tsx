@@ -28,6 +28,7 @@ import {
   UpdatePipelineStageRequest,
 } from '@/services/pipeline.service';
 import { useConfirm } from '@/shared/context/ConfirmContext';
+import { useTranslation } from '@/lib/i18n';
 
 interface SeriesPipelineModalProps {
   isOpen: boolean;
@@ -54,6 +55,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
   onClose,
   onShowToast,
 }) => {
+  const { t } = useTranslation('pipeline');
   const confirm = useConfirm();
   const [pipeline, setPipeline] = useState<SeriesPipelineDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +131,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
 
   const handleToggleStage = async (stage: PipelineStageDto) => {
     if (stage.isInitial || stage.isTerminal) {
-      setError('Không thể tắt công đoạn khởi tạo hoặc kết thúc.');
+      setError(t('modal.cannotDisableInitialTerminal', 'Không thể tắt công đoạn khởi tạo hoặc kết thúc.'));
       return;
     }
     setActionLoading(true);
@@ -147,11 +149,17 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
       const updated = await pipelineService.updateStage(seriesId, stage.id, payload);
       setPipeline(updated);
       onShowToast?.(
-        newEnabled ? 'Đã bật công đoạn' : 'Đã tắt công đoạn',
-        `Công đoạn "${stage.name}" hiện đã ${newEnabled ? 'được bật' : 'tắt'}.`,
+        newEnabled
+          ? t('pipelineConfig.toastEnabledTitle', 'Đã bật công đoạn')
+          : t('pipelineConfig.toastDisabledTitle', 'Đã tắt công đoạn'),
+        t(
+          'pipelineConfig.toastToggleDesc',
+          { name: stage.name, status: newEnabled ? 'bật' : 'tắt' },
+          `Công đoạn "${stage.name}" hiện đã ${newEnabled ? 'được bật' : 'tắt'}.`,
+        ),
       );
     } catch (err: any) {
-      setError(err.message || 'Không thể thay đổi trạng thái công đoạn.');
+      setError(err.message || t('pipelineConfig.systemNotice', 'Không thể thay đổi trạng thái công đoạn.'));
     } finally {
       setActionLoading(false);
     }
@@ -160,7 +168,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
   const handleSaveStage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stageName.trim()) {
-      setError('Vui lòng nhập tên công đoạn.');
+      setError(t('pipelineConfig.errorEmptyName', 'Vui lòng nhập tên công đoạn.'));
       return;
     }
 
@@ -178,7 +186,10 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
         };
         const updated = await pipelineService.updateStage(seriesId, editingStageId, payload);
         setPipeline(updated);
-        onShowToast?.('Cập nhật thành công', `Đã cập nhật công đoạn "${stageName.trim()}".`);
+        onShowToast?.(
+          t('pipelineConfig.toastUpdateSuccess', 'Cập nhật thành công'),
+          t('pipelineConfig.toastUpdateDesc', { name: stageName.trim() }, `Đã cập nhật công đoạn "${stageName.trim()}".`),
+        );
       } else {
         const payload: AddPipelineStageRequest = {
           name: stageName.trim(),
@@ -191,11 +202,14 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
         };
         const updated = await pipelineService.addStage(seriesId, payload);
         setPipeline(updated);
-        onShowToast?.('Thêm công đoạn thành công', `Đã thêm "${stageName.trim()}" vào Pipeline.`);
+        onShowToast?.(
+          t('pipelineConfig.toastAddSuccess', 'Thêm công đoạn thành công'),
+          t('pipelineConfig.toastAddDesc', { name: stageName.trim() }, `Đã thêm "${stageName.trim()}" vào Pipeline.`),
+        );
       }
       resetForm();
     } catch (err: any) {
-      setError(err.message || 'Thao tác không thành công.');
+      setError(err.message || t('pipelineConfig.systemNotice', 'Thao tác không thành công.'));
     } finally {
       setActionLoading(false);
     }
@@ -218,9 +232,12 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
     try {
       const updated = await pipelineService.reorderStages(seriesId, newOrderIds);
       setPipeline(updated);
-      onShowToast?.('Sắp xếp hoàn tất', 'Đã lưu thứ tự công đoạn mới.');
+      onShowToast?.(
+        t('pipelineConfig.toastReorderSuccess', 'Sắp xếp hoàn tất'),
+        t('pipelineConfig.toastReorderDesc', 'Đã lưu thứ tự công đoạn mới.'),
+      );
     } catch (err: any) {
-      setError(err.message || 'Không thể đổi thứ tự công đoạn.');
+      setError(err.message || t('pipelineConfig.systemNotice', 'Không thể đổi thứ tự công đoạn.'));
     } finally {
       setActionLoading(false);
     }
@@ -229,10 +246,13 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
   const handleDeleteStage = async (stage: PipelineStageDto) => {
     if (
       !(await confirm({
-        title: `Xóa công đoạn "${stage.name}"?`,
-        description: 'Thao tác này sẽ tự động tái cấu trúc lại các bước chuyển giao (Transitions) giữa các công đoạn còn lại.',
-        confirmText: 'Xóa công đoạn',
-        cancelText: 'Giữ lại',
+        title: t('pipelineConfig.confirmDeleteTitle', { name: stage.name }, `Xóa công đoạn "${stage.name}"?`),
+        description: t(
+          'pipelineConfig.confirmDeleteDesc',
+          'Thao tác này sẽ tự động tái cấu trúc lại các bước chuyển giao (Transitions) giữa các công đoạn còn lại.',
+        ),
+        confirmText: t('pipelineConfig.confirmDeleteBtn', 'Xóa công đoạn'),
+        cancelText: t('pipelineConfig.cancelDeleteBtn', 'Giữ lại'),
         variant: 'danger',
       }))
     ) {
@@ -244,14 +264,21 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
     try {
       const updated = await pipelineService.deleteStage(seriesId, stage.id);
       setPipeline(updated);
-      onShowToast?.('Đã xóa công đoạn', `Đã xóa "${stage.name}" khỏi quy trình.`);
+      onShowToast?.(
+        t('pipelineConfig.toastDeleteSuccess', 'Đã xóa công đoạn'),
+        t('pipelineConfig.toastDeleteDesc', { name: stage.name }, `Đã xóa "${stage.name}" khỏi quy trình.`),
+      );
     } catch (err: any) {
       if (err.code === 'CONFLICT') {
         setError(
-          `Xung đột (Conflict): Không thể xóa công đoạn "${stage.name}" vì hiện đang có Trang (Page) hoặc Nhiệm vụ (Assignment) chưa hoàn thành thuộc công đoạn này.`,
+          t(
+            'pipelineConfig.conflictDelete',
+            { name: stage.name },
+            `Xung đột (Conflict): Không thể xóa công đoạn "${stage.name}" vì hiện đang có Trang (Page) hoặc Nhiệm vụ (Assignment) chưa hoàn thành thuộc công đoạn này.`,
+          ),
         );
       } else {
-        setError(err.message || 'Không thể xóa công đoạn.');
+        setError(err.message || t('pipelineConfig.deleteError', 'Không thể xóa công đoạn.'));
       }
     } finally {
       setActionLoading(false);
@@ -293,7 +320,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
             <div className='p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 flex items-start gap-2.5'>
               <AlertTriangle className='w-4 h-4 shrink-0 mt-0.5' />
               <div className='space-y-1'>
-                <div className='font-bold text-xs'>Thông báo hệ thống</div>
+                <div className='font-bold text-xs'>{t('pipelineConfig.systemNotice', 'Thông báo hệ thống')}</div>
                 <div className='text-xs leading-relaxed'>{error}</div>
               </div>
             </div>
@@ -302,11 +329,11 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
           {loading ? (
             <div className='py-16 text-center text-[#888888] space-y-2'>
               <Loader2 className='w-6 h-6 animate-spin mx-auto text-[#F97316]' />
-              <p>Đang tải cấu hình Pipeline từ hệ thống...</p>
+              <p>{t('pipelineConfig.loading', 'Đang tải cấu hình Pipeline từ hệ thống...')}</p>
             </div>
           ) : !pipeline ? (
             <div className='py-12 text-center text-[#888888]'>
-              Không tìm thấy cấu hình Pipeline cho Series này.
+              {t('pipelineConfig.notFound', 'Không tìm thấy cấu hình Pipeline cho Series này.')}
             </div>
           ) : (
             <>
@@ -314,37 +341,37 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
               <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
                   <div className='text-[10px] text-[#888888] uppercase font-mono'>
-                    Tổng số Stage
+                    {t('pipelineConfig.totalStages', 'Tổng số Stage')}
                   </div>
                   <div className='text-lg font-bold text-[#171717] mt-0.5'>
-                    {pipeline.stages.length} công đoạn
+                    {t('pipelineConfig.stagesCount', { count: pipeline.stages.length }, `${pipeline.stages.length} công đoạn`)}
                   </div>
                 </div>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
                   <div className='text-[10px] text-[#888888] uppercase font-mono'>
-                    Cổng Phê Duyệt
+                    {t('pipelineConfig.approvalGates', 'Cổng Phê Duyệt')}
                   </div>
                   <div className='text-lg font-bold text-[#F97316] mt-0.5 flex items-center gap-1.5'>
                     <Shield className='w-4 h-4' />
-                    <span>{pipeline.stages.filter((s) => s.isApprovalGate).length} Gate</span>
+                    <span>{t('pipelineConfig.gatesCount', { count: pipeline.stages.filter((s) => s.isApprovalGate).length }, `${pipeline.stages.filter((s) => s.isApprovalGate).length} Gate`)}</span>
                   </div>
                 </div>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
                   <div className='text-[10px] text-[#888888] uppercase font-mono'>
-                    Bước Chuyển (Transitions)
+                    {t('pipelineConfig.transitions', 'Bước Chuyển (Transitions)')}
                   </div>
                   <div className='text-lg font-bold text-[#059669] mt-0.5 flex items-center gap-1.5'>
                     <ArrowRight className='w-4 h-4' />
-                    <span>{pipeline.transitions.length} luồng</span>
+                    <span>{t('pipelineConfig.transitionsCount', { count: pipeline.transitions.length }, `${pipeline.transitions.length} luồng`)}</span>
                   </div>
                 </div>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
                   <div className='text-[10px] text-[#888888] uppercase font-mono'>
-                    Tự Động Sinh Transition
+                    {t('pipelineConfig.autoTransition', 'Tự Động Sinh Transition')}
                   </div>
                   <div className='text-xs font-semibold text-emerald-700 mt-1 flex items-center gap-1'>
                     <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                    <span>Active (Backend Engine)</span>
+                    <span>{t('pipelineConfig.autoActive', 'Active (Backend Engine)')}</span>
                   </div>
                 </div>
               </div>
@@ -353,7 +380,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
               <div className='flex items-center justify-between pt-2'>
                 <h3 className='font-bold text-sm text-[#171717] flex items-center gap-2'>
                   <Layers className='w-4 h-4 text-[#F97316]' />
-                  <span>Danh Sách Công Đoạn Sản Xuất (Theo Thứ Tự Tiến)</span>
+                  <span>{t('pipelineConfig.stageListTitle', 'Danh Sách Công Đoạn Sản Xuất (Theo Thứ Tự Tiến)')}</span>
                 </h3>
                 {!showAddForm && (
                   <button
@@ -364,7 +391,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                     className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#171717] hover:bg-black text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-xs'
                   >
                     <Plus className='w-3.5 h-3.5' />
-                    <span>Thêm Công Đoạn Mới</span>
+                    <span>{t('pipelineConfig.addStageBtn', 'Thêm Công Đoạn Mới')}</span>
                   </button>
                 )}
               </div>
@@ -379,8 +406,8 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                     <span className='font-bold text-xs text-[#171717] flex items-center gap-1.5'>
                       <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
                       {isEditing
-                        ? `Chỉnh sửa công đoạn: ${stageName}`
-                        : 'Thêm công đoạn mới vào Pipeline'}
+                        ? t('pipelineConfig.editStageTitle', { name: stageName }, `Chỉnh sửa công đoạn: ${stageName}`)
+                        : t('pipelineConfig.addStageTitle', 'Thêm công đoạn mới vào Pipeline')}
                     </span>
                     <button
                       type='button'
@@ -394,14 +421,14 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                   <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3'>
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Tên công đoạn *
+                        {t('pipelineConfig.stageNameLabel', 'Tên công đoạn')} *
                       </label>
                       <input
                         type='text'
                         required
                         value={stageName}
                         onChange={(e) => setStageName(e.target.value)}
-                        placeholder='VD: Color Pass, AI Cleanup...'
+                        placeholder={t('pipelineConfig.stageNamePlaceholder', 'VD: Color Pass, AI Cleanup...')}
                         className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:border-[#F97316] outline-none'
                       />
                     </div>
@@ -409,13 +436,13 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                     {!isEditing && (
                       <div>
                         <label className='block font-semibold text-[#171717] mb-1'>
-                          Slug (mã định danh duy nhất)
+                          {t('pipelineConfig.slugLabel', 'Slug (mã định danh duy nhất)')}
                         </label>
                         <input
                           type='text'
                           value={stageSlug}
                           onChange={(e) => setStageSlug(e.target.value)}
-                          placeholder='Bỏ trống sẽ tự sinh từ tên'
+                          placeholder={t('pipelineConfig.slugPlaceholder', 'Bỏ trống sẽ tự sinh từ tên')}
                           className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:border-[#F97316] outline-none font-mono'
                         />
                       </div>
@@ -423,14 +450,14 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
 
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Vai trò phụ trách (Allowed Role)
+                        {t('pipelineConfig.roleLabel', 'Vai trò phụ trách (Allowed Role)')}
                       </label>
                       <select
                         value={stageRole}
                         onChange={(e) => setStageRole(e.target.value as any)}
                         className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:border-[#F97316] outline-none'
                       >
-                        <option value=''>Tất cả thành viên</option>
+                        <option value=''>{t('common.filter.all', 'Tất cả thành viên')}</option>
                         {AVAILABLE_ROLES.map((r) => (
                           <option key={r} value={r}>
                             {r}
@@ -441,7 +468,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
 
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Mã màu (Hex Code)
+                        {t('pipelineConfig.colorLabel', 'Mã màu (Hex Code)')}
                       </label>
                       <div className='flex items-center gap-2'>
                         <input
@@ -461,7 +488,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
 
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Thời gian dự kiến (Ngày)
+                        {t('pipelineConfig.durationLabel', 'Thời gian dự kiến (Ngày)')}
                       </label>
                       <input
                         type='number'
@@ -487,7 +514,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                         htmlFor='isApprovalGate'
                         className='font-bold text-[#171717] cursor-pointer select-none'
                       >
-                        Cổng duyệt (Approval Gate)
+                        {t('pipelineConfig.approvalGateLabel', 'Cổng duyệt (Approval Gate)')}
                       </label>
                     </div>
 
@@ -510,17 +537,16 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                                 : 'text-[#171717]'
                             }`}
                           >
-                            Bật công đoạn này (Enabled)
+                            {t('modal.enableStageLabel', 'Bật công đoạn này')} (Enabled)
                           </label>
                           {editingStageInitialOrTerminal && (
                             <span className='text-[10px] text-zinc-500 italic'>
-                              (Không thể tắt công đoạn khởi tạo hoặc kết thúc)
+                              ({t('modal.cannotDisableInitialTerminal', 'Không thể tắt công đoạn khởi tạo hoặc kết thúc')})
                             </span>
                           )}
                         </div>
                         <p className='text-[11px] text-[#888888]'>
-                          Gợi ý: Truyện trắng đen → tắt Color (hoặc tắt bất kỳ công đoạn không cần
-                          thiết mà không phải xoá).
+                          {t('modal.blackWhiteHint', 'Gợi ý: Truyện trắng đen → tắt Color (hoặc tắt bất kỳ công đoạn không cần thiết mà không phải xoá).')}
                         </p>
                       </div>
                     )}
@@ -532,7 +558,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                       onClick={resetForm}
                       className='px-3 py-1.5 border border-[#E7E7E7] bg-white rounded-lg font-medium text-[#555555] hover:bg-[#FAF8F5]'
                     >
-                      Hủy
+                      {t('pipelineConfig.cancel', 'Hủy')}
                     </button>
                     <button
                       type='submit'
@@ -540,7 +566,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                       className='px-4 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50'
                     >
                       {actionLoading ? <Loader2 className='w-3.5 h-3.5 animate-spin' /> : null}
-                      <span>{isEditing ? 'Lưu Thay Đổi' : 'Xác Nhận Thêm'}</span>
+                      <span>{isEditing ? t('pipelineConfig.saveStage', 'Lưu Thay Đổi') : t('pipelineConfig.createStage', 'Xác Nhận Thêm')}</span>
                     </button>
                   </div>
                 </form>
@@ -565,7 +591,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                           disabled={idx === 0 || actionLoading}
                           onClick={() => handleMoveStage(idx, 'up')}
                           className='p-0.5 rounded hover:bg-gray-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed'
-                          title='Di chuyển lên trước'
+                          title={t('pipelineConfig.moveUp', 'Di chuyển lên trước')}
                         >
                           <ChevronUp className='w-3.5 h-3.5' />
                         </button>
@@ -574,7 +600,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                           disabled={idx === pipeline.stages.length - 1 || actionLoading}
                           onClick={() => handleMoveStage(idx, 'down')}
                           className='p-0.5 rounded hover:bg-gray-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed'
-                          title='Di chuyển xuống sau'
+                          title={t('pipelineConfig.moveDown', 'Di chuyển xuống sau')}
                         >
                           <ChevronDown className='w-3.5 h-3.5' />
                         </button>
@@ -599,7 +625,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                           </span>
                           {stage.isEnabled === false && (
                             <span className='px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-700 text-[9px] font-mono font-bold uppercase'>
-                              Đã tắt
+                              {t('modal.disabled', 'Đã tắt')}
                             </span>
                           )}
                           {stage.isInitial && (
@@ -659,10 +685,10 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                         }`}
                         title={
                           stage.isInitial || stage.isTerminal
-                            ? 'Không thể tắt công đoạn khởi tạo hoặc kết thúc'
+                            ? t('modal.cannotDisableInitialTerminal', 'Không thể tắt công đoạn khởi tạo hoặc kết thúc')
                             : stage.isEnabled === false
-                              ? 'Bật lại công đoạn này'
-                              : 'Tắt công đoạn này (vd: truyện trắng đen tắt Color)'
+                              ? t('modal.enableStage', 'Bật lại công đoạn này')
+                              : t('modal.disableStage', 'Tắt công đoạn này (vd: truyện trắng đen tắt Color)')
                         }
                       >
                         {stage.isEnabled === false ? (
@@ -675,7 +701,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                         type='button'
                         onClick={() => handleStartEdit(stage)}
                         className='p-1.5 rounded-lg hover:bg-gray-100 text-[#555555] hover:text-[#171717] transition-colors cursor-pointer'
-                        title='Sửa công đoạn'
+                        title={t('modal.editStage', 'Sửa công đoạn')}
                       >
                         <Edit2 className='w-3.5 h-3.5' />
                       </button>
@@ -686,8 +712,8 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                         className='p-1.5 rounded-lg hover:bg-red-50 text-[#888888] hover:text-red-600 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed transition-colors'
                         title={
                           stage.isInitial || stage.isTerminal
-                            ? 'Không thể xóa công đoạn khởi tạo hoặc kết thúc'
-                            : 'Xóa công đoạn'
+                            ? t('pipelineConfig.cannotDeleteSpecial', 'Không thể xóa công đoạn khởi tạo hoặc kết thúc')
+                            : t('pipelineConfig.deleteStage', 'Xóa công đoạn')
                         }
                       >
                         <Trash2 className='w-3.5 h-3.5' />
@@ -765,7 +791,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
             onClick={onClose}
             className='px-4 py-2 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-xl cursor-pointer transition-colors'
           >
-            Đóng
+            {t('common.actions.close', 'Đóng')}
           </button>
         </div>
       </div>

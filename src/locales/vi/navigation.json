@@ -16,7 +16,8 @@
     "publishing": "XUẤT BẢN",
     "systemAdmin": "QUẢN TRỊ HỆ THỐNG",
     "studioManagement": "QUẢN LÝ STUDIO",
-    "publisherDesk": "BÀN PHÁT HÀNH"
+    "publisherDesk": "BÀN PHÁT HÀNH",
+    "productionUtilities": "TIỆN ÍCH SẢN XUẤT"
   },
   "menu": {
     "dashboard": "Dashboard",
@@ -51,7 +52,13 @@
     "searchPlaceholder": "Tìm kiếm khung tranh, thoại, tư liệu...",
     "workspaces": "Workspaces",
     "menuTitle": "Menu điều hướng",
-    "chapter": "Chương"
+    "chapter": "Chương",
+    "openMenu": "Mở menu điều hướng",
+    "backToWorkspaces": "Quay lại danh sách Workspace (Workspaces Catalog)",
+    "openSeriesList": "Mở danh sách Series của Workspace",
+    "goToSeries": "Chuyển đến Series Workspace",
+    "currentChapter": "Chương đang mở",
+    "quickSearch": "Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)"
   },
   "breadcrumbs": {
     "studios": "Studio",
@@ -63,6 +70,17 @@
     "collapse": "Thu gọn thanh điều hướng",
     "expand": "Mở rộng thanh điều hướng",
     "appearance": "Giao diện thanh bên",
+    "chooseWorkspace": "Chọn Workspace",
+    "chooseSeries": "Chọn Series...",
+    "seriesInStudio": "Bộ truyện trong Studio",
+    "allSeries": "Xem tất cả",
+    "loading": "Đang tải...",
+    "noSeries": "Chưa có bộ truyện nào",
+    "chaptersCount": "chương",
+    "mainNav": "Điều hướng chính",
+    "currentChapterSubtitle": "Chương hiện tại",
+    "seriesListSubtitle": "Danh sách Series",
+    "activeSeriesFallback": "Bộ truyện",
     "themes": {
       "paper": "Giấy sáng",
       "ink": "Mực đậm",

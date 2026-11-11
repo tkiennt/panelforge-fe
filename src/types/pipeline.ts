@@ -348,6 +348,10 @@ export interface ChangeRequestDto {
   assetReferenceId?: string | null;
   /** Panel thuộc một Page của Chapter; null/undefined nếu khoanh chung cả trang. */
   panelId?: string | null;
+  /** Trang của yêu cầu (BE suy ra từ khung / việc bị trả về). Chỉ có ở GET /chapters/{id}/change-requests. */
+  pageId?: string | null;
+  /** Công đoạn của việc bị trả về. Chỉ có ở GET /chapters/{id}/change-requests. */
+  pipelineStageId?: string | null;
 }
 
 export interface ChangeRequestItemRequest {
@@ -494,6 +498,8 @@ export interface AssignPanelScriptLinesRequest {
 export interface SplitPanelDto {
   order: number;
   bbox: [number, number, number, number];
+  /** Đỉnh [x, y] pixel ảnh gốc của khung; khác hình chữ nhật khi khung cắt chéo. BE cũ có thể không gửi. */
+  polygon?: [number, number][] | null;
 }
 
 export interface SplitBubbleDto {

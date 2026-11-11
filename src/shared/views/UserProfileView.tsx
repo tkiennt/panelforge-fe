@@ -30,6 +30,7 @@ import { authService } from '@/services/auth.service';
 import { userService, UserProfileDto, UpdateUserProfileRequest } from '@/services/user.service';
 import { SYSTEM_AVATARS, isSystemAvatarUrl } from '@/shared/utils/systemImages';
 import { workspaceService, WorkspaceDto } from '@/services/workspace.service';
+import { useTranslation } from '@/lib/i18n';
 
 export interface UserProfileProps {
   user?: User | null;
@@ -91,6 +92,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
   onOpenTwoFactor,
   onShowToast,
 }) => {
+  const { t, lang } = useTranslation();
   const navigate = useNavigate();
 
   // Profile data state
@@ -142,13 +144,13 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
     (message: string, type: 'success' | 'error' = 'success') => {
       setLocalFeedback({ message, type });
       if (onShowToast) {
-        onShowToast(type === 'success' ? 'Thành công' : 'Lỗi', message, type);
+        onShowToast(type === 'success' ? t('profile.toastSuccess', 'Thành công') : t('profile.toastError', 'Lỗi'), message, type);
       }
       setTimeout(() => {
         setLocalFeedback(null);
       }, 4000);
     },
-    [onShowToast],
+    [onShowToast, t],
   );
 
   // Nạp thông tin hồ sơ người dùng từ API hoặc localStorage fallback
@@ -203,7 +205,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
           createdAt: stored.createdAt || '2026-01-01T00:00:00Z',
         };
       } catch (e: any) {
-        setProfileError(e?.message || 'Không thể tải thông tin hồ sơ.');
+        setProfileError(e?.message || t('profile.errors.loadFailed', 'Không thể tải thông tin hồ sơ.'));
       }
     }
 
@@ -302,7 +304,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
     setProfile((p) =>
       p ? { ...p, profileCoverPresetId: updated.profileCoverPresetId ?? null } : p,
     );
-    showFeedback('Đã lưu ảnh bìa hồ sơ.');
+    showFeedback(t('profile.feedbackSavedCover', 'Đã lưu ảnh bìa hồ sơ.'));
   };
 
   // Validation form chỉnh sửa
@@ -310,29 +312,31 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
     const errors: { username?: string; phone?: string; avatar?: string } = {};
 
     if (!editUsername.trim()) {
-      errors.username = 'Tên hiển thị / bút danh là bắt buộc.';
+      errors.username = t('profile.errors.nameRequired', 'Tên hiển thị / bút danh là bắt buộc.');
     } else if (editUsername.length > 30) {
-      errors.username = 'Tên không được vượt quá 30 ký tự.';
+      errors.username = t('profile.errors.nameTooLong', 'Tên không được vượt quá 30 ký tự.');
     }
 
     if (editPhone.trim()) {
       const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
       if (!phoneRegex.test(editPhone.trim())) {
-        errors.phone = 'Số điện thoại không đúng định dạng chuẩn.';
+        errors.phone = t('profile.errors.phoneInvalid', 'Số điện thoại không đúng định dạng chuẩn.');
       }
     }
 
     if (editAvatar.trim()) {
       if (editAvatar.length > 2048) {
-        errors.avatar = 'Đường dẫn ảnh avatar không được vượt quá 2048 ký tự.';
+        errors.avatar = t('profile.errors.avatarTooLong', 'Đường dẫn ảnh avatar không được vượt quá 2048 ký tự.');
       } else if (
         !isSystemAvatarUrl(editAvatar.trim()) &&
         !editAvatar.startsWith('http://') &&
         !editAvatar.startsWith('https://') &&
         !editAvatar.startsWith('data:image/')
       ) {
-        errors.avatar =
-          'Hãy chọn ảnh có sẵn của hệ thống, hoặc dán link bắt đầu bằng https://, http:// hoặc data:image/';
+        errors.avatar = t(
+          'profile.errors.avatarInvalid',
+          'Hãy chọn ảnh có sẵn của hệ thống, hoặc dán link bắt đầu bằng https://, http:// hoặc data:image/',
+        );
       }
     }
 
@@ -403,10 +407,10 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
         }
       }
 
-      showFeedback('Hồ sơ tác giả đã được cập nhật thành công!', 'success');
+      showFeedback(t('profile.feedbackSuccess', 'Hồ sơ tác giả đã được cập nhật thành công!'), 'success');
       return true;
     } catch (err: any) {
-      showFeedback(err?.message || 'Không thể lưu thay đổi hồ sơ.', 'error');
+      showFeedback(err?.message || t('profile.errors.saveFailed', 'Không thể lưu thay đổi hồ sơ.'), 'error');
       return false;
     } finally {
       setSaving(false);
@@ -477,22 +481,25 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
   }, [profile]);
 
   const formattedJoinDate = useMemo(() => {
-    if (!profile?.createdAt) return 'Gia nhập: Mới đây';
+    if (!profile?.createdAt) return t('profile.joinedRecent', 'Gia nhập: Mới đây');
     try {
-      return `Gia nhập: ${new Date(profile.createdAt).toLocaleDateString('vi-VN', {
-        month: 'long',
-        year: 'numeric',
-      })}`;
+      return t('profile.joinedDate', 'Gia nhập: {date}').replace(
+        '{date}',
+        new Date(profile.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'vi-VN', {
+          month: 'long',
+          year: 'numeric',
+        }),
+      );
     } catch {
-      return 'Gia nhập: Mới đây';
+      return t('profile.joinedRecent', 'Gia nhập: Mới đây');
     }
-  }, [profile]);
+  }, [profile, t, lang]);
 
   if (loadingProfile && !profile) {
     return (
       <div className='w-full min-h-[70vh] flex flex-col items-center justify-center gap-3 bg-[#F3F0E9] text-[#44403C]'>
         <RefreshCw className='w-8 h-8 animate-spin text-[#F97316]' />
-        <p className='text-sm font-medium'>Đang nạp hồ sơ tác giả PanelForge...</p>
+        <p className='text-sm font-medium'>{t('profile.loadingProfile', 'Đang nạp hồ sơ tác giả PanelForge...')}</p>
       </div>
     );
   }
@@ -693,7 +700,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
             {/* Nhãn phân loại phụ */}
             <div className='flex items-center gap-2 mb-1.5'>
               <h1 className='inline-flex items-center rounded border border-stone-300 bg-stone-200/70 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-stone-700 font-mono'>
-                Hồ sơ cá nhân
+                {t('profile.headerBadge', 'Hồ sơ cá nhân')}
               </h1>
               <span className='inline-flex items-center rounded-md border border-stone-300 bg-[#FCFBF8] px-2 py-0.5 text-xs font-semibold text-[#57534E]'>
                 Studio Creator
@@ -702,11 +709,10 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
 
             {/* Tiêu đề chính */}
             <h2 className='font-serif text-2xl font-bold tracking-tight text-[#44403C] sm:text-3xl'>
-              Hồ Sơ Tác Giả &amp; Không Gian Sáng Tác
+              {t('profile.authorProfileTitle', 'Hồ Sơ Tác Giả & Không Gian Sáng Tác')}
             </h2>
             <p className='text-xs sm:text-sm text-[#57534E] mt-1'>
-              Quản lý định danh tác giả manga, thông tin liên lạc và vai trò trong các xưởng sáng
-              tác.
+              {t('profile.authorProfileSubtitle', 'Quản lý định danh tác giả manga, thông tin liên lạc và vai trò trong các xưởng sáng tác.')}
             </p>
           </div>
 
@@ -715,15 +721,15 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
             <button
               type='button'
               onClick={() => void loadProfile()}
-              aria-label='Làm mới hồ sơ'
-              title='Làm mới hồ sơ'
+              aria-label={t('profile.refreshAria', 'Làm mới hồ sơ')}
+              title={t('profile.refreshAria', 'Làm mới hồ sơ')}
               className={`inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] px-3.5 text-sm font-semibold text-[#44403C] hover:bg-white shadow-2xs transition-colors cursor-pointer active:scale-[0.99] ${focusRing}`}
             >
               <RefreshCw
                 className={`h-4 w-4 text-[#57534E] ${loadingProfile ? 'animate-spin' : ''}`}
                 aria-hidden='true'
               />
-              <span className='max-sm:sr-only'>Đồng bộ</span>
+              <span className='max-sm:sr-only'>{t('profile.syncBtn', 'Đồng bộ')}</span>
             </button>
           </div>
         </header>
@@ -768,7 +774,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
               type='button'
               onClick={() => setLocalFeedback(null)}
               className='p-1 hover:opacity-70 cursor-pointer'
-              aria-label='Đóng thông báo'
+              aria-label={t('profile.closeAlertAria', 'Đóng thông báo')}
             >
               <X className='w-3.5 h-3.5' />
             </button>
@@ -787,7 +793,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
               onClick={() => void loadProfile()}
               className='underline hover:text-rose-900 font-medium cursor-pointer'
             >
-              Thử lại
+              {t('profile.retry', 'Thử lại')}
             </button>
           </div>
         )}
@@ -797,7 +803,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
         {/* ========================================================================= */}
         <section
           ref={mangaSpreadRef}
-          aria-label='Ảnh bìa và thông tin tác giả'
+          aria-label={t('profile.coverAria', 'Ảnh bìa và thông tin tác giả')}
           data-testid='profile-banner'
           className={`pf-profile-banner relative isolate w-full min-w-0 overflow-hidden rounded-2xl border border-[#D8D2C5] bg-[#FCFBF8] shadow-[0_12px_36px_rgba(68,64,60,0.08)] ${
             !hasAnimatedMount ? 'pf-cover-enter' : ''
@@ -842,7 +848,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
             className={`absolute top-3 left-3 z-20 inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[#FCFBF8]/90 hover:bg-white border border-[#D8D2C5] px-3 text-xs font-semibold text-[#44403C] shadow-xs backdrop-blur-sm cursor-pointer ${focusRing}`}
           >
             <ImageIcon className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
-            Đổi ảnh bìa
+            {t('profile.changeCover', 'Đổi ảnh bìa')}
           </button>
 
           {/* Lớp 3: nội dung */}
@@ -925,27 +931,27 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                   <dd className='break-all'>{profile?.email}</dd>
                 </div>
                 <div className='inline-flex items-center gap-1.5'>
-                  <dt className='sr-only'>Vai trò hệ thống</dt>
+                  <dt className='sr-only'>{t('profile.role', 'Vai trò hệ thống')}</dt>
                   <Shield className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
                   <dd>
-                    {profile?.role === 'ADMINISTRATOR' ? 'Quản trị viên hệ thống' : 'Thành viên'}
+                    {profile?.role === 'ADMINISTRATOR' ? t('profile.systemRoles.admin', 'Quản trị viên hệ thống') : t('profile.systemRoles.user', 'Thành viên')}
                   </dd>
                 </div>
                 <div className='inline-flex items-center gap-1.5'>
-                  <dt className='sr-only'>Ngày tham gia</dt>
+                  <dt className='sr-only'>{t('profile.joinedDate', 'Ngày tham gia')}</dt>
                   <Calendar className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
                   <dd>{formattedJoinDate}</dd>
                 </div>
                 <div className='inline-flex items-center gap-1.5'>
-                  <dt className='sr-only'>Studio đang tham gia</dt>
+                  <dt className='sr-only'>{t('profile.activeWorkspaces', 'Studio đang tham gia')}</dt>
                   <Building2 className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
-                  <dd>{loadingWorkspaces ? 'Đang tải…' : `${workspaces.length} studio`}</dd>
+                  <dd>{loadingWorkspaces ? t('profile.loadingWorkspaces', 'Đang tải…') : `${workspaces.length} studio`}</dd>
                 </div>
                 <div className='inline-flex items-center gap-1.5'>
-                  <dt className='sr-only'>Xác thực hai lớp</dt>
+                  <dt className='sr-only'>{t('profile.twoFactorTitle', 'Xác thực hai lớp')}</dt>
                   <Key className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
                   <dd className={is2faActive ? 'text-emerald-800' : 'text-amber-800'}>
-                    2FA {is2faActive ? 'đã bật' : 'chưa bật'}
+                    2FA {is2faActive ? t('profile.twoFactorEnabled', 'đã bật') : t('profile.twoFactorDisabled', 'chưa bật')}
                   </dd>
                 </div>
               </dl>
@@ -958,7 +964,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                     className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] px-4 text-sm font-semibold text-white shadow-xs cursor-pointer active:scale-[0.99] ${focusRing}`}
                   >
                     <Edit3 className='h-3.5 w-3.5' aria-hidden='true' />
-                    Chỉnh sửa hồ sơ
+                    {t('profile.editProfile', 'Chỉnh sửa hồ sơ')}
                   </button>
                 </div>
               )}
@@ -991,11 +997,10 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
               <div className='flex items-center justify-between pb-4 border-b border-[#E7E2D9] mb-5'>
                 <div>
                   <h3 className='text-base font-serif font-bold text-[#44403C]'>
-                    Thông Tin Hồ Sơ Cá Nhân
+                    {t('profile.title', 'Thông Tin Hồ Sơ Cá Nhân')}
                   </h3>
                   <p className='text-xs text-[#57534E] mt-0.5'>
-                    Thông tin định danh của bạn được hiển thị trong các dự án và phân công công
-                    việc.
+                    {t('profile.subtitle', 'Thông tin định danh của bạn được hiển thị trong các dự án và phân công công việc.')}
                   </p>
                 </div>
                 <span
@@ -1005,7 +1010,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       : 'bg-[#F3F0E9] text-[#57534E] border-[#D8D2C5]'
                   }`}
                 >
-                  {isEditing ? 'ĐANG CHỈNH SỬA' : 'CHẾ ĐỘ XEM'}
+                  {isEditing ? t('profile.editingBadge', 'ĐANG CHỈNH SỬA') : t('profile.viewBadge', 'CHẾ ĐỘ XEM')}
                 </span>
               </div>
 
@@ -1015,7 +1020,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                   <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                     <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg shadow-2xs'>
                       <span className='text-[10px] font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
-                        Tên hiển thị / Bút danh
+                        {t('profile.fullNameLabel', 'Tên hiển thị / Bút danh')}
                       </span>
                       <span className='text-sm font-semibold text-[#44403C] block'>
                         {profile?.username || '—'}
@@ -1034,7 +1039,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                     <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg shadow-2xs'>
                       <div className='flex items-center justify-between mb-1'>
                         <span className='text-[10px] font-mono uppercase tracking-wider text-[#57534E] font-semibold'>
-                          Địa chỉ Email
+                          {t('profile.email', 'Địa chỉ Email')}
                         </span>
                         <span className='text-[9px] font-mono text-[#57534E] bg-[#EFECE6] px-1.5 rounded'>
                           Nội bộ
@@ -1047,33 +1052,33 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
 
                     <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg shadow-2xs'>
                       <span className='text-[10px] font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
-                        Số điện thoại liên hệ
+                        {t('profile.phoneLabel', 'Số điện thoại liên hệ')}
                       </span>
                       <span className='text-sm text-[#44403C] block'>
                         {profile?.phoneNumber ? (
                           <span className='font-mono tabular-nums'>{profile.phoneNumber}</span>
                         ) : (
-                          <span className='text-[#A8A29E] italic text-xs'>Chưa cập nhật</span>
+                          <span className='text-[#A8A29E] italic text-xs'>{t('profile.notUpdated', 'Chưa cập nhật')}</span>
                         )}
                       </span>
                     </div>
 
                     <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg shadow-2xs'>
                       <span className='text-[10px] font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
-                        Vai trò hệ thống
+                        {t('profile.role', 'Vai trò hệ thống')}
                       </span>
                       <span className='text-sm font-medium text-[#44403C] block'>
-                        {profile?.role === 'ADMINISTRATOR' ? 'Quản Trị Viên' : 'Thành Viên'}
+                        {profile?.role === 'ADMINISTRATOR' ? t('profile.systemRoles.admin', 'Quản trị viên (Admin)') : t('profile.systemRoles.user', 'Thành viên (Creator / User)')}
                       </span>
                     </div>
 
                     <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg shadow-2xs'>
                       <span className='text-[10px] font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
-                        Trạng thái kích hoạt
+                        {t('profile.statusLabel', 'Trạng thái kích hoạt')}
                       </span>
                       <span className='text-sm font-medium text-emerald-700 flex items-center gap-1.5'>
                         <span className='w-2 h-2 rounded-full bg-emerald-500' />
-                        Hoạt động bình thường
+                        {t('profile.activeNormal', 'Hoạt động bình thường')}
                       </span>
                     </div>
                   </div>
@@ -1084,7 +1089,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       <Lock className='w-4 h-4 text-[#57534E] shrink-0' />
                       <div className='min-w-0'>
                         <span className='font-semibold text-[#44403C] block'>
-                          Mã tác giả sáng tác
+                          {t('profile.authorCode', 'Mã tác giả sáng tác')}
                         </span>
                         <span className='text-[11px] font-mono text-[#57534E] block truncate' title={profile?.id}>
                           {profile?.id ? `PF-${profile.id.slice(0, 8).toUpperCase()}` : '—'}
@@ -1092,7 +1097,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       </div>
                     </div>
                     <span className='text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 shrink-0 font-semibold'>
-                      ĐÃ XÁC THỰC
+                      {t('profile.verified', 'ĐÃ XÁC THỰC')}
                     </span>
                   </div>
 
@@ -1103,7 +1108,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       className={`min-h-10 px-4 py-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer active:scale-[0.99] ${focusRing}`}
                     >
                       <Edit3 className='w-3.5 h-3.5' />
-                      <span>Chỉnh sửa thông tin này</span>
+                      <span>{t('profile.editThisInfo', 'Chỉnh sửa thông tin này')}</span>
                     </button>
                   </div>
                 </div>
@@ -1119,7 +1124,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       htmlFor='edit-username'
                       className='block text-xs font-bold text-[#44403C] mb-1'
                     >
-                      Tên hiển thị / Bút danh tác giả <span className='text-[#C2410C]'>*</span>
+                      {t('profile.fullNameLabel', 'Tên hiển thị / Bút danh tác giả')} <span className='text-[#C2410C]'>*</span>
                     </label>
                     <input
                       id='edit-username'
@@ -1131,7 +1136,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                           setFormErrors((prev) => ({ ...prev, username: undefined }));
                         }
                       }}
-                      placeholder='Ví dụ: Tatsuki Fujimoto'
+                      placeholder={t('profile.fullNamePlaceholder', 'Ví dụ: Tatsuki Fujimoto')}
                       maxLength={30}
                       className={`min-h-10 w-full px-3.5 py-2 bg-white border rounded-lg text-xs sm:text-sm text-[#44403C] transition-colors ${focusRing} ${
                         formErrors.username
@@ -1146,7 +1151,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                         </span>
                       ) : (
                         <span className='text-[10px] text-[#57534E]'>
-                          Tên dùng để gán cho các bản thảo vẽ chì, inking và kịch bản.
+                          {t('profile.fullNameHint', 'Tên dùng để gán cho các bản thảo vẽ chì, inking và kịch bản.')}
                         </span>
                       )}
                       <span className='text-[10px] font-mono text-[#57534E] tabular-nums'>
@@ -1161,7 +1166,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       htmlFor='edit-phone'
                       className='block text-xs font-bold text-[#44403C] mb-1'
                     >
-                      Số điện thoại liên hệ (Tùy chọn)
+                      {t('profile.phoneLabel', 'Số điện thoại liên hệ (Tùy chọn)')}
                     </label>
                     <input
                       id='edit-phone'
@@ -1173,7 +1178,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                           setFormErrors((prev) => ({ ...prev, phone: undefined }));
                         }
                       }}
-                      placeholder='Ví dụ: +84 901 234 567'
+                      placeholder={t('profile.phonePlaceholder', 'Ví dụ: +84 901 234 567')}
                       className={`min-h-10 w-full px-3.5 py-2 bg-white border rounded-lg text-xs sm:text-sm text-[#44403C] transition-colors ${focusRing} ${
                         formErrors.phone
                           ? 'border-rose-400 focus:border-rose-500'
@@ -1186,7 +1191,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       </span>
                     ) : (
                       <span className='text-[10px] text-[#57534E] mt-1 block'>
-                        Dùng trong trường hợp khẩn cấp liên quan đến duyệt hạn nộp chương.
+                        {t('profile.phoneHint', 'Dùng trong trường hợp khẩn cấp liên quan đến duyệt hạn nộp chương.')}
                       </span>
                     )}
                   </div>
@@ -1195,14 +1200,14 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                   <div>
                     <div className='flex items-center justify-between mb-1'>
                       <label htmlFor='edit-avatar' className='text-xs font-bold text-[#44403C]'>
-                        Đường dẫn ảnh đại diện (Avatar URL)
+                        {t('profile.avatarUrlLabel', 'Đường dẫn ảnh đại diện (Avatar URL)')}
                       </label>
                       <button
                         type='button'
                         onClick={() => setIsAvatarPickerOpen(true)}
                         className='text-xs text-[#C2410C] hover:underline font-semibold cursor-pointer'
                       >
-                        Chọn mẫu tác giả có sẵn
+                        {t('profile.choosePresetBtn', 'Chọn mẫu tác giả có sẵn')}
                       </button>
                     </div>
                     <input
@@ -1215,7 +1220,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                           setFormErrors((prev) => ({ ...prev, avatar: undefined }));
                         }
                       }}
-                      placeholder='Chọn ảnh có sẵn, hoặc dán link https://...'
+                      placeholder={t('profile.avatarPlaceholder', 'Chọn ảnh có sẵn, hoặc dán link https://...')}
                       className={`min-h-10 w-full px-3.5 py-2 bg-white border rounded-lg text-xs sm:text-sm text-[#44403C] transition-colors ${focusRing} ${
                         formErrors.avatar
                           ? 'border-rose-400 focus:border-rose-500'
@@ -1240,7 +1245,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                           }}
                         />
                         <div className='text-[11px] text-[#57534E] truncate'>
-                          <span className='font-semibold text-[#44403C] block'>Xem trước ảnh</span>
+                          <span className='font-semibold text-[#44403C] block'>{t('profile.previewImage', 'Xem trước ảnh')}</span>
                           <span className='truncate block max-w-md'>{editAvatar}</span>
                         </div>
                       </div>
@@ -1250,7 +1255,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                   {/* Field: Read-Only Email */}
                   <div>
                     <label className='block text-xs font-bold text-[#57534E] mb-1'>
-                      Địa chỉ Email tài khoản (Chỉ đọc)
+                      {t('profile.emailLabel', 'Địa chỉ Email tài khoản (Chỉ đọc)')}
                     </label>
                     <div className='relative'>
                       <input
@@ -1262,8 +1267,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       <Lock className='w-4 h-4 text-[#57534E] absolute right-3.5 top-1/2 -translate-y-1/2' />
                     </div>
                     <span className='text-[10px] text-[#57534E] mt-1 block'>
-                      Email định danh tài khoản không thể chỉnh sửa trực tiếp vì lý do an toàn bảo
-                      mật.
+                      {t('profile.emailHint', 'Email định danh tài khoản không thể chỉnh sửa trực tiếp vì lý do an toàn bảo mật.')}
                     </span>
                   </div>
 
@@ -1275,7 +1279,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       disabled={saving}
                       className={`min-h-10 px-4 py-2 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-white text-[#44403C] text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 active:scale-[0.99] ${focusRing}`}
                     >
-                      Hủy bỏ
+                      {t('profile.cancel', 'Hủy bỏ')}
                     </button>
                     <button
                       type='submit'
@@ -1285,12 +1289,12 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       {saving ? (
                         <>
                           <RefreshCw className='w-3.5 h-3.5 animate-spin' />
-                          <span>Đang lưu...</span>
+                          <span>{t('profile.saving', 'Đang lưu...')}</span>
                         </>
                       ) : (
                         <>
                           <Check className='w-3.5 h-3.5' />
-                          <span>Lưu thay đổi</span>
+                          <span>{t('profile.saveChanges', 'Lưu thay đổi')}</span>
                         </>
                       )}
                     </button>
@@ -1306,7 +1310,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
               <div className='flex items-center gap-2 pb-2 border-b border-[#E7E2D9]'>
                 <ShieldCheck className='w-4 h-4 text-[#C2410C]' />
                 <h4 className='text-xs font-mono font-bold tracking-wider uppercase text-[#44403C]'>
-                  Bảo Mật &amp; Phiên Đăng Nhập
+                  {t('profile.securitySection', 'Bảo Mật & Phiên Đăng Nhập')}
                 </h4>
               </div>
 
@@ -1315,20 +1319,20 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                 <div className='flex items-center justify-between'>
                   <span className='text-xs font-semibold text-[#44403C] flex items-center gap-1.5'>
                     <Key className='w-3.5 h-3.5 text-[#C2410C]' />
-                    Xác Thực 2 Bước (2FA)
+                    {t('profile.twoFactorTitle', 'Xác Thực 2 Bước (2FA)')}
                   </span>
                   {is2faActive ? (
                     <span className='text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold'>
-                      BẢO VỆ
+                      {t('profile.twoFactorActive', 'BẢO VỆ')}
                     </span>
                   ) : (
                     <span className='text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold'>
-                      CHƯA BẬT
+                      {t('profile.twoFactorInactive', 'CHƯA BẬT')}
                     </span>
                   )}
                 </div>
                 <p className='text-[11px] text-[#57534E] leading-relaxed'>
-                  Bảo vệ kịch bản, bản thảo gốc và tài nguyên studio bằng mã TOTP RFC 6238.
+                  {t('profile.twoFactorDesc', 'Bảo vệ kịch bản, bản thảo gốc và tài nguyên studio bằng mã TOTP RFC 6238.')}
                 </p>
                 <button
                   type='button'
@@ -1337,7 +1341,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                 >
                   <Key className='w-3.5 h-3.5 text-[#C2410C]' />
                   <span>
-                    {is2faActive ? 'Quản lý Google Authenticator' : 'Cài đặt 2FA Authenticator'}
+                    {is2faActive ? t('profile.manage2fa', 'Quản lý Google Authenticator') : t('profile.setup2fa', 'Cài đặt 2FA Authenticator')}
                   </span>
                 </button>
               </div>
@@ -1353,7 +1357,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                 className={`w-full min-h-10 px-3 py-2 bg-[#FCFBF8] hover:bg-white text-[#44403C] border border-[#D8D2C5] hover:border-[#F97316] text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-[0.99] ${focusRing}`}
               >
                 <KeyRound className='w-3.5 h-3.5 text-[#57534E]' />
-                <span>Đổi mật khẩu tài khoản</span>
+                <span>{t('profile.changePasswordBtn', 'Đổi mật khẩu tài khoản')}</span>
               </button>
 
               {/* Đăng xuất khỏi thiết bị */}
@@ -1364,7 +1368,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                   className={`w-full min-h-10 px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#EFECE6] text-[#57534E] hover:text-[#44403C] text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-[0.99] ${focusRing}`}
                 >
                   <LogOut className='w-3.5 h-3.5' />
-                  <span>Đăng xuất khỏi thiết bị này</span>
+                  <span>{t('profile.logoutBtn', 'Đăng xuất khỏi thiết bị này')}</span>
                 </button>
               </div>
             </div>
@@ -1380,7 +1384,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
               <div className='flex items-center gap-2'>
                 <Building2 className='w-4 h-4 text-[#F97316]' />
                 <h3 className='text-sm sm:text-base font-serif font-bold text-[#44403C]'>
-                  Xưởng Sáng Tác Đang Tham Gia (Studio Workspaces)
+                  {t('profile.workspacesSection', 'Xưởng Sáng Tác Đang Tham Gia (Studio Workspaces)')}
                 </h3>
               </div>
               <span className='text-xs font-mono text-[#57534E] tabular-nums'>
@@ -1389,30 +1393,29 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
             </div>
 
             <p className='text-xs text-[#57534E] leading-relaxed'>
-              Mỗi xưởng có phân quyền độc lập. Vai trò của bạn tại đây là vai trò sản xuất cụ thể,
-              không bị cố định thành vai trò duy nhất toàn hệ thống.
+              {t('profile.workspacesDesc', 'Mỗi xưởng có phân quyền độc lập. Vai trò của bạn tại đây là vai trò sản xuất cụ thể, không bị cố định thành vai trò duy nhất toàn hệ thống.')}
             </p>
 
             {loadingWorkspaces ? (
               <div className='py-8 text-center text-[#57534E] flex items-center justify-center gap-2'>
                 <RefreshCw className='w-4 h-4 animate-spin text-[#F97316]' />
-                <span className='text-xs'>Đang tải danh sách xưởng truyện tranh...</span>
+                <span className='text-xs'>{t('profile.loadingWorkspaces', 'Đang tải danh sách xưởng truyện tranh...')}</span>
               </div>
             ) : workspaces.length === 0 ? (
               <div className='py-8 text-center bg-white border border-dashed border-[#D8D2C5] rounded-lg p-5 space-y-2'>
                 <Briefcase className='w-6 h-6 text-[#A8A29E] mx-auto' />
                 <p className='text-xs font-semibold text-[#44403C]'>
-                  Bạn chưa tham gia xưởng truyện tranh nào.
+                  {t('profile.noWorkspaces', 'Bạn chưa tham gia xưởng truyện tranh nào.')}
                 </p>
                 <p className='text-[11px] text-[#57534E] max-w-sm mx-auto'>
-                  Hãy tạo Studio mới hoặc nhờ Producer gửi lời mời tham gia dự án qua email của bạn.
+                  {t('profile.noWorkspacesDesc', 'Hãy tạo Studio mới hoặc nhờ Producer gửi lời mời tham gia dự án qua email của bạn.')}
                 </p>
                 <button
                   type='button'
                   onClick={() => navigate('/workspaces')}
                   className={`mt-2 min-h-9 px-3.5 py-1.5 bg-[#44403C] hover:bg-[#292524] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1.5 active:scale-[0.99] ${focusRing}`}
                 >
-                  <span>Khám phá Workspaces</span>
+                  <span>{t('profile.exploreWorkspaces', 'Khám phá Workspaces')}</span>
                   <ArrowRight className='w-3 h-3' />
                 </button>
               </div>
@@ -1435,15 +1438,15 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                           </span>
                           {ws.isOwner && (
                             <span className='text-[9px] font-mono font-bold bg-[#EAE5DC] text-[#44403C] px-1.5 py-0.2 rounded'>
-                              CHỦ STUDIO
+                              {t('profile.studioOwner', 'CHỦ STUDIO')}
                             </span>
                           )}
                         </div>
                         <div className='flex items-center gap-2 text-[11px] text-[#57534E] font-mono tabular-nums'>
-                          <span>{ws.memberCount || 1} thành viên</span>
+                          <span>{t('profile.membersCount', '{count} thành viên').replace('{count}', String(ws.memberCount || 1))}</span>
                           <span>•</span>
                           <span>
-                            Đã dùng: {Math.round((ws.usedStorageBytes || 0) / (1024 * 1024))} MB
+                            {t('profile.usedStorage', 'Đã dùng: {size} MB').replace('{size}', String(Math.round((ws.usedStorageBytes || 0) / (1024 * 1024))))}
                           </span>
                         </div>
                       </div>
@@ -1452,14 +1455,14 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                         <span
                           className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full font-semibold border ${roleBadge.bg} ${roleBadge.text} ${roleBadge.border}`}
                         >
-                          {roleBadge.label}
+                          {t(`workspace.roles.${roleKey.toLowerCase()}`, roleBadge.label)}
                         </span>
                         <button
                           type='button'
                           onClick={() => navigate(`/workspaces/${ws.id}`)}
                           className={`min-h-9 px-3 py-1 bg-[#FCFBF8] hover:bg-white border border-[#D8D2C5] text-[#44403C] text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs active:scale-[0.99] ${focusRing}`}
                         >
-                          <span>Vào xưởng</span>
+                          <span>{t('profile.enterStudio', 'Vào xưởng')}</span>
                           <ArrowRight className='w-3 h-3 text-[#57534E]' />
                         </button>
                       </div>
@@ -1485,21 +1488,21 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
               <div className='flex items-center gap-2'>
                 <Camera className='w-4 h-4 text-[#F97316]' />
                 <h3 id='avatar-modal-title' className='text-sm font-bold text-[#44403C]'>
-                  Chọn ảnh đại diện có sẵn
+                  {t('profile.presetModalTitle', 'Chọn ảnh đại diện có sẵn')}
                 </h3>
               </div>
               <button
                 type='button'
                 onClick={() => setIsAvatarPickerOpen(false)}
                 className='text-[#57534E] hover:text-[#44403C] cursor-pointer p-1'
-                aria-label='Đóng hộp thoại'
+                aria-label={t('profile.presetModalClose', 'Đóng hộp thoại')}
               >
                 <X className='w-4 h-4' />
               </button>
             </div>
 
             <p className='text-xs text-[#57534E]'>
-              Chọn một ảnh có sẵn của hệ thống (không cần tải ảnh từ máy):
+              {t('profile.presetModalDesc', 'Chọn một ảnh có sẵn của hệ thống (không cần tải ảnh từ máy):')}
             </p>
 
             <div className='grid grid-cols-3 gap-3' data-testid='system-avatar-grid'>
@@ -1529,7 +1532,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                 onClick={() => setIsAvatarPickerOpen(false)}
                 className={`min-h-9 px-4 py-1.5 bg-[#FCFBF8] hover:bg-white border border-[#D8D2C5] text-[#44403C] text-xs font-semibold rounded-lg cursor-pointer ${focusRing}`}
               >
-                Đóng
+                {t('profile.close', 'Đóng')}
               </button>
             </div>
           </div>

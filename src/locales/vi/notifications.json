@@ -1,15 +1,24 @@
 {
-  "title": "Trung tâm thông báo",
-  "subtitle": "Cập nhật tiến độ nhiệm vụ, phản hồi biên tập và phân công công việc",
-  "markAllAsRead": "Đọc tất cả",
+  "title": "Trung Tâm Thông Báo",
+  "subtitle": "Theo dõi phân công việc, tiến độ chương và các yêu cầu chỉnh sửa từ đội ngũ sản xuất.",
+  "refresh": "Làm mới",
+  "refreshTooltip": "Làm mới danh sách",
+  "markAllAsRead": "Đánh dấu đã đọc tất cả",
   "emptyTitle": "Không có thông báo mới",
-  "emptyDesc": "Bạn đã nắm bắt mọi hoạt động sản xuất mới nhất.",
+  "emptyUnread": "Không có thông báo chưa đọc nào",
+  "emptyAll": "Chưa có thông báo nào",
+  "emptyDesc": "Khi có tác vụ mới, biên tập viên phản hồi hoặc tiến độ chương cập nhật, thông báo sẽ xuất hiện tại đây.",
   "all": "Tất cả thông báo",
+  "allCount": "Tất cả thông báo ({count})",
   "unread": "{count} chưa đọc",
   "unreadTab": "Chưa đọc",
   "loading": "Đang tải danh sách thông báo từ hệ thống...",
   "viewTask": "Xem việc",
+  "viewTaskDetail": "Mở chi tiết công việc",
+  "markRead": "Đã đọc",
+  "markReadTooltip": "Đánh dấu là đã đọc",
   "types": {
+    "default": "Thông báo",
     "AssignmentAssigned": "Công việc mới",
     "AssignmentUnassigned": "Thu hồi việc",
     "AssignmentUpdated": "Cập nhật việc",
@@ -21,6 +30,9 @@
     "ChapterReadyForPublication": "Sẵn sàng xuất bản",
     "ChapterReopened": "Chương được mở lại",
     "ChapterPublished": "Đã xuất bản thành công",
-    "AssignmentDueSoon": "Sắp đến hạn"
+    "AssignmentDueSoon": "Sắp đến hạn",
+    "AssignmentOverdue": "Đã quá hạn",
+    "ChangeRequestDueSoon": "Hạn sửa sắp đến",
+    "ChangeRequestOverdue": "Hạn sửa đã quá hạn"
   }
 }

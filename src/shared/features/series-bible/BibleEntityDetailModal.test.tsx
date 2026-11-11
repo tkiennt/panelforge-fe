@@ -533,4 +533,138 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.getByText(/Đã nộp Concept Art/)).toBeInTheDocument();
     expect(screen.getByText(/Bản vẽ chi tiết phục trang/)).toBeInTheDocument();
   });
+  describe('Khóa Canon & Duyệt thiết kế (2026-11-04 Handoff & Breaking changes)', () => {
+    it('chỉ hiển thị nút Khóa Canon khi revision là WriterEndorsed; ẩn khi Draft, ConceptSubmitted hoặc ReworkRequired', () => {
+      const baseRev: BibleEntryRevisionDto = {
+        id: 'rev-test-lock',
+        bibleEntryId: mockEntityWithImage.id,
+        versionNumber: 1,
+        summary: 'Bản vẽ',
+        snapshotJson: '{}',
+        contentHash: 'hash-test-lock-12345',
+        effectiveFromChapterNumber: 1,
+        isInitialVersion: true,
+        createdAt: '2026-11-04T10:00:00Z',
+        isLocked: false,
+        reviewStatus: 'Draft',
+        referenceImageUrl: 'https://example.com/concept.png',
+      };
+
+      const makeEntry = (rev: BibleEntryRevisionDto): BibleEntryDto => ({
+        id: mockEntityWithImage.id,
+        seriesBibleId: 'sb-1',
+        code: mockEntityWithImage.code,
+        name: mockEntityWithImage.name,
+        description: mockEntityWithImage.description,
+        detailsJson: '{}',
+        category: 'Character',
+        priority: 'Standard',
+        strictCheck: false,
+        isActive: true,
+        effectiveRevision: rev,
+        createdAt: '2026-10-01T00:00:00Z',
+      });
+
+      // 1. Khi Draft: không có nút khóa Canon
+      const { rerender } = render(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          isProducer={true}
+          entity={mockEntityWithImage}
+          rawEntry={makeEntry(baseRev)}
+          latestSavedRevision={baseRev}
+        />,
+      );
+      expect(screen.queryByTestId('detail-lock-btn')).not.toBeInTheDocument();
+
+      // 2. Khi ConceptSubmitted: không có nút khóa Canon
+      const conceptRev: BibleEntryRevisionDto = { ...baseRev, reviewStatus: 'ConceptSubmitted' };
+      rerender(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          isProducer={true}
+          entity={mockEntityWithImage}
+          rawEntry={makeEntry(conceptRev)}
+          latestSavedRevision={conceptRev}
+        />,
+      );
+      expect(screen.queryByTestId('detail-lock-btn')).not.toBeInTheDocument();
+
+      // 3. Khi ReworkRequired: không có nút khóa Canon
+      const reworkRev: BibleEntryRevisionDto = { ...baseRev, reviewStatus: 'ReworkRequired' };
+      rerender(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          isProducer={true}
+          entity={mockEntityWithImage}
+          rawEntry={makeEntry(reworkRev)}
+          latestSavedRevision={reworkRev}
+        />,
+      );
+      expect(screen.queryByTestId('detail-lock-btn')).not.toBeInTheDocument();
+
+      // 4. Khi WriterEndorsed: hiển thị nút Khóa Canon
+      const endorsedRev: BibleEntryRevisionDto = { ...baseRev, reviewStatus: 'WriterEndorsed' };
+      rerender(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          isProducer={true}
+          entity={mockEntityWithImage}
+          rawEntry={makeEntry(endorsedRev)}
+          latestSavedRevision={endorsedRev}
+        />,
+      );
+      expect(screen.getByTestId('detail-lock-btn')).toBeInTheDocument();
+      expect(screen.getByTestId('detail-lock-btn')).toHaveTextContent('🔒 Khóa Canon');
+    });
+
+    it('vô hiệu hóa nút Duyệt thiết kế khi revision đang ReworkRequired', () => {
+      const reworkRev: BibleEntryRevisionDto = {
+        id: 'rev-rework',
+        bibleEntryId: mockEntityWithImage.id,
+        versionNumber: 1,
+        summary: 'Bản vẽ cần sửa',
+        snapshotJson: '{}',
+        contentHash: 'hash-rework-123',
+        effectiveFromChapterNumber: 1,
+        isInitialVersion: true,
+        createdAt: '2026-11-04T10:00:00Z',
+        isLocked: false,
+        reviewStatus: 'ReworkRequired',
+        referenceImageUrl: 'https://example.com/concept.png',
+      };
+
+      const reworkEntry: BibleEntryDto = {
+        id: mockEntityWithImage.id,
+        seriesBibleId: 'sb-1',
+        code: mockEntityWithImage.code,
+        name: mockEntityWithImage.name,
+        description: mockEntityWithImage.description,
+        detailsJson: '{}',
+        category: 'Character',
+        priority: 'Standard',
+        strictCheck: false,
+        isActive: true,
+        effectiveRevision: reworkRev,
+        createdAt: '2026-10-01T00:00:00Z',
+      };
+
+      render(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          canReview={true}
+          entity={mockEntityWithImage}
+          rawEntry={reworkEntry}
+          latestSavedRevision={reworkRev}
+        />,
+      );
+
+      const endorseBtn = screen.getByTestId('detail-endorse-btn');
+      expect(endorseBtn).toBeDisabled();
+      expect(endorseBtn).toHaveAttribute(
+        'title',
+        'Bản vẽ đang bị yêu cầu vẽ lại; cần Artist nộp lại concept trước khi duyệt',
+      );
+    });
+  });
 });

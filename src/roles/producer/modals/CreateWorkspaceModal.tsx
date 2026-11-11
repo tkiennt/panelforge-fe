@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Layers, Plus, Loader2 } from 'lucide-react';
 import { workspaceService, WorkspaceDto } from '@/services/workspace.service';
+import { useTranslation } from '@/lib/i18n';
 
 interface CreateWorkspaceModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
   onSuccess,
   onShowToast,
 }) => {
+  const { t } = useTranslation('workspace');
   const [name, setName] = useState('');
   const [quotaGb, setQuotaGb] = useState('10');
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,7 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
     e.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('Vui lòng nhập tên Workspace / Studio.');
+      setError(t('createModal.errorEmptyName', 'Vui lòng nhập tên Workspace / Studio.'));
       return;
     }
 
@@ -50,14 +52,17 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
       });
 
       if (onShowToast) {
-        onShowToast('Tạo Studio thành công', `Đã tạo workspace "${created.name}"`);
+        onShowToast(
+          t('createModal.successTitle', 'Tạo Studio thành công'),
+          t('createModal.successDesc', { name: created.name }, `Đã tạo workspace "${created.name}"`),
+        );
       }
       setName('');
       onSuccess(created);
       onClose();
     } catch (err: any) {
       console.error('Lỗi khi tạo Workspace:', err);
-      setError(err.message || 'Không thể tạo Workspace. Vui lòng thử lại.');
+      setError(err.message || t('createModal.errorCreateFailed', 'Không thể tạo Workspace. Vui lòng thử lại.'));
     } finally {
       setLoading(false);
     }
@@ -78,13 +83,17 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
               <Layers className='w-5 h-5' />
             </div>
             <div>
-              <h3 className='font-serif font-bold text-lg text-[#1C1917]'>Tạo Studio / Workspace mới</h3>
-              <p className='text-xs text-[#57534E]'>Khởi tạo không gian làm việc sản xuất truyện</p>
+              <h3 className='font-serif font-bold text-lg text-[#1C1917]'>
+                {t('createModal.title', 'Tạo Studio / Workspace mới')}
+              </h3>
+              <p className='text-xs text-[#57534E]'>
+                {t('createModal.subtitle', 'Khởi tạo không gian làm việc sản xuất truyện')}
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            aria-label='Đóng modal'
+            aria-label={t('common.actions.close', 'Đóng modal')}
             className='w-8 h-8 rounded-lg flex items-center justify-center text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] transition-colors cursor-pointer'
           >
             <X className='w-5 h-5' />
@@ -101,13 +110,13 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
 
           <div>
             <label className='block text-xs font-bold text-[#1C1917] uppercase tracking-wider mb-2'>
-              Tên Studio / Workspace <span className='text-red-500'>*</span>
+              {t('createModal.nameLabel', 'Tên Studio / Workspace')} <span className='text-red-500'>*</span>
             </label>
             <input
               type='text'
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder='Ví dụ: Tokyo Ghoul Production Studio'
+              placeholder={t('createModal.namePlaceholder', 'Ví dụ: Tokyo Ghoul Production Studio')}
               className='w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] outline-none text-sm text-[#1C1917] placeholder:text-stone-400 transition-all'
               autoFocus
               disabled={loading}
@@ -116,7 +125,7 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
 
           <div>
             <label className='block text-xs font-bold text-[#1C1917] uppercase tracking-wider mb-2'>
-              Dung lượng lưu trữ ban đầu (GB)
+              {t('createModal.quotaLabel', 'Dung lượng lưu trữ ban đầu (GB)')}
             </label>
             <select
               value={quotaGb}
@@ -124,10 +133,10 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
               className='w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] outline-none text-sm text-[#1C1917] transition-all cursor-pointer'
               disabled={loading}
             >
-              <option value='5'>5 GB (Tiêu chuẩn)</option>
-              <option value='10'>10 GB (Khuyến nghị)</option>
-              <option value='25'>25 GB (Studio lớn)</option>
-              <option value='50'>50 GB (Chuyên nghiệp)</option>
+              <option value='5'>{t('createModal.quotaOptions.5', '5 GB (Tiêu chuẩn)')}</option>
+              <option value='10'>{t('createModal.quotaOptions.10', '10 GB (Khuyến nghị)')}</option>
+              <option value='25'>{t('createModal.quotaOptions.25', '25 GB (Studio lớn)')}</option>
+              <option value='50'>{t('createModal.quotaOptions.50', '50 GB (Chuyên nghiệp)')}</option>
             </select>
           </div>
 
@@ -139,7 +148,7 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
               disabled={loading}
               className='px-4 py-2.5 rounded-lg border border-[#D8D2C5] text-sm font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] transition-colors cursor-pointer'
             >
-              Hủy
+              {t('createModal.cancel', 'Hủy')}
             </button>
             <button
               type='submit'
@@ -149,12 +158,12 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
               {loading ? (
                 <>
                   <Loader2 className='w-4 h-4 animate-spin' />
-                  <span>Đang tạo...</span>
+                  <span>{t('createModal.creating', 'Đang tạo...')}</span>
                 </>
               ) : (
                 <>
                   <Plus className='w-4 h-4' />
-                  <span>Tạo Studio</span>
+                  <span>{t('createModal.create', 'Tạo Studio')}</span>
                 </>
               )}
             </button>

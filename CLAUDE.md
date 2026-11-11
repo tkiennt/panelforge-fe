@@ -1,7 +1,6 @@
 # CLAUDE.md – PanelForge Frontend
 
-React + TypeScript · Vite · Tailwind CSS · HTML5 Canvas editor · dnd-kit · TanStack Query · Vitest.
-(Konva and Playwright are planned in the stack but are not in `package.json` yet — do not add them without asking.)
+React + TypeScript · Vite · Tailwind CSS · Konva (react-konva) canvas editor · dnd-kit · TanStack Query · Vitest · Playwright e2e (`e2e/`, `npm run test:e2e`).
 
 ```bash
 npm run typecheck

@@ -10,7 +10,7 @@ interface ApiErrorResponse {
 
 /**
  * Trích xuất và bản địa hóa thông báo lỗi từ API response hoặc generic error.
- * 1. Nếu có `code` từ Backend, ưu tiên tra cứu theo key `errors.${code}`.
+ * 1. Nếu có `code` từ Backend, ưu tiên tra cứu theo key `errors.${code}` hoặc biến thể `ERR_`.
  * 2. Nếu không có mã hoặc key chưa dịch, fallback về `error.response?.data?.error` hoặc `message`.
  * 3. Cuối cùng fallback về `translate(fallbackKey)`.
  */
@@ -18,9 +18,15 @@ export function getApiErrorMessage(error: unknown, fallbackKey = 'common.errors.
   if (axios.isAxiosError(error) && error.response?.data) {
     const data = error.response.data as ApiErrorResponse;
 
-    // 1. Kiểm tra mã lỗi máy đọc được (ví dụ ERR_SERIES_NOT_FOUND, NOT_FOUND)
+    // 1. Kiểm tra mã lỗi máy đọc được (ví dụ ERR_SERIES_NOT_FOUND, NOT_FOUND, CONFLICT)
     if (data.code && typeof data.code === 'string') {
-      const errorKey = `errors.${data.code}`;
+      const code = data.code.trim();
+      const candidateKeys = [
+        `errors.${code}`,
+        `errors.ERR_${code}`,
+        `errors.${code.replace(/^ERR_/, '')}`,
+      ];
+
       const backendMessage =
         typeof data.error === 'string' && data.error.trim()
           ? data.error
@@ -28,12 +34,13 @@ export function getApiErrorMessage(error: unknown, fallbackKey = 'common.errors.
             ? data.message
             : undefined;
 
-      const translated = translate(errorKey, undefined, undefined, backendMessage);
-
-      // Nếu translate tìm thấy bản dịch hợp lệ khác chính key
-      if (translated && translated !== errorKey) {
-        return translated;
+      for (const k of candidateKeys) {
+        const translated = translate(k);
+        if (translated && translated !== k) {
+          return translated;
+        }
       }
+
       if (backendMessage) {
         return backendMessage;
       }

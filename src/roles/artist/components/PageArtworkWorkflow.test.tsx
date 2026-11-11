@@ -4,12 +4,22 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { PageArtworkWorkflow } from './PageArtworkWorkflow';
 import { panelService } from '@/services/panel.service';
 import { elementService } from '@/services/element.service';
+import { artworkService } from '@/services/artwork.service';
+import { cropPanelArtwork } from '../utils/cropPanelArtwork';
 
 vi.mock('@/services/panel.service', () => ({
   panelService: { splitArtwork: vi.fn(), createPanel: vi.fn() },
 }));
 vi.mock('@/services/element.service', () => ({
   elementService: { addElement: vi.fn() },
+}));
+vi.mock('@/services/artwork.service', () => ({
+  artworkService: { uploadArtwork: vi.fn() },
+}));
+vi.mock('../utils/cropPanelArtwork', () => ({
+  cropPanelArtwork: vi.fn(
+    async () => new File([new Uint8Array(10)], 'panel-crop.png', { type: 'image/png' }),
+  ),
 }));
 
 const split = vi.mocked(panelService.splitArtwork);
@@ -94,19 +104,21 @@ describe('PageArtworkWorkflow', () => {
     await openAndDetect();
     expect(split).toHaveBeenCalledWith('page-1', expect.any(File), true);
     expect(await screen.findAllByTestId('split-region-panel')).toHaveLength(1);
-    expect(screen.getAllByTestId('split-region-bubble')).toHaveLength(1);
+    // Bỏ nhận diện bóng thoại: bóng BE trả về không vẽ lên bản nháp
+    expect(screen.queryAllByTestId('split-region-bubble')).toHaveLength(0);
     expect(createPanel).not.toHaveBeenCalled();
     expect(addElement).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId('split-toggle-overlay'));
     expect(screen.queryByTestId('split-overlay')).toBeNull();
   });
 
-  it('không có bóng thoại: báo rõ và vẫn cho lưu panel', async () => {
-    split.mockResolvedValue({ ...result, bubbles: [] });
+  it('chỉ nhận diện panel: không có danh sách bóng thoại, thông báo số panel', async () => {
+    split.mockResolvedValue(result);
     render(<PageArtworkWorkflow {...baseProps} />);
     await openAndDetect();
-    expect(await screen.findByTestId('split-empty-bubble')).toBeTruthy();
-    expect(screen.getByTestId('split-notice').textContent).toContain('Không phát hiện bóng thoại');
+    expect((await screen.findByTestId('split-notice')).textContent).toBe('Tìm thấy 1 panel.');
+    expect(screen.queryByTestId('split-empty-bubble')).toBeNull();
+    expect(screen.queryByTestId('split-add-bubble')).toBeNull();
     expect((screen.getByTestId('split-confirm-btn') as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -123,7 +135,7 @@ describe('PageArtworkWorkflow', () => {
     );
   });
 
-  it('xác nhận: tạo panel (đánh số tiếp theo) và bóng SPEECH_BALLOON với toạ độ trang', async () => {
+  it('xác nhận: tạo panel (đánh số tiếp theo) với toạ độ trang, không tạo bóng thoại', async () => {
     split.mockResolvedValue(result);
     createPanel.mockResolvedValue({ id: 'real-panel' } as never);
     addElement.mockResolvedValue({ elementId: 'e1' } as never);
@@ -142,18 +154,8 @@ describe('PageArtworkWorkflow', () => {
     const req = createPanel.mock.calls[0][1];
     expect(req.panelNumber).toBe(5);
     expect(JSON.parse(req.boundingBox!)).toMatchObject({ x: 20, y: 40, width: 600, height: 400 });
-    expect(addElement).toHaveBeenCalledWith(
-      'page-1',
-      expect.objectContaining({
-        elementType: 'SPEECH_BALLOON',
-        x: 100,
-        y: 120,
-        width: 200,
-        height: 80,
-        panelId: 'real-panel',
-      }),
-    );
-    expect(screen.getByTestId('split-saved').textContent).toContain('1 panel và 1 bóng thoại');
+    expect(addElement).not.toHaveBeenCalled();
+    expect(screen.getByTestId('split-saved').textContent).toContain('Đã lưu 1 panel vào trang 2');
   });
 
   it('409 khi lưu: hướng dẫn tải lại, không thử lại', async () => {
@@ -165,5 +167,37 @@ describe('PageArtworkWorkflow', () => {
     expect((await screen.findByTestId('split-error')).textContent).toContain('tải lại trang');
     expect(createPanel).toHaveBeenCalledTimes(1);
     expect(addElement).not.toHaveBeenCalled();
+  });
+
+  it('cắt tranh theo từng panel và upload lên R2 khi có chapterId', async () => {
+    const uploadArtworkSpy = vi.mocked(artworkService.uploadArtwork);
+    uploadArtworkSpy.mockResolvedValue({ id: 'uploaded-art-1' } as never);
+    split.mockResolvedValue(result);
+    createPanel.mockResolvedValue({ id: '11111111-1111-1111-1111-111111111111' } as never);
+    addElement.mockResolvedValue({ elementId: 'e1' } as never);
+
+    render(<PageArtworkWorkflow {...baseProps} chapterId='chap-123' stageId='stage-456' />);
+    await openAndDetect();
+    fireEvent.click(screen.getByTestId('split-confirm-btn'));
+
+    await waitFor(() => {
+      expect(createPanel).toHaveBeenCalled();
+      // Cắt từ File đã tải về (không cắt thẳng từ URL khác origin → canvas tainted)
+      expect(cropPanelArtwork).toHaveBeenCalledWith(
+        expect.any(File),
+        [10, 20, 300, 200],
+        'panel-1.png',
+        undefined, // khung chữ nhật: không có corners
+      );
+      expect(uploadArtworkSpy).toHaveBeenCalledWith(
+        'chap-123',
+        'page-1',
+        expect.any(File),
+        'stage-456',
+        undefined,
+        undefined,
+        '11111111-1111-1111-1111-111111111111',
+      );
+    });
   });
 });

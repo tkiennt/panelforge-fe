@@ -17,6 +17,7 @@ import {
 import { SystemRole, NotificationDto } from '@/types';
 import { notificationService } from '@/services/notification.service';
 import { formatRelativeTime } from '@/shared/features/collaboration/collaborationRules';
+import { useTranslation } from '@/lib/i18n';
 
 interface NotificationCenterViewProps {
   onNavigateToWorkspace?: (workspaceId: string, targetView?: string, role?: SystemRole) => void;
@@ -123,6 +124,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
   onNavigateToWorkspace,
   onClose,
 }) => {
+  const { t } = useTranslation('notifications');
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -241,16 +243,16 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             <div>
               <div className='flex items-center gap-2.5'>
                 <h1 className='text-2xl font-serif font-bold text-[#1C1917] tracking-tight'>
-                  Trung Tâm Thông Báo
+                  {t('title', 'Trung Tâm Thông Báo')}
                 </h1>
                 {unreadCount > 0 && (
                   <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#F97316]/15 text-[#C2410C] border border-[#F97316]/30'>
-                    {unreadCount} chưa đọc
+                    {t('unread', { count: unreadCount }, `${unreadCount} chưa đọc`)}
                   </span>
                 )}
               </div>
               <p className='text-xs sm:text-sm text-[#57534E] mt-0.5'>
-                Theo dõi phân công việc, tiến độ chương và các yêu cầu chỉnh sửa từ đội ngũ sản xuất.
+                {t('subtitle', 'Theo dõi phân công việc, tiến độ chương và các yêu cầu chỉnh sửa từ đội ngũ sản xuất.')}
               </p>
             </div>
           </div>
@@ -262,11 +264,11 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             type='button'
             onClick={() => void fetchNotifications()}
             disabled={loading}
-            title='Làm mới danh sách'
+            title={t('refreshTooltip', 'Làm mới danh sách')}
             className='px-3 py-2 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50'
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className='hidden sm:inline'>Làm mới</span>
+            <span className='hidden sm:inline'>{t('refresh', 'Làm mới')}</span>
           </button>
           <button
             type='button'
@@ -275,13 +277,13 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             className='px-3.5 py-2 rounded-lg bg-[#1C1917] hover:bg-black text-[#FCFBF8] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs'
           >
             <CheckCheck className='w-3.5 h-3.5' />
-            <span>Đánh dấu đã đọc tất cả</span>
+            <span>{t('markAllAsRead', 'Đánh dấu đã đọc tất cả')}</span>
           </button>
           {onClose && (
             <button
               type='button'
               onClick={onClose}
-              aria-label='Đóng'
+              aria-label={t('common.actions.close', 'Đóng')}
               className='p-2 rounded-lg hover:bg-[#EFECE6] border border-transparent hover:border-[#D8D2C5] text-[#57534E] hover:text-[#1C1917] transition-colors cursor-pointer'
             >
               <X className='w-5 h-5' />
@@ -301,7 +303,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
               : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
           }`}
         >
-          Tất cả thông báo ({totalCount})
+          {t('allCount', { count: totalCount }, `Tất cả thông báo (${totalCount})`)}
         </button>
         <button
           type='button'
@@ -312,7 +314,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
               : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
           }`}
         >
-          <span>Chưa đọc</span>
+          <span>{t('unreadTab', 'Chưa đọc')}</span>
           {unreadCount > 0 && (
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
@@ -333,7 +335,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
           <div className='py-20 text-center text-[#78716C] flex flex-col items-center justify-center gap-3'>
             <RefreshCw className='w-7 h-7 animate-spin text-[#F97316]' />
             <span className='text-sm font-medium text-[#57534E]'>
-              Đang tải danh sách thông báo từ hệ thống...
+              {t('loading', 'Đang tải danh sách thông báo từ hệ thống...')}
             </span>
           </div>
         ) : displayedNotifications.length === 0 ? (
@@ -343,11 +345,15 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             </div>
             <div className='space-y-1'>
               <h3 className='text-base font-semibold text-[#1C1917]'>
-                {filter === 'unread' ? 'Không có thông báo chưa đọc nào' : 'Chưa có thông báo nào'}
+                {filter === 'unread'
+                  ? t('emptyUnread', 'Không có thông báo chưa đọc nào')
+                  : t('emptyAll', 'Chưa có thông báo nào')}
               </h3>
               <p className='text-xs text-[#78716C] max-w-sm mx-auto'>
-                Khi có tác vụ mới, biên tập viên phản hồi hoặc tiến độ chương cập nhật, thông báo sẽ
-                xuất hiện tại đây.
+                {t(
+                  'emptyDesc',
+                  'Khi có tác vụ mới, biên tập viên phản hồi hoặc tiến độ chương cập nhật, thông báo sẽ xuất hiện tại đây.',
+                )}
               </p>
             </div>
           </div>
@@ -355,13 +361,15 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
           <div className='divide-y divide-[#E7E2D9]'>
             {displayedNotifications.map((n) => {
               const isUnread = !n.readAt;
+              const typeKey = String(n.type);
               const config =
-                TYPE_CONFIG[String(n.type)] || {
+                TYPE_CONFIG[typeKey] || {
                   label: 'Thông báo',
                   icon: Bell,
                   color: 'text-[#78716C]',
                   bg: 'bg-[#F1EEE8] border-[#D8D2C5]',
                 };
+              const typeLabel = t(`types.${typeKey}`, config.label);
               const Icon = config.icon;
 
               return (
@@ -388,7 +396,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
                         <span
                           className={`text-[11px] font-mono px-2 py-0.5 rounded font-semibold border ${config.bg} ${config.color}`}
                         >
-                          {config.label}
+                          {typeLabel}
                         </span>
                         <h2
                           className={`text-sm font-semibold truncate ${
@@ -410,7 +418,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
 
                     <div className='flex items-center justify-between text-xs'>
                       <div className='flex items-center text-[#F97316] group-hover:text-[#EA580C] font-semibold text-xs'>
-                        <span>Mở chi tiết công việc</span>
+                        <span>{t('viewTaskDetail', 'Mở chi tiết công việc')}</span>
                         <ArrowRight className='w-3.5 h-3.5 ml-1 transform group-hover:translate-x-1 transition-transform' />
                       </div>
 
@@ -418,11 +426,11 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
                         <button
                           type='button'
                           onClick={(e) => void handleMarkAsRead(e, n)}
-                          title='Đánh dấu là đã đọc'
+                          title={t('markReadTooltip', 'Đánh dấu là đã đọc')}
                           className='text-[11px] font-mono text-[#78716C] hover:text-[#1C1917] hover:underline flex items-center gap-1 p-1'
                         >
                           <CheckCheck className='w-3 h-3' />
-                          <span>Đã đọc</span>
+                          <span>{t('markRead', 'Đã đọc')}</span>
                         </button>
                       )}
                     </div>

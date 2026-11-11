@@ -9,6 +9,7 @@ import {
   Users,
   Camera,
   Clock,
+  Mail,
 } from 'lucide-react';
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
@@ -88,9 +89,52 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
     }
   };
 
+  // Lời mời Pending (BR-23): chưa chấp nhận thì không vào được Workspace, nên phải nhận ngay tại đây.
+  type PendingInvitation = Awaited<
+    ReturnType<typeof workspaceService.getPendingInvitations>
+  >[number];
+  const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
+  const [busyInvitation, setBusyInvitation] = useState<string | null>(null);
+  const [invitationError, setInvitationError] = useState<string | null>(null);
+
+  const fetchInvitations = async () =>
+    setInvitations(await workspaceService.getPendingInvitations());
+
   useEffect(() => {
     fetchWorkspaces();
+    fetchInvitations();
   }, []);
+
+  const handleInvitation = async (inv: PendingInvitation, accept: boolean) => {
+    if (!accept) {
+      const ok = await confirm({
+        title: t('workspace.invitations.declineTitle', 'Từ chối lời mời?'),
+        description: t(
+          'workspace.invitations.declineDesc',
+          { name: inv.workspaceName },
+          `Bạn sẽ không tham gia Studio "${inv.workspaceName}". Chủ Studio có thể mời lại sau.`,
+        ),
+        confirmText: t('workspace.invitations.decline', 'Từ chối'),
+        cancelText: t('common.close') || 'Đóng',
+        variant: 'warning',
+      });
+      if (!ok) return;
+    }
+    setBusyInvitation(inv.workspaceId);
+    setInvitationError(null);
+    try {
+      if (accept) await workspaceService.acceptInvitation(inv.workspaceId);
+      else await workspaceService.rejectInvitation(inv.workspaceId);
+      setInvitations((prev) => prev.filter((i) => i.workspaceId !== inv.workspaceId));
+      if (accept) await fetchWorkspaces();
+    } catch (error) {
+      setInvitationError(
+        error instanceof Error ? error.message : t('workspace.invitations.error', 'Không xử lý được lời mời.'),
+      );
+    } finally {
+      setBusyInvitation(null);
+    }
+  };
 
   useEffect(() => setAvatarFailed(false), [currentUser?.avatarUrl]);
 
@@ -225,11 +269,75 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             <div className='mb-6'>
               <LucianInlineAlert
                 type='info'
-                title='Tài khoản Quản trị viên hệ thống'
-                description='Tài khoản Administrator không trực tiếp sở hữu hoặc tạo Studio Workspace theo quy tắc BR-07 nhằm đảm bảo tính bảo mật và phân lập dữ liệu.'
+                title={t('workspace.notices.adminBadge', 'Tài khoản Quản trị viên hệ thống')}
+                description={t(
+                  'workspace.notices.adminBanner',
+                  'Tài khoản Administrator không trực tiếp sở hữu hoặc tạo Studio Workspace theo quy tắc BR-07 nhằm đảm bảo tính bảo mật và phân lập dữ liệu.',
+                )}
                 dismissible={true}
               />
             </div>
+          )}
+
+          {invitations.length > 0 && (
+            <section aria-labelledby='ws-invitations-title' className='mb-6'>
+              <h2
+                id='ws-invitations-title'
+                className='flex items-center gap-2 text-sm font-semibold text-[#1C1917] mb-2'
+              >
+                <Mail className='w-4 h-4 text-[#C2410C]' aria-hidden='true' />
+                {t('workspace.invitations.pendingCount', { count: invitations.length }, `Lời mời đang chờ · ${invitations.length}`)}
+              </h2>
+              {invitationError && (
+                <p role='alert' className='text-xs text-red-700 mb-2'>
+                  {invitationError}
+                </p>
+              )}
+              <ul role='list' className='space-y-2'>
+                {invitations.map((inv) => {
+                  const busy = busyInvitation === inv.workspaceId;
+                  return (
+                    <li
+                      key={inv.workspaceId}
+                      className='flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-[#FFF7ED] border border-[#FDBA74] rounded-lg'
+                    >
+                      <div className='min-w-0'>
+                        <p className='text-sm text-[#1C1917]'>
+                          <strong className='font-semibold'>{inv.workspaceName}</strong>{' '}
+                          {t('workspace.invitations.invitedYou', 'mời bạn làm')}{' '}
+                          <strong className='font-semibold'>
+                            {roleLabel(normalizeWorkspaceRole(inv.role))}
+                          </strong>
+                        </p>
+                        <p className='text-xs text-[#57534E] truncate'>
+                          {inv.ownerName} ({inv.ownerEmail}) · {timeAgo(inv.invitedAt)}
+                        </p>
+                      </div>
+                      <div className='flex items-center gap-2 shrink-0'>
+                        <button
+                          type='button'
+                          disabled={busy}
+                          onClick={() => handleInvitation(inv, false)}
+                          className='ws-btn-secondary ws-focus h-9 px-3 text-xs font-semibold disabled:opacity-50'
+                        >
+                          {t('workspace.invitations.decline', 'Từ chối')}
+                        </button>
+                        <button
+                          type='button'
+                          disabled={busy}
+                          onClick={() => handleInvitation(inv, true)}
+                          className='ws-btn-primary ws-focus h-9 px-3 text-xs font-semibold disabled:opacity-50'
+                        >
+                          {busy
+                            ? t('workspace.invitations.processing', 'Đang xử lý…')
+                            : t('workspace.invitations.accept', 'Chấp nhận')}
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           )}
 
           {loading ? (
@@ -342,7 +450,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                           {ws.coverUrl ? (
                             <AuthenticatedImage
                               src={ws.coverUrl}
-                              alt={`Ảnh bìa Studio ${ws.name}`}
+                              alt={t('workspace.notices.coverAlt', { name: ws.name }, `Ảnh bìa Studio ${ws.name}`)}
                               className='w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.02]'
                               loading='lazy'
                               fallback={

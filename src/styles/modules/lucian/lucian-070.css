@@ -1,5 +1,5 @@
 /* Lucian UX/UI Prompt #070 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#070 */
-/* Adapted for PanelForge Editorial AI Studio Toast Notification System */
+/* Adapted for PanelForge Warm Editorial Studio Toast Notification System */
 
 .u070-zone {
   position: fixed;
@@ -31,12 +31,12 @@
   gap: 12px;
   min-height: 64px;
   padding: 14px 14px 16px 14px;
-  border-radius: 18px;
+  border-radius: 16px;
   background: #FFFFFF;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
-              0 16px 36px -6px rgba(0, 0, 0, 0.1),
-              0 0 0 1px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 25px -4px rgba(28, 25, 23, 0.08),
+              0 4px 12px -2px rgba(28, 25, 23, 0.04),
+              0 0 0 1px rgba(28, 25, 23, 0.03);
+  border: 1px solid #E7E5E4;
   color: #1C1917;
   transform-origin: 50% 0%;
   transform: translate(var(--dx, 0px), var(--y, 0px)) scale(var(--s, 1));
@@ -50,28 +50,27 @@
   backdrop-filter: blur(16px);
 }
 
-/* Kiểu dáng thông báo thành công sáng màu phong cách Lucian UX */
+/* Kiểu dáng thông báo thành công sáng màu chuẩn PanelForge Studio */
 .u070-t.u070-type-success {
   background: #FFFFFF;
-  border: 1px solid rgba(16, 185, 129, 0.32);
-  box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.1),
-              0 16px 36px -6px rgba(16, 185, 129, 0.16),
-              0 0 0 1px rgba(16, 185, 129, 0.18);
+  border: 1px solid #E7E5E4;
+  box-shadow: 0 10px 28px -4px rgba(28, 25, 23, 0.08),
+              0 4px 12px -2px rgba(28, 25, 23, 0.04);
 }
 
 .dark .u070-t {
-  background: #1C1917;
-  color: #FCFBF8;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08),
-              0 20px 40px -15px rgba(0, 0, 0, 0.5);
+  background: #181512;
+  color: #F4F0E8;
+  border-color: rgba(244, 240, 232, 0.12);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.6),
+              0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .dark .u070-t.u070-type-success {
-  background: #1C1917;
-  border-color: rgba(16, 185, 129, 0.35);
-  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25),
-              0 20px 40px -15px rgba(0, 0, 0, 0.5);
+  background: #181512;
+  border-color: rgba(244, 240, 232, 0.14);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.6),
+              0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .u070-t.drag {
@@ -102,22 +101,85 @@
   opacity: 0.15;
 }
 
+/* Icon Badge - PanelForge Status Pigments */
 .u070-ic {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   flex: none;
-  border-radius: 11px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--c) 16%, transparent);
-  color: var(--c);
-  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
   margin-top: 1px;
+  transition: transform 0.2s ease;
+}
+
+.u070-type-success .u070-ic {
+  background: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+  box-shadow: 0 1px 2px 0 rgba(16, 185, 129, 0.08);
+}
+
+.u070-type-warning .u070-ic {
+  background: #FFFBEB;
+  color: #D97706;
+  border: 1px solid #FDE68A;
+  box-shadow: 0 1px 2px 0 rgba(217, 119, 6, 0.08);
+}
+
+.u070-type-error .u070-ic {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+  box-shadow: 0 1px 2px 0 rgba(220, 38, 38, 0.08);
+}
+
+.u070-type-info .u070-ic {
+  background: #EFF6FF;
+  color: #2563EB;
+  border: 1px solid #BFDBFE;
+  box-shadow: 0 1px 2px 0 rgba(37, 99, 235, 0.08);
+}
+
+.u070-type-logout .u070-ic {
+  background: #F5F5F4;
+  color: #57534E;
+  border: 1px solid #E7E5E4;
+}
+
+.dark .u070-type-success .u070-ic {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.dark .u070-type-warning .u070-ic {
+  background: rgba(217, 119, 6, 0.15);
+  color: #FBBF24;
+  border: 1px solid rgba(217, 119, 6, 0.28);
+}
+
+.dark .u070-type-error .u070-ic {
+  background: rgba(220, 38, 38, 0.15);
+  color: #F87171;
+  border: 1px solid rgba(220, 38, 38, 0.28);
+}
+
+.dark .u070-type-info .u070-ic {
+  background: rgba(37, 99, 235, 0.15);
+  color: #60A5FA;
+  border: 1px solid rgba(37, 99, 235, 0.28);
+}
+
+.dark .u070-type-logout .u070-ic {
+  background: rgba(244, 240, 232, 0.08);
+  color: rgba(244, 240, 232, 0.7);
+  border: 1px solid rgba(244, 240, 232, 0.14);
 }
 
 .u070-ic svg {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   stroke: currentColor;
   stroke-width: 2.2;
 }
@@ -125,59 +187,61 @@
 .u070-tx {
   flex: 1;
   min-width: 0;
+  padding-top: 1px;
 }
 
 .u070-tx b {
   display: block;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.015em;
-  color: #0F172A;
-  line-height: 1.3;
+  color: #1C1917;
+  line-height: 1.35;
 }
 
 .dark .u070-tx b {
-  color: #FCFBF8;
+  color: #F4F0E8;
 }
 
 .u070-tx small {
   display: block;
   margin-top: 3px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: #57534E;
   line-height: 1.45;
   text-wrap: pretty;
 }
 
 .dark .u070-tx small {
-  color: #A8A29E;
+  color: rgba(244, 240, 232, 0.72);
 }
 
 .u070-act {
-  margin-top: 6px;
+  margin-top: 8px;
   height: 28px;
   padding: 0 10px;
-  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--c) 12%, transparent);
+  border: 1px solid #E7E5E4;
+  border-radius: 9999px;
+  background: #F5F5F4;
   font-size: 12px;
-  font-weight: 650;
-  color: var(--c);
+  font-weight: 600;
+  color: #1C1917;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .u070-act:hover {
-  background: color-mix(in srgb, var(--c) 22%, transparent);
+  background: #EAE7E1;
+  color: #000000;
   transform: translateY(-1px);
 }
 
 .u070-act:focus-visible {
-  outline: 2px solid var(--c);
+  outline: 2px solid var(--ux-accent, #F97316);
   outline-offset: 1px;
 }
 
@@ -187,46 +251,70 @@
   flex: none;
   border: 0;
   padding: 0;
-  border-radius: 50%;
+  border-radius: 8px;
   display: grid;
   place-items: center;
-  background: none;
-  color: #64748B;
+  background: transparent;
+  color: #78716C;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
   margin-top: -2px;
   margin-right: -2px;
 }
 
 .u070-x:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: #0F172A;
+  background: #F5F3EF;
+  color: #1C1917;
 }
 
 .dark .u070-x {
-  color: #78716C;
+  color: rgba(244, 240, 232, 0.45);
 }
 
 .dark .u070-x:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #FCFBF8;
+  background: rgba(255, 255, 255, 0.08);
+  color: #F4F0E8;
 }
 
 .u070-x:focus-visible {
-  outline: 2px solid var(--ux-accent, #3B82F6);
+  outline: 2px solid var(--ux-accent, #F97316);
   outline-offset: 1px;
 }
 
-.u070-bar {
+.u070-bar-track {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 14px;
+  right: 14px;
+  bottom: 6px;
   height: 2.5px;
+  background: rgba(28, 25, 23, 0.06);
+  border-radius: 9999px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dark .u070-bar-track {
+  background: rgba(244, 240, 232, 0.08);
+}
+
+.u070-bar {
+  display: block;
+  width: 100%;
+  height: 100%;
   background: var(--c);
-  opacity: 0.8;
+  border-radius: 9999px;
   transform-origin: 0 50%;
-  transform: scaleX(var(--left, 1));
+  opacity: 0.9;
+}
+
+/* Fallback if .u070-bar is direct child of .u070-t */
+.u070-t > .u070-bar {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 6px;
+  height: 2.5px;
+  width: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

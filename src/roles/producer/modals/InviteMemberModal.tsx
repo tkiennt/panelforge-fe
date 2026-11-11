@@ -3,6 +3,7 @@ import { X, UserPlus, Mail, AlertTriangle, Plus, Trash2, User } from 'lucide-rea
 import { workspaceService, WorkspaceMemberDto } from '@/services/workspace.service';
 import { TeamInviteAcceptance, TeamMemberItem } from '@/shared/components/lucian';
 import { InviteResultModal, InviteResultItem } from './InviteResultModal';
+import { useTranslation } from '@/lib/i18n';
 
 interface InviteMemberModalProps {
   isOpen: boolean;
@@ -21,12 +22,12 @@ interface MemberInviteEntry {
 }
 
 const AVAILABLE_ROLES = [
-  { value: 'Writer', label: 'Biên kịch (Writer)' },
-  { value: 'Artist', label: 'Họa sĩ (Artist)' },
-  { value: 'Letterer', label: 'Chèn chữ (Letterer)' },
-  { value: 'Editor', label: 'Biên tập viên (Editor)' },
-  { value: 'Publisher', label: 'Nhà xuất bản (Publisher)' },
-  { value: 'Producer', label: 'Sản xuất (Producer)' },
+  { value: 'Writer', labelKey: 'roles.writer', label: 'Biên kịch (Writer)' },
+  { value: 'Artist', labelKey: 'roles.artist', label: 'Họa sĩ (Artist)' },
+  { value: 'Letterer', labelKey: 'roles.letterer', label: 'Chèn chữ (Letterer)' },
+  { value: 'Editor', labelKey: 'roles.editor', label: 'Biên tập viên (Editor)' },
+  { value: 'Publisher', labelKey: 'roles.publisher', label: 'Nhà xuất bản (Publisher)' },
+  { value: 'Producer', labelKey: 'roles.producer', label: 'Sản xuất (Producer)' },
 ];
 
 export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
@@ -38,6 +39,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   onInvited,
   onShowToast,
 }) => {
+  const { t } = useTranslation('members');
   const [inviteMode, setInviteMode] = useState<'interactive' | 'batch'>(initialMode);
   const [existingMembers, setExistingMembers] = useState<TeamMemberItem[]>([]);
 
@@ -84,7 +86,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   // Direct single-member invitation
   const handleDirectInvite = async (email: string, role: string) => {
     if (!workspaceId) {
-      throw new Error('Không tìm thấy không gian làm việc.');
+      throw new Error(t('inviteModal.errorNoWorkspace', 'Không tìm thấy không gian làm việc.'));
     }
 
     const addedMember = await workspaceService.addMember(workspaceId, {
@@ -99,16 +101,25 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     };
 
     onInvited(pendingMember);
-    onShowToast('Đã gửi lời mời', `Đã gửi lời mời tới ${email} (${role}).`);
+    onShowToast(
+      t('inviteModal.toastSentTitle', 'Đã gửi lời mời'),
+      t('inviteModal.toastSentSingle', { email, role }, `Đã gửi lời mời tới ${email} (${role}).`),
+    );
   };
 
   const handleRoleChangeDirect = async (id: string, email: string, newRole: string) => {
     if (!workspaceId || id.startsWith('invite-') || id.startsWith('mem-')) return;
     try {
       await workspaceService.updateMemberRole(workspaceId, id, { newRole });
-      onShowToast('Cập nhật vai trò', `Đã đổi vai trò của ${email} sang ${newRole}.`);
+      onShowToast(
+        t('inviteModal.toastUpdateRoleTitle', 'Cập nhật vai trò'),
+        t('inviteModal.toastUpdateRoleDesc', { email, role: newRole }, `Đã đổi vai trò của ${email} sang ${newRole}.`),
+      );
     } catch (err: any) {
-      onShowToast('Lỗi cập nhật', err?.message || 'Không thể cập nhật vai trò.');
+      onShowToast(
+        t('inviteModal.toastUpdateRoleErrorTitle', 'Lỗi cập nhật'),
+        err?.message || t('inviteModal.toastUpdateRoleErrorDesc', 'Không thể cập nhật vai trò.'),
+      );
     }
   };
 
@@ -122,7 +133,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
       .filter((e) => e.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
 
     if (extracted.length === 0) {
-      setErrorMsg('Vui lòng nhập định dạng email hợp lệ.');
+      setErrorMsg(t('inviteModal.errorInvalidEmail', 'Vui lòng nhập định dạng email hợp lệ.'));
       return;
     }
 
@@ -142,7 +153,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     });
 
     if (newEntries.length === 0) {
-      setErrorMsg('Email đã có trong danh sách bên dưới.');
+      setErrorMsg(t('inviteModal.errorEmailExists', 'Email đã có trong danh sách bên dưới.'));
       return;
     }
 
@@ -189,12 +200,12 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     }
 
     if (currentList.length === 0) {
-      setErrorMsg('Vui lòng nhập ít nhất một email.');
+      setErrorMsg(t('inviteModal.errorEmptyList', 'Vui lòng nhập ít nhất một email.'));
       return;
     }
 
     if (!workspaceId) {
-      setErrorMsg('Không tìm thấy không gian làm việc.');
+      setErrorMsg(t('inviteModal.errorNoWorkspace', 'Không tìm thấy không gian làm việc.'));
       return;
     }
 
@@ -224,15 +235,15 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
           success: true,
           message:
             addedMember.invitationEmailSent === false
-              ? 'Đã thêm (chưa gửi email)'
-              : 'Đã gửi email mời',
+              ? t('inviteModal.addedNoEmail', 'Đã thêm (chưa gửi email)')
+              : t('inviteModal.addedEmailSent', 'Đã gửi email mời'),
         });
       } catch (err: any) {
         results.push({
           email: item.email,
           role: item.role,
           success: false,
-          message: err.message || 'Lỗi gửi lời mời',
+          message: err.message || t('inviteModal.errorSendFailed', 'Lỗi gửi lời mời'),
         });
       }
     }
@@ -243,7 +254,10 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
 
     const successCount = results.filter((r) => r.success).length;
     if (successCount > 0) {
-      onShowToast('Đã gửi lời mời', `Đã gửi lời mời tới ${successCount} người.`);
+      onShowToast(
+        t('inviteModal.toastSentTitle', 'Đã gửi lời mời'),
+        t('inviteModal.toastSentBatch', { count: successCount }, `Đã gửi lời mời tới ${successCount} người.`),
+      );
       setInviteList([]);
       setRawEmails('');
     }
@@ -261,7 +275,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               </div>
               <div>
                 <h3 className='font-display font-bold text-sm text-[#171717]'>
-                  Mời thành viên
+                  {t('inviteModal.title', 'Mời thành viên')}
                 </h3>
                 {workspaceName && (
                   <p className='text-[11px] text-[#737373]'>{workspaceName}</p>
@@ -270,7 +284,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              aria-label='Đóng modal'
+              aria-label={t('common.actions.close', 'Đóng modal')}
               className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
             >
               <X className='w-4 h-4' />
@@ -289,7 +303,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               }`}
             >
               <User className='w-3.5 h-3.5 text-orange-500' />
-              <span>Cá nhân</span>
+              <span>{t('inviteModal.tabInteractive', 'Cá nhân')}</span>
             </button>
             <button
               type='button'
@@ -301,7 +315,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               }`}
             >
               <Mail className='w-3.5 h-3.5 text-[#737373]' />
-              <span>Hàng loạt</span>
+              <span>{t('inviteModal.tabBatch', 'Hàng loạt')}</span>
             </button>
           </div>
 
@@ -317,7 +331,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               />
 
               <p className='text-[11px] text-stone-400 text-center font-mono'>
-                Thành viên cần xác nhận qua email để hoàn tất tham gia.
+                {t('inviteModal.interactiveHint', 'Thành viên cần xác nhận qua email để hoàn tất tham gia.')}
               </p>
 
               <div className='pt-1 flex items-center justify-end'>
@@ -326,7 +340,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                   onClick={onClose}
                   className='px-4 py-2 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-xs'
                 >
-                  Đóng
+                  {t('inviteModal.close', 'Đóng')}
                 </button>
               </div>
             </div>
@@ -346,15 +360,15 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               <div>
                 <div className='flex items-center justify-between mb-1.5'>
                   <label className='block text-xs font-semibold text-[#171717]'>
-                    Email người nhận
+                    {t('inviteModal.emailLabel', 'Email người nhận')}
                   </label>
                   <span className='text-[11px] text-stone-400'>
-                    Cách nhau bằng dấu phẩy hoặc dòng mới
+                    {t('inviteModal.emailHint', 'Cách nhau bằng dấu phẩy hoặc dòng mới')}
                   </span>
                 </div>
                 <textarea
                   rows={3}
-                  placeholder='artist@studio.com, writer@studio.com'
+                  placeholder={t('inviteModal.emailPlaceholder', 'artist@studio.com, writer@studio.com')}
                   value={rawEmails}
                   onChange={(e) => setRawEmails(e.target.value)}
                   onKeyDown={(e) => {
@@ -367,7 +381,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                 />
                 <div className='flex justify-between items-center mt-2'>
                   <p className='text-[11px] text-stone-400'>
-                    Thêm vào danh sách để gán vai trò riêng từng người.
+                    {t('inviteModal.addToListHint', 'Thêm vào danh sách để gán vai trò riêng từng người.')}
                   </p>
                   <button
                     type='button'
@@ -375,7 +389,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                     className='px-3 py-1 bg-white hover:bg-stone-50 border border-stone-200 rounded-md font-semibold text-stone-700 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
                   >
                     <Plus className='w-3 h-3 text-orange-600' />
-                    <span>Thêm vào danh sách</span>
+                    <span>{t('inviteModal.addToListBtn', 'Thêm vào danh sách')}</span>
                   </button>
                 </div>
               </div>
@@ -385,10 +399,12 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                 <div className='space-y-2 border-t border-stone-200 pt-3'>
                   <div className='flex items-center justify-between'>
                     <span className='font-semibold text-xs text-stone-700'>
-                      Danh sách mời ({inviteList.length})
+                      {t('inviteModal.listTitle', { count: inviteList.length }, `Danh sách mời (${inviteList.length})`)}
                     </span>
                     <div className='flex items-center gap-2'>
-                      <span className='text-[11px] text-stone-500'>Vai trò chung:</span>
+                      <span className='text-[11px] text-stone-500'>
+                        {t('inviteModal.commonRole', 'Vai trò chung:')}
+                      </span>
                       <select
                         value={defaultRole}
                         onChange={(e) => handleApplyRoleToAll(e.target.value)}
@@ -396,7 +412,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                       >
                         {AVAILABLE_ROLES.map((r) => (
                           <option key={r.value} value={r.value}>
-                            {r.label}
+                            {t(r.labelKey, r.label)}
                           </option>
                         ))}
                       </select>
@@ -424,7 +440,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                           >
                             {AVAILABLE_ROLES.map((r) => (
                               <option key={r.value} value={r.value}>
-                                {r.label}
+                                {t(r.labelKey, r.label)}
                               </option>
                             ))}
                           </select>
@@ -432,7 +448,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                             type='button'
                             onClick={() => handleRemoveEntry(item.id)}
                             className='p-1 hover:bg-red-50 text-stone-400 hover:text-red-600 rounded transition-colors cursor-pointer'
-                            title='Xóa khỏi danh sách'
+                            title={t('inviteModal.removeEntry', 'Xóa khỏi danh sách')}
                           >
                             <Trash2 className='w-3.5 h-3.5' />
                           </button>
@@ -449,7 +465,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                   onClick={onClose}
                   className='px-3.5 py-2 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] text-[#555555] text-xs font-semibold rounded-lg transition-colors cursor-pointer'
                 >
-                  Hủy
+                  {t('inviteModal.cancel', 'Hủy')}
                 </button>
                 <button
                   type='submit'
@@ -457,10 +473,10 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                   className='px-4 py-2 bg-[#171717] hover:bg-black text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5'
                 >
                   {isSubmitting ? (
-                    <span>Đang gửi...</span>
+                    <span>{t('inviteModal.submitting', 'Đang gửi...')}</span>
                   ) : (
                     <span>
-                      Gửi lời mời ({inviteList.length || (rawEmails.trim() ? 1 : 0)})
+                      {t('inviteModal.submitBtn', { count: inviteList.length || (rawEmails.trim() ? 1 : 0) }, `Gửi lời mời (${inviteList.length || (rawEmails.trim() ? 1 : 0)})`)}
                     </span>
                   )}
                 </button>

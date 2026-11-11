@@ -279,4 +279,68 @@ describe('WorkspaceListView Component', () => {
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(document.querySelector('header img')).not.toBeInTheDocument();
   });
+
+  describe('Lời mời đang chờ (BR-23: Pending chưa có quyền tới khi chấp nhận)', () => {
+    const invitation = {
+      workspaceId: 'ws-inv',
+      workspaceName: 'Gamma Studio',
+      ownerName: 'Bob',
+      ownerEmail: 'bob@example.com',
+      role: 'Artist',
+      invitedAt: '2026-01-01T00:00:00Z',
+    };
+
+    it('chấp nhận lời mời → gọi API, ẩn lời mời và tải lại danh sách Studio', async () => {
+      const getMine = vi
+        .spyOn(workspaceService, 'getMyWorkspaces')
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          ws({ id: 'ws-inv', name: 'Gamma Studio', isOwner: false, currentUserRole: 'ARTIST' }),
+        ] as any);
+      vi.spyOn(workspaceService, 'getPendingInvitations').mockResolvedValue([invitation]);
+      const accept = vi.spyOn(workspaceService, 'acceptInvitation').mockResolvedValue({} as any);
+      renderView();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Chấp nhận' }));
+
+      await waitFor(() => expect(accept).toHaveBeenCalledWith('ws-inv'));
+      await waitFor(() => expect(screen.queryByText(/Lời mời đang chờ/)).not.toBeInTheDocument());
+      expect(getMine).toHaveBeenCalledTimes(2);
+      expect(await screen.findByRole('button', { name: /Gamma Studio/ })).toBeInTheDocument();
+    });
+
+    it('từ chối cần xác nhận; huỷ xác nhận thì không gọi API', async () => {
+      vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([]);
+      vi.spyOn(workspaceService, 'getPendingInvitations').mockResolvedValue([invitation]);
+      const reject = vi.spyOn(workspaceService, 'rejectInvitation').mockResolvedValue();
+      const confirmSpy = vi
+        .spyOn(window, 'confirm')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(true);
+      renderView();
+
+      const btn = await screen.findByRole('button', { name: 'Từ chối' });
+      fireEvent.click(btn);
+      await waitFor(() => expect(confirmSpy).toHaveBeenCalledTimes(1));
+      expect(reject).not.toHaveBeenCalled();
+
+      fireEvent.click(btn);
+      await waitFor(() => expect(reject).toHaveBeenCalledWith('ws-inv'));
+      await waitFor(() => expect(screen.queryByText('Gamma Studio')).not.toBeInTheDocument());
+    });
+
+    it('lỗi khi chấp nhận → hiện thông báo, giữ lời mời để thử lại', async () => {
+      vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([]);
+      vi.spyOn(workspaceService, 'getPendingInvitations').mockResolvedValue([invitation]);
+      vi.spyOn(workspaceService, 'acceptInvitation').mockRejectedValue(
+        new Error('Lời mời đã hết hiệu lực.'),
+      );
+      renderView();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Chấp nhận' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Lời mời đã hết hiệu lực.');
+      expect(screen.getByRole('button', { name: 'Chấp nhận' })).toBeEnabled();
+    });
+  });
 });

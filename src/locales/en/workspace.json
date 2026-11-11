@@ -71,5 +71,54 @@
     "publisher": "Publisher",
     "reader": "Reader",
     "member": "Member"
+  },
+  "focus": {
+    "canvas": "Canvas Workspace (Fabric Studio)",
+    "artist": "Artist Desk (Manga B5 Desk)",
+    "script": "Script & Screenplay (Script Editor)",
+    "letterer": "Lettering & Typography (Letterer Desk)",
+    "task": "Task Assignment (Task Desk)",
+    "review": "Editorial Review (Editor Review)",
+    "defaultTitle": "Creative Workspace",
+    "backToProject": "Back to Project",
+    "backTooltip": "Back to Project Dashboard (Exit focus mode)",
+    "commandPalette": "Open Command Palette (Ctrl+K / ⌘K)"
+  },
+  "invitations": {
+    "pendingCount": "Pending Invitations · {count}",
+    "invitedYou": "invited you to be",
+    "decline": "Decline",
+    "accept": "Accept",
+    "processing": "Processing…",
+    "declineTitle": "Decline invitation?",
+    "declineDesc": "You will not join Studio \"{name}\". The studio owner can invite you again later.",
+    "error": "Failed to process invitation."
+  },
+  "notices": {
+    "adminTitle": "Administrator Role Limitation",
+    "adminBanner": "Administrator accounts do not directly own or create Studio Workspaces per BR-07. You have full management access in the System Admin panel.",
+    "producerTitle": "Producer Privilege Required",
+    "adminBadge": "System Administrator Account",
+    "coverAlt": "Cover image for Studio {name}"
+  },
+  "createModal": {
+    "title": "Create New Studio / Workspace",
+    "subtitle": "Initialize comic production workspace",
+    "nameLabel": "Studio / Workspace Name",
+    "namePlaceholder": "e.g. Tokyo Ghoul Production Studio",
+    "quotaLabel": "Initial Storage Quota (GB)",
+    "quotaOptions": {
+      "5": "5 GB (Standard)",
+      "10": "10 GB (Recommended)",
+      "25": "25 GB (Large Studio)",
+      "50": "50 GB (Professional)"
+    },
+    "cancel": "Cancel",
+    "create": "Create Studio",
+    "creating": "Creating...",
+    "errorEmptyName": "Please enter a Workspace / Studio name.",
+    "errorCreateFailed": "Could not create Workspace. Please try again.",
+    "successTitle": "Studio created successfully",
+    "successDesc": "Workspace \"{name}\" has been created"
   }
 }

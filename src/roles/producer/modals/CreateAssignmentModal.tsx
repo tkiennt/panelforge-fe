@@ -41,6 +41,7 @@ import { panelService } from '@/services/panel.service';
 import { PanelDto } from '@/types/pipeline';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { DependencySelector } from '../components/DependencySelector';
+import { useTranslation } from '@/lib/i18n';
 
 interface CreateAssignmentModalProps {
   isOpen: boolean;
@@ -67,6 +68,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   onSuccess,
   onShowToast,
 }) => {
+  const { t } = useTranslation('pipeline');
   const [entityType, setEntityType] = useState<WorkflowEntityType>(initialEntityType || 'Chapter');
   const [selectedPageId, setSelectedPageId] = useState('');
   const [selectedPanelId, setSelectedPanelId] = useState('');
@@ -941,7 +943,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             <div>
               <div className='flex items-center gap-2'>
                 <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 font-semibold text-xs uppercase tracking-wider'>
-                  Giao việc mới
+                  {t('createAssignmentModal.headerBadge')}
                 </span>
                 {chapterNumber && (
                   <span className='px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200 font-medium text-xs'>
@@ -950,14 +952,14 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                 )}
               </div>
               <h2 className='text-lg font-serif font-bold text-stone-900 mt-0.5'>
-                Giao Việc Mới {chapterNumber ? `– Chương ${chapterNumber}` : ''}
+                {t('createAssignmentModal.title', { chapter: chapterNumber ? `– Chương ${chapterNumber}` : '' })}
               </h2>
             </div>
           </div>
           <button
             type='button'
             onClick={onClose}
-            aria-label='Đóng cửa sổ giao việc'
+            aria-label={t('createAssignmentModal.closeAria')}
             className='w-8 h-8 rounded-xl hover:bg-stone-200/60 border border-transparent hover:border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-studio cursor-pointer'
           >
             <X className='w-4 h-4' />
@@ -979,7 +981,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              Giao theo công đoạn
+              {t('createAssignmentModal.tabSingle')}
             </button>
             <button
               type='button'
@@ -994,9 +996,9 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              <span>Kế hoạch toàn chương</span>
+              <span>{t('createAssignmentModal.tabPlan')}</span>
               <span className='px-1.5 py-0.2 bg-orange-100 text-orange-800 rounded text-[10px] font-bold uppercase'>
-                Mới
+                {t('createAssignmentModal.tabPlanBadge')}
               </span>
             </button>
           </div>
@@ -1016,8 +1018,8 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
               )}
               <span>
                 {templateSourceChapter !== null
-                  ? `Nạp lại từ Chương ${templateSourceChapter}`
-                  : 'Nạp mẫu từ chương trước'}
+                  ? t('createAssignmentModal.reloadTemplateBtn', { number: templateSourceChapter })
+                  : t('createAssignmentModal.loadTemplateBtn')}
               </span>
             </button>
           )}
@@ -1043,14 +1045,14 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             <div className='p-3.5 bg-orange-50/60 border border-orange-200/80 rounded-2xl flex items-start gap-2.5 text-xs text-orange-900'>
               <Sparkles className='w-4 h-4 text-orange-600 shrink-0 mt-0.5' />
               <div className='leading-relaxed'>
-                <span className='font-semibold'>Giao việc toàn chương theo kế hoạch:</span> Hệ thống sẽ giao nhiều công đoạn cùng lúc, tự động nối quan hệ phụ thuộc tiền đề theo thứ tự Pipeline. Khi công đoạn trước được duyệt, người nhận công đoạn sau sẽ tự động nhận thông báo <strong className='text-orange-950 font-medium'>Đến lượt bạn</strong>.
+                {t('createAssignmentModal.planNotice')}
               </div>
             </div>
 
             {/* General Plan Settings */}
             <div className='p-4 bg-[#FAF8F5] rounded-2xl border border-stone-200/80 space-y-3.5'>
               <h3 className='text-xs font-bold uppercase tracking-wider text-stone-500'>
-                Cài đặt chung kế hoạch
+                {t('createAssignmentModal.planSettingsTitle')}
               </h3>
 
               {/* General Brief */}
@@ -1059,7 +1061,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   htmlFor='plan-general-brief'
                   className='block text-sm font-semibold text-stone-800 mb-1.5'
                 >
-                  Yêu cầu chung (Brief toàn chương) *
+                  {t('createAssignmentModal.planBriefLabel')}
                 </label>
                 <textarea
                   id='plan-general-brief'
@@ -1067,7 +1069,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   rows={2}
                   value={planBrief}
                   onChange={(e) => setPlanBrief(e.target.value)}
-                  placeholder='Nhập mô tả kịch bản, phong cách hoặc yêu cầu chung cho toàn bộ chương...'
+                  placeholder={t('createAssignmentModal.planBriefPlaceholder')}
                   className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-stone-900 text-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio resize-none shadow-xs'
                 />
               </div>
@@ -1079,7 +1081,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     htmlFor='plan-due-date'
                     className='block text-sm font-semibold text-stone-800 mb-1.5'
                   >
-                    Hạn hoàn thành chung
+                    {t('createAssignmentModal.planDueDateLabel')}
                   </label>
                   <input
                     id='plan-due-date'
@@ -1098,7 +1100,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     htmlFor='plan-priority'
                     className='block text-sm font-semibold text-stone-800 mb-1.5'
                   >
-                    Mức độ ưu tiên chung
+                    {t('createAssignmentModal.planPriorityLabel')}
                   </label>
                   <select
                     id='plan-priority'
@@ -1107,10 +1109,10 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     onChange={(e) => setPlanPriority(e.target.value as AssignmentPriority)}
                     className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-stone-700 text-sm font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
                   >
-                    <option value='Low'>Thấp (Low)</option>
-                    <option value='Medium'>Bình thường (Medium)</option>
-                    <option value='High'>Cao (High)</option>
-                    <option value='Urgent'>Khẩn cấp (Urgent)</option>
+                    <option value='Low'>{t('createAssignmentModal.priorityLow')}</option>
+                    <option value='Medium'>{t('createAssignmentModal.priorityMedium')}</option>
+                    <option value='High'>{t('createAssignmentModal.priorityHigh')}</option>
+                    <option value='Urgent'>{t('createAssignmentModal.priorityUrgent')}</option>
                   </select>
                 </div>
               </div>
@@ -1121,7 +1123,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   htmlFor='plan-reference-notes'
                   className='block text-sm font-semibold text-stone-800 mb-1.5'
                 >
-                  Ghi chú tham chiếu chung
+                  {t('createAssignmentModal.planReferenceNotesLabel')}
                 </label>
                 <input
                   id='plan-reference-notes'
@@ -1129,7 +1131,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   type='text'
                   value={planReferenceNotes}
                   onChange={(e) => setPlanReferenceNotes(e.target.value)}
-                  placeholder='Link tài liệu hoặc link Model Sheet / Series Bible tham chiếu...'
+                  placeholder={t('createAssignmentModal.planReferenceNotesPlaceholder')}
                   className='w-full px-3.5 py-2 bg-white border border-stone-200 rounded-xl text-stone-900 text-xs focus:outline-none focus:border-orange-500 transition-studio shadow-xs'
                 />
               </div>
@@ -1139,10 +1141,13 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             <div className='space-y-3'>
               <div className='flex items-center justify-between'>
                 <h3 className='text-xs font-bold uppercase tracking-wider text-stone-500'>
-                  Các công đoạn phân công ({stages.length} công đoạn)
+                  {t('createAssignmentModal.planStagesTitle', { count: stages.length })}
                 </h3>
                 <span className='text-xs text-stone-500'>
-                  Đã chọn {Object.values(planStageAssignments).filter((s) => s.enabled).length}/{stages.length} công đoạn
+                  {t('createAssignmentModal.planStagesSelected', {
+                    selected: Object.values(planStageAssignments).filter((s) => s.enabled).length,
+                    total: stages.length,
+                  })}
                 </span>
               </div>
 
@@ -1221,7 +1226,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                               htmlFor={`plan-stage-assignee-${stage.id}`}
                               className='block text-xs font-semibold text-stone-700 mb-1'
                             >
-                              Người nhận *
+                              {t('createAssignmentModal.planStageAssignee')}
                             </label>
                             <select
                               id={`plan-stage-assignee-${stage.id}`}
@@ -1238,7 +1243,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                               }}
                               className='w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-700 font-medium focus:outline-none focus:border-orange-500 transition-studio'
                             >
-                              <option value=''>-- Chọn người nhận --</option>
+                              <option value=''>{t('createAssignmentModal.planStageSelectAssignee')}</option>
                               {eligibleMembers.map((m) => (
                                 <option key={m.userId} value={m.userId}>
                                   {m.fullName || m.email} ({m.studioRole})
@@ -1252,14 +1257,14 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                               htmlFor={`plan-stage-brief-${stage.id}`}
                               className='block text-xs font-semibold text-stone-700 mb-1'
                             >
-                              Brief riêng (để trống dùng brief chung)
+                              {t('createAssignmentModal.planStageBrief')}
                             </label>
                             <input
                               id={`plan-stage-brief-${stage.id}`}
                               aria-label={`Brief riêng công đoạn ${stage.name}`}
                               type='text'
                               value={config.brief}
-                              placeholder={planBrief.trim() || 'Dùng brief chung của kế hoạch'}
+                              placeholder={planBrief.trim() || t('createAssignmentModal.planStageBriefPlaceholder')}
                               onChange={(e) => {
                                 setPlanStageAssignments((prev) => ({
                                   ...prev,
@@ -1285,10 +1290,10 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
               <div className='p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl text-xs space-y-1.5'>
                 <div className='flex items-center gap-2 font-semibold text-emerald-950'>
                   <CheckCircle2 className='w-4 h-4 text-emerald-600' />
-                  <span>Kiểm tra kế hoạch hoàn tất: Sẵn sàng tạo {planDryRunResult.createdCount} công việc.</span>
+                  <span>{t('createAssignmentModal.planDryRunComplete', { count: planDryRunResult.createdCount })}</span>
                 </div>
                 <p className='text-emerald-800 leading-relaxed'>
-                  Các công đoạn và phụ thuộc đều hợp lệ. Bấm <strong>Giao Kế Hoạch Toàn Chương</strong> bên dưới để lưu chính thức.
+                  {t('createAssignmentModal.planDryRunDesc')}
                 </p>
               </div>
             )}
@@ -1310,7 +1315,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             <div className='p-3.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl flex items-start gap-2.5 text-xs leading-relaxed'>
               <AlertTriangle className='w-4 h-4 shrink-0 mt-0.5 text-amber-600' />
               <div>
-                <span className='font-semibold'>Trùng lặp phạm vi giao việc (409 Conflict):</span>{' '}
+                <span className='font-semibold'>{t('createAssignmentModal.conflictPrefix')}</span>{' '}
                 <span>{scopeOverlapWarning}</span>
               </div>
             </div>
@@ -1319,7 +1324,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
           {loadingInitial ? (
             <div className='py-12 text-center text-stone-500 text-xs'>
               <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-orange-600' />
-              <span>Đang tải thông tin thành viên, công đoạn và danh sách trang...</span>
+              <span>{t('createAssignmentModal.loading')}</span>
             </div>
           ) : (
             <>
@@ -1337,7 +1342,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                       htmlFor='assignment-entity-type'
                       className='block text-sm font-semibold text-stone-800 mb-1.5'
                     >
-                      Phạm vi giao việc (Entity Type) *
+                      {t('createAssignmentModal.entityTypeLabel')}
                     </label>
                     <select
                       id='assignment-entity-type'
@@ -1349,33 +1354,33 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                         value='Chapter'
                         disabled={isChapterAssignedAtStage || hasAnyPageOrPanelAssignedAtStage}
                       >
-                        Toàn bộ Chương (Chapter)
+                        {t('createAssignmentModal.entityTypeChapter')}
                         {isChapterAssignedAtStage
-                          ? ' — (Đã giao việc cả chương)'
+                          ? t('createAssignmentModal.chapterAssignedSuffix')
                           : hasAnyPageOrPanelAssignedAtStage
-                            ? ' — (Đã có việc theo trang/khung)'
+                            ? t('createAssignmentModal.pagePanelAssignedSuffix')
                             : ''}
                       </option>
                       <option
                         value='Page'
                         disabled={isChapterAssignedAtStage && !canCarveOutFromChapter}
                       >
-                        Theo Trang (Page)
+                        {t('createAssignmentModal.entityTypePage')}
                         {isChapterAssignedAtStage
                           ? canCarveOutFromChapter
-                            ? ' — (Tách từ việc cả chương)'
-                            : ' — (Chương đã giao việc)'
+                            ? t('createAssignmentModal.carveOutSuffix')
+                            : t('createAssignmentModal.chapterAssignedShortSuffix')
                           : ''}
                       </option>
                       <option
                         value='Panel'
                         disabled={isChapterAssignedAtStage && !canCarveOutFromChapter}
                       >
-                        Theo Khung hình (Panel)
+                        {t('createAssignmentModal.entityTypePanel')}
                         {isChapterAssignedAtStage
                           ? canCarveOutFromChapter
-                            ? ' — (Tách từ việc cả chương)'
-                            : ' — (Chương đã giao việc)'
+                            ? t('createAssignmentModal.carveOutSuffix')
+                            : t('createAssignmentModal.chapterAssignedShortSuffix')
                           : ''}
                       </option>
                     </select>
@@ -1383,9 +1388,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                       <p className='mt-1.5 text-xs text-stone-600 flex items-center gap-1.5'>
                         <Info className='w-4 h-4 text-orange-600 shrink-0' />
                         <span>
-                          Phân công này sẽ áp dụng cho toàn bộ nội dung của{' '}
-                          <strong className='text-stone-800'>Chương {chapterNumber || ''}</strong> ở
-                          công đoạn được chọn.
+                          {t('createAssignmentModal.chapterScopeNotice', { chapter: chapterNumber || '' })}
                         </span>
                       </p>
                     )}
@@ -1399,7 +1402,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                           htmlFor='assignment-page-select'
                           className='text-sm font-semibold text-stone-800 block'
                         >
-                          {isBulkMode ? 'Chọn các Trang (Bulk) *' : 'Chọn Trang (Page) *'}
+                          {isBulkMode ? t('createAssignmentModal.selectBulkPagesLabel') : t('createAssignmentModal.selectPageLabel')}
                         </label>
                         {!isChapterAssignedAtStage && pages.length > 0 && (
                           <label className='flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-orange-600 hover:text-orange-700 select-none transition-studio'>
@@ -1415,15 +1418,14 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                               }}
                               className='rounded border-stone-300 text-orange-600 focus:ring-orange-500'
                             />
-                            <span>Giao hàng loạt (Bulk)</span>
+                            <span>{t('createAssignmentModal.bulkModeCheckbox')}</span>
                           </label>
                         )}
                       </div>
 
                       {loadingPages ? (
                         <div className='py-2.5 text-stone-500 text-xs flex items-center gap-1.5'>
-                          <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> Đang tải
-                          trang...
+                          <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> {t('createAssignmentModal.bulkLoading')}
                         </div>
                       ) : pages.length > 0 ? (
                         isBulkMode ? (
@@ -1433,7 +1435,10 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                           >
                             <div className='flex items-center justify-between text-xs'>
                               <span className='font-semibold text-stone-700 font-mono'>
-                                Đã chọn {bulkPageIds.length}/{pages.length} trang
+                                {t('createAssignmentModal.bulkSelectedCount', {
+                                  selected: bulkPageIds.length,
+                                  total: pages.length,
+                                })}
                               </span>
                               <div className='flex items-center gap-2'>
                                 <button
@@ -1444,7 +1449,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                                   }}
                                   className='text-orange-600 hover:underline font-semibold cursor-pointer transition-studio'
                                 >
-                                  Chọn tất cả
+                                  {t('createAssignmentModal.selectAll')}
                                 </button>
                                 <span className='text-stone-300'>|</span>
                                 <button
@@ -1455,7 +1460,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                                   }}
                                   className='text-stone-500 hover:text-stone-700 hover:underline font-medium cursor-pointer transition-studio'
                                 >
-                                  Bỏ chọn
+                                  {t('createAssignmentModal.deselectAll')}
                                 </button>
                               </div>
                             </div>
@@ -1512,12 +1517,11 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                                         ) : (
                                           <span className='text-emerald-700 flex items-center gap-1 font-semibold'>
                                             <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                                            Hợp lệ
+                                            {t('createAssignmentModal.validBadge')}
                                             {dryRunItem.dependsOnAssignmentIds &&
                                               dryRunItem.dependsOnAssignmentIds.length > 0 && (
                                                 <span className='text-stone-500 text-xs font-mono font-normal'>
-                                                  (Chờ {dryRunItem.dependsOnAssignmentIds.length}{' '}
-                                                  việc)
+                                                  {t('createAssignmentModal.waitingDeps', { count: dryRunItem.dependsOnAssignmentIds.length })}
                                                 </span>
                                               )}
                                           </span>
@@ -1541,7 +1545,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                                 ) : (
                                   <Sparkles className='w-3.5 h-3.5 text-orange-600' />
                                 )}
-                                <span>Kiểm tra xung đột trước (Dry Run)</span>
+                                <span>{t('createAssignmentModal.dryRunBtn')}</span>
                               </button>
 
                               {dryRunResult?.items.some((i) => i.conflictReason) && (
@@ -1559,7 +1563,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                                   }}
                                   className='text-xs text-rose-600 hover:underline font-semibold cursor-pointer transition-studio'
                                 >
-                                  Bỏ chọn các trang bị xung đột
+                                  {t('createAssignmentModal.deselectConflicting')}
                                 </button>
                               )}
                             </div>
@@ -1578,7 +1582,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                                 <option key={p.id} value={p.id} disabled={isAssigned}>
                                   Trang {p.pageNumber} ({p.layoutFormat} • {p.widthPx}×{p.heightPx}
                                   px)
-                                  {isAssigned ? ' — (Đã giao việc ở stage này)' : ''}
+                                  {isAssigned ? t('createAssignmentModal.pageOptionAssigned') : ''}
                                 </option>
                               );
                             })}
@@ -1586,8 +1590,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                         )
                       ) : (
                         <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs'>
-                          Chương này chưa có trang nào. Vui lòng tạo trang ở Bàn làm việc Artist
-                          trước khi giao việc.
+                          {t('createAssignmentModal.noPagesWarning')}
                         </div>
                       )}
                     </div>
@@ -1603,12 +1606,11 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                         className='block text-sm font-semibold text-stone-800 mb-1.5 flex items-center gap-1.5'
                       >
                         <FileText className='w-4 h-4 text-stone-500' />
-                        <span>Bước 1: Chọn Trang *</span>
+                        <span>{t('createAssignmentModal.step1SelectPage')}</span>
                       </label>
                       {loadingPages ? (
                         <div className='py-2.5 text-stone-500 text-xs flex items-center gap-1.5'>
-                          <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> Đang tải
-                          trang...
+                          <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> {t('createAssignmentModal.bulkLoading')}
                         </div>
                       ) : pages.length > 0 ? (
                         <select
@@ -1626,7 +1628,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                         </select>
                       ) : (
                         <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs'>
-                          Chưa có trang nào.
+                          {t('createAssignmentModal.noPagesWarning')}
                         </div>
                       )}
                     </div>
@@ -1638,18 +1640,17 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                       >
                         <span className='flex items-center gap-1.5'>
                           <Layers className='w-4 h-4 text-stone-500' />
-                          <span>Bước 2: Chọn Khung hình *</span>
+                          <span>{t('createAssignmentModal.step2SelectPanel')}</span>
                         </span>
                         {panels.length > 0 && (
                           <span className='text-xs text-stone-500 font-mono'>
-                            {panels.length} panel
+                            {t('createAssignmentModal.panelsCount', { count: panels.length })}
                           </span>
                         )}
                       </label>
                       {loadingPanels ? (
                         <div className='py-2.5 text-stone-500 text-xs flex items-center gap-1.5'>
-                          <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> Đang tải
-                          panel...
+                          <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> {t('createAssignmentModal.loadingPanels')}
                         </div>
                       ) : panels.length > 0 ? (
                         <select
@@ -1665,14 +1666,14 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                             return (
                               <option key={p.id} value={p.id} disabled={isAssigned}>
                                 Panel #{p.panelNumber ?? p.readingOrder ?? p.id.slice(0, 8)}{' '}
-                                {isAssigned ? ' — (Đã giao việc ở stage này)' : ''}
+                                {isAssigned ? t('createAssignmentModal.pageOptionAssigned') : ''}
                               </option>
                             );
                           })}
                         </select>
                       ) : (
                         <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs'>
-                          Trang được chọn chưa có panel nào. Vui lòng tạo panel trước khi giao việc.
+                          {t('createAssignmentModal.noPanelsWarning')}
                         </div>
                       )}
                     </div>
@@ -1686,9 +1687,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                       <div className='flex items-center gap-2'>
                         <Sparkles className='w-4 h-4 text-blue-600 shrink-0' />
                         <span className='leading-relaxed'>
-                          <strong>Chuyển giao trang/khung:</strong> Phần này đang thuộc việc cả
-                          chương của công đoạn. Chọn nhiều trang/khung và nhập lý do riêng để chuyển
-                          giao sang người mới.
+                          {t('createAssignmentModal.transferNotice')}
                         </span>
                       </div>
 
@@ -1696,9 +1695,9 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                       {entityType === 'Page' && pages.length > 0 && (
                         <div className='space-y-1.5' data-testid='transfer-multi-pages'>
                           <span className='text-xs font-semibold text-blue-950 flex items-center justify-between'>
-                            <span>Chọn các trang chuyển giao:</span>
+                            <span>{t('createAssignmentModal.transferSelectPages')}</span>
                             <span className='text-xs text-blue-700 font-mono font-medium'>
-                              Đã chọn {selectedTargetIds.length} trang
+                              {t('createAssignmentModal.transferSelectedCount', { count: selectedTargetIds.length })}
                             </span>
                           </span>
                           <div className='max-h-32 overflow-y-auto border border-blue-200 rounded-lg p-2 bg-white space-y-1'>
@@ -1741,7 +1740,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                           htmlFor='assignment-transfer-reason'
                           className='block font-semibold text-blue-950 mb-1 text-xs'
                         >
-                          Lý do chuyển giao (riêng biệt) *
+                          {t('createAssignmentModal.transferReasonLabel')}
                         </label>
                         <input
                           id='assignment-transfer-reason'
@@ -1749,7 +1748,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                           type='text'
                           value={transferReason}
                           onChange={(e) => setTransferReason(e.target.value)}
-                          placeholder='Nhập lý do chuyển giao cho người nhận mới...'
+                          placeholder={t('createAssignmentModal.transferReasonPlaceholder')}
                           className='w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs font-medium text-stone-800 focus:outline-none focus:border-orange-500 transition-studio'
                         />
                       </div>
@@ -1764,7 +1763,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     htmlFor='assignment-stage-select'
                     className='block text-sm font-semibold text-stone-800 mb-1.5'
                   >
-                    Công đoạn Pipeline *
+                    {t('createAssignmentModal.stageLabel')}
                   </label>
                   {stages.length > 0 ? (
                     <select
@@ -1784,7 +1783,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     <div className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-1.5'>
                       <AlertCircle className='w-4 h-4 shrink-0 text-rose-600' />
                       <span>
-                        Không có công đoạn Pipeline hợp lệ. Vui lòng cấu hình Pipeline cho Series.
+                        {t('createAssignmentModal.noStagesWarning')}
                       </span>
                     </div>
                   )}
@@ -1797,7 +1796,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                         htmlFor='assignment-assignee-select'
                         className='block text-sm font-semibold text-stone-800'
                       >
-                        Người nhận việc (Assignee) *
+                        {t('createAssignmentModal.assigneeLabel')}
                       </label>
                       <button
                         type='button'
@@ -1812,12 +1811,12 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                         ) : (
                           <History className='w-3 h-3' />
                         )}
-                        <span>Mẫu chương trước</span>
+                        <span>{t('createAssignmentModal.previousChapterTemplate')}</span>
                       </button>
                     </div>
                     {requiredRole && (
                       <span className='px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'>
-                        Yêu cầu: {requiredRole}
+                        {t('createAssignmentModal.requiredRoleBadge', { role: requiredRole })}
                       </span>
                     )}
                   </div>
@@ -1834,15 +1833,15 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                         return (
                           <option key={m.id} value={m.userId}>
                             {m.fullName || m.email.split('@')[0]} — {m.studioRole}
-                            {isTop ? ' (★ Gợi ý tốt nhất)' : ''}
+                            {isTop ? t('createAssignmentModal.bestSuggestion') : ''}
                           </option>
                         );
                       })
                     ) : (
                       <option value=''>
                         {requiredRole
-                          ? `Không có thành viên vai trò ${requiredRole}`
-                          : 'Chưa có thành viên trong Workspace'}
+                          ? t('createAssignmentModal.noRoleMembers', { role: requiredRole })
+                          : t('createAssignmentModal.noWorkspaceMembers')}
                       </option>
                     )}
                   </select>
@@ -1854,7 +1853,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                       data-testid='assignee-reasons'
                     >
                       <span className='text-xs text-emerald-800 font-semibold flex items-center gap-1 mr-0.5'>
-                        <ThumbsUp className='w-3.5 h-3.5 text-emerald-600' /> Lý do đề xuất:
+                        <ThumbsUp className='w-3.5 h-3.5 text-emerald-600' /> {t('createAssignmentModal.reasonsTitle')}
                       </span>
                       {selectedSuggestion.reasons.map((r, idx) => (
                         <span
@@ -1876,7 +1875,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                         className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:text-emerald-900 border border-emerald-300 transition-studio cursor-pointer active:scale-[0.98]'
                       >
                         <UserCheck className='w-3.5 h-3.5 text-emerald-600' />
-                        <span>Chọn ứng viên tốt nhất: {suggestions[0].fullName}</span>
+                        <span>{t('createAssignmentModal.pickBestBtn', { name: suggestions[0].fullName })}</span>
                       </button>
                     </div>
                   )}
@@ -1884,7 +1883,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   <p className='mt-2 text-xs text-stone-500 leading-snug flex items-center gap-1.5'>
                     <Info className='w-4 h-4 text-stone-400 shrink-0' />
                     <span>
-                      Người nhận chưa có trong đội Series sẽ được tự động thêm vào khi giao việc.
+                      {t('createAssignmentModal.autoAddNotice')}
                     </span>
                   </p>
 
@@ -1893,9 +1892,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     <div className='mt-2 p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2 leading-relaxed'>
                       <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
                       <div>
-                        Chưa có thành viên nào trong Workspace có vai trò{' '}
-                        <strong>{requiredRole}</strong>. Cần mời thành viên{' '}
-                        <strong>{requiredRole}</strong> vào Workspace trước khi giao việc stage này.
+                        {t('createAssignmentModal.noRoleMembersWarning', { role: requiredRole })}
                       </div>
                     </div>
                   )}
@@ -1909,14 +1906,14 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     htmlFor='assignment-brief-input'
                     className='text-sm font-semibold text-stone-800 block'
                   >
-                    Yêu cầu công việc (Brief) *
+                    {t('createAssignmentModal.briefLabel')}
                   </label>
                   <div className='flex items-center gap-2'>
                     {brief.length > 0 && (
-                      <span className='text-xs text-stone-500 font-mono'>{brief.length} ký tự</span>
+                      <span className='text-xs text-stone-500 font-mono'>{t('createAssignmentModal.charactersCount', { count: brief.length })}</span>
                     )}
                     <span className='px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200'>
-                      Bắt buộc
+                      {t('createAssignmentModal.requiredBadge')}
                     </span>
                   </div>
                 </div>
@@ -1924,7 +1921,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   id='assignment-brief-input'
                   rows={3}
                   required
-                  placeholder='Mô tả chi tiết công việc cần làm, quy chuẩn phong cách hoặc phân đoạn kịch bản...'
+                  placeholder={t('createAssignmentModal.briefPlaceholder')}
                   value={brief}
                   onChange={(e) => setBrief(e.target.value)}
                   className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
@@ -1937,13 +1934,13 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   htmlFor='assignment-reference-input'
                   className='block text-sm font-semibold text-stone-800 mb-1.5'
                 >
-                  Ghi chú tham chiếu / Tài liệu đính kèm (Reference Notes)
+                  {t('createAssignmentModal.referenceNotesLabel')}
                 </label>
                 <div className='relative'>
                   <input
                     id='assignment-reference-input'
                     type='text'
-                    placeholder='Đường dẫn moodboard, ảnh mẫu hoặc ghi chú phân cảnh...'
+                    placeholder={t('createAssignmentModal.referenceNotesPlaceholder')}
                     value={referenceNotes}
                     onChange={(e) => setReferenceNotes(e.target.value)}
                     className='w-full pl-9 pr-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
@@ -1959,7 +1956,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     htmlFor='assignment-priority-select'
                     className='block text-sm font-semibold text-stone-800 mb-1.5'
                   >
-                    Mức độ ưu tiên (Priority)
+                    {t('createAssignmentModal.priorityLabel')}
                   </label>
                   <select
                     id='assignment-priority-select'
@@ -1967,10 +1964,10 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     onChange={(e) => setPriority(e.target.value as AssignmentPriority)}
                     className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
                   >
-                    <option value='Low'>🟢 Thấp (Low)</option>
-                    <option value='Medium'>🟡 Bình thường (Medium)</option>
-                    <option value='High'>🟠 Cao (High)</option>
-                    <option value='Urgent'>🔴 Khẩn cấp (Urgent)</option>
+                    <option value='Low'>{t('createAssignmentModal.priorityLow')}</option>
+                    <option value='Medium'>{t('createAssignmentModal.priorityMedium')}</option>
+                    <option value='High'>{t('createAssignmentModal.priorityHigh')}</option>
+                    <option value='Urgent'>{t('createAssignmentModal.priorityUrgent')}</option>
                   </select>
                 </div>
 
@@ -1980,7 +1977,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                       htmlFor='assignment-due-date-input'
                       className='text-sm font-semibold text-stone-800 block'
                     >
-                      Hạn hoàn thành (Due Date)
+                      {t('createAssignmentModal.dueDateLabel')}
                     </label>
                     {dueDateRelativeLabel && (
                       <span
@@ -2010,11 +2007,11 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
 
                   {/* Quick Preset Buttons */}
                   <div className='flex items-center gap-1.5 mt-2'>
-                    <span className='text-xs text-stone-500 font-medium'>Gợi ý nhanh:</span>
+                    <span className='text-xs text-stone-500 font-medium'>{t('createAssignmentModal.quickPresets')}</span>
                     {[
-                      { label: '+3 ngày', days: 3 },
-                      { label: '+1 tuần', days: 7 },
-                      { label: '+2 tuần', days: 14 },
+                      { label: t('createAssignmentModal.preset3Days'), days: 3 },
+                      { label: t('createAssignmentModal.preset1Week'), days: 7 },
+                      { label: t('createAssignmentModal.preset2Weeks'), days: 14 },
                     ].map((preset) => (
                       <button
                         key={preset.days}
@@ -2039,7 +2036,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                         onClick={() => setDueDate('')}
                         className='text-xs text-stone-400 hover:text-stone-700 ml-auto hover:underline cursor-pointer transition-studio'
                       >
-                        Xóa hạn
+                        {t('createAssignmentModal.clearDueDate')}
                       </button>
                     )}
                   </div>
@@ -2056,18 +2053,18 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   <div className='flex items-center gap-2'>
                     <Network className='w-4 h-4 text-orange-600' />
                     <span className='font-semibold text-stone-800 text-sm'>
-                      Điều kiện tiên quyết / Phụ thuộc (Dependencies)
+                      {t('createAssignmentModal.dependenciesTitle')}
                     </span>
                     {selectedDependsOnIds.length > 0 ? (
                       <span className='px-2 py-0.5 rounded-full text-xs font-mono font-semibold bg-orange-100 text-orange-700 border border-orange-200'>
-                        {selectedDependsOnIds.length} đã chọn
+                        {t('createAssignmentModal.dependenciesSelected', { count: selectedDependsOnIds.length })}
                       </span>
                     ) : (
-                      <span className='text-xs text-stone-500 font-normal'>(Tùy chọn)</span>
+                      <span className='text-xs text-stone-500 font-normal'>{t('createAssignmentModal.optional')}</span>
                     )}
                   </div>
                   <div className='flex items-center gap-1.5 text-stone-500 text-xs'>
-                    <span>{showDependencies || isDependencyError ? 'Thu gọn' : 'Thiết lập'}</span>
+                    <span>{showDependencies || isDependencyError ? t('createAssignmentModal.collapse') : t('createAssignmentModal.configure')}</span>
                     {showDependencies || isDependencyError ? (
                       <ChevronUp className='w-4 h-4' />
                     ) : (
@@ -2112,28 +2109,24 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
           <div className='text-xs text-stone-500 hidden sm:block'>
             {assignmentMode === 'plan' ? (
               <span>
-                Kế hoạch toàn chương:{' '}
-                <strong className='text-stone-700 font-mono'>
-                  {Object.values(planStageAssignments).filter((s) => s.enabled).length}
-                </strong>{' '}
-                công đoạn được chọn
+                {t('createAssignmentModal.footerPlanMode', {
+                  count: Object.values(planStageAssignments).filter((s) => s.enabled).length,
+                })}
               </span>
             ) : isBulkMode && entityType === 'Page' ? (
               <span>
-                Chế độ hàng loạt:{' '}
-                <strong className='text-stone-700 font-mono'>{bulkPageIds.length}</strong> trang
-                được chọn
+                {t('createAssignmentModal.footerBulkMode', { count: bulkPageIds.length })}
               </span>
             ) : (
               <span>
-                Phạm vi:{' '}
-                <strong className='text-stone-700'>
-                  {entityType === 'Chapter'
-                    ? 'Toàn chương'
-                    : entityType === 'Page'
-                      ? 'Trang đơn'
-                      : 'Khung hình'}
-                </strong>
+                {t('createAssignmentModal.footerSingleScope', {
+                  scope:
+                    entityType === 'Chapter'
+                      ? t('createAssignmentModal.scopeChapter')
+                      : entityType === 'Page'
+                        ? t('createAssignmentModal.scopePage')
+                        : t('createAssignmentModal.scopePanel'),
+                })}
               </span>
             )}
           </div>
@@ -2143,7 +2136,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
               onClick={onClose}
               className='btn-cta-secondary px-5 py-2 rounded-full text-xs font-semibold transition-studio cursor-pointer active:scale-[0.98]'
             >
-              Hủy
+              {t('createAssignmentModal.cancel')}
             </button>
             {assignmentMode === 'plan' ? (
               <>
@@ -2159,7 +2152,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   ) : (
                     <Sparkles className='w-4 h-4 text-orange-600' />
                   )}
-                  <span>Kiểm tra trước (Dry Run)</span>
+                  <span>{t('createAssignmentModal.dryRunPlanBtn')}</span>
                 </button>
                 <button
                   type='submit'
@@ -2173,7 +2166,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   ) : (
                     <Plus className='w-4 h-4' />
                   )}
-                  <span>Giao Kế Hoạch Toàn Chương</span>
+                  <span>{t('createAssignmentModal.submitPlanBtn')}</span>
                 </button>
               </>
             ) : (
@@ -2196,8 +2189,8 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                 )}
                 <span>
                   {isBulkMode && entityType === 'Page'
-                    ? `Giao việc hàng loạt (${bulkPageIds.length} trang)`
-                    : 'Tạo & Giao Việc'}
+                    ? t('createAssignmentModal.submitBulkBtn', { count: bulkPageIds.length })
+                    : t('createAssignmentModal.submitBtn')}
                 </span>
               </button>
             )}

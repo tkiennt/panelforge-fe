@@ -58,6 +58,7 @@ import { loadPreviousStageArtworks } from '@/shared/utils/stageArtworks';
 import { buildPageComposite, type CompositePanel } from '@/shared/utils/compositePageRenderer';
 import { needsArtworkLink, parseLinkExpiry } from '@/shared/utils/artworkLinks';
 import { PreviewLinksModal } from '@/shared/modals/PreviewLinksModal';
+import { useTranslation } from '@/lib/i18n';
 import { ChapterReviewView } from './ChapterReviewView';
 
 interface ReviewViewProps {
@@ -254,6 +255,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   workspaceRole,
   onShowToast,
 }) => {
+  const { t } = useTranslation('review');
   const { taskId, workspaceId, wsId, seriesId } = useParams<{
     taskId?: string;
     workspaceId?: string;
@@ -1870,7 +1872,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 : 'text-[#57534E] hover:text-[#1C1917] border border-transparent'
             }`}
           >
-            <Columns className='w-3.5 h-3.5 text-[#C2410C]' /> Cạnh nhau
+            <Columns className='w-3.5 h-3.5 text-[#C2410C]' /> {t('diff.sideBySide', 'Cạnh nhau')}
           </button>
           <button
             type='button'
@@ -1881,7 +1883,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 : 'text-[#57534E] hover:text-[#1C1917] border border-transparent'
             }`}
           >
-            Thanh trượt
+            {t('diff.slider', 'Thanh trượt')}
           </button>
           <button
             type='button'
@@ -1892,7 +1894,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 : 'text-[#57534E] hover:text-[#1C1917] border border-transparent'
             }`}
           >
-            <Layers className='w-3.5 h-3.5 text-[#C2410C]' /> Chồng ảnh
+            <Layers className='w-3.5 h-3.5 text-[#C2410C]' /> {t('diff.onionSkin', 'Chồng ảnh')}
           </button>
         </div>
 
@@ -2228,11 +2230,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
               [
                 [
                   'changes',
-                  `Yêu cầu sửa (${filteredChangeRequests.length + drafts.length})`,
+                  `${t('sidebar.changeRequests', 'Yêu cầu sửa')} (${filteredChangeRequests.length + drafts.length})`,
                   MessageSquare,
                 ],
-                ['consistency', `Nhất quán (${openFindings.length})`, ShieldCheck],
-                ['visual', `Hình ảnh (${openVisualDeviations.length})`, Sparkles],
+                ['consistency', `${t('sidebar.consistency', 'Nhất quán')} (${openFindings.length})`, ShieldCheck],
+                ['visual', `${t('sidebar.visualReport', 'Hình ảnh')} (${openVisualDeviations.length})`, Sparkles],
               ] as const
             ).map(([key, tabLabel, Icon]) => (
               <button

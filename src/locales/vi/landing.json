@@ -1,11 +1,18 @@
 {
+  "pageTitle": "PanelForge — Không gian cộng tác sản xuất manga",
+  "pageMetaDesc": "PanelForge — Nền tảng cộng tác sản xuất truyện tranh có cấu trúc. Đồng bộ kịch bản, nét vẽ, xét duyệt và lịch sử phiên bản trong một không gian duy nhất.",
   "nav": {
     "workflow": "Quy trình",
     "features": "Tính năng",
     "showcase": "Trưng bày",
     "faq": "Hỏi đáp",
     "login": "Đăng nhập",
-    "register": "Tạo tài khoản"
+    "register": "Tạo tài khoản",
+    "openMenu": "Mở menu điều hướng",
+    "closeMenu": "Đóng menu điều hướng",
+    "mobileDrawerAria": "Menu điều hướng trên điện thoại",
+    "homeAria": "PanelForge - Về đầu trang",
+    "mainNavAria": "Điều hướng chính"
   },
   "hero": {
     "docket": "PF / 01 — XƯỞNG SÁNG TÁC TRUYỆN TRANH",
@@ -19,7 +26,25 @@
     "discoverWorkflow": "Khám phá quy trình hoạt động",
     "badgeScript": "Kịch bản có cấu trúc",
     "badgeCollab": "Cộng tác",
-    "badgeVersion": "Truy vết phiên bản"
+    "badgeVersion": "Truy vết phiên bản",
+    "marginGuideline": "01 / Bắt đầu một câu chuyện",
+    "manuscriptRegionAria": "Bản thảo manga PanelForge: Trắng đen và Truyện màu",
+    "manuscriptImageAlt": "Bản thảo truyện tranh PanelForge phân chia chéo trắng đen và truyện màu hoàn chỉnh. Lời thoại: Câu chuyện vẫn tiếp diễn. Họa sĩ: v3",
+    "stickyNoteText": "Biên tập · Giữ ánh sáng nhất quán ở khung 3",
+    "editorPinTitle": "Góp ý theo khung",
+    "editorPinLabel": "Biên tập · Góp ý khung",
+    "pipelineStoryTag": "Một câu chuyện. Hai sắc thái.",
+    "pipelineStages": {
+      "script": "Kịch bản",
+      "sketch": "Phác thảo",
+      "finish": "Hoàn thiện"
+    }
+  },
+  "intro": {
+    "leftNoteTag": "Dành cho đội ngũ sáng tác truyện tranh",
+    "leftNoteTitle": "Để đội ngũ tập trung vào câu chuyện.",
+    "rightNoteBody": "Kết nối kịch bản, bản vẽ và phản hồi trong cùng một quy trình sản xuất có cấu trúc và đáng tin cậy. Loại bỏ trao đổi rải rác và thất lạc ý tưởng qua từng chương truyện.",
+    "rightNoteBadge": "Bản thảo đồng bộ · Không ghi đè"
   },
   "pillars": {
     "tag": "02 / NỀN TẢNG",
@@ -55,7 +80,24 @@
       "writer": "Biên kịch",
       "artist": "Họa sĩ",
       "editor": "Biên tập & Màu"
+    },
+    "images": {
+      "sketch": "Công đoạn phác thảo khung truyện (Sketch)",
+      "ink": "Công đoạn đi nét mực đen (Inking)",
+      "color": "Công đoạn hoàn thiện màu sắc và ánh sáng (Color)",
+      "coloredDraft": "Bản màu hoàn thiện",
+      "rawSketch": "Bản phác thảo thô",
+      "sliderAria": "Thanh so sánh bản phác thảo và bản hoàn thiện"
     }
+  },
+  "sections": {
+    "missionAria": "Mục tiêu sản phẩm",
+    "featuresAria": "Tính năng nổi bật",
+    "workflowAria": "Quy trình sản xuất",
+    "showcaseAria": "Trưng bày không gian làm việc",
+    "workspaceIlloAria": "Không gian làm việc minh họa",
+    "faqAria": "Hỏi đáp thường gặp",
+    "ctaAria": "Bắt đầu sáng tác"
   },
   "footer": {
     "brand": "PanelForge Manga Studio AI",

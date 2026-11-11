@@ -8,6 +8,7 @@ import {
   Plus,
   ChevronDown,
 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   onCreateProject,
   isLoading = false,
 }) => {
+  const { t } = useTranslation('production');
   const [title, setTitle] = useState('');
   const [format, setFormat] = useState('B5 Tankōbon (600 DPI)');
   const [tags, setTags] = useState<string[]>(['Sci-Fi', 'Action']);
@@ -114,11 +116,12 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               PF
             </div>
             <h2 className='font-display font-bold text-base text-[#171717] tracking-tight'>
-              Thêm Bộ Truyện Mới
+              {t('createProjectModal.title', 'Thêm Bộ Truyện Mới')}
             </h2>
           </div>
           <button
             onClick={onClose}
+            aria-label={t('common.actions.close', 'Đóng modal')}
             className='w-7 h-7 rounded-lg hover:bg-[#F3F1EB] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-colors cursor-pointer'
           >
             <X className='w-4 h-4' />
@@ -135,13 +138,13 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             <div className='space-y-4'>
               <div>
                 <label className='block text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                  Tên bộ truyện
+                  {t('createProjectModal.seriesTitle', 'Tên bộ truyện')}
                 </label>
                 <input
                   type='text'
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder='e.g. Cyberpunk 2077: Edgerunners'
+                  placeholder={t('createProjectModal.seriesTitlePlaceholder', 'e.g. Cyberpunk 2077: Edgerunners')}
                   className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs font-semibold text-[#171717] focus:outline-none focus:border-[#F97316] transition-all'
                   required
                 />
@@ -149,13 +152,13 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
               <div>
                 <label className='block text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                  Nhân vật chính
+                  {t('createProjectModal.mainCharacter', 'Nhân vật chính')}
                 </label>
                 <input
                   type='text'
                   value={mainCharacter}
                   onChange={(e) => setMainCharacter(e.target.value)}
-                  placeholder='Tên các nhân vật chính...'
+                  placeholder={t('createProjectModal.mainCharacterPlaceholder', 'Tên các nhân vật chính...')}
                   className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs font-semibold text-[#171717] focus:outline-none focus:border-[#F97316] transition-all'
                   required
                 />
@@ -163,13 +166,13 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
               <div>
                 <label className='block text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                  Cốt truyện (Tóm tắt)
+                  {t('createProjectModal.plot', 'Cốt truyện (Tóm tắt)')}
                 </label>
                 <textarea
                   value={plot}
                   onChange={(e) => setPlot(e.target.value)}
                   rows={3}
-                  placeholder='Tóm tắt nội dung chính...'
+                  placeholder={t('createProjectModal.plotPlaceholder', 'Tóm tắt nội dung chính...')}
                   className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316] transition-all resize-none'
                   required
                 />
@@ -178,7 +181,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               <div className='grid grid-cols-2 gap-3'>
                 <div>
                   <label className='block text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                    Số chương hiện tại
+                    {t('createProjectModal.currentChapters', 'Số chương hiện tại')}
                   </label>
                   <input
                     type='number'
@@ -190,13 +193,13 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 </div>
                 <div>
                   <label className='block text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                    Chapter dự kiến
+                    {t('createProjectModal.expectedChapters', 'Chapter dự kiến')}
                   </label>
                   <input
                     type='number'
                     min='1'
                     value={expectedChapters}
-                    onChange={(e) => setExpectedChapters(Number(e.target.value))}
+                    onChange={(e) => setCurrentChapters(Number(e.target.value))}
                     className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs font-semibold text-[#171717] focus:outline-none focus:border-[#F97316] transition-all'
                   />
                 </div>
@@ -204,7 +207,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
               <div>
                 <label className='block text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                  Thể loại (Tags)
+                  {t('createProjectModal.genres', 'Thể loại (Tags)')}
                 </label>
                 <div className='flex flex-wrap items-center gap-1.5 p-2 bg-[#FAF8F4] rounded-lg border border-[#E7E7E7] min-h-[38px]'>
                   {tags.map((tag) => (
@@ -235,7 +238,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                           }
                         }}
                         autoFocus
-                        placeholder='Tag...'
+                        placeholder={t('createProjectModal.tagPlaceholder', 'Tag...')}
                         className='px-1.5 py-0.5 text-[11px] bg-white border border-[#F97316] rounded w-20 focus:outline-none'
                       />
                       <button
@@ -243,7 +246,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                         onClick={handleAddTag}
                         className='text-[10px] px-1.5 py-0.5 bg-[#171717] text-white rounded cursor-pointer'
                       >
-                        Add
+                        {t('createProjectModal.add', 'Thêm')}
                       </button>
                     </div>
                   ) : (
@@ -253,7 +256,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                       className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-[#F97316] hover:bg-orange-50 border border-transparent transition-all cursor-pointer'
                     >
                       <Plus className='w-3 h-3' />
-                      <span>Add Tag</span>
+                      <span>{t('createProjectModal.addTag', 'Thêm Tag')}</span>
                     </button>
                   )}
                 </div>
@@ -264,7 +267,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             <div className='space-y-4'>
               <div>
                 <label className='block text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                  Series Format Standard
+                  {t('createProjectModal.formatStandard', 'Định dạng xuất bản chuẩn')}
                 </label>
                 <div className='relative'>
                   <select
@@ -272,9 +275,9 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                     onChange={(e) => setFormat(e.target.value)}
                     className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs font-semibold text-[#171717] focus:outline-none focus:border-[#F97316] appearance-none pr-8 cursor-pointer transition-all'
                   >
-                    <option value='B5 Tankōbon (600 DPI)'>B5 Tankōbon (600 DPI)</option>
-                    <option value='Continuous Webtoon (800px)'>Continuous Webtoon (800px)</option>
-                    <option value='Standard Folio (A4)'>Standard Folio (A4)</option>
+                    <option value='B5 Tankōbon (600 DPI)'>{t('createProjectModal.formatOptions.tankobon', 'B5 Tankōbon (600 DPI)')}</option>
+                    <option value='Continuous Webtoon (800px)'>{t('createProjectModal.formatOptions.webtoon', 'Continuous Webtoon (800px)')}</option>
+                    <option value='Standard Folio (A4)'>{t('createProjectModal.formatOptions.folio', 'Standard Folio (A4)')}</option>
                   </select>
                   <ChevronDown className='w-3.5 h-3.5 text-[#888888] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none' />
                 </div>
@@ -283,7 +286,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               <div>
                 <div className='flex items-center justify-between mb-1.5'>
                   <label className='block text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888]'>
-                    Deadline / Ch. 1 Due Date
+                    {t('createProjectModal.dueDatePicker', 'Hạn chót / Ngày phát hành Tập 1')}
                   </label>
                 </div>
                 <div className='flex items-center gap-2 px-3 py-2 bg-white rounded-lg border-2 border-[#F97316] text-xs font-semibold text-[#171717] shadow-xs mb-2'>
@@ -353,14 +356,14 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                         onClick={() => handleQuickDate('today')}
                         className='px-2 py-0.5 rounded bg-[#FAF8F4] hover:bg-[#F3F1EB] border'
                       >
-                        Today
+                        {t('createProjectModal.today', 'Hôm nay')}
                       </button>
                       <button
                         type='button'
                         onClick={() => handleQuickDate('2wks')}
                         className='px-2 py-0.5 rounded bg-[#FAF8F4] hover:bg-[#F3F1EB] border'
                       >
-                        +2 Wks
+                        {t('createProjectModal.twoWeeks', '+2 tuần')}
                       </button>
                     </div>
                   </div>
@@ -369,7 +372,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
               <div>
                 <label className='block text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                  Cover Art Dropzone
+                  {t('createProjectModal.coverDropzone', 'Ảnh bìa bộ truyện')}
                 </label>
                 <input
                   type='file'
@@ -390,9 +393,11 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                         className='w-10 h-10 rounded-lg object-cover border'
                       />
                       <div className='text-left'>
-                        <div className='text-xs font-bold text-[#171717]'>Cover Uploaded</div>
+                        <div className='text-xs font-bold text-[#171717]'>
+                          {t('createProjectModal.coverUploaded', 'Đã tải ảnh bìa')}
+                        </div>
                         <div className='text-[10px] text-[#F97316] font-semibold'>
-                          Click to change
+                          {t('createProjectModal.clickToChange', 'Bấm để đổi ảnh')}
                         </div>
                       </div>
                     </div>
@@ -401,7 +406,9 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                       <div className='w-8 h-8 rounded-full bg-white border flex items-center justify-center text-[#888888]'>
                         <Upload className='w-4 h-4' />
                       </div>
-                      <div className='text-xs text-[#555555]'>Click to browse cover</div>
+                      <div className='text-xs text-[#555555]'>
+                        {t('createProjectModal.clickToBrowse', 'Bấm để chọn ảnh bìa')}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -417,7 +424,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               disabled={isLoading}
               className='px-4 py-2 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] text-[#555555] rounded-xl text-xs font-semibold transition-colors'
             >
-              Hủy
+              {t('createProjectModal.cancel', 'Hủy')}
             </button>
             <button
               type='submit'
@@ -429,7 +436,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               ) : (
                 <Plus className='w-3.5 h-3.5' />
               )}
-              <span>Tạo Dự Án</span>
+              <span>{t('createProjectModal.create', 'Tạo Dự Án')}</span>
             </button>
           </div>
         </form>

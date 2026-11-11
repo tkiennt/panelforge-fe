@@ -16,6 +16,7 @@ import {
 import { ScriptReaderPanel } from './ScriptReaderPanel';
 import { ArtworkCanvasDropzone } from './ArtworkCanvasDropzone';
 import { AIPromptStudio } from './AIPromptStudio';
+import { ImageViewerLightbox } from '@/shared/components/image-viewer/ImageViewerLightbox';
 import {
   ScriptLineItem,
   CanvasPanelItem,
@@ -192,11 +193,22 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [saveTimestamp, setSaveTimestamp] = useState<string>('Vừa xong');
+  const [lightboxSlide, setLightboxSlide] = useState<{ src: string; title: string } | null>(null);
 
   const selectedPanel = useMemo(
     () => panels.find((p) => p.id === selectedPanelId) || null,
     [panels, selectedPanelId]
   );
+
+  const handleZoomArtwork = (panelId: string) => {
+    const target = panels.find((p) => p.id === panelId);
+    if (target?.imageUrl) {
+      setLightboxSlide({
+        src: target.imageUrl,
+        title: `Bản vẽ Khung #${target.panelNumber} (Trang ${pageNumber})`,
+      });
+    }
+  };
 
   // Handle image drop/upload onto a specific panel
   const handleDropArtwork = (panelId: string, file: File) => {
@@ -416,6 +428,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
           onSelectPanel={(id) => setSelectedPanelId(id)}
           onDropArtwork={handleDropArtwork}
           onDeleteArtwork={handleDeleteArtwork}
+          onZoomArtwork={handleZoomArtwork}
           viewMode={viewMode}
           pageNumber={pageNumber}
         />
@@ -428,6 +441,14 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
           bibleReferences={bibleReferences}
         />
       </div>
+
+      {lightboxSlide && (
+        <ImageViewerLightbox
+          isOpen={Boolean(lightboxSlide)}
+          onClose={() => setLightboxSlide(null)}
+          slides={[lightboxSlide]}
+        />
+      )}
     </div>
   );
 };

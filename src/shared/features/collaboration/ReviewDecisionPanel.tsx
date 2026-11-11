@@ -9,6 +9,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
+import { useTranslation } from '@/lib/i18n';
 import type { AssignmentDto } from '@/types';
 import {
   buildChanges,
@@ -38,6 +39,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
   onChanged,
   onToast,
 }) => {
+  const { t } = useTranslation('review');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [returning, setReturning] = useState(false);
@@ -80,7 +82,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
     >
       <div className='text-[11px] font-bold text-indigo-900 flex items-center gap-1.5'>
         <Search className='w-3.5 h-3.5' />
-        Xét duyệt công đoạn
+        {t('title', 'Xét duyệt công đoạn')}
       </div>
 
       {error && (
@@ -100,14 +102,14 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
           onClick={() =>
             void run(
               () => assignmentService.openReview(chapterId, assignment.id),
-              'Đã mở xét duyệt',
+              t('submission.openedToast', 'Đã mở xét duyệt'),
               'Việc chuyển sang UnderReview.',
             )
           }
           className='px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer'
         >
           {busy ? <Loader2 className='w-3 h-3 animate-spin' /> : <Search className='w-3 h-3' />}
-          Mở xét duyệt
+          {t('submission.openReview', 'Mở xét duyệt')}
         </button>
       )}
 
@@ -127,7 +129,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
               onClick={() =>
                 void run(
                   () => assignmentService.approveAssignment(chapterId, assignment.id),
-                  'Đã duyệt',
+                  t('submission.approvedToast', 'Đã duyệt'),
                   'Công đoạn kế tiếp của các Panel này đã mở.',
                 )
               }
@@ -138,7 +140,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
               ) : (
                 <CheckCircle2 className='w-3.5 h-3.5' />
               )}
-              <span>Duyệt công đoạn</span>
+              <span>{t('submission.approveAction', 'Duyệt công đoạn')}</span>
             </button>
             <button
               type='button'
@@ -147,7 +149,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
               className='btn-cta-danger'
             >
               <RotateCcw className='w-3.5 h-3.5' />
-              <span>Trả về để sửa</span>
+              <span>{t('submission.rejectAction', 'Trả về để sửa')}</span>
             </button>
           </div>
         </div>
@@ -160,7 +162,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
             onChange={(e) => setComment(e.target.value)}
             rows={2}
             aria-label='Lý do trả về'
-            placeholder='Lý do trả về (bắt buộc)'
+            placeholder={t('submission.returnReasonPlaceholder', 'Lý do trả về (bắt buộc)')}
             className='w-full p-2 border border-[#E7E7E7] rounded-lg text-[11px] bg-white focus:outline-none focus:border-[#F97316]'
           />
 
@@ -226,7 +228,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
             className='px-2.5 py-1 rounded-lg border border-dashed border-zinc-400 text-[11px] font-semibold flex items-center gap-1 hover:bg-white cursor-pointer'
           >
             <Plus className='w-3 h-3' />
-            Thêm yêu cầu sửa cụ thể
+            {t('changeRequest.addSpecific', 'Thêm yêu cầu sửa cụ thể')}
           </button>
           <p className='text-[10px] text-[#888888]'>
             Không thêm yêu cầu nào thì hệ thống tạo một yêu cầu sửa từ chính lý do trả về.
@@ -243,21 +245,21 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
                       comment: comment.trim(),
                       changes: buildChanges(items).length > 0 ? buildChanges(items) : undefined,
                     }),
-                  'Đã trả về để sửa',
+                  t('submission.returnedToast', 'Đã trả về để sửa'),
                   'Người nhận sẽ nhận được thông báo.',
                 )
               }
               className='px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
             >
               {busy && <Loader2 className='w-3 h-3 animate-spin' />}
-              Gửi trả về
+              {t('submission.sendReturn', 'Gửi trả về')}
             </button>
             <button
               type='button'
               onClick={() => setReturning(false)}
               className='px-3 py-1.5 rounded-lg border border-[#E7E7E7] bg-white text-[11px] font-semibold cursor-pointer'
             >
-              Huỷ
+              {t('common.actions.cancel', 'Huỷ')}
             </button>
           </div>
         </div>

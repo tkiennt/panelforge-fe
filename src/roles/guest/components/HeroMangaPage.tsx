@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslation } from '@/lib/i18n';
 
 interface HeroMangaPageProps {
   highlightTarget?: 'editor' | 'artist' | null;
 }
 
 export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = null }) => {
+  const { t } = useTranslation('landing');
   return (
     <div className='relative w-full flex flex-col items-center select-none py-1 px-1 overflow-visible'>
       {/* Scoped CSS animations for entrance and manuscript fanning */}
@@ -198,12 +200,15 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
             id='hero-manuscript-card'
             className='relative w-full h-full rounded-xl bg-[#FFFEFA] border border-stone-300 shadow-[0_20px_50px_rgba(28,25,23,0.14)] overflow-hidden motion-reduce:transform-none'
             role='region'
-            aria-label='Bản thảo manga PanelForge: Trắng đen và Truyện màu'
+            aria-label={t('hero.manuscriptRegionAria', 'Bản thảo manga PanelForge: Trắng đen và Truyện màu')}
           >
             {/* Main HD Artwork Image */}
             <img
               src='/images/hero-manga-main.jpg'
-              alt='Bản thảo truyện tranh PanelForge phân chia chéo trắng đen và truyện màu hoàn chỉnh. Lời thoại: Câu chuyện vẫn tiếp diễn. Họa sĩ: v3'
+              alt={t(
+                'hero.manuscriptImageAlt',
+                'Bản thảo truyện tranh PanelForge phân chia chéo trắng đen và truyện màu hoàn chỉnh. Lời thoại: Câu chuyện vẫn tiếp diễn. Họa sĩ: v3',
+              )}
               className='w-full h-full object-contain pointer-events-none select-none'
               width={896}
               height={1200}
@@ -226,7 +231,7 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
                 v1.3
               </div>
               <div className='text-[9.5px] sm:text-[10.5px] text-[#57534E] font-sans font-medium leading-snug mt-0.5'>
-                Biên tập · Giữ ánh sáng nhất quán ở khung 3
+                {t('hero.stickyNoteText', 'Biên tập · Giữ ánh sáng nhất quán ở khung 3')}
               </div>
               <div className='text-right text-[8.5px] sm:text-[9.5px] text-[#78716C] font-mono mt-0.5'>
                 12/06/2024
@@ -263,12 +268,12 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
                   ? 'bg-[#1C1917] text-white border border-[#1C1917] shadow-md -translate-y-0.5 rotate-0'
                   : 'bg-white/95 text-[#1C1917] border border-[#D8D2C5] shadow-xs rotate-1'
               }`}
-              title='Góp ý theo khung'
+              title={t('hero.editorPinTitle', 'Góp ý theo khung')}
             >
               <div
                 className={`w-1.5 h-1.5 rounded-full shrink-0 ${highlightTarget === 'editor' ? 'bg-[#F97316]' : 'bg-[#EA580C]'}`}
               />
-              <span className='font-medium'>Biên tập · Góp ý khung</span>
+              <span className='font-medium'>{t('hero.editorPinLabel', 'Biên tập · Góp ý khung')}</span>
             </div>
 
             {/* Điểm nhấn nổi nhẹ quanh nhãn Artist · v3 khi hover nhãn Truy vết phiên bản */}
@@ -290,20 +295,20 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
       >
         <div className='flex items-center justify-center gap-2 text-[13px] sm:text-[14px] font-sans text-[#57534E]'>
           <span className='font-serif italic font-medium text-[#1C1917]'>
-            Một câu chuyện. Hai sắc thái.
+            {t('hero.pipelineStoryTag', 'Một câu chuyện. Hai sắc thái.')}
           </span>
           <span className='text-stone-300 select-none'>·</span>
           <span className='text-[#57534E] text-xs sm:text-[13px] font-sans'>Manga & Webtoon</span>
         </div>
 
         <div className='flex items-center justify-center gap-2.5 text-[12px] sm:text-[13px] font-sans text-[#57534E]'>
-          <span className='text-[#57534E] font-medium'>Kịch bản</span>
+          <span className='text-[#57534E] font-medium'>{t('hero.pipelineStages.script', 'Kịch bản')}</span>
           <span className='text-stone-300 select-none'>→</span>
-          <span className='text-[#57534E] font-medium'>Phác thảo</span>
+          <span className='text-[#57534E] font-medium'>{t('hero.pipelineStages.sketch', 'Phác thảo')}</span>
           <span className='text-stone-300 select-none'>→</span>
           <span className='inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#FAF8F5] text-[#1C1917] font-semibold border border-[#D8D2C5] shadow-xs'>
             <span className='w-1.5 h-1.5 rounded-full bg-[#F97316]' />
-            Hoàn thiện
+            {t('hero.pipelineStages.finish', 'Hoàn thiện')}
           </span>
         </div>
       </div>

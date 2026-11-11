@@ -71,5 +71,54 @@
     "publisher": "Nhà phát hành (Publisher)",
     "reader": "Độc giả (Reader)",
     "member": "Thành viên"
+  },
+  "focus": {
+    "canvas": "Không gian vẽ Canvas (Fabric Studio)",
+    "artist": "Bàn vẽ Artist (Manga B5 Desk)",
+    "script": "Biên kịch & Kịch bản (Script Editor)",
+    "letterer": "Chế bản & Thoại (Letterer Desk)",
+    "task": "Bàn giao việc (Task Desk)",
+    "review": "Kiểm duyệt biên tập (Editor Review)",
+    "defaultTitle": "Phòng làm việc sáng tác",
+    "backToProject": "Về dự án",
+    "backTooltip": "Quay lại Dashboard dự án (Thoát chế độ tập trung)",
+    "commandPalette": "Mở Command Palette (Ctrl+K / ⌘K)"
+  },
+  "invitations": {
+    "pendingCount": "Lời mời đang chờ · {count}",
+    "invitedYou": "mời bạn làm",
+    "decline": "Từ chối",
+    "accept": "Chấp nhận",
+    "processing": "Đang xử lý…",
+    "declineTitle": "Từ chối lời mời?",
+    "declineDesc": "Bạn sẽ không tham gia Studio \"{name}\". Chủ Studio có thể mời lại sau.",
+    "error": "Không xử lý được lời mời."
+  },
+  "notices": {
+    "adminTitle": "Giới hạn vai trò Quản trị viên",
+    "adminBanner": "Tài khoản Administrator không trực tiếp sở hữu hoặc tạo Studio Workspace theo BR-07. Bạn có toàn quyền quản trị người dùng, template và hạn mức tại Bảng quản trị hệ thống.",
+    "producerTitle": "Yêu cầu quyền Producer",
+    "adminBadge": "Tài khoản Quản trị viên hệ thống",
+    "coverAlt": "Ảnh bìa Studio {name}"
+  },
+  "createModal": {
+    "title": "Tạo Studio / Workspace mới",
+    "subtitle": "Khởi tạo không gian làm việc sản xuất truyện",
+    "nameLabel": "Tên Studio / Workspace",
+    "namePlaceholder": "Ví dụ: Tokyo Ghoul Production Studio",
+    "quotaLabel": "Dung lượng lưu trữ ban đầu (GB)",
+    "quotaOptions": {
+      "5": "5 GB (Tiêu chuẩn)",
+      "10": "10 GB (Khuyến nghị)",
+      "25": "25 GB (Studio lớn)",
+      "50": "50 GB (Chuyên nghiệp)"
+    },
+    "cancel": "Hủy",
+    "create": "Tạo Studio",
+    "creating": "Đang tạo...",
+    "errorEmptyName": "Vui lòng nhập tên Workspace / Studio.",
+    "errorCreateFailed": "Không thể tạo Workspace. Vui lòng thử lại.",
+    "successTitle": "Tạo Studio thành công",
+    "successDesc": "Đã tạo workspace \"{name}\""
   }
 }

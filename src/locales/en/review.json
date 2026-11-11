@@ -1,20 +1,27 @@
 {
-  "title": "Editorial Review",
-  "subtitle": "Artwork comparison, consistency check, and submission triage",
+  "title": "Artwork Review",
+  "subtitle": "Compare artwork diffs, verify AI consistency, and handle submissions",
   "submission": {
     "title": "Submission",
     "status": {
       "pendingReview": "Pending Review",
       "approved": "Approved",
-      "rejected": "Rejected"
+      "rejected": "Rework Required"
     },
+    "openReview": "Open Review",
     "approveAction": "Approve Submission",
-    "rejectAction": "Reject & Request Changes",
-    "notes": "Review Notes"
+    "rejectAction": "Request Changes",
+    "notes": "Review notes",
+    "returnReasonPlaceholder": "Return reason (required)",
+    "sendReturn": "Send Return",
+    "openedToast": "Review Opened",
+    "approvedToast": "Approved",
+    "returnedToast": "Returned for rework"
   },
   "changeRequest": {
     "title": "Change Request",
     "create": "Create Change Request",
+    "addSpecific": "Add specific change request",
     "severity": {
       "blocking": "Blocking",
       "warning": "Warning",
@@ -22,38 +29,58 @@
     },
     "status": {
       "open": "Open",
-      "fixed": "Fixed",
+      "fixed": "Resolved",
       "verified": "Verified"
     },
-    "description": "Revision Details",
+    "description": "Change request description",
     "markFixed": "Mark as Fixed",
     "markVerified": "Verify Fix"
   },
   "diff": {
-    "title": "Artwork Diff Comparison",
+    "title": "Artwork Diff View",
     "previousStage": "Previous Stage",
     "currentSubmission": "Current Submission",
-    "slider": "Comparison Slider",
-    "sideBySide": "Side by Side",
-    "onionSkin": "Onion Skin"
+    "slider": "Split Slider",
+    "sideBySide": "Side-by-side",
+    "onionSkin": "Onion Skin",
+    "pixelDiff": "Pixel Diff"
   },
   "consistency": {
     "title": "AI Consistency Check",
     "passed": "Visual Consistency: PASSED",
-    "failed": "Character Deviation Warning",
-    "score": "Similarity Score: {score}%",
-    "threshold": "Required Threshold: {threshold}%",
-    "findingsCount": "{count} findings",
+    "failed": "Character Deviation Detected",
+    "score": "Similarity: {score}%",
+    "threshold": "Threshold: {threshold}%",
+    "findingsCount": "{count} deviations found",
     "findingsSeverity": {
-      "blocking": "Blocking Error",
-      "warning": "Detail Deviation",
-      "info": "Stylistic Hint"
+      "blocking": "Blocking Issue",
+      "warning": "Visual Deviation",
+      "info": "Style Hint"
     }
   },
   "provenance": {
-    "title": "Provenance Report",
-    "humanContribution": "Human Contribution: {percent}%",
+    "title": "Content Provenance Report",
+    "humanContribution": "Human Artist: {percent}%",
     "aiAssisted": "AI Assisted: {percent}%",
     "auditTrail": "Audit Trail"
+  },
+  "sidebar": {
+    "changeRequests": "Change Requests",
+    "consistency": "Consistency",
+    "visualReport": "Visual Report"
+  },
+  "chapterReview": {
+    "stepper": {
+      "editor": "Editor Review",
+      "producer": "Producer Review",
+      "publisher": "Publisher Release"
+    },
+    "provenance": "Provenance",
+    "pagesOverview": "Pages Overview",
+    "pageCounter": "Page {current} / {total}",
+    "checklist": "Checklist",
+    "consistency": "Consistency",
+    "changeRequests": "Change Requests",
+    "returnWork": "Submit Change Request (Return)"
   }
 }
