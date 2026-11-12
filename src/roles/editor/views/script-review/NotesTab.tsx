@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { CheckCircle2, Pencil, RotateCcw, Trash2, XCircle } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import type { ChangeRequestDto } from '@/types/pipeline';
-import { anchorKey, type ReviewDraft } from './scriptReviewModel';
-import { CR_STATUS_BADGE, crStatus, type CrStatus } from '../review-shared/reviewModel';
-import { ReasonForm } from '../review-shared/ReasonForm';
+import { anchorKey, type ReviewDraft } from '@/shared/features/script-review/scriptReviewModel';
+import {
+  CR_STATUS_BADGE,
+  crStatus,
+  type CrStatus,
+} from '@/shared/features/script-review/reviewModel';
+import { ReasonForm } from '@/shared/components/ReasonForm';
 
 export interface LineLocation {
   label: string;

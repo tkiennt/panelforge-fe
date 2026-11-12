@@ -1,4 +1,4 @@
-// src/roles/writer/components/script/flow/tempBibleCodes.ts
+// src/shared/utils/tempBibleCodes.ts
 
 export interface TempBibleCodeItem {
   code: string;

@@ -761,7 +761,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             timestamp: Date.now(),
           };
           localStorage.setItem(draftStorageKey, JSON.stringify(draftData));
-        } catch {}
+        } catch {
+          // localStorage đầy hoặc bị chặn (chế độ riêng tư): bản nháp cục bộ chỉ là dự phòng, bỏ qua.
+        }
       }, 1000);
     },
   });
@@ -790,7 +792,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               setQuickViewPos(resolved.pos);
             }
           }
-        } catch {}
+        } catch {
+          // domAtPos ném lỗi khi vị trí con trỏ chưa map được sang DOM: không mở thẻ xem nhanh.
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -863,7 +867,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           }
         }
       }
-    } catch {}
+    } catch {
+      // Bản nháp hỏng JSON hoặc localStorage bị chặn: coi như không có bản nháp.
+    }
   }, [draftStorageKey]);
 
   // Cảnh báo người dùng khi cố đóng tab / tải lại trang mà chưa bấm Lưu
@@ -1025,7 +1031,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       setHasUnsavedChanges(false);
       try {
         localStorage.removeItem(draftStorageKey);
-      } catch {}
+      } catch {
+        // localStorage đầy hoặc bị chặn (chế độ riêng tư): bản nháp cục bộ chỉ là dự phòng, bỏ qua.
+      }
       setPendingDraft(null);
       setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
       onShowToast?.(
@@ -1080,7 +1088,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const handleDiscardDraft = () => {
     try {
       localStorage.removeItem(draftStorageKey);
-    } catch {}
+    } catch {
+      // localStorage đầy hoặc bị chặn (chế độ riêng tư): bản nháp cục bộ chỉ là dự phòng, bỏ qua.
+    }
     setPendingDraft(null);
   };
 

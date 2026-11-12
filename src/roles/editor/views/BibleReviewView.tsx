@@ -10,7 +10,7 @@ import {
 } from '@/services/bible.service';
 import { errorMessage } from '@/shared/features/collaboration/collaborationRules';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
-import { ReasonForm } from './review-shared/ReasonForm';
+import { ReasonForm } from '@/shared/components/ReasonForm';
 
 interface BibleReviewViewProps {
   workspaceRole?: string | null;

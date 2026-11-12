@@ -105,7 +105,7 @@ export async function convertToComicScript(
   if (apiKey) {
     try {
       const generatedText = await callGeminiApi(request, apiKey);
-      const pageMatches = generatedText.match(/^(?:[!#📄]?\s*(?:Trang|Page)\s*\d+)/gim) || [];
+      const pageMatches = generatedText.match(/^(?:[!#📄]?\s*(?:Trang|Page)\s*\d+)/gimu) || [];
       const panelMatches = generatedText.match(/^(?:[-"”]\s*)?(?:Panel|Khung)\s*[\d.]+/gim) || [];
 
       return {

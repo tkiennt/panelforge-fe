@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle2, ClipboardList, Crosshair, MessageSquareQuote, X } from 'lucide-react';
 import type { ChangeRequestDto } from '@/services/assignment.service';
-import { crStatus, type CrStatus } from '@/roles/editor/views/script-review/scriptReviewModel';
+import { crStatus, type CrStatus } from '@/shared/features/script-review/scriptReviewModel';
 import { useTranslation } from '@/lib/i18n';
 
 interface WriterChangeRequestsDrawerProps {

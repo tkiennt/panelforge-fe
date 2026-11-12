@@ -114,7 +114,7 @@ function normalizeCameraAngle(rawAngle?: string): string {
   if (!rawAngle) return 'Toàn cảnh';
   const clean = rawAngle
     .trim()
-    .replace(/^[\[\(]|[\]\)]$/g, '')
+    .replace(/^[[(]|[\])]$/g, '')
     .trim();
   if (!clean) return 'Toàn cảnh';
 
@@ -153,7 +153,7 @@ export function parseScriptTextToBlocks(
 
     // 1. Nhận diện Trang: "! Trang 1", "# Page 1", "Trang 01", "Page 1", "=== Trang 1 ===", "[Trang 1]"
     const pageMatch =
-      trimmed.match(/^(?:[!#📄]?\s*(?:Trang|Page)\s*(\d+))/i) ||
+      trimmed.match(/^(?:[!#📄]?\s*(?:Trang|Page)\s*(\d+))/iu) ||
       trimmed.match(/^(?:Trang|Page)\s+(\d+)/i) ||
       trimmed.match(/^==+\s*(?:Trang|Page)?\s*(\d+)\s*==+/i) ||
       trimmed.match(/^\[(?:Trang|Page)\s*(\d+)\]/i);
@@ -215,7 +215,7 @@ export function parseScriptTextToBlocks(
       panelCountInPage++;
       const pRaw = panelMatch[1];
       let pIdx = panelCountInPage;
-      let pPage = currentPageIndex > 0 ? currentPageIndex : options?.startingPageNumber || 1;
+      const pPage = currentPageIndex > 0 ? currentPageIndex : options?.startingPageNumber || 1;
 
       if (pRaw && pRaw.includes('.')) {
         const parts = pRaw.split('.');
@@ -603,7 +603,7 @@ export function filterScriptTextByPageRange(
     const trimmed = rawLine.trim();
 
     const pageMatch =
-      trimmed.match(/^(?:[!#📄]?\s*(?:Trang|Page)\s*(\d+))/i) ||
+      trimmed.match(/^(?:[!#📄]?\s*(?:Trang|Page)\s*(\d+))/iu) ||
       trimmed.match(/^(?:Trang|Page)\s+(\d+)/i) ||
       trimmed.match(/^==+\s*(?:Trang|Page)?\s*(\d+)\s*==+/i);
 

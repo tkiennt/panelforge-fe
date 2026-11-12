@@ -861,8 +861,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
   });
 
   it('hỗ trợ tạo mã tạm và lưu vào tempBibleCodes', async () => {
-    const { getTempBibleCodes, saveTempBibleCode } =
-      await import('../components/script/flow/tempBibleCodes');
+    const { getTempBibleCodes, saveTempBibleCode } = await import('@/shared/utils/tempBibleCodes');
     renderView({ workspaceRole: 'WRITER' });
     await screen.findByText(/Khởi đầu/i);
 

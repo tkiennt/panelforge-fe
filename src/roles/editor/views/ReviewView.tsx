@@ -26,7 +26,7 @@ import { ArtworkNotesTab, type ArtworkDraft } from './artwork-review/ArtworkNote
 import { VisualChecksTab, type VisualDecision } from './artwork-review/VisualChecksTab';
 import { useSubmissionArtworks } from './artwork-review/useSubmissionArtworks';
 import { DecisionBar } from './review-shared/DecisionBar';
-import { ReasonForm } from './review-shared/ReasonForm';
+import { ReasonForm } from '@/shared/components/ReasonForm';
 import {
   OPEN_FINDING_STATUSES,
   crStatus,
@@ -34,7 +34,7 @@ import {
   newDraftId,
   readDrafts,
   writeDrafts,
-} from './review-shared/reviewModel';
+} from '@/shared/features/script-review/reviewModel';
 
 interface ReviewViewProps {
   currentUserId?: string | null;

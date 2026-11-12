@@ -19,7 +19,10 @@ import { AssignmentDto, WorkflowEntityType } from '@/types/pipeline';
 import { PipelineStageDto } from '@/services/pipeline.service';
 import { PageDto } from '@/services/page.service';
 import { SeriesMemberDto } from '@/services/series.service';
-import { DependencyGraphModal, GraphNodeItem } from './DependencyGraphModal';
+import {
+  DependencyGraphModal,
+  GraphNodeItem,
+} from '@/shared/features/pipeline-board/DependencyGraphModal';
 
 export interface DependencySelectorProps {
   workspaceId: string;

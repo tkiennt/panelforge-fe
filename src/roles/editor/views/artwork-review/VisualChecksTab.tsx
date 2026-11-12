@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import type { VisualConsistencyReportDto, VisualDeviationDto } from '@/types/pipeline';
-import { OPEN_FINDING_STATUSES } from '../review-shared/reviewModel';
-import { ReasonForm } from '../review-shared/ReasonForm';
+import { OPEN_FINDING_STATUSES } from '@/shared/features/script-review/reviewModel';
+import { ReasonForm } from '@/shared/components/ReasonForm';
 
 export type VisualDecision = 'Confirmed' | 'Rejected' | 'Ignored' | 'NeedsClarification';
 

@@ -29,8 +29,8 @@ import {
   isCrClosed,
   lineText,
   type ReviewDraft,
-} from './script-review/scriptReviewModel';
-import { newDraftId, readDrafts, writeDrafts } from './review-shared/reviewModel';
+} from '@/shared/features/script-review/scriptReviewModel';
+import { newDraftId, readDrafts, writeDrafts } from '@/shared/features/script-review/reviewModel';
 import { DecisionBar } from './review-shared/DecisionBar';
 
 interface ScriptReviewViewProps {

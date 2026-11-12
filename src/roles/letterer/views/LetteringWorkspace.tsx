@@ -67,7 +67,7 @@ import { aiAgentsService, LetteringSuggestion, AiSuggestionDto } from '@/service
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
-import { AutoAssignScriptLinesModal } from '@/roles/artist/modals/AutoAssignScriptLinesModal';
+import { AutoAssignScriptLinesModal } from '@/shared/modals/AutoAssignScriptLinesModal';
 import {
   LETTERING_FONT_PX,
   LETTERING_CHAR_WIDTH_EM,
@@ -2270,7 +2270,6 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     return ids;
   }, [elements, sceneLines, panels, pageDim.width, pageDim.height, getNormalizedElementBox]);
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const containingPanel = useMemo(() => {
     if (!selectedElement) return null;
     const box = getNormalizedElementBox(selectedElement);

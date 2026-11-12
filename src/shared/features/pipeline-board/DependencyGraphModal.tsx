@@ -1,4 +1,4 @@
-// src/roles/producer/components/DependencyGraphModal.tsx
+// src/shared/features/pipeline-board/DependencyGraphModal.tsx
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {

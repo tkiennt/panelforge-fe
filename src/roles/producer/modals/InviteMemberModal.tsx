@@ -169,7 +169,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   const handleSubmitBatch = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    let currentList = [...inviteList];
+    const currentList = [...inviteList];
     if (rawEmails.trim()) {
       const extracted = rawEmails
         .split(/[\s,;]+/)

@@ -1,7 +1,7 @@
 // src/roles/writer/components/script/flow/extensions/mentionSuggestion.ts
 import { BibleEntryDto } from '@/services/bible.service';
 import { MentionSuggestionItem } from '../types';
-import { generateTempCode, saveTempBibleCode } from '../tempBibleCodes';
+import { generateTempCode, saveTempBibleCode } from '@/shared/utils/tempBibleCodes';
 import { QuickViewCardData } from '../QuickViewCard';
 
 export interface PanelSuggestionData {

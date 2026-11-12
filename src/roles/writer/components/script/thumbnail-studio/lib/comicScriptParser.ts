@@ -195,7 +195,7 @@ export function parseComicScript(rawText: string): ComicScriptAST {
 
     // 2. PAGE BREAK: ! Trang N, # Page N, Trang N, ! N, # N
     const pageMatch = line.match(
-      /^(?:[!#📄]?\s*(?:Trang|Page)?\s*(\d+(?:\.\d+)?)|(?:Trang|Page)\s+(\d+(?:\.\d+)?))(.*)$/i,
+      /^(?:[!#📄]?\s*(?:Trang|Page)?\s*(\d+(?:\.\d+)?)|(?:Trang|Page)\s+(\d+(?:\.\d+)?))(.*)$/iu,
     );
     if (
       pageMatch &&
@@ -342,7 +342,7 @@ export function parseComicScript(rawText: string): ComicScriptAST {
     // 5. DIALOGUE: Line pattern <CHARACTER_NAME>(/<MODIFIER>)?:\s*<DIALOGUE_TEXT>
     // Hỗ trợ cả MINH/Shout: ... và MINH (thì thầm): ...
     const dialogueMatch = line.match(
-      /^(?:@)?([A-Za-zÀ-Ỹ0-9_\s]+)(?:[\/\(]([A-Za-zÀ-ỹ\s]+)[\)]?)?:\s*(.+)$/,
+      /^(?:@)?([A-Za-zÀ-Ỹ0-9_\s]+)(?:[/(]([A-Za-zÀ-ỹ\s]+)[)]?)?:\s*(.+)$/,
     );
     if (dialogueMatch) {
       flushActionBuffer();

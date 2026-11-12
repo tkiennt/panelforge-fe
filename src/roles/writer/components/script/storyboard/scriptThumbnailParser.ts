@@ -75,7 +75,7 @@ export function parseScriptToStoryboard(rawText: string): StoryboardPage[] {
 
     // 1. Nhận diện Trang: "! Trang 1", "# Page 1", "Trang 1", "Page 1", "PAGE 2"
     const pageMatch = trimmed.match(
-      /^(?:[!#📄]?\s*(?:Trang|Page)\s*(\d+)|(?:Trang|Page)\s+(\d+))/i,
+      /^(?:[!#📄]?\s*(?:Trang|Page)\s*(\d+)|(?:Trang|Page)\s+(\d+))/iu,
     );
     if (pageMatch) {
       const pageNum = parseInt(pageMatch[1] || pageMatch[2], 10);

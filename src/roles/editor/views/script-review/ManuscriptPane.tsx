@@ -3,8 +3,14 @@ import { MessageSquarePlus, MessageSquare } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import type { SceneDetailDto, SceneScriptLineSummaryDto } from '@/services/scriptLine.service';
 import type { ChangeRequestDto, ConsistencyFindingDto } from '@/types/pipeline';
-import { anchorKey, crStatus, isCrClosed, lineText, type ReviewDraft } from './scriptReviewModel';
-import { isAiFinding } from '../review-shared/reviewModel';
+import {
+  anchorKey,
+  crStatus,
+  isCrClosed,
+  lineText,
+  type ReviewDraft,
+} from '@/shared/features/script-review/scriptReviewModel';
+import { isAiFinding } from '@/shared/features/script-review/reviewModel';
 
 export interface AnchorMarks {
   drafts: ReviewDraft[];

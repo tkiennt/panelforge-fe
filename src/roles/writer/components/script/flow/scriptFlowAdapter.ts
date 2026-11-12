@@ -4,7 +4,7 @@ import { SceneDetailDto, NarrationMode } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
 import { BibleEntryDto } from '@/services/bible.service';
-import { saveTempBibleCode } from './tempBibleCodes';
+import { saveTempBibleCode } from '@/shared/utils/tempBibleCodes';
 import { MangaBlockType } from './types';
 
 /**
@@ -51,7 +51,7 @@ export function renumberTipTapDoc(doc: any): any {
       }
       // Giữ lại phần tiêu đề sau dấu : hoặc - nếu có
       const noteMatch = existingText.match(
-        /^(?:[!#\s]*)?(?:CẢNH|SCENE)?\s*\d*(?:\s*[:\-]\s*(.*))?$/i,
+        /^(?:[!#\s]*)?(?:CẢNH|SCENE)?\s*\d*(?:\s*[:-]\s*(.*))?$/i,
       );
       const note = noteMatch && noteMatch[1] ? `: ${noteMatch[1].trim()}` : '';
       block.content = [{ type: 'text', text: `CẢNH ${sceneCounter}${note}`.toUpperCase() }];
@@ -69,7 +69,7 @@ export function renumberTipTapDoc(doc: any): any {
       }
       // Giữ lại phần ghi chú sau dấu : hoặc - nếu có
       const noteMatch = existingText.match(
-        /^(?:[!#\s]*)?(?:Page|Trang)?\s*\d*(?:\.\d+)?(?:\s*[:\-]\s*(.*))?$/i,
+        /^(?:[!#\s]*)?(?:Page|Trang)?\s*\d*(?:\.\d+)?(?:\s*[:-]\s*(.*))?$/i,
       );
       const note = noteMatch && noteMatch[1] ? `: ${noteMatch[1].trim()}` : '';
       block.content = [{ type: 'text', text: `TRANG ${pageCounter}${note}` }];
@@ -87,7 +87,7 @@ export function renumberTipTapDoc(doc: any): any {
           .trim();
       }
       const noteMatch = existingText.match(
-        /^(?:[-"”#\s]*)?(?:Panel|Khung)?\s*\d*(?:\.\d+)?(?:\s*[:\-]\s*(.*))?$/i,
+        /^(?:[-"”#\s]*)?(?:Panel|Khung)?\s*\d*(?:\.\d+)?(?:\s*[:-]\s*(.*))?$/i,
       );
       const note = noteMatch && noteMatch[1] ? `: ${noteMatch[1].trim()}` : '';
       block.content = [{ type: 'text', text: `PANEL ${pNum}.${panelCounter}${note}` }];
@@ -120,7 +120,9 @@ export function renumberEditorState(editor: any, preferredPos?: number): boolean
         const clampPos = Math.max(1, currentDocSize - 1);
         editor.commands.setTextSelection(clampPos);
       }
-    } catch {}
+    } catch {
+      // Editor đã bị huỷ hoặc tài liệu đổi giữa chừng: không cần kẹp lại selection.
+    }
 
     editor.commands.setContent(renumberedJson, { emitUpdate: false });
     try {
@@ -130,10 +132,14 @@ export function renumberEditorState(editor: any, preferredPos?: number): boolean
         const safeTo = Math.max(1, Math.min(to, maxPos - 1));
         editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
       }
-    } catch {}
+    } catch {
+      // Editor đã bị huỷ hoặc tài liệu đổi giữa chừng: giữ selection hiện tại.
+    }
     try {
       editor.commands.focus();
-    } catch {}
+    } catch {
+      // Editor đã bị huỷ (view chưa gắn DOM): bỏ qua focus.
+    }
     return true;
   }
   return false;

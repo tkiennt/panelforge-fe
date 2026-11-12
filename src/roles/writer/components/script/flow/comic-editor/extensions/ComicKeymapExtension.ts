@@ -310,7 +310,9 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
             const prevPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
             try {
               tr.setSelection(Selection.near(tr.doc.resolve(prevPos)));
-            } catch {}
+            } catch {
+              // Vị trí vượt khỏi tài liệu sau khi xoá: giữ selection mặc định của ProseMirror.
+            }
           }
           editor.view.dispatch(tr);
           return true;
@@ -323,7 +325,9 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
             const prevPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
             try {
               tr.setSelection(Selection.near(tr.doc.resolve(prevPos)));
-            } catch {}
+            } catch {
+              // Vị trí vượt khỏi tài liệu sau khi xoá: giữ selection mặc định của ProseMirror.
+            }
           }
           editor.view.dispatch(tr);
           return true;

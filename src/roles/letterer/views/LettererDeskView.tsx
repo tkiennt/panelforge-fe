@@ -1,4 +1,6 @@
 import React from 'react';
+// BR-31: Letterer làm việc trên chính bàn vẽ Artist (sidetab lettering), không có màn riêng.
+// eslint-disable-next-line no-restricted-imports
 import { ArtistDeskView } from '@/roles/artist/views/ArtistDeskView';
 
 export interface LettererDeskViewProps {

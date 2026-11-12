@@ -522,7 +522,9 @@ export const ScriptLineBlockNode = Node.create({
               try {
                 const targetPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
                 tr.setSelection(Selection.near(tr.doc.resolve(targetPos), -1));
-              } catch {}
+              } catch {
+                // Vị trí vượt khỏi tài liệu sau khi xoá: giữ selection mặc định của ProseMirror.
+              }
               view.dispatch(tr);
               if (typeof setTimeout === 'function') {
                 setTimeout(() => renumberEditorState(editor), 0);
@@ -558,7 +560,9 @@ export const ScriptLineBlockNode = Node.create({
               try {
                 const targetPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
                 tr.setSelection(Selection.near(tr.doc.resolve(targetPos), -1));
-              } catch {}
+              } catch {
+                // Vị trí vượt khỏi tài liệu sau khi xoá: giữ selection mặc định của ProseMirror.
+              }
               view.dispatch(tr);
               if (typeof setTimeout === 'function') {
                 setTimeout(() => renumberEditorState(editor), 0);
@@ -579,7 +583,9 @@ export const ScriptLineBlockNode = Node.create({
             try {
               const targetPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
               tr.setSelection(Selection.near(tr.doc.resolve(targetPos), -1));
-            } catch {}
+            } catch {
+              // Vị trí vượt khỏi tài liệu sau khi xoá: giữ selection mặc định của ProseMirror.
+            }
             view.dispatch(tr);
             if (typeof setTimeout === 'function') {
               setTimeout(() => renumberEditorState(editor), 0);

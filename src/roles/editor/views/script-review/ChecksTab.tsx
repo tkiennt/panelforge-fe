@@ -10,9 +10,9 @@ import {
 import { useTranslation } from '@/lib/i18n';
 import type { ChapterBibleGateResultDto, ChapterDto } from '@/services/chapter.service';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
-import { anchorKey } from './scriptReviewModel';
-import { OPEN_FINDING_STATUSES, isAiFinding } from '../review-shared/reviewModel';
-import { ReasonForm } from '../review-shared/ReasonForm';
+import { anchorKey } from '@/shared/features/script-review/scriptReviewModel';
+import { OPEN_FINDING_STATUSES, isAiFinding } from '@/shared/features/script-review/reviewModel';
+import { ReasonForm } from '@/shared/components/ReasonForm';
 
 export type FindingDecision = 'Confirmed' | 'Rejected' | 'Ignored' | 'NeedsClarification';
 

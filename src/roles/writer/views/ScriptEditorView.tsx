@@ -60,7 +60,7 @@ import {
 import { pageService, PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { PanelDto } from '@/types/pipeline';
-import { generateTempCode, saveTempBibleCode } from '../components/script/flow/tempBibleCodes';
+import { generateTempCode, saveTempBibleCode } from '@/shared/utils/tempBibleCodes';
 import { ChapterSelectionView } from '../components/script/chapter-selection';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
@@ -71,7 +71,7 @@ import {
   ConsistencyFindingDto,
   ConsistencyCheckResultDto,
 } from '@/services/assignment.service';
-import { crStatus } from '@/roles/editor/views/script-review/scriptReviewModel';
+import { crStatus } from '@/shared/features/script-review/scriptReviewModel';
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { AiAssistPanel } from '@/shared/features/ai-agents/AiAssistPanel';
@@ -97,7 +97,7 @@ import {
   TypeToConfirmModal,
 } from '@/shared/components/lucian';
 import { useTranslation } from '@/lib/i18n';
-import { ReasonForm } from '@/roles/editor/views/review-shared/ReasonForm';
+import { ReasonForm } from '@/shared/components/ReasonForm';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useComicStudioStore } from '../components/script/thumbnail-studio/store/useComicStudioStore';
 import { scenesToComicScriptText } from '../components/script/thumbnail-studio/lib/comicScriptParser';
@@ -631,6 +631,32 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // 4. Tải danh sách Scenes khi currentChapter thay đổi
   // V2.5: Đồng bộ kịch bản từ Screenplay Flow Editor (TipTap) lên Backend khi bấm Lưu (Explicit Commit)
+  const loadPagesAndPanels = useCallback(async (chapId: string) => {
+    try {
+      const pages = await pageService.getPagesByChapter(chapId);
+      setChapterPages(pages || []);
+      if (pages && pages.length > 0) {
+        const panelPromises = pages.map((page) =>
+          panelService.getPanelsByPage(page.id).catch(() => []),
+        );
+        const panelsByPages = await Promise.all(panelPromises);
+        const allPanels: PanelDto[] = [];
+        panelsByPages.forEach((list, idx) => {
+          list.forEach((p) => {
+            (p as any).pageNumber = pages[idx].pageNumber;
+            allPanels.push(p);
+          });
+        });
+        setChapterPanels(allPanels);
+      } else {
+        setChapterPanels([]);
+      }
+    } catch {
+      setChapterPages([]);
+      setChapterPanels([]);
+    }
+  }, []);
+
   const handleSaveFlowLines = useCallback(
     async (extractedLines: ExtractedScriptLinePayload[]) => {
       if (!currentChapter) return;
@@ -695,7 +721,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             `Cảnh ${parsedSceneNum}`;
 
         // Tìm cảnh hiện có theo sceneNumber hoặc theo id
-        let targetScene =
+        const targetScene =
           currentScenesList.find((s) => s.sceneNumber === parsedSceneNum) ||
           currentScenesList.find((s) => s.id === hb.sceneId);
 
@@ -848,7 +874,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 currentVersion = res.chapterVersion;
                 hasChanges = true;
               }
-            } catch {}
+            } catch (cleanErr) {
+              console.error(`Lỗi dọn sạch dòng kịch bản phân cảnh ${sc.id}:`, cleanErr);
+            }
           }
         } else if (!hasLinesInDoc && sc.scriptLines && sc.scriptLines.length > 0) {
           try {
@@ -933,7 +961,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         console.error('Lỗi làm mới danh sách phân cảnh sau khi lưu:', refreshErr);
       }
     },
-    [currentChapter, chapterScenesDetail, selectedScene, scenes, canEditScript, isChapterLocked],
+    [
+      currentChapter,
+      chapterScenesDetail,
+      selectedScene,
+      scenes,
+      canEditScript,
+      isChapterLocked,
+      loadPagesAndPanels,
+      notify,
+      refreshChapterDetail,
+      t,
+    ],
   );
 
   // Xử lý Xoá Phân Cảnh (Delete Scene - Lucian #269 TypeToConfirmModal)
@@ -1008,32 +1047,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     },
     [seriesId, notify],
   );
-
-  const loadPagesAndPanels = useCallback(async (chapId: string) => {
-    try {
-      const pages = await pageService.getPagesByChapter(chapId);
-      setChapterPages(pages || []);
-      if (pages && pages.length > 0) {
-        const panelPromises = pages.map((page) =>
-          panelService.getPanelsByPage(page.id).catch(() => []),
-        );
-        const panelsByPages = await Promise.all(panelPromises);
-        const allPanels: PanelDto[] = [];
-        panelsByPages.forEach((list, idx) => {
-          list.forEach((p) => {
-            (p as any).pageNumber = pages[idx].pageNumber;
-            allPanels.push(p);
-          });
-        });
-        setChapterPanels(allPanels);
-      } else {
-        setChapterPanels([]);
-      }
-    } catch {
-      setChapterPages([]);
-      setChapterPanels([]);
-    }
-  }, []);
 
   const handleOpenInBible = useCallback(
     (codeOrId: string) => {
