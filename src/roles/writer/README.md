@@ -8,8 +8,10 @@ Biên kịch (Writer) chịu trách nhiệm sáng tác kịch bản truyện tra
 - **Màn hình chính**:
   - `ScriptEditorView.tsx`: Bàn viết kịch bản, bố cục theo Bàn vẽ của Artist:
     - Header chung (`FocusWorkspaceLayout`): Bộ truyện / Chương, công đoạn Viết → Editor duyệt → Khóa kịch bản, nút Gửi Editor duyệt (Producer: Duyệt kịch bản).
-    - Thanh biểu tượng trái (`ScriptStudioRail`): Phân cảnh, Đề cương, Nhân vật, Nhất quán, Nhập, Trợ lý AI, Lịch sử, Bible Gate.
-    - Trang giấy ở giữa (`ScreenplayFlowEditor`): chỉ có chữ; "+ Panel" trên tiêu đề trang, "+ Thoại" trên tiêu đề panel.
+    - Thanh biểu tượng trái (`ScriptStudioRail`): Đề cương, Nhân vật, Nhất quán, Nhập, Trợ lý AI, Lịch sử; phía dưới là Phân cảnh và Bible Gate.
+    - Trang giấy ở giữa (`ScreenplayFlowEditor`) theo định dạng full script truyện tranh: Writer chia Trang → Panel, không làm thumbnail (Artist vẽ theo kịch bản).
+      - Mỗi Panel: dòng "PANEL N:" và mô tả khung tranh; thoại / dẫn truyện / SFX là dòng hai cột "1. TÊN (OFF):  lời thoại", đánh số lại từ 1 ở mỗi trang.
+      - Gõ `TÊN:` hoặc `TÊN (OFF):` ở đầu dòng để viết thoại; cảnh chỉ là đường phân cách nhẹ, Trợ lý AI và Lịch sử dùng cảnh tại con trỏ.
     - Thanh công cụ nổi ở đáy: chế độ xem, dải trang + "Thêm trang" (4 hoặc 5 khung), loại dòng hiện tại, lưu (Ctrl+S).
     - Gõ kịch bản: Enter = dòng hành động mới; gõ `Tên:` đầu dòng = lời thoại có nhãn người nói (khớp Series Bible,
       hoặc tên viết HOA); Tab / Shift+Tab đổi loại dòng (Hành động → Thoại → Lời dẫn → SFX); Enter trên dòng trống

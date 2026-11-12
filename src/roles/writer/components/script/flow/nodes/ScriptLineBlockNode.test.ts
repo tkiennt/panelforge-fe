@@ -331,3 +331,42 @@ describe('ScriptLineBlockNode - gõ kịch bản đơn giản', () => {
     expect((node?.content?.[0] as any)?.text).toBe('Chạy đi');
   });
 });
+
+describe('ScriptLineBlockNode - định dạng full script truyện tranh', () => {
+  const lineOf = (editor: Editor, type: string) =>
+    editor.view.dom.querySelector(`[data-block-type="${type}"]`) as HTMLElement;
+
+  it('thoại, dẫn truyện và SFX là dòng hai cột có nhãn (số thứ tự do CSS đánh)', () => {
+    const editor = createTestFlowEditor('<p></p>');
+    editor.commands.setContent({
+      type: 'doc',
+      content: [
+        { type: 'scriptLineBlock', attrs: { blockType: 'dialogue', speakerName: 'MALANDRO (OFF)' }, content: [{ type: 'text', text: 'Hey.' }] },
+        { type: 'scriptLineBlock', attrs: { blockType: 'caption' }, content: [{ type: 'text', text: 'Pop, pop.' }] },
+        { type: 'scriptLineBlock', attrs: { blockType: 'sfx' }, content: [{ type: 'text', text: 'KRRZZZ' }] },
+      ],
+    });
+
+    for (const [type, label, text] of [
+      ['dialogue', 'MALANDRO (OFF)', 'Hey.'],
+      ['caption', 'Dẫn truyện', 'Pop, pop.'],
+      ['sfx', 'SFX', 'KRRZZZ'],
+    ]) {
+      const el = lineOf(editor, type);
+      expect(el.classList.contains('script-line')).toBe(true);
+      expect(el.querySelector('.script-line-label')?.textContent).toBe(label);
+      expect(el.querySelector('.dialogue-text')?.textContent).toBe(text);
+    }
+    // Nhãn không phải nội dung: JSON chỉ giữ lời thoại
+    expect((editor.getJSON().content?.[0]?.content?.[0] as any)?.text).toBe('Hey.');
+  });
+
+  it('thoại chưa có người nói vẫn hiện nhãn mờ "Thoại"', () => {
+    const editor = createTestFlowEditor('<p></p>');
+    editor.commands.setContent({
+      type: 'doc',
+      content: [{ type: 'scriptLineBlock', attrs: { blockType: 'dialogue' }, content: [{ type: 'text', text: 'Ai đó?' }] }],
+    });
+    expect(lineOf(editor, 'dialogue').querySelector('.script-line-label')?.textContent).toBe('Thoại');
+  });
+});

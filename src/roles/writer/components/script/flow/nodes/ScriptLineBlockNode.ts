@@ -171,10 +171,12 @@ export const ScriptLineBlockNode = Node.create({
 
     switch (blockType) {
       case 'scene_heading':
+        // Cảnh là mốc tự sự, không phải đơn vị trình bày của kịch bản truyện tranh: chỉ là đường phân cách nhẹ
         return [
           'div',
-          attrs('group relative font-serif text-2xl text-stone-900 mt-16 first:mt-0 mb-6'),
-          ['span', { class: 'scene-heading-content' }, 0],
+          attrs('group relative flex items-center gap-3 mt-12 first:mt-0 mb-2 select-text'),
+          ['span', { class: 'scene-heading-content text-xs font-medium uppercase tracking-[0.2em] text-stone-500' }, 0],
+          rule(),
           controls(control('scene-delete-btn text-rose-700 hover:bg-rose-50', 'Xóa cảnh này', 'Xóa cảnh')),
         ] as any;
 
@@ -183,7 +185,7 @@ export const ScriptLineBlockNode = Node.create({
           'div',
           attrs('group relative flex items-center gap-4 mt-14 mb-6 select-text'),
           rule(),
-          ['span', { class: 'page-heading-content text-xs font-semibold uppercase tracking-[0.3em] text-stone-500' }, 0],
+          ['span', { class: 'page-heading-content font-serif text-lg uppercase tracking-[0.2em] text-stone-900' }, 0],
           rule(),
           controls(
             control('page-add-panel-btn text-stone-600 hover:text-stone-900 hover:bg-stone-100', 'Thêm panel trống vào cuối trang này', '+ Panel'),
@@ -195,7 +197,7 @@ export const ScriptLineBlockNode = Node.create({
       case 'panel_heading':
         return [
           'div',
-          attrs('group relative mt-8 mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 select-text'),
+          attrs('group relative mt-7 mb-1 text-sm font-semibold uppercase tracking-wide text-stone-900 select-text'),
           ['span', { class: 'panel-heading-text' }, 0],
           controls(
             control('panel-add-dialogue-btn text-stone-600 hover:text-stone-900 hover:bg-stone-100', 'Thêm bóng thoại vào cuối panel này', '+ Thoại'),
@@ -206,34 +208,37 @@ export const ScriptLineBlockNode = Node.create({
       case 'stage_direction':
         return ['div', attrs('font-studio text-[15px] leading-7 text-stone-800 my-2'), 0];
 
-      case 'caption':
-        return ['div', attrs('font-serif italic text-[15px] leading-7 text-stone-700 my-3 pl-4 border-l-2 border-stone-200'), 0];
-
       case 'character':
-        return ['div', attrs('font-studio text-xs font-semibold uppercase tracking-[0.16em] text-stone-600 ml-[14%] mt-5 mb-0.5'), 0];
+        return ['div', attrs('font-studio text-xs font-semibold uppercase tracking-[0.16em] text-stone-600 mt-4 mb-0.5'), 0];
 
-      case 'dialogue': {
-        // Kiểu kịch bản phim: tên người nói thành nhãn phía trên, lời thoại trong cột hẹp ở giữa
+      // Định dạng full script: "1. TÊN (OFF):   lời thoại" — số thứ tự đếm lại mỗi trang bằng CSS counter
+      case 'dialogue':
+      case 'caption':
+      case 'sfx': {
         const speaker = node.attrs.speakerName as string | null;
-        const textClass = 'dialogue-text font-studio text-[15px] leading-7 text-stone-900';
-        if (!speaker) return ['div', attrs(`${textClass} my-3 ml-[14%] mr-[10%]`), 0];
+        const label = blockType === 'sfx' ? 'SFX' : blockType === 'caption' ? 'Dẫn truyện' : speaker;
+        const textClass =
+          blockType === 'sfx'
+            ? 'dialogue-text font-studio text-[15px] leading-7 font-bold italic tracking-wide text-stone-900'
+            : blockType === 'caption'
+              ? 'dialogue-text font-serif italic text-[15px] leading-7 text-stone-800'
+              : 'dialogue-text font-studio text-[15px] leading-7 text-stone-900';
         return [
           'div',
-          attrs('my-3 ml-[14%] mr-[10%]'),
+          attrs('script-line grid grid-cols-[minmax(7rem,11rem)_1fr] gap-x-4 my-1.5'),
           [
             'span',
             {
-              class: 'speaker-label block font-studio text-xs font-semibold uppercase tracking-[0.16em] text-stone-600 select-none',
+              class: `script-line-label font-studio text-sm leading-7 uppercase tracking-wide select-none ${
+                label ? 'font-semibold text-stone-700' : 'text-stone-400'
+              }`,
               contenteditable: 'false',
             },
-            speaker,
+            label || 'Thoại',
           ],
           ['div', { class: textClass }, 0],
         ];
       }
-
-      case 'sfx':
-        return ['div', attrs('font-comic text-2xl tracking-wide text-stone-900 my-3 ml-6'), 0];
 
       case 'transition':
         return ['div', attrs('text-right text-xs font-semibold uppercase tracking-[0.2em] text-stone-500 my-4'), 0];

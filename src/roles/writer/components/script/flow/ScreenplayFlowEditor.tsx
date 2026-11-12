@@ -55,6 +55,8 @@ interface ScreenplayFlowEditorProps {
   dockLeading?: React.ReactNode;
   /** Tiêu đề bản thảo in ở đầu tờ giấy, ví dụ "Chương 1: Khởi đầu" */
   manuscriptTitle?: string;
+  /** Cảnh chứa con trỏ: để Trợ lý AI và Lịch sử làm việc trên đúng cảnh mà không bắt người viết chọn tay */
+  onActiveSceneChange?: (sceneId: string) => void;
 }
 
 interface PageOutlineItem {
@@ -75,6 +77,16 @@ function buildPageOutline(doc: any): PageOutlineItem[] {
     }
   });
   return pages;
+}
+
+/** Cảnh của con trỏ: khối tiêu đề cảnh gần nhất phía trên, không có thì sceneId của khối đầu tiên */
+function findActiveSceneId(doc: any, pos: number): string | null {
+  let sceneId: string | null = null;
+  doc.forEach((node: any, offset: number) => {
+    if (offset > pos) return;
+    if (node.attrs?.blockType === 'scene_heading' || !sceneId) sceneId = node.attrs?.sceneId ?? sceneId;
+  });
+  return sceneId;
 }
 
 function findActivePage(outline: PageOutlineItem[], pos: number): number | null {
@@ -112,6 +124,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   importRequestKey = 0,
   dockLeading,
   manuscriptTitle,
+  onActiveSceneChange,
 }) => {
   const { t } = useTranslation('production');
   const [isSaving, setIsSaving] = useState(false);
@@ -130,6 +143,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [pageOutline, setPageOutline] = useState<PageOutlineItem[]>([]);
   const [activePageNumber, setActivePageNumber] = useState<number | null>(null);
   const [addPageMenuOpen, setAddPageMenuOpen] = useState(false);
+  const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
 
   const syncPageOutline = (doc: any, selectionPos: number) => {
     const outline = buildPageOutline(doc);
@@ -141,7 +155,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         : outline
     );
     setActivePageNumber(findActivePage(outline, selectionPos));
+    setActiveSceneId(findActiveSceneId(doc, selectionPos));
   };
+
+  useEffect(() => {
+    if (activeSceneId) onActiveSceneChange?.(activeSceneId);
+  }, [activeSceneId, onActiveSceneChange]);
 
   useEffect(() => {
     if (importRequestKey > 0) setShowAiConvertModal(true);
@@ -519,6 +538,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         return false;
       },
       handleTextInput: (view, from, to, text) => {
+        // Khoảng trắng gõ ngay sau "Tên:" không thuộc lời thoại (nhãn đã tách riêng)
+        if (text === ' ' && from === to) {
+          const block = view.state.selection.$from.parent;
+          if (block.attrs?.blockType === 'dialogue' && block.attrs.speakerName && block.content.size === 0) return true;
+        }
+
         // 0. Gõ "Tên:" ở đầu một dòng hành động / lời dẫn / thoại → dòng thành lời thoại có nhãn người nói
         if (text === ':' && from === to) {
           const { state } = view;
@@ -1173,16 +1198,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               }
               .paper-editor-sheet .mention { user-select: text !important; }
               .paper-editor-sheet .script-block { position: relative; border-radius: 4px; }
-              .paper-editor-sheet .script-block[data-block-type="sfx"]:not(:has(> br.ProseMirror-trailingBreak:only-child))::before {
-                content: "SFX";
-                display: inline-block;
-                font-family: var(--font-sans, inherit);
-                font-size: 12px;
-                font-weight: 600;
-                letter-spacing: 0.16em;
-                color: #78716C;
-                margin-right: 12px;
-              }
             `}</style>
             {manuscriptTitle && (
               <header className="text-center mb-14 select-none">

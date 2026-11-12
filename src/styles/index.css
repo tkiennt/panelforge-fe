@@ -950,20 +950,38 @@ body {
   height: 0;
   pointer-events: none;
   font-style: normal;
+  font-weight: 400;
   color: var(--color-stone-500);
 }
 .ProseMirror .script-block[data-block-type='stage_direction']:has(> br.ProseMirror-trailingBreak:only-child)::before {
-  content: 'Hành động, bối cảnh…';
-}
-.ProseMirror .script-block[data-block-type='dialogue']:has(> br.ProseMirror-trailingBreak:only-child)::before {
-  content: 'Gõ "Tên:" rồi viết lời thoại';
+  content: 'Mô tả khung tranh… (gõ TÊN: để viết thoại)';
 }
 .ProseMirror .dialogue-text:has(> br.ProseMirror-trailingBreak:only-child)::before {
   content: 'Lời thoại…';
 }
-.ProseMirror .script-block[data-block-type='caption']:has(> br.ProseMirror-trailingBreak:only-child)::before {
+.ProseMirror .script-block[data-block-type='caption'] .dialogue-text:has(> br.ProseMirror-trailingBreak:only-child)::before {
   content: 'Lời dẫn truyện…';
 }
-.ProseMirror .script-block[data-block-type='sfx']:has(> br.ProseMirror-trailingBreak:only-child)::before {
+.ProseMirror .script-block[data-block-type='sfx'] .dialogue-text:has(> br.ProseMirror-trailingBreak:only-child)::before {
   content: 'Tiếng động…';
+}
+
+/* Full script truyện tranh: thoại / dẫn truyện / SFX đánh số liên tục trong một trang, đếm lại từ 1 ở mỗi trang */
+.ProseMirror {
+  counter-reset: script-line;
+}
+.ProseMirror .script-block[data-block-type='page_heading'] {
+  /* counter-set (không phải counter-reset): đặt lại đúng bộ đếm của trang, không mở bộ đếm lồng mới */
+  counter-set: script-line 0;
+}
+.ProseMirror .script-line {
+  counter-increment: script-line;
+}
+.ProseMirror .script-line-label::before {
+  content: counter(script-line) '. ';
+  font-variant-numeric: tabular-nums;
+  color: var(--color-stone-400);
+}
+.ProseMirror .script-line-label::after {
+  content: ':';
 }
