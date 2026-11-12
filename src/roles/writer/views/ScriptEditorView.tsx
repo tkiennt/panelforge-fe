@@ -88,6 +88,7 @@ import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 import { UnsavedChangesBar, LucianConfirmModal, TypeToConfirmModal } from '@/shared/components/lucian';
 import { useTranslation } from '@/lib/i18n';
+import { ReasonForm } from '@/roles/editor/views/review-shared/ReasonForm';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useComicStudioStore } from '../components/script/thumbnail-studio/store/useComicStudioStore';
 import { scenesToComicScriptText } from '../components/script/thumbnail-studio/lib/comicScriptParser';
@@ -115,6 +116,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   currentUserId,
 }) => {
   const { t } = useTranslation('production');
+  const { t: tReview } = useTranslation('review');
   const confirm = useConfirm();
   const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const navigate = useNavigate();
@@ -363,6 +365,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [bibleGateResult, setBibleGateResult] = useState<ChapterBibleGateResultDto | null>(null);
   const [loadingBibleGate, setLoadingBibleGate] = useState(false);
   const [freezingScript, setFreezingScript] = useState(false);
+  const [unfreezeReasonOpen, setUnfreezeReasonOpen] = useState(false);
   const [bibleGateModalOpen, setBibleGateModalOpen] = useState(false);
 
   // V2.5: Chế độ soạn thảo kịch bản kép (Dual-Mode: Screenplay Flow làm mặc định + Card Mode làm tùy chọn xem cấu trúc)
@@ -1860,21 +1863,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   };
 
-  const handleUnfreezeScript = async () => {
+  // BR-18: lý do mở lại là bắt buộc, Backend ghi vào Audit Log
+  const handleUnfreezeScript = async (reason: string) => {
     if (!currentChapter?.id) return;
-    const confirmed = await confirm({
-      title: `Mở lại kịch bản Chương ${currentChapter.chapterNumber}?`,
-      description:
-        'Mở lại kịch bản để Writer chỉnh sửa sẽ tạm dừng khâu vẽ Thumbnail của Artist cho đến khi kịch bản được duyệt lại.',
-      confirmText: 'Mở lại kịch bản',
-      cancelText: 'Hủy',
-      variant: 'warning',
-    });
-    if (!confirmed) return;
-
+    setUnfreezeReasonOpen(false);
     setFreezingScript(true);
     try {
-      await chapterService.unfreezeScript(currentChapter.id);
+      await chapterService.unfreezeScript(currentChapter.id, reason);
       notify(
         'Đã mở lại kịch bản',
         `Kịch bản Chương ${currentChapter.chapterNumber} đã được mở lại cho Writer chỉnh sửa.`,
@@ -2376,15 +2371,26 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               </div>
 
               {normRole === 'PRODUCER' && (
-                <button
-                  type='button'
-                  disabled={freezingScript}
-                  onClick={() => void handleUnfreezeScript()}
-                  className='px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1.5'
-                >
-                  <RefreshCw className='w-3.5 h-3.5' />
-                  <span>Mở lại kịch bản (Unfreeze)</span>
-                </button>
+                <div className='shrink-0'>
+                  <button
+                    type='button'
+                    disabled={freezingScript}
+                    onClick={() => setUnfreezeReasonOpen((open) => !open)}
+                    className='px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1.5'
+                  >
+                    <RefreshCw className='w-3.5 h-3.5' />
+                    <span>{tReview('scriptReview.checks.unfreeze')}</span>
+                  </button>
+                  {unfreezeReasonOpen && (
+                    <ReasonForm
+                      label={tReview('scriptReview.checks.unfreezeReason')}
+                      confirmLabel={tReview('scriptReview.checks.unfreeze')}
+                      busy={freezingScript}
+                      onConfirm={(reason) => void handleUnfreezeScript(reason)}
+                      onCancel={() => setUnfreezeReasonOpen(false)}
+                    />
+                  )}
+                </div>
               )}
             </div>
           )}
