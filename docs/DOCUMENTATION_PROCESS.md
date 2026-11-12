@@ -11,7 +11,7 @@
 Hệ thống tài liệu là **tấm gương phản chiếu mã nguồn**. Nhằm loại bỏ tình trạng tài liệu bị phân tán, lỗi thời hoặc không bám sát thực tế code, quy trình này thiết lập:
 1. **Single Source of Truth (Nguồn chân lý duy nhất):** Mỗi mảng kiến thức chỉ có một vị trí lưu trữ chuẩn xác.
 2. **Zero-Drift Policy (Không lệch pha):** Bất kỳ sự thay đổi nào về giao diện, luồng nghiệp vụ hoặc cấu trúc mã nguồn đều phải được cập nhật đồng thời vào tài liệu tương ứng.
-3. **Structured Lifecycle (Vòng đời có cấu trúc):** Mọi kế hoạch triển khai (Implement Plan) đều phải trải qua hai giai đoạn rõ ràng: `ongoing` (đang thực hiện) và `completed` (đã hoàn thành).
+3. **Một bộ kế hoạch theo module:** Kế hoạch triển khai không nằm trong repo này. Toàn bộ task của cả 3 repo được quản lý trong `note/plans/` ở thư mục workspace gốc `Github/` (ngoài repo này, xem `note/plans/README.md`), mỗi module nghiệp vụ một file.
 
 ---
 
@@ -27,14 +27,6 @@ panelforge-fe/
 │   ├── README.md                       # Mục lục & trung tâm điều hướng toàn bộ hệ thống docs
 │   ├── DOCUMENTATION_PROCESS.md        # [Tài liệu này] Quy chuẩn quản lý & quy trình đồng bộ code-docs
 │   ├── DESIGN_RULES.md                 # Quy chuẩn thiết kế giao diện (Quiet Editorial Studio, tokens, font...)
-│   │
-│   ├── implement-plan/                 # QUẢN LÝ KẾ HOẠCH TRIỂN KHAI
-│   │   ├── ongoing/                    # Kế hoạch & danh sách nhiệm vụ ĐANG THỰC HIỆN
-│   │   │   └── .gitkeep
-│   │   └── completed/                  # Kế hoạch ĐÃ HOÀN THÀNH 100% (nghiệm thu & pass kiểm thử)
-│   │       ├── EDITORIAL_STUDIO_DESIGN_PLAN.md
-│   │       ├── EDITORIAL_STUDIO_TASK_LIST.md
-│   │       └── UI_REFACTOR_CHECKLIST.md
 │   │
 │   ├── audit/                          # Báo cáo kiểm định chất lượng, rà soát màn hình định kỳ
 │   │   └── UI_SCREEN_AUDIT.md
@@ -65,58 +57,30 @@ panelforge-fe/
 
 ---
 
-## 3. VÒNG ĐỜI KẾ HOẠCH TRIỂN KHAI (IMPLEMENT PLAN LIFECYCLE)
+## 3. KẾ HOẠCH TRIỂN KHAI (IMPLEMENT PLAN)
 
-Mọi tính năng mới, tái cấu trúc (refactoring) hoặc chiến dịch kỹ thuật lớn bắt buộc phải tạo kế hoạch triển khai theo quy trình 3 giai đoạn:
+Từ 2026-11-12, kế hoạch triển khai của cả Backend, Frontend và Mobile nằm trong **một bộ plan theo module** ở thư mục workspace gốc, không đặt trong `docs/` của repo này:
 
-```mermaid
-graph TD
-    A["Giai đoạn 1: Khởi Tạo<br/>Tạo file trong docs/implement-plan/ongoing/"] --> B["Giai đoạn 2: Thực Thi<br/>Code song song cập nhật checklist [ ] -> [x]"]
-    B --> C{"Kiểm tra nghiệm thu<br/>100% task [x] & Tests Pass?"}
-    C -->|Chưa đạt| B
-    C -->|Đạt 100%| D["Giai đoạn 3: Hoàn Tất<br/>Di chuyển sang docs/implement-plan/completed/"]
-    D --> E["Cập nhật chỉ mục tại docs/README.md"]
+```text
+Github/                              (workspace gốc, không phải git repo)
+├── note/PANELFORGE_MASTER_SPECIFICATION_V2_6.md   # Đặc tả nghiệp vụ
+├── note/PANELFORGE_V2_6_IMPLEMENTATION_PLAN.md    # Plan tổng: đối chiếu codebase, quyết định đã chốt, changelog chung
+└── note/plans/
+    ├── README.md                    # Mục lục module, quy ước ID, thứ tự phụ thuộc
+    ├── 01_SCRIPT_PLAN.md (SCR) · 02_BIBLE_PLAN.md (BIB) · 03_ASSIGNMENT_PLAN.md (ASG)
+    ├── 04_ARTWORK_PLAN.md (ART) · 05_REVIEW_PLAN.md (REV) · 06_RELEASE_PLAN.md (REL)
+    └── 07_READER_PLAN.md (RDR) · 08_UI_QUALITY_PLAN.md (UIQ)
 ```
 
-### Bước 1: Khởi tạo trong `ongoing/`
-- **Vị trí:** `docs/implement-plan/ongoing/`
-- **Quy tắc đặt tên:** `<TÊN_TÍNH_NĂNG>_PLAN.md` hoặc `<TÊN_TÍNH_NĂNG>_TASK_LIST.md` (dùng chữ HOA hoặc `kebab-case`).
-- **Cấu trúc Header bắt buộc:**
-```markdown
-# 📋 [Tên Kế Hoạch Triển Khai]
+### Quy tắc
 
-> **Trạng thái:** 🟡 ONGOING  
-> **Người thực hiện:** [Tên dev hoặc AI Agent]  
-> **Ngày bắt đầu:** YYYY-MM-DD  
-> **Phạm vi tác động:** [Danh sách component / module liên quan]  
-> **Mục tiêu:** [Tóm tắt 1-2 câu về kết quả kỳ vọng]
+1. **Không tạo file plan mới trong repo.** Việc mới thuộc module nào thì thêm task vào plan module đó (ID `<PREFIX>-<nn>`). Chỉ tạo plan module mới khi xuất hiện một mảng nghiệp vụ chưa có, và thêm nó vào `note/plans/README.md`.
+2. **Trong lúc làm:** đánh `[ ]` → `[x]` ngay khi xong từng sub-task; quyết định kỹ thuật phát sinh ghi vào plan module.
+3. **Khi xong task:** đổi trạng thái task (✅), ghi một dòng vào Changelog của plan module **và** Changelog của plan tổng (ngày, task, nhánh/commit).
+4. **Kiểm tra trước khi đánh xong:** `npm run typecheck`, `npm run i18n:check`, `npm run lint`. Test (`npm run test:run`) chạy khi nhóm yêu cầu.
+5. **Task đã xong không di chuyển, không xoá;** plan module giữ cả phần đã xong làm lịch sử.
 
 ---
-
-## Danh Sách Nhiệm Vụ (Task List)
-- [ ] Task 1...
-- [ ] Task 2...
-```
-
-### Bước 2: Thực thi & Cập nhật liên tục
-- Khi bắt đầu thực hiện task nào, dev/agent duy trì tính minh bạch bằng cách chuyển `[ ]` sang `[x]` ngay khi hoàn thành task đó.
-- Nếu có quyết định kỹ thuật phát sinh ngoài dự kiến, ghi chú bổ sung trực tiếp vào file.
-
-### Bước 3: Nghiệm thu & Di chuyển sang `completed/`
-- **Điều kiện tiên quyết:**
-  1. Toàn bộ checkbox trong file đã được tích `[x]`.
-  2. Mã nguồn pass kiểm tra kiểu dữ liệu: `npm run typecheck`.
-  3. Mã nguồn pass quy chuẩn linter: `npm run lint`.
-  4. Bộ kiểm thử tự động pass 100%: `npm run test:run`.
-- **Thực hiện di chuyển:**
-  ```bash
-  git mv docs/implement-plan/ongoing/<FILE_NAME>.md docs/implement-plan/completed/<FILE_NAME>.md
-  ```
-- **Cập nhật Header:** Đổi `Trạng thái: 🟢 COMPLETED` và thêm `Ngày hoàn thành: YYYY-MM-DD`.
-- **Cập nhật chỉ mục:** Thêm liên kết vào bảng mục lục trong `docs/README.md`.
-
----
-
 ## 4. QUY TRÌNH ĐỒNG BỘ SOURCE CODE VỚI TÀI LIỆU (SOURCE-CODE-DOC-SYNC)
 
 Để bảo đảm **code đi đến đâu, docs bám sát đến đó**, mỗi khi thay đổi source code, lập trình viên và AI Agent **bắt buộc** phải tuân thủ ma trận sau:
@@ -143,7 +107,7 @@ Mỗi PR gửi lên repository bắt buộc phải vượt qua checklist tài li
   - [ ] `PRODUCT.md` (nếu thay đổi luồng nghiệp vụ cốt lõi)
   - [ ] `src/roles/{role}/README.md` (nếu thay đổi views/modals của role)
   - [ ] `src/shared/README.md` (nếu thêm/sửa shared components)
-- [ ] Nếu là tính năng mới: Đã hoàn thành Task List và di chuyển sang `docs/implement-plan/completed/`.
+- [ ] Nếu làm theo kế hoạch: đã cập nhật task và Changelog trong plan module `note/plans/` (workspace gốc) và plan tổng.
 - [ ] Đã kiểm tra không có liên kết markdown nào bị gãy (broken links).
 ```
 
@@ -168,7 +132,6 @@ Khi làm việc với các AI Coding Assistant (như Claude/Antigravity), quy t�
    - `PRODUCT.md` và `CLAUDE.md` tại root.
    - `docs/DESIGN_RULES.md`, `docs/README.md`, `docs/DOCUMENTATION_PROCESS.md`.
    - Các file `src/roles/*/README.md` và `src/shared/README.md`.
-   - Các file đã chuyển vào `docs/implement-plan/completed/`.
 
 ---
 

@@ -28,5 +28,5 @@ Please describe the tests that you ran to verify your changes.
   - [ ] `src/roles/{role}/README.md` (if added/updated role views or modals)
   - [ ] `src/shared/README.md` (if added/updated shared components or boards)
 - [ ] If this was a planned feature:
-  - [ ] Task list updated and moved from `docs/implement-plan/ongoing/` to `docs/implement-plan/completed/`
+  - [ ] Task and changelog updated in the workspace module plan (`note/plans/`) and the master plan
 - [ ] No broken markdown links in `docs/`
