@@ -27,6 +27,8 @@ export interface SeriesDto {
   avatarUrl?: string | null;
   /** Banner ngang ~3:1 đầu Series Dashboard; null = dùng fallback. */
   bannerUrl?: string | null;
+  /** Producer đánh dấu bộ truyện đã hoàn thành (Reader thấy "Hoàn thành"). */
+  isCompleted?: boolean;
 }
 
 export interface SeriesDetailDto extends SeriesDto {
@@ -61,6 +63,8 @@ export interface UpdateSeriesRequest {
   genre?: string;
   format?: string;
   releaseScheduleJson?: string;
+  /** null/undefined = giữ nguyên trạng thái hiện tại. */
+  isCompleted?: boolean;
 }
 
 // Series Progress (UC-16)
@@ -509,7 +513,8 @@ export const seriesService = {
         const rawRole = item.seriesRole ?? item.role ?? item.studioRole ?? 'Artist';
         const roleStr =
           typeof rawRole === 'number'
-            ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][rawRole] || 'Artist'
+            ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][rawRole] ||
+              'Artist'
             : String(rawRole || 'Artist');
         return {
           ...item,

@@ -112,6 +112,7 @@ export const StudioOverviewView: React.FC = () => {
   const [editSeriesFormat, setEditSeriesFormat] = useState('Manga (Standard)');
   const [editSeriesDirection, setEditSeriesDirection] = useState(1);
   const [editSeriesSchedule, setEditSeriesSchedule] = useState('');
+  const [editSeriesCompleted, setEditSeriesCompleted] = useState(false);
   const [updatingSeries, setUpdatingSeries] = useState(false);
 
   // Workspace Usage (NFR Resource Governance - Storage & AI Tokens)
@@ -431,6 +432,7 @@ export const StudioOverviewView: React.FC = () => {
           : 0,
     );
     setEditSeriesSchedule(s.releaseScheduleJson || '');
+    setEditSeriesCompleted(Boolean(s.isCompleted));
   };
 
   const handleUpdateSeries = async (e: React.FormEvent) => {
@@ -446,6 +448,7 @@ export const StudioOverviewView: React.FC = () => {
         format: editSeriesFormat || undefined,
         readingDirection: editSeriesDirection,
         releaseScheduleJson: editSeriesSchedule || undefined,
+        isCompleted: editSeriesCompleted,
       });
       setSeriesList((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
       setEditingSeries(null);
@@ -999,6 +1002,8 @@ export const StudioOverviewView: React.FC = () => {
         onDirectionChange={setEditSeriesDirection}
         schedule={editSeriesSchedule}
         onScheduleChange={setEditSeriesSchedule}
+        isCompleted={editSeriesCompleted}
+        onCompletedChange={setEditSeriesCompleted}
         updating={updatingSeries}
       />
 

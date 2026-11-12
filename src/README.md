@@ -18,7 +18,7 @@ Cấu trúc được tổ chức theo kiến trúc **Role-Based Feature Director
 | **ARTIST** | Họa sĩ / Artist | `workspace` | `src/roles/artist/` | `artist` (`/workspaces/:wsId/series/:seriesId/artist`) | `ArtistDeskView`, `PanelLayoutControls`, `FrameTemplateModal`, `ArtworkCanvas` |
 | **LETTERER** | Kỹ thuật chèn chữ / Letterer | `workspace` | `src/roles/letterer/` | `canvas` (`/workspaces/:wsId/series/:seriesId/canvas`) | `LettererWorkspace`, `LetteringWorkspace` (canvas bóng thoại, phông chữ, script binding) |
 | **EDITOR** | Biên tập viên / Editor | `workspace` | `src/roles/editor/` | `review` (`/review/:taskId`) | `ReviewView`, `EditorWorkspace` (đối chiếu tiêu chí duyệt, cảnh báo AI) |
-| **READER** | Độc giả / Người đọc thử | `external` | `src/roles/reader/` | `/catalog` (`/reader` chuyển về đây) | `PublicCatalogView` (`/catalog`), `PublicPreviewView` (`/preview/:token`) |
+| **READER** | Độc giả / Người đọc thử | `external` | `src/roles/reader/` | `/catalog` (`/reader` chuyển về đây) | `PublicCatalogView` (`/catalog`), `PublicPreviewView` (`/review/invite/:token`; `/preview/:token` chuyển về đây) |
 | **GUEST** | Khách vãng lai / Chưa đăng nhập | `public` | `src/roles/guest/` | `/`, `/login` | `LandingPageView`, `LoginModal`, `RegisterModal` |
 
 ---

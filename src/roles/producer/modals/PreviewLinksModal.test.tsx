@@ -159,7 +159,7 @@ describe('PreviewLinksModal', () => {
       });
       expect(screen.getByTestId('created-link-banner')).toBeInTheDocument();
       expect(screen.getByTestId('created-preview-link-url')).toHaveTextContent(
-        '/preview/secret-token-token123',
+        '/review/invite/secret-token-token123',
       );
     });
 
@@ -168,7 +168,7 @@ describe('PreviewLinksModal', () => {
     fireEvent.click(copyBtn);
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('/preview/secret-token-token123'),
+      expect.stringContaining('/review/invite/secret-token-token123'),
     );
     expect(screen.getByText('Đã sao chép')).toBeInTheDocument();
   });

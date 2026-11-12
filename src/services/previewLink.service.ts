@@ -74,6 +74,8 @@ export interface PreviewFeedbackDto {
   createdAt: string;
   /** Yêu cầu sửa sinh từ phản hồi này (5.7); null = chưa chuyển. */
   changeRequestId?: string | null;
+  /** Tên người nhận xét tự khai trên trang review công khai (không bắt buộc). */
+  reviewerName?: string | null;
 }
 
 export interface CreatePreviewLinkRequest {
@@ -86,6 +88,7 @@ export interface SubmitPreviewFeedbackRequest {
   message: string;
   pageId?: string | null;
   panelId?: string | null;
+  reviewerName?: string | null;
 }
 
 export interface TriagePreviewFeedbackRequest {

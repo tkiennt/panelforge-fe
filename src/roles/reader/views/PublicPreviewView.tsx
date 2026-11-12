@@ -23,7 +23,19 @@ import {
   BookOpen,
   Info,
   X,
+  Smartphone,
+  ShieldCheck,
+  Rows3,
+  FileImage,
 } from 'lucide-react';
+import { ReviewHandoffModal } from '@/shared/modals/ReviewHandoffModal';
+
+interface SentFeedback {
+  id: string;
+  label: string;
+  message: string;
+  createdAt: string;
+}
 
 export const PublicPreviewView: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -49,6 +61,12 @@ export const PublicPreviewView: React.FC = () => {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+
+  // Chế độ xem (từng trang / cuộn dọc), cầu nối QR sang Mobile, tên người góp ý và các góp ý đã gửi trong phiên.
+  const [viewMode, setViewMode] = useState<'single' | 'scroll'>('single');
+  const [showHandoff, setShowHandoff] = useState(false);
+  const [reviewerName, setReviewerName] = useState('');
+  const [sentFeedback, setSentFeedback] = useState<SentFeedback[]>([]);
 
   const fetchChapter = useCallback(async () => {
     if (!token) {
@@ -142,13 +160,30 @@ export const PublicPreviewView: React.FC = () => {
       const pageId = feedbackScope === 'chapter' ? null : currentPage?.pageId || null;
       const panelId = feedbackScope === 'panel' ? selectedPanel?.panelId || null : null;
 
-      await previewLinkService.submitFeedback({
+      const name = reviewerName.trim();
+      const created = await previewLinkService.submitFeedback({
         token,
         message: message.trim(),
+        reviewerName: name || null,
         pageId,
         panelId,
       });
 
+      const label =
+        feedbackScope === 'chapter'
+          ? 'Toàn chương'
+          : feedbackScope === 'panel' && selectedPanel
+            ? `Trang ${currentPageIndex + 1} · Khung #${selectedPanel.panelNumber}`
+            : `Trang ${currentPageIndex + 1}`;
+      setSentFeedback((prev) => [
+        {
+          id: created?.id ?? String(Date.now()),
+          label,
+          message: message.trim(),
+          createdAt: created?.createdAt ?? new Date().toISOString(),
+        },
+        ...prev,
+      ]);
       setFeedbackSuccess(true);
       setMessage('');
       setTimeout(() => {
@@ -201,7 +236,9 @@ export const PublicPreviewView: React.FC = () => {
             <ShieldAlert className='w-7 h-7' />
           </div>
           <div>
-            <h1 className='text-lg font-bold text-white'>Liên Kết Không Khả Dụng</h1>
+            <h1 className='text-lg font-bold text-white'>
+              Liên kết bản thảo đã hết hạn hoặc bị thu hồi
+            </h1>
             <p className='text-xs text-red-300 mt-2 bg-red-950/40 p-2.5 rounded-lg border border-red-900/40'>
               {errorMsg || 'Link xem thử không hợp lệ, đã hết hạn hoặc đã bị thu hồi.'}
             </p>
@@ -223,7 +260,79 @@ export const PublicPreviewView: React.FC = () => {
     );
   }
 
-  const currentImageUrl = currentPage ? resolvePreviewImageUrl(currentPage.imageUrl) : '';
+  // Một trang + khung tranh + watermark bắt buộc (BR-16) — dùng cho cả chế độ Từng trang và Cuộn dọc.
+  const renderPageCanvas = (page: PreviewPageDto, index: number) => (
+    <div
+      className='relative inline-block w-full max-w-[850px] aspect-[2/3]'
+      data-testid={`preview-page-image-wrapper-${page.pageId}`}
+    >
+      <img
+        key={`${page.pageId}-${imageReloadCount}`}
+        src={resolvePreviewImageUrl(page.imageUrl)}
+        alt={`Trang ${page.pageNumber}`}
+        onError={handleImageError}
+        className='w-full h-full object-contain pointer-events-auto'
+        data-testid='preview-page-image'
+      />
+
+      {/* Khung Panel Clickable Overlay (Kiểm tra và chuẩn hoá toạ độ px hay %) */}
+      {page.panels &&
+        page.panels.map((p) => {
+          const box = parseBoundingBox(p.boundingBox, 100, 100);
+          const isSelected = index === currentPageIndex && selectedPanel?.panelId === p.panelId;
+          return (
+            <div
+              key={p.panelId}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentPageIndex(index);
+                handleSelectPanel(p);
+              }}
+              style={{
+                position: 'absolute',
+                left: `${box.percentX}%`,
+                top: `${box.percentY}%`,
+                width: `${box.percentW}%`,
+                height: `${box.percentH}%`,
+              }}
+              className={`border transition-all cursor-pointer z-30 group ${
+                isSelected
+                  ? 'border-orange-500 bg-orange-500/20 shadow-lg'
+                  : 'border-transparent hover:border-orange-400/80 hover:bg-orange-400/10'
+              }`}
+              title={`Bấm để gửi phản hồi cho Khung #${p.panelNumber}`}
+              data-testid={`preview-panel-box-${p.panelId}`}
+            >
+              <span
+                className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-xs font-mono font-bold transition-opacity ${
+                  isSelected
+                    ? 'bg-orange-500 text-white opacity-100'
+                    : 'bg-black/70 text-orange-300 opacity-0 group-hover:opacity-100'
+                }`}
+              >
+                Khung #{p.panelNumber}
+              </span>
+            </div>
+          );
+        })}
+
+      {/* Watermark bắt buộc đè chéo, lặp lại trên mọi trang (CSS, pointer-events: none, không thể chọn được) */}
+      <div
+        className='absolute inset-0 pointer-events-none select-none overflow-hidden z-25'
+        style={{ pointerEvents: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
+        data-testid='watermark-overlay'
+      >
+        {/* SVG Repeating Diagonal Background */}
+        <div
+          className='w-full h-full opacity-25'
+          style={{
+            backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='140px' width='280px'><text transform='translate(20, 110) rotate(-28)' fill='rgba(255,255,255,0.35)' font-size='14' font-family='monospace' font-weight='900'>${encodeURIComponent(chapterData.watermarkText || 'PANELFORGE CONFIDENTIAL PREVIEW')}</text></svg>")`,
+            backgroundRepeat: 'repeat',
+          }}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -261,6 +370,25 @@ export const PublicPreviewView: React.FC = () => {
               {new Date(chapterData.expiresAt).toLocaleString('vi-VN')}
             </span>
           </div>
+
+          <span
+            className='hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-950/60 border border-emerald-800 text-[11px] font-bold text-emerald-300'
+            data-testid='watermark-badge'
+          >
+            <ShieldCheck className='w-3.5 h-3.5' />
+            BẢO MẬT &amp; ĐỘC QUYỀN (WATERMARKED)
+          </span>
+
+          <button
+            type='button'
+            onClick={() => setShowHandoff(true)}
+            className='px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 cursor-pointer'
+            data-testid='open-handoff-btn'
+            title='Mở trên App / Quét QR bằng Tablet'
+          >
+            <Smartphone className='w-3.5 h-3.5' />
+            <span className='hidden sm:inline'>Mở trên App / Quét QR</span>
+          </button>
 
           <button
             type='button'
@@ -305,6 +433,32 @@ export const PublicPreviewView: React.FC = () => {
             </div>
 
             <div className='flex items-center gap-2'>
+              <div
+                className='flex rounded-lg border border-neutral-800 overflow-hidden'
+                role='group'
+                aria-label='Chế độ xem'
+              >
+                <button
+                  type='button'
+                  onClick={() => setViewMode('single')}
+                  aria-pressed={viewMode === 'single'}
+                  className={`px-2 py-1 flex items-center gap-1 cursor-pointer ${viewMode === 'single' ? 'bg-neutral-700 text-white' : 'bg-neutral-900 text-neutral-400 hover:text-white'}`}
+                  data-testid='view-mode-single'
+                >
+                  <FileImage className='w-3.5 h-3.5' />
+                  <span className='hidden sm:inline'>Từng trang</span>
+                </button>
+                <button
+                  type='button'
+                  onClick={() => setViewMode('scroll')}
+                  aria-pressed={viewMode === 'scroll'}
+                  className={`px-2 py-1 flex items-center gap-1 cursor-pointer ${viewMode === 'scroll' ? 'bg-neutral-700 text-white' : 'bg-neutral-900 text-neutral-400 hover:text-white'}`}
+                  data-testid='view-mode-scroll'
+                >
+                  <Rows3 className='w-3.5 h-3.5' />
+                  <span className='hidden sm:inline'>Cuộn dọc</span>
+                </button>
+              </div>
               {/* Lật trang theo hướng đọc */}
               <button
                 type='button'
@@ -337,76 +491,12 @@ export const PublicPreviewView: React.FC = () => {
             className='relative max-w-4xl w-full flex items-center justify-center bg-[#111114] border border-neutral-800/80 rounded-xl overflow-hidden shadow-2xl'
             data-testid='preview-page-container'
           >
-            {currentPage ? (
-              <div
-                className='relative inline-block w-full max-w-[850px] aspect-[2/3]'
-                data-testid={`preview-page-image-wrapper-${currentPage.pageId}`}
-              >
-                <img
-                  key={`${currentPage.pageId}-${imageReloadCount}`}
-                  src={currentImageUrl}
-                  alt={`Trang ${currentPage.pageNumber}`}
-                  onError={handleImageError}
-                  className='w-full h-full object-contain pointer-events-auto'
-                  data-testid='preview-page-image'
-                />
-
-                {/* Khung Panel Clickable Overlay (Kiểm tra và chuẩn hoá toạ độ px hay %) */}
-                {currentPage.panels &&
-                  currentPage.panels.map((p) => {
-                    const box = parseBoundingBox(p.boundingBox, 100, 100);
-                    const isSelected = selectedPanel?.panelId === p.panelId;
-                    return (
-                      <div
-                        key={p.panelId}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectPanel(p);
-                        }}
-                        style={{
-                          position: 'absolute',
-                          left: `${box.percentX}%`,
-                          top: `${box.percentY}%`,
-                          width: `${box.percentW}%`,
-                          height: `${box.percentH}%`,
-                        }}
-                        className={`border transition-all cursor-pointer z-30 group ${
-                          isSelected
-                            ? 'border-orange-500 bg-orange-500/20 shadow-lg'
-                            : 'border-transparent hover:border-orange-400/80 hover:bg-orange-400/10'
-                        }`}
-                        title={`Bấm để gửi phản hồi cho Khung #${p.panelNumber}`}
-                        data-testid={`preview-panel-box-${p.panelId}`}
-                      >
-                        <span
-                          className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-xs font-mono font-bold transition-opacity ${
-                            isSelected
-                              ? 'bg-orange-500 text-white opacity-100'
-                              : 'bg-black/70 text-orange-300 opacity-0 group-hover:opacity-100'
-                          }`}
-                        >
-                          Khung #{p.panelNumber}
-                        </span>
-                      </div>
-                    );
-                  })}
-
-                {/* Watermark bắt buộc đè chéo, lặp lại trên mọi trang (CSS, pointer-events: none, không thể chọn được) */}
-                <div
-                  className='absolute inset-0 pointer-events-none select-none overflow-hidden z-25'
-                  style={{ pointerEvents: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
-                  data-testid='watermark-overlay'
-                >
-                  {/* SVG Repeating Diagonal Background */}
-                  <div
-                    className='w-full h-full opacity-25'
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='140px' width='280px'><text transform='translate(20, 110) rotate(-28)' fill='rgba(255,255,255,0.35)' font-size='14' font-family='monospace' font-weight='900'>${encodeURIComponent(chapterData.watermarkText || 'PANELFORGE CONFIDENTIAL PREVIEW')}</text></svg>")`,
-                      backgroundRepeat: 'repeat',
-                    }}
-                  />
-                </div>
+            {viewMode === 'scroll' && totalPages > 0 ? (
+              <div className='w-full flex flex-col items-center gap-4 py-2'>
+                {chapterData.pages.map((page, index) => renderPageCanvas(page, index))}
               </div>
+            ) : currentPage ? (
+              renderPageCanvas(currentPage, currentPageIndex)
             ) : (
               <div className='py-20 text-center text-neutral-500'>
                 <Info className='w-8 h-8 mx-auto mb-2 text-neutral-600' />
@@ -546,6 +636,49 @@ export const PublicPreviewView: React.FC = () => {
 
             {/* Feedback input form */}
             <form onSubmit={handleSubmitFeedback} className='flex-1 flex flex-col space-y-3'>
+              <div>
+                <label
+                  htmlFor='reviewer-name'
+                  className='block text-xs font-semibold text-neutral-300 mb-1'
+                >
+                  Tên người nhận xét (không bắt buộc):
+                </label>
+                <input
+                  id='reviewer-name'
+                  value={reviewerName}
+                  maxLength={80}
+                  onChange={(e) => setReviewerName(e.target.value)}
+                  placeholder='Ví dụ: Cố vấn Minh'
+                  className='w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#F97316]'
+                  data-testid='reviewer-name-input'
+                />
+              </div>
+              {feedbackScope !== 'chapter' && totalPages > 1 && (
+                <div>
+                  <label
+                    htmlFor='feedback-page'
+                    className='block text-xs font-semibold text-neutral-300 mb-1'
+                  >
+                    Trang số:
+                  </label>
+                  <select
+                    id='feedback-page'
+                    value={currentPageIndex}
+                    onChange={(e) => {
+                      setCurrentPageIndex(Number(e.target.value));
+                      setSelectedPanel(null);
+                    }}
+                    className='w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-xs text-white focus:outline-none focus:border-[#F97316]'
+                    data-testid='feedback-page-select'
+                  >
+                    {chapterData.pages.map((p, idx) => (
+                      <option key={p.pageId} value={idx}>
+                        Trang {p.pageNumber}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className='flex-1 flex flex-col'>
                 <label className='block text-xs font-semibold text-neutral-300 mb-1'>
                   Nội dung nhận xét (tối đa 2.000 ký tự):
@@ -582,9 +715,43 @@ export const PublicPreviewView: React.FC = () => {
                 <span>Gửi Nhận Xét</span>
               </button>
             </form>
+
+            {sentFeedback.length > 0 && (
+              <div
+                className='mt-4 border-t border-neutral-800 pt-3'
+                data-testid='sent-feedback-list'
+              >
+                <h3 className='text-xs font-bold text-neutral-300 mb-2'>
+                  Đã gửi trong phiên này ({sentFeedback.length}) — Studio đã nhận
+                </h3>
+                <ul className='space-y-2 max-h-48 overflow-y-auto custom-scrollbar'>
+                  {sentFeedback.map((fb) => (
+                    <li
+                      key={fb.id}
+                      className='p-2 rounded-lg bg-neutral-900 border border-neutral-800 text-xs'
+                    >
+                      <div className='flex items-center justify-between gap-2 text-neutral-500 font-mono'>
+                        <span className='text-emerald-400 flex items-center gap-1'>
+                          <CheckCircle2 className='w-3 h-3' />
+                          {fb.label}
+                        </span>
+                        <span>{new Date(fb.createdAt).toLocaleTimeString('vi-VN')}</span>
+                      </div>
+                      <p className='mt-1 text-neutral-200 whitespace-pre-wrap break-words'>
+                        {fb.message}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </aside>
         )}
       </div>
+
+      {showHandoff && token && (
+        <ReviewHandoffModal token={token} onClose={() => setShowHandoff(false)} />
+      )}
     </div>
   );
 };

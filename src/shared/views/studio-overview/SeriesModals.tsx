@@ -289,6 +289,8 @@ export interface EditSeriesModalProps {
   onDirectionChange: (v: number) => void;
   schedule: string;
   onScheduleChange: (v: string) => void;
+  isCompleted: boolean;
+  onCompletedChange: (v: boolean) => void;
   updating: boolean;
 }
 
@@ -310,6 +312,8 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
   onDirectionChange,
   schedule,
   onScheduleChange,
+  isCompleted,
+  onCompletedChange,
   updating,
 }) => {
   if (!series) return null;
@@ -320,9 +324,7 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
         <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
           <div className='flex items-center gap-2'>
             <Edit2 className='w-4 h-4 text-[#F97316]' />
-            <h3 className='text-sm font-bold text-[#171717]'>
-              Chỉnh Sửa Thông Tin Series
-            </h3>
+            <h3 className='text-sm font-bold text-[#171717]'>Chỉnh Sửa Thông Tin Series</h3>
           </div>
           <button type='button' onClick={onClose} className='text-[#888888] hover:text-[#171717]'>
             <X className='w-4 h-4' />
@@ -428,6 +430,20 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
                 className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
               />
             </div>
+
+            <label className='flex items-center gap-2 font-semibold text-[#171717] cursor-pointer'>
+              <input
+                type='checkbox'
+                checked={isCompleted}
+                onChange={(e) => onCompletedChange(e.target.checked)}
+                className='w-4 h-4 accent-[#F97316]'
+                data-testid='edit-series-completed'
+              />
+              Bộ truyện đã hoàn thành
+              <span className='font-normal text-xs text-[#888888]'>
+                (độc giả thấy “Hoàn thành” thay vì “Đang ra”)
+              </span>
+            </label>
           </div>
 
           <div className='flex justify-end gap-2 pt-2 border-t border-[#E7E7E7]'>

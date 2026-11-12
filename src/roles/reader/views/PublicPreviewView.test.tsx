@@ -59,9 +59,9 @@ describe('PublicPreviewView', () => {
 
   const renderWithToken = (token = 'valid-preview-token') => {
     return render(
-      <MemoryRouter initialEntries={[`/preview/${token}`]}>
+      <MemoryRouter initialEntries={[`/review/invite/${token}`]}>
         <Routes>
-          <Route path='/preview/:token' element={<PublicPreviewView />} />
+          <Route path='/review/invite/:token' element={<PublicPreviewView />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -81,7 +81,7 @@ describe('PublicPreviewView', () => {
       expect(screen.getByTestId('preview-error-screen')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Liên Kết Không Khả Dụng')).toBeInTheDocument();
+    expect(screen.getByText('Liên kết bản thảo đã hết hạn hoặc bị thu hồi')).toBeInTheDocument();
     expect(
       screen.getByText('Link xem thử không hợp lệ, đã hết hạn hoặc đã bị thu hồi.'),
     ).toBeInTheDocument();
@@ -202,8 +202,62 @@ describe('PublicPreviewView', () => {
         message: 'Nét vẽ khung 1 rất ấn tượng',
         pageId: 'page-1',
         panelId: 'panel-1',
+        reviewerName: null,
       });
       expect(screen.getByTestId('feedback-success-banner')).toBeInTheDocument();
     });
+  });
+  it('gửi kèm tên người nhận xét và hiển thị góp ý đã gửi trong phiên', async () => {
+    (previewLinkService.openPreview as any).mockResolvedValueOnce(mockChapterRTL);
+    (previewLinkService.submitFeedback as any).mockResolvedValueOnce({
+      id: 'fb-9',
+      createdAt: new Date().toISOString(),
+    });
+    renderWithToken();
+
+    await waitFor(() => expect(screen.getByTestId('toggle-feedback-panel')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('toggle-feedback-panel'));
+    fireEvent.change(screen.getByTestId('reviewer-name-input'), {
+      target: { value: ' Cố vấn Minh ' },
+    });
+    fireEvent.change(screen.getByTestId('feedback-message-input'), {
+      target: { value: 'Thoại trang 1 ổn' },
+    });
+    fireEvent.click(screen.getByTestId('submit-feedback-btn'));
+
+    await waitFor(() => {
+      expect(previewLinkService.submitFeedback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Thoại trang 1 ổn',
+          reviewerName: 'Cố vấn Minh',
+          pageId: 'page-1',
+        }),
+      );
+      expect(screen.getByTestId('sent-feedback-list')).toHaveTextContent('Thoại trang 1 ổn');
+    });
+  });
+
+  it('mở modal chuyển sang Mobile với QR và mã token', async () => {
+    (previewLinkService.openPreview as any).mockResolvedValueOnce(mockChapterRTL);
+    renderWithToken('REV-abc123');
+
+    await waitFor(() => expect(screen.getByTestId('open-handoff-btn')).toBeInTheDocument());
+    expect(screen.getByTestId('watermark-badge')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('open-handoff-btn'));
+
+    const modal = screen.getByTestId('review-handoff-modal');
+    expect(modal).toHaveTextContent('REV-abc123');
+    expect(modal.querySelector('svg')).not.toBeNull();
+  });
+
+  it('chế độ Cuộn dọc hiển thị mọi trang, mỗi trang đều có watermark', async () => {
+    (previewLinkService.openPreview as any).mockResolvedValueOnce(mockChapterRTL);
+    renderWithToken();
+
+    await waitFor(() => expect(screen.getByTestId('view-mode-scroll')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('view-mode-scroll'));
+
+    expect(screen.getAllByTestId('preview-page-image')).toHaveLength(2);
+    expect(screen.getAllByTestId('watermark-overlay')).toHaveLength(2);
   });
 });

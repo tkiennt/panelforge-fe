@@ -152,7 +152,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
 
   const handleCopyLink = (token: string) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const fullUrl = `${origin}/preview/${token}`;
+    const fullUrl = `${origin}/review/invite/${token}`;
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(fullUrl);
     }
@@ -423,7 +423,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                       className='font-mono text-xs text-[#171717] break-all select-all'
                       data-testid='created-preview-link-url'
                     >
-                      {origin}/preview/{createdLink.token}
+                      {origin}/review/invite/{createdLink.token}
                     </span>
                     <button
                       type='button'
@@ -636,6 +636,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                               {scopeLabel}
                             </span>
                             <span className='font-semibold text-[#171717]'>
+                              {fb.reviewerName ? `${fb.reviewerName} · ` : ''}
                               {fb.recipientEmail}
                             </span>
                             {fb.assetReferenceId && (

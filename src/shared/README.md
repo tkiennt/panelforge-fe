@@ -27,5 +27,7 @@ Các khối giao diện nguyên tử có kiểm soát quyền truy cập:
 - `ProvenanceModals.tsx`: Xem lịch sử phiên bản (`VersionHistoryModal`) và nguồn gốc sáng tạo AI (`AIProvenanceModal`).
 - `VectorStatusModal.tsx`: Trạng thái đồng bộ chỉ mục véc-tơ cho AI context.
 - `CommandPaletteModal.tsx`: Hộp lệnh điều hướng nhanh (Ctrl+K).
+- `PreviewLinksModal.tsx`: Producer tạo / thu hồi link xem thử; link sao chép dạng `{origin}/review/invite/{token}`.
+- `ReviewHandoffModal.tsx`: Cầu nối Web → Mobile cho trang review công khai: QR chứa `/review/invite/{token}` (app Mobile tự bóc token ở cuối URL), mã token kèm nút Copy và hướng dẫn.
 - `SpreadWorkbenchModal.tsx`: Bàn làm việc trang đôi đa năng chuyển đổi giữa Writer, Editor và Artist.
 

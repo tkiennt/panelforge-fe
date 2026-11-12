@@ -15,6 +15,12 @@ import { AuthLayout } from '@/roles/guest/views/AuthLayout';
 import { LoginPage } from '@/roles/guest/views/LoginPage';
 import { RegisterPage } from '@/roles/guest/views/RegisterPage';
 
+/** Link cũ /preview/:token → /review/invite/:token (cùng định dạng route với Mobile). */
+const LegacyPreviewRedirect: React.FC = () => {
+  const { token = '' } = useParams<{ token: string }>();
+  return <Navigate to={`/review/invite/${encodeURIComponent(token)}`} replace />;
+};
+
 const WorkspaceRedirect: React.FC = () => {
   const { workspaceId, '*': rest } = useParams<{ workspaceId: string; '*'?: string }>();
   return <Navigate to={`/workspaces/${workspaceId}${rest ? `/${rest}` : ''}`} replace />;
@@ -56,7 +62,9 @@ const ArtistChapterSelectionView = lazy(() =>
   })),
 );
 const ArtistWorkspaceView = lazy(() =>
-  import('@/roles/artist/workspace/ArtistWorkspaceView').then((m) => ({ default: m.ArtistWorkspaceView })),
+  import('@/roles/artist/workspace/ArtistWorkspaceView').then((m) => ({
+    default: m.ArtistWorkspaceView,
+  })),
 );
 const ReviewView = lazy(() =>
   import('@/roles/editor/views/ReviewView').then((m) => ({ default: m.ReviewView })),
@@ -275,12 +283,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
     workspaceRole: currentWorkspaceRole,
     activeRoles: activeProjectRoles,
     avatarUrl: resolveUserAvatar(currentUserInfo, firebaseUser),
-    avatarInitials: (
-      currentUserInfo?.name ||
-      firebaseUser?.displayName ||
-      currentRole ||
-      'U'
-    )
+    avatarInitials: (currentUserInfo?.name || firebaseUser?.displayName || currentRole || 'U')
       .charAt(0)
       .toUpperCase(),
   };
@@ -329,7 +332,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
         />
 
         {/* CF5: Public Preview Link Route (No Auth Guard, No Bearer Header) */}
-        <Route path='/preview/:token' element={<PublicPreviewView />} />
+        <Route path='/review/invite/:token' element={<PublicPreviewView />} />
+        <Route path='/preview/:token' element={<LegacyPreviewRedirect />} />
 
         {/* Public Catalog Route (BR-24: Public AllowAnonymous) */}
         <Route
@@ -532,7 +536,10 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             {/* Dedicated Top-Level Publisher Portal */}
             <Route path='publisher'>
               <Route index element={<Navigate to='series' replace />} />
-              <Route path='series' element={<PublisherSeriesCatalogView onShowToast={showToast} />} />
+              <Route
+                path='series'
+                element={<PublisherSeriesCatalogView onShowToast={showToast} />}
+              />
               <Route
                 path='series/:seriesId'
                 element={<PublisherSeriesDetailView onShowToast={showToast} />}
@@ -542,7 +549,9 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               <Route path='copilot' element={<Navigate to='/publisher/series' replace />} />
               <Route
                 path='catalog'
-                element={<PublicCatalogView onBackToWorkspaces={() => navigate('/publisher/series')} />}
+                element={
+                  <PublicCatalogView onBackToWorkspaces={() => navigate('/publisher/series')} />
+                }
               />
             </Route>
           </Route>
@@ -619,15 +628,21 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               />
               <Route
                 path='editor/desk'
-                element={<EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />}
+                element={
+                  <EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
+                }
               />
               <Route
                 path='editor/bible'
-                element={<BibleReviewView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />}
+                element={
+                  <BibleReviewView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
+                }
               />
               <Route
                 path='editor/desk/:chapterId'
-                element={<EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />}
+                element={
+                  <EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
+                }
               />
               <Route
                 path='script/review/:chapterId'
