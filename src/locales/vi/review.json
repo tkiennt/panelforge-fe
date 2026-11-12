@@ -323,18 +323,14 @@
       "endorsed": "Đã xác nhận",
       "endorsedHint": "Chờ Producer khoá canon."
     },
-    "openImage": "Mở ảnh kích thước gốc",
+    "openImage": "Phóng to ảnh kích thước gốc",
     "noImage": "Chưa có ảnh thiết kế",
     "chapters": "Ch.{from} → {to}",
     "version": "bản sửa #{version}",
     "spec": "Đặc tả của Writer",
     "noSpec": "Chưa có mô tả.",
     "currentFeedback": "Yêu cầu sửa hiện tại",
-    "history": "Lịch sử góp ý",
-    "event": {
-      "ReworkRequested": "Yêu cầu vẽ lại",
-      "ConceptSubmitted": "Artist nộp"
-    },
+    "history": "Yêu cầu sửa các lần trước",
     "category": {
       "Character": "Nhân vật",
       "Location": "Bối cảnh",
@@ -357,6 +353,8 @@
     },
     "errors": {
       "load": "Không tải được Series Bible."
-    }
+    },
+    "fitImage": "Thu ảnh vừa khung",
+    "chaptersOpen": "Ch.{from} trở đi"
   }
 }

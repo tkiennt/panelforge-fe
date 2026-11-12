@@ -3029,7 +3029,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           );
                         }}
                         className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                        title='Nộp bản vẽ sửa đổi theo nhận xét của Writer'
+                        title='Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor'
                         data-testid={`artist-rework-btn-${entity.id}`}
                       >
                         <Palette className='w-3 h-3 text-rose-600' />
@@ -3270,7 +3270,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           );
                         }}
                         className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                        title='Nộp bản vẽ sửa đổi theo nhận xét của Writer'
+                        title='Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor'
                         data-testid={`artist-rework-btn-${entity.id}`}
                       >
                         <Palette className='w-3 h-3 text-rose-600' />
@@ -3862,7 +3862,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         description={
           isArtistResubmit
             ? `Bạn có chắc chắn muốn nộp lại bản vẽ thay thế cho "${revisionName || revisionTarget?.name}" không? Bản nộp mới này sẽ thay thế bản vẽ đang chờ duyệt.`
-            : `Bạn có chắc chắn muốn nộp bản vẽ Concept Art cho "${revisionName || revisionTarget?.name}" không? Bản vẽ sẽ được chuyển đến Writer / Producer để duyệt Canon.`
+            : `Bạn có chắc chắn muốn nộp bản vẽ Concept Art cho "${revisionName || revisionTarget?.name}" không? Writer hoặc Editor sẽ duyệt bản vẽ, sau đó Producer khoá canon.`
         }
       />
 

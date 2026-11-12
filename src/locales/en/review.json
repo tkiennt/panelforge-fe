@@ -323,18 +323,14 @@
       "endorsed": "Endorsed",
       "endorsedHint": "Waiting for the Producer to lock canon."
     },
-    "openImage": "Open full-size image",
+    "openImage": "Zoom to full size",
     "noImage": "No design image yet",
     "chapters": "Ch.{from} → {to}",
     "version": "revision #{version}",
     "spec": "Writer's spec",
     "noSpec": "No description.",
     "currentFeedback": "Current change request",
-    "history": "Feedback history",
-    "event": {
-      "ReworkRequested": "Redraw requested",
-      "ConceptSubmitted": "Artist submitted"
-    },
+    "history": "Earlier change requests",
     "category": {
       "Character": "Character",
       "Location": "Location",
@@ -357,6 +353,8 @@
     },
     "errors": {
       "load": "Could not load the Series Bible."
-    }
+    },
+    "fitImage": "Fit image to view",
+    "chaptersOpen": "Ch.{from} onward"
   }
 }
