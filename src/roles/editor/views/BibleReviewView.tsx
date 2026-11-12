@@ -9,6 +9,7 @@ import {
   type BibleReviewStatus,
 } from '@/services/bible.service';
 import { errorMessage } from '@/shared/features/collaboration/collaborationRules';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { ReasonForm } from './review-shared/ReasonForm';
 
 interface BibleReviewViewProps {
@@ -66,6 +67,7 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reworking, setReworking] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
 
   const role = (workspaceRole ?? '').toUpperCase();
   const canReview = role === 'EDITOR' || role === 'WRITER' || role === 'PRODUCER';
@@ -106,6 +108,20 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
 
   const selected = entries.find((e) => e.id === selectedId) ?? null;
   const rev = selected?.effectiveRevision ?? null;
+
+  // Mỗi lần Artist nộp lại là một revision mới, nên góp ý cũ nằm ở các revision trước trong lịch sử của mục.
+  const [history, setHistory] = useState<BibleEntryRevisionDto[]>([]);
+  useEffect(() => {
+    if (!selectedId || !seriesId) return;
+    let cancelled = false;
+    bibleService
+      .getEntryHistory(seriesId, selectedId)
+      .then((h) => !cancelled && setHistory(h))
+      .catch(() => !cancelled && setHistory([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [seriesId, selectedId, rev?.id]);
   const status = statusOf(rev);
   const canDecide = canReview && status === 'ConceptSubmitted';
 
@@ -157,6 +173,7 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
                 onClick={() => {
                   setSelectedId(e.id);
                   setReworking(false);
+                  setZoomed(false);
                 }}
                 aria-current={e.id === selectedId}
                 className={`flex w-full items-center gap-3 border-l-2 px-4 py-2 text-left transition-colors duration-150 ${
@@ -211,9 +228,15 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
   const total = groups.pending.length + groups.endorsed.length + groups.rework.length;
   const imageUrl = rev?.conceptImageUrl || rev?.referenceImageUrl || selected?.referenceImageUrl;
   const details = parseDetails(selected?.detailsJson);
-  const feedbackHistory = (rev?.events ?? []).filter(
-    (ev) => (ev.type === 'ReworkRequested' || ev.type === 'ConceptSubmitted') && ev.comment,
-  );
+  const pastFeedback = history
+    .filter(
+      (h) =>
+        h.bibleEntryId === selected?.id &&
+        h.id !== rev?.id &&
+        !!h.reworkFeedback &&
+        (rev ? h.versionNumber < rev.versionNumber : true),
+    )
+    .sort((a, b) => b.versionNumber - a.versionNumber);
 
   return (
     <div className='flex min-h-0 flex-1 flex-col bg-[#FAF9F5] font-sans text-stone-900'>
@@ -256,18 +279,22 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
 
           <main className='flex min-h-0 min-w-0 flex-1 items-start justify-center overflow-auto p-6'>
             {imageUrl ? (
-              <a
-                href={imageUrl}
-                target='_blank'
-                rel='noreferrer'
-                title={t('bibleReview.openImage')}
+              // Ảnh Bible nằm sau API có xác thực (/api/series/.../bible/assets/{sha256}), không mở được bằng link thường.
+              <button
+                type='button'
+                onClick={() => setZoomed((z) => !z)}
+                title={zoomed ? t('bibleReview.fitImage') : t('bibleReview.openImage')}
+                className={zoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}
               >
-                <img
+                <AuthenticatedImage
                   src={imageUrl}
                   alt={selected?.name ?? ''}
-                  className='max-h-[calc(100vh-12rem)] w-auto border border-stone-200 bg-white object-contain shadow-xs'
+                  showLoader
+                  className={`border border-stone-200 bg-white object-contain shadow-xs ${
+                    zoomed ? 'max-w-none' : 'max-h-[calc(100vh-12rem)] w-auto'
+                  }`}
                 />
-              </a>
+              </button>
             ) : (
               <div className='flex h-80 w-60 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-stone-300 text-xs text-stone-500'>
                 <ImageOff className='h-8 w-8' aria-hidden='true' />
@@ -291,10 +318,12 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
                   <p className='mt-1 text-xs text-stone-600'>
                     {[
                       rev.stageName,
-                      t('bibleReview.chapters', {
-                        from: rev.effectiveFromChapterNumber,
-                        to: rev.effectiveToChapterNumber ?? '…',
-                      }),
+                      rev.effectiveToChapterNumber == null
+                        ? t('bibleReview.chaptersOpen', { from: rev.effectiveFromChapterNumber })
+                        : t('bibleReview.chapters', {
+                            from: rev.effectiveFromChapterNumber,
+                            to: rev.effectiveToChapterNumber,
+                          }),
                       t('bibleReview.version', { version: rev.versionNumber }),
                     ]
                       .filter(Boolean)
@@ -333,18 +362,22 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
                   </section>
                 )}
 
-                {feedbackHistory.length > 0 && (
+                {pastFeedback.length > 0 && (
                   <section>
                     <h3 className='text-sm font-semibold text-stone-800'>
                       {t('bibleReview.history')}
                     </h3>
                     <ol className='mt-1 space-y-1.5'>
-                      {feedbackHistory.map((ev) => (
-                        <li key={ev.id} className='text-xs text-stone-600'>
+                      {pastFeedback.map((h) => (
+                        <li
+                          key={h.id}
+                          className='border-l-2 border-rose-300 pl-2 text-xs text-stone-600'
+                        >
                           <span className='font-semibold text-stone-700'>
-                            {t(`bibleReview.event.${ev.type}`, ev.type)}
+                            {t('bibleReview.version', { version: h.versionNumber })}
                           </span>{' '}
-                          · {new Date(ev.createdAt).toLocaleDateString()} · {ev.comment}
+                          · {new Date(h.createdAt).toLocaleDateString()}
+                          <p className='mt-0.5 text-sm text-stone-800'>{h.reworkFeedback}</p>
                         </li>
                       ))}
                     </ol>
