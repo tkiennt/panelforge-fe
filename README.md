@@ -80,8 +80,7 @@ npm run quality
 ---
 
 ## 📚 Technical Documentation Hub
-All architectural documentation, implementation plans, and design specifications are organized under [`docs/`](./docs/README.md):
+All architectural documentation and design specifications are organized under [`docs/`](./docs/README.md). Implementation plans live outside this repo, in the workspace-level `note/plans/` folder (see `note/plans/README.md`).
 - [Documentation Hub & Index](./docs/README.md)
 - [Documentation Process & Sync Protocol](./docs/DOCUMENTATION_PROCESS.md)
 - [Design Rules & Tokens](./docs/DESIGN_RULES.md)
-- [Completed Implementation Plans](./docs/implement-plan/completed/)

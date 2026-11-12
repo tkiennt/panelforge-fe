@@ -17,29 +17,14 @@
 
 ## 📋 KẾ HOẠCH TRIỂN KHAI (IMPLEMENTATION PLANS)
 
-Thư mục: [`docs/implement-plan/`](./implement-plan/)
+Kế hoạch triển khai của cả 3 repo **không nằm trong repo này**. Chúng ở thư mục workspace gốc `Github/note/`:
 
-### 🟡 Đang Thực Hiện (`ongoing/`)
-> *Chứa các kế hoạch tính năng hoặc đợt refactor đang trong quá trình phát triển.*
+- `note/PANELFORGE_V2_6_IMPLEMENTATION_PLAN.md`: plan tổng (đối chiếu codebase với spec V2.6, quyết định đã chốt, changelog chung).
+- `note/plans/README.md`: mục lục 8 plan module (`SCR` Kịch bản, `BIB` Series Bible, `ASG` Giao việc, `ART` Bàn vẽ & đặt chữ, `REV` Gate 2, `REL` Phát hành, `RDR` Độc giả, `UIQ` Chất lượng giao diện).
 
-- [**LUCIAN_UXUI_ENHANCEMENT_INTEGRATION_PLAN.md**](./implement-plan/ongoing/LUCIAN_UXUI_ENHANCEMENT_INTEGRATION_PLAN.md): Kế hoạch nghiên cứu, tuyển chọn 20+ elements tiêu biểu từ thư viện Lucian UX/UI Prompt và tích hợp vào PanelForge Manga Studio (Bàn vẽ Artist, Kịch bản Writer, Kiểm duyệt Editor, Điều phối Producer, AI Multi-Agent Studio và Cổng xuất bản Publisher).
-
-### 🟢 Đã Hoàn Thành (`completed/`)
-> *Chứa các kế hoạch đã hoàn thành 100% nhiệm vụ, pass typecheck, lint và unit test.*
-
-- [**SYSTEM_WIDE_I18N_AND_ENGLISH_LOCALIZATION_PLAN.md**](./implement-plan/completed/SYSTEM_WIDE_I18N_AND_ENGLISH_LOCALIZATION_PLAN.md): Kế hoạch mở rộng và bản địa hóa Tiếng Anh toàn diện cho toàn hệ thống – đưa `useTranslation` và từ điển 12 namespaces vào 100% các màn hình giao diện (Views), bàn làm việc theo vai trò (Role Desks), các thành phần dùng chung (Shared Components) và hộp thoại (Modals) bên trong AppShell.
-- [**UI_UX_COPY_STANDARDIZATION_AND_I18N_PLAN.md**](./implement-plan/completed/UI_UX_COPY_STANDARDIZATION_AND_I18N_PLAN.md): Kế hoạch chuẩn hóa văn phong UI/UX, triệt tiêu từ thừa, áp dụng bảng thuật ngữ sáng tác truyện tranh thống nhất và thiết lập hệ thống từ điển song ngữ (i18n) phân tầng (Việt - Anh).
-- [**VISUAL_PANEL_UPLOADER_REFACTOR_PLAN.md**](./implement-plan/completed/VISUAL_PANEL_UPLOADER_REFACTOR_PLAN.md): Kế hoạch triển khai "Bàn Tải & Khớp Nét Panel Trực Quan" (Visual Panel Uploader) trên Bàn Vẽ Artist Desk (CF2) – kéo thả trực tiếp vào ô canvas, giải quyết cảnh báo chặn bắt đầu nhiệm vụ, tái cấu trúc bố cục 3 cột hiện đại và hỗ trợ 2 chế độ tải.
-- [**MY_WORK_UI_COMPREHENSIVE_REFACTOR_PLAN.md**](./implement-plan/completed/MY_WORK_UI_COMPREHENSIVE_REFACTOR_PLAN.md): Kế hoạch tối ưu hóa & refactor toàn diện màn hình "Công việc của tôi" (My Work View) – cân đối kích cỡ chữ, thu gọn tab, compact row cho danh sách Panel Artwork, chuẩn hóa màu sắc trạng thái, tích hợp Series Bible Drawer và hiển thị phiên bản `(v...)`.
-- [**SCRIPT_UI_COMPREHENSIVE_REFACTOR_PLAN.md**](./implement-plan/completed/SCRIPT_UI_COMPREHENSIVE_REFACTOR_PLAN.md): Kế hoạch refactor toàn diện UI trang Script (Kịch bản) trên tất cả các roles – chữ, khoảng cách, độ to, màu sắc, thẻ, canh lề, modal.
-- [**ARTIST_UI_COMPREHENSIVE_REFACTOR_PLAN.md**](./implement-plan/completed/ARTIST_UI_COMPREHENSIVE_REFACTOR_PLAN.md): Kế hoạch refactor toàn diện không gian làm việc của Họa Sĩ (Artist Desk UI) – chữ, khoảng cách, độ to, màu sắc, thẻ, canh lề, modal.
-- [**COLOR_SYSTEM_AND_STATUS_ENHANCEMENT_PLAN.md**](./implement-plan/completed/COLOR_SYSTEM_AND_STATUS_ENHANCEMENT_PLAN.md): Kế hoạch bổ sung & đồng bộ hệ thống màu sắc trạng thái, nút bấm và các yếu tố cần chú ý (Artisan Ink Pigments).
-- [**EDITORIAL_STUDIO_DESIGN_PLAN.md**](./implement-plan/completed/EDITORIAL_STUDIO_DESIGN_PLAN.md): Kế hoạch áp dụng Editorial AI Studio Design System vào PanelForge.
-- [**EDITORIAL_STUDIO_TASK_LIST.md**](./implement-plan/completed/EDITORIAL_STUDIO_TASK_LIST.md): Danh sách kiểm tra chi tiết các màn hình và components đã chuyển đổi sang phong cách Editorial Studio.
-- [**UI_REFACTOR_CHECKLIST.md**](./implement-plan/completed/UI_REFACTOR_CHECKLIST.md): Danh mục tinh giản kiến trúc UI, loại bỏ duplicate role views và dọn dẹp mock data.
+Quy trình cập nhật: xem [DOCUMENTATION_PROCESS.md §3](./DOCUMENTATION_PROCESS.md). Các plan cũ trong `docs/implement-plan/` đã được gộp vào bộ plan module và gỡ khỏi repo (2026-11-12).
 
 ---
-
 ## 🔍 KIỂM ĐỊNH CHẤT LƯỢNG (AUDIT & QUALITY)
 
 - [**UI_SCREEN_AUDIT.md**](./audit/UI_SCREEN_AUDIT.md): Báo cáo rà soát hiện trạng 100% các màn hình giao diện (Auth, Workspace, Production Pipeline, Series Bible, AI Tools, Role Desks).
