@@ -17,6 +17,6 @@ Giám đốc Sản xuất (Producer) chịu trách nhiệm vận hành Studio Wo
 - `CreateWorkspaceModal.tsx`: Tạo Studio Workspace mới.
 - `InviteMemberModal.tsx`: Mời nhân sự vào Studio qua Email và kích hoạt OTP.
 - `CreateProjectModal.tsx`: Khởi tạo Series mới kèm mẫu Pipeline quy chuẩn.
-- `SeriesChaptersModal.tsx`: Quản lý danh sách chương, số trang, đề cương và đếm ngược phát hành; cấu hình chương trả phí (`isLocked` + `priceVnd`, chọn nhanh 5k/10k/15k/20k) và badge `Miễn phí` / `🔒 {giá}đ`. **Theo spec V2.6 (Q7, Q10, task RDR-07):** giá chuyển sang Publisher đặt theo từng ấn bản ngôn ngữ; Producer chỉ xem.
+- `SeriesChaptersModal.tsx`: Quản lý danh sách chương, số trang, đề cương và đếm ngược phát hành; cấu hình chương trả phí (`isLocked` + `priceVnd`, chọn nhanh 5k/10k/15k/20k) và badge `Miễn phí` / `🔒 {giá}đ`. **Theo spec V2.6 (Q7, Q10):** giá chuyển sang Publisher đặt theo từng ấn bản ngôn ngữ; Producer chỉ xem.
 - `SeriesPipelineModal.tsx`: Cấu hình các giai đoạn sản xuất (stages), cổng kiểm duyệt (approval gates) và luồng chuyển đổi (transitions).
 - `SeriesPresetsModal.tsx`: Thiết lập quy chuẩn font chữ (Typography Presets) và luật nhất quán.
