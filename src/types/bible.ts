@@ -25,6 +25,8 @@ export interface BibleEntity {
   code: string;
   name: string;
   category: BibleCategory | EntityCategory;
+  /** BE BibleEntry.IsVisualDesign (Character/Location/Prop): có vòng đời Concept → WriterEndorsed → CanonLocked. */
+  isVisualDesign?: boolean;
   categoryLabel?: string;
   badgeColor?: string;
   roleOrType?: string;

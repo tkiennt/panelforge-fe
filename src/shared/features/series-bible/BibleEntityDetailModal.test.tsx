@@ -272,7 +272,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
     };
 
     render(
-      <BibleEntityDetailModal {...defaultProps} rawEntry={rawWithEndorsed} canReview={true} />,
+      <BibleEntityDetailModal {...defaultProps} rawEntry={rawWithEndorsed} canEndorse={true} />,
     );
 
     const reworkBtn = screen.getByTestId('detail-rework-btn');

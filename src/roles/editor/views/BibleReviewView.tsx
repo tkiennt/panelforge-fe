@@ -70,7 +70,9 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
   const [zoomed, setZoomed] = useState(false);
 
   const role = (workspaceRole ?? '').toUpperCase();
-  const canReview = role === 'EDITOR' || role === 'WRITER' || role === 'PRODUCER';
+  // Spec V2.6 §5.1: Writer/Editor xác nhận thiết kế; Producer chỉ được yêu cầu vẽ lại.
+  const canEndorse = role === 'EDITOR' || role === 'WRITER';
+  const canReview = canEndorse || role === 'PRODUCER';
 
   const load = useCallback(async () => {
     if (!seriesId) return;
@@ -408,15 +410,17 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
                         <CornerUpLeft className='h-4 w-4' aria-hidden='true' />
                         {t('bibleReview.requestRework')}
                       </button>
-                      <button
-                        type='button'
-                        onClick={endorse}
-                        disabled={busy}
-                        className='inline-flex min-w-40 flex-1 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50'
-                      >
-                        <CheckCircle2 className='h-4 w-4' aria-hidden='true' />
-                        {t('bibleReview.endorse')}
-                      </button>
+                      {canEndorse && (
+                        <button
+                          type='button'
+                          onClick={endorse}
+                          disabled={busy}
+                          className='inline-flex min-w-40 flex-1 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50'
+                        >
+                          <CheckCircle2 className='h-4 w-4' aria-hidden='true' />
+                          {t('bibleReview.endorse')}
+                        </button>
+                      )}
                     </div>
                   </>
                 )}

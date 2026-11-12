@@ -520,4 +520,57 @@ describe('SeriesBibleView UX/UI improvements', () => {
       );
     });
   });
+
+  describe('Spec V2.6 §5.1 – quyền thẩm định & khoá Canon', () => {
+    const renderWithConcept = async (role: string) => {
+      localStorage.setItem(
+        'activeWorkspace',
+        JSON.stringify({ id: 'ws-1', currentUserRole: role, isOwner: false }),
+      );
+      (bibleService.getSeriesBible as any).mockResolvedValue({
+        id: 'bible-1',
+        seriesId: 'series-123',
+        workspaceId: 'ws-1',
+        name: 'Series Bible',
+        version: 1,
+        entries: [
+          {
+            ...mockEntries[0],
+            effectiveRevision: {
+              ...mockEntries[0].effectiveRevision!,
+              reviewStatus: 'ConceptSubmitted',
+              isLocked: false,
+            },
+          },
+        ],
+      });
+      render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+      await waitFor(() => expect(screen.getByText(/Tần Mục/)).toBeDefined());
+    };
+
+    it.each(['WRITER', 'EDITOR'])('%s được xác nhận thiết kế (WriterEndorsed)', async (role) => {
+      await renderWithConcept(role);
+      expect(screen.queryAllByTitle('Writer/Editor duyệt concept art này').length).toBeGreaterThan(
+        0,
+      );
+      expect(screen.queryAllByTitle('Yêu cầu Artist vẽ lại concept').length).toBeGreaterThan(0);
+    });
+
+    it('Producer chỉ yêu cầu vẽ lại, không tự xác nhận thiết kế', async () => {
+      await renderWithConcept('PRODUCER');
+      expect(screen.queryAllByTitle('Writer/Editor duyệt concept art này')).toHaveLength(0);
+      expect(screen.queryAllByTitle('Yêu cầu Artist vẽ lại concept').length).toBeGreaterThan(0);
+    });
+
+    it('Admin hệ thống không có quyền Producer trong Series Bible', async () => {
+      localStorage.setItem('activeWorkspace', JSON.stringify({ id: 'ws-1', isOwner: false }));
+      localStorage.setItem(
+        'user',
+        JSON.stringify({ role: 'ADMINISTRATOR', canCreateStudio: true }),
+      );
+      render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+      await waitFor(() => expect(screen.getByText('Tần Mục')).toBeDefined());
+      expect(screen.queryByTestId('add-bible-entry-btn')).toBeNull();
+    });
+  });
 });
