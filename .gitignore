@@ -1,5 +1,12 @@
+# Dependencies & build output
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.tsbuildinfo
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,49 +14,46 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Node
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Test and Coverage
-coverage
-.nyc_output
-test-results/
-playwright-report/
-blob-report/
-
-# TypeScript
-*.tsbuildinfo
-
-# Environment variables
+# Environment (only the example file is shared)
 .env
 .env.*
 !.env.example
 
+# Tests: reports, coverage, screenshots
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+e2e/screenshots/
+
 # Caches
 .eslintcache
-.npm
 .stylelintcache
-.cache
-.parcel-cache
-.evn
+.npm/
+.cache/
+.parcel-cache/
+.vite/
 
-# Claude Code personal settings (agent config in .claude/ is shared)
+# Editors & OS (shared: .vscode/settings.json for i18n-ally, .vscode/extensions.json)
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.sw?
+
+# Claude Code: personal settings and local worktrees (agent config in .claude/ is shared)
 .claude/settings.local.json
+.claude/worktrees/
+
+# Local tool output (screenshots, scratch exports)
+output/
+
+# Local third-party agent skill (14MB SVG library)
+.agents/skills/logo-design/
 
 # impeccable-ignore-start
 # Ephemeral output, runtime state, and per-dev overrides.
@@ -71,8 +75,3 @@ blob-report/
 **/.impeccable/live/deferred-svelte-component-accepts.json
 **/.impeccable/live/*.png
 # impeccable-ignore-end
-
-# Local third-party agent skill (14MB SVG library)
-.agents/skills/logo-design/
-
-e2e/screenshots/
