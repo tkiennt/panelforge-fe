@@ -1,0 +1,131 @@
+{
+  "title": "Quản lý Thanh toán & Doanh thu (VietQR)",
+  "subtitle": "Theo dõi doanh thu từ độc giả Mobile, đối soát giao dịch chuyển khoản VietQR và cấu hình tài khoản thụ hưởng của Studio.",
+  "refresh": "Làm mới",
+  "refreshing": "Đang tải...",
+  "configBank": "Cấu hình TK VietQR",
+  "kpi": {
+    "totalRevenue": "Tổng Doanh Thu",
+    "totalRevenueSub": "Doanh thu đã nhận và đối soát thành công",
+    "pendingCount": "Chờ Xác Nhận",
+    "pendingCountSub": "Độc giả đã quét VietQR, đang đợi duyệt",
+    "pendingNone": "Hiện không có giao dịch nào đang chờ",
+    "needsReview": "Cần duyệt",
+    "unlockedChapters": "Lượt Mở Khóa Chương",
+    "unlockedChaptersSub": "Tổng lượt độc giả đã mua quyền đọc",
+    "paidTransactions": "Giao dịch Hoàn tất",
+    "paidTransactionsSub": "Đơn nạp ví, mở chương & đăng ký VIP"
+  },
+  "status": {
+    "all": "Tất cả",
+    "pending": "Chờ xác nhận",
+    "approved": "Đã thanh toán",
+    "rejected": "Đã từ chối",
+    "expired": "Hết hạn"
+  },
+  "type": {
+    "chapterUnlock": "Mở khóa chương",
+    "topup": "Nạp ví",
+    "vipSubscription": "Gói VIP"
+  },
+  "detail": {
+    "topup": "Nạp số dư Ví",
+    "vipSubscription": "Đăng ký gói VIP",
+    "chapterUnknown": "Mở khóa chương (không rõ chương)"
+  },
+  "actions": {
+    "approve": "Xác nhận đã nhận tiền",
+    "reject": "Từ chối",
+    "viewQr": "Xem mã VietQR",
+    "review": "Xem lại",
+    "cancel": "Hủy",
+    "close": "Đóng"
+  },
+  "filters": {
+    "series": "Lọc theo bộ truyện",
+    "allSeries": "Tất cả bộ truyện",
+    "searchPlaceholder": "Tìm mã đơn PF..., tên hoặc email...",
+    "clearSearch": "Xóa tìm kiếm"
+  },
+  "table": {
+    "orderCode": "Mã đơn",
+    "reader": "Độc giả",
+    "content": "Nội dung giao dịch",
+    "amount": "Số tiền",
+    "createdAt": "Thời gian tạo",
+    "status": "Trạng thái",
+    "actions": "Thao tác",
+    "loading": "Đang tải danh sách giao dịch VietQR...",
+    "emptyTitle": "Không có giao dịch nào",
+    "emptyDesc": "Chưa có giao dịch khớp với bộ lọc hiện tại. Khi độc giả thanh toán trên Mobile, đơn hàng sẽ hiển thị tại đây.",
+    "unknownReader": "Độc giả",
+    "chapterShort": "Ch. {number}",
+    "confirmedAt": "Xác nhận: {time}",
+    "confirmedBy": "Bởi {name}",
+    "reason": "Lý do: {reason}"
+  },
+  "pagination": {
+    "showing": "Hiển thị {shown} / {total} giao dịch",
+    "page": "Trang {page} / {total}",
+    "prev": "Trang trước",
+    "next": "Trang sau"
+  },
+  "approveConfirm": {
+    "title": "Xác nhận đã nhận tiền cho đơn #{orderCode}?",
+    "description": "Độc giả {reader} đã chuyển khoản {amount}. Sau khi duyệt, quyền lợi ({benefit}) sẽ được kích hoạt ngay cho độc giả."
+  },
+  "reject": {
+    "title": "Từ chối giao dịch #{orderCode}",
+    "description": "Nhập lý do từ chối để độc giả trên ứng dụng Mobile nắm được (ví dụ: chưa nhận được tiền, nội dung chuyển khoản sai).",
+    "placeholder": "Nhập lý do từ chối...",
+    "defaultReason": "Chưa nhận được tiền vào tài khoản hoặc nội dung chuyển khoản sai cú pháp.",
+    "submit": "Xác nhận từ chối"
+  },
+  "qrModal": {
+    "title": "Mã đơn: #{orderCode}",
+    "amount": "Số tiền:",
+    "transferContent": "Nội dung CK:",
+    "status": "Trạng thái:"
+  },
+  "bank": {
+    "notConfigured": "Chưa cấu hình tài khoản nhận tiền",
+    "modalTitle": "Cấu hình Tài khoản Ngân hàng Nhận Tiền VietQR",
+    "modalSubtitle": "Độc giả Mobile quét mã VietQR sẽ chuyển khoản trực tiếp vào tài khoản này.",
+    "bankLabel": "Ngân hàng thụ hưởng",
+    "accountNoLabel": "Số tài khoản",
+    "accountNoInvalid": "Số tài khoản chỉ gồm 6–19 chữ số.",
+    "accountNameLabel": "Tên chủ tài khoản (in hoa, không dấu)",
+    "accountNameHint": "Tự động chuyển sang in hoa không dấu — hiển thị trên ứng dụng ngân hàng khi độc giả quét QR.",
+    "previewTitle": "Xem trước mã VietQR",
+    "previewEmpty": "Nhập số tài khoản để tạo mã",
+    "previewSample": "Mẫu: {amount} · nội dung {code}",
+    "save": "Lưu cấu hình VietQR"
+  },
+  "toast": {
+    "loadErrorTitle": "Lỗi tải dữ liệu",
+    "loadErrorDesc": "Không thể lấy dữ liệu thanh toán.",
+    "approvedTitle": "Đã xác nhận thanh toán",
+    "approvedDesc": "Đơn hàng #{orderCode} đã được duyệt thành công.",
+    "approveErrorTitle": "Lỗi duyệt thanh toán",
+    "approveErrorDesc": "Không thể duyệt giao dịch.",
+    "rejectedTitle": "Đã từ chối giao dịch",
+    "rejectedDesc": "Đơn hàng #{orderCode} đã bị từ chối.",
+    "rejectErrorTitle": "Lỗi từ chối giao dịch",
+    "rejectErrorDesc": "Không thể từ chối giao dịch.",
+    "bankSavedTitle": "Đã lưu tài khoản VietQR",
+    "bankSavedDesc": "Tài khoản {accountNo} - {bankName} đã sẵn sàng nhận thanh toán.",
+    "bankErrorTitle": "Lỗi lưu tài khoản",
+    "bankErrorDesc": "Không thể cập nhật tài khoản ngân hàng."
+  },
+  "chapterPricing": {
+    "toggle": "Chương trả phí (Khóa VietQR / VIP)",
+    "lockedHint": "Độc giả cần mở khóa hoặc có VIP để đọc",
+    "freeHint": "Miễn phí cho mọi độc giả",
+    "priceLabel": "Giá mở khóa (VNĐ):",
+    "quickPick": "Chọn nhanh:",
+    "minPrice": "Giá tối thiểu là {min}.",
+    "free": "Miễn phí",
+    "freeTitle": "Chương miễn phí",
+    "paidTitle": "Chương trả phí: {price}"
+  }
+}

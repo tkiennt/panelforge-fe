@@ -2,6 +2,7 @@
 /* Adapted for PanelForge Editorial AI Studio Design System */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   ChevronDown,
   Briefcase,
@@ -12,6 +13,7 @@ import {
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
+  Send,
 } from 'lucide-react';
 import { CurrentUser } from './AppShell';
 import { SeriesDto } from '@/services/series.service';
@@ -96,6 +98,12 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   onChangeTheme,
 }) => {
   const { t } = useTranslation();
+  const location = useLocation();
+  const isPublisher =
+    currentUser.role === 'PUBLISHER' ||
+    currentUser.workspaceRole === ('PUBLISHER' as any) ||
+    currentUser.activeRoles?.includes('PUBLISHER') ||
+    location.pathname.startsWith('/publisher');
   const handleToggle = onToggleSidebar || onToggleCollapse || onToggleRail;
   const isCollapsed =
     !isMobileDrawer &&
@@ -306,7 +314,25 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
       {/* Workspace & Series Context Switchers */}
       <div className={`mt-3 space-y-1.5 ${showFullContent ? 'mx-4' : 'mx-2'}`}>
-        {currentUser.activeRoles?.includes('ADMINISTRATOR') && (
+        {isPublisher ? (
+          <div
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl mb-2 ${
+              showFullContent ? 'justify-start' : 'justify-center'
+            } bg-[#FFF2E6] border border-[#FDBA74] shadow-2xs`}
+          >
+            <Send className='w-4 h-4 shrink-0 text-[#C2410C]' />
+            {showFullContent && (
+              <div className='min-w-0 pf-sb-label'>
+                <p className='text-xs font-bold tracking-tight text-[#C2410C] leading-tight'>
+                  Publisher Portal
+                </p>
+                <p className='text-[10px] text-stone-500 truncate'>Hệ thống xuất bản</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {currentUser.activeRoles?.includes('ADMINISTRATOR') && (
           <div
             className={`flex items-center gap-2 px-1 mb-2 ${
               showFullContent ? 'justify-start' : 'justify-center'
@@ -470,6 +496,8 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
               </div>
             )}
           </div>
+        )}
+          </>
         )}
       </div>
 

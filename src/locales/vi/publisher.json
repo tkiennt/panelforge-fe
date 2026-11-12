@@ -25,5 +25,28 @@
     "studioFilter": "Tất cả Studio",
     "seriesFilter": "Tất cả Bộ truyện (Series)",
     "manageSeries": "Quản Lý Series & Bible"
+  },
+  "detail": {
+    "backToSeries": "Danh sách bộ truyện",
+    "viewBible": "Xem Series Bible",
+    "producer": "Producer",
+    "genres": "Thể loại",
+    "status": "Trạng thái",
+    "ongoing": "Đang sản xuất",
+    "completed": "Đã hoàn thành",
+    "ageRating": "Độ tuổi",
+    "synopsis": "Tóm tắt phát hành",
+    "logline": "Logline cốt truyện",
+    "chapterQueue": "Danh Sách Chương Cần Quản Lý",
+    "allChapters": "Tất cả chương",
+    "waitingApproval": "Chờ duyệt xuất bản",
+    "publishedAndScheduled": "Đã phát hành & Lên lịch",
+    "readPreview": "Đọc thử",
+    "viewManifest": "Bản duyệt",
+    "reviewHistory": "Lịch sử",
+    "reject": "Từ chối",
+    "publishSchedule": "Xuất bản / Lên lịch",
+    "lockedOfficial": "Bản chính thức",
+    "emptyChapters": "Chưa có chương nào ở trạng thái chờ duyệt hoặc đã phát hành."
   }
 }

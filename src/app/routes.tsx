@@ -33,6 +33,11 @@ const TaskEditorView = lazy(() =>
 const ExportView = lazy(() =>
   import('@/roles/producer/views/ExportView').then((m) => ({ default: m.ExportView })),
 );
+const ProducerPaymentsView = lazy(() =>
+  import('@/roles/producer/views/ProducerPaymentsView').then((m) => ({
+    default: m.ProducerPaymentsView,
+  })),
+);
 const DashboardView = lazy(() =>
   import('@/roles/producer/views/DashboardView').then((m) => ({ default: m.DashboardView })),
 );
@@ -96,9 +101,14 @@ const PublisherDeskView = lazy(() =>
     default: m.PublisherDeskView,
   })),
 );
-const PublisherSeriesView = lazy(() =>
-  import('@/roles/publisher/views/PublisherSeriesView').then((m) => ({
-    default: m.PublisherSeriesView,
+const PublisherSeriesCatalogView = lazy(() =>
+  import('@/roles/publisher/views/PublisherSeriesCatalogView').then((m) => ({
+    default: m.PublisherSeriesCatalogView,
+  })),
+);
+const PublisherSeriesDetailView = lazy(() =>
+  import('@/roles/publisher/views/PublisherSeriesDetailView').then((m) => ({
+    default: m.PublisherSeriesDetailView,
   })),
 );
 const ScriptEditorView = lazy(() =>
@@ -343,7 +353,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             path='workspaces'
             element={
               currentRole === 'PUBLISHER' ? (
-                <Navigate to='/publisher/desk' replace />
+                <Navigate to='/publisher/series' replace />
               ) : (
                 <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
                   <WorkspaceListView
@@ -418,6 +428,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               <Route index element={<StudioOverviewView />} />
               <Route path='overview' element={<StudioOverviewView />} />
               <Route path='series' element={<StudioOverviewView />} />
+              <Route path='payments' element={<ProducerPaymentsView onShowToast={showToast} />} />
 
               <Route path='series/:seriesId'>
                 <Route index element={<Navigate to='dashboard' replace />} />
@@ -486,6 +497,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='letterer'
                   element={<LettererChapterSelectionView onShowToast={showToast} />}
                 />
+                <Route path='payments' element={<ProducerPaymentsView onShowToast={showToast} />} />
               </Route>
             </Route>
 
@@ -519,12 +531,18 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
 
             {/* Dedicated Top-Level Publisher Portal */}
             <Route path='publisher'>
-              <Route index element={<Navigate to='desk' replace />} />
+              <Route index element={<Navigate to='series' replace />} />
+              <Route path='series' element={<PublisherSeriesCatalogView onShowToast={showToast} />} />
+              <Route
+                path='series/:seriesId'
+                element={<PublisherSeriesDetailView onShowToast={showToast} />}
+              />
               <Route path='desk' element={<PublisherDeskView onShowToast={showToast} />} />
-              <Route path='series' element={<PublisherSeriesView onShowToast={showToast} />} />
+              {/* Publisher không dùng AI: route cũ của AI Publisher Copilot chuyển về danh sách bộ truyện */}
+              <Route path='copilot' element={<Navigate to='/publisher/series' replace />} />
               <Route
                 path='catalog'
-                element={<PublicCatalogView onBackToWorkspaces={() => navigate('/publisher/desk')} />}
+                element={<PublicCatalogView onBackToWorkspaces={() => navigate('/publisher/series')} />}
               />
             </Route>
           </Route>

@@ -25,5 +25,28 @@
     "studioFilter": "All Studios",
     "seriesFilter": "All Series",
     "manageSeries": "Manage Series & Bible"
+  },
+  "detail": {
+    "backToSeries": "Series Catalog",
+    "viewBible": "View Series Bible",
+    "producer": "Producer",
+    "genres": "Genres",
+    "status": "Status",
+    "ongoing": "Ongoing",
+    "completed": "Completed",
+    "ageRating": "Age Rating",
+    "synopsis": "Publishing Synopsis",
+    "logline": "Story Logline",
+    "chapterQueue": "Managed Chapters Queue",
+    "allChapters": "All Chapters",
+    "waitingApproval": "Awaiting Approval",
+    "publishedAndScheduled": "Published & Scheduled",
+    "readPreview": "Preview",
+    "viewManifest": "Manifest",
+    "reviewHistory": "History",
+    "reject": "Reject",
+    "publishSchedule": "Publish / Schedule",
+    "lockedOfficial": "Official Release",
+    "emptyChapters": "No chapters currently waiting for approval or published."
   }
 }

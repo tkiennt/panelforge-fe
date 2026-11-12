@@ -1,0 +1,131 @@
+{
+  "title": "Payments & Revenue (VietQR)",
+  "subtitle": "Track revenue from Mobile readers, reconcile VietQR bank transfers, and configure the Studio's payout bank account.",
+  "refresh": "Refresh",
+  "refreshing": "Loading...",
+  "configBank": "Configure VietQR Account",
+  "kpi": {
+    "totalRevenue": "Total Revenue",
+    "totalRevenueSub": "Approved and reconciled revenue",
+    "pendingCount": "Pending Approval",
+    "pendingCountSub": "Readers scanned VietQR, awaiting review",
+    "pendingNone": "No transactions are waiting",
+    "needsReview": "Needs review",
+    "unlockedChapters": "Chapter Unlocks",
+    "unlockedChaptersSub": "Total chapters unlocked by readers",
+    "paidTransactions": "Completed Transactions",
+    "paidTransactionsSub": "Top-ups, chapter unlocks & VIP passes"
+  },
+  "status": {
+    "all": "All",
+    "pending": "Pending",
+    "approved": "Paid",
+    "rejected": "Rejected",
+    "expired": "Expired"
+  },
+  "type": {
+    "chapterUnlock": "Chapter unlock",
+    "topup": "Wallet top-up",
+    "vipSubscription": "VIP pass"
+  },
+  "detail": {
+    "topup": "Wallet balance top-up",
+    "vipSubscription": "VIP subscription",
+    "chapterUnknown": "Chapter unlock (unknown chapter)"
+  },
+  "actions": {
+    "approve": "Confirm received",
+    "reject": "Reject",
+    "viewQr": "View VietQR",
+    "review": "Go back",
+    "cancel": "Cancel",
+    "close": "Close"
+  },
+  "filters": {
+    "series": "Filter by series",
+    "allSeries": "All series",
+    "searchPlaceholder": "Search order PF..., name or email...",
+    "clearSearch": "Clear search"
+  },
+  "table": {
+    "orderCode": "Order",
+    "reader": "Reader",
+    "content": "Transaction",
+    "amount": "Amount",
+    "createdAt": "Created",
+    "status": "Status",
+    "actions": "Actions",
+    "loading": "Loading VietQR transactions...",
+    "emptyTitle": "No transactions",
+    "emptyDesc": "No transactions match the current filters. Orders appear here when readers pay in the Mobile app.",
+    "unknownReader": "Reader",
+    "chapterShort": "Ch. {number}",
+    "confirmedAt": "Confirmed: {time}",
+    "confirmedBy": "By {name}",
+    "reason": "Reason: {reason}"
+  },
+  "pagination": {
+    "showing": "Showing {shown} / {total} transactions",
+    "page": "Page {page} / {total}",
+    "prev": "Previous page",
+    "next": "Next page"
+  },
+  "approveConfirm": {
+    "title": "Confirm payment received for order #{orderCode}?",
+    "description": "Reader {reader} transferred {amount}. Once approved, the benefit ({benefit}) is activated for the reader immediately."
+  },
+  "reject": {
+    "title": "Reject transaction #{orderCode}",
+    "description": "Enter a reason so the reader sees it in the Mobile app (e.g. payment not received, wrong transfer note).",
+    "placeholder": "Enter rejection reason...",
+    "defaultReason": "Payment not received or the transfer note does not match the order code.",
+    "submit": "Confirm rejection"
+  },
+  "qrModal": {
+    "title": "Order: #{orderCode}",
+    "amount": "Amount:",
+    "transferContent": "Transfer note:",
+    "status": "Status:"
+  },
+  "bank": {
+    "notConfigured": "Payout account not configured",
+    "modalTitle": "VietQR Payout Bank Account",
+    "modalSubtitle": "Mobile readers scanning the VietQR code transfer directly to this account.",
+    "bankLabel": "Bank",
+    "accountNoLabel": "Account number",
+    "accountNoInvalid": "Account number must be 6–19 digits.",
+    "accountNameLabel": "Account holder (uppercase, no diacritics)",
+    "accountNameHint": "Automatically uppercased without diacritics — shown in the reader's banking app when scanning.",
+    "previewTitle": "VietQR preview",
+    "previewEmpty": "Enter an account number to generate",
+    "previewSample": "Sample: {amount} · note {code}",
+    "save": "Save VietQR settings"
+  },
+  "toast": {
+    "loadErrorTitle": "Failed to load data",
+    "loadErrorDesc": "Could not load payment data.",
+    "approvedTitle": "Payment confirmed",
+    "approvedDesc": "Order #{orderCode} was approved.",
+    "approveErrorTitle": "Approval failed",
+    "approveErrorDesc": "Could not approve the transaction.",
+    "rejectedTitle": "Transaction rejected",
+    "rejectedDesc": "Order #{orderCode} was rejected.",
+    "rejectErrorTitle": "Rejection failed",
+    "rejectErrorDesc": "Could not reject the transaction.",
+    "bankSavedTitle": "VietQR account saved",
+    "bankSavedDesc": "Account {accountNo} - {bankName} is ready to receive payments.",
+    "bankErrorTitle": "Failed to save account",
+    "bankErrorDesc": "Could not update the bank account."
+  },
+  "chapterPricing": {
+    "toggle": "Paid chapter (VietQR / VIP lock)",
+    "lockedHint": "Readers must unlock it or have VIP to read",
+    "freeHint": "Free for all readers",
+    "priceLabel": "Unlock price (VND):",
+    "quickPick": "Quick pick:",
+    "minPrice": "Minimum price is {min}.",
+    "free": "Free",
+    "freeTitle": "Free chapter",
+    "paidTitle": "Paid chapter: {price}"
+  }
+}

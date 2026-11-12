@@ -32,6 +32,8 @@ import viMembers from '@/locales/vi/members.json';
 import enMembers from '@/locales/en/members.json';
 import viErrors from '@/locales/vi/errors.json';
 import enErrors from '@/locales/en/errors.json';
+import viPayments from '@/locales/vi/payments.json';
+import enPayments from '@/locales/en/payments.json';
 
 export type SupportedLanguage = 'vi' | 'en';
 
@@ -52,6 +54,7 @@ export const DICTIONARIES = {
     landing: viLanding,
     members: viMembers,
     errors: viErrors,
+    payments: viPayments,
   },
   en: {
     common: enCommon,
@@ -69,6 +72,7 @@ export const DICTIONARIES = {
     landing: enLanding,
     members: enMembers,
     errors: enErrors,
+    payments: enPayments,
   },
 } as const;
 

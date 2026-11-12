@@ -39,6 +39,8 @@ import { PreviewLinksModal } from './PreviewLinksModal';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
+import { useTranslation } from '@/lib/i18n';
+import { ChapterPriceBadge } from '@/shared/components/ChapterPriceBadge';
 
 interface SeriesChaptersModalProps {
   isOpen: boolean;
@@ -97,12 +99,16 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const [newTitle, setNewTitle] = useState('');
   const [newTargetReleaseDate, setNewTargetReleaseDate] = useState('');
   const [newOutline, setNewOutline] = useState('');
+  const [newIsLocked, setNewIsLocked] = useState(false);
+  const [newPriceVnd, setNewPriceVnd] = useState(10000);
 
   // Edit Chapter Modal/Form State
   const [editingChapter, setEditingChapter] = useState<ChapterDto | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editTargetReleaseDate, setEditTargetReleaseDate] = useState('');
   const [editOutline, setEditOutline] = useState('');
+  const [editIsLocked, setEditIsLocked] = useState(false);
+  const [editPriceVnd, setEditPriceVnd] = useState(10000);
 
   // Delete Chapter Confirmation State (Lucian #269)
   const [deleteTargetChapter, setDeleteTargetChapter] = useState<ChapterDto | null>(null);
@@ -116,7 +122,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       const res = await chapterService.getChaptersBySeries(seriesId, pageIndex, pageSize);
       const itemsList = Array.isArray(res) ? res : res?.items || [];
       setChapters(itemsList);
-      const total = Array.isArray(res) ? res.length : res?.totalCount ?? itemsList.length;
+      const total = Array.isArray(res) ? res.length : (res?.totalCount ?? itemsList.length);
       setTotalCount(total);
 
       // Auto compute next chapter number
@@ -155,6 +161,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         title: newTitle.trim() || undefined,
         targetReleaseDate: newTargetReleaseDate || undefined,
         outline: newOutline.trim() || undefined,
+        isLocked: newIsLocked,
+        priceVnd: newIsLocked ? newPriceVnd : 0,
       };
 
       const created = await chapterService.createChapter(seriesId, payload);
@@ -166,6 +174,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       setNewTitle('');
       setNewTargetReleaseDate('');
       setNewOutline('');
+      setNewIsLocked(false);
+      setNewPriceVnd(10000);
       setShowAddForm(false);
       await fetchChapters();
     } catch (err: any) {
@@ -218,6 +228,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     setEditTitle(chap.title || '');
     setEditTargetReleaseDate(chap.targetReleaseDate || '');
     setEditOutline(chap.outline || '');
+    setEditIsLocked(chap.isLocked ?? false);
+    setEditPriceVnd(chap.priceVnd ?? 10000);
   };
 
   const handleUpdateChapter = async (e: React.FormEvent) => {
@@ -229,6 +241,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         title: editTitle.trim() === '' ? '' : editTitle.trim(),
         targetReleaseDate: editTargetReleaseDate || undefined,
         outline: editOutline.trim() === '' ? '' : editOutline.trim(),
+        isLocked: editIsLocked,
+        priceVnd: editIsLocked ? editPriceVnd : 0,
       };
 
       await chapterService.updateChapter(editingChapter.id, payload);
@@ -557,6 +571,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                   </div>
                 </div>
 
+                <ChapterPricingFields
+                  isLocked={newIsLocked}
+                  priceVnd={newPriceVnd}
+                  onLockedChange={setNewIsLocked}
+                  onPriceChange={setNewPriceVnd}
+                />
+
                 <div>
                   <div className='flex items-center justify-between mb-1'>
                     <label className='block font-semibold text-[#171717]'>
@@ -648,6 +669,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     />
                   </div>
                 </div>
+
+                <ChapterPricingFields
+                  isLocked={editIsLocked}
+                  priceVnd={editPriceVnd}
+                  onLockedChange={setEditIsLocked}
+                  onPriceChange={setEditPriceVnd}
+                />
 
                 <div>
                   <div className='flex items-center justify-between mb-1'>
@@ -795,10 +823,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                         </td>
 
                         <td className='py-3 px-3'>
-                          <div className='font-semibold text-[#171717]'>
-                            {chap.title || (
-                              <span className='text-[#888888] italic'>Chưa đặt tên</span>
-                            )}
+                          <div className='flex items-center gap-2 flex-wrap'>
+                            <span className='font-semibold text-[#171717]'>
+                              {chap.title || (
+                                <span className='text-[#888888] italic'>Chưa đặt tên</span>
+                              )}
+                            </span>
+                            <ChapterPriceBadge isLocked={chap.isLocked} priceVnd={chap.priceVnd} />
                           </div>
                           {chap.outline && (
                             <div className='mt-1 flex items-start gap-1'>
@@ -1076,5 +1107,101 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       )}
     </>,
     document.body,
+  );
+};
+
+const CHAPTER_PRICE_PRESETS_VND = [5000, 10000, 15000, 20000];
+const MIN_CHAPTER_PRICE_VND = 1000;
+
+const formatVnd = (amount: number) => `${amount.toLocaleString('vi-VN')}đ`;
+
+interface ChapterPricingFieldsProps {
+  isLocked: boolean;
+  priceVnd: number;
+  onLockedChange: (value: boolean) => void;
+  onPriceChange: (value: number) => void;
+}
+
+/** Toggle "Chương trả phí" + ô nhập giá VNĐ + nút chọn nhanh mệnh giá (form tạo & sửa chương). */
+const ChapterPricingFields: React.FC<ChapterPricingFieldsProps> = ({
+  isLocked,
+  priceVnd,
+  onLockedChange,
+  onPriceChange,
+}) => {
+  const { t } = useTranslation();
+  const priceTooLow = isLocked && priceVnd < MIN_CHAPTER_PRICE_VND;
+
+  return (
+    <div className='p-3 bg-white border border-[#E7E7E7] rounded-lg space-y-2.5'>
+      <div className='flex items-center justify-between gap-3'>
+        <div className='flex items-center gap-2 select-none'>
+          <button
+            type='button'
+            role='switch'
+            aria-checked={isLocked}
+            aria-label={t('payments.chapterPricing.toggle')}
+            onClick={() => onLockedChange(!isLocked)}
+            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+              isLocked ? 'bg-[#F97316]' : 'bg-stone-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                isLocked ? 'translate-x-4' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+          <span className='font-semibold text-xs text-[#171717] flex items-center gap-1.5'>
+            <Lock className='w-3.5 h-3.5 text-amber-600' />
+            {t('payments.chapterPricing.toggle')}
+          </span>
+        </div>
+        <span className='text-[10px] text-stone-500 text-right'>
+          {isLocked
+            ? t('payments.chapterPricing.lockedHint')
+            : t('payments.chapterPricing.freeHint')}
+        </span>
+      </div>
+
+      {isLocked && (
+        <div className='pt-2 border-t border-dashed border-[#E7E7E7] space-y-1.5 animate-in fade-in duration-150'>
+          <div className='flex flex-wrap items-center gap-2'>
+            <label className='text-xs font-semibold text-[#171717] shrink-0'>
+              {t('payments.chapterPricing.priceLabel')}
+            </label>
+            <input
+              type='number'
+              min={MIN_CHAPTER_PRICE_VND}
+              step={1000}
+              required
+              value={priceVnd}
+              onChange={(e) => onPriceChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
+              className='w-32 px-2.5 py-1 bg-[#FFF7ED] border border-[#FDBA74] rounded-lg text-xs font-mono font-bold text-[#F97316] focus:outline-none'
+            />
+            <span className='text-xs text-stone-400'>{t('payments.chapterPricing.quickPick')}</span>
+            {CHAPTER_PRICE_PRESETS_VND.map((amt) => (
+              <button
+                key={amt}
+                type='button'
+                onClick={() => onPriceChange(amt)}
+                className={`px-2 py-0.5 text-[11px] font-mono rounded transition-colors border ${
+                  priceVnd === amt
+                    ? 'bg-amber-100 text-amber-800 border-amber-300 font-bold'
+                    : 'bg-stone-100 hover:bg-amber-100 hover:text-amber-800 text-stone-600 border-stone-200'
+                }`}
+              >
+                {formatVnd(amt)}
+              </button>
+            ))}
+          </div>
+          {priceTooLow && (
+            <p className='text-[10px] text-rose-600'>
+              {t('payments.chapterPricing.minPrice', { min: formatVnd(MIN_CHAPTER_PRICE_VND) })}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 };

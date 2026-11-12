@@ -31,6 +31,7 @@ import { RejectChapterModal } from '../modals/RejectChapterModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
+import { ChapterPriceBadge } from '@/shared/components/ChapterPriceBadge';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 
 interface PublisherDeskViewProps {
@@ -147,7 +148,8 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
               </span>
             </div>
             <p className='text-xs text-[#57534E] mt-1'>
-              Duyệt thẩm định chương từ tất cả các Studio sau khi Producer hoàn tất sản xuất, lên lịch phát hành hoặc xuất bản trực tiếp tới độc giả công khai.
+              Duyệt thẩm định chương từ tất cả các Studio sau khi Producer hoàn tất sản xuất, lên
+              lịch phát hành hoặc xuất bản trực tiếp tới độc giả công khai.
             </p>
           </div>
         </div>
@@ -190,7 +192,8 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
               <option value=''>Tất cả Studio</option>
               {workspaces.map((ws) => (
                 <option key={ws.id} value={ws.id}>
-                  {ws.name} {ws.approvedChaptersCount > 0 ? `(${ws.approvedChaptersCount} chờ duyệt)` : ''}
+                  {ws.name}{' '}
+                  {ws.approvedChaptersCount > 0 ? `(${ws.approvedChaptersCount} chờ duyệt)` : ''}
                 </option>
               ))}
             </select>
@@ -424,6 +427,8 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                         <h3 className='font-bold text-sm text-[#1C1917]'>
                           {chap.title || 'Chưa đặt tiêu đề'}
                         </h3>
+
+                        <ChapterPriceBadge isLocked={chap.isLocked} priceVnd={chap.priceVnd} />
 
                         {chap.status === 'Approved' && (
                           <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1'>

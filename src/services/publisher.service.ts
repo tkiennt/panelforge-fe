@@ -25,22 +25,75 @@ export interface PublisherChapterDto {
   scriptReopenReason?: string | null;
   coverUrl?: string | null;
   scriptContentHash?: string | null;
+  isLocked?: boolean;
+  priceVnd?: number;
 }
 
-export interface PublisherSeriesDto {
+export interface PublisherLatestChapterDto {
+  chapterId: string;
+  chapterNumber: number;
+  title?: string | null;
+  status: string;
+  updatedAt?: string | null;
+}
+
+export interface PublisherSeriesListItemDto {
+  seriesId: string;
   id: string;
+  title: string;
+  coverImageUrl?: string | null;
+  coverUrl?: string | null;
+  status: 'Ongoing' | 'Completed' | string;
+  genres: string[];
+  genre: string;
+  ageRating: string;
+  synopsis?: string | null;
   workspaceId: string;
   workspaceName: string;
-  title: string;
-  synopsis?: string | null;
-  genre: string;
-  format: string;
-  readingDirection: string | number;
-  coverUrl?: string | null;
   totalChaptersCount: number;
   approvedChaptersCount: number;
   publishedChaptersCount: number;
+  latestChapter?: PublisherLatestChapterDto | null;
   updatedAt?: string | null;
+  format?: string;
+  readingDirection?: string | number;
+}
+
+// Alias for backwards compatibility
+export type PublisherSeriesDto = PublisherSeriesListItemDto;
+
+export interface PublisherManagedChapterDto {
+  chapterId: string;
+  id: string;
+  chapterNumber: number;
+  title?: string | null;
+  status: 'InProduction' | 'Approved' | 'Published' | string;
+  publishAt?: string | null;
+  publishedAt?: string | null;
+  pageCount: number;
+  pagesCount: number;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  isLocked?: boolean;
+  priceVnd?: number;
+}
+
+export interface PublisherSeriesDetailDto {
+  seriesId: string;
+  id: string;
+  title: string;
+  coverImageUrl?: string | null;
+  coverUrl?: string | null;
+  workspaceId: string;
+  workspaceName: string;
+  producerName?: string | null;
+  genres: string[];
+  genre: string;
+  ageRating: string;
+  status: string;
+  logline?: string | null;
+  synopsis?: string | null;
+  chapters: PublisherManagedChapterDto[];
 }
 
 export interface PublisherWorkspaceDto {
@@ -74,12 +127,19 @@ export const publisherService = {
   },
 
   getSeries: async (params?: {
+    filter?: string;
     workspaceId?: string;
     search?: string;
-  }): Promise<PublisherSeriesDto[]> => {
-    const res = await axiosClient.get<PublisherSeriesDto[]>('/publisher/series', {
+    sortBy?: string;
+  }): Promise<PublisherSeriesListItemDto[]> => {
+    const res = await axiosClient.get<PublisherSeriesListItemDto[]>('/publisher/series', {
       params,
     });
+    return res.data;
+  },
+
+  getSeriesDetail: async (seriesId: string): Promise<PublisherSeriesDetailDto> => {
+    const res = await axiosClient.get<PublisherSeriesDetailDto>(`/publisher/series/${seriesId}`);
     return res.data;
   },
 
@@ -88,4 +148,3 @@ export const publisherService = {
     return res.data;
   },
 };
-

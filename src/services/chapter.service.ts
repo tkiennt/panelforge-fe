@@ -27,6 +27,8 @@ export interface ChapterDto {
   scriptReopenRequestedById?: string | null;
   scriptReopenRequestedAt?: string | null;
   scriptContentHash?: string | null;
+  isLocked?: boolean;
+  priceVnd?: number;
 }
 
 export interface PagedResult<T> {
@@ -42,6 +44,8 @@ export interface CreateChapterRequest {
   title?: string | null;
   targetReleaseDate?: string | null; // YYYY-MM-DD
   outline?: string | null;
+  isLocked?: boolean;
+  priceVnd?: number;
 }
 
 export interface UpdateChapterRequest {
@@ -49,6 +53,8 @@ export interface UpdateChapterRequest {
   targetReleaseDate?: string | null; // YYYY-MM-DD
   incrementVersion?: boolean;
   outline?: string | null;
+  isLocked?: boolean;
+  priceVnd?: number;
 }
 
 export type ChapterReviewAction =

@@ -44,7 +44,9 @@ import {
   Send,
   Menu,
   Palette,
+  CreditCard,
 } from 'lucide-react';
+import { paymentService } from '@/services/payment.service';
 import { AppShellSidebar } from './AppShellSidebar';
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
@@ -120,6 +122,11 @@ const getRoleNavConfig = (
         },
         { icon: Calendar, label: t('navigation.menu.releaseCalendar'), href: '/calendar' },
         { icon: History, label: t('navigation.menu.provenance'), href: '/provenance' },
+        {
+          icon: CreditCard,
+          label: t('navigation.menu.payments'),
+          href: '/payments',
+        },
       ],
     },
     {
@@ -239,6 +246,29 @@ export function AppShell({
       ? String(currentUser.activeRoles[0]).toUpperCase()
       : 'PRODUCER';
 
+  const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
+
+  useEffect(() => {
+    if (!workspaceId || effectiveRole !== 'PRODUCER') {
+      setPendingPaymentsCount(0);
+      return;
+    }
+    let isMounted = true;
+    paymentService
+      .getPayments(workspaceId, { status: 'Pending', pageSize: 1 })
+      .then((res) => {
+        if (isMounted) {
+          setPendingPaymentsCount(res?.summary?.pendingCount || 0);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setPendingPaymentsCount(0);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [workspaceId, effectiveRole, location.pathname]);
+
   const isSeriesContext = !!seriesId;
   const effectiveActiveSeries = isSeriesContext
     ? activeSeries
@@ -303,6 +333,15 @@ export function AppShell({
                 label: t('navigation.menu.publishingGate'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
               },
+              {
+                icon: CreditCard,
+                label: t('navigation.menu.payments'),
+                href: `/workspaces/${workspaceId}/payments`,
+                badge:
+                  pendingPaymentsCount > 0
+                    ? { type: 'text', text: `${pendingPaymentsCount}`, color: 'bg-amber-500 text-white' }
+                    : undefined,
+              },
             ],
           },
         ];
@@ -316,6 +355,15 @@ export function AppShell({
                 label: t('navigation.menu.studioWorkspaces'),
                 href: seriesListHref,
               },
+              {
+                icon: CreditCard,
+                label: t('navigation.menu.payments'),
+                href: `/workspaces/${workspaceId}/payments`,
+                badge:
+                  pendingPaymentsCount > 0
+                    ? { type: 'text', text: `${pendingPaymentsCount}`, color: 'bg-amber-500 text-white' }
+                    : undefined,
+              },
             ],
           },
         ];
@@ -328,20 +376,15 @@ export function AppShell({
           section: t('navigation.sections.publisherDesk') || 'Cổng Xuất Bản',
           items: [
             {
-              icon: Send,
-              label: t('navigation.menu.publishingGate') || 'Cổng Duyệt Xuất Bản',
-              href: '/publisher/desk',
+              icon: BookMarked,
+              label: 'Quản lý Xuất bản',
+              href: '/publisher/series',
               badge: { type: 'dot', color: 'bg-orange-500' },
             },
             {
-              icon: BookMarked,
-              label: t('navigation.menu.seriesBible') || 'Quản Lý Series & Bible',
-              href: '/publisher/series',
-            },
-            {
               icon: BookOpen,
-              label: t('navigation.menu.publicCatalog') || 'Danh Mục Công Khai',
-              href: '/catalog',
+              label: 'Danh mục công khai',
+              href: '/publisher/catalog',
             },
           ],
         },
@@ -744,9 +787,8 @@ export function AppShell({
                           ),
                         )
                       }
-                      className={`font-bold truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-all cursor-pointer ${
-                        chapterId ? 'text-[#57534e] hover:text-[#0c0a09]' : 'text-[#0c0a09]'
-                      }`}
+                      className={`font-bold truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-all cursor-pointer ${chapterId ? 'text-[#57534e] hover:text-[#0c0a09]' : 'text-[#0c0a09]'
+                        }`}
                       title='Chuyển đến Series Workspace'
                     >
                       <BookOpen className='w-3.5 h-3.5 text-[#292524]' />

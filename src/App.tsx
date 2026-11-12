@@ -683,7 +683,7 @@ function AppContent() {
     isAuthenticated && (verifiedRole === 'ADMINISTRATOR' || currentRole === 'ADMINISTRATOR')
       ? '/admin'
       : isAuthenticated && (verifiedRole === 'PUBLISHER' || currentRole === 'PUBLISHER')
-        ? '/publisher/desk'
+        ? '/publisher/series'
         : '/workspaces';
 
   const handleApiLoginSuccess = (authResponse: any, customRedirect?: string) => {
@@ -725,14 +725,14 @@ function AppContent() {
       return;
     }
 
-    // BR-23 / F3: Luồng chuẩn PanelForge: Admin -> /admin, Publisher -> /publisher/desk, còn lại vào /workspaces -> Series -> Không gian làm việc
+    // BR-23 / F3: Luồng chuẩn PanelForge: Admin -> /admin, Publisher -> /publisher/series, còn lại vào /workspaces -> Series -> Không gian làm việc
     authService
       .getLandingContext()
       .then((landing) => {
         if (landing?.suggestedLanding === 'AdminDashboard' || role === 'ADMINISTRATOR') {
           navigate('/admin');
         } else if (landing?.suggestedLanding === 'PublisherPortal' || role === 'PUBLISHER') {
-          navigate('/publisher/desk');
+          navigate('/publisher/series');
         } else {
           navigate('/workspaces');
         }
@@ -742,7 +742,7 @@ function AppContent() {
           role === 'ADMINISTRATOR'
             ? '/admin'
             : role === 'PUBLISHER'
-              ? '/publisher/desk'
+              ? '/publisher/series'
               : '/workspaces',
         );
       });

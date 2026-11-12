@@ -99,11 +99,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       const landing = await authService.getLandingContext();
       if (landing?.suggestedLanding === 'AdminDashboard' || role === 'ADMINISTRATOR') {
         navigate('/admin');
+      } else if (landing?.suggestedLanding === 'PublisherPortal' || role === 'PUBLISHER') {
+        navigate('/publisher/series');
       } else {
         navigate('/workspaces');
       }
     } catch {
-      navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+      navigate(
+        role === 'ADMINISTRATOR'
+          ? '/admin'
+          : role === 'PUBLISHER'
+            ? '/publisher/series'
+            : '/workspaces',
+      );
     }
   };
 
