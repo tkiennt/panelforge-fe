@@ -79,7 +79,7 @@ MCP servers configured for this machine (Claude Code user scope): `playwright` (
 - **Canvas/drag**: persist the committed final change (drop/resize end), not every pointer move (`panelforge-event-sourcing`).
 - **`browser-testing-with-devtools` assumes Chrome DevTools MCP for everything**: here Chrome DevTools MCP (provided by the ECC plugin, dedicated profile) is used only for performance measurement; Playwright MCP (`--isolated --headless`) stays the default. Do not install any additional browser MCP without asking (rule 16).
 - **`ci-cd-and-automation` examples (Vercel, Prisma)**: adapt to the existing `.github/workflows`; do not add deploy targets without asking.
-- **`.agents/skills/ponytail/ponytail.md`** (Antigravity ruleset) and the Claude Ponytail plugin describe the same philosophy; the precedence above applies to both.
+- **`.agents/skills/ponytail/`** (`SKILL.md` full skill, `ponytail.md` short Antigravity ruleset) and the Claude Ponytail plugin describe the same philosophy; the precedence above applies to both.
 
 ## Ponytail
 

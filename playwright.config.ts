@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright E2E configuration for PanelForge Frontend.
- * Follows guidelines from .agent/skills/e2e-testing/SKILL.md
+ * Follows guidelines from .agents/skills/e2e-testing/SKILL.md
  */
 export default defineConfig({
   testDir: './e2e',
