@@ -399,7 +399,7 @@ export const chapterService = {
   /**
    * Producer mở lại kịch bản (Unfreeze Script)
    */
-  unfreezeScript: async (chapterId: string, reason?: string): Promise<ChapterDto> => {
+  unfreezeScript: async (chapterId: string, reason: string): Promise<ChapterDto> => {
     try {
       const response = await axiosClient.post(`/chapters/${chapterId}/unfreeze-script`, { reason });
       return response.data;
