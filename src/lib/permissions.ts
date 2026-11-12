@@ -27,6 +27,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'upload_layer',
     'sketch:write',
     'color:write',
+    // BR-31: Artist mặc định có công cụ đặt chữ trên Page được giao
+    'letter:write',
   ],
   LETTERER: ['view_pipeline', 'drag_card', 'upload_layer', 'letter:write'],
   EDITOR: ['view_pipeline', 'review_card', 'stage:approve'],
