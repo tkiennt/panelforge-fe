@@ -30,7 +30,8 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     id: 'line-1',
     lineOrder: 1,
     panelId: 'panel-1',
-    stageDirection: 'Góc toàn cảnh bên ngoài Cổng thành Hoàng gia đổ nát sau cơn bão cát. Khói bốc lên ngùn ngụt từ tháp canh.',
+    stageDirection:
+      'Góc toàn cảnh bên ngoài Cổng thành Hoàng gia đổ nát sau cơn bão cát. Khói bốc lên ngùn ngụt từ tháp canh.',
     cameraAngle: 'Toàn cảnh (Wide)',
     mood: 'Trầm lắng, căng thẳng',
   },
@@ -63,7 +64,8 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     id: 'line-5',
     lineOrder: 5,
     panelId: 'panel-4',
-    stageDirection: 'Góc cận mặt kịch tính của Akira, mắt lóe sáng kiên định, vết sẹo má trái căng lên đón gió.',
+    stageDirection:
+      'Góc cận mặt kịch tính của Akira, mắt lóe sáng kiên định, vết sẹo má trái căng lên đón gió.',
     cameraAngle: 'Cận cảnh mặt (Close-up)',
     mood: 'Chiến đấu',
   },
@@ -146,7 +148,8 @@ const DEFAULT_BIBLE_REFS: BibleCharacterRef[] = [
     name: 'Akira Takahashi',
     role: 'Nhân vật chính (Protagonist)',
     hairStyleGuide: 'Tóc đen ngắn lỉa chỉa, mái lệch nhẹ sang phải, vết sẹo mỏng dài 3cm má trái.',
-    costumeGuide: 'Áo khoác dạ hành xám rách gấu, đai da nâu đính huy hiệu Sói bạc, găng tay đen hở ngón.',
+    costumeGuide:
+      'Áo khoác dạ hành xám rách gấu, đai da nâu đính huy hiệu Sói bạc, găng tay đen hở ngón.',
     notableFeatures: ['Vết sẹo má trái', 'Mắt hổ phách', 'Áo rách vai'],
   },
   {
@@ -195,7 +198,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
 
   const selectedPanel = useMemo(
     () => panels.find((p) => p.id === selectedPanelId) || null,
-    [panels, selectedPanelId]
+    [panels, selectedPanelId],
   );
 
   // Handle image drop/upload onto a specific panel
@@ -209,16 +212,14 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
               imageUrl: objectUrl,
               imageVersion: `v${(parseFloat((p.imageVersion || 'v1.0').replace('v', '')) + 0.1).toFixed(1)}`,
             }
-          : p
-      )
+          : p,
+      ),
     );
     setSaveTimestamp('Vừa lưu');
   };
 
   const handleDeleteArtwork = (panelId: string) => {
-    setPanels((prev) =>
-      prev.map((p) => (p.id === panelId ? { ...p, imageUrl: null } : p))
-    );
+    setPanels((prev) => prev.map((p) => (p.id === panelId ? { ...p, imageUrl: null } : p)));
     setSaveTimestamp('Vừa lưu');
   };
 
@@ -241,8 +242,8 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
                 imageVersion: 'v1.0-AI',
                 suggestedPrompt: prompt,
               }
-            : p
-        )
+            : p,
+        ),
       );
       setIsGenerating(false);
       setAiStatus('ready');
@@ -294,9 +295,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
           </span>
           <ChevronRight className='w-3.5 h-3.5 text-stone-400' />
 
-          <span className='font-bold text-stone-900 truncate max-w-[200px]'>
-            {chapterTitle}
-          </span>
+          <span className='font-bold text-stone-900 truncate max-w-[200px]'>{chapterTitle}</span>
           <ChevronRight className='w-3.5 h-3.5 text-stone-400' />
 
           <span className='font-mono font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'>

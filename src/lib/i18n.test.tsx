@@ -48,7 +48,9 @@ describe('i18n core engine', () => {
     expect(translate('errors.ERR_SERIES_NOT_FOUND', undefined, 'vi')).toBe(
       'Không tìm thấy truyện. Bộ truyện không tồn tại hoặc đã gỡ bỏ.',
     );
-    expect(translate('errors.ERR_SERIES_NOT_FOUND', undefined, 'en')).toBe('Series not found. Target series does not exist or was removed.');
+    expect(translate('errors.ERR_SERIES_NOT_FOUND', undefined, 'en')).toBe(
+      'Series not found. Target series does not exist or was removed.',
+    );
     expect(translate('errors.ERR_CHAPTER_READ_ONLY', undefined, 'vi')).toBe(
       'Chương đã đóng băng. Nội dung đã duyệt xuất bản, chỉ cho phép đọc.',
     );

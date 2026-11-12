@@ -333,170 +333,178 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         ) : (
           <>
             {currentUser.activeRoles?.includes('ADMINISTRATOR') && (
-          <div
-            className={`flex items-center gap-2 px-1 mb-2 ${
-              showFullContent ? 'justify-start' : 'justify-center'
-            }`}
-            style={{ color: 'var(--sb-accent)' }}
-          >
-            <Server className='w-3.5 h-3.5 shrink-0' />
-            {showFullContent && (
-              <span className='pf-sb-label text-xs font-bold tracking-tight'>Admin Zone</span>
-            )}
-          </div>
-        )}
-
-        <button
-          type='button'
-          data-testid='sidebar-workspace-switcher'
-          onClick={(e) => handleNavClick(e, '/workspaces')}
-          className={`pf-sb-surface group flex items-center cursor-pointer rounded-xl text-left ${
-            showFullContent
-              ? 'w-full justify-between min-h-[42px] p-2'
-              : 'justify-center w-10 h-10 mx-auto'
-          }`}
-          title={showFullContent ? workspaceLabel : undefined}
-          aria-label={workspaceLabel}
-          {...railTip(workspaceLabel)}
-        >
-          <div className='flex items-center gap-2.5 min-w-0'>
-            <Briefcase className='w-4 h-4 shrink-0' style={{ color: 'var(--sb-accent)' }} />
-            {showFullContent && (
-              <div className='min-w-0 pf-sb-label'>
-                <p className='text-xs font-semibold truncate leading-tight'>
-                  {activeWorkspace?.name || 'PanelForge Studio'}
-                </p>
-                <p
-                  className='text-[10.5px] font-mono truncate'
-                  style={{ color: 'var(--sb-muted)' }}
-                >
-                  {currentUser.workspaceRole || 'Studio Workspace'}
-                </p>
+              <div
+                className={`flex items-center gap-2 px-1 mb-2 ${
+                  showFullContent ? 'justify-start' : 'justify-center'
+                }`}
+                style={{ color: 'var(--sb-accent)' }}
+              >
+                <Server className='w-3.5 h-3.5 shrink-0' />
+                {showFullContent && (
+                  <span className='pf-sb-label text-xs font-bold tracking-tight'>Admin Zone</span>
+                )}
               </div>
             )}
-          </div>
-          {showFullContent && (
-            <ChevronDown className='w-3.5 h-3.5 shrink-0' style={{ color: 'var(--sb-muted)' }} />
-          )}
-        </button>
 
-        {workspaceId && (
-          <div className='relative'>
             <button
-              ref={seriesBtnRef}
               type='button'
-              data-testid='sidebar-series-selector'
-              aria-haspopup='menu'
-              aria-expanded={!!seriesPos}
-              onClick={(e) => {
-                if (seriesPos) return setSeriesPos(null);
-                if (seriesList.length === 0) loadSeries();
-                setThemePos(null);
-                setTip(null);
-                setSeriesPos(floatFrom(e.currentTarget, isCollapsed, 260));
-              }}
+              data-testid='sidebar-workspace-switcher'
+              onClick={(e) => handleNavClick(e, '/workspaces')}
               className={`pf-sb-surface group flex items-center cursor-pointer rounded-xl text-left ${
                 showFullContent
                   ? 'w-full justify-between min-h-[42px] p-2'
                   : 'justify-center w-10 h-10 mx-auto'
               }`}
-              title={showFullContent ? seriesLabel : undefined}
-              aria-label={seriesLabel}
-              {...railTip(seriesLabel)}
+              title={showFullContent ? workspaceLabel : undefined}
+              aria-label={workspaceLabel}
+              {...railTip(workspaceLabel)}
             >
               <div className='flex items-center gap-2.5 min-w-0'>
-                <BookOpen className='w-4 h-4 shrink-0' style={{ color: 'var(--sb-accent)' }} />
+                <Briefcase className='w-4 h-4 shrink-0' style={{ color: 'var(--sb-accent)' }} />
                 {showFullContent && (
                   <div className='min-w-0 pf-sb-label'>
                     <p className='text-xs font-semibold truncate leading-tight'>
-                      {seriesId ? activeSeries?.title || 'Active Series' : 'Chọn Series...'}
+                      {activeWorkspace?.name || 'PanelForge Studio'}
                     </p>
                     <p
                       className='text-[10.5px] font-mono truncate'
                       style={{ color: 'var(--sb-muted)' }}
                     >
-                      {seriesId ? activeSeries?.subtitle || 'Chương hiện tại' : 'Danh sách Series'}
+                      {currentUser.workspaceRole || 'Studio Workspace'}
                     </p>
                   </div>
                 )}
               </div>
               {showFullContent && (
                 <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform shrink-0 ${seriesPos ? 'rotate-180' : ''}`}
+                  className='w-3.5 h-3.5 shrink-0'
                   style={{ color: 'var(--sb-muted)' }}
                 />
               )}
             </button>
 
-            {seriesPos && (
-              <div
-                ref={seriesMenuRef}
-                role='menu'
-                className='pf-sb-popover fixed rounded-xl shadow-2xl z-[60] py-1 max-h-60 overflow-y-auto'
-                style={{ left: seriesPos.left, top: seriesPos.top, width: seriesPos.width }}
-              >
-                <div
-                  className='px-3 py-1.5 border-b flex items-center justify-between text-[11px] font-semibold'
-                  style={{ borderColor: 'var(--sb-border)', color: 'var(--sb-muted)' }}
+            {workspaceId && (
+              <div className='relative'>
+                <button
+                  ref={seriesBtnRef}
+                  type='button'
+                  data-testid='sidebar-series-selector'
+                  aria-haspopup='menu'
+                  aria-expanded={!!seriesPos}
+                  onClick={(e) => {
+                    if (seriesPos) return setSeriesPos(null);
+                    if (seriesList.length === 0) loadSeries();
+                    setThemePos(null);
+                    setTip(null);
+                    setSeriesPos(floatFrom(e.currentTarget, isCollapsed, 260));
+                  }}
+                  className={`pf-sb-surface group flex items-center cursor-pointer rounded-xl text-left ${
+                    showFullContent
+                      ? 'w-full justify-between min-h-[42px] p-2'
+                      : 'justify-center w-10 h-10 mx-auto'
+                  }`}
+                  title={showFullContent ? seriesLabel : undefined}
+                  aria-label={seriesLabel}
+                  {...railTip(seriesLabel)}
                 >
-                  <span>Bộ truyện trong Studio</span>
-                  <button
-                    type='button'
-                    onClick={(e) => {
-                      setSeriesPos(null);
-                      handleNavClick(e, `/workspaces/${workspaceId}/series`);
-                    }}
-                    className='text-[11px] font-medium cursor-pointer hover:underline'
-                    style={{ color: 'var(--sb-accent)' }}
+                  <div className='flex items-center gap-2.5 min-w-0'>
+                    <BookOpen className='w-4 h-4 shrink-0' style={{ color: 'var(--sb-accent)' }} />
+                    {showFullContent && (
+                      <div className='min-w-0 pf-sb-label'>
+                        <p className='text-xs font-semibold truncate leading-tight'>
+                          {seriesId ? activeSeries?.title || 'Active Series' : 'Chọn Series...'}
+                        </p>
+                        <p
+                          className='text-[10.5px] font-mono truncate'
+                          style={{ color: 'var(--sb-muted)' }}
+                        >
+                          {seriesId
+                            ? activeSeries?.subtitle || 'Chương hiện tại'
+                            : 'Danh sách Series'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {showFullContent && (
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform shrink-0 ${seriesPos ? 'rotate-180' : ''}`}
+                      style={{ color: 'var(--sb-muted)' }}
+                    />
+                  )}
+                </button>
+
+                {seriesPos && (
+                  <div
+                    ref={seriesMenuRef}
+                    role='menu'
+                    className='pf-sb-popover fixed rounded-xl shadow-2xl z-[60] py-1 max-h-60 overflow-y-auto'
+                    style={{ left: seriesPos.left, top: seriesPos.top, width: seriesPos.width }}
                   >
-                    Xem tất cả
-                  </button>
-                </div>
-                {loadingSeries && (
-                  <div className='p-3 text-xs text-center' style={{ color: 'var(--sb-muted)' }}>
-                    Đang tải...
-                  </div>
-                )}
-                {!loadingSeries && seriesList.length === 0 && (
-                  <div className='p-3 text-xs text-center' style={{ color: 'var(--sb-muted)' }}>
-                    Chưa có bộ truyện nào
-                  </div>
-                )}
-                {!loadingSeries &&
-                  seriesList.map((s) => {
-                    const isSelected = s.id === seriesId;
-                    return (
+                    <div
+                      className='px-3 py-1.5 border-b flex items-center justify-between text-[11px] font-semibold'
+                      style={{ borderColor: 'var(--sb-border)', color: 'var(--sb-muted)' }}
+                    >
+                      <span>Bộ truyện trong Studio</span>
                       <button
                         type='button'
-                        role='menuitem'
-                        key={s.id}
                         onClick={(e) => {
                           setSeriesPos(null);
-                          onSelectSeries?.(s.id);
-                          handleNavClick(e, `/workspaces/${workspaceId}/series/${s.id}/dashboard`);
+                          handleNavClick(e, `/workspaces/${workspaceId}/series`);
                         }}
-                        aria-current={isSelected ? 'page' : undefined}
-                        className='pf-sb-item w-full px-3 py-2 text-xs flex items-center justify-between cursor-pointer text-left'
+                        className='text-[11px] font-medium cursor-pointer hover:underline'
+                        style={{ color: 'var(--sb-accent)' }}
                       >
-                        <div className='truncate pr-2 min-w-0'>
-                          <p className='truncate'>{s.title}</p>
-                          <p className='text-xs font-mono' style={{ color: 'var(--sb-muted)' }}>
-                            {s.genre || 'Manga'} • {s.chaptersCount || 0} chương
-                          </p>
-                        </div>
-                        {isSelected && (
-                          <Check
-                            className='w-3.5 h-3.5 shrink-0'
-                            style={{ color: 'var(--sb-accent)' }}
-                          />
-                        )}
+                        Xem tất cả
                       </button>
-                    );
-                  })}
+                    </div>
+                    {loadingSeries && (
+                      <div className='p-3 text-xs text-center' style={{ color: 'var(--sb-muted)' }}>
+                        Đang tải...
+                      </div>
+                    )}
+                    {!loadingSeries && seriesList.length === 0 && (
+                      <div className='p-3 text-xs text-center' style={{ color: 'var(--sb-muted)' }}>
+                        Chưa có bộ truyện nào
+                      </div>
+                    )}
+                    {!loadingSeries &&
+                      seriesList.map((s) => {
+                        const isSelected = s.id === seriesId;
+                        return (
+                          <button
+                            type='button'
+                            role='menuitem'
+                            key={s.id}
+                            onClick={(e) => {
+                              setSeriesPos(null);
+                              onSelectSeries?.(s.id);
+                              handleNavClick(
+                                e,
+                                `/workspaces/${workspaceId}/series/${s.id}/dashboard`,
+                              );
+                            }}
+                            aria-current={isSelected ? 'page' : undefined}
+                            className='pf-sb-item w-full px-3 py-2 text-xs flex items-center justify-between cursor-pointer text-left'
+                          >
+                            <div className='truncate pr-2 min-w-0'>
+                              <p className='truncate'>{s.title}</p>
+                              <p className='text-xs font-mono' style={{ color: 'var(--sb-muted)' }}>
+                                {s.genre || 'Manga'} • {s.chaptersCount || 0} chương
+                              </p>
+                            </div>
+                            {isSelected && (
+                              <Check
+                                className='w-3.5 h-3.5 shrink-0'
+                                style={{ color: 'var(--sb-accent)' }}
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
           </>
         )}
       </div>

@@ -33,7 +33,7 @@ describe('FocusWorkspaceLayout Component', () => {
             />
           </Route>
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
   };
 
@@ -61,7 +61,9 @@ describe('FocusWorkspaceLayout Component', () => {
     );
 
     // No technical jargon visible
-    expect(screen.queryByText(/SHA-256|CAS|DPI|B5 Master|Zen Mode|Manga B5 Desk/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/SHA-256|CAS|DPI|B5 Master|Zen Mode|Manga B5 Desk/i),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Đã lưu tự động')).toBeInTheDocument();
 
     // Content is rendered and AppShellSidebar is NOT present

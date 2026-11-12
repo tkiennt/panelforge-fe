@@ -20,7 +20,9 @@ test.describe('E2E Real Database: Series Bible Writer & Artist Collaboration', (
     await page.waitForLoadState('networkidle');
 
     // 4. Vào Studio đầu tiên
-    const enterStudioBtn = page.locator('button:has-text("Vào studio"), a:has-text("Vào studio")').first();
+    const enterStudioBtn = page
+      .locator('button:has-text("Vào studio"), a:has-text("Vào studio")')
+      .first();
     await expect(enterStudioBtn).toBeVisible({ timeout: 10000 });
     await enterStudioBtn.click();
     await page.waitForLoadState('networkidle');
@@ -91,7 +93,9 @@ test.describe('E2E Real Database: Series Bible Writer & Artist Collaboration', (
     await page.waitForLoadState('networkidle');
 
     // 4. Vào Studio đầu tiên
-    const enterStudioBtn = page.locator('button:has-text("Vào studio"), a:has-text("Vào studio")').first();
+    const enterStudioBtn = page
+      .locator('button:has-text("Vào studio"), a:has-text("Vào studio")')
+      .first();
     await expect(enterStudioBtn).toBeVisible({ timeout: 10000 });
     await enterStudioBtn.click();
     await page.waitForLoadState('networkidle');
@@ -119,11 +123,15 @@ test.describe('E2E Real Database: Series Bible Writer & Artist Collaboration', (
       await expect(detailModal).toBeVisible({ timeout: 8000 });
 
       // Artist không có quyền Duyệt thiết kế (chỉ Writer/Producer có quyền)
-      const endorseBtn = page.locator('[data-testid="detail-endorse-btn"], button:has-text("✓ Duyệt thiết kế")');
+      const endorseBtn = page.locator(
+        '[data-testid="detail-endorse-btn"], button:has-text("✓ Duyệt thiết kế")',
+      );
       await expect(endorseBtn).not.toBeVisible();
     }
   });
-        test('Giai đoạn 3 (Xóa Version & Era): Kiểm tra giao diện và nút xóa thời kỳ & xóa revision', async ({ page }) => {
+  test('Giai đoạn 3 (Xóa Version & Era): Kiểm tra giao diện và nút xóa thời kỳ & xóa revision', async ({
+    page,
+  }) => {
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
 
@@ -134,7 +142,9 @@ test.describe('E2E Real Database: Series Bible Writer & Artist Collaboration', (
     await page.waitForURL(/.*workspaces.*/i, { timeout: 15000 });
     await page.waitForLoadState('networkidle');
 
-    const enterStudioBtn = page.locator('button:has-text("Vào studio"), a:has-text("Vào studio")').first();
+    const enterStudioBtn = page
+      .locator('button:has-text("Vào studio"), a:has-text("Vào studio")')
+      .first();
     await expect(enterStudioBtn).toBeVisible({ timeout: 10000 });
     await enterStudioBtn.click();
     await page.waitForLoadState('networkidle');

@@ -38,12 +38,7 @@ const mockChapters: ChapterDto[] = [
 describe('ChapterSelectionView Component', () => {
   it('renders chapter selection header and cards', () => {
     const onSelectChapter = vi.fn();
-    render(
-      <ChapterSelectionView
-        chapters={mockChapters}
-        onSelectChapter={onSelectChapter}
-      />
-    );
+    render(<ChapterSelectionView chapters={mockChapters} onSelectChapter={onSelectChapter} />);
 
     expect(screen.getByText('Chọn Chương Để Thực Hiện Kịch Bản')).toBeInTheDocument();
     expect(screen.getByText(/Khởi Đầu Mới/i)).toBeInTheDocument();
@@ -54,12 +49,7 @@ describe('ChapterSelectionView Component', () => {
 
   it('calls onSelectChapter when clicking a chapter card', () => {
     const onSelectChapter = vi.fn();
-    render(
-      <ChapterSelectionView
-        chapters={mockChapters}
-        onSelectChapter={onSelectChapter}
-      />
-    );
+    render(<ChapterSelectionView chapters={mockChapters} onSelectChapter={onSelectChapter} />);
 
     const card1 = screen.getByTestId('chapter-card-1');
     fireEvent.click(card1);
@@ -78,7 +68,7 @@ describe('ChapterSelectionView Component', () => {
         onSelectChapter={vi.fn()}
         onCreateChapter={onCreateChapter}
         onShowToast={onShowToast}
-      />
+      />,
     );
 
     const createBtn = screen.getByTestId('create-chapter-btn');
@@ -97,7 +87,7 @@ describe('ChapterSelectionView Component', () => {
         expect.objectContaining({
           chapterNumber: 3,
           title: 'Chương Mới Thử Nghiệm',
-        })
+        }),
       );
     });
   });
@@ -108,7 +98,7 @@ describe('ChapterSelectionView Component', () => {
         chapters={mockChapters}
         canCreateChapter={false}
         onSelectChapter={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.queryByTestId('create-chapter-btn')).not.toBeInTheDocument();
@@ -116,26 +106,17 @@ describe('ChapterSelectionView Component', () => {
 
   it('renders appropriate empty state for Writer when chapters list is empty', () => {
     render(
-      <ChapterSelectionView
-        chapters={[]}
-        canCreateChapter={false}
-        onSelectChapter={vi.fn()}
-      />
+      <ChapterSelectionView chapters={[]} canCreateChapter={false} onSelectChapter={vi.fn()} />,
     );
 
     expect(screen.getByText('Chưa có chương nào trong series này')).toBeInTheDocument();
     expect(
-      screen.getByText(/Producer phụ trách dự án sẽ khởi tạo chương và giao việc/i)
+      screen.getByText(/Producer phụ trách dự án sẽ khởi tạo chương và giao việc/i),
     ).toBeInTheDocument();
   });
 
   it('filters chapters based on search query', () => {
-    render(
-      <ChapterSelectionView
-        chapters={mockChapters}
-        onSelectChapter={vi.fn()}
-      />
-    );
+    render(<ChapterSelectionView chapters={mockChapters} onSelectChapter={vi.fn()} />);
 
     const searchInput = screen.getByPlaceholderText(/Tìm nhanh theo tên chương/i);
     fireEvent.change(searchInput, { target: { value: 'Shibuya' } });
@@ -145,12 +126,7 @@ describe('ChapterSelectionView Component', () => {
   });
 
   it('filters chapters when clicking status filter pills', () => {
-    render(
-      <ChapterSelectionView
-        chapters={mockChapters}
-        onSelectChapter={vi.fn()}
-      />
-    );
+    render(<ChapterSelectionView chapters={mockChapters} onSelectChapter={vi.fn()} />);
 
     const frozenPill = screen.getByRole('button', { name: /Đã khóa \(Frozen\)/i });
     fireEvent.click(frozenPill);
@@ -160,12 +136,7 @@ describe('ChapterSelectionView Component', () => {
   });
 
   it('switches between Grid View and Table View seamlessly', () => {
-    render(
-      <ChapterSelectionView
-        chapters={mockChapters}
-        onSelectChapter={vi.fn()}
-      />
-    );
+    render(<ChapterSelectionView chapters={mockChapters} onSelectChapter={vi.fn()} />);
 
     const tableViewBtn = screen.getByTitle('Dạng bảng (Table/List View)');
     fireEvent.click(tableViewBtn);
@@ -181,12 +152,7 @@ describe('ChapterSelectionView Component', () => {
   });
 
   it('renders quick stats correctly in header', () => {
-    render(
-      <ChapterSelectionView
-        chapters={mockChapters}
-        onSelectChapter={vi.fn()}
-      />
-    );
+    render(<ChapterSelectionView chapters={mockChapters} onSelectChapter={vi.fn()} />);
 
     expect(screen.getByText('Tổng số chương')).toBeInTheDocument();
     expect(screen.getByText('Đang viết')).toBeInTheDocument();

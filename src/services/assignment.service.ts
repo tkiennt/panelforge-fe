@@ -264,10 +264,7 @@ export const assignmentService = {
     request: CreateAssignmentPlanRequest,
   ): Promise<AssignmentPlanResultDto> => {
     try {
-      const response = await axiosClient.post(
-        `/chapters/${chapterId}/assignments/plan`,
-        request,
-      );
+      const response = await axiosClient.post(`/chapters/${chapterId}/assignments/plan`, request);
       return response.data;
     } catch (error: any) {
       throw new Error(extractError(error, 'Không thể tạo kế hoạch giao việc'));
@@ -278,13 +275,9 @@ export const assignmentService = {
    * Lấy mẫu "giao như chương trước" từ chương gần nhất đã có phân công việc
    * (GET /api/chapters/{chapterId}/assignments/plan-template)
    */
-  getAssignmentPlanTemplate: async (
-    chapterId: string,
-  ): Promise<AssignmentPlanTemplateDto> => {
+  getAssignmentPlanTemplate: async (chapterId: string): Promise<AssignmentPlanTemplateDto> => {
     try {
-      const response = await axiosClient.get(
-        `/chapters/${chapterId}/assignments/plan-template`,
-      );
+      const response = await axiosClient.get(`/chapters/${chapterId}/assignments/plan-template`);
       return response.data;
     } catch (error: any) {
       console.warn('Không thể nạp mẫu kế hoạch giao việc:', error);
@@ -718,7 +711,7 @@ export const assignmentService = {
   /** Lấy danh sách hàng đợi duyệt của Editor theo Series (GET /api/series/{seriesId}/editor/review-queue) */
   getEditorReviewQueue: async (
     seriesId: string,
-    params?: { gate?: string; status?: string }
+    params?: { gate?: string; status?: string },
   ): Promise<EditorReviewQueueItemDto[]> => {
     try {
       const response = await axiosClient.get(`/series/${seriesId}/editor/review-queue`, {

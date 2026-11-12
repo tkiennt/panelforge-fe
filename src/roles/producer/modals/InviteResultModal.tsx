@@ -50,12 +50,8 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
               <CheckCircle2 className='w-4 h-4' />
             </div>
             <div>
-              <h3 className='font-bold text-sm text-[#171717]'>
-                Kết quả gửi lời mời
-              </h3>
-              {workspaceName && (
-                <p className='text-[11px] text-stone-500'>{workspaceName}</p>
-              )}
+              <h3 className='font-bold text-sm text-[#171717]'>Kết quả gửi lời mời</h3>
+              {workspaceName && <p className='text-[11px] text-stone-500'>{workspaceName}</p>}
             </div>
           </div>
           <button
@@ -88,9 +84,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
           >
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
-                failureCount > 0
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-stone-200 text-stone-500'
+                failureCount > 0 ? 'bg-red-100 text-red-700' : 'bg-stone-200 text-stone-500'
               }`}
             >
               {failureCount}
@@ -114,9 +108,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             <div
               key={idx}
               className={`p-3 rounded-xl border flex items-start justify-between gap-3 ${
-                item.success
-                  ? 'bg-[#FAF8F5] border-[#E7E5E4]'
-                  : 'bg-red-50/70 border-red-200'
+                item.success ? 'bg-[#FAF8F5] border-[#E7E5E4]' : 'bg-red-50/70 border-red-200'
               }`}
             >
               <div className='flex items-start gap-2.5 min-w-0'>
@@ -148,9 +140,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
 
               <span
                 className={`px-2 py-0.5 rounded text-[10px] font-semibold shrink-0 ${
-                  item.success
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-red-100 text-red-800'
+                  item.success ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
                 }`}
               >
                 {item.success ? 'Chờ duyệt' : 'Lỗi'}
@@ -166,7 +156,11 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             onClick={handleCopyList}
             className='px-3 py-1.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
           >
-            {copied ? <Check className='w-3.5 h-3.5 text-emerald-600' /> : <Copy className='w-3.5 h-3.5 text-stone-500' />}
+            {copied ? (
+              <Check className='w-3.5 h-3.5 text-emerald-600' />
+            ) : (
+              <Copy className='w-3.5 h-3.5 text-stone-500' />
+            )}
             <span>{copied ? 'Đã sao chép' : 'Sao chép'}</span>
           </button>
 

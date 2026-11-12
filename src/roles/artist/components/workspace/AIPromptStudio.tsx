@@ -28,11 +28,31 @@ interface AIPromptStudioProps {
 }
 
 const STYLE_PRESETS = [
-  { id: 'shonen', label: 'Shonen Action', promptTag: 'high contrast ink, dynamic speed lines, intense screentone' },
-  { id: 'classic-ink', label: 'Classic Ink', promptTag: 'traditional G-pen linework, sumi ink shading, crosshatching' },
-  { id: 'webtoon', label: 'Webtoon Color', promptTag: 'crisp digital lineart, soft cel shading, cinematic lighting' },
-  { id: 'seinen', label: 'Seinen Detailed', promptTag: 'gritty realistic hatching, deep shadows, atmospheric textures' },
-  { id: 'shojo', label: 'Shojo Romantic', promptTag: 'delicate linework, flower screentone effects, soft gradient halftones' },
+  {
+    id: 'shonen',
+    label: 'Shonen Action',
+    promptTag: 'high contrast ink, dynamic speed lines, intense screentone',
+  },
+  {
+    id: 'classic-ink',
+    label: 'Classic Ink',
+    promptTag: 'traditional G-pen linework, sumi ink shading, crosshatching',
+  },
+  {
+    id: 'webtoon',
+    label: 'Webtoon Color',
+    promptTag: 'crisp digital lineart, soft cel shading, cinematic lighting',
+  },
+  {
+    id: 'seinen',
+    label: 'Seinen Detailed',
+    promptTag: 'gritty realistic hatching, deep shadows, atmospheric textures',
+  },
+  {
+    id: 'shojo',
+    label: 'Shojo Romantic',
+    promptTag: 'delicate linework, flower screentone effects, soft gradient halftones',
+  },
 ];
 
 export const AIPromptStudio: React.FC<AIPromptStudioProps> = ({
@@ -46,7 +66,7 @@ export const AIPromptStudio: React.FC<AIPromptStudioProps> = ({
 }) => {
   const [positivePrompt, setPositivePrompt] = useState<string>('');
   const [negativePrompt, setNegativePrompt] = useState<string>(
-    'low quality, blurry, extra limbs, bad anatomy, deformed eyes, color bleed, low resolution'
+    'low quality, blurry, extra limbs, bad anatomy, deformed eyes, color bleed, low resolution',
   );
   const [selectedStyle, setSelectedStyle] = useState<string>('shonen');
   const [isAccordionOpen, setIsAccordionOpen] = useState<boolean>(false);
@@ -62,7 +82,7 @@ export const AIPromptStudio: React.FC<AIPromptStudioProps> = ({
       const angle = selectedPanel.cameraAngle || 'dynamic angle';
       const lighting = selectedPanel.lighting || 'dramatic directional rim light';
       setPositivePrompt(
-        `Manga ink style, highly detailed linework, young male protagonist Akira with scarred left cheek, intense expression, ${angle}, ${lighting}, dynamic speedlines, high contrast screentone.`
+        `Manga ink style, highly detailed linework, young male protagonist Akira with scarred left cheek, intense expression, ${angle}, ${lighting}, dynamic speedlines, high contrast screentone.`,
       );
     } else {
       setPositivePrompt('');
@@ -111,9 +131,7 @@ export const AIPromptStudio: React.FC<AIPromptStudioProps> = ({
               Khung #{selectedPanel.panelNumber} đang chọn
             </span>
           ) : (
-            <span className='text-[10px] font-mono text-stone-400'>
-              Chưa chọn khung
-            </span>
+            <span className='text-[10px] font-mono text-stone-400'>Chưa chọn khung</span>
           )}
         </div>
       </div>
@@ -124,11 +142,10 @@ export const AIPromptStudio: React.FC<AIPromptStudioProps> = ({
         {!selectedPanel ? (
           <div className='p-6 text-center text-stone-400 flex flex-col items-center justify-center border-2 border-dashed border-stone-200 rounded-xl my-4'>
             <Sliders className='w-8 h-8 stroke-[1.5] text-stone-300 mb-2' />
-            <p className='text-xs font-semibold text-stone-600 mb-1'>
-              Chọn một khung trên canvas
-            </p>
+            <p className='text-xs font-semibold text-stone-600 mb-1'>Chọn một khung trên canvas</p>
             <p className='text-[11px] text-stone-400 max-w-[200px]'>
-              Chọn khung tranh ở giữa để AI Visual Agent tự động phân tích bối cảnh và gợi ý prompt sinh ảnh.
+              Chọn khung tranh ở giữa để AI Visual Agent tự động phân tích bối cảnh và gợi ý prompt
+              sinh ảnh.
             </p>
           </div>
         ) : (
@@ -140,21 +157,23 @@ export const AIPromptStudio: React.FC<AIPromptStudioProps> = ({
                   <Camera className='w-3.5 h-3.5 text-orange-600' />
                   <span>Bối cảnh khung tranh (Scene Context)</span>
                 </span>
-                <span className='text-[9px] font-mono text-stone-400 uppercase'>
-                  Auto-analyzed
-                </span>
+                <span className='text-[9px] font-mono text-stone-400 uppercase'>Auto-analyzed</span>
               </div>
 
               <div className='grid grid-cols-2 gap-2 text-[11px] pt-1'>
                 <div className='p-2 bg-white rounded-lg border border-stone-200/60'>
-                  <span className='text-[10px] text-stone-400 block font-mono'>Góc máy (Angle)</span>
+                  <span className='text-[10px] text-stone-400 block font-mono'>
+                    Góc máy (Angle)
+                  </span>
                   <span className='font-semibold text-stone-800'>
                     {selectedPanel.cameraAngle || 'Góc cận mặt (Close-up)'}
                   </span>
                 </div>
 
                 <div className='p-2 bg-white rounded-lg border border-stone-200/60'>
-                  <span className='text-[10px] text-stone-400 block font-mono'>Ánh sáng (Light)</span>
+                  <span className='text-[10px] text-stone-400 block font-mono'>
+                    Ánh sáng (Light)
+                  </span>
                   <span className='font-semibold text-stone-800'>
                     {selectedPanel.lighting || 'Ánh sáng vàng hoàng hôn'}
                   </span>
@@ -164,7 +183,9 @@ export const AIPromptStudio: React.FC<AIPromptStudioProps> = ({
               {selectedPanel.mood && (
                 <div className='flex items-center gap-1.5 text-[10px] text-stone-600 px-1'>
                   <Smile className='w-3 h-3 text-amber-600' />
-                  <span>Tâm trạng: <strong className='text-stone-800'>{selectedPanel.mood}</strong></span>
+                  <span>
+                    Tâm trạng: <strong className='text-stone-800'>{selectedPanel.mood}</strong>
+                  </span>
                 </div>
               )}
             </div>
@@ -346,9 +367,7 @@ export const AIPromptStudio: React.FC<AIPromptStudioProps> = ({
                       className='p-2.5 rounded-lg bg-[#FAF8F5] border border-stone-200/80 space-y-1.5 text-left'
                     >
                       <div className='flex items-center justify-between'>
-                        <span className='text-xs font-bold text-stone-900'>
-                          {char.name}
-                        </span>
+                        <span className='text-xs font-bold text-stone-900'>{char.name}</span>
                         <span className='text-[9px] font-mono px-1 rounded bg-stone-200/70 text-stone-600 uppercase'>
                           {char.role || 'Main'}
                         </span>

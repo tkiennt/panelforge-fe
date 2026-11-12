@@ -78,7 +78,9 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
               <Layers className='w-5 h-5' />
             </div>
             <div>
-              <h3 className='font-serif font-bold text-lg text-[#1C1917]'>Tạo Studio / Workspace mới</h3>
+              <h3 className='font-serif font-bold text-lg text-[#1C1917]'>
+                Tạo Studio / Workspace mới
+              </h3>
               <p className='text-xs text-[#57534E]'>Khởi tạo không gian làm việc sản xuất truyện</p>
             </div>
           </div>

@@ -28,7 +28,11 @@ import {
 } from './scriptFlowAdapter';
 import { MangaBlockType } from './types';
 import { getNextPageNumber, getNextPanelNumber } from './comic-editor/comicCounting';
-import { AiScriptConvertModal, convertScriptTextToScreenplayBlocks, linkTypedSpeakers } from './converter';
+import {
+  AiScriptConvertModal,
+  convertScriptTextToScreenplayBlocks,
+  linkTypedSpeakers,
+} from './converter';
 
 interface ScreenplayFlowEditorProps {
   chapterId?: string;
@@ -84,7 +88,8 @@ function findActiveSceneId(doc: any, pos: number): string | null {
   let sceneId: string | null = null;
   doc.forEach((node: any, offset: number) => {
     if (offset > pos) return;
-    if (node.attrs?.blockType === 'scene_heading' || !sceneId) sceneId = node.attrs?.sceneId ?? sceneId;
+    if (node.attrs?.blockType === 'scene_heading' || !sceneId)
+      sceneId = node.attrs?.sceneId ?? sceneId;
   });
   return sceneId;
 }
@@ -150,9 +155,14 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     // Giữ nguyên mảng cũ khi cấu trúc trang không đổi để không render lại thanh đáy mỗi lần gõ phím
     setPageOutline((prev) =>
       prev.length === outline.length &&
-      prev.every((p, i) => p.pos === outline[i].pos && p.panels === outline[i].panels && p.pageNumber === outline[i].pageNumber)
+      prev.every(
+        (p, i) =>
+          p.pos === outline[i].pos &&
+          p.panels === outline[i].panels &&
+          p.pageNumber === outline[i].pageNumber,
+      )
         ? prev
-        : outline
+        : outline,
     );
     setActivePageNumber(findActivePage(outline, selectionPos));
     setActiveSceneId(findActiveSceneId(doc, selectionPos));
@@ -175,7 +185,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const localDraftTimerRef = useRef<NodeJS.Timeout | null>(null);
   const draftStorageKey = useMemo(
     () => (chapterId ? `panelforge_draft_script_${chapterId}` : 'panelforge_draft_script_default'),
-    [chapterId]
+    [chapterId],
   );
 
   // Đóng gói danh sách BibleEntries cho mention popover
@@ -208,7 +218,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
   // Hàm chuyển đổi DOM target thành dữ liệu QuickViewCard
   const resolveQuickViewData = useCallback(
-    (target: HTMLElement): { data: QuickViewCardData; pos: { top: number; left: number } } | null => {
+    (
+      target: HTMLElement,
+    ): { data: QuickViewCardData; pos: { top: number; left: number } } | null => {
       const rect = target.getBoundingClientRect();
       const pos = {
         top: rect.bottom + 6,
@@ -217,9 +229,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
       // 1. Thẻ QuickView cho Panel Heading
       if (target.hasAttribute('data-panel-badge') || target.closest('[data-panel-badge]')) {
-        const badgeEl = (target.hasAttribute('data-panel-badge')
-          ? target
-          : target.closest('[data-panel-badge]')) as HTMLElement;
+        const badgeEl = (
+          target.hasAttribute('data-panel-badge') ? target : target.closest('[data-panel-badge]')
+        ) as HTMLElement;
         const pageNum = parseInt(badgeEl.getAttribute('data-page-number') || '1', 10);
         const panelNum = parseInt(badgeEl.getAttribute('data-panel-number') || '1', 10);
         const panelId = badgeEl.getAttribute('data-panel-id') || undefined;
@@ -228,9 +240,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         const associatedPanel = (panels || []).find(
           (p) =>
             p.id === panelId ||
-            (p.panelNumber === panelNum && ((p as any).pageNumber === pageNum || !panelId))
+            (p.panelNumber === panelNum && ((p as any).pageNumber === pageNum || !panelId)),
         );
-        const imageUrl = (associatedPanel as any)?.thumbnailUrl || (associatedPanel as any)?.artworkUrl || null;
+        const imageUrl =
+          (associatedPanel as any)?.thumbnailUrl || (associatedPanel as any)?.artworkUrl || null;
 
         return {
           pos,
@@ -249,9 +262,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       }
 
       // 2. Thẻ QuickView cho Mention Chip (@PRP..., @P1.1, @CHR...)
-      const chipEl = (target.hasAttribute('data-mention-chip')
-        ? target
-        : target.closest('[data-mention-chip]')) as HTMLElement;
+      const chipEl = (
+        target.hasAttribute('data-mention-chip') ? target : target.closest('[data-mention-chip]')
+      ) as HTMLElement;
       if (!chipEl) return null;
 
       const code = chipEl.getAttribute('data-code') || chipEl.getAttribute('data-label') || '';
@@ -279,9 +292,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         const associatedPanel = (panels || []).find(
           (p) =>
             p.id === panelId ||
-            (p.panelNumber === panelNum && ((p as any).pageNumber === pageNum || !panelId))
+            (p.panelNumber === panelNum && ((p as any).pageNumber === pageNum || !panelId)),
         );
-        const imageUrl = (associatedPanel as any)?.thumbnailUrl || (associatedPanel as any)?.artworkUrl || null;
+        const imageUrl =
+          (associatedPanel as any)?.thumbnailUrl || (associatedPanel as any)?.artworkUrl || null;
 
         return {
           pos,
@@ -300,7 +314,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       }
 
       const entry = (allBibleEntries || []).find(
-        (e) => e.code?.toLowerCase() === code.toLowerCase() || e.id === chipEl.getAttribute('data-id')
+        (e) =>
+          e.code?.toLowerCase() === code.toLowerCase() || e.id === chipEl.getAttribute('data-id'),
       );
 
       return {
@@ -319,7 +334,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         },
       };
     },
-    [allBibleEntries, panels, onOpenInBible, onOpenInArtistDesk, onCreateInBible]
+    [allBibleEntries, panels, onOpenInBible, onOpenInArtistDesk, onCreateInBible],
   );
 
   const editor = useEditor({
@@ -334,7 +349,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           () => panelsRef.current,
           onCreateStub,
           onOpenInBible,
-          onOpenInArtistDesk
+          onOpenInArtistDesk,
         ),
       }),
       ConsistencyLinterExtension.configure({
@@ -383,7 +398,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         if (addDialogueBtn || addPanelBtn) {
           const isPanelAction = Boolean(addDialogueBtn);
           const headingEl = (addDialogueBtn || addPanelBtn)!.closest(
-            isPanelAction ? '[data-block-type="panel_heading"]' : '[data-block-type="page_heading"]'
+            isPanelAction
+              ? '[data-block-type="panel_heading"]'
+              : '[data-block-type="page_heading"]',
           );
           if (!headingEl || !view.editable) return true;
           const { doc } = view.state;
@@ -426,7 +443,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                   },
                 },
               ]
-            : createPanelSlotBlocks(pageNumber, panelsInPage + 1, getDefaultPanelShot(panelsInPage + 1), sceneId);
+            : createPanelSlotBlocks(
+                pageNumber,
+                panelsInPage + 1,
+                getDefaultPanelShot(panelsInPage + 1),
+                sceneId,
+              );
 
           const nodes = json.map((n) => view.state.schema.nodeFromJSON(n));
           const tr = view.state.tr.insert(insertPos, nodes);
@@ -472,7 +494,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           if (pageBlockEl) {
             let pageCount = 0;
             view.state.doc.descendants((node) => {
-              if (node.type.name === 'scriptLineBlock' && node.attrs?.blockType === 'page_heading') {
+              if (
+                node.type.name === 'scriptLineBlock' &&
+                node.attrs?.blockType === 'page_heading'
+              ) {
                 pageCount++;
               }
             });
@@ -507,7 +532,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           if (sceneBlockEl) {
             let sceneCount = 0;
             view.state.doc.descendants((node) => {
-              if (node.type.name === 'scriptLineBlock' && node.attrs?.blockType === 'scene_heading') {
+              if (
+                node.type.name === 'scriptLineBlock' &&
+                node.attrs?.blockType === 'scene_heading'
+              ) {
                 sceneCount++;
               }
             });
@@ -541,7 +569,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         // Khoảng trắng gõ ngay sau "Tên:" không thuộc lời thoại (nhãn đã tách riêng)
         if (text === ' ' && from === to) {
           const block = view.state.selection.$from.parent;
-          if (block.attrs?.blockType === 'dialogue' && block.attrs.speakerName && block.content.size === 0) return true;
+          if (
+            block.attrs?.blockType === 'dialogue' &&
+            block.attrs.speakerName &&
+            block.content.size === 0
+          )
+            return true;
         }
 
         // 0. Gõ "Tên:" ở đầu một dòng hành động / lời dẫn / thoại → dòng thành lời thoại có nhãn người nói
@@ -559,7 +592,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             const onlyChild = block.childCount === 1 ? block.firstChild : null;
             const mention = onlyChild?.type.name === 'bibleMention' ? onlyChild.attrs : null;
             const speaker = mention
-              ? { speakerName: mention.label || mention.code, speakerCharacterId: mention.isStub ? null : mention.id }
+              ? {
+                  speakerName: mention.label || mention.code,
+                  speakerCharacterId: mention.isStub ? null : mention.id,
+                }
               : splitSpeakerLine(`${block.textContent}:`, bibleEntriesRef.current);
             if (speaker?.speakerName) {
               const blockPos = $from.before();
@@ -661,7 +697,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           const isManualCharacterName = /^@[\w\p{L}_-]{1,30}\s*$/u.test(textBefore);
 
           if (isDirectlyAfterMention || isAfterSpaceMention || isManualCharacterName) {
-            const endsWithSpace = textBefore.endsWith(' ') || (nodeBefore?.isText && nodeBefore.text?.endsWith(' '));
+            const endsWithSpace =
+              textBefore.endsWith(' ') || (nodeBefore?.isText && nodeBefore.text?.endsWith(' '));
             const insertStr = endsWithSpace ? ': ""' : ' : ""';
 
             const tr = state.tr.insertText(insertStr, from, to);
@@ -724,7 +761,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             timestamp: Date.now(),
           };
           localStorage.setItem(draftStorageKey, JSON.stringify(draftData));
-        } catch { }
+        } catch {}
       }, 1000);
     },
   });
@@ -743,7 +780,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         try {
           const dom = editor.view.domAtPos($from.pos).node as HTMLElement;
           const el = dom?.nodeType === Node.ELEMENT_NODE ? dom : dom?.parentElement;
-          const target = el?.closest('[data-mention-chip], [data-panel-badge]') as HTMLElement | null;
+          const target = el?.closest(
+            '[data-mention-chip], [data-panel-badge]',
+          ) as HTMLElement | null;
           if (target) {
             const resolved = resolveQuickViewData(target);
             if (resolved) {
@@ -751,7 +790,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               setQuickViewPos(resolved.pos);
             }
           }
-        } catch { }
+        } catch {}
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -761,7 +800,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   // Xử lý di chuột mở thẻ xem nhanh (hover trễ 300ms, rời chuột trễ 150ms)
   const handleSheetMouseOver = (e: React.MouseEvent) => {
     const target = (e.target as HTMLElement).closest(
-      '[data-mention-chip], [data-panel-badge]'
+      '[data-mention-chip], [data-panel-badge]',
     ) as HTMLElement | null;
     if (!target) return;
 
@@ -824,7 +863,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           }
         }
       }
-    } catch { }
+    } catch {}
   }, [draftStorageKey]);
 
   // Cảnh báo người dùng khi cố đóng tab / tải lại trang mà chưa bấm Lưu
@@ -865,7 +904,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             e.code?.toLowerCase() === code.toLowerCase() ||
             e.id === node.attrs.id ||
             e.name.toLowerCase() === code.toLowerCase() ||
-            (node.attrs.label && e.name.toLowerCase() === String(node.attrs.label).toLowerCase())
+            (node.attrs.label && e.name.toLowerCase() === String(node.attrs.label).toLowerCase()),
         );
         if (entry) {
           const isStubCurrent = Boolean(node.attrs.isStub);
@@ -905,7 +944,14 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       return;
     }
     if (editor && !editor.isDestroyed && !hasUnsavedChanges && !pendingDraft) {
-      const newDoc = scenesToTipTapDoc(scenes, getSpeakerName, pages, panels, allBibleEntries, chapterNumber);
+      const newDoc = scenesToTipTapDoc(
+        scenes,
+        getSpeakerName,
+        pages,
+        panels,
+        allBibleEntries,
+        chapterNumber,
+      );
       const currentDoc = editor.getJSON();
       if (JSON.stringify(currentDoc) !== JSON.stringify(newDoc)) {
         editor.commands.setContent(newDoc, { emitUpdate: false });
@@ -929,10 +975,11 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           const parsedNum = matchNum ? parseInt(matchNum[1], 10) : null;
 
           const matchingScene = scenes.find(
-            (s) => s.id === targetSceneId || (parsedNum !== null && s.sceneNumber === parsedNum)
+            (s) => s.id === targetSceneId || (parsedNum !== null && s.sceneNumber === parsedNum),
           );
           if (matchingScene && matchingScene.heading) {
-            const expectedHeadingText = `CẢNH ${matchingScene.sceneNumber}: ${matchingScene.heading}`.toUpperCase();
+            const expectedHeadingText =
+              `CẢNH ${matchingScene.sceneNumber}: ${matchingScene.heading}`.toUpperCase();
             if (currentText !== expectedHeadingText) {
               const from = pos + 1;
               const to = pos + node.nodeSize - 1;
@@ -968,19 +1015,22 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       const characters = allBibleEntries
         .filter((e) => e.category === 'Character' && e.isActive)
         .map((e) => ({ id: e.id, name: e.name, code: e.code }));
-      const extracted = linkTypedSpeakers(extractScriptLinesFromDoc(editor.getJSON(), defaultSceneId), characters);
+      const extracted = linkTypedSpeakers(
+        extractScriptLinesFromDoc(editor.getJSON(), defaultSceneId),
+        characters,
+      );
 
       await onSaveLines(extracted);
       justSavedRef.current = true;
       setHasUnsavedChanges(false);
       try {
         localStorage.removeItem(draftStorageKey);
-      } catch { }
+      } catch {}
       setPendingDraft(null);
       setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
       onShowToast?.(
         'Đã lưu kịch bản',
-        `Nội dung kịch bản đã được lưu thành công vào bản thảo hiện tại (v${chapterVersion ?? 0}).`
+        `Nội dung kịch bản đã được lưu thành công vào bản thảo hiện tại (v${chapterVersion ?? 0}).`,
       );
     } catch (err: any) {
       onShowToast?.('Lỗi lưu kịch bản', err.message || 'Không thể đồng bộ thay đổi về máy chủ.');
@@ -1020,14 +1070,17 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     editor.commands.setContent(pendingDraft.doc);
     setHasUnsavedChanges(true);
     setPendingDraft(null);
-    onShowToast?.('Đã khôi phục bản nháp', 'Nội dung chưa lưu trước đó đã được nạp lại vào trình soạn thảo.');
+    onShowToast?.(
+      'Đã khôi phục bản nháp',
+      'Nội dung chưa lưu trước đó đã được nạp lại vào trình soạn thảo.',
+    );
   };
 
   // Huỷ bản nháp cục bộ
   const handleDiscardDraft = () => {
     try {
       localStorage.removeItem(draftStorageKey);
-    } catch { }
+    } catch {}
     setPendingDraft(null);
   };
 
@@ -1042,7 +1095,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     renumberEditorState(editor);
     focusFirstEmptySlotAfter(endPos);
     setHasUnsavedChanges(true);
-    onShowToast?.(`Đã thêm Trang ${nextNum}`, `Trang ${nextNum} có sẵn ${panelsCount} Panel trống.`);
+    onShowToast?.(
+      `Đã thêm Trang ${nextNum}`,
+      `Trang ${nextNum} có sẵn ${panelsCount} Panel trống.`,
+    );
   };
 
   // Đặt con trỏ vào khối scriptLineBlock rỗng đầu tiên kể từ vị trí `fromPos`
@@ -1062,7 +1118,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   };
 
   // Áp dụng kịch bản sau khi chuyển đổi bằng Smart Heuristic / AI
-  const handleApplyConvertedScript = (scriptText: string, mode: 'append' | 'insert' | 'replace') => {
+  const handleApplyConvertedScript = (
+    scriptText: string,
+    mode: 'append' | 'insert' | 'replace',
+  ) => {
     if (!editor) return;
     const defaultSceneId = scenes[0]?.id || '';
     const characters = allBibleEntries
@@ -1077,7 +1136,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       });
       editor.commands.setContent({ type: 'doc', content: blocks });
       setHasUnsavedChanges(true);
-      onShowToast?.('Đã ghi đè kịch bản', 'Toàn bộ nội dung đã được thay thế bằng kịch bản chuyển đổi mới.');
+      onShowToast?.(
+        'Đã ghi đè kịch bản',
+        'Toàn bộ nội dung đã được thay thế bằng kịch bản chuyển đổi mới.',
+      );
       return;
     }
 
@@ -1091,7 +1153,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       const endPos = editor.state.doc.content.size;
       editor.chain().focus().insertContentAt(endPos, blocks).run();
       setHasUnsavedChanges(true);
-      onShowToast?.('Đã chèn kịch bản', `Đã thêm các trang mới (từ Trang ${nextNum}) vào cuối kịch bản.`);
+      onShowToast?.(
+        'Đã chèn kịch bản',
+        `Đã thêm các trang mới (từ Trang ${nextNum}) vào cuối kịch bản.`,
+      );
       return;
     }
 
@@ -1110,13 +1175,18 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     }
   };
   const isReadOnly = !canEditScript || isChapterLocked;
-  const activeBlockIsHeading = activeBlockType === 'page_heading' || activeBlockType === 'panel_heading';
+  const activeBlockIsHeading =
+    activeBlockType === 'page_heading' || activeBlockType === 'panel_heading';
 
   const scrollToPage = (pos: number) => {
     if (!editor) return;
     const dom = editor.view.nodeDOM(pos) as HTMLElement | null;
     dom?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    editor.chain().focus().setTextSelection(pos + 1).run();
+    editor
+      .chain()
+      .focus()
+      .setTextSelection(pos + 1)
+      .run();
   };
 
   const saveStatus = isSaving
@@ -1128,18 +1198,20 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         : t('scriptStudio.dock.idle');
 
   return (
-    <div className="relative flex-1 min-h-0 flex flex-col bg-[#FAF9F5]">
+    <div className='relative flex-1 min-h-0 flex flex-col bg-[#FAF9F5]'>
       {/* Bàn viết: một tờ giấy trên nền giấy ấm; công cụ nằm trong thanh nổi phía dưới, không chen vào vùng viết */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 pt-10 pb-28">
+      <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 pt-10 pb-28'>
         <div
-          className="max-w-[760px] mx-auto bg-white rounded-sm border border-stone-200/80 shadow-xs relative"
+          className='max-w-[760px] mx-auto bg-white rounded-sm border border-stone-200/80 shadow-xs relative'
           onMouseOver={(e) => {
             const target = e.target as HTMLElement;
             const mentionEl = target.closest('.mention') as HTMLElement | null;
             if (mentionEl) {
               const label = mentionEl.getAttribute('data-label') || '';
               const id = mentionEl.getAttribute('data-id') || '';
-              const entry = allBibleEntries.find((b) => b.id === id || b.name.toLowerCase() === label.toLowerCase());
+              const entry = allBibleEntries.find(
+                (b) => b.id === id || b.name.toLowerCase() === label.toLowerCase(),
+              );
               if (entry) {
                 const rect = mentionEl.getBoundingClientRect();
                 setHoveredMention({ x: rect.left, y: rect.bottom + 8, entry });
@@ -1151,39 +1223,42 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           }}
         >
           {pendingDraft && !isReadOnly && (
-            <div className="flex items-center justify-between gap-3 px-6 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <div className='flex items-center justify-between gap-3 px-6 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs'>
+              <div className='flex items-center gap-2'>
+                <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0' />
                 <span>
                   Bản nháp lúc{' '}
                   <strong>
-                    {new Date(pendingDraft.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(pendingDraft.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </strong>{' '}
                   chưa lưu.
                 </span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className='flex items-center gap-2 shrink-0'>
                 <button
-                  type="button"
+                  type='button'
                   onClick={handleRestoreDraft}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-amber-800 bg-amber-200/80 hover:bg-amber-300 rounded-lg transition-colors cursor-pointer"
+                  className='inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-amber-800 bg-amber-200/80 hover:bg-amber-300 rounded-lg transition-colors cursor-pointer'
                 >
-                  <RotateCcw className="w-3.5 h-3.5" /> Khôi phục
+                  <RotateCcw className='w-3.5 h-3.5' /> Khôi phục
                 </button>
                 <button
-                  type="button"
+                  type='button'
                   onClick={handleDiscardDraft}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-stone-600 hover:text-stone-900 transition-colors cursor-pointer"
+                  className='inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-stone-600 hover:text-stone-900 transition-colors cursor-pointer'
                 >
-                  <Trash2 className="w-3.5 h-3.5" /> Bỏ qua
+                  <Trash2 className='w-3.5 h-3.5' /> Bỏ qua
                 </button>
               </div>
             </div>
           )}
 
           <div
-            data-testid="paper-editor-sheet"
-            className="relative paper-editor-sheet px-8 sm:px-16 lg:px-24 py-14 sm:py-20"
+            data-testid='paper-editor-sheet'
+            className='relative paper-editor-sheet px-8 sm:px-16 lg:px-24 py-14 sm:py-20'
             onMouseOver={handleSheetMouseOver}
             onMouseOut={handleSheetMouseOut}
             onClick={() => {
@@ -1200,9 +1275,13 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               .paper-editor-sheet .script-block { position: relative; border-radius: 4px; }
             `}</style>
             {manuscriptTitle && (
-              <header className="text-center mb-14 select-none">
-                <h2 className="font-serif text-3xl sm:text-4xl text-stone-900">{manuscriptTitle}</h2>
-                {!isReadOnly && <p className="mt-3 text-xs text-stone-500">{t('scriptStudio.paper.hint')}</p>}
+              <header className='text-center mb-14 select-none'>
+                <h2 className='font-serif text-3xl sm:text-4xl text-stone-900'>
+                  {manuscriptTitle}
+                </h2>
+                {!isReadOnly && (
+                  <p className='mt-3 text-xs text-stone-500'>{t('scriptStudio.paper.hint')}</p>
+                )}
               </header>
             )}
             <EditorContent editor={editor} />
@@ -1210,30 +1289,41 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             {hoveredMention && (
               <div
                 style={{ top: hoveredMention.y, left: hoveredMention.x }}
-                className="fixed z-50 bg-white rounded-xl shadow-xl border border-stone-200/80 p-3 w-72 pointer-events-none animate-in fade-in zoom-in-95 duration-100"
+                className='fixed z-50 bg-white rounded-xl shadow-xl border border-stone-200/80 p-3 w-72 pointer-events-none animate-in fade-in zoom-in-95 duration-100'
               >
-                <div className="flex items-center gap-2.5">
-                  {hoveredMention.entry.referenceImageUrl || hoveredMention.entry.effectiveRevision?.referenceImageUrl ? (
+                <div className='flex items-center gap-2.5'>
+                  {hoveredMention.entry.referenceImageUrl ||
+                  hoveredMention.entry.effectiveRevision?.referenceImageUrl ? (
                     <img
-                      src={hoveredMention.entry.referenceImageUrl || hoveredMention.entry.effectiveRevision?.referenceImageUrl || ''}
+                      src={
+                        hoveredMention.entry.referenceImageUrl ||
+                        hoveredMention.entry.effectiveRevision?.referenceImageUrl ||
+                        ''
+                      }
                       alt={hoveredMention.entry.name}
-                      className="w-10 h-10 rounded-full object-cover border border-stone-200 shrink-0"
+                      className='w-10 h-10 rounded-full object-cover border border-stone-200 shrink-0'
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-orange-50 text-[#C2410C] font-serif text-base flex items-center justify-center shrink-0">
+                    <div className='w-10 h-10 rounded-full bg-orange-50 text-[#C2410C] font-serif text-base flex items-center justify-center shrink-0'>
                       {hoveredMention.entry.name.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className="min-w-0 flex-1">
-                    <span className="block font-semibold text-sm text-stone-900 truncate">{hoveredMention.entry.name}</span>
+                  <div className='min-w-0 flex-1'>
+                    <span className='block font-semibold text-sm text-stone-900 truncate'>
+                      {hoveredMention.entry.name}
+                    </span>
                     {hoveredMention.entry.subtitle && (
-                      <span className="block text-xs text-stone-500 truncate">{hoveredMention.entry.subtitle}</span>
+                      <span className='block text-xs text-stone-500 truncate'>
+                        {hoveredMention.entry.subtitle}
+                      </span>
                     )}
                   </div>
                 </div>
-                {(hoveredMention.entry.description || hoveredMention.entry.effectiveRevision?.summary) && (
-                  <p className="mt-2 text-xs text-stone-600 line-clamp-3 leading-relaxed border-t border-stone-100 pt-2">
-                    {hoveredMention.entry.description || hoveredMention.entry.effectiveRevision?.summary}
+                {(hoveredMention.entry.description ||
+                  hoveredMention.entry.effectiveRevision?.summary) && (
+                  <p className='mt-2 text-xs text-stone-600 line-clamp-3 leading-relaxed border-t border-stone-100 pt-2'>
+                    {hoveredMention.entry.description ||
+                      hoveredMention.entry.effectiveRevision?.summary}
                   </p>
                 )}
               </div>
@@ -1252,38 +1342,45 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       </div>
 
       {/* Thanh công cụ nổi kiểu Bàn vẽ: chế độ xem · dải trang · loại dòng hiện tại · lưu */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-3">
+      <div className='pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-3'>
         <div
-          data-testid="script-bottom-dock"
-          className="pointer-events-auto max-w-full flex items-center gap-2 rounded-xl border border-stone-200 bg-white/90 backdrop-blur-md shadow-sm px-2 py-1.5"
+          data-testid='script-bottom-dock'
+          className='pointer-events-auto max-w-full flex items-center gap-2 rounded-xl border border-stone-200 bg-white/90 backdrop-blur-md shadow-sm px-2 py-1.5'
         >
           {dockLeading}
-          {dockLeading && <span className="w-px h-6 bg-stone-200 shrink-0" aria-hidden="true" />}
+          {dockLeading && <span className='w-px h-6 bg-stone-200 shrink-0' aria-hidden='true' />}
 
           <nav
             aria-label={t('scriptStudio.dock.pages')}
-            className="min-w-0 flex items-center gap-1 overflow-x-auto custom-scrollbar"
+            className='min-w-0 flex items-center gap-1 overflow-x-auto custom-scrollbar'
           >
             {pageOutline.map((p) => {
               const isActive = p.pageNumber === activePageNumber;
               return (
                 <button
                   key={`${p.pageNumber}-${p.pos}`}
-                  type="button"
+                  type='button'
                   onClick={() => scrollToPage(p.pos)}
                   title={t('scriptStudio.dock.page', { n: p.pageNumber })}
                   aria-label={t('scriptStudio.dock.page', { n: p.pageNumber })}
                   aria-current={isActive ? 'page' : undefined}
                   className={`shrink-0 w-7 h-9 rounded-[3px] border flex flex-col items-center justify-end pb-0.5 gap-0.5 transition-colors cursor-pointer ${
-                    isActive ? 'border-orange-500 bg-orange-50' : 'border-stone-200 bg-white hover:border-orange-300'
+                    isActive
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-stone-200 bg-white hover:border-orange-300'
                   }`}
                 >
-                  <span className="flex flex-col gap-[2px] w-4">
+                  <span className='flex flex-col gap-[2px] w-4'>
                     {Array.from({ length: Math.min(p.panels, 5) }).map((_, idx) => (
-                      <span key={idx} className={`h-[2px] rounded-full ${isActive ? 'bg-orange-300' : 'bg-stone-200'}`} />
+                      <span
+                        key={idx}
+                        className={`h-[2px] rounded-full ${isActive ? 'bg-orange-300' : 'bg-stone-200'}`}
+                      />
                     ))}
                   </span>
-                  <span className={`text-xs leading-none ${isActive ? 'text-orange-700 font-semibold' : 'text-stone-500'}`}>
+                  <span
+                    className={`text-xs leading-none ${isActive ? 'text-orange-700 font-semibold' : 'text-stone-500'}`}
+                  >
                     {p.pageNumber}
                   </span>
                 </button>
@@ -1292,36 +1389,40 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           </nav>
 
           {!isReadOnly && (
-            <div className="relative shrink-0">
+            <div className='relative shrink-0'>
               <button
-                type="button"
-                data-testid="dock-add-page-btn"
+                type='button'
+                data-testid='dock-add-page-btn'
                 onClick={() => setAddPageMenuOpen((v) => !v)}
                 aria-expanded={addPageMenuOpen}
                 title={t('scriptStudio.dock.addPage')}
                 aria-label={t('scriptStudio.dock.addPage')}
-                className="w-7 h-9 rounded-[3px] border border-dashed border-stone-300 text-stone-500 hover:text-orange-700 hover:border-orange-300 flex items-center justify-center cursor-pointer"
+                className='w-7 h-9 rounded-[3px] border border-dashed border-stone-300 text-stone-500 hover:text-orange-700 hover:border-orange-300 flex items-center justify-center cursor-pointer'
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className='w-3.5 h-3.5' />
               </button>
               {addPageMenuOpen && (
                 <div
-                  role="menu"
-                  className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-44 rounded-xl border border-stone-200 bg-white p-1.5 shadow-xl z-40"
+                  role='menu'
+                  className='absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-44 rounded-xl border border-stone-200 bg-white p-1.5 shadow-xl z-40'
                 >
                   {([4, 5] as const).map((count) => (
                     <button
                       key={count}
-                      type="button"
-                      role="menuitem"
+                      type='button'
+                      role='menuitem'
                       data-testid={`dock-add-page-${count}`}
                       onClick={() => {
                         setAddPageMenuOpen(false);
                         handleInsertStructuredPage(count);
                       }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-sm text-stone-800 hover:bg-orange-50 cursor-pointer"
+                      className='w-full text-left px-3 py-2 rounded-lg text-sm text-stone-800 hover:bg-orange-50 cursor-pointer'
                     >
-                      {t(count === 4 ? 'scriptStudio.dock.fourPanels' : 'scriptStudio.dock.fivePanels')}
+                      {t(
+                        count === 4
+                          ? 'scriptStudio.dock.fourPanels'
+                          : 'scriptStudio.dock.fivePanels',
+                      )}
                     </button>
                   ))}
                 </div>
@@ -1331,33 +1432,35 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
           {!isReadOnly && (
             <>
-              <span className="w-px h-6 bg-stone-200 shrink-0" aria-hidden="true" />
+              <span className='w-px h-6 bg-stone-200 shrink-0' aria-hidden='true' />
               <span
-                data-testid="dock-line-type"
+                data-testid='dock-line-type'
                 title={t('scriptStudio.dock.typingHelp')}
-                className="hidden sm:inline text-xs text-stone-600 whitespace-nowrap px-1"
+                className='hidden sm:inline text-xs text-stone-600 whitespace-nowrap px-1'
               >
                 {t(`scriptStudio.blocks.${activeBlockType}`)}
-                {!activeBlockIsHeading && <span className="text-stone-500"> · Tab</span>}
+                {!activeBlockIsHeading && <span className='text-stone-500'> · Tab</span>}
               </span>
               <button
-                type="button"
-                data-testid="dock-save-btn"
+                type='button'
+                data-testid='dock-save-btn'
                 disabled={!hasUnsavedChanges || isSaving}
                 onClick={handleManualSave}
-                title="Ctrl + S"
+                title='Ctrl + S'
                 className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer disabled:cursor-default ${
-                  hasUnsavedChanges ? 'bg-[#EA580C] text-white hover:bg-[#C2410C]' : 'text-stone-500'
+                  hasUnsavedChanges
+                    ? 'bg-[#EA580C] text-white hover:bg-[#C2410C]'
+                    : 'text-stone-500'
                 }`}
               >
                 {isSaving ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
                 ) : hasUnsavedChanges ? (
-                  <Save className="w-3.5 h-3.5" />
+                  <Save className='w-3.5 h-3.5' />
                 ) : (
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <Check className='w-3.5 h-3.5 text-emerald-600' />
                 )}
-                <span className="whitespace-nowrap">{saveStatus}</span>
+                <span className='whitespace-nowrap'>{saveStatus}</span>
               </button>
             </>
           )}

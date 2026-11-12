@@ -118,7 +118,9 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
     if (statusFilter === 'frozen') {
       list = list.filter((c) => !!c.isScriptFrozen);
     } else if (statusFilter === 'in_progress') {
-      list = list.filter((c) => !c.isScriptFrozen && c.status !== 'Approved' && c.status !== 'Published');
+      list = list.filter(
+        (c) => !c.isScriptFrozen && c.status !== 'Approved' && c.status !== 'Published',
+      );
     } else if (statusFilter === 'approved') {
       list = list.filter((c) => c.status === 'Approved' || c.status === 'Published');
     }
@@ -228,9 +230,9 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
             <strong className='text-[#1C1917] font-semibold'>
               Chọn Chương Để Mở Bàn Vẽ Chuyên Dụng
             </strong>{' '}
-            — Lựa chọn một chương để bước vào không gian vẽ toàn màn hình độc lập (Focus
-            Workspace), phân rã bố cục khung tranh (Panel Templates), nạp bản thảo chì (Pencil),
-            đi nét mực (Ink) và tải tranh hoàn thiện.
+            — Lựa chọn một chương để bước vào không gian vẽ toàn màn hình độc lập (Focus Workspace),
+            phân rã bố cục khung tranh (Panel Templates), nạp bản thảo chì (Pencil), đi nét mực
+            (Ink) và tải tranh hoàn thiện.
           </p>
         </div>
 
@@ -243,9 +245,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
             <div className='text-[10.5px] uppercase font-bold tracking-wider text-[#78716C]'>
               Tổng chương
             </div>
-            <div className='text-xl font-black text-[#1C1917] mt-0.5'>
-              {stats.total}
-            </div>
+            <div className='text-xl font-black text-[#1C1917] mt-0.5'>{stats.total}</div>
           </div>
 
           <div
@@ -256,9 +256,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
               <Lock className='w-3 h-3' />
               <span>Sẵn sàng vẽ</span>
             </div>
-            <div className='text-xl font-black text-indigo-900 mt-0.5'>
-              {stats.frozen}
-            </div>
+            <div className='text-xl font-black text-indigo-900 mt-0.5'>{stats.frozen}</div>
           </div>
 
           <div
@@ -269,9 +267,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
               <Clock className='w-3 h-3' />
               <span>Đang sản xuất</span>
             </div>
-            <div className='text-xl font-black text-amber-900 mt-0.5'>
-              {stats.inProgress}
-            </div>
+            <div className='text-xl font-black text-amber-900 mt-0.5'>{stats.inProgress}</div>
           </div>
         </div>
       </div>

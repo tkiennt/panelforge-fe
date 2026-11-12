@@ -80,7 +80,9 @@ describe('AutoAssignScriptLinesModal', () => {
     expect(screen.getByText('Bà Lan')).toBeInTheDocument();
 
     // Missing panels warning
-    expect(screen.getByText(/Kịch bản có nhiều cụm hơn số khung hiện tại trên trang/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Kịch bản có nhiều cụm hơn số khung hiện tại trên trang/i),
+    ).toBeInTheDocument();
     expect(screen.getByText('Toàn cảnh ngôi đền rung chuyển')).toBeInTheDocument();
   });
 

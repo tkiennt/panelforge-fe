@@ -2,7 +2,6 @@ import React from 'react';
 import { X, RefreshCw, Shield, AlertTriangle } from 'lucide-react';
 import { WorkspaceDto } from '@/services/workspace.service';
 
-
 export interface WorkspaceAuditModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -128,7 +127,6 @@ export const WorkspaceAuditModal: React.FC<WorkspaceAuditModalProps> = ({
     </div>
   );
 };
-
 
 export interface EditMemberAccessModalProps {
   member: any;

@@ -41,7 +41,8 @@ export const PanelBlockNode = Node.create({
     return [
       'div',
       mergeAttributes(HTMLAttributes, {
-        class: 'panel-block border-l-4 border-indigo-600 bg-slate-50/90 rounded-r-lg p-3 my-3 shadow-xs transition-all',
+        class:
+          'panel-block border-l-4 border-indigo-600 bg-slate-50/90 rounded-r-lg p-3 my-3 shadow-xs transition-all',
         'data-type': 'panel-block',
       }),
       [
@@ -53,14 +54,16 @@ export const PanelBlockNode = Node.create({
         [
           'span',
           {
-            class: 'inline-block px-2 py-0.5 rounded text-xs font-semibold bg-indigo-100 text-indigo-700',
+            class:
+              'inline-block px-2 py-0.5 rounded text-xs font-semibold bg-indigo-100 text-indigo-700',
           },
           `" Panel ${panelNum}`,
         ],
         [
           'span',
           {
-            class: 'text-[11px] font-mono text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200',
+            class:
+              'text-[11px] font-mono text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200',
           },
           `[${cameraAngle}]`,
         ],

@@ -59,11 +59,7 @@ export function extractPanelNumber(text: string): { pageNum?: number; panelNum?:
  * Nếu đã có trang N -> trả về N + 1.
  * Nếu người dùng chỉ định số trang cụ thể (ví dụ: # 4 hoặc ! Trang 4) -> trả về 4.
  */
-export function getNextPageNumber(
-  doc: any,
-  currentPos?: number,
-  explicitNumber?: number
-): number {
+export function getNextPageNumber(doc: any, currentPos?: number, explicitNumber?: number): number {
   if (typeof explicitNumber === 'number' && !isNaN(explicitNumber) && explicitNumber > 0) {
     return explicitNumber;
   }
@@ -117,7 +113,7 @@ export function getNextPageNumber(
 export function getNextPanelNumber(
   doc: any,
   currentPos?: number,
-  explicit?: { pageNum?: number; panelNum?: number }
+  explicit?: { pageNum?: number; panelNum?: number },
 ): { pageNum: number; panelNum: number } {
   if (explicit?.pageNum && explicit?.panelNum) {
     return { pageNum: explicit.pageNum, panelNum: explicit.panelNum };

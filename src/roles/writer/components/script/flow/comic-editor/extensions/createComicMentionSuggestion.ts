@@ -1,11 +1,7 @@
 // src/roles/writer/components/script/flow/comic-editor/extensions/createComicMentionSuggestion.ts
 import { ReactRenderer } from '@tiptap/react';
 import { computePosition, offset, flip, shift } from '@floating-ui/react';
-import {
-  MentionListPopover,
-  MentionListPopoverRef,
-  BibleMentionItem,
-} from './MentionListPopover';
+import { MentionListPopover, MentionListPopoverRef, BibleMentionItem } from './MentionListPopover';
 
 export const DEFAULT_MOCK_BIBLE_ITEMS: BibleMentionItem[] = [
   {
@@ -41,7 +37,7 @@ export const DEFAULT_MOCK_BIBLE_ITEMS: BibleMentionItem[] = [
 ];
 
 export function createComicMentionSuggestion(
-  getItems: () => BibleMentionItem[] = () => DEFAULT_MOCK_BIBLE_ITEMS
+  getItems: () => BibleMentionItem[] = () => DEFAULT_MOCK_BIBLE_ITEMS,
 ) {
   return {
     items: ({ query }: { query: string }): BibleMentionItem[] => {
@@ -53,7 +49,7 @@ export function createComicMentionSuggestion(
         .filter(
           (item) =>
             item.name.toLowerCase().includes(q) ||
-            (item.subtitle && item.subtitle.toLowerCase().includes(q))
+            (item.subtitle && item.subtitle.toLowerCase().includes(q)),
         )
         .slice(0, 8);
     },

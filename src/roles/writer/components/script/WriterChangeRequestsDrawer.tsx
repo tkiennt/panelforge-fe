@@ -131,11 +131,15 @@ export const WriterChangeRequestsDrawer: React.FC<WriterChangeRequestsDrawerProp
         )}
 
         {loading && changeRequests.length === 0 ? (
-          <p className='text-xs text-[#57534E] text-center py-6'>{t('writerChangeRequests.loading')}</p>
+          <p className='text-xs text-[#57534E] text-center py-6'>
+            {t('writerChangeRequests.loading')}
+          </p>
         ) : sorted.length === 0 ? (
           <div className='p-6 text-center text-[#57534E] border border-dashed border-[#D8D2C5] rounded-2xl bg-[#FCFBF8]'>
             <CheckCircle2 className='w-6 h-6 text-emerald-500 mx-auto mb-2' />
-            <p className='text-xs font-semibold text-[#1C1917]'>{t('writerChangeRequests.empty')}</p>
+            <p className='text-xs font-semibold text-[#1C1917]'>
+              {t('writerChangeRequests.empty')}
+            </p>
           </div>
         ) : (
           sorted.map((cr) => {
@@ -198,11 +202,14 @@ export const WriterChangeRequestsDrawer: React.FC<WriterChangeRequestsDrawerProp
                   </p>
                 )}
                 {status === 'Resolved' && (
-                  <p className='text-xs text-amber-700'>{t('writerChangeRequests.awaitingVerify')}</p>
+                  <p className='text-xs text-amber-700'>
+                    {t('writerChangeRequests.awaitingVerify')}
+                  </p>
                 )}
 
-                {status === 'Open' && canResolve && (
-                  isResolving ? (
+                {status === 'Open' &&
+                  canResolve &&
+                  (isResolving ? (
                     <div className='space-y-2'>
                       <textarea
                         value={noteDrafts[cr.id] ?? ''}
@@ -246,8 +253,7 @@ export const WriterChangeRequestsDrawer: React.FC<WriterChangeRequestsDrawerProp
                     >
                       {t('writerChangeRequests.markResolved')}
                     </button>
-                  )
-                )}
+                  ))}
               </div>
             );
           })

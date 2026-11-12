@@ -19,9 +19,7 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
     description: 'Tranh toàn trang tràn mép bleed 100%, dành cho trang bìa hoặc đại cảnh splash',
     panelCount: 1,
     previewGrid: '1 row',
-    panels: [
-      { panelNumber: 1, x: 0, y: 0, width: 100, height: 100 },
-    ],
+    panels: [{ panelNumber: 1, x: 0, y: 0, width: 100, height: 100 }],
   },
   {
     id: 'preset-4-yonkoma',
@@ -39,7 +37,8 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
   {
     id: 'preset-3-tier-balanced',
     name: '3-Tier Balanced (5 Khung RTL)',
-    description: 'Bố cục 3 tầng cổ điển Manga: Tier 1 mở cảnh, Tier 2 kịch tính, Tier 3 chuyển tiếp (TPL-MANGA-02)',
+    description:
+      'Bố cục 3 tầng cổ điển Manga: Tier 1 mở cảnh, Tier 2 kịch tính, Tier 3 chuyển tiếp (TPL-MANGA-02)',
     panelCount: 5,
     previewGrid: '3 rows',
     panels: [
@@ -53,7 +52,8 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
   {
     id: 'preset-3-row',
     name: '3 Khung Cơ Bản',
-    description: 'Bố cục 3 hàng dọc kinh điển cho manga truyền thống (lề chuẩn manga 2.5% phủ 95% trang)',
+    description:
+      'Bố cục 3 hàng dọc kinh điển cho manga truyền thống (lề chuẩn manga 2.5% phủ 95% trang)',
     panelCount: 3,
     previewGrid: '3 rows',
     panels: [
@@ -65,7 +65,8 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
   {
     id: 'preset-classic-9-grid',
     name: 'Classic 9-Panel Grid (Watchmen)',
-    description: 'Lưới 3×3 phong cách Watchmen/DC Classic: nhịp kể đều đặn, phân tích tâm lý sâu (TPL-COMIC-01)',
+    description:
+      'Lưới 3×3 phong cách Watchmen/DC Classic: nhịp kể đều đặn, phân tích tâm lý sâu (TPL-COMIC-01)',
     panelCount: 9,
     previewGrid: '3x3 grid',
     panels: [
@@ -83,7 +84,8 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
   {
     id: 'preset-slanted-action',
     name: 'Dynamic Shonen Slanted (4 Khung)',
-    description: 'Rãnh cắt chéo góc tạo gia tốc cực mạnh cho combat, ra đòn chớp nhoáng (TPL-MANGA-04)',
+    description:
+      'Rãnh cắt chéo góc tạo gia tốc cực mạnh cho combat, ra đòn chớp nhoáng (TPL-MANGA-04)',
     panelCount: 4,
     previewGrid: 'dynamic',
     panels: [
@@ -96,7 +98,8 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
   {
     id: 'preset-hero-splash-70-30',
     name: 'Hero Splash 70/30 (Dominant Layout)',
-    description: '1 khung 70% đại chiến bùng nổ phía trên kết hợp 3 khung 30% phản ứng bên dưới (TPL-MANGA-05)',
+    description:
+      '1 khung 70% đại chiến bùng nổ phía trên kết hợp 3 khung 30% phản ứng bên dưới (TPL-MANGA-05)',
     panelCount: 4,
     previewGrid: 'dominant 70/30',
     panels: [
@@ -109,7 +112,8 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
   {
     id: 'preset-inset-panels',
     name: 'Inset Panels (Khung Lồng Khung)',
-    description: '1 khung toàn cảnh chiến trường làm nền lồng 2 khung cận cảnh biểu cảm và chi tiết vũ khí (TPL-MANGA-06)',
+    description:
+      '1 khung toàn cảnh chiến trường làm nền lồng 2 khung cận cảnh biểu cảm và chi tiết vũ khí (TPL-MANGA-06)',
     panelCount: 3,
     previewGrid: 'inset',
     panels: [
@@ -135,7 +139,8 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
   {
     id: 'preset-webtoon-flow',
     name: 'Vertical Mobile Flow (3 Khung Cuộn)',
-    description: 'Bố cục cuộn dọc tiêu chuẩn smartphone (9:16) với khoảng lặng dừng nghỉ (TPL-WEBTOON-01)',
+    description:
+      'Bố cục cuộn dọc tiêu chuẩn smartphone (9:16) với khoảng lặng dừng nghỉ (TPL-WEBTOON-01)',
     panelCount: 3,
     previewGrid: 'webtoon scroll',
     panels: [
@@ -223,7 +228,8 @@ export const TemplatePanelCanvas: React.FC<TemplatePanelCanvasProps> = ({
             Chưa có mẫu khung tranh cho trang này
           </h3>
           <p className='text-xs text-stone-500 mt-1.5 leading-relaxed'>
-            Chọn một mẫu bố cục khung dựng sẵn (3 khung, 4-koma, shonen...) để chia ô và nạp tranh cho từng khung.
+            Chọn một mẫu bố cục khung dựng sẵn (3 khung, 4-koma, shonen...) để chia ô và nạp tranh
+            cho từng khung.
           </p>
 
           <button
@@ -305,9 +311,7 @@ export const TemplatePanelCanvas: React.FC<TemplatePanelCanvasProps> = ({
                 <div className='absolute top-2 left-2 z-10 flex items-center gap-1 bg-black/75 backdrop-blur-xs text-white px-2 py-0.5 rounded text-[10px] font-mono font-bold pointer-events-none'>
                   <span>#{panel.panelNumber}</span>
                   {panel.artwork?.version && (
-                    <span className='text-amber-300 font-semibold'>
-                      · {panel.artwork.version}
-                    </span>
+                    <span className='text-amber-300 font-semibold'>· {panel.artwork.version}</span>
                   )}
                 </div>
 
@@ -458,9 +462,7 @@ export const TemplatePanelCanvas: React.FC<TemplatePanelCanvasProps> = ({
                       </span>
                     </div>
 
-                    <p className='text-[11px] text-stone-500 leading-snug'>
-                      {preset.description}
-                    </p>
+                    <p className='text-[11px] text-stone-500 leading-snug'>{preset.description}</p>
 
                     {/* Miniature Layout Preview */}
                     <div className='mt-3 h-20 bg-stone-100 rounded-lg border border-stone-200 relative p-1 overflow-hidden'>

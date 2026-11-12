@@ -16,13 +16,13 @@
 .u072-head b {
   font-size: 14px;
   font-weight: 700;
-  color: var(--ux-ink, #1C1917);
+  color: var(--ux-ink, #1c1917);
 }
 
 .u072-head small {
   font-size: 12px;
   font-weight: 600;
-  color: var(--ux-ink-3, #78716C);
+  color: var(--ux-ink-3, #78716c);
 }
 
 .u072-list {
@@ -37,7 +37,9 @@
 .u072-it {
   display: grid;
   grid-template-rows: 1fr;
-  transition: grid-template-rows 0.4s cubic-bezier(0.3, 1.3, 0.5, 1), margin 0.35s ease;
+  transition:
+    grid-template-rows 0.4s cubic-bezier(0.3, 1.3, 0.5, 1),
+    margin 0.35s ease;
   margin-bottom: 0px;
 }
 
@@ -58,13 +60,15 @@
   gap: 12px;
   padding: 12px 14px 12px 14px;
   border-radius: 14px;
-  background: color-mix(in srgb, var(--c) 8%, var(--ux-surface, #FFFFFF));
+  background: color-mix(in srgb, var(--c) 8%, var(--ux-surface, #ffffff));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 25%, transparent);
-  transition: transform 0.35s ease, opacity 0.3s ease;
+  transition:
+    transform 0.35s ease,
+    opacity 0.3s ease;
 }
 
 .u072-a::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   top: 10px;
@@ -87,7 +91,7 @@
   display: grid;
   place-items: center;
   background: var(--c);
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .u072-ic svg {
@@ -107,14 +111,14 @@
   font-size: 13.5px;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--ux-ink, #1C1917);
+  color: var(--ux-ink, #1c1917);
 }
 
 .u072-tx p {
   margin: 3px 0 0;
   font-size: 12.5px;
   line-height: 1.5;
-  color: var(--ux-ink-2, #57534E);
+  color: var(--ux-ink-2, #57534e);
 }
 
 .u072-more {
@@ -152,8 +156,12 @@
   padding: 8px 10px;
   border-radius: 8px;
   background: var(--ux-surface-2, rgba(0, 0, 0, 0.05));
-  font: 600 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: var(--ux-ink-2, #57534E);
+  font:
+    600 11.5px/1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  color: var(--ux-ink-2, #57534e);
   white-space: pre;
   overflow-x: auto;
 }
@@ -169,14 +177,16 @@
   display: grid;
   place-items: center;
   background: none;
-  color: var(--ux-ink-3, #78716C);
+  color: var(--ux-ink-3, #78716c);
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .u072-x:hover {
   background: color-mix(in srgb, var(--c) 14%, transparent);
-  color: var(--ux-ink, #1C1917);
+  color: var(--ux-ink, #1c1917);
 }
 
 .u072-x:focus-visible,

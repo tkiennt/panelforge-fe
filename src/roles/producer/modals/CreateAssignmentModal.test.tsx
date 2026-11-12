@@ -461,9 +461,7 @@ describe('CreateAssignmentModal', () => {
   it('hiển thị thông báo lỗi thân thiện khi Backend trả HTTP 400 chặn giao việc vào công đoạn kết thúc', async () => {
     const errorMsg =
       "Công đoạn 'Approved' là công đoạn kết thúc, không giao việc được. Hãy giao ở công đoạn duyệt trước đó.";
-    vi.mocked(assignmentService.createAssignment).mockRejectedValueOnce(
-      new Error(errorMsg),
-    );
+    vi.mocked(assignmentService.createAssignment).mockRejectedValueOnce(new Error(errorMsg));
 
     render(
       <CreateAssignmentModal
@@ -1066,10 +1064,7 @@ describe('CreateAssignmentModal', () => {
 
     await waitFor(() => {
       expect(assignmentService.getAssignmentPlanTemplate).toHaveBeenCalledWith('chap-1');
-      expect(onShowToast).toHaveBeenCalledWith(
-        'Đã nạp mẫu',
-        expect.stringContaining('Chương 0'),
-      );
+      expect(onShowToast).toHaveBeenCalledWith('Đã nạp mẫu', expect.stringContaining('Chương 0'));
     });
 
     const briefInput = screen.getByLabelText(/Yêu cầu công việc/i) as HTMLTextAreaElement;

@@ -5,73 +5,73 @@
 
 :root {
   /* --- INK (Mực than & văn bản) --- */
-  --studio-ink: #1C1917;
-  --studio-ink-muted: #57534E;
-  --studio-ink-subtle: #78716C;
-  --studio-ink-faint: #A8A29E;
+  --studio-ink: #1c1917;
+  --studio-ink-muted: #57534e;
+  --studio-ink-subtle: #78716c;
+  --studio-ink-faint: #a8a29e;
 
   /* --- PAPER (Bề mặt giấy vẽ & thẻ panel) --- */
-  --studio-paper: #F3F0E9;
-  --studio-paper-card: #FCFBF8;
-  --studio-paper-warm: #FAF8F5;
-  --studio-paper-deckle: #EAE5DC;
-  --studio-paper-pure: #FFFFFF;
+  --studio-paper: #f3f0e9;
+  --studio-paper-card: #fcfbf8;
+  --studio-paper-warm: #faf8f5;
+  --studio-paper-deckle: #eae5dc;
+  --studio-paper-pure: #ffffff;
 
   /* --- LINE (Đường khung viền & đường biên panel) --- */
-  --studio-line: #D8D2C5;
-  --studio-line-soft: #E8E4DA;
-  --studio-line-strong: #A8A29E;
+  --studio-line: #d8d2c5;
+  --studio-line-soft: #e8e4da;
+  --studio-line-strong: #a8a29e;
 
   /* --- ACCENT (Điểm nhấn màu cam Studio PanelForge) --- */
-  --studio-accent: #F97316;
-  --studio-accent-hover: #EA580C;
-  --studio-accent-dark: #C2410C;
-  --studio-accent-soft: #FFF2E6;
-  --studio-accent-border: #FDBA74;
+  --studio-accent: #f97316;
+  --studio-accent-hover: #ea580c;
+  --studio-accent-dark: #c2410c;
+  --studio-accent-soft: #fff2e6;
+  --studio-accent-border: #fdba74;
 
   /* --- STATUS (Trạng thái công đoạn duyệt) --- */
-  --studio-mint: #119C72;
-  --studio-mint-soft: #ECFDF5;
-  --studio-amber: #D6731E;
-  --studio-amber-soft: #FFFBEB;
-  --studio-danger: #D93A55;
-  --studio-danger-soft: #FEF2F2;
+  --studio-mint: #119c72;
+  --studio-mint-soft: #ecfdf5;
+  --studio-amber: #d6731e;
+  --studio-amber-soft: #fffbeb;
+  --studio-danger: #d93a55;
+  --studio-danger-soft: #fef2f2;
 
   /* --- FOCUS & TRANSITION --- */
-  --studio-focus-outline: #F97316;
+  --studio-focus-outline: #f97316;
 }
 
 /* Explicit opt-in Dark Mode: Only activates when root container has data-theme="dark" */
-:root[data-theme="dark"] {
-  --studio-ink: #F4F0E8;
+:root[data-theme='dark'] {
+  --studio-ink: #f4f0e8;
   --studio-ink-muted: rgba(244, 240, 232, 0.72);
   --studio-ink-subtle: rgba(244, 240, 232, 0.45);
   --studio-ink-faint: rgba(244, 240, 232, 0.25);
 
-  --studio-paper: #0C0A09;
+  --studio-paper: #0c0a09;
   --studio-paper-card: #181512;
   --studio-paper-warm: #141210;
-  --studio-paper-deckle: #24201C;
-  --studio-paper-pure: #1C1917;
+  --studio-paper-deckle: #24201c;
+  --studio-paper-pure: #1c1917;
 
   --studio-line: rgba(244, 240, 232, 0.14);
   --studio-line-soft: rgba(244, 240, 232, 0.08);
   --studio-line-strong: rgba(244, 240, 232, 0.25);
 
-  --studio-accent: #FB923C;
-  --studio-accent-hover: #F97316;
-  --studio-accent-dark: #EA580C;
+  --studio-accent: #fb923c;
+  --studio-accent-hover: #f97316;
+  --studio-accent-dark: #ea580c;
   --studio-accent-soft: rgba(251, 146, 60, 0.16);
   --studio-accent-border: rgba(251, 146, 60, 0.42);
 
-  --studio-mint: #7EE8C0;
+  --studio-mint: #7ee8c0;
   --studio-mint-soft: rgba(17, 156, 114, 0.18);
-  --studio-amber: #FFB26B;
+  --studio-amber: #ffb26b;
   --studio-amber-soft: rgba(214, 115, 30, 0.18);
-  --studio-danger: #FF7D8C;
+  --studio-danger: #ff7d8c;
   --studio-danger-soft: rgba(217, 58, 85, 0.18);
 
-  --studio-focus-outline: #FB923C;
+  --studio-focus-outline: #fb923c;
 }
 
 /* ==========================================================================
@@ -102,7 +102,9 @@
 
 /* Floor 7: Universal prefers-reduced-motion fallback */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

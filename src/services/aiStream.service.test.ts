@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { aiStreamService, TokenChunkEvent, StepRecordedEvent, RunStatusChangedEvent } from './aiStream.service';
+import {
+  aiStreamService,
+  TokenChunkEvent,
+  StepRecordedEvent,
+  RunStatusChangedEvent,
+} from './aiStream.service';
 
 describe('aiStreamService', () => {
   beforeEach(async () => {

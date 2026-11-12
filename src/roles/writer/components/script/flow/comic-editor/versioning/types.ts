@@ -38,4 +38,3 @@ export interface ScriptDiffSummary {
     right: (DiffLine | null)[];
   };
 }
-

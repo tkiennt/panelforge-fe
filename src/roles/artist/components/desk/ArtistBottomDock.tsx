@@ -101,7 +101,9 @@ interface ArtistBottomDockProps {
   setActiveTab: React.Dispatch<React.SetStateAction<'pages' | 'script' | 'queue'>>;
   sceneLines: any[];
   letteringActiveTool: 'caption' | 'thought' | 'balloon' | 'sfx' | 'tail-edit';
-  setLetteringActiveTool: React.Dispatch<React.SetStateAction<'caption' | 'thought' | 'balloon' | 'sfx' | 'tail-edit'>>;
+  setLetteringActiveTool: React.Dispatch<
+    React.SetStateAction<'caption' | 'thought' | 'balloon' | 'sfx' | 'tail-edit'>
+  >;
   zoomScale: number;
   handleZoomIn: () => void;
   handleZoomOut: () => void;
@@ -221,8 +223,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
     'inline-flex items-center justify-center font-medium transition-colors cursor-pointer disabled:cursor-not-allowed select-none';
   const toolbarIdle =
     'bg-[#FCFBF8] border border-[#D8D2C5] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] active:bg-[#EAE5D9]';
-  const toolbarOn =
-    'bg-orange-50 border border-orange-300 text-[#C2410C] font-semibold';
+  const toolbarOn = 'bg-orange-50 border border-orange-300 text-[#C2410C] font-semibold';
   const menuItem =
     'w-full text-left px-3 py-1.5 text-xs text-[#1C1917] hover:bg-[#F3F0E9] flex items-center gap-2 cursor-pointer transition-colors';
 
@@ -472,7 +473,9 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
               hasInkArtwork={hasInkArtwork}
               inkArtworkVersion={inkArtworkVersion}
               isUploading={uploadingPage}
-              onHandoffToLettering={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
+              onHandoffToLettering={() =>
+                currentActiveStage && handleStageHandoff(currentActiveStage)
+              }
               isSubmitting={submittingStageHandoff}
             />
           )}

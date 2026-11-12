@@ -30,7 +30,6 @@ export const WORKFLOW_AGENTS: Record<BatchWorkflowType, WorkerAgentName[]> = {
   Letterer: ['Letterer'],
   Editor: ['Continuity', 'Editor'],
   Producer: ['Producer'],
-
 };
 
 export const WORKFLOW_META: Record<
@@ -53,12 +52,7 @@ export const WORKFLOW_META: Record<
 };
 
 /** Thứ tự hiển thị trong form chọn nhiệm vụ (khớp GET availability mặc định: Script, Storyboard, Artist, Editor). */
-export const WORKFLOW_ORDER: AiWorkflowType[] = [
-  'Script',
-  'Storyboard',
-  'Artist',
-  'Editor',
-];
+export const WORKFLOW_ORDER: AiWorkflowType[] = ['Script', 'Storyboard', 'Artist', 'Editor'];
 
 /** Nhiệm vụ có Writer trong chuỗi: chỉ ở đây "ép Writer không sửa lỗi / Supervisor leo thang" (Mock) mới có nghĩa. */
 export const hasWriterLoop = (t: AiWorkflowType) => t === 'FullScene' || t === 'Script';
@@ -91,8 +85,7 @@ export const KIND_META: Record<
   LineRewrite: {
     title: 'Viết lại / Rút gọn thoại',
     applyLabel: 'Accept (cập nhật dòng thoại)',
-    applyNote:
-      'Tạo revision Script mới (append-only) và cập nhật dòng thoại đã chọn.',
+    applyNote: 'Tạo revision Script mới (append-only) và cập nhật dòng thoại đã chọn.',
   },
   SeriesMetadata: {
     title: 'Metadata phát hành',

@@ -343,7 +343,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
                 <form className='mt-8 space-y-4' onSubmit={handleLoginSubmit}>
                   <div>
-                    <label htmlFor='login-email' className='block text-xs font-semibold text-[#0c0a09] mb-1.5'>
+                    <label
+                      htmlFor='login-email'
+                      className='block text-xs font-semibold text-[#0c0a09] mb-1.5'
+                    >
                       Email
                     </label>
                     <input
@@ -361,7 +364,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
                   <div>
                     <div className='flex items-center justify-between mb-1.5'>
-                      <label htmlFor='login-password' className='block text-xs font-semibold text-[#0c0a09]'>Password</label>
+                      <label
+                        htmlFor='login-password'
+                        className='block text-xs font-semibold text-[#0c0a09]'
+                      >
+                        Password
+                      </label>
                       <div className='flex items-center gap-1.5'>
                         <button
                           type='button'

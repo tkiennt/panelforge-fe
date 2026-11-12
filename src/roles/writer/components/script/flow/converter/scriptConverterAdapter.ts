@@ -12,7 +12,8 @@ export interface ConverterAdapterOptions {
   characters?: { id: string; name: string; code?: string | null }[];
 }
 
-const SPEECH_VERB_SUFFIX = /\s+(?:nói|hét(?:\s+lên)?|bảo|thì thầm|gọi|kêu|hỏi|đáp|nghĩ|lẩm bẩm|says?|shouts?|whispers?)$/iu;
+const SPEECH_VERB_SUFFIX =
+  /\s+(?:nói|hét(?:\s+lên)?|bảo|thì thầm|gọi|kêu|hỏi|đáp|nghĩ|lẩm bẩm|says?|shouts?|whispers?)$/iu;
 
 function normalizeName(value: string): string {
   return value
@@ -47,7 +48,7 @@ export function extractSpeakerName(rawSpeaker: string): string | null {
  */
 export function linkTypedSpeakers(
   lines: ExtractedScriptLinePayload[],
-  characters: ConverterAdapterOptions['characters']
+  characters: ConverterAdapterOptions['characters'],
 ): ExtractedScriptLinePayload[] {
   if (!characters?.length) return lines;
   return lines.map((line) => {
@@ -62,12 +63,12 @@ export function linkTypedSpeakers(
 
 export function matchBibleCharacter(
   speaker: string,
-  characters: ConverterAdapterOptions['characters']
+  characters: ConverterAdapterOptions['characters'],
 ): { id: string; name: string } | null {
   if (!characters?.length) return null;
   const key = normalizeName(speaker);
   const found = characters.find(
-    (c) => normalizeName(c.name) === key || (c.code ? normalizeName(c.code) === key : false)
+    (c) => normalizeName(c.name) === key || (c.code ? normalizeName(c.code) === key : false),
   );
   return found ? { id: found.id, name: found.name } : null;
 }
@@ -111,13 +112,17 @@ const NON_SPEAKER_KEYWORDS = new Set([
  */
 function normalizeCameraAngle(rawAngle?: string): string {
   if (!rawAngle) return 'Toàn cảnh';
-  const clean = rawAngle.trim().replace(/^[\[\(]|[\]\)]$/g, '').trim();
+  const clean = rawAngle
+    .trim()
+    .replace(/^[\[\(]|[\]\)]$/g, '')
+    .trim();
   if (!clean) return 'Toàn cảnh';
 
   const lower = clean.toLowerCase();
   if (lower.includes('toàn cảnh') || lower.includes('wide')) return 'Toàn cảnh';
   if (lower.includes('trung cảnh') || lower.includes('medium')) return 'Trung cảnh';
-  if (lower.includes('cận cảnh') || lower.includes('close-up') || lower.includes('close up')) return 'Cận cảnh';
+  if (lower.includes('cận cảnh') || lower.includes('close-up') || lower.includes('close up'))
+    return 'Cận cảnh';
   if (lower.includes('đặc tả') || lower.includes('extreme close')) return 'Góc đặc tả';
   if (lower.includes('góc thấp') || lower.includes('low angle')) return 'Góc thấp';
   if (lower.includes('góc cao') || lower.includes('high angle')) return 'Góc cao';
@@ -131,7 +136,7 @@ function normalizeCameraAngle(rawAngle?: string): string {
  */
 export function parseScriptTextToBlocks(
   scriptText: string,
-  options?: ConverterAdapterOptions
+  options?: ConverterAdapterOptions,
 ): ParsedScriptBlock[] {
   const lines = scriptText.split(/\r?\n/);
   const rawBlocks: ParsedScriptBlock[] = [];
@@ -191,11 +196,9 @@ export function parseScriptTextToBlocks(
     // - 'Khung 1', 'Khung 1.1', 'Khung tranh 1', 'Ô 1', '[Panel 1: Cận cảnh]', '#panel 1.1'
     const panelMatch =
       trimmed.match(
-        /^(?:[-"”]\s*)?(?:Panel|Khung(?:\s*tranh)?|Ô(?:\s*tranh|\s*số)?|#panel)\s*(\d+(?:\.\d+)?)(?:\s*[:.-]?\s*\[(.*?)\]|\s*[:.-]\s*(.*?))?$/i
+        /^(?:[-"”]\s*)?(?:Panel|Khung(?:\s*tranh)?|Ô(?:\s*tranh|\s*số)?|#panel)\s*(\d+(?:\.\d+)?)(?:\s*[:.-]?\s*\[(.*?)\]|\s*[:.-]\s*(.*?))?$/i,
       ) ||
-      trimmed.match(
-        /^\[(?:Panel|Khung(?:\s*tranh)?|Ô)\s*(\d+(?:\.\d+)?)(?:\s*[:.-]\s*(.*?))?\]$/i
-      );
+      trimmed.match(/^\[(?:Panel|Khung(?:\s*tranh)?|Ô)\s*(\d+(?:\.\d+)?)(?:\s*[:.-]\s*(.*?))?\]$/i);
 
     const isPanelLine =
       trimmed.startsWith('"') ||
@@ -212,7 +215,7 @@ export function parseScriptTextToBlocks(
       panelCountInPage++;
       const pRaw = panelMatch[1];
       let pIdx = panelCountInPage;
-      let pPage = currentPageIndex > 0 ? currentPageIndex : (options?.startingPageNumber || 1);
+      let pPage = currentPageIndex > 0 ? currentPageIndex : options?.startingPageNumber || 1;
 
       if (pRaw && pRaw.includes('.')) {
         const parts = pRaw.split('.');
@@ -242,11 +245,16 @@ export function parseScriptTextToBlocks(
       trimmed.match(/^\(((?:Tiếng\s*[^)]+)|[A-ZÀ-Ỹ0-9_! -]{2,20}!)\)$/i);
 
     if (sfxMatch) {
-      const sfxBody = (sfxMatch[1] || trimmed).replace(/^\*|\*$/g, '').trim().toUpperCase() || 'TIẾNG ĐỘNG';
+      const sfxBody =
+        (sfxMatch[1] || trimmed)
+          .replace(/^\*|\*$/g, '')
+          .trim()
+          .toUpperCase() || 'TIẾNG ĐỘNG';
       rawBlocks.push({
         type: 'sfx',
         pageNumber: String(currentPageIndex || 1).padStart(2, '0'),
-        panelNumber: panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
+        panelNumber:
+          panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
         content: sfxBody,
       });
       continue;
@@ -254,14 +262,19 @@ export function parseScriptTextToBlocks(
 
     // 4. Nhận diện Caption: Lời dẫn truyện: ... hoặc Caption: ...
     const captionMatch =
-      trimmed.match(/^(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện|Người dẫn chuyện)\s*:\s*(.*)/i) ||
-      trimmed.match(/^\[(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện|Người dẫn chuyện)\s*:\s*(.*)\]$/i);
+      trimmed.match(
+        /^(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện|Người dẫn chuyện)\s*:\s*(.*)/i,
+      ) ||
+      trimmed.match(
+        /^\[(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện|Người dẫn chuyện)\s*:\s*(.*)\]$/i,
+      );
 
     if (captionMatch) {
       rawBlocks.push({
         type: 'caption',
         pageNumber: String(currentPageIndex || 1).padStart(2, '0'),
-        panelNumber: panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
+        panelNumber:
+          panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
         content: captionMatch[1].trim(),
       });
       continue;
@@ -281,7 +294,8 @@ export function parseScriptTextToBlocks(
         type: 'dialogue',
         character: charName,
         pageNumber: String(currentPageIndex || 1).padStart(2, '0'),
-        panelNumber: panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
+        panelNumber:
+          panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
         content: dialogueText,
       });
       continue;
@@ -291,13 +305,17 @@ export function parseScriptTextToBlocks(
     const speakerDialogueMatch = trimmed.match(/^([^:"“”]{2,60}?)\s*:\s*(.+)$/u);
     const speakerName = speakerDialogueMatch ? extractSpeakerName(speakerDialogueMatch[1]) : null;
     if (speakerDialogueMatch && speakerName) {
-      const dialogueContent = speakerDialogueMatch[2].trim().replace(/^["“](.*)["”]$/u, '$1').trim();
+      const dialogueContent = speakerDialogueMatch[2]
+        .trim()
+        .replace(/^["“](.*)["”]$/u, '$1')
+        .trim();
       if (dialogueContent) {
         rawBlocks.push({
           type: 'dialogue',
           character: speakerName,
           pageNumber: String(currentPageIndex || 1).padStart(2, '0'),
-          panelNumber: panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
+          panelNumber:
+            panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
           content: dialogueContent,
         });
         continue;
@@ -308,7 +326,8 @@ export function parseScriptTextToBlocks(
     rawBlocks.push({
       type: 'action',
       pageNumber: String(currentPageIndex || 1).padStart(2, '0'),
-      panelNumber: panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
+      panelNumber:
+        panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
       content: trimmed,
     });
   }
@@ -392,7 +411,7 @@ export function parseScriptTextToBlocks(
  */
 export function convertScriptTextToComicBlocks(
   scriptText: string,
-  options?: ConverterAdapterOptions
+  options?: ConverterAdapterOptions,
 ): any[] {
   const parsed = parseScriptTextToBlocks(scriptText, options);
   const nodes: any[] = [];
@@ -469,7 +488,7 @@ export function convertScriptTextToComicBlocks(
  */
 export function convertScriptTextToScreenplayBlocks(
   scriptText: string,
-  options?: ConverterAdapterOptions
+  options?: ConverterAdapterOptions,
 ): any[] {
   const parsed = parseScriptTextToBlocks(scriptText, options);
   const nodes: any[] = [];
@@ -503,7 +522,9 @@ export function convertScriptTextToScreenplayBlocks(
 
       case 'dialogue': {
         blockType = 'dialogue';
-        const matched = block.character ? matchBibleCharacter(block.character, options?.characters) : null;
+        const matched = block.character
+          ? matchBibleCharacter(block.character, options?.characters)
+          : null;
         speakerName = matched?.name || block.character || null;
         speakerCharacterId = matched?.id || null;
         textToDisplay = `@${speakerName || 'Nhân vật'} : "${block.content}"`;
@@ -551,7 +572,10 @@ export function convertScriptTextToScreenplayBlocks(
 /**
  * Đếm số trang và số panel trong chuỗi kịch bản thuần
  */
-export function countPagesAndPanels(scriptText: string): { pagesCount: number; panelsCount: number } {
+export function countPagesAndPanels(scriptText: string): {
+  pagesCount: number;
+  panelsCount: number;
+} {
   const blocks = parseScriptTextToBlocks(scriptText);
   const pagesCount = blocks.filter((b) => b.type === 'page').length || (blocks.length > 0 ? 1 : 0);
   const panelsCount = blocks.filter((b) => b.type === 'panel').length;
@@ -564,7 +588,7 @@ export function countPagesAndPanels(scriptText: string): { pagesCount: number; p
 export function filterScriptTextByPageRange(
   scriptText: string,
   fromPage: number,
-  toPage: number
+  toPage: number,
 ): { filteredText: string; pagesCount: number; panelsCount: number } {
   const lines = scriptText.split(/\r?\n/);
   const selectedLines: string[] = [];

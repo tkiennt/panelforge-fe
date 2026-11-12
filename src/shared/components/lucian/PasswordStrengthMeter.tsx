@@ -65,10 +65,7 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
       style={{ '--lv': currentLevel.color } as React.CSSProperties}
     >
       {label && (
-        <label
-          htmlFor={inputId}
-          className='block text-xs font-semibold text-[#0c0a09] mb-1'
-        >
+        <label htmlFor={inputId} className='block text-xs font-semibold text-[#0c0a09] mb-1'>
           {label}
         </label>
       )}
@@ -109,7 +106,12 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
             strokeLinejoin='round'
           >
             <path d='M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z' />
-            <circle cx='12' cy='12' r='3' style={{ transform: showPassword ? 'scale(1)' : 'scale(0.8)' }} />
+            <circle
+              cx='12'
+              cy='12'
+              r='3'
+              style={{ transform: showPassword ? 'scale(1)' : 'scale(0.8)' }}
+            />
             {!showPassword && <line x1='3' y1='3' x2='21' y2='21' />}
           </svg>
         </button>
@@ -167,9 +169,7 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
         </ul>
       )}
 
-      {error && (
-        <p className='text-xs text-red-500 mt-1 font-medium'>{error}</p>
-      )}
+      {error && <p className='text-xs text-red-500 mt-1 font-medium'>{error}</p>}
     </div>
   );
 };

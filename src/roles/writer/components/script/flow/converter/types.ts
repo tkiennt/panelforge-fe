@@ -20,4 +20,3 @@ export interface ConvertScriptResponse {
   panelsCount: number;
   source: 'gemini' | 'heuristic';
 }
-

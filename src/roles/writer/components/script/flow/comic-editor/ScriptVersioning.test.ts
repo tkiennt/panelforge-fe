@@ -24,7 +24,7 @@ describe('Script Versioning Lifecycle & Diff System', () => {
       CHAPTER_ID,
       '# Page 1\n- Panel 1: Close-up\nMINH: Xin chào',
       null,
-      'writer-01'
+      'writer-01',
     );
     initialVersions = [v1];
     currentId = v1.id;
@@ -40,12 +40,10 @@ describe('Script Versioning Lifecycle & Diff System', () => {
 
     // Giả lập gõ phím liên tục & debounce autosave
     const newText = '# Page 1\n- Panel 1: Close-up\nMINH: Xin chào thế giới\n- Panel 2: Wide shot';
-    const { versions, updatedVersion } = autosaveDraftAction(
-      initialVersions,
-      currentId,
-      newText,
-      { type: 'doc', content: [] }
-    );
+    const { versions, updatedVersion } = autosaveDraftAction(initialVersions, currentId, newText, {
+      type: 'doc',
+      content: [],
+    });
 
     // Kiểm tra số phiên bản TUYỆT ĐỐI KHÔNG TĂNG
     expect(updatedVersion.versionNumber).toBe('1.0');
@@ -82,7 +80,7 @@ describe('Script Versioning Lifecycle & Diff System', () => {
       submitted.versions,
       currentId,
       feedbackNotes,
-      'producer-01'
+      'producer-01',
     );
 
     // Kiểm tra version bump: minor tăng từ 0 lên 1 -> "1.1"
@@ -103,7 +101,7 @@ describe('Script Versioning Lifecycle & Diff System', () => {
       submittedV1_1.versions,
       newDraftVersion.id,
       'Thêm âm thanh sfx',
-      'producer-01'
+      'producer-01',
     );
     expect(feedbackRound2.newDraftVersion.versionNumber).toBe('1.2');
     expect(feedbackRound2.newDraftVersion.major).toBe(1);
@@ -179,19 +177,17 @@ describe('Script Versioning Lifecycle & Diff System', () => {
     expect(diff.lines.length).toBeGreaterThan(0);
 
     // Dòng bị xóa
-    const removedLine = diff.lines.find(
-      (l) => l.type === 'removed' && l.text.includes('* BÙM! *')
-    );
+    const removedLine = diff.lines.find((l) => l.type === 'removed' && l.text.includes('* BÙM! *'));
     expect(removedLine).toBeDefined();
 
     // Dòng được thêm mới
     const addedPanel3 = diff.lines.find(
-      (l) => l.type === 'added' && l.text.includes('Panel 3: High angle')
+      (l) => l.type === 'added' && l.text.includes('Panel 3: High angle'),
     );
     expect(addedPanel3).toBeDefined();
 
     const addedDialogue = diff.lines.find(
-      (l) => l.type === 'added' && l.text.includes('LAN: Em đã đến đây!')
+      (l) => l.type === 'added' && l.text.includes('LAN: Em đã đến đây!'),
     );
     expect(addedDialogue).toBeDefined();
 
@@ -240,4 +236,3 @@ describe('Script Versioning Lifecycle & Diff System', () => {
     expect(updatedVersion.versionNumber).toBe('1.2'); // Giữ nguyên version draft hiện tại
   });
 });
-

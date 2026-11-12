@@ -413,7 +413,9 @@ export const chapterService = {
    */
   requestScriptReopen: async (chapterId: string, reason: string): Promise<ChapterDto> => {
     try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/request-script-reopen`, { reason });
+      const response = await axiosClient.post(`/chapters/${chapterId}/request-script-reopen`, {
+        reason,
+      });
       return response.data;
     } catch (error) {
       throw new Error(extractError(error, 'Không thể gửi yêu cầu mở lại kịch bản.'));

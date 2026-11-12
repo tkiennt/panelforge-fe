@@ -126,11 +126,7 @@ export const ToastItem: React.FC<ToastNotificationProps> = ({
   };
 
   // Stack calculation (top-right downward expansion)
-  const yOffset = isStacked
-    ? isHovered
-      ? (index * 76)
-      : (index * 12)
-    : 0;
+  const yOffset = isStacked ? (isHovered ? index * 76 : index * 12) : 0;
 
   const scale = isStacked && !isHovered ? Math.max(0.85, 1 - index * 0.05) : 1;
   const opacity = isStacked && !isHovered && index > 2 ? 0 : 1;

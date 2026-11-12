@@ -21,7 +21,7 @@ describe('ArtistWorkspaceView (Clean Consolidated Single-Layout Architecture)', 
     render(
       <MemoryRouter>
         <ArtistWorkspaceView workspaceRole='ARTIST' />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
   it('renders top bar without mode-switcher tabs and displays breadcrumb, progress badge and CTA', () => {
@@ -194,7 +194,9 @@ describe('ArtistWorkspaceView (Clean Consolidated Single-Layout Architecture)', 
     // Bấm bàn giao
     fireEvent.click(submitBtn);
     await waitFor(() => {
-      expect(screen.getByTestId('workspace-toast')).toHaveTextContent(/Bàn giao nét chì thành công/i);
+      expect(screen.getByTestId('workspace-toast')).toHaveTextContent(
+        /Bàn giao nét chì thành công/i,
+      );
     });
   });
 

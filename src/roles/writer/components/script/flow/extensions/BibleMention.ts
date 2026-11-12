@@ -58,14 +58,20 @@ export const BibleMention = Mention.extend({
       },
       pageNumber: {
         default: null,
-        parseHTML: (element) => (element.getAttribute('data-page-number') ? parseInt(element.getAttribute('data-page-number')!, 10) : null),
+        parseHTML: (element) =>
+          element.getAttribute('data-page-number')
+            ? parseInt(element.getAttribute('data-page-number')!, 10)
+            : null,
         renderHTML: (attributes) => ({
           'data-page-number': attributes.pageNumber,
         }),
       },
       panelNumber: {
         default: null,
-        parseHTML: (element) => (element.getAttribute('data-panel-number') ? parseInt(element.getAttribute('data-panel-number')!, 10) : null),
+        parseHTML: (element) =>
+          element.getAttribute('data-panel-number')
+            ? parseInt(element.getAttribute('data-panel-number')!, 10)
+            : null,
         renderHTML: (attributes) => ({
           'data-panel-number': attributes.panelNumber,
         }),
@@ -75,8 +81,13 @@ export const BibleMention = Mention.extend({
 
   renderHTML({ HTMLAttributes }) {
     const isStub = HTMLAttributes['data-is-stub'] === 'true';
-    const category = (HTMLAttributes['data-category'] || HTMLAttributes.category || 'Character').toLowerCase();
-    const code = HTMLAttributes['data-code'] || HTMLAttributes['data-label'] || HTMLAttributes.label || '';
+    const category = (
+      HTMLAttributes['data-category'] ||
+      HTMLAttributes.category ||
+      'Character'
+    ).toLowerCase();
+    const code =
+      HTMLAttributes['data-code'] || HTMLAttributes['data-label'] || HTMLAttributes.label || '';
     const label = HTMLAttributes['data-label'] || HTMLAttributes.label || code;
 
     // Mục Series Bible = tím (theo DESIGN_RULES); tham chiếu Panel trung tính; mã chưa có trong Bible = hổ phách (cảnh báo)
@@ -88,7 +99,11 @@ export const BibleMention = Mention.extend({
         : 'text-violet-800 decoration-violet-300 hover:decoration-violet-600';
 
     // Trên trang giấy hiển thị tên như chữ viết; mã chỉ dùng cho khung tranh và mục chưa có trong Bible
-    const displayText = isPanel ? `@${code || label}` : isStub ? `@${code || label}` : label || code;
+    const displayText = isPanel
+      ? `@${code || label}`
+      : isStub
+        ? `@${code || label}`
+        : label || code;
     const tooltipText = isPanel
       ? `@${code || label} (Khung tranh)`
       : isStub
@@ -109,7 +124,7 @@ export const BibleMention = Mention.extend({
           title: tooltipText,
           contenteditable: 'false',
         },
-        HTMLAttributes
+        HTMLAttributes,
       ),
       displayText,
     ];

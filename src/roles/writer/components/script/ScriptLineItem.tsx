@@ -215,20 +215,22 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
       {lineFinding && (
         <div
           data-testid={`line-finding-${line.id}`}
-          className={`mt-3 p-2.5 rounded-xl text-xs md:text-sm flex items-start gap-2.5 border ${lineFinding.severity === 'Blocking'
+          className={`mt-3 p-2.5 rounded-xl text-xs md:text-sm flex items-start gap-2.5 border ${
+            lineFinding.severity === 'Blocking'
               ? 'bg-rose-50/90 border-rose-200 text-rose-900'
               : lineFinding.severity === 'Warning'
                 ? 'bg-amber-50/90 border-amber-200 text-amber-900'
                 : 'bg-blue-50/90 border-blue-200 text-blue-900'
-            }`}
+          }`}
         >
           <AlertTriangle
-            className={`w-4 h-4 shrink-0 mt-0.5 ${lineFinding.severity === 'Blocking'
+            className={`w-4 h-4 shrink-0 mt-0.5 ${
+              lineFinding.severity === 'Blocking'
                 ? 'text-rose-600'
                 : lineFinding.severity === 'Warning'
                   ? 'text-amber-600'
                   : 'text-blue-600'
-              }`}
+            }`}
           />
           <div className='flex-1 min-w-0'>
             <div className='font-bold flex items-center gap-1.5 flex-wrap'>

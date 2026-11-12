@@ -8,7 +8,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: 'single-full',
     name: '1 Khung Toàn Trang',
     category: 'Đại cảnh',
-    description: 'Một khung chuẩn viền trang cho splash-art hoặc vẽ hoàn chỉnh bên ngoài (CSP/Photoshop)',
+    description:
+      'Một khung chuẩn viền trang cho splash-art hoặc vẽ hoàn chỉnh bên ngoài (CSP/Photoshop)',
     panelCount: 1,
     badge: 'Mặc định',
     panels: [{ panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 95 }],
@@ -26,7 +27,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: '4-panel-yonkoma',
     name: '4-Koma Classic (Ki-shō-ten-ketsu)',
     category: 'Tự sự',
-    description: 'Quy chuẩn 4 khung Ki-shō-ten-ketsu (Khai - Thừa - Chuyển - Hợp) theo lề chuẩn in ấn',
+    description:
+      'Quy chuẩn 4 khung Ki-shō-ten-ketsu (Khai - Thừa - Chuyển - Hợp) theo lề chuẩn in ấn',
     panelCount: 4,
     badge: 'TPL-MANGA-01',
     panels: [
@@ -40,7 +42,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: '3-tier-balanced',
     name: '3-Tier Balanced (5 Khung RTL)',
     category: 'Tự sự',
-    description: 'Bố cục 3 tầng cổ điển Manga: Tier 1 mở cảnh, Tier 2 kịch tính trọng tâm, Tier 3 chuyển tiếp trang',
+    description:
+      'Bố cục 3 tầng cổ điển Manga: Tier 1 mở cảnh, Tier 2 kịch tính trọng tâm, Tier 3 chuyển tiếp trang',
     panelCount: 5,
     badge: 'TPL-MANGA-02',
     panels: [
@@ -55,7 +58,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: '3-tier-dense',
     name: '3-Tier Dense (6 Khung Lưới 3×2)',
     category: 'Tự sự',
-    description: 'Lưới 3 hàng × 2 cột cho các phân cảnh nhiều đối thoại, điều tra, tranh luận gay cấn',
+    description:
+      'Lưới 3 hàng × 2 cột cho các phân cảnh nhiều đối thoại, điều tra, tranh luận gay cấn',
     panelCount: 6,
     badge: 'TPL-MANGA-03',
     panels: [
@@ -71,7 +75,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: 'classic-9-grid',
     name: 'Classic 9-Panel Grid (Watchmen Style)',
     category: 'Tự sự',
-    description: 'Lưới 3 hàng × 3 cột đồng nhất phong cách Watchmen/DC Classic: nhịp kể đều đặn, phân tích tâm lý',
+    description:
+      'Lưới 3 hàng × 3 cột đồng nhất phong cách Watchmen/DC Classic: nhịp kể đều đặn, phân tích tâm lý',
     panelCount: 9,
     badge: 'TPL-COMIC-01',
     panels: [
@@ -90,7 +95,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: '2-panel-vert',
     name: '2 Khung Dọc (Webtoon/Đại Cảnh)',
     category: 'Kinh điển',
-    description: '2 khung chia đều theo chiều dọc, tối ưu cho nhịp đọc nhanh hoặc chuyển cảnh thời gian',
+    description:
+      '2 khung chia đều theo chiều dọc, tối ưu cho nhịp đọc nhanh hoặc chuyển cảnh thời gian',
     panelCount: 2,
     badge: '2 Khung',
     panels: [
@@ -102,7 +108,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: '2-panel-split',
     name: '2 Khung Song Song (Đối thoại)',
     category: 'Kinh điển',
-    description: 'Chia đôi trang theo chiều ngang, lý tưởng cho phân cảnh đối đầu hoặc hai nhân vật đối thoại',
+    description:
+      'Chia đôi trang theo chiều ngang, lý tưởng cho phân cảnh đối đầu hoặc hai nhân vật đối thoại',
     panelCount: 2,
     badge: '2 Khung',
     panels: [
@@ -114,7 +121,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: '3-panel-shonen',
     name: '3 Khung Shonen Hành Động',
     category: 'Hành động',
-    description: 'Bố cục 3 hàng kinh điển của manga Shonen: Mở màn - Hành động đỉnh điểm - Phản ứng',
+    description:
+      'Bố cục 3 hàng kinh điển của manga Shonen: Mở màn - Hành động đỉnh điểm - Phản ứng',
     panelCount: 3,
     badge: 'Phổ biến',
     panels: [
@@ -129,7 +137,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: 'dynamic-shonen-slanted',
     name: 'Dynamic Shonen Slanted (4 Khung Cắt Chéo)',
     category: 'Hành động',
-    description: 'Rãnh cắt chéo góc 15°-25° tạo xung lực gia tốc cực mạnh cho phân cảnh combat, ra đòn chớp nhoáng',
+    description:
+      'Rãnh cắt chéo góc 15°-25° tạo xung lực gia tốc cực mạnh cho phân cảnh combat, ra đòn chớp nhoáng',
     panelCount: 4,
     badge: 'TPL-MANGA-04',
     panels: [
@@ -143,7 +152,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: 'inset-panels',
     name: 'Inset Panels (Khung Lồng Khung)',
     category: 'Hành động',
-    description: '1 khung toàn cảnh chiến trường làm nền lồng 2 khung cận cảnh biểu cảm và chi tiết vũ khí',
+    description:
+      '1 khung toàn cảnh chiến trường làm nền lồng 2 khung cận cảnh biểu cảm và chi tiết vũ khí',
     panelCount: 3,
     badge: 'Khung Lồng',
     panels: [
@@ -173,7 +183,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: 'hero-splash-70-30',
     name: 'Hero Splash 70/30 (Dominant Layout)',
     category: 'Đại cảnh',
-    description: 'Khung 70% trang trên cho cảnh đại chiến bùng nổ, 3 khung hẹp 30% dưới cho phản hồi của đồng đội',
+    description:
+      'Khung 70% trang trên cho cảnh đại chiến bùng nổ, 3 khung hẹp 30% dưới cho phản hồi của đồng đội',
     panelCount: 4,
     badge: 'TPL-MANGA-05',
     panels: [
@@ -187,7 +198,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: 'cinematic-widescreen',
     name: 'Cinematic Widescreen (3 Bars)',
     category: 'Đại cảnh',
-    description: '3 thanh dài ngang tỉ lệ màn ảnh rộng cho cảnh thiên nhiên kéo dài hoặc du hành thời gian',
+    description:
+      '3 thanh dài ngang tỉ lệ màn ảnh rộng cho cảnh thiên nhiên kéo dài hoặc du hành thời gian',
     panelCount: 3,
     badge: 'TPL-COMIC-02',
     panels: [
@@ -202,7 +214,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     id: 'webtoon-mobile-flow',
     name: 'Vertical Mobile Flow (3 Khung Cuộn)',
     category: 'Webtoon',
-    description: 'Bố cục cuộn dọc tiêu chuẩn smartphone 9:16 với khoảng lặng ngừng nghỉ (negative space)',
+    description:
+      'Bố cục cuộn dọc tiêu chuẩn smartphone 9:16 với khoảng lặng ngừng nghỉ (negative space)',
     panelCount: 3,
     badge: 'TPL-WEBTOON-01',
     panels: [
@@ -270,7 +283,8 @@ export const TemplateSelectorSidebar: React.FC<TemplateSelectorSidebarProps> = (
         <div className='p-3 bg-amber-50/70 border-b border-amber-200/50 flex items-start gap-2 text-xs text-amber-900 shrink-0'>
           <Sparkles className='w-4 h-4 text-[#F97316] shrink-0 mt-0.5' />
           <p className='text-[11px] leading-relaxed'>
-            Đổi mẫu khung sẽ áp dụng tức thì. Các tranh đã nạp vào khung sẽ được giữ nguyên theo số thứ tự khung tương ứng.
+            Đổi mẫu khung sẽ áp dụng tức thì. Các tranh đã nạp vào khung sẽ được giữ nguyên theo số
+            thứ tự khung tương ứng.
           </p>
         </div>
 
@@ -340,9 +354,7 @@ export const TemplateSelectorSidebar: React.FC<TemplateSelectorSidebarProps> = (
                       {preset.badge && (
                         <span
                           className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
-                            isSelected
-                              ? 'bg-[#F97316] text-white'
-                              : 'bg-stone-100 text-stone-600'
+                            isSelected ? 'bg-[#F97316] text-white' : 'bg-stone-100 text-stone-600'
                           }`}
                         >
                           {preset.badge}
@@ -369,9 +381,7 @@ export const TemplateSelectorSidebar: React.FC<TemplateSelectorSidebarProps> = (
 
         {/* Footer */}
         <div className='p-3 border-t border-[#D8D2C5] bg-white text-center shrink-0'>
-          <p className='text-[11px] text-stone-500'>
-            Manga Paper Studio · Chuẩn khung B5 Nhật Bản
-          </p>
+          <p className='text-[11px] text-stone-500'>Manga Paper Studio · Chuẩn khung B5 Nhật Bản</p>
         </div>
       </aside>
     </>

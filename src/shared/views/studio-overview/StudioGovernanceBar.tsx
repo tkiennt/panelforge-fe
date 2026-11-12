@@ -25,7 +25,6 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
   isResourcesExpanded,
   onToggleResourcesExpanded,
   onOpenAuditModal,
-
 }) => {
   return (
     <div className='pt-2 border-t border-stone-100'>
@@ -87,7 +86,6 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
           </div>
         </div>
 
-
         <div className='flex items-center gap-2 self-end md:self-auto shrink-0'>
           <button
             type='button'
@@ -118,7 +116,6 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
       {/* Expanded Detailed Quota Meters */}
       {isResourcesExpanded && (
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-3.5 animate-in fade-in duration-150'>
-
           {/* 1. Storage Meter */}
           <div className='flex flex-col justify-between h-full p-4 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
             <div className='flex items-center justify-between gap-2'>
@@ -321,4 +318,3 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
     </div>
   );
 };
-

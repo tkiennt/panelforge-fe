@@ -47,7 +47,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = (json.content?.[0] as any);
+    const firstNode = json.content?.[0] as any;
     expect(firstNode?.type).toBe('pageBlock');
     expect(firstNode?.attrs?.pageNumber).toBe('01');
   });
@@ -60,7 +60,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = (json.content?.[0] as any);
+    const firstNode = json.content?.[0] as any;
     expect(firstNode?.type).toBe('panelBlock');
     expect(firstNode?.attrs?.panelNumber).toBe('1.1');
   });
@@ -74,7 +74,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = (json.content?.[0] as any);
+    const firstNode = json.content?.[0] as any;
     expect(firstNode?.type).toBe('pageBlock');
     expect(firstNode?.attrs?.pageNumber).toBe('01');
     expect((firstNode?.content?.[0] as any)?.text).toContain('Trang 01');
@@ -88,7 +88,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = (json.content?.[0] as any);
+    const firstNode = json.content?.[0] as any;
     expect(firstNode?.type).toBe('pageBlock');
     expect(firstNode?.attrs?.pageNumber).toBe('02');
   });
@@ -102,7 +102,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = (json.content?.[0] as any);
+    const firstNode = json.content?.[0] as any;
     expect(firstNode?.type).toBe('panelBlock');
     expect(firstNode?.attrs?.panelNumber).toBe('1.1');
     expect((firstNode?.content?.[0] as any)?.text).toContain('Panel 1.1:');
@@ -116,7 +116,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = (json.content?.[0] as any);
+    const firstNode = json.content?.[0] as any;
     expect(firstNode?.type).toBe('panelBlock');
     expect(firstNode?.attrs?.panelNumber).toBe('2.3');
   });
@@ -130,7 +130,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const dialogueNode = (json.content?.[0] as any);
+    const dialogueNode = json.content?.[0] as any;
     expect(dialogueNode?.type).toBe('dialogueBlock');
     expect(dialogueNode?.attrs?.character).toBe('Minh');
     expect((dialogueNode?.content?.[0] as any)?.text).toBe('Cẩn thận đấy!');
@@ -147,7 +147,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const sfxNode = (json.content?.[0] as any);
+    const sfxNode = json.content?.[0] as any;
     expect(sfxNode?.type).toBe('sfxBlock');
     expect((sfxNode?.content?.[0] as any)?.text).toBe('BÙM');
     expect(json.content?.[1]?.type).toBe('paragraph');
@@ -161,7 +161,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const sfxNode = (json.content?.[0] as any);
+    const sfxNode = json.content?.[0] as any;
     expect(sfxNode?.type).toBe('sfxBlock');
     expect((sfxNode?.content?.[0] as any)?.text).toBe('TIẾNG NỔ LỚN');
   });
@@ -174,7 +174,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const captionNode = (json.content?.[0] as any);
+    const captionNode = json.content?.[0] as any;
     expect(captionNode?.type).toBe('captionBlock');
     expect((captionNode?.content?.[0] as any)?.text).toBe('Đêm đã về khuya trên thành phố.');
     expect(json.content?.[1]?.type).toBe('paragraph');
@@ -199,7 +199,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = (json.content?.[0] as any);
+    const firstNode = json.content?.[0] as any;
     expect(firstNode?.type).toBe('pageBlock');
   });
 

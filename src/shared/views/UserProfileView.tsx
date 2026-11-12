@@ -891,7 +891,9 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
               <div className='min-w-0'>
                 <div className='relative inline-block max-w-full'>
                   <h2
-                    style={{ fontFamily: "'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif" }}
+                    style={{
+                      fontFamily: "'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif",
+                    }}
                     className='pf-ink-bleed-title relative z-10 text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1C1917] tracking-tight leading-tight break-words [overflow-wrap:anywhere] select-text'
                     data-testid='profile-display-name'
                   >
@@ -1086,7 +1088,10 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                         <span className='font-semibold text-[#44403C] block'>
                           Mã tác giả sáng tác
                         </span>
-                        <span className='text-[11px] font-mono text-[#57534E] block truncate' title={profile?.id}>
+                        <span
+                          className='text-[11px] font-mono text-[#57534E] block truncate'
+                          title={profile?.id}
+                        >
                           {profile?.id ? `PF-${profile.id.slice(0, 8).toUpperCase()}` : '—'}
                         </span>
                       </div>

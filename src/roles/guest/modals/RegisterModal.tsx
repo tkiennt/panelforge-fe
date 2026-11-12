@@ -16,7 +16,6 @@ import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
 import { PasswordStrengthMeter } from '@/shared/components/lucian';
 
-
 interface RegisterModalProps {
   onClose: () => void;
   onSuccess: (authResponse: any) => void;
@@ -334,7 +333,6 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                   label='Password'
                   required
                 />
-
 
                 <div>
                   <label className='block text-xs font-semibold text-[#0c0a09] mb-1'>

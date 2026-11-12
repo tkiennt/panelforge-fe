@@ -58,11 +58,7 @@ export function normalizeCameraShot(shotHint?: string | null): CameraShotType {
   ) {
     return 'medium';
   }
-  if (
-    clean.includes('pov') ||
-    clean.includes('point of view') ||
-    clean.includes('góc nhìn')
-  ) {
+  if (clean.includes('pov') || clean.includes('point of view') || clean.includes('góc nhìn')) {
     return 'pov';
   }
 
@@ -72,25 +68,39 @@ export function normalizeCameraShot(shotHint?: string | null): CameraShotType {
 /**
  * Phân tích modifier của lời thoại (ví dụ: shout, thought, whisper, v.v.)
  */
-export function parseDialogueModifier(
-  rawMod?: string | null
-): DialogueItem['modifier'] {
+export function parseDialogueModifier(rawMod?: string | null): DialogueItem['modifier'] {
   if (!rawMod) return undefined;
   const mod = rawMod.toLowerCase().trim();
 
   if (mod.includes('thought') || mod.includes('nghĩ') || mod.includes('suy nghĩ')) {
     return 'thought';
   }
-  if (mod.includes('shout') || mod.includes('hét') || mod.includes('la lớn') || mod.includes('yell')) {
+  if (
+    mod.includes('shout') ||
+    mod.includes('hét') ||
+    mod.includes('la lớn') ||
+    mod.includes('yell')
+  ) {
     return 'shout';
   }
   if (mod.includes('whisper') || mod.includes('thì thầm') || mod.includes('nói nhỏ')) {
     return 'whisper';
   }
-  if (mod.includes('off_panel') || mod.includes('off-panel') || mod.includes('ngoài khung') || mod.includes('os') || mod.includes('o.s.')) {
+  if (
+    mod.includes('off_panel') ||
+    mod.includes('off-panel') ||
+    mod.includes('ngoài khung') ||
+    mod.includes('os') ||
+    mod.includes('o.s.')
+  ) {
     return 'off_panel';
   }
-  if (mod.includes('filter') || mod.includes('điện thoại') || mod.includes('radio') || mod.includes('loa')) {
+  if (
+    mod.includes('filter') ||
+    mod.includes('điện thoại') ||
+    mod.includes('radio') ||
+    mod.includes('loa')
+  ) {
     return 'filter';
   }
 
@@ -146,7 +156,9 @@ export function parseComicScript(rawText: string): ComicScriptAST {
     if (sceneMatch) {
       flushActionBuffer();
 
-      const slug = sceneMatch[1] ? `${sceneMatch[1].toUpperCase()} ${sceneMatch[2]}` : sceneMatch[3];
+      const slug = sceneMatch[1]
+        ? `${sceneMatch[1].toUpperCase()} ${sceneMatch[2]}`
+        : sceneMatch[3];
       const sceneId = `scene-${scenes.length + 1}-${lineIndex}`;
 
       // Tách location và time of day nếu có dấu "-"
@@ -182,15 +194,24 @@ export function parseComicScript(rawText: string): ComicScriptAST {
     }
 
     // 2. PAGE BREAK: ! Trang N, # Page N, Trang N, ! N, # N
-    const pageMatch = line.match(/^(?:[!#📄]?\s*(?:Trang|Page)?\s*(\d+(?:\.\d+)?)|(?:Trang|Page)\s+(\d+(?:\.\d+)?))(.*)$/i);
-    if (pageMatch && (line.startsWith('!') || line.startsWith('#') || /^Trang\s+\d+/i.test(line) || /^Page\s+\d+/i.test(line))) {
+    const pageMatch = line.match(
+      /^(?:[!#📄]?\s*(?:Trang|Page)?\s*(\d+(?:\.\d+)?)|(?:Trang|Page)\s+(\d+(?:\.\d+)?))(.*)$/i,
+    );
+    if (
+      pageMatch &&
+      (line.startsWith('!') ||
+        line.startsWith('#') ||
+        /^Trang\s+\d+/i.test(line) ||
+        /^Page\s+\d+/i.test(line))
+    ) {
       flushActionBuffer();
 
-      const parsedPageNum = parseFloat(pageMatch[1] || pageMatch[2]) || (pages.length + 1);
+      const parsedPageNum = parseFloat(pageMatch[1] || pageMatch[2]) || pages.length + 1;
       const pageId = `page-${parsedPageNum}-${lineIndex}`;
 
       // Sinh LexoRank tăng dần
-      const pageRank = pages.length === 0 ? rankCursor.toString() : (rankCursor = rankCursor.genNext()).toString();
+      const pageRank =
+        pages.length === 0 ? rankCursor.toString() : (rankCursor = rankCursor.genNext()).toString();
 
       currentPage = {
         id: pageId,
@@ -207,7 +228,7 @@ export function parseComicScript(rawText: string): ComicScriptAST {
 
     // 3. PANEL BREAK: " Panel N.M, - Panel N.M, Panel N.M, Khung N.M, " N.M, - N.M, #panel N.M
     const panelMatch = line.match(
-      /^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*(\d+(?:\.\d+)?)|[-"”]\s*(\d+(?:\.\d+)?)|#panel\s*(\d+(?:\.\d+)?))(?:\s*\[(?:Góc máy:\s*)?([^\]]+)\]|\s*:\s*\[?(.*?)\]?)?$/i
+      /^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*(\d+(?:\.\d+)?)|[-"”]\s*(\d+(?:\.\d+)?)|#panel\s*(\d+(?:\.\d+)?))(?:\s*\[(?:Góc máy:\s*)?([^\]]+)\]|\s*:\s*\[?(.*?)\]?)?$/i,
     );
     if (panelMatch) {
       flushActionBuffer();
@@ -232,10 +253,14 @@ export function parseComicScript(rawText: string): ComicScriptAST {
           const parts = pRaw.split('.');
           const pageFromPanel = parseFloat(parts[0]);
           const panelFromPanel = parseInt(parts[1], 10);
-          pNum = isNaN(panelFromPanel) ? (currentPage.panels.length + 1) : panelFromPanel;
+          pNum = isNaN(panelFromPanel) ? currentPage.panels.length + 1 : panelFromPanel;
 
           // Nếu có số trang trong cú pháp 1.2, 2.1... mà trang hiện tại chưa có panel
-          if (!isNaN(pageFromPanel) && currentPage.pageNumber !== pageFromPanel && currentPage.panels.length === 0) {
+          if (
+            !isNaN(pageFromPanel) &&
+            currentPage.pageNumber !== pageFromPanel &&
+            currentPage.panels.length === 0
+          ) {
             currentPage.pageNumber = pageFromPanel;
           }
         } else {
@@ -316,7 +341,9 @@ export function parseComicScript(rawText: string): ComicScriptAST {
 
     // 5. DIALOGUE: Line pattern <CHARACTER_NAME>(/<MODIFIER>)?:\s*<DIALOGUE_TEXT>
     // Hỗ trợ cả MINH/Shout: ... và MINH (thì thầm): ...
-    const dialogueMatch = line.match(/^(?:@)?([A-Za-zÀ-Ỹ0-9_\s]+)(?:[\/\(]([A-Za-zÀ-ỹ\s]+)[\)]?)?:\s*(.+)$/);
+    const dialogueMatch = line.match(
+      /^(?:@)?([A-Za-zÀ-Ỹ0-9_\s]+)(?:[\/\(]([A-Za-zÀ-ỹ\s]+)[\)]?)?:\s*(.+)$/,
+    );
     if (dialogueMatch) {
       flushActionBuffer();
 
@@ -411,7 +438,7 @@ export function insertTransitionPageStub(
   rawScript: string,
   afterPageNumber: number,
   prevRankStr: string,
-  nextRankStr?: string
+  nextRankStr?: string,
 ): { newScript: string; newRank: string; newPageNumber: number } {
   let newRank: LexoRank;
   try {
@@ -469,7 +496,6 @@ export function insertTransitionPageStub(
   };
 }
 
-
 /**
  * Chuyển đổi từ cấu trúc Scene + ScriptLine của PanelForge sang văn bản Comic Script chuẩn cho parser
  */
@@ -487,7 +513,7 @@ export function scenesToComicScriptText(
       narrationMode?: string;
     }>;
   }>,
-  getSpeakerName?: (id?: string | null) => string | null
+  getSpeakerName?: (id?: string | null) => string | null,
 ): string {
   const result: string[] = [];
 
@@ -522,7 +548,8 @@ export function scenesToComicScriptText(
         }
 
         if (l.dialogueText) {
-          const speaker = (getSpeakerName ? getSpeakerName(l.speakerCharacterId) : null) || 'Nhân vật';
+          const speaker =
+            (getSpeakerName ? getSpeakerName(l.speakerCharacterId) : null) || 'Nhân vật';
           result.push(`@${speaker}: ${l.dialogueText}`);
         }
 

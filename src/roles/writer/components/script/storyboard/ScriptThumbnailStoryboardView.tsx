@@ -100,20 +100,23 @@ export const ScriptThumbnailStoryboardView: React.FC<ScriptThumbnailStoryboardVi
   }, []);
 
   // Xoá một Panel
-  const handleDeletePanel = useCallback((pageId: string, panelId: string) => {
-    setPages((prevPages) => {
-      const nextPages = prevPages.map((page) => {
-        if (page.id !== pageId) return page;
-        return {
-          ...page,
-          panels: page.panels.filter((p) => p.id !== panelId),
-        };
+  const handleDeletePanel = useCallback(
+    (pageId: string, panelId: string) => {
+      setPages((prevPages) => {
+        const nextPages = prevPages.map((page) => {
+          if (page.id !== pageId) return page;
+          return {
+            ...page,
+            panels: page.panels.filter((p) => p.id !== panelId),
+          };
+        });
+        setRawText(serializeStoryboardToScript(nextPages));
+        return nextPages;
       });
-      setRawText(serializeStoryboardToScript(nextPages));
-      return nextPages;
-    });
-    onShowToast?.('Đã xoá panel', 'Khung panel đã được gỡ bỏ khỏi trang.');
-  }, [onShowToast]);
+      onShowToast?.('Đã xoá panel', 'Khung panel đã được gỡ bỏ khỏi trang.');
+    },
+    [onShowToast],
+  );
 
   // Thêm Panel mới vào trang
   const handleAddPanelToPage = (pageId: string) => {
@@ -186,7 +189,10 @@ export const ScriptThumbnailStoryboardView: React.FC<ScriptThumbnailStoryboardVi
     }
 
     // Bảo tồn các thumbnail đã chèn nếu panelKey trùng nhau
-    const existingThumbs = new Map<string, { url: string | null; name: string | null; file: File | null }>();
+    const existingThumbs = new Map<
+      string,
+      { url: string | null; name: string | null; file: File | null }
+    >();
     pages.forEach((p) => {
       p.panels.forEach((pn) => {
         if (pn.thumbnailUrl) {
@@ -216,7 +222,10 @@ export const ScriptThumbnailStoryboardView: React.FC<ScriptThumbnailStoryboardVi
     }));
 
     setPages(merged);
-    onShowToast?.('Đã đồng bộ kịch bản', `Đã phân giải ${merged.length} trang và ${stats.totalPanels} panel.`);
+    onShowToast?.(
+      'Đã đồng bộ kịch bản',
+      `Đã phân giải ${merged.length} trang và ${stats.totalPanels} panel.`,
+    );
   };
 
   // Nạp kịch bản mẫu
@@ -246,72 +255,79 @@ export const ScriptThumbnailStoryboardView: React.FC<ScriptThumbnailStoryboardVi
   };
 
   return (
-    <div className="flex flex-col rounded-2xl border border-[#D8D2C5] bg-[#FCFBF8] shadow-xs overflow-hidden">
+    <div className='flex flex-col rounded-2xl border border-[#D8D2C5] bg-[#FCFBF8] shadow-xs overflow-hidden'>
       {/* 1. Header Toolbar & Tiến độ phủ Thumbnail (Script Coverage Bar) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-[#EBE7DF] bg-[#F7F5EE]/80">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="p-1.5 rounded-lg bg-amber-600 text-white shadow-2xs">
-              <LayoutTemplate className="w-4 h-4" />
+      <div className='flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-[#EBE7DF] bg-[#F7F5EE]/80'>
+        <div className='space-y-1'>
+          <div className='flex items-center gap-2 flex-wrap'>
+            <span className='p-1.5 rounded-lg bg-amber-600 text-white shadow-2xs'>
+              <LayoutTemplate className='w-4 h-4' />
             </span>
-            <h2 className="text-base font-bold text-[#1C1917] font-serif">
+            <h2 className='text-base font-bold text-[#1C1917] font-serif'>
               Dàn Khung & Chèn Thumbnail Kịch Bản
             </h2>
-            <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[11px] font-mono font-bold">
+            <span className='px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[11px] font-mono font-bold'>
               Cú pháp: Trang N &bull; #panel X.Y &bull; @nhanvat: thoại
             </span>
           </div>
 
-          <p className="text-xs text-[#57534E]">
-            Trích xuất bố cục phân khung từ kịch bản phân cảnh và gắn bản vẽ phác thảo (thumbnail storyboard) cho từng panel.
+          <p className='text-xs text-[#57534E]'>
+            Trích xuất bố cục phân khung từ kịch bản phân cảnh và gắn bản vẽ phác thảo (thumbnail
+            storyboard) cho từng panel.
           </p>
         </div>
 
         {/* Thanh công cụ chuyển chế độ xem */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center bg-white p-0.5 rounded-xl border border-gray-200 shadow-2xs">
+        <div className='flex items-center gap-2 flex-wrap'>
+          <div className='flex items-center bg-white p-0.5 rounded-xl border border-gray-200 shadow-2xs'>
             <button
-              type="button"
+              type='button'
               onClick={() => setViewMode('split')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                viewMode === 'split' ? 'bg-amber-600 text-white shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                viewMode === 'split'
+                  ? 'bg-amber-600 text-white shadow-2xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
-              title="Xem song song kịch bản và khung thumbnail"
+              title='Xem song song kịch bản và khung thumbnail'
             >
-              <Columns className="w-3.5 h-3.5" />
+              <Columns className='w-3.5 h-3.5' />
               <span>Song song</span>
             </button>
             <button
-              type="button"
+              type='button'
               onClick={() => setViewMode('grid')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                viewMode === 'grid' ? 'bg-amber-600 text-white shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                viewMode === 'grid'
+                  ? 'bg-amber-600 text-white shadow-2xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
-              title="Xem toàn bộ lưới panel"
+              title='Xem toàn bộ lưới panel'
             >
-              <Grid className="w-3.5 h-3.5" />
+              <Grid className='w-3.5 h-3.5' />
               <span>Lưới Panels</span>
             </button>
             <button
-              type="button"
+              type='button'
               onClick={() => setViewMode('script')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                viewMode === 'script' ? 'bg-amber-600 text-white shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                viewMode === 'script'
+                  ? 'bg-amber-600 text-white shadow-2xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
-              title="Soạn thảo văn bản kịch bản"
+              title='Soạn thảo văn bản kịch bản'
             >
-              <FileText className="w-3.5 h-3.5" />
+              <FileText className='w-3.5 h-3.5' />
               <span>Kịch bản</span>
             </button>
           </div>
 
           {canEdit && (
             <button
-              type="button"
+              type='button'
               onClick={handleAddPage}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-2xs transition-colors cursor-pointer"
+              className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-2xs transition-colors cursor-pointer'
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className='w-3.5 h-3.5' />
               <span>+ Thêm Trang</span>
             </button>
           )}
@@ -319,48 +335,48 @@ export const ScriptThumbnailStoryboardView: React.FC<ScriptThumbnailStoryboardVi
       </div>
 
       {/* 2. Thống kê Tiến độ (Script Coverage Bar: Tỷ lệ phủ Thumbnail) */}
-      <div className="px-6 py-3 bg-white border-b border-[#EBE7DF] flex flex-wrap items-center justify-between gap-4 text-xs font-mono">
-        <div className="flex items-center gap-6 flex-wrap">
+      <div className='px-6 py-3 bg-white border-b border-[#EBE7DF] flex flex-wrap items-center justify-between gap-4 text-xs font-mono'>
+        <div className='flex items-center gap-6 flex-wrap'>
           <div>
-            <span className="text-gray-500">Tổng trang:</span>{' '}
-            <strong className="text-gray-900 font-bold">{stats.totalPages}</strong>
+            <span className='text-gray-500'>Tổng trang:</span>{' '}
+            <strong className='text-gray-900 font-bold'>{stats.totalPages}</strong>
           </div>
           <div>
-            <span className="text-gray-500">Tổng panel:</span>{' '}
-            <strong className="text-gray-900 font-bold">{stats.totalPanels}</strong>
+            <span className='text-gray-500'>Tổng panel:</span>{' '}
+            <strong className='text-gray-900 font-bold'>{stats.totalPanels}</strong>
           </div>
           <div>
-            <span className="text-gray-500">Đã gắn thumbnail:</span>{' '}
-            <strong className="text-emerald-700 font-bold">
+            <span className='text-gray-500'>Đã gắn thumbnail:</span>{' '}
+            <strong className='text-emerald-700 font-bold'>
               {stats.panelsWithThumbnails}/{stats.totalPanels} ({stats.percent}%)
             </strong>
           </div>
           <div>
-            <span className="text-gray-500">Tổng dòng thoại:</span>{' '}
-            <strong className="text-amber-800 font-bold">{stats.totalDialogues}</strong>
+            <span className='text-gray-500'>Tổng dòng thoại:</span>{' '}
+            <strong className='text-amber-800 font-bold'>{stats.totalDialogues}</strong>
           </div>
         </div>
 
         {/* Thanh progress bar trực quan */}
-        <div className="flex items-center gap-3 w-full sm:w-64">
-          <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden border border-gray-200">
+        <div className='flex items-center gap-3 w-full sm:w-64'>
+          <div className='flex-1 h-2 rounded-full bg-gray-100 overflow-hidden border border-gray-200'>
             <div
               className={`h-full transition-all duration-300 ${
                 stats.percent === 100
                   ? 'bg-emerald-500'
                   : stats.percent > 50
-                  ? 'bg-amber-500'
-                  : 'bg-orange-500'
+                    ? 'bg-amber-500'
+                    : 'bg-orange-500'
               }`}
               style={{ width: `${stats.percent}%` }}
             />
           </div>
-          <span className="text-xs font-bold text-gray-700 shrink-0">{stats.percent}%</span>
+          <span className='text-xs font-bold text-gray-700 shrink-0'>{stats.percent}%</span>
         </div>
       </div>
 
       {/* 3. Vùng làm việc chính (Workspace Layout) */}
-      <div className="flex-1 flex flex-col md:flex-row min-h-[650px] overflow-hidden">
+      <div className='flex-1 flex flex-col md:flex-row min-h-[650px] overflow-hidden'>
         {/* CỘT TRÁI: Soạn thảo kịch bản văn bản (Nếu ở chế độ split hoặc script) */}
         {(viewMode === 'split' || viewMode === 'script') && (
           <div
@@ -368,61 +384,61 @@ export const ScriptThumbnailStoryboardView: React.FC<ScriptThumbnailStoryboardVi
               viewMode === 'script' ? 'w-full' : 'w-full md:w-[420px] lg:w-[460px]'
             }`}
           >
-            <div className="flex items-center justify-between px-4 py-2.5 bg-[#F7F5EE] border-b border-[#EBE7DF] text-xs font-semibold text-gray-700">
-              <span className="flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-amber-700" /> Kịch bản nguồn (Script Text)
+            <div className='flex items-center justify-between px-4 py-2.5 bg-[#F7F5EE] border-b border-[#EBE7DF] text-xs font-semibold text-gray-700'>
+              <span className='flex items-center gap-1.5'>
+                <FileText className='w-3.5 h-3.5 text-amber-700' /> Kịch bản nguồn (Script Text)
               </span>
 
-              <div className="flex items-center gap-1.5">
+              <div className='flex items-center gap-1.5'>
                 <button
-                  type="button"
+                  type='button'
                   onClick={handleLoadSample}
-                  className="px-2 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-50 rounded cursor-pointer"
-                  title="Nạp cấu trúc script mẫu"
+                  className='px-2 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-50 rounded cursor-pointer'
+                  title='Nạp cấu trúc script mẫu'
                 >
                   Kịch bản mẫu
                 </button>
                 <button
-                  type="button"
+                  type='button'
                   onClick={handleSyncFromScenes}
-                  className="px-2 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-100 rounded cursor-pointer"
-                  title="Đồng bộ từ các cảnh hiện tại"
+                  className='px-2 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-100 rounded cursor-pointer'
+                  title='Đồng bộ từ các cảnh hiện tại'
                 >
-                  <RefreshCw className="w-3 h-3 inline mr-1" />
+                  <RefreshCw className='w-3 h-3 inline mr-1' />
                   Nạp từ Cảnh
                 </button>
                 <button
-                  type="button"
+                  type='button'
                   onClick={handleCopyScript}
-                  className="p-1 text-gray-500 hover:text-gray-800 rounded cursor-pointer"
-                  title="Sao chép kịch bản"
+                  className='p-1 text-gray-500 hover:text-gray-800 rounded cursor-pointer'
+                  title='Sao chép kịch bản'
                 >
-                  <Copy className="w-3.5 h-3.5" />
+                  <Copy className='w-3.5 h-3.5' />
                 </button>
               </div>
             </div>
 
             {/* Trình soạn thảo văn bản */}
-            <div className="flex-1 p-3 flex flex-col">
+            <div className='flex-1 p-3 flex flex-col'>
               <textarea
                 value={rawText}
                 disabled={!canEdit}
                 onChange={(e) => setRawText(e.target.value)}
-                placeholder="Nhập kịch bản theo cú pháp:\nTrang 1\n#panel 1.1\n@nhanvat: loi thoại\n#panel 1.2..."
-                className="flex-1 w-full p-3 font-mono text-xs leading-relaxed text-gray-900 bg-white border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/40 custom-scrollbar disabled:opacity-60"
+                placeholder='Nhập kịch bản theo cú pháp:\nTrang 1\n#panel 1.1\n@nhanvat: loi thoại\n#panel 1.2...'
+                className='flex-1 w-full p-3 font-mono text-xs leading-relaxed text-gray-900 bg-white border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/40 custom-scrollbar disabled:opacity-60'
               />
 
               {canEdit && (
-                <div className="mt-3 flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-gray-400 font-mono">
+                <div className='mt-3 flex items-center justify-between gap-2'>
+                  <span className='text-[11px] text-gray-400 font-mono'>
                     Hỗ trợ #panel và @nhanvat
                   </span>
                   <button
-                    type="button"
+                    type='button'
                     onClick={handleApplyScriptText}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-2xs transition-colors cursor-pointer"
+                    className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-2xs transition-colors cursor-pointer'
                   >
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className='w-3.5 h-3.5' />
                     <span>Áp dụng vào Lưới Panel</span>
                   </button>
                 </div>
@@ -433,18 +449,19 @@ export const ScriptThumbnailStoryboardView: React.FC<ScriptThumbnailStoryboardVi
 
         {/* CỘT PHẢI: Lưới trực quan các Trang & Panel kèm chèn Thumbnail */}
         {(viewMode === 'split' || viewMode === 'grid') && (
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#FAF8F5] space-y-8 custom-scrollbar">
+          <div className='flex-1 overflow-y-auto p-4 md:p-6 bg-[#FAF8F5] space-y-8 custom-scrollbar'>
             {pages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <LayoutTemplate className="w-12 h-12 text-gray-300 mb-3" />
-                <h3 className="text-sm font-bold text-gray-700">Chưa có trang kịch bản nào</h3>
-                <p className="text-xs text-gray-500 max-w-sm mt-1">
-                  Nhập kịch bản bên trái hoặc bấm &quot;Kịch bản mẫu&quot; để tự động tạo cấu trúc trang và khung tranh.
+              <div className='flex flex-col items-center justify-center py-20 text-center'>
+                <LayoutTemplate className='w-12 h-12 text-gray-300 mb-3' />
+                <h3 className='text-sm font-bold text-gray-700'>Chưa có trang kịch bản nào</h3>
+                <p className='text-xs text-gray-500 max-w-sm mt-1'>
+                  Nhập kịch bản bên trái hoặc bấm &quot;Kịch bản mẫu&quot; để tự động tạo cấu trúc
+                  trang và khung tranh.
                 </p>
                 <button
-                  type="button"
+                  type='button'
                   onClick={handleLoadSample}
-                  className="mt-4 px-3.5 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 cursor-pointer"
+                  className='mt-4 px-3.5 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 cursor-pointer'
                 >
                   Nạp kịch bản mẫu
                 </button>
@@ -453,43 +470,43 @@ export const ScriptThumbnailStoryboardView: React.FC<ScriptThumbnailStoryboardVi
               pages.map((page) => (
                 <div
                   key={page.id}
-                  className="rounded-2xl border border-[#D8D2C5] bg-white shadow-soft-sm overflow-hidden"
+                  className='rounded-2xl border border-[#D8D2C5] bg-white shadow-soft-sm overflow-hidden'
                 >
                   {/* Tiêu đề Trang (Trang 1, Trang 2...) */}
-                  <div className="flex items-center justify-between px-5 py-3 bg-[#F7F5EE] border-b border-[#EBE7DF]">
-                    <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 rounded-lg bg-amber-700 text-white font-serif font-bold text-xs shadow-2xs">
+                  <div className='flex items-center justify-between px-5 py-3 bg-[#F7F5EE] border-b border-[#EBE7DF]'>
+                    <div className='flex items-center gap-2'>
+                      <span className='px-3 py-1 rounded-lg bg-amber-700 text-white font-serif font-bold text-xs shadow-2xs'>
                         TRANG {page.pageNumber}
                       </span>
-                      <span className="text-xs text-gray-500 font-mono">
+                      <span className='text-xs text-gray-500 font-mono'>
                         {page.panels.length} khung tranh (panels)
                       </span>
                     </div>
 
                     {canEdit && (
-                      <div className="flex items-center gap-2">
+                      <div className='flex items-center gap-2'>
                         <button
-                          type="button"
+                          type='button'
                           onClick={() => handleAddPanelToPage(page.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100/60 rounded-lg transition-colors cursor-pointer"
+                          className='inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100/60 rounded-lg transition-colors cursor-pointer'
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className='w-3.5 h-3.5' />
                           <span>+ Thêm Panel</span>
                         </button>
                         <button
-                          type="button"
+                          type='button'
                           onClick={() => handleDeletePage(page.id)}
-                          className="p-1 text-gray-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
-                          title="Xoá trang này"
+                          className='p-1 text-gray-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer'
+                          title='Xoá trang này'
                         >
-                          <X className="w-4 h-4" />
+                          <X className='w-4 h-4' />
                         </button>
                       </div>
                     )}
                   </div>
 
                   {/* Lưới các Panel trong trang */}
-                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+                  <div className='p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5'>
                     {page.panels.map((panel) => (
                       <PanelThumbnailCard
                         key={panel.id}
@@ -505,17 +522,17 @@ export const ScriptThumbnailStoryboardView: React.FC<ScriptThumbnailStoryboardVi
                     {/* Thẻ tạo nhanh panel */}
                     {canEdit && (
                       <button
-                        type="button"
+                        type='button'
                         onClick={() => handleAddPanelToPage(page.id)}
-                        className="border-2 border-dashed border-[#D8D2C5] hover:border-amber-500 rounded-2xl min-h-[300px] flex flex-col items-center justify-center p-6 text-gray-400 hover:text-amber-700 hover:bg-amber-50/30 transition-all cursor-pointer group"
+                        className='border-2 border-dashed border-[#D8D2C5] hover:border-amber-500 rounded-2xl min-h-[300px] flex flex-col items-center justify-center p-6 text-gray-400 hover:text-amber-700 hover:bg-amber-50/30 transition-all cursor-pointer group'
                       >
-                        <div className="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-amber-100 flex items-center justify-center mb-2 transition-colors">
-                          <Plus className="w-6 h-6 text-gray-500 group-hover:text-amber-700" />
+                        <div className='w-12 h-12 rounded-full bg-gray-100 group-hover:bg-amber-100 flex items-center justify-center mb-2 transition-colors'>
+                          <Plus className='w-6 h-6 text-gray-500 group-hover:text-amber-700' />
                         </div>
-                        <span className="text-xs font-bold font-serif">
+                        <span className='text-xs font-bold font-serif'>
                           + Thêm #panel {page.pageNumber}.{page.panels.length + 1}
                         </span>
-                        <span className="text-[11px] text-gray-400 mt-1">
+                        <span className='text-[11px] text-gray-400 mt-1'>
                           Tạo khung tranh mới trong Trang {page.pageNumber}
                         </span>
                       </button>
@@ -531,28 +548,28 @@ export const ScriptThumbnailStoryboardView: React.FC<ScriptThumbnailStoryboardVi
       {/* 4. Lightbox Phóng to xem ảnh Thumbnail */}
       {lightboxImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4"
+          className='fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4'
           onClick={() => setLightboxImage(null)}
         >
           <div
-            className="relative max-w-4xl max-h-[90vh] bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+            className='relative max-w-4xl max-h-[90vh] bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col'
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-4 py-3 bg-neutral-900 text-white border-b border-neutral-800">
-              <span className="text-xs font-mono font-bold">{lightboxImage.title}</span>
+            <div className='flex items-center justify-between px-4 py-3 bg-neutral-900 text-white border-b border-neutral-800'>
+              <span className='text-xs font-mono font-bold'>{lightboxImage.title}</span>
               <button
-                type="button"
+                type='button'
                 onClick={() => setLightboxImage(null)}
-                className="p-1 text-gray-400 hover:text-white rounded-lg cursor-pointer"
+                className='p-1 text-gray-400 hover:text-white rounded-lg cursor-pointer'
               >
-                <X className="w-5 h-5" />
+                <X className='w-5 h-5' />
               </button>
             </div>
-            <div className="flex-1 overflow-auto flex items-center justify-center p-2 bg-neutral-950">
+            <div className='flex-1 overflow-auto flex items-center justify-center p-2 bg-neutral-950'>
               <img
                 src={lightboxImage.url}
                 alt={lightboxImage.title}
-                className="max-h-[80vh] w-auto object-contain rounded-lg shadow-lg"
+                className='max-h-[80vh] w-auto object-contain rounded-lg shadow-lg'
               />
             </div>
           </div>

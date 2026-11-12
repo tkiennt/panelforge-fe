@@ -44,13 +44,7 @@ describe('InkStageWorkspaceBar', () => {
   });
 
   it('hiển thị trạng thái khi đã có bản Line-art mực v2', () => {
-    render(
-      <InkStageWorkspaceBar
-        {...defaultProps}
-        hasInkArtwork={true}
-        inkArtworkVersion={2}
-      />
-    );
+    render(<InkStageWorkspaceBar {...defaultProps} hasInkArtwork={true} inkArtworkVersion={2} />);
 
     const uploadBtn = screen.getByTestId('btn-upload-ink-art');
     expect(uploadBtn).toHaveTextContent('Line-art v2 (Tải bản mới)');

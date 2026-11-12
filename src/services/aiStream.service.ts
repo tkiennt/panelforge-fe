@@ -1,5 +1,10 @@
 // src/services/aiStream.service.ts
-import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
+import {
+  HubConnection,
+  HubConnectionBuilder,
+  HubConnectionState,
+  LogLevel,
+} from '@microsoft/signalr';
 
 export interface TokenChunkEvent {
   runId: string;
@@ -86,7 +91,10 @@ class AiStreamService {
       return this.connection;
     } catch (err) {
       this.isConnecting = false;
-      console.warn('[AiStreamService] Không thể kết nối SignalR Hub, chuyển sang cơ chế Polling an toàn:', err);
+      console.warn(
+        '[AiStreamService] Không thể kết nối SignalR Hub, chuyển sang cơ chế Polling an toàn:',
+        err,
+      );
       return null;
     }
   }

@@ -1,14 +1,7 @@
 import { StudioRole, RoleKey, WorkspaceRole } from './auth';
 
 export type KanbanStageKey =
-  | 'script'
-  | 'pencil'
-  | 'ink'
-  | 'color'
-  | 'letter'
-  | 'review'
-  | 'approved'
-  | 'thumbnail'; // Deprecated: Thumbnail stage is retired and merged into pre-split artist layout
+  'script' | 'pencil' | 'ink' | 'color' | 'letter' | 'review' | 'approved' | 'thumbnail'; // Deprecated: Thumbnail stage is retired and merged into pre-split artist layout
 
 export interface KanbanCard {
   id: string;
@@ -676,4 +669,3 @@ export interface EditorReviewQueueItemDto {
   createdAt: string;
   artworkReferenceIds?: string[];
 }
-

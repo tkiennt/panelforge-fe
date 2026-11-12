@@ -8,17 +8,17 @@
   justify-content: center;
   padding: 48px 24px;
   text-align: center;
-  background: var(--ux-bg-canvas, #FCFBF8);
-  border: 1px dashed var(--ux-border-default, #D8D2C5);
+  background: var(--ux-bg-canvas, #fcfbf8);
+  border: 1px dashed var(--ux-border-default, #d8d2c5);
   border-radius: 18px;
-  color: var(--ux-text-primary, #1C1917);
+  color: var(--ux-text-primary, #1c1917);
   font-family: var(--font-sans, system-ui, sans-serif);
   transition: all 0.25s ease;
 }
 
 .pf-empty-folder-box:hover {
-  border-color: var(--ux-brand-primary, #F97316);
-  background: #FFFFFF;
+  border-color: var(--ux-brand-primary, #f97316);
+  background: #ffffff;
   box-shadow: 0 10px 30px -10px rgba(28, 25, 23, 0.08);
 }
 
@@ -30,12 +30,12 @@
 }
 
 .pf-empty-folder-back {
-  fill: #EBE7DE;
+  fill: #ebe7de;
   transition: fill 0.25s ease;
 }
 
 .pf-empty-folder-box:hover .pf-empty-folder-back {
-  fill: #E5E0D5;
+  fill: #e5e0d5;
 }
 
 .pf-empty-sheet-a {
@@ -57,12 +57,12 @@
 }
 
 .pf-empty-folder-front {
-  fill: #D8D2C5;
+  fill: #d8d2c5;
   transition: fill 0.25s ease;
 }
 
 .pf-empty-folder-box:hover .pf-empty-folder-front {
-  fill: #C9C2B3;
+  fill: #c9c2b3;
 }
 
 .pf-empty-title {
@@ -70,7 +70,7 @@
   font-family: var(--font-serif, Georgia, serif);
   font-size: 17px;
   font-weight: 700;
-  color: var(--ux-text-primary, #1C1917);
+  color: var(--ux-text-primary, #1c1917);
 }
 
 .pf-empty-subtitle {
@@ -78,7 +78,7 @@
   margin: 0 0 20px 0;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--ux-text-secondary, #57534E);
+  color: var(--ux-text-secondary, #57534e);
 }
 
 .pf-empty-action-btn {
@@ -89,8 +89,8 @@
   padding: 0 20px;
   border: none;
   border-radius: 9px;
-  background: var(--ux-brand-primary, #F97316);
-  color: #FFFFFF;
+  background: var(--ux-brand-primary, #f97316);
+  color: #ffffff;
   font-family: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -100,7 +100,7 @@
 }
 
 .pf-empty-action-btn:hover {
-  background: var(--ux-brand-hover, #EA580C);
+  background: var(--ux-brand-hover, #ea580c);
   transform: translateY(-1px);
 }
 

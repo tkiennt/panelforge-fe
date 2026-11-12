@@ -10,9 +10,7 @@ describe('PencilStageWorkspaceBar', () => {
     showStoryboardOverlay: true,
     onToggleStoryboardOverlay: vi.fn(),
     hasStoryboard: true,
-    bibleEntries: [
-      { id: 'bible-1', name: 'Nhân vật A' } as any,
-    ],
+    bibleEntries: [{ id: 'bible-1', name: 'Nhân vật A' } as any],
     selectedBibleEntryId: null,
     onSelectBibleEntry: vi.fn(),
     sketchColor: 'blue' as const,
@@ -46,7 +44,7 @@ describe('PencilStageWorkspaceBar', () => {
         {...defaultProps}
         hasPencilArtwork={true}
         pencilArtworkVersion={1}
-      />
+      />,
     );
 
     const uploadBtn = screen.getByTestId('btn-upload-pencil-art');

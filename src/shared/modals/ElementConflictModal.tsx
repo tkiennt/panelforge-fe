@@ -79,9 +79,7 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
             </div>
           )}
 
-          <p className='text-[#555555] font-medium'>
-            Chọn cách bạn muốn xử lý xung đột này:
-          </p>
+          <p className='text-[#555555] font-medium'>Chọn cách bạn muốn xử lý xung đột này:</p>
 
           <div className='space-y-2 pt-1'>
             {/* Option 1: Reload */}

@@ -464,22 +464,20 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
       },
     ]);
 
-    const submitSpy = vi
-      .spyOn(assignmentService, 'submitAssignment')
-      .mockResolvedValue({
-        id: 'assign-pencil',
-        seriesId: 'ser-1',
-        chapterId: 'chap-1',
-        entityType: 'Chapter',
-        targetEntityId: 'chap-1',
-        pipelineStageId: 'st-pencil',
-        assigneeUserId: 'user-1',
-        assignedRole: 'ARTIST',
-        brief: 'Vẽ chương 1',
-        status: 'Submitted',
-        priority: 'Medium',
-        createdAt: '2026-01-01T00:00:00Z',
-      });
+    const submitSpy = vi.spyOn(assignmentService, 'submitAssignment').mockResolvedValue({
+      id: 'assign-pencil',
+      seriesId: 'ser-1',
+      chapterId: 'chap-1',
+      entityType: 'Chapter',
+      targetEntityId: 'chap-1',
+      pipelineStageId: 'st-pencil',
+      assigneeUserId: 'user-1',
+      assignedRole: 'ARTIST',
+      brief: 'Vẽ chương 1',
+      status: 'Submitted',
+      priority: 'Medium',
+      createdAt: '2026-01-01T00:00:00Z',
+    });
 
     const pagesSpy = vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([]);
 
@@ -534,30 +532,50 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     expect(screen.getByTestId('focus-stage-step-1')).toHaveTextContent('Ink');
     expect(screen.getByTestId('focus-stage-step-2')).toHaveTextContent('Letter');
     expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute('data-stage-state', 'current');
-    expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'upcoming');
-    expect(screen.getByTestId('focus-stage-step-2')).toHaveAttribute('data-stage-state', 'upcoming');
+    expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute(
+      'data-stage-state',
+      'upcoming',
+    );
+    expect(screen.getByTestId('focus-stage-step-2')).toHaveAttribute(
+      'data-stage-state',
+      'upcoming',
+    );
     expect(screen.queryByText(/SHA-256|CAS|DPI|Canon|Zen Mode/i)).not.toBeInTheDocument();
 
     // Submit 1: Pencil -> Ink
     fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
     await waitFor(() => {
       expect(submitSpy).toHaveBeenCalledWith('chap-1', 'assign-pencil');
-      expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute('data-stage-state', 'completed');
-      expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'current');
+      expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute(
+        'data-stage-state',
+        'completed',
+      );
+      expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute(
+        'data-stage-state',
+        'current',
+      );
     });
 
     // Submit 2: Ink -> Letter
     fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
     await waitFor(() => {
-      expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'completed');
-      expect(screen.getByTestId('focus-stage-step-2')).toHaveAttribute('data-stage-state', 'current');
+      expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute(
+        'data-stage-state',
+        'completed',
+      );
+      expect(screen.getByTestId('focus-stage-step-2')).toHaveAttribute(
+        'data-stage-state',
+        'current',
+      );
     });
 
     // Submit 3: Letter -> Completed
     expect(screen.getByTestId('focus-submit-stage-btn')).toHaveTextContent('Nộp bản thảo');
     fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
     await waitFor(() => {
-      expect(screen.getByTestId('focus-stage-completed-badge')).toHaveTextContent('Đã nộp chờ duyệt');
+      expect(screen.getByTestId('focus-stage-completed-badge')).toHaveTextContent(
+        'Đã nộp chờ duyệt',
+      );
     });
 
     // Switching chapter reloads the selected chapter

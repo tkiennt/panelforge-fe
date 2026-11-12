@@ -217,7 +217,10 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    onShowToast('Đã xuất nhật ký', `Đã tải về file JSON chứa ${filteredLogs.length} bản ghi kiểm toán.`);
+    onShowToast(
+      'Đã xuất nhật ký',
+      `Đã tải về file JSON chứa ${filteredLogs.length} bản ghi kiểm toán.`,
+    );
   };
 
   if (!isOpen) return null;
@@ -370,17 +373,20 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
                     </span>
                   </div>
 
-                  <p className='text-xs text-[#57534E] font-sans leading-relaxed'>
-                    {log.details}
-                  </p>
+                  <p className='text-xs text-[#57534E] font-sans leading-relaxed'>{log.details}</p>
 
                   <div className='flex items-center justify-between pt-1 text-[11px] font-mono'>
                     {log.hash ? (
-                      <span className='text-[#78716C] bg-[#F1EEE8] px-2 py-0.5 rounded border border-[#D8D2C5]' title={log.hash}>
+                      <span
+                        className='text-[#78716C] bg-[#F1EEE8] px-2 py-0.5 rounded border border-[#D8D2C5]'
+                        title={log.hash}
+                      >
                         Mã bảo chứng: #{log.hash.slice(0, 8)}
                       </span>
                     ) : (
-                      <span className='text-[#059669] text-[10px] font-medium'>ĐÃ BẢO CHỨNG TOÀN VẸN</span>
+                      <span className='text-[#059669] text-[10px] font-medium'>
+                        ĐÃ BẢO CHỨNG TOÀN VẸN
+                      </span>
                     )}
                     {log.statusTag && (
                       <span

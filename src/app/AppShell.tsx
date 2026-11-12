@@ -339,7 +339,11 @@ export function AppShell({
                 href: `/workspaces/${workspaceId}/payments`,
                 badge:
                   pendingPaymentsCount > 0
-                    ? { type: 'text', text: `${pendingPaymentsCount}`, color: 'bg-amber-500 text-white' }
+                    ? {
+                        type: 'text',
+                        text: `${pendingPaymentsCount}`,
+                        color: 'bg-amber-500 text-white',
+                      }
                     : undefined,
               },
             ],
@@ -361,7 +365,11 @@ export function AppShell({
                 href: `/workspaces/${workspaceId}/payments`,
                 badge:
                   pendingPaymentsCount > 0
-                    ? { type: 'text', text: `${pendingPaymentsCount}`, color: 'bg-amber-500 text-white' }
+                    ? {
+                        type: 'text',
+                        text: `${pendingPaymentsCount}`,
+                        color: 'bg-amber-500 text-white',
+                      }
                     : undefined,
               },
             ],
@@ -787,8 +795,9 @@ export function AppShell({
                           ),
                         )
                       }
-                      className={`font-bold truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-all cursor-pointer ${chapterId ? 'text-[#57534e] hover:text-[#0c0a09]' : 'text-[#0c0a09]'
-                        }`}
+                      className={`font-bold truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-all cursor-pointer ${
+                        chapterId ? 'text-[#57534e] hover:text-[#0c0a09]' : 'text-[#0c0a09]'
+                      }`}
                       title='Chuyển đến Series Workspace'
                     >
                       <BookOpen className='w-3.5 h-3.5 text-[#292524]' />

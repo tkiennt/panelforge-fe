@@ -468,11 +468,19 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     const user = userEvent.setup();
     const mockShowToast = vi.fn();
     render(
-      <MemoryRouter initialEntries={['/workspaces/ws-1/series/se-1/script?chapterId=chap-1&sceneId=sc-1']}>
+      <MemoryRouter
+        initialEntries={['/workspaces/ws-1/series/se-1/script?chapterId=chap-1&sceneId=sc-1']}
+      >
         <Routes>
           <Route
             path='/workspaces/:workspaceId/series/:seriesId/script'
-            element={<ScriptEditorView workspaceRole='WRITER' currentUserId='my-writer-id' onShowToast={mockShowToast} />}
+            element={
+              <ScriptEditorView
+                workspaceRole='WRITER'
+                currentUserId='my-writer-id'
+                onShowToast={mockShowToast}
+              />
+            }
           />
         </Routes>
       </MemoryRouter>,
@@ -483,7 +491,8 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     vi.mocked(scriptLineService.createScriptLine).mockRejectedValueOnce({
       status: 403,
-      message: 'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+      message:
+        'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
     });
 
     const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật/i);
@@ -852,7 +861,8 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
   });
 
   it('hỗ trợ tạo mã tạm và lưu vào tempBibleCodes', async () => {
-    const { getTempBibleCodes, saveTempBibleCode } = await import('../components/script/flow/tempBibleCodes');
+    const { getTempBibleCodes, saveTempBibleCode } =
+      await import('../components/script/flow/tempBibleCodes');
     renderView({ workspaceRole: 'WRITER' });
     await screen.findByText(/Khởi đầu/i);
 
@@ -1012,7 +1022,8 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
           id: 'line-bible-1',
           lineOrder: 1,
           dialogueText: null,
-          stageDirection: 'Gió rít dữ dội qua (LOC-VAN-KHE) và đốt cháy (TRM-VO-TAN-HOA). Chú ý (CHR-LAM-DU)!',
+          stageDirection:
+            'Gió rít dữ dội qua (LOC-VAN-KHE) và đốt cháy (TRM-VO-TAN-HOA). Chú ý (CHR-LAM-DU)!',
           speakerCharacterId: null,
           panelId: null,
         },

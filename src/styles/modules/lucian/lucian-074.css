@@ -19,7 +19,7 @@
   font-size: 15px;
   font-weight: 750;
   letter-spacing: -0.02em;
-  color: #1C1917;
+  color: #1c1917;
   font-family: var(--font-serif, serif);
 }
 
@@ -27,22 +27,22 @@
   position: relative;
   width: 36px;
   height: 36px;
-  border: 1px solid #D8D2C5;
+  border: 1px solid #d8d2c5;
   padding: 0;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #FCFBF8;
-  color: #44403C;
+  background: #fcfbf8;
+  color: #44403c;
   box-shadow: 0 1px 3px rgba(28, 25, 23, 0.05);
   transition: all 0.25s var(--ux-spring, ease);
   cursor: pointer;
 }
 
 .u074-bell:hover {
-  background: #FFF2E6;
-  border-color: #FDBA74;
-  color: #C2410C;
+  background: #fff2e6;
+  border-color: #fdba74;
+  color: #c2410c;
 }
 
 .u074-bell:active {
@@ -50,7 +50,7 @@
 }
 
 .u074-bell:focus-visible {
-  outline: 2px solid #F97316;
+  outline: 2px solid #f97316;
   outline-offset: 2px;
 }
 
@@ -70,11 +70,21 @@
 }
 
 @keyframes u074-ring {
-  10% { transform: rotate(18deg); }
-  25% { transform: rotate(-16deg); }
-  40% { transform: rotate(12deg); }
-  55% { transform: rotate(-8deg); }
-  70% { transform: rotate(4deg); }
+  10% {
+    transform: rotate(18deg);
+  }
+  25% {
+    transform: rotate(-16deg);
+  }
+  40% {
+    transform: rotate(12deg);
+  }
+  55% {
+    transform: rotate(-8deg);
+  }
+  70% {
+    transform: rotate(4deg);
+  }
 }
 
 .u074-badge {
@@ -85,13 +95,13 @@
   height: 17px;
   padding: 0 4px;
   border-radius: 9px;
-  background: #EA580C;
-  color: #FFFFFF;
+  background: #ea580c;
+  color: #ffffff;
   font-size: 10px;
   font-weight: 800;
   line-height: 17px;
   text-align: center;
-  box-shadow: 0 0 0 2px #FCFBF8;
+  box-shadow: 0 0 0 2px #fcfbf8;
   font-variant-numeric: tabular-nums;
   transition: transform 0.35s cubic-bezier(0.34, 1.45, 0.64, 1);
 }
@@ -110,26 +120,30 @@
   display: flex;
   flex-direction: column;
   border-radius: 16px;
-  background: #FCFBF8;
-  border: 1px solid #D8D2C5;
-  box-shadow: 0 16px 36px -12px rgba(28, 25, 23, 0.16), 0 0 0 1px #D8D2C5;
+  background: #fcfbf8;
+  border: 1px solid #d8d2c5;
+  box-shadow:
+    0 16px 36px -12px rgba(28, 25, 23, 0.16),
+    0 0 0 1px #d8d2c5;
   transform-origin: calc(100% - 18px) -8px;
-  transition: transform 0.4s cubic-bezier(0.34, 1.45, 0.64, 1), opacity 0.2s;
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.45, 0.64, 1),
+    opacity 0.2s;
   z-index: 50;
   overflow: hidden;
 }
 
 .u074-pan::before {
-  content: "";
+  content: '';
   position: absolute;
   right: 14px;
   top: -6px;
   width: 12px;
   height: 12px;
   border-radius: 2px;
-  background: #FAF7F0;
+  background: #faf7f0;
   transform: rotate(45deg);
-  box-shadow: -1px -1px 0 0 #D8D2C5;
+  box-shadow: -1px -1px 0 0 #d8d2c5;
   z-index: 1;
 }
 
@@ -137,7 +151,9 @@
   transform: scale(0.4);
   opacity: 0;
   pointer-events: none;
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.18s;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.18s;
 }
 
 .u074-ph {
@@ -145,8 +161,8 @@
   align-items: center;
   gap: 6px;
   padding: 10px 12px;
-  background: #FAF7F0;
-  border-bottom: 1px solid #E7E2D9;
+  background: #faf7f0;
+  border-bottom: 1px solid #e7e2d9;
   position: relative;
   z-index: 2;
 }
@@ -159,27 +175,27 @@
   background: transparent;
   font-size: 11.5px;
   font-weight: 600;
-  color: #78716C;
+  color: #78716c;
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .u074-tab:hover {
-  background: #F3F0E9;
-  color: #1C1917;
+  background: #f3f0e9;
+  color: #1c1917;
 }
 
-.u074-tab[aria-selected="true"] {
-  background: #FFF2E6;
-  color: #C2410C;
-  border-color: #FDBA74;
+.u074-tab[aria-selected='true'] {
+  background: #fff2e6;
+  color: #c2410c;
+  border-color: #fdba74;
   font-weight: 750;
   box-shadow: 0 1px 2px rgba(249, 115, 22, 0.08);
 }
 
 .u074-tab:focus-visible,
 .u074-all:focus-visible {
-  outline: 2px solid #F97316;
+  outline: 2px solid #f97316;
   outline-offset: 2px;
 }
 
@@ -190,19 +206,21 @@
   background: none;
   font-size: 11px;
   font-weight: 700;
-  color: #C2410C;
+  color: #c2410c;
   cursor: pointer;
   border-radius: 6px;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .u074-all:hover:not(:disabled) {
-  background: #FFF2E6;
-  color: #EA580C;
+  background: #fff2e6;
+  color: #ea580c;
 }
 
 .u074-all:disabled {
-  color: #A8A29E;
+  color: #a8a29e;
   cursor: default;
   opacity: 0.6;
 }
@@ -246,16 +264,19 @@
   border-radius: 12px;
   background: transparent;
   text-align: left;
-  transition: background-color 0.2s, transform 0.4s cubic-bezier(0.34, 1.45, 0.64, 1), opacity 0.25s;
+  transition:
+    background-color 0.2s,
+    transform 0.4s cubic-bezier(0.34, 1.45, 0.64, 1),
+    opacity 0.25s;
   cursor: pointer;
 }
 
 .u074-row:hover {
-  background: #F5F3EF;
+  background: #f5f3ef;
 }
 
 .u074-row:focus-visible {
-  outline: 2px solid #F97316;
+  outline: 2px solid #f97316;
   outline-offset: -2px;
 }
 
@@ -285,10 +306,10 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #FCFBF8;
+  background: #fcfbf8;
   font-style: normal;
   font-size: 9.5px;
-  box-shadow: 0 0 0 1px #D8D2C5;
+  box-shadow: 0 0 0 1px #d8d2c5;
 }
 
 .u074-tx {
@@ -296,11 +317,11 @@
   min-width: 0;
   font-size: 12px;
   line-height: 1.4;
-  color: #57534E;
+  color: #57534e;
 }
 
 .u074-tx b {
-  color: #1C1917;
+  color: #1c1917;
   font-weight: 700;
 }
 
@@ -309,7 +330,7 @@
   margin-top: 2px;
   font-size: 10.5px;
   font-weight: 600;
-  color: #8C877D;
+  color: #8c877d;
 }
 
 .u074-dot {
@@ -320,9 +341,11 @@
   height: 7px;
   margin-top: -3.5px;
   border-radius: 50%;
-  background: #F97316;
-  box-shadow: 0 0 0 2px #FCFBF8;
-  transition: transform 0.3s cubic-bezier(0.34, 1.45, 0.64, 1), opacity 0.2s;
+  background: #f97316;
+  box-shadow: 0 0 0 2px #fcfbf8;
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.45, 0.64, 1),
+    opacity 0.2s;
 }
 
 .u074-row.read .u074-dot {
@@ -331,9 +354,9 @@
 }
 
 .u074-row.read .u074-tx {
-  color: #78716C;
+  color: #78716c;
 }
 
 .u074-row.read .u074-tx b {
-  color: #44403C;
+  color: #44403c;
 }

@@ -70,7 +70,10 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                 email: m.email,
                 role: typeof m.role === 'string' ? m.role : String(m.role),
                 isOwner: m.isOwner,
-                status: m.status === 'Active' || (m.isEmailConfirmed && m.status !== 'Pending') ? 'Joined' : 'Pending',
+                status:
+                  m.status === 'Active' || (m.isEmailConfirmed && m.status !== 'Pending')
+                    ? 'Joined'
+                    : 'Pending',
               })),
             );
           }
@@ -155,9 +158,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   };
 
   const handleRoleChange = (id: string, newRole: string) => {
-    setInviteList(
-      inviteList.map((item) => (item.id === id ? { ...item, role: newRole } : item)),
-    );
+    setInviteList(inviteList.map((item) => (item.id === id ? { ...item, role: newRole } : item)));
   };
 
   const handleApplyRoleToAll = (targetRole: string) => {
@@ -260,12 +261,8 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                 <UserPlus className='w-4 h-4' />
               </div>
               <div>
-                <h3 className='font-display font-bold text-sm text-[#171717]'>
-                  Mời thành viên
-                </h3>
-                {workspaceName && (
-                  <p className='text-[11px] text-[#737373]'>{workspaceName}</p>
-                )}
+                <h3 className='font-display font-bold text-sm text-[#171717]'>Mời thành viên</h3>
+                {workspaceName && <p className='text-[11px] text-[#737373]'>{workspaceName}</p>}
               </div>
             </div>
             <button
@@ -334,7 +331,10 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
 
           {/* Mode 2: Multi-email Batch Importer */}
           {inviteMode === 'batch' && (
-            <form onSubmit={handleSubmitBatch} className='p-5 space-y-4 overflow-y-auto flex-1 custom-scrollbar text-xs'>
+            <form
+              onSubmit={handleSubmitBatch}
+              className='p-5 space-y-4 overflow-y-auto flex-1 custom-scrollbar text-xs'
+            >
               {errorMsg && (
                 <div className='p-3 bg-red-50 text-red-600 text-xs rounded-lg border border-red-200 flex items-start gap-2'>
                   <AlertTriangle className='w-4 h-4 mt-0.5 shrink-0' />
@@ -459,9 +459,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                   {isSubmitting ? (
                     <span>Đang gửi...</span>
                   ) : (
-                    <span>
-                      Gửi lời mời ({inviteList.length || (rawEmails.trim() ? 1 : 0)})
-                    </span>
+                    <span>Gửi lời mời ({inviteList.length || (rawEmails.trim() ? 1 : 0)})</span>
                   )}
                 </button>
               </div>

@@ -187,10 +187,7 @@ describe('UploadPagesModal', () => {
     fireEvent.change(input, { target: { files: [oversizedFile] } });
 
     await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith(
-        'Ảnh quá lớn',
-        expect.stringContaining('20 MB'),
-      );
+      expect(mockShowToast).toHaveBeenCalledWith('Ảnh quá lớn', expect.stringContaining('20 MB'));
     });
   });
 

@@ -346,9 +346,7 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           onClick={(e) => e.stopPropagation()}
         >
           <Eye className='w-3.5 h-3.5 text-orange-600 shrink-0' />
-          <span className='text-[11px] font-bold text-stone-700 whitespace-nowrap'>
-            Độ mờ:
-          </span>
+          <span className='text-[11px] font-bold text-stone-700 whitespace-nowrap'>Độ mờ:</span>
           <input
             type='range'
             data-testid='radial-storyboard-opacity-input'

@@ -54,4 +54,3 @@ describe('chapterScriptMachine (Workflow State Engine)', () => {
     expect(actor.getSnapshot().value).toBe('unfrozenRevision');
   });
 });
-

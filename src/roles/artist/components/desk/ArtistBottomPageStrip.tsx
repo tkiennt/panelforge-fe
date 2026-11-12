@@ -152,7 +152,9 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                 >
                   <Plus className='w-4 h-4' />
                   <span className='text-[10px] font-semibold leading-tight text-center px-1'>
-                    Thêm<br />trang
+                    Thêm
+                    <br />
+                    trang
                   </span>
                 </button>
                 <span className='text-xs text-transparent select-none'>+</span>

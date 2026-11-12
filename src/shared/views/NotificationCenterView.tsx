@@ -250,7 +250,8 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
                 )}
               </div>
               <p className='text-xs sm:text-sm text-[#57534E] mt-0.5'>
-                Theo dõi phân công việc, tiến độ chương và các yêu cầu chỉnh sửa từ đội ngũ sản xuất.
+                Theo dõi phân công việc, tiến độ chương và các yêu cầu chỉnh sửa từ đội ngũ sản
+                xuất.
               </p>
             </div>
           </div>
@@ -316,9 +317,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
           {unreadCount > 0 && (
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                filter === 'unread'
-                  ? 'bg-[#F97316] text-white'
-                  : 'bg-[#F97316]/20 text-[#C2410C]'
+                filter === 'unread' ? 'bg-[#F97316] text-white' : 'bg-[#F97316]/20 text-[#C2410C]'
               }`}
             >
               {unreadCount}
@@ -355,13 +354,12 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
           <div className='divide-y divide-[#E7E2D9]'>
             {displayedNotifications.map((n) => {
               const isUnread = !n.readAt;
-              const config =
-                TYPE_CONFIG[String(n.type)] || {
-                  label: 'Thông báo',
-                  icon: Bell,
-                  color: 'text-[#78716C]',
-                  bg: 'bg-[#F1EEE8] border-[#D8D2C5]',
-                };
+              const config = TYPE_CONFIG[String(n.type)] || {
+                label: 'Thông báo',
+                icon: Bell,
+                color: 'text-[#78716C]',
+                bg: 'bg-[#F1EEE8] border-[#D8D2C5]',
+              };
               const Icon = config.icon;
 
               return (

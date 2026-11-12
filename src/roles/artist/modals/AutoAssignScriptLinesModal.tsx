@@ -9,10 +9,7 @@ import {
   Film,
   Layers,
 } from 'lucide-react';
-import {
-  pageService,
-  AutoAssignScriptLinesResult,
-} from '@/services/page.service';
+import { pageService, AutoAssignScriptLinesResult } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
 import { SceneScriptLineSummaryDto } from '@/services/scriptLine.service';
 
@@ -91,7 +88,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
       await pageService.autoAssignScriptLines(pageId, { sceneId, dryRun: false });
       onShowToast?.(
         'Phân bổ kịch bản thành công',
-        `Đã phân bổ kịch bản vào ${previewResult?.assignments?.length || 0} khung tranh.`
+        `Đã phân bổ kịch bản vào ${previewResult?.assignments?.length || 0} khung tranh.`,
       );
       await onSuccess();
       onClose();
@@ -118,14 +115,18 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
               <Sparkles className='w-5 h-5' />
             </div>
             <div>
-              <h2 id='auto-assign-modal-title' className='font-bold text-sm text-[#1C1917] flex items-center gap-2'>
+              <h2
+                id='auto-assign-modal-title'
+                className='font-bold text-sm text-[#1C1917] flex items-center gap-2'
+              >
                 <span>Tự Động Phân Bổ Kịch Bản</span>
                 <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74]'>
                   Trang #{pageNumber}
                 </span>
               </h2>
               <p className='text-xs text-[#57534E]'>
-                Gom dòng chỉ dẫn & thoại theo sau thành cụm, gán lần lượt vào các khung theo thứ tự đọc
+                Gom dòng chỉ dẫn & thoại theo sau thành cụm, gán lần lượt vào các khung theo thứ tự
+                đọc
               </p>
             </div>
           </div>
@@ -193,9 +194,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                     <Layers className='w-4 h-4 text-amber-600' />
                     <span>Khung còn thiếu</span>
                   </div>
-                  <div className='text-lg font-bold'>
-                    {previewResult.missingPanels} khung
-                  </div>
+                  <div className='text-lg font-bold'>{previewResult.missingPanels} khung</div>
                 </div>
               </div>
 
@@ -203,9 +202,10 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                 <div className='p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 leading-relaxed flex items-start gap-2'>
                   <AlertTriangle className='w-4 h-4 shrink-0 mt-0.5 text-amber-600' />
                   <div>
-                    <strong>Lưu ý:</strong> Kịch bản có nhiều cụm hơn số khung hiện tại trên trang. Có{' '}
-                    <strong>{previewResult.unassignedLineIds.length} dòng kịch bản</strong> sẽ chưa được
-                    gán. Bạn có thể thêm {previewResult.missingPanels} khung nữa vào trang sau đó.
+                    <strong>Lưu ý:</strong> Kịch bản có nhiều cụm hơn số khung hiện tại trên trang.
+                    Có <strong>{previewResult.unassignedLineIds.length} dòng kịch bản</strong> sẽ
+                    chưa được gán. Bạn có thể thêm {previewResult.missingPanels} khung nữa vào trang
+                    sau đó.
                   </div>
                 </div>
               )}
@@ -241,7 +241,9 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                         {grp.scriptLineIds.map((lid) => {
                           const line = linesById.get(lid);
                           if (!line) return null;
-                          const isDialogue = Boolean(line.speakerCharacterId || line.dialogueText?.trim());
+                          const isDialogue = Boolean(
+                            line.speakerCharacterId || line.dialogueText?.trim(),
+                          );
                           const characterName = line.speakerCharacterId
                             ? bibleNameById[line.speakerCharacterId] || 'Nhân vật'
                             : 'Lời thoại';
@@ -279,7 +281,9 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                   <div className='p-3 bg-amber-50/50 rounded-xl border border-amber-200/80 space-y-2'>
                     <div className='text-xs font-bold text-amber-900 flex items-center justify-between'>
                       <span>Dòng kịch bản chưa thể gán (vượt số lượng khung)</span>
-                      <span className='font-mono font-bold'>{previewResult.unassignedLineIds.length} dòng</span>
+                      <span className='font-mono font-bold'>
+                        {previewResult.unassignedLineIds.length} dòng
+                      </span>
                     </div>
                     <div className='space-y-1 pl-2'>
                       {previewResult.unassignedLineIds.map((lid) => {
@@ -288,7 +292,9 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                         return (
                           <div key={lid} className='text-xs text-[#57534E] flex items-center gap-2'>
                             <span className='font-mono text-[10px]'>#{line.lineOrder}</span>
-                            <span className='truncate'>{line.dialogueText || line.stageDirection}</span>
+                            <span className='truncate'>
+                              {line.dialogueText || line.stageDirection}
+                            </span>
                           </div>
                         );
                       })}
@@ -314,7 +320,9 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
             type='button'
             data-testid='apply-auto-assign-btn'
             onClick={handleApply}
-            disabled={loadingPreview || applying || !previewResult || previewResult.assignments.length === 0}
+            disabled={
+              loadingPreview || applying || !previewResult || previewResult.assignments.length === 0
+            }
             className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors disabled:opacity-50'
           >
             {applying ? (

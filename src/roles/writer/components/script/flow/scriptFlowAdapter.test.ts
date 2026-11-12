@@ -68,7 +68,9 @@ describe('scriptFlowAdapter (Dual-Mode Single Source of Truth)', () => {
 
     expect(extracted.length).toBeGreaterThanOrEqual(2);
 
-    const dialogueLine = extracted.find((l) => l.dialogueText?.includes('Cuối cùng ta cũng đã tìm'));
+    const dialogueLine = extracted.find((l) =>
+      l.dialogueText?.includes('Cuối cùng ta cũng đã tìm'),
+    );
     expect(dialogueLine).toBeDefined();
     expect(dialogueLine?.sceneId).toBe('scene-1111');
 
@@ -457,13 +459,24 @@ describe('Lưu đúng cấu trúc Nhân vật -> Lời thoại', () => {
     const doc = {
       type: 'doc',
       content: [
-        { type: 'scriptLineBlock', attrs: { blockType: 'page_heading', pageNumber: 1 }, content: [{ type: 'text', text: 'Trang 01' }] },
-        { type: 'scriptLineBlock', attrs: { blockType: 'panel_heading' }, content: [{ type: 'text', text: 'PANEL 1.1' }] },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'page_heading', pageNumber: 1 },
+          content: [{ type: 'text', text: 'Trang 01' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'panel_heading' },
+          content: [{ type: 'text', text: 'PANEL 1.1' }],
+        },
         {
           type: 'scriptLineBlock',
           attrs: { blockType: 'stage_direction' },
           content: [
-            { type: 'bibleMention', attrs: { id: 'chr-iruka', code: 'IRUKA', label: 'Iruka', category: 'Character' } },
+            {
+              type: 'bibleMention',
+              attrs: { id: 'chr-iruka', code: 'IRUKA', label: 'Iruka', category: 'Character' },
+            },
             { type: 'text', text: ' : "Chào Naruto"' },
           ],
         },
@@ -482,17 +495,35 @@ describe('Lưu đúng cấu trúc Nhân vật -> Lời thoại', () => {
   it('tải rồi lưu lại không nhân bản dòng tên người nói', () => {
     const scenes: SceneDetailDto[] = [
       {
-        id: 'sc-1', chapterId: 'c-1', sceneNumber: 1, heading: 'A', summary: null,
-        defaultNarrationMode: 'Present', createdAt: '2026-01-01', version: 1,
+        id: 'sc-1',
+        chapterId: 'c-1',
+        sceneNumber: 1,
+        heading: 'A',
+        summary: null,
+        defaultNarrationMode: 'Present',
+        createdAt: '2026-01-01',
+        version: 1,
         scriptLines: [
-          { id: 'l-1', lineOrder: 1, speakerCharacterId: 'chr-1', dialogueText: 'Xin chào', stageDirection: null, narrationMode: 'Present' },
+          {
+            id: 'l-1',
+            lineOrder: 1,
+            speakerCharacterId: 'chr-1',
+            dialogueText: 'Xin chào',
+            stageDirection: null,
+            narrationMode: 'Present',
+          },
         ],
       },
     ];
     const doc = scenesToTipTapDoc(scenes, () => 'Minh');
-    const lines = extractScriptLinesFromDoc(doc, 'sc-1').filter((l) => l.blockType !== 'scene_heading');
+    const lines = extractScriptLinesFromDoc(doc, 'sc-1').filter(
+      (l) => l.blockType !== 'scene_heading',
+    );
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toMatchObject({ dialogueText: 'Minh: "Xin chào"', speakerCharacterId: 'chr-1' });
+    expect(lines[0]).toMatchObject({
+      dialogueText: 'Minh: "Xin chào"',
+      speakerCharacterId: 'chr-1',
+    });
   });
 });
 
@@ -503,20 +534,46 @@ describe('Thoại có nhãn người nói và loại dòng khi lưu / mở lại
   ] as any;
   const scene = (scriptLines: any[]): SceneDetailDto[] => [
     {
-      id: 'sc-1', chapterId: 'c-1', sceneNumber: 1, heading: 'A', summary: null,
-      defaultNarrationMode: 'Present', createdAt: '2026-01-01', version: 1,
-      scriptLines: scriptLines.map((l, i) => ({ id: `l-${i}`, lineOrder: i + 1, narrationMode: 'Present', speakerCharacterId: null, dialogueText: null, stageDirection: null, ...l })),
+      id: 'sc-1',
+      chapterId: 'c-1',
+      sceneNumber: 1,
+      heading: 'A',
+      summary: null,
+      defaultNarrationMode: 'Present',
+      createdAt: '2026-01-01',
+      version: 1,
+      scriptLines: scriptLines.map((l, i) => ({
+        id: `l-${i}`,
+        lineOrder: i + 1,
+        narrationMode: 'Present',
+        speakerCharacterId: null,
+        dialogueText: null,
+        stageDirection: null,
+        ...l,
+      })),
     },
   ];
   const roundTrip = (lines: any[]) =>
-    extractScriptLinesFromDoc(scenesToTipTapDoc(scene(lines), () => null, undefined, undefined, bible), 'sc-1')
-      .filter((l) => l.blockType !== 'scene_heading');
+    extractScriptLinesFromDoc(
+      scenesToTipTapDoc(scene(lines), () => null, undefined, undefined, bible),
+      'sc-1',
+    ).filter((l) => l.blockType !== 'scene_heading');
 
   it('chỉ nhận tên người nói khi có @, là mã, khớp Bible hoặc viết HOA', () => {
-    expect(splitSpeakerLine('naruto: Đi thôi', bible)).toMatchObject({ speakerName: 'Naruto', speakerCharacterId: 'chr-naruto' });
-    expect(splitSpeakerLine('MINH: "Chạy!"', bible)).toMatchObject({ speakerName: 'MINH', text: 'Chạy!', quoted: true });
+    expect(splitSpeakerLine('naruto: Đi thôi', bible)).toMatchObject({
+      speakerName: 'Naruto',
+      speakerCharacterId: 'chr-naruto',
+    });
+    expect(splitSpeakerLine('MINH: "Chạy!"', bible)).toMatchObject({
+      speakerName: 'MINH',
+      text: 'Chạy!',
+      quoted: true,
+    });
     expect(splitSpeakerLine('@Lan : chào', bible)).toMatchObject({ speakerName: 'Lan' });
-    expect(splitSpeakerLine('(NARUTO) : "Yo"', bible)).toMatchObject({ speakerName: 'Naruto', text: 'Yo' });
+    expect(splitSpeakerLine('(NARUTO) : "Yo"', bible)).toMatchObject({
+      speakerName: 'Naruto',
+      text: 'Yo',
+    });
     expect(splitSpeakerLine('Bối cảnh: phòng học', bible)).toBeNull();
     // Chỉ dẫn diễn xuất kiểu full script: giữ trong nhãn, vẫn liên kết đúng nhân vật Bible
     expect(splitSpeakerLine('NARUTO (OFF): Hey.', bible)).toMatchObject({
@@ -524,7 +581,10 @@ describe('Thoại có nhãn người nói và loại dòng khi lưu / mở lại
       speakerCharacterId: 'chr-naruto',
       text: 'Hey.',
     });
-    expect(splitSpeakerLine('MALANDRO (OFF): "Đừng nghĩ."', bible)).toMatchObject({ speakerName: 'MALANDRO (OFF)', text: 'Đừng nghĩ.' });
+    expect(splitSpeakerLine('MALANDRO (OFF): "Đừng nghĩ."', bible)).toMatchObject({
+      speakerName: 'MALANDRO (OFF)',
+      text: 'Đừng nghĩ.',
+    });
     expect(splitSpeakerLine('Góc máy (thấp): nhìn lên', bible)).toBeNull();
     expect(splitSpeakerLine('Konoha: làng lá', bible)).toBeNull();
   });

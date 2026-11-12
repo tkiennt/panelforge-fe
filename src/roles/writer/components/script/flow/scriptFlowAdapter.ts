@@ -44,10 +44,15 @@ export function renumberTipTapDoc(doc: any): any {
 
       let existingText = '';
       if (block.content && Array.isArray(block.content)) {
-        existingText = block.content.map((c: any) => c.text || '').join('').trim();
+        existingText = block.content
+          .map((c: any) => c.text || '')
+          .join('')
+          .trim();
       }
       // Giữ lại phần tiêu đề sau dấu : hoặc - nếu có
-      const noteMatch = existingText.match(/^(?:[!#\s]*)?(?:CẢNH|SCENE)?\s*\d*(?:\s*[:\-]\s*(.*))?$/i);
+      const noteMatch = existingText.match(
+        /^(?:[!#\s]*)?(?:CẢNH|SCENE)?\s*\d*(?:\s*[:\-]\s*(.*))?$/i,
+      );
       const note = noteMatch && noteMatch[1] ? `: ${noteMatch[1].trim()}` : '';
       block.content = [{ type: 'text', text: `CẢNH ${sceneCounter}${note}`.toUpperCase() }];
     } else if (bType === 'page_heading') {
@@ -57,10 +62,15 @@ export function renumberTipTapDoc(doc: any): any {
 
       let existingText = '';
       if (block.content && Array.isArray(block.content)) {
-        existingText = block.content.map((c: any) => c.text || '').join('').trim();
+        existingText = block.content
+          .map((c: any) => c.text || '')
+          .join('')
+          .trim();
       }
       // Giữ lại phần ghi chú sau dấu : hoặc - nếu có
-      const noteMatch = existingText.match(/^(?:[!#\s]*)?(?:Page|Trang)?\s*\d*(?:\.\d+)?(?:\s*[:\-]\s*(.*))?$/i);
+      const noteMatch = existingText.match(
+        /^(?:[!#\s]*)?(?:Page|Trang)?\s*\d*(?:\.\d+)?(?:\s*[:\-]\s*(.*))?$/i,
+      );
       const note = noteMatch && noteMatch[1] ? `: ${noteMatch[1].trim()}` : '';
       block.content = [{ type: 'text', text: `TRANG ${pageCounter}${note}` }];
     } else if (bType === 'panel_heading') {
@@ -71,9 +81,14 @@ export function renumberTipTapDoc(doc: any): any {
 
       let existingText = '';
       if (block.content && Array.isArray(block.content)) {
-        existingText = block.content.map((c: any) => c.text || '').join('').trim();
+        existingText = block.content
+          .map((c: any) => c.text || '')
+          .join('')
+          .trim();
       }
-      const noteMatch = existingText.match(/^(?:[-"”#\s]*)?(?:Panel|Khung)?\s*\d*(?:\.\d+)?(?:\s*[:\-]\s*(.*))?$/i);
+      const noteMatch = existingText.match(
+        /^(?:[-"”#\s]*)?(?:Panel|Khung)?\s*\d*(?:\.\d+)?(?:\s*[:\-]\s*(.*))?$/i,
+      );
       const note = noteMatch && noteMatch[1] ? `: ${noteMatch[1].trim()}` : '';
       block.content = [{ type: 'text', text: `PANEL ${pNum}.${panelCounter}${note}` }];
     } else if (bType !== 'scene_heading') {
@@ -143,11 +158,14 @@ export function createPanelSlotBlocks(
   pageNumber: number,
   panelNumber: number,
   shot: string = 'Toàn cảnh',
-  sceneId?: string | null
+  sceneId?: string | null,
 ): any[] {
   const base = { sceneId: sceneId || null, pageNumber, panelNumber };
   return [
-    scriptBlock({ ...base, blockType: 'panel_heading' as MangaBlockType }, `" Panel ${pageNumber}.${panelNumber}: [${shot}]`),
+    scriptBlock(
+      { ...base, blockType: 'panel_heading' as MangaBlockType },
+      `" Panel ${pageNumber}.${panelNumber}: [${shot}]`,
+    ),
     scriptBlock({ ...base, blockType: 'stage_direction' as MangaBlockType, inPanel: true }),
     scriptBlock({ ...base, blockType: 'dialogue' as MangaBlockType, inPanel: true }),
   ];
@@ -162,17 +180,24 @@ export function getDefaultPanelShot(panelNumber: number, panelsCount: number = 4
 export function createStructuredMangaPageBlocks(
   pageNumber: number = 1,
   panelsCount: 4 | 5 = 4,
-  sceneId?: string | null
+  sceneId?: string | null,
 ): any[] {
   const pStr = String(pageNumber).padStart(2, '0');
   const blocks: any[] = [
     scriptBlock(
-      { sceneId: sceneId || null, blockType: 'page_heading' as MangaBlockType, pageNumber, panelNumber: 0 },
-      `Trang ${pStr}`
+      {
+        sceneId: sceneId || null,
+        blockType: 'page_heading' as MangaBlockType,
+        pageNumber,
+        panelNumber: 0,
+      },
+      `Trang ${pStr}`,
     ),
   ];
   for (let pNum = 1; pNum <= panelsCount; pNum++) {
-    blocks.push(...createPanelSlotBlocks(pageNumber, pNum, getDefaultPanelShot(pNum, panelsCount), sceneId));
+    blocks.push(
+      ...createPanelSlotBlocks(pageNumber, pNum, getDefaultPanelShot(pNum, panelsCount), sceneId),
+    );
   }
   return blocks;
 }
@@ -200,7 +225,7 @@ export const BIBLE_CODE_REGEX = /\(([A-Z]{2,4}-[A-Z0-9]+(?:-[A-Z0-9]+)*)\)/g;
 export function parseTextWithBibleMentions(
   text: string,
   allBibleEntries?: BibleEntryDto[],
-  chapterNumber?: number
+  chapterNumber?: number,
 ): any[] {
   if (!text) return [];
 
@@ -221,9 +246,7 @@ export function parseTextWithBibleMentions(
       });
     }
 
-    const entry = (allBibleEntries || []).find(
-      (e) => e.code?.toLowerCase() === code.toLowerCase()
-    );
+    const entry = (allBibleEntries || []).find((e) => e.code?.toLowerCase() === code.toLowerCase());
 
     if (entry) {
       nodes.push({
@@ -292,7 +315,8 @@ export function findBibleCharacter(name: string, entries?: BibleEntryDto[]): Bib
     entries.find(
       (e) =>
         String(e.category) === 'Character' &&
-        (normalizeSpeakerKey(e.name) === key || (e.code ? normalizeSpeakerKey(e.code) === key : false))
+        (normalizeSpeakerKey(e.name) === key ||
+          (e.code ? normalizeSpeakerKey(e.code) === key : false)),
     ) ?? null
   );
 }
@@ -312,7 +336,9 @@ export function splitSpeakerLine(raw: string, entries?: BibleEntryDto[]): Speake
   // Tên có thể kèm chỉ dẫn diễn xuất như kịch bản truyện tranh: "MALANDRO (OFF):", "Lan (thì thầm):"
   const m = raw
     .trim()
-    .match(/^(@)?(\()?([\p{L}0-9_][\p{L}0-9_ .'-]{0,38}?)(\))?(?:\s*\(([^()]{1,24})\))?\s*:\s*([\s\S]*)$/u);
+    .match(
+      /^(@)?(\()?([\p{L}0-9_][\p{L}0-9_ .'-]{0,38}?)(\))?(?:\s*\(([^()]{1,24})\))?\s*:\s*([\s\S]*)$/u,
+    );
   if (!m) return null;
   const [, at, open, rawName, close, modifier, rest] = m;
   const name = rawName.trim();
@@ -346,7 +372,7 @@ export function scenesToTipTapDoc(
   pages?: PageDto[],
   panels?: PanelDto[],
   allBibleEntries?: BibleEntryDto[],
-  chapterNumber?: number
+  chapterNumber?: number,
 ) {
   const content: any[] = [];
   const panelMap = new Map<string, PanelDto>();
@@ -380,11 +406,15 @@ export function scenesToTipTapDoc(
     } else {
       scene.scriptLines.forEach((line, index) => {
         const associatedPanel = line.panelId ? panelMap.get(line.panelId) : undefined;
-        const hasThumb = associatedPanel ? !!((associatedPanel as any).hasArtwork || (associatedPanel as any).thumbnailUrl) : false;
+        const hasThumb = associatedPanel
+          ? !!((associatedPanel as any).hasArtwork || (associatedPanel as any).thumbnailUrl)
+          : false;
 
         // 1a. Dữ liệu cũ: lời thoại có ngoặc kép bị lưu nhầm thành chỉ dẫn ("(MÃ) : \"...\"", "TÊN: \"...\"")
         const legacyDialogue =
-          line.stageDirection && !line.dialogueText ? splitSpeakerLine(line.stageDirection, allBibleEntries) : null;
+          line.stageDirection && !line.dialogueText
+            ? splitSpeakerLine(line.stageDirection, allBibleEntries)
+            : null;
         if (legacyDialogue?.quoted && legacyDialogue.text) {
           content.push({
             type: 'scriptLineBlock',
@@ -399,7 +429,11 @@ export function scenesToTipTapDoc(
               panelId: line.panelId || null,
               inPanel: Boolean(line.panelId),
             },
-            content: parseTextWithBibleMentions(legacyDialogue.text, allBibleEntries, chapterNumber),
+            content: parseTextWithBibleMentions(
+              legacyDialogue.text,
+              allBibleEntries,
+              chapterNumber,
+            ),
           });
           return;
         }
@@ -417,9 +451,17 @@ export function scenesToTipTapDoc(
           } else if (captionPrefix) {
             detectedType = 'caption';
             body = captionPrefix[1];
-          } else if (/^(?:[#!]\s*(?:Trang|Page)?\s*\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(trimmed)) {
+          } else if (
+            /^(?:[#!]\s*(?:Trang|Page)?\s*\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(
+              trimmed,
+            )
+          ) {
             detectedType = 'page_heading';
-          } else if (/^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|[-"”]\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(trimmed)) {
+          } else if (
+            /^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|[-"”]\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(
+              trimmed,
+            )
+          ) {
             detectedType = 'panel_heading';
           } else if (/^(?:CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(trimmed)) {
             detectedType = 'scene_heading';
@@ -459,7 +501,10 @@ export function scenesToTipTapDoc(
               lineOrder: index + 1,
               panelId: line.panelId || null,
               hasThumbnail: hasThumb,
-              inPanel: detectedType !== 'page_heading' && detectedType !== 'panel_heading' && Boolean(line.panelId),
+              inPanel:
+                detectedType !== 'page_heading' &&
+                detectedType !== 'panel_heading' &&
+                Boolean(line.panelId),
             },
             content: blockContent,
           });
@@ -493,7 +538,9 @@ export function scenesToTipTapDoc(
         // 3. Dòng thoại: tên người nói thành nhãn của khối, nội dung chỉ còn lời thoại
         if (line.dialogueText) {
           const split = splitSpeakerLine(line.dialogueText, allBibleEntries);
-          const body = split ? split.text : line.dialogueText.trim().replace(/^["“]([\s\S]*)["”]$/, '$1');
+          const body = split
+            ? split.text
+            : line.dialogueText.trim().replace(/^["“]([\s\S]*)["”]$/, '$1');
           content.push({
             type: 'scriptLineBlock',
             attrs: {
@@ -558,7 +605,10 @@ export interface ExtractedScriptLinePayload {
  * Tự động bỏ qua các khối rỗng hoàn toàn để tuân thủ quy tắc toàn vẹn của ScriptLine Entity ở Backend.
  * Tự động gán panelId cho các dòng nằm bên dưới một panel_heading.
  */
-export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): ExtractedScriptLinePayload[] {
+export function extractScriptLinesFromDoc(
+  doc: any,
+  defaultSceneId: string,
+): ExtractedScriptLinePayload[] {
   if (!doc || !doc.content || !Array.isArray(doc.content)) return [];
 
   const results: ExtractedScriptLinePayload[] = [];
@@ -613,11 +663,21 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     let effectiveBlockType: MangaBlockType = attrs.blockType || 'stage_direction';
 
     // Nhận diện cú pháp gõ tay thủ công
-    if (/^(?:[#!]\s*(?:Trang|Page)?\s*\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?|^[#!]\s*$)/i.test(textTrimmed)) {
+    if (
+      /^(?:[#!]\s*(?:Trang|Page)?\s*\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?|^[#!]\s*$)/i.test(
+        textTrimmed,
+      )
+    ) {
       effectiveBlockType = 'page_heading';
-    } else if (/^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|[-"”]\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?|^[-"”]\s*$)/i.test(textTrimmed)) {
+    } else if (
+      /^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|[-"”]\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?|^[-"”]\s*$)/i.test(
+        textTrimmed,
+      )
+    ) {
       effectiveBlockType = 'panel_heading';
-    } else if (/^(?:[#!]\s*(?:CẢNH|SCENE)\s*\d+|CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(textTrimmed)) {
+    } else if (
+      /^(?:[#!]\s*(?:CẢNH|SCENE)\s*\d+|CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(textTrimmed)
+    ) {
       effectiveBlockType = 'scene_heading';
     } else if (/^(?:\*|SFX\s*:)/i.test(textTrimmed)) {
       effectiveBlockType = 'sfx';
@@ -707,7 +767,8 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
 
     // 0. Thoại gõ bằng @mention nhân vật: [mention] : "LỜI THOẠI" -> text đã thành "(CODE) : \"...\"".
     // Không có nhánh này thì dòng thoại bị lưu thành StageDirection và mất SpeakerCharacterId.
-    const leadingMention = block.content?.[0]?.type === 'bibleMention' ? block.content[0].attrs : null;
+    const leadingMention =
+      block.content?.[0]?.type === 'bibleMention' ? block.content[0].attrs : null;
     const mentionDialogueMatch =
       leadingMention && (!leadingMention.category || leadingMention.category === 'Character')
         ? textTrimmed.match(/^\([^)]+\)\s*:\s*["“](.*?)["”]$/u)
@@ -771,7 +832,9 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     }
 
     // 3. Cú pháp cũ dự phòng: NHÂN VẬT: Thoại
-    const dialogueWithSpeakerMatch = textTrimmed.match(/^([A-ZÀ-Ỹ0-9_\s]{2,30})(?:\/([a-zA-ZÀ-ỹ]+))?:\s*(.+)$/);
+    const dialogueWithSpeakerMatch = textTrimmed.match(
+      /^([A-ZÀ-Ỹ0-9_\s]{2,30})(?:\/([a-zA-ZÀ-ỹ]+))?:\s*(.+)$/,
+    );
     if (dialogueWithSpeakerMatch) {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
@@ -829,7 +892,9 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     ) {
       // Giữ loại dòng khi lưu: "SFX: ..." / "Lời dẫn: ..." (Bàn vẽ và lần mở sau đọc lại được)
       const typedText =
-        effectiveBlockType === 'sfx' && !SFX_PREFIX.test(textTrimmed) && !/^\*.+\*$/.test(textTrimmed)
+        effectiveBlockType === 'sfx' &&
+        !SFX_PREFIX.test(textTrimmed) &&
+        !/^\*.+\*$/.test(textTrimmed)
           ? `SFX: ${textTrimmed}`
           : effectiveBlockType === 'caption' && !CAPTION_PREFIX.test(textTrimmed)
             ? `Lời dẫn: ${textTrimmed}`

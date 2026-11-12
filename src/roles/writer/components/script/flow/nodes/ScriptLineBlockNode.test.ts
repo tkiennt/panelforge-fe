@@ -6,10 +6,7 @@ import { ScriptLineBlockNode } from './ScriptLineBlockNode';
 
 function createTestFlowEditor(initialHtml: string = '<p></p>') {
   return new Editor({
-    extensions: [
-      StarterKit.configure({ heading: false }),
-      ScriptLineBlockNode,
-    ],
+    extensions: [StarterKit.configure({ heading: false }), ScriptLineBlockNode],
     content: initialHtml,
   });
 }
@@ -75,7 +72,9 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
 
   // 3. Enter incremental parsing
   it('tự động nhận diện dòng thoại có @NhânVật: "Lời thoại" khi nhấn Enter', () => {
-    const editor = createTestFlowEditor('<div data-block-type="stage_direction">@Minh: "Mau chạy đi!"</div>');
+    const editor = createTestFlowEditor(
+      '<div data-block-type="stage_direction">@Minh: "Mau chạy đi!"</div>',
+    );
     editor.commands.setTextSelection(23);
 
     const handled = editor.commands.keyboardShortcut('Enter');
@@ -102,7 +101,9 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
   });
 
   it('tự động nhận diện dòng Caption: Lời dẫn khi nhấn Enter', () => {
-    const editor = createTestFlowEditor('<div data-block-type="stage_direction">Caption: Tokyo lúc nửa đêm</div>');
+    const editor = createTestFlowEditor(
+      '<div data-block-type="stage_direction">Caption: Tokyo lúc nửa đêm</div>',
+    );
     editor.commands.setTextSelection(26);
 
     const handled = editor.commands.keyboardShortcut('Enter');
@@ -128,7 +129,7 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
 
   it('cho phép xóa page_heading thứ hai (Page 02) khi nhấn Backspace', () => {
     const editor = createTestFlowEditor(
-      '<div data-block-type="page_heading">Trang 01</div><div data-block-type="page_heading">Trang 02</div>'
+      '<div data-block-type="page_heading">Trang 01</div><div data-block-type="page_heading">Trang 02</div>',
     );
     // Đặt con trỏ vào đầu khối Trang 02 (sau Trang 01)
     const posTrang2 = editor.state.doc.child(0).nodeSize + 1;
@@ -142,12 +143,14 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
     expect(scriptBlocks.length).toBe(1);
     expect(scriptBlocks[0]?.attrs?.blockType).toBe('page_heading');
     expect((scriptBlocks[0] as any)?.content?.[0]?.text).toContain('Trang 01');
-    expect(json.content?.some((n) => (n as any)?.content?.[0]?.text?.includes('Trang 02'))).toBe(false);
+    expect(json.content?.some((n) => (n as any)?.content?.[0]?.text?.includes('Trang 02'))).toBe(
+      false,
+    );
   });
 
   it('cho phép xóa panel_heading khi nhấn Backspace ở đầu khối', () => {
     const editor = createTestFlowEditor(
-      '<div data-block-type="page_heading">Trang 01</div><div data-block-type="panel_heading">Panel 1.1</div>'
+      '<div data-block-type="page_heading">Trang 01</div><div data-block-type="panel_heading">Panel 1.1</div>',
     );
     const posPanel = editor.state.doc.child(0).nodeSize + 1;
     editor.commands.setTextSelection(posPanel);
@@ -178,7 +181,7 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
       editor.commands.keyboardShortcut('Tab');
 
       const pages = (editor.getJSON().content || []).filter(
-        (n: any) => n.attrs?.blockType === 'page_heading'
+        (n: any) => n.attrs?.blockType === 'page_heading',
       );
       expect(pages.length).toBe(3);
       expect((pages[0]?.content?.[0] as any)?.text).toContain('Trang 01');
@@ -216,12 +219,12 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
       editor.commands.keyboardShortcut('Space');
 
       const pages = (editor.getJSON().content || []).filter(
-        (n: any) => n.attrs?.blockType === 'page_heading'
+        (n: any) => n.attrs?.blockType === 'page_heading',
       );
       expect(pages.length).toBe(2);
 
       const panels = (editor.getJSON().content || []).filter(
-        (n: any) => n.attrs?.blockType === 'panel_heading'
+        (n: any) => n.attrs?.blockType === 'panel_heading',
       );
       expect(panels.length).toBe(3);
       expect((panels[0]?.content?.[0] as any)?.text).toContain('Panel 1.1:');
@@ -230,7 +233,9 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
     });
 
     it('nhấn Enter sau panel_heading tạo dòng hành động cho phép viết tự do, KHÔNG tự chuyển thành dialogue', () => {
-      const editor = createTestFlowEditor('<div data-block-type="panel_heading">Panel 1.1: [Cận cảnh]</div>');
+      const editor = createTestFlowEditor(
+        '<div data-block-type="panel_heading">Panel 1.1: [Cận cảnh]</div>',
+      );
       editor.commands.setTextSelection(2);
       const handled = editor.commands.keyboardShortcut('Enter');
       expect(handled).toBe(true);
@@ -256,7 +261,9 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
     });
 
     it('không xóa panel_heading khi nhấn Backspace ở giữa dòng (parentOffset > 0)', () => {
-      const editor = createTestFlowEditor('<div data-block-type="panel_heading">Panel 1.1: [Cận cảnh]</div>');
+      const editor = createTestFlowEditor(
+        '<div data-block-type="panel_heading">Panel 1.1: [Cận cảnh]</div>',
+      );
       // Đặt con trỏ ở ký tự thứ 6 (sau "Panel")
       editor.commands.setTextSelection(6);
       editor.commands.keyboardShortcut('Backspace');
@@ -265,7 +272,9 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
     });
 
     it('tách đôi dòng văn bản khi nhấn Enter ở giữa dòng', () => {
-      const editor = createTestFlowEditor('<div data-block-type="caption">Dòng một và dòng hai</div>');
+      const editor = createTestFlowEditor(
+        '<div data-block-type="caption">Dòng một và dòng hai</div>',
+      );
       // Đặt con trỏ ở giữa chuỗi (sau "Dòng một ")
       editor.commands.setTextSelection(10);
       const handled = editor.commands.keyboardShortcut('Enter');
@@ -305,7 +314,9 @@ describe('ScriptLineBlockNode - gõ kịch bản đơn giản', () => {
   });
 
   it('Enter trên dòng thoại trống quay về dòng hành động', () => {
-    const editor = createTestFlowEditor('<div data-block-type="dialogue" data-speaker-name="Minh"></div>');
+    const editor = createTestFlowEditor(
+      '<div data-block-type="dialogue" data-speaker-name="Minh"></div>',
+    );
     editor.commands.setTextSelection(1);
     expect(editor.commands.keyboardShortcut('Enter')).toBe(true);
     expect(typeOf(editor)).toBe('stage_direction');
@@ -315,7 +326,9 @@ describe('ScriptLineBlockNode - gõ kịch bản đơn giản', () => {
   });
 
   it('Backspace ở đầu lời thoại bỏ nhãn người nói, giữ lời thoại', () => {
-    const editor = createTestFlowEditor('<div data-block-type="dialogue" data-speaker-name="Minh">Chạy đi</div>');
+    const editor = createTestFlowEditor(
+      '<div data-block-type="dialogue" data-speaker-name="Minh">Chạy đi</div>',
+    );
     editor.commands.setTextSelection(1);
     expect(editor.commands.keyboardShortcut('Backspace')).toBe(true);
     const node = editor.getJSON().content?.[0];
@@ -324,7 +337,9 @@ describe('ScriptLineBlockNode - gõ kịch bản đơn giản', () => {
   });
 
   it('đọc lại HTML của thoại có nhãn: tên không lẫn vào lời thoại', () => {
-    const editor = createTestFlowEditor('<div data-block-type="dialogue" data-speaker-name="Minh">Chạy đi</div>');
+    const editor = createTestFlowEditor(
+      '<div data-block-type="dialogue" data-speaker-name="Minh">Chạy đi</div>',
+    );
     const reparsed = createTestFlowEditor(editor.getHTML());
     const node = reparsed.getJSON().content?.[0];
     expect(node?.attrs?.speakerName).toBe('Minh');
@@ -341,9 +356,21 @@ describe('ScriptLineBlockNode - định dạng full script truyện tranh', () =
     editor.commands.setContent({
       type: 'doc',
       content: [
-        { type: 'scriptLineBlock', attrs: { blockType: 'dialogue', speakerName: 'MALANDRO (OFF)' }, content: [{ type: 'text', text: 'Hey.' }] },
-        { type: 'scriptLineBlock', attrs: { blockType: 'caption' }, content: [{ type: 'text', text: 'Pop, pop.' }] },
-        { type: 'scriptLineBlock', attrs: { blockType: 'sfx' }, content: [{ type: 'text', text: 'KRRZZZ' }] },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'dialogue', speakerName: 'MALANDRO (OFF)' },
+          content: [{ type: 'text', text: 'Hey.' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'caption' },
+          content: [{ type: 'text', text: 'Pop, pop.' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'sfx' },
+          content: [{ type: 'text', text: 'KRRZZZ' }],
+        },
       ],
     });
 
@@ -365,8 +392,16 @@ describe('ScriptLineBlockNode - định dạng full script truyện tranh', () =
     const editor = createTestFlowEditor('<p></p>');
     editor.commands.setContent({
       type: 'doc',
-      content: [{ type: 'scriptLineBlock', attrs: { blockType: 'dialogue' }, content: [{ type: 'text', text: 'Ai đó?' }] }],
+      content: [
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'dialogue' },
+          content: [{ type: 'text', text: 'Ai đó?' }],
+        },
+      ],
     });
-    expect(lineOf(editor, 'dialogue').querySelector('.script-line-label')?.textContent).toBe('Thoại');
+    expect(lineOf(editor, 'dialogue').querySelector('.script-line-label')?.textContent).toBe(
+      'Thoại',
+    );
   });
 });

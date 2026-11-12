@@ -1176,8 +1176,15 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                 Dung lượng: {formatSize(art.sizeBytes)} (
                                 {art.sizeBytes.toLocaleString()} bytes)
                               </div>
-                              <div>Trạng thái bảo chứng: <span className='text-emerald-700 font-medium'>Đã niêm phong an toàn</span></div>
-                      <div className='truncate text-[11px] text-zinc-500'>Mã toàn vẹn: {art.sha256}</div>
+                              <div>
+                                Trạng thái bảo chứng:{' '}
+                                <span className='text-emerald-700 font-medium'>
+                                  Đã niêm phong an toàn
+                                </span>
+                              </div>
+                              <div className='truncate text-[11px] text-zinc-500'>
+                                Mã toàn vẹn: {art.sha256}
+                              </div>
                               <div>
                                 Thời gian tải: {new Date(art.createdAt).toLocaleString('vi-VN')}
                               </div>
@@ -1303,8 +1310,13 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         Dung lượng: {formatSize(art.sizeBytes)} ({art.sizeBytes.toLocaleString()}{' '}
                         bytes)
                       </div>
-                      <div>Trạng thái bảo chứng: <span className='text-emerald-700 font-medium'>Đã niêm phong an toàn</span></div>
-                      <div className='truncate text-[11px] text-zinc-500'>Mã toàn vẹn: {art.sha256}</div>
+                      <div>
+                        Trạng thái bảo chứng:{' '}
+                        <span className='text-emerald-700 font-medium'>Đã niêm phong an toàn</span>
+                      </div>
+                      <div className='truncate text-[11px] text-zinc-500'>
+                        Mã toàn vẹn: {art.sha256}
+                      </div>
                       <div>Thời gian tải: {new Date(art.createdAt).toLocaleString('vi-VN')}</div>
                     </div>
                   )}

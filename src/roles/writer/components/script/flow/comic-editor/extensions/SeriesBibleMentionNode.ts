@@ -47,7 +47,7 @@ export const SeriesBibleMentionNode = Mention.extend({
           'data-label': label,
           'data-category': category,
         },
-        HTMLAttributes
+        HTMLAttributes,
       ),
       ['span', { class: `w-1.5 h-1.5 rounded-full ${dotColor}` }],
       `@${label}`,

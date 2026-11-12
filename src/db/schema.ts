@@ -1,6 +1,6 @@
 /**
  * PanelForge Core Production Architecture Schema Specification
- * 
+ *
  * Domain Relationship:
  * Series (Parent Workspace & Bible) ➔ Chapter (Production Container) ➔ Script (Dedicated Chapter Document)
  */
@@ -208,7 +208,7 @@ export const VALID_CHAPTER_TRANSITIONS: Record<ChapterStatusType, readonly Chapt
  */
 export function canTransitionChapterStatus(
   currentStatus: ChapterStatusType,
-  nextStatus: ChapterStatusType
+  nextStatus: ChapterStatusType,
 ): boolean {
   const allowed = VALID_CHAPTER_TRANSITIONS[currentStatus] || [];
   return allowed.includes(nextStatus);
@@ -223,7 +223,7 @@ export function canTransitionChapterStatus(
 export function isScriptEditable(
   chapter: Pick<Chapter, 'status' | 'writerId' | 'producerId'>,
   script: Pick<ChapterScript, 'isLocked'>,
-  userId: string
+  userId: string,
 ): { allowed: boolean; reason?: string } {
   if (script.isLocked) {
     return {
@@ -273,7 +273,7 @@ export function generatePageOrderRank(prevRank?: string, nextRank?: string): str
  * Verifies that panels on the page reference valid scenes and detects multi-scene splits.
  */
 export function analyzePageSceneTransitions(
-  panels: Pick<Panel, 'panelNumber' | 'sceneId' | 'isFlashback'>[]
+  panels: Pick<Panel, 'panelNumber' | 'sceneId' | 'isFlashback'>[],
 ): {
   isMultiScene: boolean;
   sceneIds: string[];

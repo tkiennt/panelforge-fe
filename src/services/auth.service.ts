@@ -45,11 +45,7 @@ export interface LandingContextDto {
   canCreateStudio: boolean;
   workspaces: LandingWorkspaceDto[];
   suggestedLanding:
-    | 'AdminDashboard'
-    | 'PublisherPortal'
-    | 'YourWorkspaces'
-    | 'StudioCreation'
-    | 'PublicCatalog';
+    'AdminDashboard' | 'PublisherPortal' | 'YourWorkspaces' | 'StudioCreation' | 'PublicCatalog';
 }
 
 async function parseErrorResponse(error: any, defaultMessage: string): Promise<string> {

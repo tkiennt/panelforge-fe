@@ -40,7 +40,10 @@ describe('findUploadAssignment', () => {
 
   it('rơi về việc theo Chapter khi không có việc theo Panel hoặc Page', () => {
     expect(
-      findUploadAssignment([asg({ id: 'chap', entityType: 'Chapter', targetEntityId: 'c1' })], target)?.id,
+      findUploadAssignment(
+        [asg({ id: 'chap', entityType: 'Chapter', targetEntityId: 'c1' })],
+        target,
+      )?.id,
     ).toBe('chap');
   });
 

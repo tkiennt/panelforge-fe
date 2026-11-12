@@ -49,7 +49,8 @@ export const DialogueBlockNode = Node.create({
       [
         'div',
         {
-          class: 'dialogue-text italic font-serif text-slate-900 ml-1 text-base leading-relaxed flex-1 outline-none',
+          class:
+            'dialogue-text italic font-serif text-slate-900 ml-1 text-base leading-relaxed flex-1 outline-none',
         },
         0,
       ],

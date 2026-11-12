@@ -1,7 +1,12 @@
 // src/roles/writer/components/script/flow/comic-editor/extensions/ComicKeymapExtension.ts
 import { Extension } from '@tiptap/core';
 import { Selection, TextSelection } from '@tiptap/pm/state';
-import { getNextPageNumber, getNextPanelNumber, extractPageNumber, extractPanelNumber } from '../comicCounting';
+import {
+  getNextPageNumber,
+  getNextPanelNumber,
+  extractPageNumber,
+  extractPanelNumber,
+} from '../comicCounting';
 
 export interface ComicKeymapOptions {
   onBlockTransformed?: (type: string, detail?: string) => void;
@@ -48,7 +53,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
 
           const pageNode = state.schema.nodes.pageBlock.create(
             { pageNumber: pageNum, label: defaultLabel },
-            state.schema.text(`${defaultLabel} `)
+            state.schema.text(`${defaultLabel} `),
           );
 
           const tr = state.tr.replaceWith(from, to, pageNode);
@@ -74,7 +79,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
 
           const panelNode = state.schema.nodes.panelBlock.create(
             { panelNumber: `${pageNum}.${panelNum}`, cameraAngle: 'Toàn cảnh' },
-            state.schema.text(defaultText)
+            state.schema.text(defaultText),
           );
 
           const tr = state.tr.replaceWith(from, to, panelNode);
@@ -120,7 +125,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
 
           const pageNode = state.schema.nodes.pageBlock.create(
             { pageNumber: pageNum, label: defaultLabel },
-            state.schema.text(defaultLabel)
+            state.schema.text(defaultLabel),
           );
 
           const tr = state.tr.replaceWith(from, to, pageNode);
@@ -150,7 +155,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
 
           const panelNode = state.schema.nodes.panelBlock.create(
             { panelNumber: `${pageNum}.${panelNum}`, cameraAngle: 'Toàn cảnh' },
-            state.schema.text(defaultText)
+            state.schema.text(defaultText),
           );
 
           const tr = state.tr.replaceWith(from, to, panelNode);
@@ -187,7 +192,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
 
             const dialogueNode = state.schema.nodes.dialogueBlock.create(
               { character },
-              dialogueText ? state.schema.text(dialogueText) : undefined
+              dialogueText ? state.schema.text(dialogueText) : undefined,
             );
             // Sau khi tạo dialogueBlock, chèn một paragraph bình thường bên dưới cho phép viết tự do
             const emptyParagraph = state.schema.nodes.paragraph.create();
@@ -209,7 +214,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
 
             const sfxNode = state.schema.nodes.sfxBlock.create(
               {},
-              sfxText ? state.schema.text(sfxText) : undefined
+              sfxText ? state.schema.text(sfxText) : undefined,
             );
             const emptyParagraph = state.schema.nodes.paragraph.create();
 
@@ -229,7 +234,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
 
             const captionNode = state.schema.nodes.captionBlock.create(
               {},
-              captionText ? state.schema.text(captionText) : undefined
+              captionText ? state.schema.text(captionText) : undefined,
             );
             const emptyParagraph = state.schema.nodes.paragraph.create();
 
@@ -332,7 +337,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
             : `@${character}: ""`;
           const newParagraph = state.schema.nodes.paragraph.create(
             {},
-            state.schema.text(restoredText)
+            state.schema.text(restoredText),
           );
 
           const tr = state.tr.replaceWith(from, to, newParagraph);
@@ -346,7 +351,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
           const restoredText = `* ${currentContent || 'SFX'} *`;
           const newParagraph = state.schema.nodes.paragraph.create(
             {},
-            state.schema.text(restoredText)
+            state.schema.text(restoredText),
           );
 
           const tr = state.tr.replaceWith(from, to, newParagraph);
@@ -360,7 +365,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
           const restoredText = `Caption: ${currentContent}`;
           const newParagraph = state.schema.nodes.paragraph.create(
             {},
-            state.schema.text(restoredText)
+            state.schema.text(restoredText),
           );
 
           const tr = state.tr.replaceWith(from, to, newParagraph);

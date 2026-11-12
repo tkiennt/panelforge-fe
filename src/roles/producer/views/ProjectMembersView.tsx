@@ -107,7 +107,10 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
     if (!selectedProject) return;
     const targetMember = members.find((m) => m.userId === userId);
     if (targetMember && isProducerMember(targetMember, workspaceMembers)) {
-      toast.warning('Không thể thay đổi', 'Producer là thành viên quản trị mặc định (không thể sửa vai trò).');
+      toast.warning(
+        'Không thể thay đổi',
+        'Producer là thành viên quản trị mặc định (không thể sửa vai trò).',
+      );
       setEditingUserId(null);
       setOpenActionMenuId(null);
       return;
@@ -129,7 +132,10 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
     if (!selectedProject) return;
     const isProducer = isProducerMember(member, workspaceMembers);
     if (isProducer) {
-      toast.warning('Không thể xóa', 'Producer là thành viên quản trị mặc định của Series (không thể xóa).');
+      toast.warning(
+        'Không thể xóa',
+        'Producer là thành viên quản trị mặc định của Series (không thể xóa).',
+      );
       return;
     }
 
@@ -144,14 +150,21 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
 
     if (confirmed) {
       try {
-        await seriesService.removeSeriesMember(workspaceId, String(selectedProject.id), member.userId);
+        await seriesService.removeSeriesMember(
+          workspaceId,
+          String(selectedProject.id),
+          member.userId,
+        );
         toast.success(
           'Đã xóa thành viên',
           `Đã xóa "${memberName}" khỏi "${selectedProject.title}".`,
         );
         await loadSeriesMembers(String(selectedProject.id));
       } catch (err: any) {
-        toast.error('Xóa thành viên thất bại', err.message || 'Không thể xóa thành viên khỏi bộ truyện.');
+        toast.error(
+          'Xóa thành viên thất bại',
+          err.message || 'Không thể xóa thành viên khỏi bộ truyện.',
+        );
       }
     }
     setOpenActionMenuId(null);
@@ -168,7 +181,10 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
             {t('members.view.selectProjectTitle', 'Chọn bộ truyện')}
           </h1>
           <p className='text-sm text-gray-500 mt-1'>
-            {t('members.view.selectProjectDesc', 'Chọn một bộ truyện bên dưới để xem và quản lý đội ngũ sản xuất')}
+            {t(
+              'members.view.selectProjectDesc',
+              'Chọn một bộ truyện bên dưới để xem và quản lý đội ngũ sản xuất',
+            )}
           </p>
         </div>
 
@@ -266,10 +282,16 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
                 {filteredMembers.length > 0 ? (
                   filteredMembers.map((member) => {
                     const isProducer = isProducerMember(member, workspaceMembers);
-                    const rawRole = (member as any).seriesRole ?? (member as any).role ?? (member as any).studioRole ?? 'Artist';
+                    const rawRole =
+                      (member as any).seriesRole ??
+                      (member as any).role ??
+                      (member as any).studioRole ??
+                      'Artist';
                     const memberRole =
                       typeof rawRole === 'number'
-                        ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][rawRole] || 'Artist'
+                        ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][
+                            rawRole
+                          ] || 'Artist'
                         : String(rawRole || 'Artist');
                     return (
                       <tr
@@ -350,7 +372,9 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
                           )}
                         </td>
                         <td className='p-4 text-xs text-gray-500 whitespace-nowrap'>
-                          {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('vi-VN') : '—'}
+                          {member.joinedAt
+                            ? new Date(member.joinedAt).toLocaleDateString('vi-VN')
+                            : '—'}
                         </td>
                         <td className='p-4 text-right relative'>
                           {isProducer ? (
@@ -382,13 +406,18 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
                                     }}
                                     className='w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer'
                                   >
-                                    <Edit className='w-3.5 h-3.5 text-gray-500' /> {t('members.seriesRoster.changeRoleTooltip', 'Đổi vai trò')}
+                                    <Edit className='w-3.5 h-3.5 text-gray-500' />{' '}
+                                    {t('members.seriesRoster.changeRoleTooltip', 'Đổi vai trò')}
                                   </button>
                                   <button
                                     onClick={() => handleRemoveMember(member)}
                                     className='w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100 transition-colors cursor-pointer'
                                   >
-                                    <Trash2 className='w-3.5 h-3.5' /> {t('members.seriesRoster.removeMemberTooltip', 'Xóa thành viên')}
+                                    <Trash2 className='w-3.5 h-3.5' />{' '}
+                                    {t(
+                                      'members.seriesRoster.removeMemberTooltip',
+                                      'Xóa thành viên',
+                                    )}
                                   </button>
                                 </div>
                               )}
