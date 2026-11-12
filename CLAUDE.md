@@ -13,13 +13,11 @@ npm run i18n:check # ensure 100% VI <-> EN key parity
 
 Frontend ↔ Backend coordination follows `.agents/CODEBASE_MAP.md` and Backend DTOs/Swagger. Take field names directly from Backend models (`PanelForge.Application/Features/<Domain>/...`), never guess.
 
-## Implement plan (shared by backend, frontend and mobile)
+## Spec & team workboard (shared by backend, frontend and mobile)
 
-One plan set covers all three repos; it lives in the workspace root, not in this repo:
-
-- Spec: `Github/note/PANELFORGE_MASTER_SPECIFICATION_V2_6.md` (the copy under `docs/`, if present, is read-only).
-- Master plan: `Github/note/PANELFORGE_V2_6_IMPLEMENTATION_PLAN.md`.
-- Module plans and **coordination rules**: `Github/note/plans/README.md` §2 (single source of rules). Before coding a task: claim it in §5 "Đang làm", create a worktree per task (`-AgentRole <task-id>`), do only the `[FE]` sub-tasks of this repo, follow API-contract-first ordering (DB → BE → FE/MO). Never add plan files under `docs/`.
+- Business spec for all three repos: `docs/PANELFORGE_MASTER_SPECIFICATION_V2_6.md` (decision log Q1–Q14 at the top). Cite BR-xx / Module / Q-n in commits and the workboard.
+- **Team workboard `docs/TEAM_WORKBOARD.md` is mandatory.** Before coding: pull `trungkien`, add one row to §2 "Đang làm", commit `docs(tracker): start <task>` and push. When merged: remove your row, add one row at the top of §3 "Đã xong" (including API/DB/enum changes other repos must know), commit `docs(tracker): finish <task>`. Rules in the file's §1. Work done in the backend or mobile repo is recorded here too.
+- Do not add implementation-plan files to this repo.
 ## PanelForge Agent Rules
 
 1. Read existing implementation before writing code.
@@ -38,7 +36,7 @@ One plan set covers all three repos; it lives in the workspace root, not in this
 14. Do not read or expose secrets unnecessarily (`.env*` except `.env.example`, tokens, keys).
 15. Do not send source code or local files to unknown external services.
 16. Ask before enabling a new network-connected MCP server.
-17. **Documentation Sync**: Follow `docs/DOCUMENTATION_PROCESS.md`. Any change to UI tokens/styling, business flows, role workspaces, or shared components must be synchronized into the corresponding docs (`docs/DESIGN_RULES.md`, `PRODUCT.md`, `src/roles/*/README.md`, `src/shared/README.md`). Feature/refactor plans are tracked in the workspace-level module plans `note/plans/` (outside this repo, index in `note/plans/README.md`); update the task and both changelogs (module plan and `note/PANELFORGE_V2_6_IMPLEMENTATION_PLAN.md`) when done. Do not create plan files inside this repo.
+17. **Documentation Sync**: Follow `docs/DOCUMENTATION_PROCESS.md`. Any change to UI tokens/styling, business flows, role workspaces, or shared components must be synchronized into the corresponding docs (`docs/DESIGN_RULES.md`, `PRODUCT.md`, `src/roles/*/README.md`, `src/shared/README.md`). When a task starts and when it is merged, update `docs/TEAM_WORKBOARD.md`. Do not create plan files inside this repo.
 
 ## Precedence when instructions conflict
 

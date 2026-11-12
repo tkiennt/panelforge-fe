@@ -80,7 +80,7 @@ npm run quality
 ---
 
 ## 📚 Technical Documentation Hub
-All architectural documentation and design specifications are organized under [`docs/`](./docs/README.md). Implementation plans live outside this repo, in the workspace-level `note/plans/` folder (see `note/plans/README.md`).
+All architectural documentation and design specifications are organized under [`docs/`](./docs/README.md). Business spec for all three repos: [`docs/PANELFORGE_MASTER_SPECIFICATION_V2_6.md`](./docs/PANELFORGE_MASTER_SPECIFICATION_V2_6.md). Who is working on what: [`docs/TEAM_WORKBOARD.md`](./docs/TEAM_WORKBOARD.md) (update it when you start and finish a task).
 - [Documentation Hub & Index](./docs/README.md)
 - [Documentation Process & Sync Protocol](./docs/DOCUMENTATION_PROCESS.md)
 - [Design Rules & Tokens](./docs/DESIGN_RULES.md)

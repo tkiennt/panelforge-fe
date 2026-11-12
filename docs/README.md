@@ -15,15 +15,11 @@
 
 ---
 
-## 📋 KẾ HOẠCH TRIỂN KHAI (IMPLEMENTATION PLANS)
+## 📋 ĐẶC TẢ & THEO DÕI CÔNG VIỆC NHÓM
 
-Kế hoạch triển khai của cả 3 repo **không nằm trong repo này**. Chúng ở thư mục workspace gốc `Github/note/`:
-
-- `note/PANELFORGE_V2_6_IMPLEMENTATION_PLAN.md`: plan tổng (đối chiếu codebase với spec V2.6, quyết định đã chốt, changelog chung).
-- `note/plans/README.md`: mục lục 8 plan module (`SCR` Kịch bản, `BIB` Series Bible, `ASG` Giao việc, `ART` Bàn vẽ & đặt chữ, `REV` Gate 2, `REL` Phát hành, `RDR` Độc giả, `UIQ` Chất lượng giao diện).
-
-Quy trình cập nhật: xem [DOCUMENTATION_PROCESS.md §3](./DOCUMENTATION_PROCESS.md). Các plan cũ trong `docs/implement-plan/` đã được gộp vào bộ plan module và gỡ khỏi repo (2026-11-12).
-
+- [`PANELFORGE_MASTER_SPECIFICATION_V2_6.md`](./PANELFORGE_MASTER_SPECIFICATION_V2_6.md): đặc tả nghiệp vụ dùng chung cho Backend, Frontend và Mobile (luồng End-to-End, 5 module, Business Rules BR-xx, ma trận quyền, máy trạng thái). Bảng "Nhật ký quyết định" Q1–Q14 ở đầu file.
+- [`TEAM_WORKBOARD.md`](./TEAM_WORKBOARD.md): ai đang làm gì, đã xong gì, đổi API/DB nào. **Bắt buộc cập nhật** khi bắt đầu và khi xong việc (quy tắc ở §1 của file).
+- [`CHAPTER_AND_SCRIPT_SPECIFICATION.md`](./CHAPTER_AND_SCRIPT_SPECIFICATION.md): đặc tả chi tiết Chương & Kịch bản.
 ---
 ## 🔍 KIỂM ĐỊNH CHẤT LƯỢNG (AUDIT & QUALITY)
 

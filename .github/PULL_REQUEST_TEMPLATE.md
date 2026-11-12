@@ -27,6 +27,5 @@ Please describe the tests that you ran to verify your changes.
   - [ ] `PRODUCT.md` (if modified business logic, core flows, or permissions)
   - [ ] `src/roles/{role}/README.md` (if added/updated role views or modals)
   - [ ] `src/shared/README.md` (if added/updated shared components or boards)
-- [ ] If this was a planned feature:
-  - [ ] Task and changelog updated in the workspace module plan (`note/plans/`) and the master plan
+- [ ] `docs/TEAM_WORKBOARD.md` updated (row moved from "Đang làm" to "Đã xong", API/DB/enum changes noted)
 - [ ] No broken markdown links in `docs/`

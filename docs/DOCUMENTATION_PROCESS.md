@@ -11,7 +11,7 @@
 Hệ thống tài liệu là **tấm gương phản chiếu mã nguồn**. Nhằm loại bỏ tình trạng tài liệu bị phân tán, lỗi thời hoặc không bám sát thực tế code, quy trình này thiết lập:
 1. **Single Source of Truth (Nguồn chân lý duy nhất):** Mỗi mảng kiến thức chỉ có một vị trí lưu trữ chuẩn xác.
 2. **Zero-Drift Policy (Không lệch pha):** Bất kỳ sự thay đổi nào về giao diện, luồng nghiệp vụ hoặc cấu trúc mã nguồn đều phải được cập nhật đồng thời vào tài liệu tương ứng.
-3. **Một bộ kế hoạch theo module:** Kế hoạch triển khai không nằm trong repo này. Toàn bộ task của cả 3 repo được quản lý trong `note/plans/` ở thư mục workspace gốc `Github/` (ngoài repo này, xem `note/plans/README.md`), mỗi module nghiệp vụ một file.
+3. **Một đặc tả, một bảng theo dõi:** Nghiệp vụ dùng chung ở `docs/PANELFORGE_MASTER_SPECIFICATION_V2_6.md`; việc của từng người (cả 3 repo) ghi ở `docs/TEAM_WORKBOARD.md`.
 
 ---
 
@@ -57,27 +57,19 @@ panelforge-fe/
 
 ---
 
-## 3. KẾ HOẠCH TRIỂN KHAI (IMPLEMENT PLAN)
+## 3. ĐẶC TẢ & BẢNG THEO DÕI CÔNG VIỆC
 
-Từ 2026-11-12, kế hoạch triển khai của cả Backend, Frontend và Mobile nằm trong **một bộ plan theo module** ở thư mục workspace gốc, không đặt trong `docs/` của repo này:
-
-```text
-Github/                              (workspace gốc, không phải git repo)
-├── note/PANELFORGE_MASTER_SPECIFICATION_V2_6.md   # Đặc tả nghiệp vụ
-├── note/PANELFORGE_V2_6_IMPLEMENTATION_PLAN.md    # Plan tổng: đối chiếu codebase, quyết định đã chốt, changelog chung
-└── note/plans/
-    ├── README.md                    # Mục lục module, quy ước ID, thứ tự phụ thuộc
-    ├── 01_SCRIPT_PLAN.md (SCR) · 02_BIBLE_PLAN.md (BIB) · 03_ASSIGNMENT_PLAN.md (ASG)
-    ├── 04_ARTWORK_PLAN.md (ART) · 05_REVIEW_PLAN.md (REV) · 06_RELEASE_PLAN.md (REL)
-    └── 07_READER_PLAN.md (RDR) · 08_UI_QUALITY_PLAN.md (UIQ)
-```
+| File | Vai trò | Ai sửa |
+|---|---|---|
+| `docs/PANELFORGE_MASTER_SPECIFICATION_V2_6.md` | Đặc tả nghiệp vụ dùng chung cho Backend, Frontend, Mobile | Chỉ khi nhóm chốt quyết định mới (thêm dòng Q-n vào bảng "Nhật ký quyết định") |
+| `docs/TEAM_WORKBOARD.md` | Ai đang làm gì, đã xong gì, đổi API/DB nào | Mọi thành viên, khi bắt đầu và khi xong việc |
 
 ### Quy tắc
 
-Quy tắc phối hợp (nhận task, thứ tự DB → BE → FE/MO, Hợp đồng API, worktree theo task, cách sửa file plan, Changelog) **chỉ ghi một nơi**: `note/plans/README.md` §2. Repo này không lặp lại để tránh hai bản lệch nhau.
-
-Riêng Frontend, trước khi đánh `[x]` một sub-task `[FE]`: chạy `npm run typecheck`, `npm run i18n:check`, `npm run lint`. Test (`npm run test:run`) chỉ chạy khi nhóm yêu cầu.
----
+1. Trước khi code: pull `trungkien`, thêm dòng "Đang làm" vào `docs/TEAM_WORKBOARD.md`, commit `docs(tracker): start <việc>` và push ngay.
+2. Khi xong và đã merge: chuyển dòng sang "Đã xong", ghi thay đổi API/DB/enum ảnh hưởng repo khác, commit `docs(tracker): finish <việc>`.
+3. Không tạo file kế hoạch triển khai trong repo này.
+4. Riêng Frontend, trước khi merge: chạy `npm run typecheck`, `npm run i18n:check`, `npm run lint`. Test (`npm run test:run`) chỉ chạy khi nhóm yêu cầu.---
 ## 4. QUY TRÌNH ĐỒNG BỘ SOURCE CODE VỚI TÀI LIỆU (SOURCE-CODE-DOC-SYNC)
 
 Để bảo đảm **code đi đến đâu, docs bám sát đến đó**, mỗi khi thay đổi source code, lập trình viên và AI Agent **bắt buộc** phải tuân thủ ma trận sau:
@@ -104,7 +96,7 @@ Mỗi PR gửi lên repository bắt buộc phải vượt qua checklist tài li
   - [ ] `PRODUCT.md` (nếu thay đổi luồng nghiệp vụ cốt lõi)
   - [ ] `src/roles/{role}/README.md` (nếu thay đổi views/modals của role)
   - [ ] `src/shared/README.md` (nếu thêm/sửa shared components)
-- [ ] Nếu làm theo kế hoạch: đã cập nhật task và Changelog trong plan module `note/plans/` (workspace gốc) và plan tổng.
+- [ ] Đã cập nhật `docs/TEAM_WORKBOARD.md` (xoá dòng "Đang làm", thêm dòng "Đã xong" kèm thay đổi API/DB nếu có).
 - [ ] Đã kiểm tra không có liên kết markdown nào bị gãy (broken links).
 ```
 
