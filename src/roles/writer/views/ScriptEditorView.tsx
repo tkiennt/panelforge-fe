@@ -89,8 +89,6 @@ import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 import { UnsavedChangesBar, LucianConfirmModal, TypeToConfirmModal } from '@/shared/components/lucian';
 import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
-import { ThumbnailDrawer } from '../components/script/thumbnail-studio/components/ThumbnailDrawer';
-import { ThumbnailStudioBoard } from '../components/script/thumbnail-studio/components/ThumbnailStudioBoard';
 import { useComicStudioStore } from '../components/script/thumbnail-studio/store/useComicStudioStore';
 import { scenesToComicScriptText } from '../components/script/thumbnail-studio/lib/comicScriptParser';
 
@@ -368,7 +366,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [bibleGateModalOpen, setBibleGateModalOpen] = useState(false);
 
   // V2.5: Chế độ soạn thảo kịch bản kép (Dual-Mode: Screenplay Flow làm mặc định + Card Mode làm tùy chọn xem cấu trúc)
-  const [editorMode, setEditorMode] = useState<'flow' | 'cards' | 'thumbnail' | 'storyboard'>(
+  const [editorMode, setEditorMode] = useState<'flow' | 'cards'>(
     isTestEnvironment ? 'cards' : 'flow',
   );
 
@@ -2074,18 +2072,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     );
   }
 
+  // Con trỏ sang cảnh khác: cập nhật cảnh đang làm việc (cho AI, Lịch sử) mà không đổi URL hay cuộn trang
+  const handleCaretSceneChange = (sceneId: string) => {
+    if (selectedScene?.id === sceneId) return;
+    const detail = chapterScenesDetail.find((sc) => sc.id === sceneId);
+    if (detail) setSelectedScene(detail);
+  };
+
   const toggleDrawer = (drawer: NonNullable<typeof activeSideDrawer>) =>
     setActiveSideDrawer((prev) => (prev === drawer ? null : drawer));
 
   const railItems: ScriptRailItem[] = [
-    {
-      id: 'scenes',
-      label: t('scriptStudio.rail.scenes'),
-      icon: Clapperboard,
-      active: activeSideDrawer === 'scenes',
-      testId: 'rail-scenes-btn',
-      onClick: () => toggleDrawer('scenes'),
-    },
     {
       id: 'outline',
       label: t('scriptStudio.rail.outline'),
@@ -2183,6 +2180,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   const railFooterItems: ScriptRailItem[] = [
     {
+      id: 'scenes',
+      label: t('scriptStudio.rail.scenes'),
+      icon: Clapperboard,
+      active: activeSideDrawer === 'scenes',
+      testId: 'rail-scenes-btn',
+      onClick: () => toggleDrawer('scenes'),
+    },
+    {
       id: 'bible-gate',
       label: t('scriptStudio.rail.bibleGate'),
       icon: ShieldCheck,
@@ -2196,7 +2201,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const viewModes = [
     { mode: 'flow', icon: FileText, label: t('scriptStudio.views.paper'), testId: 'tab-flow' },
     { mode: 'cards', icon: Layers, label: t('scriptStudio.views.cards'), testId: 'tab-cards' },
-    { mode: 'thumbnail', icon: Film, label: t('scriptStudio.views.thumbnail'), testId: 'tab-thumbnail' },
   ] as const;
 
   const viewSwitcher = (
@@ -2206,7 +2210,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       className='flex items-center gap-0.5 p-0.5 rounded-lg bg-stone-100 shrink-0'
     >
       {viewModes.map(({ mode, icon: Icon, label, testId }) => {
-        const isActive = editorMode === mode || (mode === 'thumbnail' && editorMode === 'storyboard');
+        const isActive = editorMode === mode;
         return (
           <button
             key={mode}
@@ -2499,26 +2503,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               onCreateStub={handleCreateStubEntity}
               onShowToast={onShowToast}
               importRequestKey={importRequestKey}
+              onActiveSceneChange={handleCaretSceneChange}
               dockLeading={viewSwitcher}
               manuscriptTitle={formatChapterOption(currentChapter.chapterNumber, currentChapter.title)}
             />
           ) : (
             <div className='flex-1 min-h-0 flex flex-col'>
               <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar'>
-                {editorMode === 'thumbnail' || editorMode === 'storyboard' ? (
-                  <ThumbnailStudioBoard
-                    scenes={
-                      chapterScenesDetail.length > 0
-                        ? chapterScenesDetail
-                        : selectedScene
-                          ? [selectedScene]
-                          : []
-                    }
-                    canEdit={canEditScript && !isChapterLocked}
-                    getSpeakerName={getSpeakerName}
-                    onShowToast={onShowToast}
-                  />
-                ) : !selectedScene ? (
+                {!selectedScene ? (
                   <p className='text-center text-sm text-stone-500 py-20'>{t('scriptStudio.ai.needScene')}</p>
                 ) : (
                   <div className='max-w-3xl mx-auto w-full px-4 py-8 space-y-3'>
@@ -3237,8 +3229,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         </div>
       )}
 
-      {/* Slide-over Thumbnail Drawer (On-demand Reactive Storyboard) */}
-      <ThumbnailDrawer />
 
     </div>
   );
