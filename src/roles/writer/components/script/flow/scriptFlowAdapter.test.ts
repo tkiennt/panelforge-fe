@@ -518,6 +518,14 @@ describe('Thoại có nhãn người nói và loại dòng khi lưu / mở lại
     expect(splitSpeakerLine('@Lan : chào', bible)).toMatchObject({ speakerName: 'Lan' });
     expect(splitSpeakerLine('(NARUTO) : "Yo"', bible)).toMatchObject({ speakerName: 'Naruto', text: 'Yo' });
     expect(splitSpeakerLine('Bối cảnh: phòng học', bible)).toBeNull();
+    // Chỉ dẫn diễn xuất kiểu full script: giữ trong nhãn, vẫn liên kết đúng nhân vật Bible
+    expect(splitSpeakerLine('NARUTO (OFF): Hey.', bible)).toMatchObject({
+      speakerName: 'Naruto (OFF)',
+      speakerCharacterId: 'chr-naruto',
+      text: 'Hey.',
+    });
+    expect(splitSpeakerLine('MALANDRO (OFF): "Đừng nghĩ."', bible)).toMatchObject({ speakerName: 'MALANDRO (OFF)', text: 'Đừng nghĩ.' });
+    expect(splitSpeakerLine('Góc máy (thấp): nhìn lên', bible)).toBeNull();
     expect(splitSpeakerLine('Konoha: làng lá', bible)).toBeNull();
   });
 

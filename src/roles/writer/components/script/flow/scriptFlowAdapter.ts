@@ -309,9 +309,12 @@ export interface SpeakerLine {
  * Chỉ coi là tên người nói khi có @, là mã (MÃ), khớp nhân vật Bible, hoặc viết HOA — để "Bối cảnh: ..." vẫn là hành động.
  */
 export function splitSpeakerLine(raw: string, entries?: BibleEntryDto[]): SpeakerLine | null {
-  const m = raw.trim().match(/^(@)?(\()?([\p{L}0-9_][\p{L}0-9_ .'-]{0,38}?)(\))?\s*:\s*([\s\S]*)$/u);
+  // Tên có thể kèm chỉ dẫn diễn xuất như kịch bản truyện tranh: "MALANDRO (OFF):", "Lan (thì thầm):"
+  const m = raw
+    .trim()
+    .match(/^(@)?(\()?([\p{L}0-9_][\p{L}0-9_ .'-]{0,38}?)(\))?(?:\s*\(([^()]{1,24})\))?\s*:\s*([\s\S]*)$/u);
   if (!m) return null;
-  const [, at, open, rawName, close, rest] = m;
+  const [, at, open, rawName, close, modifier, rest] = m;
   const name = rawName.trim();
   if (name.split(/\s+/).length > 4) return null;
   const isCode = Boolean(open && close);
@@ -322,7 +325,7 @@ export function splitSpeakerLine(raw: string, entries?: BibleEntryDto[]): Speake
   const body = rest.trim();
   const quotedMatch = body.match(/^["“]([\s\S]*)["”]$/);
   return {
-    speakerName: entry?.name ?? name,
+    speakerName: modifier ? `${entry?.name ?? name} (${modifier.trim()})` : (entry?.name ?? name),
     speakerCharacterId: entry?.id ?? null,
     text: (quotedMatch ? quotedMatch[1] : body).trim(),
     quoted: Boolean(quotedMatch),
