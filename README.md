@@ -21,7 +21,7 @@
 - **Visual Tone:** Quiet Editorial Print Magazine (`#f5f5f5` canvas, warm near-black ink `#292524` typography).
 - **Brand Voltage:** Soft atmospheric pastel gradient orbs (Mint `#a7e5d3`, Peach `#f4c5a8`, Lavender `#c8b8e0`, Sky `#a8c8e8`, Rose `#e8b8c4`).
 - **Typography:** Standardized on `@fontsource/inter` (Weights: 400, 500, 600, 700). Minimum font size is `text-xs` (12px).
-- **Core Rules:** See detailed specs in [`docs/DESIGN_RULES.md`](./docs/DESIGN_RULES.md).
+- **Core Rules:** See detailed specs in [`panelforge-hub/docs/spec/DESIGN_RULES.md`](../panelforge-hub/docs/spec/DESIGN_RULES.md).
 
 ---
 
@@ -80,7 +80,7 @@ npm run quality
 ---
 
 ## 📚 Technical Documentation Hub
-All architectural documentation and design specifications are organized under [`docs/`](./docs/README.md). Business spec for all three repos: [`docs/PANELFORGE_MASTER_SPECIFICATION_V2_6.md`](./docs/PANELFORGE_MASTER_SPECIFICATION_V2_6.md). Who is working on what: [`docs/TEAM_WORKBOARD.md`](./docs/TEAM_WORKBOARD.md) (update it when you start and finish a task).
+All architectural documentation and design specifications are organized under [`docs/`](./docs/README.md). Business spec for all three repos: [`panelforge-hub/docs/V2.6/PANELFORGE_MASTER_SPECIFICATION_V2_6.md`](../panelforge-hub/docs/V2.6/PANELFORGE_MASTER_SPECIFICATION_V2_6.md). Who is working on what: [`panelforge-hub/docs/tracking/TEAM_WORKBOARD.md`](../panelforge-hub/docs/tracking/TEAM_WORKBOARD.md) (update it when you start and finish a task).
 - [Documentation Hub & Index](./docs/README.md)
 - [Documentation Process & Sync Protocol](./docs/DOCUMENTATION_PROCESS.md)
-- [Design Rules & Tokens](./docs/DESIGN_RULES.md)
+- [Design Rules & Tokens](../panelforge-hub/docs/spec/DESIGN_RULES.md)

@@ -23,9 +23,9 @@ Please describe the tests that you ran to verify your changes.
 
 ### 📚 Documentation Sync Verification (per docs/DOCUMENTATION_PROCESS.md):
 - [ ] I have updated corresponding documentation if code changed:
-  - [ ] `docs/DESIGN_RULES.md` (if modified styling, colors, font, buttons, or design tokens)
+  - [ ] `panelforge-hub/docs/spec/DESIGN_RULES.md` (if modified styling, colors, font, buttons, or design tokens)
   - [ ] `PRODUCT.md` (if modified business logic, core flows, or permissions)
   - [ ] `src/roles/{role}/README.md` (if added/updated role views or modals)
   - [ ] `src/shared/README.md` (if added/updated shared components or boards)
-- [ ] `docs/TEAM_WORKBOARD.md` updated (row moved from "Đang làm" to "Đã xong", API/DB/enum changes noted)
+- [ ] `panelforge-hub/docs/tracking/TEAM_WORKBOARD.md` updated (row moved from "Đang làm" to "Đã xong", API/DB/enum changes noted)
 - [ ] No broken markdown links in `docs/`

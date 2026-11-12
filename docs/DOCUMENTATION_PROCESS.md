@@ -11,7 +11,7 @@
 Hệ thống tài liệu là **tấm gương phản chiếu mã nguồn**. Nhằm loại bỏ tình trạng tài liệu bị phân tán, lỗi thời hoặc không bám sát thực tế code, quy trình này thiết lập:
 1. **Single Source of Truth (Nguồn chân lý duy nhất):** Mỗi mảng kiến thức chỉ có một vị trí lưu trữ chuẩn xác.
 2. **Zero-Drift Policy (Không lệch pha):** Bất kỳ sự thay đổi nào về giao diện, luồng nghiệp vụ hoặc cấu trúc mã nguồn đều phải được cập nhật đồng thời vào tài liệu tương ứng.
-3. **Một đặc tả, một bảng theo dõi:** Nghiệp vụ dùng chung ở `docs/PANELFORGE_MASTER_SPECIFICATION_V2_6.md`; việc của từng người (cả 3 repo) ghi ở `docs/TEAM_WORKBOARD.md`.
+3. **Một đặc tả, một bảng theo dõi:** Nghiệp vụ dùng chung ở `panelforge-hub/docs/V2.6/PANELFORGE_MASTER_SPECIFICATION_V2_6.md`; việc của từng người (cả 3 repo) ghi ở `panelforge-hub/docs/tracking/TEAM_WORKBOARD.md`.
 
 ---
 
@@ -26,7 +26,6 @@ panelforge-fe/
 ├── docs/                               # THƯ MỤC TÀI LIỆU KỸ THUẬT CHÍNH
 │   ├── README.md                       # Mục lục & trung tâm điều hướng toàn bộ hệ thống docs
 │   ├── DOCUMENTATION_PROCESS.md        # [Tài liệu này] Quy chuẩn quản lý & quy trình đồng bộ code-docs
-│   ├── DESIGN_RULES.md                 # Quy chuẩn thiết kế giao diện (Quiet Editorial Studio, tokens, font...)
 │   │
 │   ├── audit/                          # Báo cáo kiểm định chất lượng, rà soát màn hình định kỳ
 │   │   └── UI_SCREEN_AUDIT.md
@@ -61,12 +60,12 @@ panelforge-fe/
 
 | File | Vai trò | Ai sửa |
 |---|---|---|
-| `docs/PANELFORGE_MASTER_SPECIFICATION_V2_6.md` | Đặc tả nghiệp vụ dùng chung cho Backend, Frontend, Mobile | Chỉ khi nhóm chốt quyết định mới (thêm dòng Q-n vào bảng "Nhật ký quyết định") |
-| `docs/TEAM_WORKBOARD.md` | Ai đang làm gì, đã xong gì, đổi API/DB nào | Mọi thành viên, khi bắt đầu và khi xong việc |
+| `panelforge-hub/docs/V2.6/PANELFORGE_MASTER_SPECIFICATION_V2_6.md` | Đặc tả nghiệp vụ dùng chung cho Backend, Frontend, Mobile | Chỉ khi nhóm chốt quyết định mới (thêm dòng Q-n vào bảng "Nhật ký quyết định") |
+| `panelforge-hub/docs/tracking/TEAM_WORKBOARD.md` | Ai đang làm gì, đã xong gì, đổi API/DB nào | Mọi thành viên, khi bắt đầu và khi xong việc |
 
 ### Quy tắc
 
-1. Trước khi code: pull `trungkien`, thêm dòng "Đang làm" vào `docs/TEAM_WORKBOARD.md`, commit `docs(tracker): start <việc>` và push ngay.
+1. Trước khi code: pull `main` của `panelforge-hub`, thêm dòng "Đang làm" vào `panelforge-hub/docs/tracking/TEAM_WORKBOARD.md`, commit `docs(tracker): start <việc>` trong `panelforge-hub` và push ngay.
 2. Khi xong và đã merge: chuyển dòng sang "Đã xong", ghi thay đổi API/DB/enum ảnh hưởng repo khác, commit `docs(tracker): finish <việc>`.
 3. Không tạo file kế hoạch triển khai trong repo này.
 4. Riêng Frontend, trước khi merge: chạy `npm run typecheck`, `npm run i18n:check`, `npm run lint`. Test (`npm run test:run`) chỉ chạy khi nhóm yêu cầu.---
@@ -78,7 +77,7 @@ panelforge-fe/
 
 | Khu vực Source Code thay đổi | Tài liệu BẮT BUỘC cập nhật | Nội dung cần ghi nhận |
 | :--- | :--- | :--- |
-| **Giao diện & Theme:**<br>`src/styles/`, Tailwind tokens, màu sắc, font, button styles, layout shell | `docs/DESIGN_RULES.md` | Bổ sung/điều chỉnh mã hex màu sắc, quy tắc font, khoảng cách padding/gap hoặc quy cách component mới. |
+| **Giao diện & Theme:**<br>`src/styles/`, Tailwind tokens, màu sắc, font, button styles, layout shell | `panelforge-hub/docs/spec/DESIGN_RULES.md` | Bổ sung/điều chỉnh mã hex màu sắc, quy tắc font, khoảng cách padding/gap hoặc quy cách component mới. |
 | **Nghiệp vụ cốt lõi & Luồng thao tác:**<br>Thêm bước mới trong pipeline, sửa quyền hạn role, logic Series Bible | `PRODUCT.md` &<br>`src/roles/{role}/README.md` | Cập nhật luồng nghiệp vụ tương ứng trong `PRODUCT.md` và bảng danh sách views/capabilities của role. |
 | **Workspace Vai Trò:**<br>Thêm/xóa/sửa views, modals trong `src/roles/{role}/` | `src/roles/{role}/README.md` | Cập nhật cấu trúc thư mục, danh mục màn hình (`views`), modals và dependencies của role đó. |
 | **Thành phần dùng chung:**<br>Thêm/sửa components trong `src/shared/`, `src/components/` | `src/shared/README.md` | Bổ sung prop types, mục đích sử dụng và ví dụ tích hợp component dùng chung. |
@@ -92,11 +91,11 @@ Mỗi PR gửi lên repository bắt buộc phải vượt qua checklist tài li
 ```markdown
 ### 📚 Documentation Sync Verification
 - [ ] Đã kiểm tra và cập nhật tài liệu tương ứng theo `docs/DOCUMENTATION_PROCESS.md`:
-  - [ ] `docs/DESIGN_RULES.md` (nếu thay đổi UI/tokens)
+  - [ ] `panelforge-hub/docs/spec/DESIGN_RULES.md` (nếu thay đổi UI/tokens)
   - [ ] `PRODUCT.md` (nếu thay đổi luồng nghiệp vụ cốt lõi)
   - [ ] `src/roles/{role}/README.md` (nếu thay đổi views/modals của role)
   - [ ] `src/shared/README.md` (nếu thêm/sửa shared components)
-- [ ] Đã cập nhật `docs/TEAM_WORKBOARD.md` (xoá dòng "Đang làm", thêm dòng "Đã xong" kèm thay đổi API/DB nếu có).
+- [ ] Đã cập nhật `panelforge-hub/docs/tracking/TEAM_WORKBOARD.md` (xoá dòng "Đang làm", thêm dòng "Đã xong" kèm thay đổi API/DB nếu có).
 - [ ] Đã kiểm tra không có liên kết markdown nào bị gãy (broken links).
 ```
 
@@ -119,7 +118,7 @@ Khi làm việc với các AI Coding Assistant (như Claude/Antigravity), quy t�
 
 3. **Những file TUYỆT ĐỐI KHÔNG XÓA:**
    - `PRODUCT.md` và `CLAUDE.md` tại root.
-   - `docs/DESIGN_RULES.md`, `docs/README.md`, `docs/DOCUMENTATION_PROCESS.md`.
+   - `docs/README.md`, `docs/DOCUMENTATION_PROCESS.md`. Quy chuẩn UI nằm ở `panelforge-hub/docs/spec/DESIGN_RULES.md`.
    - Các file `src/roles/*/README.md` và `src/shared/README.md`.
 
 ---
@@ -128,7 +127,7 @@ Khi làm việc với các AI Coding Assistant (như Claude/Antigravity), quy t�
 
 - **Tiêu đề (Headings):** Mỗi file chỉ có duy nhất một thẻ `# H1`. Các phân mục dùng `## H2`, `### H3`.
 - **Liên kết file (File Links):** Luôn dùng đường dẫn tương đối (relative path) để click được cả trên GitHub Web và IDE:
-  - Đúng: `[Quy tắc thiết kế](./DESIGN_RULES.md)`
+  - Đúng: `[Quy tắc thiết kế](../../panelforge-hub/docs/spec/DESIGN_RULES.md)`
   - Sai: `[Quy tắc thiết kế](/docs/DESIGN_RULES.md)` hoặc đường dẫn tuyệt đối local `d:/...`
 - **Khối mã (Code Blocks):** Luôn khai báo ngôn ngữ (vd: ````bash````, ````tsx````, ````json````, ````text````).
 - **Trực quan hóa luồng:** Khuyến khích sử dụng sơ đồ Mermaid (`mermaid`) cho các luồng nghiệp vụ phức tạp.

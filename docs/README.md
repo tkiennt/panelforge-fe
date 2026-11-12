@@ -9,7 +9,7 @@
 | Tài liệu | Mô tả | Trạng thái |
 | :--- | :--- | :--- |
 | [**DOCUMENTATION_PROCESS.md**](./DOCUMENTATION_PROCESS.md) | **Quy trình quản lý tài liệu & Quy tắc Source-Code-Doc-Sync** (Vòng đời kế hoạch `ongoing` → `completed`, ma trận cập nhật code-to-docs). | 🟢 Active |
-| [**DESIGN_RULES.md**](./DESIGN_RULES.md) | **Quy chuẩn thiết kế giao diện Editorial AI Studio**: Bảng token màu, font Inter, pill buttons, atmospheric orbs, spacing và layout. | 🟢 Active |
+| [**DESIGN_RULES.md**](../../panelforge-hub/docs/spec/DESIGN_RULES.md) | **Quy chuẩn thiết kế giao diện Editorial AI Studio**: Bảng token màu, font Inter, pill buttons, atmospheric orbs, spacing và layout. | 🟢 Active |
 | [**PRODUCT.md**](../PRODUCT.md) | **Đặc tả nghiệp vụ sản phẩm**: 5 core flows, phân quyền 9 vai trò, Series Bible RAG, AI Assistant. | 🟢 Active |
 | [**CLAUDE.md**](../CLAUDE.md) | **Chỉ dẫn phát triển**: Coding conventions, scripts kiểm thử và ràng buộc đồng bộ tài liệu. | 🟢 Active |
 
@@ -17,9 +17,9 @@
 
 ## 📋 ĐẶC TẢ & THEO DÕI CÔNG VIỆC NHÓM
 
-- [`PANELFORGE_MASTER_SPECIFICATION_V2_6.md`](./PANELFORGE_MASTER_SPECIFICATION_V2_6.md): đặc tả nghiệp vụ dùng chung cho Backend, Frontend và Mobile (luồng End-to-End, 5 module, Business Rules BR-xx, ma trận quyền, máy trạng thái). Bảng "Nhật ký quyết định" Q1–Q14 ở đầu file.
-- [`TEAM_WORKBOARD.md`](./TEAM_WORKBOARD.md): ai đang làm gì, đã xong gì, đổi API/DB nào. **Bắt buộc cập nhật** khi bắt đầu và khi xong việc (quy tắc ở §1 của file).
-- [`CHAPTER_AND_SCRIPT_SPECIFICATION.md`](./CHAPTER_AND_SCRIPT_SPECIFICATION.md): đặc tả chi tiết Chương & Kịch bản.
+- [`PANELFORGE_MASTER_SPECIFICATION_V2_6.md`](../../panelforge-hub/docs/V2.6/PANELFORGE_MASTER_SPECIFICATION_V2_6.md): đặc tả nghiệp vụ dùng chung cho Backend, Frontend và Mobile (luồng End-to-End, 5 module, Business Rules BR-xx, ma trận quyền, máy trạng thái). Bảng "Nhật ký quyết định" Q1–Q14 ở đầu file.
+- [`TEAM_WORKBOARD.md`](../../panelforge-hub/docs/tracking/TEAM_WORKBOARD.md): ai đang làm gì, đã xong gì, đổi API/DB nào. **Bắt buộc cập nhật** khi bắt đầu và khi xong việc (quy tắc ở §1 của file).
+- [`CHAPTER_AND_SCRIPT_SPECIFICATION.md`](../../panelforge-hub/docs/spec/CHAPTER_AND_SCRIPT_SPECIFICATION.md): đặc tả chi tiết Chương & Kịch bản.
 ---
 ## 🔍 KIỂM ĐỊNH CHẤT LƯỢNG (AUDIT & QUALITY)
 
