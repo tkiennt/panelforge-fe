@@ -74,12 +74,9 @@ Github/                              (workspace gốc, không phải git repo)
 
 ### Quy tắc
 
-1. **Không tạo file plan mới trong repo.** Việc mới thuộc module nào thì thêm task vào plan module đó (ID `<PREFIX>-<nn>`). Chỉ tạo plan module mới khi xuất hiện một mảng nghiệp vụ chưa có, và thêm nó vào `note/plans/README.md`.
-2. **Trong lúc làm:** đánh `[ ]` → `[x]` ngay khi xong từng sub-task; quyết định kỹ thuật phát sinh ghi vào plan module.
-3. **Khi xong task:** đổi trạng thái task (✅), ghi một dòng vào Changelog của plan module **và** Changelog của plan tổng (ngày, task, nhánh/commit).
-4. **Kiểm tra trước khi đánh xong:** `npm run typecheck`, `npm run i18n:check`, `npm run lint`. Test (`npm run test:run`) chạy khi nhóm yêu cầu.
-5. **Task đã xong không di chuyển, không xoá;** plan module giữ cả phần đã xong làm lịch sử.
+Quy tắc phối hợp (nhận task, thứ tự DB → BE → FE/MO, Hợp đồng API, worktree theo task, cách sửa file plan, Changelog) **chỉ ghi một nơi**: `note/plans/README.md` §2. Repo này không lặp lại để tránh hai bản lệch nhau.
 
+Riêng Frontend, trước khi đánh `[x]` một sub-task `[FE]`: chạy `npm run typecheck`, `npm run i18n:check`, `npm run lint`. Test (`npm run test:run`) chỉ chạy khi nhóm yêu cầu.
 ---
 ## 4. QUY TRÌNH ĐỒNG BỘ SOURCE CODE VỚI TÀI LIỆU (SOURCE-CODE-DOC-SYNC)
 

@@ -54,7 +54,7 @@ Mỗi vai trò nghiệp vụ trong PanelForge có tài liệu kiến trúc cục
 | **Guest** | [src/roles/guest/README.md](../src/roles/guest/README.md) | Xem portfolio công khai, xem demo |
 | **Letterer** | [src/roles/letterer/README.md](../src/roles/letterer/README.md) | Đặt bóng thoại (speech bubble), hiệu ứng âm thanh (SFX) |
 | **Producer** | [src/roles/producer/README.md](../src/roles/producer/README.md) | Quản lý dự án, tiến độ sprint, Kanban pipeline |
-| **Publisher** | [src/roles/publisher/README.md](../src/roles/publisher/README.md) | Xuất bản, catalog, thông tin phát hành |
+| **Publisher** | [src/roles/publisher/README.md](../src/roles/publisher/README.md) | Publisher Portal: nhận gói bàn giao, quy định Free/Trả phí và giá theo ấn bản ngôn ngữ (spec V2.6) |
 | **Reader** | [src/roles/reader/README.md](../src/roles/reader/README.md) | Trải nghiệm đọc truyện, tương tác độc giả |
 | **Writer** | [src/roles/writer/README.md](../src/roles/writer/README.md) | Viết kịch bản, quản lý Series Bible, AI Script Breakdown |
 

@@ -13,6 +13,13 @@ npm run i18n:check # ensure 100% VI <-> EN key parity
 
 Frontend ↔ Backend coordination follows `.agents/CODEBASE_MAP.md` and Backend DTOs/Swagger. Take field names directly from Backend models (`PanelForge.Application/Features/<Domain>/...`), never guess.
 
+## Implement plan (shared by backend, frontend and mobile)
+
+One plan set covers all three repos; it lives in the workspace root, not in this repo:
+
+- Spec: `Github/note/PANELFORGE_MASTER_SPECIFICATION_V2_6.md` (the copy under `docs/`, if present, is read-only).
+- Master plan: `Github/note/PANELFORGE_V2_6_IMPLEMENTATION_PLAN.md`.
+- Module plans and **coordination rules**: `Github/note/plans/README.md` §2 (single source of rules). Before coding a task: claim it in §5 "Đang làm", create a worktree per task (`-AgentRole <task-id>`), do only the `[FE]` sub-tasks of this repo, follow API-contract-first ordering (DB → BE → FE/MO). Never add plan files under `docs/`.
 ## PanelForge Agent Rules
 
 1. Read existing implementation before writing code.
