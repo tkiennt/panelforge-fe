@@ -336,7 +336,11 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                           const cat = item.category?.toLowerCase() || '';
                           if (cat.includes('loc') || cat.includes('địa danh')) {
                             setCategory('locations');
-                          } else if (cat.includes('prop') || cat.includes('term') || cat.includes('thuật ngữ')) {
+                          } else if (
+                            cat.includes('prop') ||
+                            cat.includes('term') ||
+                            cat.includes('thuật ngữ')
+                          ) {
                             setCategory('terminology');
                           } else {
                             setCategory('characters');

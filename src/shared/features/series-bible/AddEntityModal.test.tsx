@@ -186,7 +186,7 @@ describe('AddEntityModal UX/UI improvements', () => {
           chapterNumber: 1,
           lastUsedAt: Date.now(),
         },
-      ])
+      ]),
     );
 
     render(<AddEntityModal {...defaultProps} />);
