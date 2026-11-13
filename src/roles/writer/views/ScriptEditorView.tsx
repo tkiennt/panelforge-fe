@@ -56,6 +56,8 @@ import {
   ChapterDto,
   ChapterBibleGateResultDto,
   CreateChapterRequest,
+  ScriptStatus,
+  ScriptCommentDto,
 } from '@/services/chapter.service';
 import { pageService, PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
@@ -173,11 +175,35 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Dữ liệu kịch bản
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [currentChapter, setCurrentChapter] = useState<ChapterDto | null>(null);
-  const isScriptFrozen = currentChapter?.isScriptFrozen === true;
-  const isChapterLocked =
-    isScriptFrozen ||
+  // D12: Draft ↔ InReview → Frozen. InReview và Frozen đều khoá sửa kịch bản.
+  const scriptStatus: ScriptStatus =
+    currentChapter?.scriptStatus ?? (currentChapter?.isScriptFrozen ? 'Frozen' : 'Draft');
+  const isScriptFrozen = scriptStatus === 'Frozen';
+  const isScriptInReview = scriptStatus === 'InReview';
+  const isChapterContentLocked =
     currentChapter?.status === 'Approved' ||
+    currentChapter?.status === 'Locked' ||
     currentChapter?.status === 'Published';
+  const isChapterLocked = isScriptFrozen || isScriptInReview || isChapterContentLocked;
+
+  // D12: góp ý theo dòng của Editor / Producer — Writer đọc để tự quyết định có hủy gửi duyệt hay không
+  const [scriptComments, setScriptComments] = useState<ScriptCommentDto[]>([]);
+  const openScriptComments = scriptComments.filter((c) => !c.resolvedAt);
+  useEffect(() => {
+    const id = currentChapter?.id;
+    if (!id) {
+      setScriptComments([]);
+      return;
+    }
+    let cancelled = false;
+    chapterService
+      .getScriptComments(id)
+      .then((list) => !cancelled && setScriptComments(list))
+      .catch(() => !cancelled && setScriptComments([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [currentChapter?.id, currentChapter?.scriptStatus]);
   const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
   const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
   const [chapterAssignments, setChapterAssignments] = useState<AssignmentDto[]>([]);
@@ -1726,59 +1752,49 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     return found ? getBibleEntryNameWithStage(found) : 'Nhân vật (Chưa rõ)';
   };
 
+  // D12 — áp trạng thái chương máy chủ trả về rồi nạp lại chi tiết
+  const applyChapterUpdate = async (updated: ChapterDto | null | undefined) => {
+    if (updated) setCurrentChapter((prev) => (prev ? { ...prev, ...updated } : prev));
+    if (currentChapter?.id) await refreshChapterDetail(currentChapter.id);
+  };
+
+  /** D12 / Gate 1: Producer bấm Start Production khi kịch bản đang InReview. */
   const handleFreezeScript = async () => {
     if (!currentChapter?.id) return;
+    const n = currentChapter.chapterNumber;
     const confirmed = await confirm({
-      title: `Duyệt kịch bản & Đưa vào sản xuất Chương ${currentChapter.chapterNumber}?`,
-      description:
-        'Kịch bản sẽ được đóng băng (Frozen / Read-only) để bộ phận Artist bắt đầu dàn trang (Thumbnail & Layout). Bước giao việc Script trên Kanban sẽ tự động hoàn tất.',
-      confirmText: 'Duyệt kịch bản & Đưa vào sản xuất',
-      cancelText: 'Hủy',
+      title: t('scriptStudio.lifecycle.startConfirmTitle', { n }),
+      description: t('scriptStudio.lifecycle.startConfirmBody'),
+      confirmText: t('scriptStudio.submit.producer'),
+      cancelText: t('scriptStudio.lifecycle.cancel'),
       variant: 'info',
     });
     if (!confirmed) return;
 
     setFreezingScript(true);
     try {
-      const updatedChapter = await chapterService.freezeScript(currentChapter.id);
-      notify(
-        'Đã duyệt kịch bản',
-        `Kịch bản Chương ${currentChapter.chapterNumber} đã đóng băng và chuyển giao sang khâu sản xuất hình ảnh thành công.`,
-      );
-      setCurrentChapter((prev) =>
-        prev
-          ? {
-              ...prev,
-              isScriptFrozen: true,
-              scriptContentHash: updatedChapter?.scriptContentHash ?? prev.scriptContentHash,
-            }
-          : prev,
-      );
-      await refreshChapterDetail(currentChapter.id);
-      void checkChapterBibleGate(currentChapter.id);
+      const updated = await chapterService.freezeScript(currentChapter.id);
+      notify(t('scriptStudio.lifecycle.started'), t('scriptStudio.lifecycle.startedBody', { n }));
+      await applyChapterUpdate(updated);
     } catch (err: any) {
-      notify('Không thể duyệt kịch bản', err.message);
+      notify(t('scriptStudio.lifecycle.startFailed'), err.message);
     } finally {
       setFreezingScript(false);
     }
   };
 
-  // BR-18: lý do mở lại là bắt buộc, Backend ghi vào Audit Log
+  // BR-18: lý do mở lại là bắt buộc, Backend ghi vào Audit Log (Frozen → Draft)
   const handleUnfreezeScript = async (reason: string) => {
     if (!currentChapter?.id) return;
     setUnfreezeReasonOpen(false);
     setFreezingScript(true);
     try {
-      await chapterService.unfreezeScript(currentChapter.id, reason);
+      const updated = await chapterService.unfreezeScript(currentChapter.id, reason);
       notify(
         'Đã mở lại kịch bản',
         `Kịch bản Chương ${currentChapter.chapterNumber} đã được mở lại cho Writer chỉnh sửa.`,
       );
-      setCurrentChapter((prev) =>
-        prev ? { ...prev, isScriptFrozen: false, scriptContentHash: null } : prev,
-      );
-      await refreshChapterDetail(currentChapter.id);
-      void checkChapterBibleGate(currentChapter.id);
+      await applyChapterUpdate(updated);
     } catch (err: any) {
       notify('Không thể mở lại kịch bản', err.message);
     } finally {
@@ -1786,39 +1802,44 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   };
 
-  const handleSubmitScriptToEditor = async () => {
+  /** D12: Writer nộp kịch bản (Draft → InReview). Lưu bản đang sửa trước khi nộp là việc của bàn viết (Ctrl+S). */
+  const handleSubmitScript = async () => {
     if (!currentChapter?.id) return;
-    if (!myWriterAssignment) {
-      notify(
-        'Chưa có phân công việc',
-        'Chương này chưa có phân công kịch bản Writer trên Kanban để nộp duyệt.',
-      );
-      return;
-    }
-
+    const n = currentChapter.chapterNumber;
     const confirmed = await confirm({
-      title: `Gửi kịch bản Chương ${currentChapter.chapterNumber} cho Editor duyệt?`,
-      description: `Kịch bản (Bản v${currentChapter.versionVector ?? 0}) sẽ được chuyển sang hàng đợi thẩm định của Editor. Nếu Editor yêu cầu chỉnh sửa lại, hệ thống sẽ tự động tăng số version của bản thảo.`,
-      confirmText: 'Gửi duyệt kịch bản',
-      cancelText: 'Hủy',
+      title: t('scriptStudio.lifecycle.submitConfirmTitle', { n }),
+      description: t('scriptStudio.lifecycle.submitConfirmBody'),
+      confirmText: t('scriptStudio.submit.writer'),
+      cancelText: t('scriptStudio.lifecycle.cancel'),
       variant: 'info',
     });
     if (!confirmed) return;
 
     setSubmittingToEditor(true);
     try {
-      if (myWriterAssignment.status === 'Assigned') {
-        await assignmentService.startAssignment(currentChapter.id, myWriterAssignment.id);
-      }
-      await assignmentService.submitAssignment(currentChapter.id, myWriterAssignment.id);
+      const updated = await chapterService.submitScript(currentChapter.id);
       notify(
-        'Đã gửi kịch bản cho Editor duyệt',
-        `Kịch bản Chương ${currentChapter.chapterNumber} (Bản v${currentChapter.versionVector ?? 0}) đã được chuyển cho Editor thẩm định thành công.`,
+        t('scriptStudio.lifecycle.submitted'),
+        t('scriptStudio.lifecycle.submittedBody', { n }),
       );
-      await refreshChapterDetail(currentChapter.id);
+      await applyChapterUpdate(updated);
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Lỗi khi gửi duyệt kịch bản';
-      notify('Không thể gửi duyệt', msg);
+      notify(t('scriptStudio.lifecycle.submitFailed'), err.message);
+    } finally {
+      setSubmittingToEditor(false);
+    }
+  };
+
+  /** D12: chỉ Writer rút kịch bản về sửa (InReview → Draft). */
+  const handleRecallScript = async () => {
+    if (!currentChapter?.id) return;
+    setSubmittingToEditor(true);
+    try {
+      const updated = await chapterService.recallScript(currentChapter.id);
+      notify(t('scriptStudio.lifecycle.recalled'), '');
+      await applyChapterUpdate(updated);
+    } catch (err: any) {
+      notify(t('scriptStudio.lifecycle.recallFailed'), err.message);
     } finally {
       setSubmittingToEditor(false);
     }
@@ -1879,32 +1900,27 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Handler đi qua ref vì chúng được tạo lại mỗi lần render; đưa trực tiếp vào deps sẽ gây vòng lặp setHeaderConfig.
   const focusHeader = useFocusHeaderContext();
   const isWriterRole = normRole === 'WRITER' || effectiveRole === 'WRITER';
-  const writerStatus = myWriterAssignment?.status;
-  const isAwaitingReview =
-    writerStatus === 'Submitted' || writerStatus === 'UnderReview' || writerStatus === 'Approved';
-  const canSubmitScript =
-    Boolean(currentChapter) &&
-    !isScriptFrozen &&
-    (isProducer ||
-      (isWriterRole &&
-        Boolean(myWriterAssignment) &&
-        !isAwaitingReview &&
-        openChangeRequestCount === 0));
-  const scriptStageIndex = isScriptFrozen ? 2 : isAwaitingReview ? 1 : 0;
+  // D12: Writer nộp (Draft) / rút về (InReview); Producer Start Production (InReview). Editor không có nút đổi trạng thái.
+  const scriptAction: 'submit' | 'recall' | 'start' | null =
+    !currentChapter || isChapterContentLocked
+      ? null
+      : isWriterRole && scriptStatus === 'Draft'
+        ? 'submit'
+        : isWriterRole && isScriptInReview
+          ? 'recall'
+          : isProducer && isScriptInReview
+            ? 'start'
+            : null;
+  const canSubmitScript = scriptAction !== null;
+  const scriptStageIndex = isScriptFrozen ? 2 : isScriptInReview ? 1 : 0;
 
   const submitScriptRef = React.useRef<() => void>(() => {});
   const selectChapterRef = React.useRef(handleSelectChapter);
   useEffect(() => {
     submitScriptRef.current = () => {
-      if (isProducer) {
-        if (bibleGateResult && !bibleGateResult.isPassed) {
-          setBibleGateModalOpen(true);
-          return;
-        }
-        void handleFreezeScript();
-        return;
-      }
-      void handleSubmitScriptToEditor();
+      if (scriptAction === 'start') void handleFreezeScript();
+      else if (scriptAction === 'recall') void handleRecallScript();
+      else if (scriptAction === 'submit') void handleSubmitScript();
     };
     selectChapterRef.current = handleSelectChapter;
   });
@@ -1938,9 +1954,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       isStageFlowCompleted: isScriptFrozen,
       isSubmittingStage: submittingToEditor || freezingScript,
       onSubmitStage: canSubmitScript ? () => submitScriptRef.current() : undefined,
-      submitButtonLabel: isProducer
-        ? t('scriptStudio.submit.producer')
-        : t('scriptStudio.submit.writer'),
+      submitButtonLabel:
+        scriptAction === 'start'
+          ? t('scriptStudio.submit.producer')
+          : scriptAction === 'recall'
+            ? t('scriptStudio.submit.recall')
+            : t('scriptStudio.submit.writer'),
     });
   }, [
     focusHeader,
@@ -1955,7 +1974,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     submittingToEditor,
     freezingScript,
     canSubmitScript,
-    isProducer,
+    scriptAction,
     t,
   ]);
 
@@ -2220,7 +2239,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       })}
 
       {/* 2. Thanh thông báo ngắn gọn gom thông báo chỉ đọc & xung đột */}
-      {(concurrencyError || isChapterLocked || !canEditScript || loadError) && (
+      {(concurrencyError ||
+        isChapterLocked ||
+        !canEditScript ||
+        loadError ||
+        openScriptComments.length > 0) && (
         <div className='px-4 py-2.5 bg-white border-b border-[#E7E2D9] shrink-0 text-xs space-y-2'>
           {concurrencyError && (
             <div
@@ -2271,7 +2294,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 <div>
                   <div className='flex items-center gap-2'>
                     <span className='font-bold text-xs uppercase tracking-wider bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded inline-flex items-center gap-1.5'>
-                      <span>🔒 Kịch bản đã đóng băng (Frozen / Read-only)</span>
+                      <span>🔒 Kịch bản đã chốt (chỉ đọc)</span>
                       {currentChapter?.scriptContentHash && (
                         <span
                           className='font-mono font-semibold text-[10px] text-indigo-900 bg-indigo-100 px-1.5 py-0.5 rounded border border-indigo-300'
@@ -2318,7 +2341,85 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           )}
 
-          {isChapterLocked && !isScriptFrozen && (
+          {isScriptInReview && (
+            <div
+              data-testid='script-in-review-banner'
+              className='p-3 bg-amber-50 border border-amber-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-amber-950'
+            >
+              <div className='flex items-center gap-2.5 min-w-0'>
+                <Lock className='w-4 h-4 text-amber-700 shrink-0' />
+                <div>
+                  <p className='text-xs font-semibold'>
+                    {t('scriptStudio.lifecycle.inReviewTitle')}
+                  </p>
+                  <p className='text-[11px] text-amber-900/80 mt-0.5'>
+                    {t('scriptStudio.lifecycle.inReviewBody')}
+                  </p>
+                </div>
+              </div>
+              {isWriterRole && !isChapterContentLocked && (
+                <button
+                  type='button'
+                  disabled={submittingToEditor}
+                  onClick={() => void handleRecallScript()}
+                  className='px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shrink-0 cursor-pointer transition-colors disabled:opacity-60 flex items-center gap-1.5'
+                >
+                  <RefreshCw className='w-3.5 h-3.5' />
+                  {t('scriptStudio.submit.recall')}
+                </button>
+              )}
+            </div>
+          )}
+
+          {openScriptComments.length > 0 && (
+            <details
+              data-testid='script-comments-panel'
+              open={isScriptInReview}
+              className='rounded-xl border border-stone-200 bg-stone-50 px-3 py-2'
+            >
+              <summary className='cursor-pointer text-xs font-semibold text-stone-800'>
+                {t('scriptStudio.comments.title', { count: openScriptComments.length })}
+              </summary>
+              <ul className='mt-2 space-y-2'>
+                {openScriptComments.map((c) => (
+                  <li key={c.id} className='rounded-lg bg-white px-3 py-2 border border-stone-200'>
+                    {c.quotedText && (
+                      <p className='line-clamp-2 border-l-2 border-stone-200 pl-2 text-[11px] italic text-stone-500'>
+                        {c.quotedText}
+                      </p>
+                    )}
+                    <p className='mt-1 whitespace-pre-wrap text-xs text-stone-800'>{c.body}</p>
+                    <div className='mt-1 flex items-center justify-between gap-2'>
+                      <span className='text-[11px] text-stone-400'>{c.authorName ?? ''}</span>
+                      {isWriterRole && (
+                        <button
+                          type='button'
+                          onClick={() =>
+                            currentChapter?.id &&
+                            void chapterService
+                              .resolveScriptComment(currentChapter.id, c.id)
+                              .then((updated) =>
+                                setScriptComments((list) =>
+                                  list.map((x) => (x.id === updated.id ? updated : x)),
+                                ),
+                              )
+                              .catch((err) =>
+                                notify(t('scriptStudio.comments.resolveFailed'), err.message),
+                              )
+                          }
+                          className='text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 cursor-pointer'
+                        >
+                          {t('scriptStudio.comments.resolve')}
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+
+          {isChapterContentLocked && !isScriptFrozen && (
             <div
               data-testid='chapter-locked-banner'
               className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'

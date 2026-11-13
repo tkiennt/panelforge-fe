@@ -244,6 +244,33 @@
       "loadTitle": "Không mở được kịch bản",
       "load": "Không tải được dữ liệu kịch bản của chương này.",
       "generic": "Đã có lỗi xảy ra."
+    },
+    "lifecycle": {
+      "status": {
+        "Draft": "Đang viết",
+        "InReview": "Chờ duyệt",
+        "Frozen": "Đã chốt"
+      },
+      "draftNotice": "Writer chưa gửi duyệt kịch bản này. Bạn vẫn xem được; góp ý mở khi kịch bản ở trạng thái Chờ duyệt.",
+      "frozenNotice": "Kịch bản đã được chốt để sản xuất. Góp ý mới không còn nhận.",
+      "inReviewNotice": "Kịch bản đang chờ duyệt. Góp ý theo từng dòng để Writer tham khảo; góp ý không đổi trạng thái kịch bản.",
+      "startProduction": "Bắt đầu sản xuất",
+      "startConfirm": "Bắt đầu sản xuất Chương {n}? Kịch bản sẽ được chốt (chỉ đọc).",
+      "started": "Đã bắt đầu sản xuất",
+      "startFailed": "Không bắt đầu sản xuất được"
+    },
+    "comments": {
+      "tab": "Góp ý ({count})",
+      "empty": "Chưa có góp ý nào. Chọn một dòng trong bản thảo để góp ý.",
+      "resolved": "Đã xử lý",
+      "open": "Chưa xử lý",
+      "general": "Góp ý chung",
+      "saveFailed": "Không gửi được góp ý",
+      "saved": "Đã gửi góp ý"
+    },
+    "desk": {
+      "scriptsInReview": "Kịch bản chờ duyệt ({count})",
+      "openComments": "Mở để góp ý"
     }
   },
   "artworkReview": {

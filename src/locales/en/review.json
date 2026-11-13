@@ -244,6 +244,33 @@
       "loadTitle": "Could not open the script",
       "load": "Could not load this chapter's script.",
       "generic": "Something went wrong."
+    },
+    "lifecycle": {
+      "status": {
+        "Draft": "Writing",
+        "InReview": "In review",
+        "Frozen": "Approved"
+      },
+      "draftNotice": "The Writer has not submitted this script yet. You can read it; comments open once it is in review.",
+      "frozenNotice": "The script is approved for production. New comments are closed.",
+      "inReviewNotice": "The script is in review. Comment line by line for the Writer; comments do not change the script status.",
+      "startProduction": "Start production",
+      "startConfirm": "Start production of chapter {n}? The script will be finalized (read-only).",
+      "started": "Production started",
+      "startFailed": "Could not start production"
+    },
+    "comments": {
+      "tab": "Comments ({count})",
+      "empty": "No comments yet. Pick a line in the manuscript to comment on it.",
+      "resolved": "Resolved",
+      "open": "Open",
+      "general": "General comment",
+      "saveFailed": "Could not send the comment",
+      "saved": "Comment sent"
+    },
+    "desk": {
+      "scriptsInReview": "Scripts in review ({count})",
+      "openComments": "Open to comment"
     }
   },
   "artworkReview": {

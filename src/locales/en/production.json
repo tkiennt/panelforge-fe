@@ -131,13 +131,14 @@
       "needScene": "Select a scene first"
     },
     "stages": {
-      "write": "Write",
-      "review": "Editor review",
-      "lock": "Lock script"
+      "write": "Writing",
+      "review": "In review",
+      "lock": "Approved"
     },
     "submit": {
-      "writer": "Send to editor",
-      "producer": "Approve script"
+      "writer": "Submit for review",
+      "recall": "Cancel submission",
+      "producer": "Start production"
     },
     "views": {
       "label": "View",
@@ -210,6 +211,28 @@
     },
     "paper": {
       "hint": "Just write. Enter for a new line · type \"Name:\" for dialogue · Tab changes the line type"
+    },
+    "lifecycle": {
+      "inReviewTitle": "Script is in review — editing paused",
+      "inReviewBody": "Editors comment line by line; the Producer clicks \"Start production\" when ready. To keep editing, the Writer clicks \"Cancel submission\".",
+      "submitConfirmTitle": "Submit the script of chapter {n} for review?",
+      "submitConfirmBody": "Editing is paused while in review and the Editor and Producer are notified. You can cancel the submission any time before production starts.",
+      "submitted": "Script submitted for review",
+      "submittedBody": "The script of chapter {n} is now in review.",
+      "submitFailed": "Could not submit for review",
+      "recalled": "Submission cancelled, you can keep editing",
+      "recallFailed": "Could not cancel the submission",
+      "startConfirmTitle": "Start production of chapter {n}?",
+      "startConfirmBody": "The script will be finalized (read-only) and the chapter moves into production. Editing again requires reopening the script with a reason.",
+      "started": "Production started",
+      "startedBody": "The script of chapter {n} is finalized and the chapter is in production.",
+      "startFailed": "Could not start production",
+      "cancel": "Cancel"
+    },
+    "comments": {
+      "title": "Open comments ({count})",
+      "resolve": "Mark resolved",
+      "resolveFailed": "Could not mark the comment"
     }
   },
   "createProjectModal": {

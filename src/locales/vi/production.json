@@ -131,13 +131,14 @@
       "needScene": "Chọn một phân cảnh trước"
     },
     "stages": {
-      "write": "Viết",
-      "review": "Editor duyệt",
-      "lock": "Khóa kịch bản"
+      "write": "Đang viết",
+      "review": "Chờ duyệt",
+      "lock": "Đã chốt"
     },
     "submit": {
-      "writer": "Gửi Editor duyệt",
-      "producer": "Duyệt kịch bản"
+      "writer": "Gửi duyệt",
+      "recall": "Hủy gửi duyệt",
+      "producer": "Bắt đầu sản xuất"
     },
     "views": {
       "label": "Chế độ xem",
@@ -210,6 +211,28 @@
     },
     "paper": {
       "hint": "Cứ viết. Enter xuống dòng · gõ \"Tên:\" để viết lời thoại · Tab đổi loại dòng"
+    },
+    "lifecycle": {
+      "inReviewTitle": "Kịch bản đang chờ duyệt — tạm khoá chỉnh sửa",
+      "inReviewBody": "Editor góp ý theo từng dòng; Producer bấm \"Bắt đầu sản xuất\" khi sẵn sàng. Muốn chỉnh sửa tiếp, Writer bấm \"Hủy gửi duyệt\".",
+      "submitConfirmTitle": "Gửi duyệt kịch bản Chương {n}?",
+      "submitConfirmBody": "Kịch bản sẽ tạm khoá chỉnh sửa trong lúc chờ duyệt; Editor và Producer sẽ nhận thông báo. Bạn có thể hủy gửi duyệt bất cứ lúc nào trước khi Producer bắt đầu sản xuất.",
+      "submitted": "Đã gửi duyệt kịch bản",
+      "submittedBody": "Kịch bản Chương {n} đang chờ duyệt.",
+      "submitFailed": "Không gửi duyệt được",
+      "recalled": "Đã hủy gửi duyệt, bạn có thể chỉnh sửa tiếp",
+      "recallFailed": "Không hủy gửi duyệt được",
+      "startConfirmTitle": "Bắt đầu sản xuất Chương {n}?",
+      "startConfirmBody": "Kịch bản sẽ được chốt (chỉ đọc) và chương chuyển sang sản xuất hình ảnh. Muốn sửa lại phải mở lại kịch bản kèm lý do.",
+      "started": "Đã bắt đầu sản xuất",
+      "startedBody": "Kịch bản Chương {n} đã được chốt; chương chuyển sang sản xuất.",
+      "startFailed": "Không bắt đầu sản xuất được",
+      "cancel": "Huỷ"
+    },
+    "comments": {
+      "title": "Góp ý chưa xử lý ({count})",
+      "resolve": "Đã xử lý",
+      "resolveFailed": "Không đánh dấu được góp ý"
     }
   },
   "createProjectModal": {

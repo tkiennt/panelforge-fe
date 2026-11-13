@@ -1,7 +1,10 @@
 // src/services/chapter.service.ts
 import axiosClient from '../api/axiosClient';
 
-export type ChapterStatus = 'InProduction' | 'Approved' | 'Locked' | 'Published';
+export type ChapterStatus = 'PreProduction' | 'InProduction' | 'Approved' | 'Locked' | 'Published';
+
+/** D12: vòng đời kịch bản Draft ↔ InReview → Frozen. */
+export type ScriptStatus = 'Draft' | 'InReview' | 'Frozen';
 
 export interface ChapterDto {
   id: string;
@@ -29,6 +32,30 @@ export interface ChapterDto {
   scriptContentHash?: string | null;
   isLocked?: boolean;
   priceVnd?: number;
+  scriptStatus?: ScriptStatus;
+  scriptSubmittedAt?: string | null;
+}
+
+/** D12: góp ý theo dòng trên kịch bản (Editor / Producer), không đổi trạng thái kịch bản. */
+export interface ScriptCommentDto {
+  id: string;
+  chapterId: string;
+  sceneId?: string | null;
+  scriptLineId?: string | null;
+  quotedText?: string | null;
+  body: string;
+  authorUserId: string;
+  authorName?: string | null;
+  createdAt: string;
+  resolvedAt?: string | null;
+  resolvedById?: string | null;
+}
+
+export interface AddScriptCommentRequest {
+  sceneId?: string | null;
+  scriptLineId?: string | null;
+  quotedText?: string | null;
+  body: string;
 }
 
 export interface PagedResult<T> {
@@ -384,8 +411,61 @@ export const chapterService = {
     }
   },
 
+  /** D12: góp ý theo dòng của chương. */
+  getScriptComments: async (chapterId: string): Promise<ScriptCommentDto[]> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/script-comments`);
+      return response.data ?? [];
+    } catch (error) {
+      throw new Error(extractError(error, 'Không tải được góp ý kịch bản.'));
+    }
+  },
+
+  addScriptComment: async (
+    chapterId: string,
+    data: AddScriptCommentRequest,
+  ): Promise<ScriptCommentDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/script-comments`, data);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không gửi được góp ý.'));
+    }
+  },
+
+  resolveScriptComment: async (chapterId: string, commentId: string): Promise<ScriptCommentDto> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/script-comments/${commentId}/resolve`,
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không đánh dấu được góp ý.'));
+    }
+  },
+
+  /** D12: Writer nộp kịch bản (Draft → InReview); kịch bản khoá sửa. */
+  submitScript: async (chapterId: string): Promise<ChapterDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/submit-script`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể nộp kịch bản.'));
+    }
+  },
+
+  /** D12: chỉ Writer rút kịch bản về sửa (InReview → Draft). */
+  recallScript: async (chapterId: string): Promise<ChapterDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/recall-script`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể rút kịch bản về sửa.'));
+    }
+  },
+
   /**
-   * Producer duyệt kịch bản và bắt đầu sản xuất hình ảnh (Freeze Script & Unlock Thumbnail)
+   * Gate 1 — Producer bấm Start Production khi kịch bản đang InReview (→ Frozen, chương → InProduction)
    */
   freezeScript: async (chapterId: string): Promise<ChapterDto> => {
     try {
