@@ -20,6 +20,14 @@ import type { BibleEntryRevisionDto } from '@/services/bible.service';
 import type { CharacterEraStage } from './BibleEntityDetailModal';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { LucianInlineAlert } from '@/shared/components/lucian';
+import {
+  SPEC_SCHEMA,
+  mergeSpecAttributes,
+  specCategoryOf,
+  specCompleteness,
+  specFields,
+  type SpecCategory,
+} from './bibleSpec';
 
 export interface AddRevisionModalProps {
   isOpen: boolean;
@@ -119,8 +127,10 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     const [summary, setSummary] = useState(initialSummary);
     const [description, setDescription] = useState(initialDescription);
     const [referenceImageUrl, setReferenceImageUrl] = useState(initialReferenceImageUrl);
-    const [revAttr1, setRevAttr1] = useState('');
-    const [revAttr2, setRevAttr2] = useState('');
+    const [specValues, setSpecValues] = useState<Record<string, string>>({});
+    const specCategory: SpecCategory = revisionTarget
+      ? specCategoryOf(revisionTarget)
+      : 'character';
     const [isSpecsExpanded, setIsSpecsExpanded] = useState(!isArtistConceptSubmit);
     const [isDragging, setIsDragging] = useState(false);
     const revFileInputRef = useRef<HTMLInputElement>(null);
@@ -178,31 +188,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
           }
         }
         if (revisionTarget) {
-          const isCatChar =
-            revisionTarget.category === 'characters' || revisionTarget.category === 'character';
-          const isCatLoc =
-            revisionTarget.category === 'locations' || revisionTarget.category === 'location';
-          const isCatProp = revisionTarget.category === 'prop';
-          const isCatTerm = revisionTarget.category === 'terminology';
-          const isCatStyle =
-            revisionTarget.category === 'style' || revisionTarget.category === 'rule';
-
-          if (isCatChar) {
-            setRevAttr1(initialAttrs.age || '');
-            setRevAttr2(initialAttrs.height || '');
-          } else if (isCatLoc) {
-            setRevAttr1(initialAttrs.environmentType || '');
-            setRevAttr2(initialAttrs.scale || initialAttrs.atmosphere || '');
-          } else if (isCatProp) {
-            setRevAttr1(initialAttrs.sizeWeight || '');
-            setRevAttr2(initialAttrs.material || '');
-          } else if (isCatTerm) {
-            setRevAttr1(initialAttrs.termType || '');
-            setRevAttr2(initialAttrs.origin || '');
-          } else if (isCatStyle) {
-            setRevAttr1(initialAttrs.colorPalette || '');
-            setRevAttr2(initialAttrs.lineArtRules || '');
-          }
+          const cat = specCategoryOf(revisionTarget);
+          setSpecValues(
+            Object.fromEntries(
+              specFields(cat).map((fd) => [fd.key, String(initialAttrs[fd.key] ?? '')]),
+            ),
+          );
         }
 
         if (mode === 'existing' && existingStages && existingStages.length > 0) {
@@ -242,33 +233,11 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     if (!isOpen || !revisionTarget) return null;
 
     const handleSubmit = () => {
-      const isCatChar =
-        revisionTarget.category === 'characters' || revisionTarget.category === 'character';
-      const isCatLoc =
-        revisionTarget.category === 'locations' || revisionTarget.category === 'location';
-      const isCatProp = revisionTarget.category === 'prop';
-      const isCatTerm = revisionTarget.category === 'terminology';
-      const isCatStyle = revisionTarget.category === 'style' || revisionTarget.category === 'rule';
-
-      const updatedAttrs: Record<string, any> = { ...(revisionTarget.attributes || {}) };
-      if (isCatChar) {
-        if (revAttr1.trim()) updatedAttrs.age = revAttr1.trim();
-        else delete updatedAttrs.age;
-        if (revAttr2.trim()) updatedAttrs.height = revAttr2.trim();
-        else delete updatedAttrs.height;
-      } else if (isCatLoc) {
-        if (revAttr1.trim()) updatedAttrs.environmentType = revAttr1.trim();
-        if (revAttr2.trim()) updatedAttrs.scale = revAttr2.trim();
-      } else if (isCatProp) {
-        if (revAttr1.trim()) updatedAttrs.sizeWeight = revAttr1.trim();
-        if (revAttr2.trim()) updatedAttrs.material = revAttr2.trim();
-      } else if (isCatTerm) {
-        if (revAttr1.trim()) updatedAttrs.termType = revAttr1.trim();
-        if (revAttr2.trim()) updatedAttrs.origin = revAttr2.trim();
-      } else if (isCatStyle) {
-        if (revAttr1.trim()) updatedAttrs.colorPalette = revAttr1.trim();
-        if (revAttr2.trim()) updatedAttrs.lineArtRules = revAttr2.trim();
-      }
+      const updatedAttrs = mergeSpecAttributes(
+        specCategory,
+        revisionTarget.attributes || {},
+        specValues,
+      ) as Record<string, any>;
 
       const detailsPayload = JSON.stringify({
         turnaroundGallery: revisionTarget.gallery || [],
@@ -763,12 +732,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     <FileText className='w-4 h-4 text-stone-500 shrink-0' />
                     <div className='min-w-0'>
                       <span className='text-xs font-bold text-stone-800 block'>
-                        Thông số & Đặc tả kịch bản (Tùy chọn)
+                        Đặc tả của Writer (chỉ đọc)
                       </span>
                       <span className='text-[11px] text-stone-500 truncate block'>
                         {isSpecsExpanded
-                          ? 'Mặc định giữ nguyên theo kịch bản của Writer. Nhấp để thu gọn.'
-                          : `${name} • ${revAttr1 || 'Chưa thiết lập'} • ${revAttr2 || 'Chưa thiết lập'}`}
+                          ? 'Vẽ theo đặc tả này; muốn đổi đặc tả hãy nhờ Writer. Nhấp để thu gọn.'
+                          : `${name} • đặc tả ${specCompleteness(specCategory, specValues).filled}/${specCompleteness(specCategory, specValues).total} trường`}
                       </span>
                     </div>
                   </div>
@@ -781,75 +750,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
 
                 {isSpecsExpanded && (
                   <div className='p-4 pt-2 border-t border-stone-200/70 space-y-3 bg-white'>
-                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                      <div>
-                        <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                          Tên mục *
-                        </label>
-                        <input
-                          type='text'
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                        />
-                      </div>
-                      <div>
-                        <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                          Phụ đề / Vai trò
-                        </label>
-                        <input
-                          type='text'
-                          value={subtitle}
-                          onChange={(e) => setSubtitle(e.target.value)}
-                          className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                        />
-                      </div>
-                    </div>
-
-                    <div className='p-3 bg-[#FAF8F5] border border-[#E7E5E4] rounded-xl space-y-2'>
-                      <span className='text-xs font-bold text-zinc-800 block'>
-                        Thông số nhân vật (Độ tuổi & Vóc dáng)
-                      </span>
-                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                        <div>
-                          <label className='block text-xs font-medium text-zinc-700 mb-1'>
-                            Độ tuổi
-                          </label>
-                          <input
-                            type='text'
-                            placeholder='Ví dụ: 17 tuổi, 25 tuổi...'
-                            value={revAttr1}
-                            onChange={(e) => setRevAttr1(e.target.value)}
-                            className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                          />
-                        </div>
-                        <div>
-                          <label className='block text-xs font-medium text-zinc-700 mb-1'>
-                            Chiều cao / Vóc dáng
-                          </label>
-                          <input
-                            type='text'
-                            placeholder='Ví dụ: 178 cm, Cao gầy...'
-                            value={revAttr2}
-                            onChange={(e) => setRevAttr2(e.target.value)}
-                            className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                        Mô tả chi tiết (Tùy chọn)
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder='Mô tả chi tiết ngoại hình, phục trang, tính cách...'
-                        className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316] resize-y custom-scrollbar leading-relaxed'
-                      />
-                    </div>
+                    <SpecFieldsEditor category={specCategory} values={specValues} readOnly />
+                    {description && (
+                      <p className='text-sm text-stone-700 leading-relaxed whitespace-pre-line'>
+                        {description}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -880,78 +786,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                   </div>
                 </div>
 
-                {/* Contextual Attributes (Specs) */}
-                <div className='p-3 bg-[#FAF8F5] border border-[#E7E5E4] rounded-xl space-y-2'>
-                  <span className='text-xs font-bold text-zinc-800 block'>
-                    {revisionTarget.category === 'characters' ||
-                    revisionTarget.category === 'character'
-                      ? 'Thông số nhân vật (Độ tuổi & Vóc dáng)'
-                      : revisionTarget.category === 'locations' ||
-                          revisionTarget.category === 'location'
-                        ? 'Thông số không gian & Bối cảnh'
-                        : revisionTarget.category === 'prop'
-                          ? 'Thông số đạo cụ & Vật phẩm'
-                          : revisionTarget.category === 'terminology'
-                            ? 'Đặc tả thuật ngữ / Cốt truyện'
-                            : 'Quy chuẩn mỹ thuật'}
-                  </span>
-                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                    <div>
-                      <label className='block text-xs font-medium text-zinc-700 mb-1'>
-                        {revisionTarget.category === 'characters' ||
-                        revisionTarget.category === 'character'
-                          ? 'Độ tuổi'
-                          : revisionTarget.category === 'locations' ||
-                              revisionTarget.category === 'location'
-                            ? 'Loại địa hình / Phân khu'
-                            : revisionTarget.category === 'prop'
-                              ? 'Kích thước & Trọng lượng'
-                              : revisionTarget.category === 'terminology'
-                                ? 'Phân loại lĩnh vực'
-                                : 'Bảng màu chủ đạo'}
-                      </label>
-                      <input
-                        type='text'
-                        placeholder={
-                          revisionTarget.category === 'characters' ||
-                          revisionTarget.category === 'character'
-                            ? 'Ví dụ: 17 tuổi, 25 tuổi...'
-                            : 'Ví dụ: Hang động, Rừng lớn...'
-                        }
-                        value={revAttr1}
-                        onChange={(e) => setRevAttr1(e.target.value)}
-                        className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                      />
-                    </div>
-                    <div>
-                      <label className='block text-xs font-medium text-zinc-700 mb-1'>
-                        {revisionTarget.category === 'characters' ||
-                        revisionTarget.category === 'character'
-                          ? 'Chiều cao / Vóc dáng'
-                          : revisionTarget.category === 'locations' ||
-                              revisionTarget.category === 'location'
-                            ? 'Quy mô / Khí hậu'
-                            : revisionTarget.category === 'prop'
-                              ? 'Chất liệu cấu tạo'
-                              : revisionTarget.category === 'terminology'
-                                ? 'Nguồn gốc / Khởi nguyên'
-                                : 'Quy chuẩn nét vẽ'}
-                      </label>
-                      <input
-                        type='text'
-                        placeholder={
-                          revisionTarget.category === 'characters' ||
-                          revisionTarget.category === 'character'
-                            ? 'Ví dụ: 178 cm, Cao gầy...'
-                            : 'Ví dụ: U tối, Đầy sương...'
-                        }
-                        value={revAttr2}
-                        onChange={(e) => setRevAttr2(e.target.value)}
-                        className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                      />
-                    </div>
-                  </div>
-                </div>
+                {/* Đặc tả theo danh mục (bibleSpec) */}
+                <SpecFieldsEditor
+                  category={specCategory}
+                  values={specValues}
+                  onChange={(key, value) => setSpecValues((prev) => ({ ...prev, [key]: value }))}
+                />
 
                 <div>
                   <label className='block text-xs font-semibold text-zinc-800 mb-1'>
@@ -1125,3 +965,66 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
   },
 );
 AddRevisionModal.displayName = 'AddRevisionModal';
+
+const SpecFieldsEditor: React.FC<{
+  category: SpecCategory;
+  values: Record<string, string>;
+  readOnly?: boolean;
+  onChange?: (key: string, value: string) => void;
+}> = ({ category, values, readOnly = false, onChange }) => (
+  <div className='space-y-3'>
+    {SPEC_SCHEMA[category].map((group) => (
+      <fieldset
+        key={group.title}
+        className='p-3 bg-stone-50 border border-stone-200 rounded-xl space-y-2'
+      >
+        <legend className='px-1 text-xs font-semibold uppercase tracking-wider text-stone-500'>
+          {group.title}
+        </legend>
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+          {group.fields.map((field) => {
+            const id = `spec-${field.key}`;
+            const value = values[field.key] ?? '';
+            return (
+              <div key={field.key} className={field.multiline ? 'sm:col-span-2' : undefined}>
+                <label htmlFor={id} className='block text-xs font-semibold text-stone-700 mb-1'>
+                  {field.label}
+                </label>
+                {readOnly ? (
+                  <p
+                    id={id}
+                    className={
+                      value
+                        ? 'text-sm text-stone-800 whitespace-pre-line'
+                        : 'text-xs italic text-stone-500'
+                    }
+                  >
+                    {value || 'Chưa thiết lập'}
+                  </p>
+                ) : field.multiline ? (
+                  <textarea
+                    id={id}
+                    rows={2}
+                    value={value}
+                    placeholder={field.placeholder}
+                    onChange={(e) => onChange?.(field.key, e.target.value)}
+                    className='w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:border-orange-500 resize-y'
+                  />
+                ) : (
+                  <input
+                    id={id}
+                    type='text'
+                    value={value}
+                    placeholder={field.placeholder}
+                    onChange={(e) => onChange?.(field.key, e.target.value)}
+                    className='w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:border-orange-500'
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </fieldset>
+    ))}
+  </div>
+);

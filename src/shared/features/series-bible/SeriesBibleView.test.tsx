@@ -22,6 +22,7 @@ vi.mock('@/services/bible.service', () => ({
     requestReworkRevision: vi.fn().mockResolvedValue({}),
     addRevision: vi.fn().mockResolvedValue({}),
     getEntryHistory: vi.fn().mockResolvedValue([]),
+    getEntryUsages: vi.fn().mockResolvedValue([]),
   },
 }));
 

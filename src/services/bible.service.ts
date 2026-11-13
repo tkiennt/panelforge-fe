@@ -244,6 +244,16 @@ export const bibleService = {
     }
   },
 
+  /** Các chương có kịch bản dùng mục này (người nói hoặc @Tag) và đã đạt điều kiện Canon của Gate 1 chưa. */
+  async getEntryUsages(seriesId: string, entryId: string): Promise<BibleEntryUsageDto[]> {
+    try {
+      const response = await axiosClient.get(`/series/${seriesId}/bible/entries/${entryId}/usages`);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tải danh sách chương dùng mục này.');
+    }
+  },
+
   async getEntryHistory(seriesId: string, entryId: string): Promise<BibleEntryRevisionDto[]> {
     try {
       const response = await axiosClient.get(
@@ -375,6 +385,16 @@ export const bibleService = {
     }
   },
 };
+
+/** BE: BibleEntryUsageDto (GetBibleEntryUsagesQuery). */
+export interface BibleEntryUsageDto {
+  chapterId: string;
+  chapterNumber: number;
+  chapterTitle?: string | null;
+  lineCount: number;
+  isScriptFrozen: boolean;
+  isCanonSatisfied: boolean;
+}
 
 export interface BibleDesignQueueItemDto {
   entryId: string;

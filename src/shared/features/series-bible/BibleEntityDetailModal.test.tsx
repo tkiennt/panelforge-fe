@@ -377,8 +377,8 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     // Must render Location card title & fields
     expect(screen.getByText(/Thông số không gian & Bối cảnh/i)).toBeInTheDocument();
-    expect(screen.getByText('Phân loại địa hình:')).toBeInTheDocument();
-    expect(screen.getByText('Chi tiết kiến trúc & Cảnh quan:')).toBeInTheDocument();
+    expect(screen.getByText('Loại không gian')).toBeInTheDocument();
+    expect(screen.getByText('Kiến trúc & vật cố định')).toBeInTheDocument();
     expect(screen.getByText('Cầu đá cổ bị gãy nhịp, vực sâu không đáy.')).toBeInTheDocument();
 
     // Must NOT render Character fields
@@ -532,5 +532,127 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.getByText('Lịch sử thay đổi')).toBeInTheDocument();
     expect(screen.getByText(/Đã nộp Concept Art/)).toBeInTheDocument();
     expect(screen.getByText(/Bản vẽ chi tiết phục trang/)).toBeInTheDocument();
+  });
+
+  describe('workbench Writer ↔ Artist (sidebar, trạng thái, đặc tả theo danh mục)', () => {
+    const draftEntry: BibleEntryDto = {
+      ...mockRawEntry,
+      category: 1,
+      detailsJson: JSON.stringify({
+        attributes: { age: '17', hair: 'tóc ngắn rối', forbidden: 'không đeo kính' },
+      }),
+      effectiveRevision: {
+        ...mockRawEntry.effectiveRevision!,
+        isLocked: false,
+        lockedAt: null,
+        reviewStatus: 'Draft',
+      },
+    };
+
+    it('renders the character spec schema with filled values and completeness', () => {
+      render(<BibleEntityDetailModal {...defaultProps} rawEntry={draftEntry} />);
+
+      expect(screen.getByText('Kiểu tóc')).toBeInTheDocument();
+      expect(screen.getByText('tóc ngắn rối')).toBeInTheDocument();
+      expect(screen.getByText('Không được vẽ')).toBeInTheDocument();
+      expect(screen.getByText('không đeo kính')).toBeInTheDocument();
+      expect(screen.getByTestId('spec-completeness').textContent).toMatch(/^3\//);
+      expect(screen.getByText('Turnaround trước / nghiêng / sau')).toBeInTheDocument();
+    });
+
+    it('shows whose turn it is: Artist uploads on a Draft visual entry', () => {
+      localStorage.setItem(
+        'activeWorkspace',
+        JSON.stringify({ id: 'ws-1', currentUserRole: 'ARTIST' }),
+      );
+      render(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          isProducer={false}
+          isArtist
+          rawEntry={draftEntry}
+        />,
+      );
+
+      const strip = screen.getByTestId('bible-status-strip');
+      expect(strip.textContent).toContain('Artist tải Model Sheet theo đặc tả');
+      expect(strip.textContent).toContain('Đến lượt bạn');
+      localStorage.removeItem('activeWorkspace');
+    });
+
+    it('treats BE category 3 as a Prop (visual, lockable) even though the list tab groups it with terminology', () => {
+      render(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          entity={{ ...mockEntityNoImage, category: 'terminology', isVisualDesign: true }}
+          rawEntry={{ ...draftEntry, category: 3, detailsJson: '{}' }}
+        />,
+      );
+
+      expect(screen.getByText('Chủ sở hữu')).toBeInTheDocument();
+      expect(screen.getByTestId('bible-artwork-column')).toBeInTheDocument();
+    });
+
+    it('hides the artwork column for text-only entries', () => {
+      render(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          entity={{ ...mockEntityNoImage, category: 'terminology' }}
+          rawEntry={{ ...draftEntry, category: 4, detailsJson: '{}' }}
+        />,
+      );
+
+      expect(screen.getByText('Cách dùng trong thoại')).toBeInTheDocument();
+      expect(screen.queryByTestId('bible-artwork-column')).toBeNull();
+    });
+
+    it('lists script usages in the sidebar and warns about Gate 1', async () => {
+      vi.spyOn(bibleService, 'getEntryHistory').mockResolvedValue([]);
+      vi.spyOn(bibleService, 'getEntryUsages').mockResolvedValue([
+        {
+          chapterId: 'c1',
+          chapterNumber: 1,
+          chapterTitle: 'Mở đầu',
+          lineCount: 2,
+          isScriptFrozen: true,
+          isCanonSatisfied: true,
+        },
+        {
+          chapterId: 'c3',
+          chapterNumber: 3,
+          chapterTitle: 'Biến cố',
+          lineCount: 1,
+          isScriptFrozen: false,
+          isCanonSatisfied: false,
+        },
+      ]);
+      render(<BibleEntityDetailModal {...defaultProps} seriesId='ser-1' rawEntry={draftEntry} />);
+
+      expect(await screen.findByText('Biến cố')).toBeInTheDocument();
+      expect(screen.getByText('Đạt Canon')).toBeInTheDocument();
+      expect(screen.getByText('Chưa khoá Canon')).toBeInTheDocument();
+      expect(screen.getByText(/bị chặn ở Gate 1/)).toBeInTheDocument();
+    });
+
+    it('switches to a sibling entry of the same category from the sidebar', () => {
+      const onSelectEntity = vi.fn();
+      const other = {
+        ...mockEntityNoImage,
+        id: 'ent-2',
+        code: 'CHR-002',
+        name: 'Lão Mã',
+        category: mockEntityWithImage.category,
+      };
+      render(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          entities={[mockEntityWithImage, other]}
+          onSelectEntity={onSelectEntity}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /Lão Mã/ }));
+      expect(onSelectEntity).toHaveBeenCalledWith(other);
+    });
   });
 });

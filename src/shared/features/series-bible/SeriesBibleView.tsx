@@ -2031,7 +2031,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       {/* DETAIL WORKBENCH (toàn trang) */}
       {selectedEntity && (
         <BibleEntityDetailModal
+          key={selectedEntity.id}
           entity={selectedEntity}
+          entities={localEntities}
+          onSelectEntity={setSelectedEntity}
           rawEntry={rawEntries[selectedEntity.id]}
           isProducer={isProducer}
           isArtist={isArtist}

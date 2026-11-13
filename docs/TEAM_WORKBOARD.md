@@ -24,7 +24,7 @@
 
 | Người | Repo | Việc | Spec (BR / Module / Q) | Nhánh | File chính | Bắt đầu |
 |---|---|---|---|---|---|---|
-| DontPassAway | BE + FE | Series Bible: refactor màn hình, quyền thẩm định theo §5.1 (Writer/Editor endorse, Producer khoá, Admin không khoá), khoá Canon cho Nhân vật/Bối cảnh/Đạo cụ | Module 1, §5.1, §5.2, BR-01, BR-15 | `feature/series-bible-spec-v26` | `src/shared/features/series-bible/*`, `roles/editor/views/BibleReviewView.tsx`; BE `BibleController.cs` | 2026-11-12 |
+| DontPassAway | BE + FE | Series Bible: refactor màn hình, quyền thẩm định theo §5.1 (Writer/Editor endorse, Producer khoá, Admin không khoá), khoá Canon cho Nhân vật/Bối cảnh/Đạo cụ; workbench Writer ↔ Artist + đặc tả theo danh mục. API mới: `GET /api/series/{seriesId}/bible/entries/{entryId}/usages`; `/endorse` nhận Writer + Editor; `/request-rework` nhận Producer, Writer, Editor | Module 1, §5.1, §5.2, BR-01, BR-15 | `feature/series-bible-spec-v26` | `src/shared/features/series-bible/*`, `roles/editor/views/BibleReviewView.tsx`; BE `BibleController.cs` | 2026-11-12 |
 
 ---
 
