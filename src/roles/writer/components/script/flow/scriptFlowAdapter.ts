@@ -1,6 +1,6 @@
 // src/roles/writer/components/script/flow/scriptFlowAdapter.ts
 import { Selection } from '@tiptap/pm/state';
-import { SceneDetailDto, NarrationMode } from '@/services/scriptLine.service';
+import { SceneDetailDto, NarrationMode, ScriptLineKind } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
 import { BibleEntryDto } from '@/services/bible.service';
@@ -416,6 +416,47 @@ export function scenesToTipTapDoc(
           ? !!((associatedPanel as any).hasArtwork || (associatedPanel as any).thumbnailUrl)
           : false;
 
+        // SCR-19: Đọc trực tiếp từ schema mới (Kind, SpeakerLabel, Text)
+        if (line.kind !== undefined && line.kind !== null) {
+          const k =
+            typeof line.kind === 'string'
+              ? (ScriptLineKind as any)[line.kind] ?? line.kind
+              : line.kind;
+          let blockType: MangaBlockType = 'stage_direction';
+          if (k === ScriptLineKind.Dialogue || k === 2) blockType = 'dialogue';
+          else if (k === ScriptLineKind.Thought || k === 3) blockType = 'thought';
+          else if (k === ScriptLineKind.Narration || k === 4) blockType = 'caption';
+          else if (k === ScriptLineKind.Sfx || k === 5) blockType = 'sfx';
+
+          const textContent =
+            line.text ||
+            (blockType === 'dialogue' || blockType === 'thought'
+              ? line.dialogueText
+              : line.stageDirection) ||
+            '';
+          content.push({
+            type: 'scriptLineBlock',
+            attrs: {
+              scriptLineId: line.id,
+              sceneId: scene.id,
+              blockType,
+              speakerName:
+                line.speakerLabel ||
+                (blockType === 'dialogue' && line.speakerCharacterId
+                  ? getSpeakerName?.(line.speakerCharacterId)
+                  : null),
+              speakerCharacterId: line.speakerCharacterId || null,
+              narrationMode: line.narrationMode || 'Present',
+              lineOrder: index + 1,
+              panelId: line.panelId || null,
+              inPanel: Boolean(line.panelId),
+              hasArtwork: hasThumb,
+            },
+            content: parseTextWithBibleMentions(textContent, allBibleEntries, chapterNumber),
+          });
+          return;
+        }
+
         // 1a. Dữ liệu cũ: lời thoại có ngoặc kép bị lưu nhầm thành chỉ dẫn ("(MÃ) : \"...\"", "TÊN: \"...\"")
         const legacyDialogue =
           line.stageDirection && !line.dialogueText
@@ -595,6 +636,9 @@ export function scenesToTipTapDoc(
 export interface ExtractedScriptLinePayload {
   scriptLineId: string;
   sceneId: string;
+  kind?: ScriptLineKind | number;
+  speakerLabel?: string | null;
+  text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
   speakerCharacterId?: string | null;
@@ -654,6 +698,9 @@ export function extractScriptLinesFromDoc(
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
         sceneId: currentSceneId,
+        kind: ScriptLineKind.Dialogue,
+        speakerLabel: attrs.speakerName,
+        text: textTrimmed,
         dialogueText: composeSpeakerLine(attrs.speakerName, textTrimmed),
         stageDirection: null,
         speakerCharacterId: attrs.speakerCharacterId || null,
@@ -880,6 +927,9 @@ export function extractScriptLinesFromDoc(
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
         sceneId: currentSceneId,
+        kind: ScriptLineKind.Dialogue,
+        speakerLabel: attrs.speakerName || null,
+        text: textTrimmed,
         dialogueText: textTrimmed,
         stageDirection: null,
         speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
@@ -894,7 +944,8 @@ export function extractScriptLinesFromDoc(
       effectiveBlockType === 'sfx' ||
       effectiveBlockType === 'stage_direction' ||
       effectiveBlockType === 'transition' ||
-      effectiveBlockType === 'caption'
+      effectiveBlockType === 'caption' ||
+      effectiveBlockType === 'thought'
     ) {
       // Giữ loại dòng khi lưu: "SFX: ..." / "Lời dẫn: ..." (Bàn vẽ và lần mở sau đọc lại được)
       const typedText =
@@ -905,12 +956,21 @@ export function extractScriptLinesFromDoc(
           : effectiveBlockType === 'caption' && !CAPTION_PREFIX.test(textTrimmed)
             ? `Lời dẫn: ${textTrimmed}`
             : textTrimmed;
+
+      let resolvedKind: ScriptLineKind = ScriptLineKind.Action;
+      if (effectiveBlockType === 'sfx') resolvedKind = ScriptLineKind.Sfx;
+      else if (effectiveBlockType === 'caption') resolvedKind = ScriptLineKind.Narration;
+      else if (effectiveBlockType === 'thought') resolvedKind = ScriptLineKind.Thought;
+
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
         sceneId: currentSceneId,
-        dialogueText: null,
-        stageDirection: typedText,
-        speakerCharacterId: null,
+        kind: resolvedKind,
+        speakerLabel: effectiveBlockType === 'thought' ? attrs.speakerName || null : null,
+        text: textTrimmed,
+        dialogueText: effectiveBlockType === 'thought' ? textTrimmed : null,
+        stageDirection: effectiveBlockType !== 'thought' ? typedText : null,
+        speakerCharacterId: effectiveBlockType === 'thought' ? attrs.speakerCharacterId || currentSpeakerId : null,
         narrationMode: attrs.narrationMode || 'Present',
         lineOrder: order++,
         panelId: currentPanelId || attrs.panelId || null,

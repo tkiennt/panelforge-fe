@@ -469,6 +469,8 @@ export interface PanelDto {
   sceneId?: string | null;
   /** BR-11 / CF4 4.2: gửi lại làm expectedVersion khi sửa toạ độ (thiếu ở BE cũ). */
   version?: number;
+  /** V1.2 / SCR-07: Mô tả hướng vẽ / chỉ dẫn hình ảnh của Panel */
+  direction?: string | null;
 }
 
 export interface PanelDetailDto extends PanelDto {
@@ -479,6 +481,12 @@ export interface CreatePanelRequest {
   panelNumber?: number;
   readingOrder?: number;
   boundingBox?: string;
+  direction?: string | null;
+}
+
+export interface UpdatePanelDirectionRequest {
+  direction?: string | null;
+  expectedVersion?: number;
 }
 
 export interface UpdatePanelCoordinatesRequest {

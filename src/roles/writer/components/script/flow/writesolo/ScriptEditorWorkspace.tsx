@@ -38,6 +38,7 @@ import {
   WRITESOLO_CYCLE_TYPES,
 } from './writeSoloExtensions';
 import { SeriesBibleContextSidebar } from './SeriesBibleContextSidebar';
+import { WriteSoloElementMenu } from './WriteSoloElementMenu';
 import { INITIAL_WRITESOLO_DOC, SAMPLE_BIBLE_ENTRIES } from './sampleScript';
 
 export const WRITESOLO_SCREENPLAY_MENU = [
@@ -401,26 +402,13 @@ export const ScriptEditorWorkspace: React.FC<ScriptEditorWorkspaceProps> = ({
         {/* Manuscript Paper Container */}
         <div className='flex-1 overflow-y-auto px-4 sm:px-12 py-8 custom-scrollbar flex justify-center bg-[#4B5563]/40'>
           <div className='w-full max-w-4xl bg-white shadow-2xl px-12 sm:px-20 py-16 relative writesolo-sheet min-h-[92vh] text-[#171717] font-mono text-[15px] leading-relaxed'>
-            {/* Floating Element Picker Popover */}
-            {showFloatingPicker && (
-              <div className='absolute top-6 right-6 z-50 w-56 rounded-md bg-white border border-stone-300 shadow-2xl p-1 text-xs font-mono animate-in fade-in zoom-in-95 duration-100 select-none'>
-                <div className='px-2 py-1 text-[10px] text-stone-400 border-b border-stone-100 uppercase tracking-wider mb-1'>
-                  Chọn loại dòng kịch bản
-                </div>
-                {WRITESOLO_SCREENPLAY_MENU.map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() => handleInsertBlock(item.type)}
-                    className={`w-full text-left px-2.5 py-1.5 rounded flex items-center justify-between hover:bg-stone-100 cursor-pointer ${
-                      activeBlockType === item.type ? 'bg-[#BAE6FD] text-sky-950 font-bold' : ''
-                    }`}
-                  >
-                    <span>{item.label}</span>
-                    <span className='text-[10px] font-bold text-stone-500'>[{item.key}]</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Floating Element Picker Popover (WriteSolo Graphic Novel Style) */}
+            <WriteSoloElementMenu
+              isOpen={showFloatingPicker}
+              activeType={activeBlockType}
+              onSelect={(type) => handleInsertBlock(type as WriteSoloBlockType)}
+              onClose={() => setShowFloatingPicker(false)}
+            />
 
             {/* TipTap Editor */}
             <EditorContent editor={editor} />

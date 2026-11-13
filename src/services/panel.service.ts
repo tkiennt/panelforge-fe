@@ -5,6 +5,7 @@ import {
   PanelDetailDto,
   CreatePanelRequest,
   UpdatePanelCoordinatesRequest,
+  UpdatePanelDirectionRequest,
   AssignPanelSceneRequest,
   AssignPanelScriptLinesRequest,
   ImageConsistencyResultDto,
@@ -81,6 +82,22 @@ export const panelService = {
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể cập nhật tọa độ panel.');
+    }
+  },
+
+  /**
+   * Cập nhật mô tả hướng vẽ / chỉ dẫn hình ảnh của Panel (V1.2 / SCR-07)
+   * PUT /api/panels/{panelId}/direction
+   */
+  async updatePanelDirection(
+    panelId: string,
+    data: UpdatePanelDirectionRequest,
+  ): Promise<PanelDto> {
+    try {
+      const response = await axiosClient.put(`/panels/${panelId}/direction`, data);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể cập nhật chỉ dẫn hình ảnh panel.');
     }
   },
 

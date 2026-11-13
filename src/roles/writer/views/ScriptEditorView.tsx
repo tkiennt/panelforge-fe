@@ -805,6 +805,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         const batchPayload = sceneLines.map((line, idx) => ({
           id: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
           lineOrder: idx + 1,
+          kind: line.kind,
+          speakerLabel: line.speakerLabel || null,
+          text: line.text || line.dialogueText || line.stageDirection || null,
           dialogueText: line.dialogueText || null,
           stageDirection: line.stageDirection || null,
           speakerCharacterId: isValidGuid(line.speakerCharacterId) ? line.speakerCharacterId : null,
