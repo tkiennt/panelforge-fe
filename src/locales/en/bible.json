@@ -21,6 +21,8 @@
   },
   "canonLock": {
     "badge": "Canon Locked",
+    "bannerBadge": "Canon Locked",
+    "lockAction": "🔒 Lock Canon",
     "lockedTooltip": "This entry is canon-locked. Direct edits are disabled.",
     "supersedeAction": "Supersede Locked Revision",
     "supersedeTitle": "Create Supersede Revision",

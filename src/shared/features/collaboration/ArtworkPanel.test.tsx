@@ -846,6 +846,7 @@ describe('ArtworkPanel Component', () => {
   });
 
   it('bấm "Xem" sử dụng toThumbnailUrl để nạp ảnh thu nhỏ trong thẻ xem trước', async () => {
+    const thumbTestArtworks = [{ ...mockArtworks[0], id: 'art-thumb-isolated' }];
     vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValueOnce({
       url: 'https://cdn.example.com/artworks/page1_v1.png',
       expiresAtUtc: '2026-10-08T11:00:00Z',
@@ -856,7 +857,7 @@ describe('ArtworkPanel Component', () => {
         chapterId='chap-1'
         pageId='page-101'
         stageId='stage-thumbnail'
-        artworks={mockArtworks}
+        artworks={thumbTestArtworks}
         canUpload={false}
         onChanged={vi.fn()}
       />,

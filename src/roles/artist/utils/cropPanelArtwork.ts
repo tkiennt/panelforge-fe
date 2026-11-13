@@ -5,6 +5,8 @@ export async function cropPanelArtwork(
   source: File | HTMLImageElement | string,
   bbox: [number, number, number, number],
   fileName = 'panel-artwork.png',
+  /** Khung cắt chéo: đỉnh 0–1 trong bbox; phần ngoài đa giác để trong suốt. */
+  corners?: { x: number; y: number }[],
 ): Promise<File> {
   const [x, y, w, h] = bbox;
   const safeW = Math.max(1, Math.round(w));
@@ -22,6 +24,8 @@ export async function cropPanelArtwork(
     }
 
     const img = new Image();
+    // URL khác origin (vd ảnh từ API 5044): xin CORS để canvas không bị "tainted" khi toBlob
+    img.crossOrigin = 'anonymous';
     const isFile = source instanceof File;
     const url = isFile ? URL.createObjectURL(source) : source;
     return new Promise((resolve, reject) => {
@@ -51,6 +55,14 @@ export async function cropPanelArtwork(
       throw new Error('Canvas 2D context không khả dụng.');
     }
 
+    if (corners && corners.length >= 3) {
+      ctx.beginPath();
+      corners.forEach((c, i) =>
+        i === 0 ? ctx.moveTo(c.x * safeW, c.y * safeH) : ctx.lineTo(c.x * safeW, c.y * safeH),
+      );
+      ctx.closePath();
+      ctx.clip();
+    }
     ctx.drawImage(img, x, y, w, h, 0, 0, safeW, safeH);
 
     return await new Promise<File>((resolve, reject) => {

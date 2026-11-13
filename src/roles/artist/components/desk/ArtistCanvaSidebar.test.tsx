@@ -355,6 +355,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         description: 'Vẽ lại góc nghiêng thanh kiếm của nhân vật chính ở khung 2',
         status: 'Open' as const,
         reviewerComment: 'Góc kiếm hiện tại che mất biểu cảm gương mặt',
+        pageId: 'page-1',
         createdAt: '2026-11-10T10:00:00Z',
       },
       {
@@ -399,6 +400,8 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     // Click "Xem vị trí" triggers onNavigateToChangeRequestTarget
     fireEvent.click(screen.getByTestId('btn-navigate-cr-cr-1'));
     expect(handleNavigate).toHaveBeenCalledWith(mockCRs[0]);
+    // Yêu cầu không gắn trang / khung: không hiện "Xem vị trí"
+    expect(screen.queryByTestId('btn-navigate-cr-cr-2')).toBeNull();
 
     // Click "Báo đã sửa..." reveals resolve input
     fireEvent.click(screen.getByTestId('btn-resolve-cr-cr-1'));

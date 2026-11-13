@@ -12,7 +12,9 @@ import { seriesService } from '@/services/series.service';
 import { pipelineService } from '@/services/pipeline.service';
 import { assignmentService } from '@/services/assignment.service';
 import { frameTemplateService } from '@/services/frameTemplate.service';
+import { artworkService } from '@/services/artwork.service';
 import { FocusWorkspaceLayout } from '@/app/FocusWorkspaceLayout';
+import { ToastProvider } from '@/shared/context/ToastContext';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -828,5 +830,336 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     expect(screen.queryByTestId('modal-unlock-layout-confirm')).not.toBeInTheDocument();
     expect(screen.getByTestId('canvas-btn-save-layout')).toBeInTheDocument();
     expect(screen.queryByAltText('panel1-sketch.png')).not.toBeInTheDocument();
+  });
+
+  describe('ArtistDeskView - Artwork Persistence & Error Notification (CF2 / WAITING_FE Fix)', () => {
+    it('loads existing artworks from R2 on page load and hydrates panels with latest version', async () => {
+      const mockPageId = '11111111-1111-1111-1111-111111111111';
+      const mockPanel1Id = '22222222-2222-2222-2222-222222222221';
+      const mockPanel2Id = '22222222-2222-2222-2222-222222222222';
+      const mockChapterId = 'chap-1';
+
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        {
+          id: mockPageId,
+          chapterId: mockChapterId,
+          pageNumber: 1,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'PORTRAIT',
+          dpi: 300,
+          elementsCount: 2,
+        },
+      ]);
+
+      vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValue([
+        {
+          id: mockPanel1Id,
+          pageId: mockPageId,
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({ normalized: { x: 0, y: 0, w: 100, h: 50 } }),
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: mockPanel2Id,
+          pageId: mockPageId,
+          panelNumber: 2,
+          readingOrder: 2,
+          boundingBox: JSON.stringify({ normalized: { x: 0, y: 50, w: 100, h: 50 } }),
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      const getArtworksSpy = vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([
+        {
+          id: 'art-ref-v1',
+          assetId: 'asset-1',
+          chapterId: mockChapterId,
+          pageId: mockPageId,
+          pipelineStageId: 'stage-pencil',
+          versionNumber: 1,
+          fileName: 'panel1-draft-v1.png',
+          contentType: 'image/png',
+          sizeBytes: 1024,
+          sha256: 'sha-v1',
+          reused: false,
+          uploadedByUserId: 'user-1',
+          createdAt: new Date().toISOString(),
+          panelId: mockPanel1Id,
+        },
+        {
+          id: 'art-ref-v2',
+          assetId: 'asset-2',
+          chapterId: mockChapterId,
+          pageId: mockPageId,
+          pipelineStageId: 'stage-pencil',
+          versionNumber: 2,
+          fileName: 'panel1-latest-v2.png',
+          contentType: 'image/png',
+          sizeBytes: 2048,
+          sha256: 'sha-v2',
+          reused: false,
+          uploadedByUserId: 'user-1',
+          createdAt: new Date().toISOString(),
+          panelId: mockPanel1Id,
+        },
+        {
+          id: 'art-ref-panel2',
+          assetId: 'asset-3',
+          chapterId: mockChapterId,
+          pageId: mockPageId,
+          pipelineStageId: 'stage-pencil',
+          versionNumber: 1,
+          fileName: 'panel2-art.png',
+          contentType: 'image/png',
+          sizeBytes: 3072,
+          sha256: 'sha-v3',
+          reused: false,
+          uploadedByUserId: 'user-1',
+          createdAt: new Date().toISOString(),
+          panelId: mockPanel2Id,
+        },
+      ]);
+
+      const getLinkSpy = vi
+        .spyOn(artworkService, 'getArtworkAccessLink')
+        .mockImplementation(async (_chap, id) => {
+          return {
+            url: `/api/assets/download?token=token-for-${id}`,
+            expiresAtUtc: new Date(Date.now() + 300000).toISOString(),
+          };
+        });
+
+      render(
+        <ToastProvider>
+          <MemoryRouter
+            initialEntries={[`/workspaces/ws-1/series/ser-1/artist?chapterId=${mockChapterId}`]}
+          >
+            <Routes>
+              <Route
+                path='/workspaces/:workspaceId/series/:seriesId/artist'
+                element={<ArtistDeskView workspaceRole='ARTIST' />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>,
+      );
+
+      await waitFor(() => {
+        expect(getArtworksSpy).toHaveBeenCalled();
+      });
+
+      // Verify latest version v2 was requested, not v1
+      await waitFor(() => {
+        expect(getLinkSpy).toHaveBeenCalledWith(mockChapterId, 'art-ref-v2');
+        expect(getLinkSpy).toHaveBeenCalledWith(mockChapterId, 'art-ref-panel2');
+        expect(getLinkSpy).not.toHaveBeenCalledWith(mockChapterId, 'art-ref-v1');
+      });
+
+      // Check images are displayed in panels with access link
+      await waitFor(() => {
+        const img1 = screen.getByAltText('panel1-latest-v2.png');
+        expect(img1).toBeInTheDocument();
+        expect(img1).toHaveAttribute('src', expect.stringContaining('token-for-art-ref-v2'));
+
+        const img2 = screen.getByAltText('panel2-art.png');
+        expect(img2).toBeInTheDocument();
+        expect(img2).toHaveAttribute('src', expect.stringContaining('token-for-art-ref-panel2'));
+      });
+    });
+
+    it('displays toast error notification when artwork upload fails instead of silently swallowing', async () => {
+      const mockPageId = '11111111-1111-1111-1111-111111111111';
+      const mockPanel1Id = '22222222-2222-2222-2222-222222222221';
+      const mockChapterId = 'chap-1';
+
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        {
+          id: mockPageId,
+          chapterId: mockChapterId,
+          pageNumber: 1,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'PORTRAIT',
+          dpi: 300,
+          elementsCount: 1,
+        },
+      ]);
+
+      vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValue([
+        {
+          id: mockPanel1Id,
+          pageId: mockPageId,
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({ normalized: { x: 0, y: 0, w: 100, h: 100 } }),
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+      vi.spyOn(artworkService, 'uploadArtwork').mockRejectedValue(
+        new Error('Network error or R2 quota exceeded'),
+      );
+
+      render(
+        <ToastProvider>
+          <MemoryRouter
+            initialEntries={[`/workspaces/ws-1/series/ser-1/artist?chapterId=${mockChapterId}`]}
+          >
+            <Routes>
+              <Route
+                path='/workspaces/:workspaceId/series/:seriesId/artist'
+                element={<ArtistDeskView workspaceRole='ARTIST' />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('panel-dropzone-1')).toBeInTheDocument();
+      });
+
+      const mockFile = new File(['image byte content'], 'fail-test.png', { type: 'image/png' });
+      fireEvent.drop(screen.getByTestId('panel-dropzone-1'), {
+        dataTransfer: { files: [mockFile] },
+      });
+
+      // Verify toast error is shown
+      await waitFor(() => {
+        expect(screen.getByText('Lỗi lưu tranh lên máy chủ')).toBeInTheDocument();
+        expect(screen.getByText(/Network error or R2 quota exceeded/i)).toBeInTheDocument();
+      });
+    });
+
+    it('reloads artwork when stage is switched from Pencil to Ink', async () => {
+      const mockPageId = '11111111-1111-1111-1111-111111111111';
+      const mockPanel1Id = '22222222-2222-2222-2222-222222222221';
+      const mockChapterId = 'chap-1';
+      const pencilStageId = 'a1111111-1111-1111-1111-111111111111';
+      const inkStageId = 'b2222222-2222-2222-2222-222222222222';
+      const letterStageId = 'c3333333-3333-3333-3333-333333333333';
+
+      vi.spyOn(pipelineService, 'getSeriesPipeline').mockResolvedValue({
+        id: 'pipe-1',
+        seriesId: 'ser-1',
+        name: 'Default Manga',
+        stages: [
+          { id: pencilStageId, stageOrder: 1, name: 'Pencil', isEnabled: true },
+          { id: inkStageId, stageOrder: 2, name: 'Ink', isEnabled: true },
+          { id: letterStageId, stageOrder: 3, name: 'Letter', isEnabled: true },
+        ],
+        transitions: [],
+      } as any);
+
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        {
+          id: mockPageId,
+          chapterId: mockChapterId,
+          pageNumber: 1,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'PORTRAIT',
+          dpi: 300,
+          elementsCount: 1,
+        },
+      ]);
+
+      vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValue([
+        {
+          id: mockPanel1Id,
+          pageId: mockPageId,
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({ normalized: { x: 0, y: 0, w: 100, h: 100 } }),
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      const getArtworksSpy = vi
+        .spyOn(artworkService, 'getArtworks')
+        .mockImplementation(async (_chap, _pg, stageId) => {
+          if (!stageId || stageId === pencilStageId) {
+            return [
+              {
+                id: 'art-pencil-1',
+                assetId: 'asset-pencil-1',
+                chapterId: mockChapterId,
+                pageId: mockPageId,
+                pipelineStageId: pencilStageId,
+                versionNumber: 1,
+                fileName: 'pencil-sketch.png',
+                contentType: 'image/png',
+                sizeBytes: 1000,
+                sha256: 'sha-p',
+                reused: false,
+                uploadedByUserId: 'u1',
+                createdAt: new Date().toISOString(),
+                panelId: mockPanel1Id,
+              },
+            ];
+          }
+          if (stageId === inkStageId) {
+            return [
+              {
+                id: 'art-ink-1',
+                assetId: 'asset-ink-1',
+                chapterId: mockChapterId,
+                pageId: mockPageId,
+                pipelineStageId: inkStageId,
+                versionNumber: 1,
+                fileName: 'ink-drawing.png',
+                contentType: 'image/png',
+                sizeBytes: 2000,
+                sha256: 'sha-i',
+                reused: false,
+                uploadedByUserId: 'u1',
+                createdAt: new Date().toISOString(),
+                panelId: mockPanel1Id,
+              },
+            ];
+          }
+          return [];
+        });
+
+      vi.spyOn(artworkService, 'getArtworkAccessLink').mockImplementation(async (_chap, id) => {
+        return {
+          url: `/api/assets/download?token=${id}`,
+          expiresAtUtc: new Date(Date.now() + 300000).toISOString(),
+        };
+      });
+
+      render(
+        <ToastProvider>
+          <MemoryRouter
+            initialEntries={[`/workspaces/ws-1/series/ser-1/artist?chapterId=${mockChapterId}`]}
+          >
+            <Routes>
+              <Route
+                path='/workspaces/:workspaceId/series/:seriesId/artist'
+                element={<ArtistDeskView workspaceRole='ARTIST' />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>,
+      );
+
+      // Initial Pencil stage loads pencil artwork
+      await waitFor(() => {
+        expect(screen.getByAltText('pencil-sketch.png')).toBeInTheDocument();
+      });
+
+      // Switch stage to Ink by clicking stage step 1
+      fireEvent.click(screen.getByTestId('focus-stage-step-1'));
+
+      // Artworks for ink stage are loaded and rendered
+      await waitFor(() => {
+        expect(getArtworksSpy).toHaveBeenCalledWith(mockChapterId, mockPageId, inkStageId);
+        expect(screen.getByAltText('ink-drawing.png')).toBeInTheDocument();
+        expect(screen.queryByAltText('pencil-sketch.png')).not.toBeInTheDocument();
+      });
+    });
   });
 });

@@ -447,7 +447,7 @@ export function AppShell({
             ],
           },
           {
-            section: 'TIỆN ÍCH SẢN XUẤT',
+            section: t('navigation.sections.productionUtilities', 'TIỆN ÍCH SẢN XUẤT'),
             items: [
               {
                 icon: Kanban,
@@ -665,7 +665,7 @@ export function AppShell({
         <SidebarDrawer
           isOpen={isMobileDrawerOpen}
           onClose={() => setIsMobileDrawerOpen(false)}
-          title='Menu điều hướng'
+          title={t('navigation.header.menuTitle', 'Menu điều hướng')}
         >
           <AppShellSidebar
             currentUser={currentUser}
@@ -728,7 +728,7 @@ export function AppShell({
               <button
                 type='button'
                 onClick={() => setIsMobileDrawerOpen(true)}
-                aria-label='Mở menu điều hướng'
+                aria-label={t('navigation.header.openMenu', 'Mở menu điều hướng')}
                 aria-expanded={isMobileDrawerOpen}
                 className='md:hidden p-2 -ml-2 mr-1 rounded-full text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] transition-colors cursor-pointer shrink-0'
                 data-testid='appshell-hamburger-btn'
@@ -764,7 +764,7 @@ export function AppShell({
                   data-testid='back-to-workspaces-breadcrumb'
                   className='text-[#1C1917] hover:text-black cursor-pointer transition-all flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-[#FFF2E6] hover:shadow-2xs'
                   onClick={() => navigate('/workspaces')}
-                  title='Quay lại danh sách Workspace (Workspaces Catalog)'
+                  title={t('navigation.header.backToWorkspaces', 'Quay lại danh sách Workspace (Workspaces Catalog)')}
                 >
                   <Briefcase className='w-3.5 h-3.5 text-[#57534E]' />
                   <span className='font-bold'>Workspaces</span>
@@ -776,7 +776,7 @@ export function AppShell({
                   type='button'
                   onClick={() => navigate(seriesListHref)}
                   className='text-[#1C1917] hover:text-black cursor-pointer transition-all truncate px-2.5 py-1 rounded-full hover:bg-[#FFF2E6] hover:shadow-2xs flex items-center gap-1 font-bold'
-                  title='Mở danh sách Series của Workspace'
+                  title={t('navigation.header.openSeriesList', 'Mở danh sách Series của Workspace')}
                 >
                   <Briefcase className='w-3.5 h-3.5 text-[#57534E]' />
                   <span className='truncate'>{activeWorkspace?.name || 'Studio Workspace'}</span>
@@ -798,7 +798,7 @@ export function AppShell({
                       className={`font-bold truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-all cursor-pointer ${
                         chapterId ? 'text-[#57534e] hover:text-[#0c0a09]' : 'text-[#0c0a09]'
                       }`}
-                      title='Chuyển đến Series Workspace'
+                      title={t('navigation.header.goToSeries', 'Chuyển đến Series Workspace')}
                     >
                       <BookOpen className='w-3.5 h-3.5 text-[#292524]' />
                       <span className='truncate'>{activeSeries?.title || 'Active Series'}</span>
@@ -809,7 +809,7 @@ export function AppShell({
                         <div
                           className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
                           data-testid='header-chapter-breadcrumb'
-                          title={`Chương đang mở: ${chapterId}`}
+                          title={`${t('navigation.header.currentChapter', 'Chương đang mở')}: ${chapterId}`}
                         >
                           <FileText className='w-3.5 h-3.5 text-[#EA580C]' />
                           <span className='truncate'>
@@ -828,7 +828,7 @@ export function AppShell({
                           data-testid='header-artist-breadcrumb'
                         >
                           <LayoutTemplate className='w-3.5 h-3.5 text-[#F97316]' />
-                          <span className='truncate'>Bàn vẽ Khung tranh</span>
+                          <span className='truncate'>{t('navigation.menu.desk', 'Bàn vẽ Khung tranh')}</span>
                         </div>
                       </>
                     )}
@@ -876,7 +876,7 @@ export function AppShell({
                   }
                 }}
                 className='relative flex items-center text-left cursor-pointer group'
-                title='Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)'
+                title={t('navigation.header.quickSearch', 'Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)')}
                 data-testid='header-command-palette-trigger'
               >
                 <Search className='w-3.5 h-3.5 text-[#57534E] absolute left-3.5 pointer-events-none stroke-[2] group-hover:text-[#1C1917] transition-colors' />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import {
   X,
   ChevronLeft,
@@ -280,20 +281,68 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
           </div>
         )}
 
-        {/* Lật trang */}
+        {/* Lật trang kèm Zoom / Pan mượt mà */}
         {ready && viewMode === 'single' && (
           <div className='m-auto relative p-3 sm:p-6'>
             {currentPageUrl ? (
-              <img
+              <TransformWrapper
                 key={currentPageUrl}
-                src={currentPageUrl}
-                alt={`Trang ${currentPageIndex + 1}`}
-                className={`block shadow-2xl rounded-sm bg-white ${
-                  fitMode === 'height'
-                    ? 'max-h-[calc(100dvh-14rem)] w-auto max-w-[calc(100vw-1.5rem)] object-contain'
-                    : 'w-[min(56rem,calc(100vw-1.5rem))] h-auto'
-                }`}
-              />
+                initialScale={1}
+                minScale={0.5}
+                maxScale={4}
+                centerOnInit
+                wheel={{ step: 0.1 }}
+                doubleClick={{ mode: 'toggle' }}
+              >
+                {({ resetTransform, state }) => (
+                  <div className='relative'>
+                    <TransformComponent
+                      wrapperClass='!w-auto !h-auto max-w-[calc(100vw-1.5rem)]'
+                      contentClass='flex items-center justify-center'
+                    >
+                      <img
+                        src={currentPageUrl}
+                        alt={`Trang ${currentPageIndex + 1}`}
+                        className={`block shadow-2xl rounded-sm bg-white ${
+                          fitMode === 'height'
+                            ? 'max-h-[calc(100dvh-14rem)] w-auto max-w-[calc(100vw-1.5rem)] object-contain'
+                            : 'w-[min(56rem,calc(100vw-1.5rem))] h-auto'
+                        }`}
+                      />
+                    </TransformComponent>
+
+                    {/* Huy hiệu tỉ lệ zoom & nút Đặt lại khi đã phóng to */}
+                    {state.scale !== 1 && (
+                      <div className='absolute bottom-3 right-3 z-30 flex items-center gap-2 bg-neutral-900/90 text-white border border-neutral-700 px-2 py-1 rounded-md text-[11px] font-mono shadow-lg backdrop-blur-xs'>
+                        <span>{Math.round(state.scale * 100)}%</span>
+                        <button
+                          type='button'
+                          onClick={() => resetTransform()}
+                          className='underline hover:text-orange-400 cursor-pointer ml-1'
+                        >
+                          Vừa khung
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Bấm nửa trái / phải của trang để lật khi ở tỷ lệ 100% (không che pan khi zoom) */}
+                    {state.scale === 1 && (
+                      <>
+                        <button
+                          onClick={isRTL ? handleNext : handlePrev}
+                          className='absolute left-0 top-0 bottom-0 w-1/4 cursor-w-resize z-10'
+                          aria-label='Lật sang trái'
+                        />
+                        <button
+                          onClick={isRTL ? handlePrev : handleNext}
+                          className='absolute right-0 top-0 bottom-0 w-1/4 cursor-e-resize z-10'
+                          aria-label='Lật sang phải'
+                        />
+                      </>
+                    )}
+                  </div>
+                )}
+              </TransformWrapper>
             ) : (
               <div className='w-[min(36rem,80vw)] aspect-[2/3] bg-neutral-900 border border-neutral-800 flex flex-col items-center justify-center text-neutral-500 gap-2'>
                 <BookOpen className='w-12 h-12 opacity-30' />
@@ -302,18 +351,6 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                 </span>
               </div>
             )}
-
-            {/* Bấm nửa trái / phải của trang để lật */}
-            <button
-              onClick={isRTL ? handleNext : handlePrev}
-              className='absolute left-0 top-0 bottom-0 w-1/3 cursor-w-resize'
-              aria-label='Lật sang trái'
-            />
-            <button
-              onClick={isRTL ? handlePrev : handleNext}
-              className='absolute right-0 top-0 bottom-0 w-1/3 cursor-e-resize'
-              aria-label='Lật sang phải'
-            />
           </div>
         )}
 

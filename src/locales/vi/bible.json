@@ -21,6 +21,8 @@
   },
   "canonLock": {
     "badge": "Đã khoá chuẩn (Canon Locked)",
+    "bannerBadge": "Đã khóa chuẩn (Canon Locked)",
+    "lockAction": "🔒 Khóa Canon",
     "lockedTooltip": "Mục này đã khoá chuẩn tắc canon. Không thể sửa trực tiếp.",
     "supersedeAction": "Thay thế bản khoá",
     "supersedeTitle": "Tạo bản sửa đổi thay thế (Supersede Revision)",

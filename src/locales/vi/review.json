@@ -9,8 +9,14 @@
       "rejected": "Đã trả về"
     },
     "approveAction": "Duyệt bản nộp",
-    "rejectAction": "Trả về sửa",
-    "notes": "Ghi chú duyệt bài"
+    "rejectAction": "Trả về để sửa",
+    "notes": "Ghi chú duyệt bài",
+    "openReview": "Mở xét duyệt",
+    "returnReasonPlaceholder": "Lý do trả về (bắt buộc)",
+    "sendReturn": "Gửi trả về",
+    "openedToast": "Đã mở xét duyệt",
+    "approvedToast": "Đã duyệt",
+    "returnedToast": "Đã trả về để sửa"
   },
   "changeRequest": {
     "title": "Yêu Cầu Sửa Đổi (Change Request)",
@@ -27,15 +33,17 @@
     },
     "description": "Nội dung yêu cầu sửa",
     "markFixed": "Đã sửa xong",
-    "markVerified": "Duyệt khắc phục"
+    "markVerified": "Duyệt khắc phục",
+    "addSpecific": "Thêm yêu cầu sửa cụ thể"
   },
   "diff": {
     "title": "So Sánh Nét Vẽ (Diff View)",
     "previousStage": "Công đoạn trước",
     "currentSubmission": "Bản nộp hiện tại",
-    "slider": "Thanh trượt so sánh",
-    "sideBySide": "Xem song song",
-    "onionSkin": "Lớp bóng mờ (Onion Skin)"
+    "slider": "Thanh trượt",
+    "sideBySide": "Cạnh nhau",
+    "onionSkin": "Chồng ảnh",
+    "pixelDiff": "Đối chiếu pixel (Diff)"
   },
   "consistency": {
     "title": "Kiểm Tra Tính Nhất Quán (AI Consistency)",
@@ -356,5 +364,24 @@
     },
     "fitImage": "Thu ảnh vừa khung",
     "chaptersOpen": "Ch.{from} trở đi"
+  },
+  "sidebar": {
+    "changeRequests": "Yêu cầu sửa",
+    "consistency": "Nhất quán",
+    "visualReport": "Hình ảnh"
+  },
+  "chapterReview": {
+    "stepper": {
+      "editor": "Editor duyệt",
+      "producer": "Producer duyệt",
+      "publisher": "Publisher phát hành"
+    },
+    "provenance": "Nguồn gốc",
+    "pagesOverview": "Tổng quan trang",
+    "pageCounter": "Trang {current} / {total}",
+    "checklist": "Checklist",
+    "consistency": "Nhất quán",
+    "changeRequests": "Yêu cầu sửa",
+    "returnWork": "Gửi yêu cầu sửa (Trả việc)"
   }
 }

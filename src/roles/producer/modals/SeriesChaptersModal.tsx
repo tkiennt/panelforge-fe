@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from '@/lib/i18n';
 import {
   X,
   Plus,
@@ -39,7 +40,6 @@ import { PreviewLinksModal } from './PreviewLinksModal';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
-import { useTranslation } from '@/lib/i18n';
 import { ChapterPriceBadge } from '@/shared/components/ChapterPriceBadge';
 
 interface SeriesChaptersModalProps {
@@ -63,6 +63,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   onChapterCountChange,
   onShowToast,
 }) => {
+  const { t } = useTranslation('production');
   const confirm = useConfirm();
   const { workspaceId: paramWorkspaceId } = useParams();
   const effectiveWorkspaceId =
@@ -137,11 +138,11 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         onChaptersCountChange(total);
       }
     } catch (err: any) {
-      setError(err.message || 'Không thể tải danh sách chương.');
+      setError(err.message || t('seriesChaptersModal.loading', 'Không thể tải danh sách chương.'));
     } finally {
       setLoading(false);
     }
-  }, [seriesId, pageIndex, pageSize, onChaptersCountChange]);
+  }, [seriesId, pageIndex, pageSize, onChaptersCountChange, t]);
 
   useEffect(() => {
     if (isOpen) {
@@ -167,8 +168,12 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
       const created = await chapterService.createChapter(seriesId, payload);
       onShowToast?.(
-        'Tạo Chương thành công',
-        `Đã tạo Chương ${created.chapterNumber}: "${created.title || 'Không tiêu đề'}" kèm mốc lịch phát hành.`,
+        t('seriesChaptersModal.toastCreateSuccess', 'Tạo Chương thành công'),
+        t('seriesChaptersModal.toastCreateSuccessDesc', {
+          number: created.chapterNumber,
+          title: created.title || t('seriesChaptersModal.untitled', 'Không tiêu đề'),
+          defaultValue: `Đã tạo Chương ${created.chapterNumber}: "${created.title || 'Không tiêu đề'}" kèm mốc lịch phát hành.`,
+        }),
       );
 
       setNewTitle('');
@@ -179,7 +184,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       setShowAddForm(false);
       await fetchChapters();
     } catch (err: any) {
-      onShowToast?.('Lỗi tạo chương', err.message);
+      onShowToast?.(t('seriesChaptersModal.toastCreateError', 'Lỗi tạo chương'), err.message);
     } finally {
       setActionLoading(false);
     }
@@ -187,13 +192,22 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
   const handleUploadCover = async (chap: ChapterDto, file: File) => {
     if (file.size > 5 * 1024 * 1024) {
-      onShowToast?.('Lỗi tệp', 'Ảnh bìa không được vượt quá 5 MB.');
+      onShowToast?.(
+        t('seriesChaptersModal.toastCoverSizeTitle', 'Lỗi tệp'),
+        t('seriesChaptersModal.toastCoverSizeError', 'Ảnh bìa không được vượt quá 5 MB.'),
+      );
       return;
     }
     setActionLoading(true);
     try {
       const newCoverUrl = await chapterService.uploadChapterCover(chap.id, file);
-      onShowToast?.('Thành công', `Đã cập nhật ảnh bìa cho Chương ${chap.chapterNumber}.`);
+      onShowToast?.(
+        'Thành công',
+        t('seriesChaptersModal.toastUploadCoverSuccess', {
+          number: chap.chapterNumber,
+          defaultValue: `Đã cập nhật ảnh bìa cho Chương ${chap.chapterNumber}.`,
+        }),
+      );
       setChapters((prev) =>
         prev.map((c) => (c.id === chap.id ? { ...c, coverUrl: newCoverUrl } : c)),
       );
@@ -201,7 +215,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         setEditingChapter((prev) => (prev ? { ...prev, coverUrl: newCoverUrl } : null));
       }
     } catch (err: any) {
-      onShowToast?.('Lỗi tải bìa chương', err.message);
+      onShowToast?.(t('seriesChaptersModal.toastUploadCoverError', 'Lỗi tải bìa chương'), err.message);
     } finally {
       setActionLoading(false);
     }
@@ -211,13 +225,19 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     setActionLoading(true);
     try {
       await chapterService.deleteChapterCover(chap.id);
-      onShowToast?.('Thành công', `Đã xóa ảnh bìa của Chương ${chap.chapterNumber}.`);
+      onShowToast?.(
+        'Thành công',
+        t('seriesChaptersModal.toastDeleteCoverSuccess', {
+          number: chap.chapterNumber,
+          defaultValue: `Đã xóa ảnh bìa của Chương ${chap.chapterNumber}.`,
+        }),
+      );
       setChapters((prev) => prev.map((c) => (c.id === chap.id ? { ...c, coverUrl: null } : c)));
       if (editingChapter && editingChapter.id === chap.id) {
         setEditingChapter((prev) => (prev ? { ...prev, coverUrl: null } : null));
       }
     } catch (err: any) {
-      onShowToast?.('Lỗi xóa bìa chương', err.message);
+      onShowToast?.(t('seriesChaptersModal.toastDeleteCoverError', 'Lỗi xóa bìa chương'), err.message);
     } finally {
       setActionLoading(false);
     }
@@ -247,14 +267,17 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
       await chapterService.updateChapter(editingChapter.id, payload);
       onShowToast?.(
-        'Cập nhật thành công',
-        `Đã cập nhật thông tin và đề cương cho Chương ${editingChapter.chapterNumber}.`,
+        t('seriesChaptersModal.toastUpdateSuccess', 'Cập nhật thành công'),
+        t('seriesChaptersModal.toastUpdateSuccessDesc', {
+          number: editingChapter.chapterNumber,
+          defaultValue: `Đã cập nhật thông tin và đề cương cho Chương ${editingChapter.chapterNumber}.`,
+        }),
       );
 
       setEditingChapter(null);
       await fetchChapters();
     } catch (err: any) {
-      onShowToast?.('Lỗi cập nhật chương', err.message);
+      onShowToast?.(t('seriesChaptersModal.toastUpdateError', 'Lỗi cập nhật chương'), err.message);
     } finally {
       setActionLoading(false);
     }
@@ -270,11 +293,17 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     setActionLoading(true);
     try {
       await chapterService.deleteChapter(deleteTargetChapter.id);
-      onShowToast?.('Đã xóa chương', `Đã xóa Chương ${deleteTargetChapter.chapterNumber}.`);
+      onShowToast?.(
+        t('seriesChaptersModal.toastDeleteSuccess', 'Đã xóa chương'),
+        t('seriesChaptersModal.toastDeleteSuccessDesc', {
+          number: deleteTargetChapter.chapterNumber,
+          defaultValue: `Đã xóa Chương ${deleteTargetChapter.chapterNumber}.`,
+        }),
+      );
       await fetchChapters();
       setDeleteTargetChapter(null);
     } catch (err: any) {
-      onShowToast?.('Lỗi xóa chương', err.message);
+      onShowToast?.(t('seriesChaptersModal.toastDeleteError', 'Lỗi xóa chương'), err.message);
     } finally {
       setIsDeletingChapter(false);
       setActionLoading(false);
@@ -290,8 +319,11 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           const blocking = gate.items.filter((i) => i.blocking);
           const msg =
             blocking.map((b) => b.message).join('; ') ||
-            'Chương chưa hoàn thành đủ các điều kiện phê duyệt (còn công đoạn chờ Editor thẩm định).';
-          onShowToast?.('Chưa đủ điều kiện duyệt chương', msg);
+            t(
+              'seriesChaptersModal.toastApproveGateDefault',
+              'Chương chưa hoàn thành đủ các điều kiện phê duyệt (còn công đoạn chờ Editor thẩm định).',
+            );
+          onShowToast?.(t('seriesChaptersModal.toastApproveGateTitle', 'Chưa đủ điều kiện duyệt chương'), msg);
           setActionLoading(false);
           return;
         }
@@ -301,10 +333,16 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
       if (
         !(await confirm({
-          title: `Phê duyệt hoàn tất Chương ${chap.chapterNumber}?`,
-          description: `Chương "${chap.title || 'Không tiêu đề'}" sẽ chuyển sang trạng thái Approved (Chờ xuất bản). Các phân công sẽ được đóng lại để Publisher duyệt xuất bản.`,
-          confirmText: 'Phê duyệt hoàn tất',
-          cancelText: 'Xem lại',
+          title: t('seriesChaptersModal.confirmApproveTitle', {
+            number: chap.chapterNumber,
+            defaultValue: `Phê duyệt hoàn tất Chương ${chap.chapterNumber}?`,
+          }),
+          description: t('seriesChaptersModal.confirmApproveDesc', {
+            title: chap.title || t('seriesChaptersModal.untitled', 'Không tiêu đề'),
+            defaultValue: `Chương "${chap.title || 'Không tiêu đề'}" sẽ chuyển sang trạng thái Approved (Chờ xuất bản). Các phân công sẽ được đóng lại để Publisher duyệt xuất bản.`,
+          }),
+          confirmText: t('seriesChaptersModal.confirmApproveBtn', 'Phê duyệt hoàn tất'),
+          cancelText: t('seriesChaptersModal.confirmApproveCancel', 'Xem lại'),
           variant: 'info',
         }))
       ) {
@@ -314,12 +352,15 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
       await chapterService.approveChapter(chap.id);
       onShowToast?.(
-        'Đã duyệt chương',
-        `Chương ${chap.chapterNumber} đã hoàn tất sản xuất và chuyển sang trạng thái Approved (chờ Publisher xuất bản).`,
+        t('seriesChaptersModal.toastApproveSuccess', 'Đã duyệt chương'),
+        t('seriesChaptersModal.toastApproveSuccessDesc', {
+          number: chap.chapterNumber,
+          defaultValue: `Chương ${chap.chapterNumber} đã hoàn tất sản xuất và chuyển sang trạng thái Approved (chờ Publisher xuất bản).`,
+        }),
       );
       await fetchChapters();
     } catch (err: any) {
-      onShowToast?.('Không thể duyệt chương', err.message);
+      onShowToast?.(t('seriesChaptersModal.toastApproveError', 'Không thể duyệt chương'), err.message);
     } finally {
       setActionLoading(false);
     }
@@ -328,11 +369,14 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   /** Trả true khi đã mở lại thành công. */
   const handleReopenChapter = async (chap: ChapterDto): Promise<boolean> => {
     const comment = window.prompt(
-      `Nhập lý do mở lại sản xuất cho Chương ${chap.chapterNumber} (bắt buộc):`,
+      t('seriesChaptersModal.promptReopenReason', {
+        number: chap.chapterNumber,
+        defaultValue: `Nhập lý do mở lại sản xuất cho Chương ${chap.chapterNumber} (bắt buộc):`,
+      }),
     );
     if (comment === null) return false;
     if (!comment.trim()) {
-      onShowToast?.('Thiếu thông tin', 'Vui lòng nhập lý do mở lại chương.');
+      onShowToast?.('Thiếu thông tin', t('seriesChaptersModal.toastReopenMissing', 'Vui lòng nhập lý do mở lại chương.'));
       return false;
     }
 
@@ -340,13 +384,16 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     try {
       await chapterService.reopenChapter(chap.id, comment.trim());
       onShowToast?.(
-        'Đã mở lại chương',
-        `Chương ${chap.chapterNumber} đã chuyển về trạng thái InProduction để tiếp tục sản xuất.`,
+        t('seriesChaptersModal.toastReopenSuccess', 'Đã mở lại chương'),
+        t('seriesChaptersModal.toastReopenSuccessDesc', {
+          number: chap.chapterNumber,
+          defaultValue: `Chương ${chap.chapterNumber} đã chuyển về trạng thái InProduction để tiếp tục sản xuất.`,
+        }),
       );
       await fetchChapters();
       return true;
     } catch (err: any) {
-      onShowToast?.('Không thể mở lại chương', err.message);
+      onShowToast?.(t('seriesChaptersModal.toastReopenError', 'Không thể mở lại chương'), err.message);
       return false;
     } finally {
       setActionLoading(false);
@@ -358,7 +405,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     if (!dateStr) {
       return (
         <span className='px-2 py-0.5 rounded text-[10px] font-mono bg-neutral-100 text-neutral-500 border border-neutral-200'>
-          Chưa đặt lịch
+          {t('seriesChaptersModal.noSchedule', 'Chưa đặt lịch')}
         </span>
       );
     }
@@ -381,14 +428,14 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       return (
         <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1'>
           <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-          <span>Đã đến hạn ({dateStr})</span>
+          <span>{t('seriesChaptersModal.duePassed', { date: dateStr, defaultValue: `Đã đến hạn (${dateStr})` })}</span>
         </span>
       );
     } else if (diffDays === 0) {
       return (
         <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1'>
           <Clock className='w-3 h-3 text-amber-600' />
-          <span>Hôm nay phát hành ({dateStr})</span>
+          <span>{t('seriesChaptersModal.dueToday', { date: dateStr, defaultValue: `Hôm nay phát hành (${dateStr})` })}</span>
         </span>
       );
     } else {
@@ -396,7 +443,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1'>
           <Calendar className='w-3 h-3 text-blue-600' />
           <span>
-            Còn {diffDays} ngày ({dateStr})
+            {t('seriesChaptersModal.dueInDays', { days: diffDays, date: dateStr, defaultValue: `Còn ${diffDays} ngày (${dateStr})` })}
           </span>
         </span>
       );
@@ -425,8 +472,14 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
             )}
             <span>
               {isScheduled
-                ? `Lên lịch (${pubDate?.toLocaleDateString('vi-VN')})`
-                : `Xuất bản ${isValidDate ? `(${pubDate?.toLocaleDateString('vi-VN')})` : ''}`}
+                ? t('seriesChaptersModal.publishedScheduled', {
+                    date: pubDate?.toLocaleDateString('vi-VN'),
+                    defaultValue: `Lên lịch (${pubDate?.toLocaleDateString('vi-VN')})`,
+                  })
+                : t('seriesChaptersModal.published', {
+                    date: isValidDate ? `(${pubDate?.toLocaleDateString('vi-VN')})` : '',
+                    defaultValue: `Xuất bản ${isValidDate ? `(${pubDate?.toLocaleDateString('vi-VN')})` : ''}`,
+                  })}
             </span>
           </span>
         );
@@ -435,13 +488,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         return (
           <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1'>
             <CheckCircle2 className='w-3 h-3 text-amber-600' />
-            <span>Chờ xuất bản</span>
+            <span>{t('seriesChaptersModal.approved', 'Chờ xuất bản')}</span>
           </span>
         );
       case 'Locked':
         return (
           <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1'>
-            <span>Đã khóa</span>
+            <span>{t('seriesChaptersModal.locked', 'Đã khóa')}</span>
           </span>
         );
       case 'InProduction':
@@ -449,7 +502,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         return (
           <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1'>
             <Clock className='w-3 h-3 text-blue-600' />
-            <span>Đang sản xuất</span>
+            <span>{t('seriesChaptersModal.inProduction', 'Đang sản xuất')}</span>
           </span>
         );
     }
@@ -474,14 +527,14 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
               <div>
                 <div className='flex items-center gap-2'>
                   <span className='px-2 py-0.5 rounded-full bg-orange-50 text-[#F97316] border border-orange-200/80 font-bold text-[10px]'>
-                    Kế hoạch xuất bản
+                    {t('seriesChaptersModal.headerBadge', 'Kế hoạch xuất bản')}
                   </span>
                   <span className='text-[11px] text-zinc-500 font-medium truncate max-w-xs'>
                     {seriesTitle}
                   </span>
                 </div>
                 <h2 className='text-base sm:text-lg font-bold text-[#171717] mt-0.5'>
-                  Quản Lý Tập &amp; Lịch Phát Hành Chương
+                  {t('seriesChaptersModal.title', 'Quản Lý Tập & Lịch Phát Hành Chương')}
                 </h2>
               </div>
             </div>
@@ -505,8 +558,10 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
             {/* Action bar */}
             <div className='flex items-center justify-between'>
               <div className='text-xs text-[#737373]'>
-                Tổng số: <strong className='text-[#171717] font-mono'>{totalCount}</strong> chương
-                đã khởi tạo.
+                {t('seriesChaptersModal.totalCountDesc', {
+                  count: totalCount,
+                  defaultValue: `Tổng số: ${totalCount} chương đã khởi tạo.`,
+                })}
               </div>
 
               <button
@@ -514,7 +569,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                 className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs cursor-pointer'
               >
                 <Plus className='w-3.5 h-3.5' />
-                <span>{showAddForm ? 'Đóng Form' : 'Tạo Chương Mới'}</span>
+                <span>{showAddForm ? t('seriesChaptersModal.closeForm', 'Đóng Form') : t('seriesChaptersModal.createChapterBtn', 'Tạo Chương Mới')}</span>
               </button>
             </div>
 
@@ -526,13 +581,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
               >
                 <div className='font-bold text-xs text-[#171717] flex items-center gap-1.5'>
                   <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
-                  <span>Khởi Tạo Tập / Chương Mới</span>
+                  <span>{t('seriesChaptersModal.addTitle', 'Khởi Tạo Tập / Chương Mới')}</span>
                 </div>
 
                 <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
                   <div>
                     <label className='block font-semibold text-[#171717] mb-1'>
-                      Số thứ tự chương (Chapter #) *
+                      {t('seriesChaptersModal.chapterNumLabel', 'Số thứ tự chương (Chapter #) *')}
                     </label>
                     <input
                       type='number'
@@ -547,11 +602,11 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
                   <div>
                     <label className='block font-semibold text-[#171717] mb-1'>
-                      Tiêu đề chương (Title)
+                      {t('seriesChaptersModal.chapterTitleLabel', 'Tiêu đề chương (Title)')}
                     </label>
                     <input
                       type='text'
-                      placeholder='Ví dụ: Khởi Đầu Mới'
+                      placeholder={t('seriesChaptersModal.chapterTitlePlaceholder', 'Ví dụ: Khởi Đầu Mới')}
                       value={newTitle}
                       onChange={(e) => setNewTitle(e.target.value)}
                       className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
@@ -560,7 +615,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
                   <div>
                     <label className='block font-semibold text-[#171717] mb-1'>
-                      Ngày phát hành dự kiến (Target Date)
+                      {t('seriesChaptersModal.targetDateLabel', 'Ngày phát hành dự kiến (Target Date)')}
                     </label>
                     <input
                       type='date'
@@ -581,22 +636,21 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                 <div>
                   <div className='flex items-center justify-between mb-1'>
                     <label className='block font-semibold text-[#171717]'>
-                      Đề Cương / Tóm Tắt Chương (Outline)
+                      {t('seriesChaptersModal.outlineLabel', 'Đề Cương / Tóm Tắt Chương (Outline)')}
                     </label>
                     <span className='text-[10px] text-[#F97316] font-mono font-medium'>
-                      Đầu vào AI Writer Agent
+                      {t('seriesChaptersModal.aiWriterBadge', 'Đầu vào AI Writer Agent')}
                     </span>
                   </div>
                   <textarea
                     rows={3}
                     value={newOutline}
                     onChange={(e) => setNewOutline(e.target.value)}
-                    placeholder='Tóm tắt diễn biến, cốt truyện chính và các tình tiết của chương này...'
+                    placeholder={t('seriesChaptersModal.outlinePlaceholder', 'Tóm tắt diễn biến, cốt truyện chính và các tình tiết của chương này...')}
                     className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
                   />
                   <p className='text-[10px] text-[#737373] mt-1'>
-                    Đề cương sẽ được chụp vào snapshot và cung cấp trực tiếp cho AI Writer khi viết
-                    kịch bản phân cảnh.
+                    {t('seriesChaptersModal.outlineHint', 'Đề cương sẽ được chụp vào snapshot và cung cấp trực tiếp cho AI Writer khi viết kịch bản phân cảnh.')}
                   </p>
                 </div>
 
@@ -606,7 +660,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     onClick={() => setShowAddForm(false)}
                     className='px-3 py-1 rounded-lg border border-[#E7E7E7] bg-white text-[#555555] hover:bg-[#FAF8F5]'
                   >
-                    Hủy
+                    {t('seriesChaptersModal.cancel', 'Hủy')}
                   </button>
                   <button
                     type='submit'
@@ -618,7 +672,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     ) : (
                       <Plus className='w-3 h-3' />
                     )}
-                    <span>Thêm Chương</span>
+                    <span>{t('seriesChaptersModal.addBtn', 'Thêm Chương')}</span>
                   </button>
                 </div>
               </form>
@@ -633,7 +687,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                 <div className='font-bold text-xs text-[#171717] flex items-center justify-between'>
                   <div className='flex items-center gap-1.5'>
                     <Edit2 className='w-3.5 h-3.5 text-[#F97316]' />
-                    <span>Chỉnh Sửa Chương {editingChapter.chapterNumber}</span>
+                    <span>{t('seriesChaptersModal.editTitle', { number: editingChapter.chapterNumber, defaultValue: `Chỉnh Sửa Chương ${editingChapter.chapterNumber}` })}</span>
                   </div>
                   <button
                     type='button'
@@ -647,7 +701,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                 <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
                   <div>
                     <label className='block font-semibold text-[#171717] mb-1'>
-                      Tiêu đề chương
+                      {t('seriesChaptersModal.chapterTitleLabel', 'Tiêu đề chương')}
                     </label>
                     <input
                       type='text'
@@ -659,7 +713,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
                   <div>
                     <label className='block font-semibold text-[#171717] mb-1'>
-                      Ngày phát hành dự kiến (Target Date)
+                      {t('seriesChaptersModal.targetDateLabel', 'Ngày phát hành dự kiến (Target Date)')}
                     </label>
                     <input
                       type='date'
@@ -680,22 +734,21 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                 <div>
                   <div className='flex items-center justify-between mb-1'>
                     <label className='block font-semibold text-[#171717]'>
-                      Đề Cương / Tóm Tắt Chương (Outline)
+                      {t('seriesChaptersModal.outlineLabel', 'Đề Cương / Tóm Tắt Chương (Outline)')}
                     </label>
                     <span className='text-[10px] text-[#F97316] font-mono font-medium'>
-                      Đầu vào AI Writer Agent
+                      {t('seriesChaptersModal.aiWriterBadge', 'Đầu vào AI Writer Agent')}
                     </span>
                   </div>
                   <textarea
                     rows={3}
                     value={editOutline}
                     onChange={(e) => setEditOutline(e.target.value)}
-                    placeholder='Tóm tắt diễn biến, cốt truyện chính và các tình tiết của chương này...'
+                    placeholder={t('seriesChaptersModal.outlinePlaceholder', 'Tóm tắt diễn biến, cốt truyện chính và các tình tiết của chương này...')}
                     className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
                   />
                   <p className='text-[10px] text-[#737373] mt-1'>
-                    Đề cương sẽ được chụp vào snapshot và cung cấp trực tiếp cho AI Writer khi viết
-                    kịch bản phân cảnh.
+                    {t('seriesChaptersModal.outlineHint', 'Đề cương sẽ được chụp vào snapshot và cung cấp trực tiếp cho AI Writer khi viết kịch bản phân cảnh.')}
                   </p>
                 </div>
 
@@ -705,7 +758,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     onClick={() => setEditingChapter(null)}
                     className='px-3 py-1 rounded-lg border border-[#E7E7E7] bg-white text-[#555555]'
                   >
-                    Hủy
+                    {t('seriesChaptersModal.cancel', 'Hủy')}
                   </button>
                   <button
                     type='submit'
@@ -717,7 +770,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     ) : (
                       <Save className='w-3 h-3' />
                     )}
-                    <span>Lưu Thay Đổi</span>
+                    <span>{t('seriesChaptersModal.saveChanges', 'Lưu Thay Đổi')}</span>
                   </button>
                 </div>
               </form>
@@ -728,12 +781,12 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
               <table className='w-full min-w-[880px] text-left border-collapse'>
                 <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-[10px] text-[#737373] uppercase'>
                   <tr>
-                    <th className='py-2.5 px-3'>Chương #</th>
-                    <th className='py-2.5 px-3'>Tiêu Đề</th>
-                    <th className='py-2.5 px-3'>Trạng Thái</th>
-                    <th className='py-2.5 px-3'>Lịch Phát Hành (Target Date)</th>
-                    <th className='py-2.5 px-3'>Phân Cảnh / Trang</th>
-                    <th className='py-2.5 px-3 text-right'>Thao Tác</th>
+                    <th className='py-2.5 px-3'>{t('seriesChaptersModal.thNumber', 'Chương #')}</th>
+                    <th className='py-2.5 px-3'>{t('seriesChaptersModal.thTitle', 'Tiêu Đề')}</th>
+                    <th className='py-2.5 px-3'>{t('seriesChaptersModal.thStatus', 'Trạng Thái')}</th>
+                    <th className='py-2.5 px-3'>{t('seriesChaptersModal.thRelease', 'Lịch Phát Hành (Target Date)')}</th>
+                    <th className='py-2.5 px-3'>{t('seriesChaptersModal.thScenesPages', 'Phân Cảnh / Trang')}</th>
+                    <th className='py-2.5 px-3 text-right'>{t('seriesChaptersModal.thActions', 'Thao Tác')}</th>
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-[#E7E7E7] text-xs'>
@@ -741,16 +794,16 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     <tr>
                       <td colSpan={6} className='py-8 text-center text-[#888888]'>
                         <Loader2 className='w-5 h-5 animate-spin mx-auto mb-1 text-[#F97316]' />
-                        <span>Đang tải danh sách chương...</span>
+                        <span>{t('seriesChaptersModal.loading', 'Đang tải danh sách chương...')}</span>
                       </td>
                     </tr>
                   ) : chapters.length === 0 ? (
                     <tr>
                       <td colSpan={6} className='py-8 text-center text-[#888888] space-y-1'>
                         <BookOpen className='w-6 h-6 mx-auto text-[#888888]' />
-                        <div className='font-bold text-[#171717]'>Chưa có chương nào</div>
+                        <div className='font-bold text-[#171717]'>{t('seriesChaptersModal.emptyTitle', 'Chưa có chương nào')}</div>
                         <div className='text-[11px] text-[#737373]'>
-                          Bấm &quot;Tạo Chương Mới&quot; để thiết lập lịch phát hành.
+                          {t('seriesChaptersModal.emptySubtitle', 'Bấm "Tạo Chương Mới" để thiết lập lịch phát hành.')}
                         </div>
                       </td>
                     </tr>
@@ -768,7 +821,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                   fallback={
                                     <div className='w-10 h-14 rounded-md bg-[#FAF8F5] border border-[#E7E7E7] flex flex-col items-center justify-center text-center p-0.5 text-stone-500'>
                                       <span className='text-[8px] font-mono uppercase tracking-wider text-stone-400'>
-                                        TẬP
+                                        {t('seriesChaptersModal.episodeLabel', 'TẬP')}
                                       </span>
                                       <span className='text-xs font-mono font-bold text-[#F97316]'>
                                         {chap.chapterNumber}
@@ -779,7 +832,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               ) : (
                                 <div className='w-10 h-14 rounded-md bg-[#FAF8F5] border border-[#E7E7E7] flex flex-col items-center justify-center text-center p-0.5 shadow-2xs group-hover/cover:border-[#F97316] transition-colors'>
                                   <span className='text-[8px] font-mono uppercase tracking-wider text-stone-400'>
-                                    TẬP
+                                    {t('seriesChaptersModal.episodeLabel', 'TẬP')}
                                   </span>
                                   <span className='text-xs font-mono font-bold text-[#F97316]'>
                                     {chap.chapterNumber}
@@ -788,10 +841,10 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               )}
                               <label
                                 className='absolute inset-0 bg-black/50 text-white rounded-md opacity-0 group-hover/cover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-[8px] font-semibold text-center p-0.5'
-                                title='Tải lên hoặc đổi ảnh bìa chương'
+                                title={t('seriesChaptersModal.changeCoverTooltip', 'Tải lên hoặc đổi ảnh bìa chương')}
                               >
                                 <Camera className='w-3.5 h-3.5 mb-0.5' />
-                                <span>Đổi bìa</span>
+                                <span>{t('seriesChaptersModal.changeCover', 'Đổi bìa')}</span>
                                 <input
                                   type='file'
                                   accept='image/png,image/jpeg,image/webp'
@@ -813,9 +866,9 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                   type='button'
                                   onClick={() => handleDeleteCover(chap)}
                                   className='block mt-1 text-[10px] text-stone-400 hover:text-red-500 transition-colors'
-                                  title='Xoá ảnh bìa chương'
+                                  title={t('seriesChaptersModal.deleteCoverTooltip', 'Xoá ảnh bìa chương')}
                                 >
-                                  Xoá bìa
+                                  {t('seriesChaptersModal.deleteCover', 'Xoá bìa')}
                                 </button>
                               )}
                             </div>
@@ -826,7 +879,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                           <div className='flex items-center gap-2 flex-wrap'>
                             <span className='font-semibold text-[#171717]'>
                               {chap.title || (
-                                <span className='text-[#888888] italic'>Chưa đặt tên</span>
+                              <span className='text-[#888888] italic'>{t('seriesChaptersModal.untitled', 'Chưa đặt tên')}</span>
                               )}
                             </span>
                             <ChapterPriceBadge isLocked={chap.isLocked} priceVnd={chap.priceVnd} />
@@ -845,10 +898,16 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                             </div>
                           )}
                           <div className='text-[10px] text-[#888888] font-mono mt-0.5'>
-                            Tạo ngày:{' '}
-                            {chap.createdAt && !isNaN(new Date(chap.createdAt).getTime())
+                            {t('seriesChaptersModal.createdDate', {
+                              date: chap.createdAt && !isNaN(new Date(chap.createdAt).getTime())
                               ? new Date(chap.createdAt).toLocaleDateString('vi-VN')
-                              : '—'}
+                                : '—',
+                              defaultValue: `Tạo ngày: ${
+                                chap.createdAt && !isNaN(new Date(chap.createdAt).getTime())
+                                  ? new Date(chap.createdAt).toLocaleDateString('vi-VN')
+                                  : '—'
+                              }`,
+                            })}
                           </div>
                         </td>
 
@@ -860,13 +919,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                 className='px-1.5 py-0.5 rounded text-[9px] font-mono font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-1'
                                 title={
                                   chap.scriptContentHash
-                                    ? `Kịch bản đã đóng băng (SHA-256: ${chap.scriptContentHash})`
-                                    : 'Kịch bản đã đóng băng'
+                                    ? t('seriesChaptersModal.frozenTooltipWithHash', { hash: chap.scriptContentHash, defaultValue: `Kịch bản đã đóng băng (SHA-256: ${chap.scriptContentHash})` })
+                                    : t('seriesChaptersModal.frozenTooltip', 'Kịch bản đã đóng băng')
                                 }
                                 data-testid={`chapter-frozen-badge-${chap.chapterNumber}`}
                               >
                                 <Lock className='w-2.5 h-2.5 text-indigo-600' />
-                                <span>Kịch bản đóng băng</span>
+                                <span>{t('seriesChaptersModal.frozenBadge', 'Kịch bản đóng băng')}</span>
                                 {chap.scriptContentHash && (
                                   <span className='font-bold opacity-80'>
                                     #{chap.scriptContentHash.slice(0, 8)}
@@ -882,7 +941,11 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                         </td>
 
                         <td className='py-3 px-3 font-mono text-[11px] text-[#555555]'>
-                          {chap.scenesCount || 0} Cảnh • {chap.pagesCount || 0} Trang
+                          {t('seriesChaptersModal.scenesAndPages', {
+                            scenes: chap.scenesCount || 0,
+                            pages: chap.pagesCount || 0,
+                            defaultValue: `${chap.scenesCount || 0} Cảnh • ${chap.pagesCount || 0} Trang`,
+                          })}
                         </td>
 
                         <td className='py-3 px-3 text-right whitespace-nowrap'>
@@ -891,10 +954,10 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               type='button'
                               onClick={() => setAssigningChapter(chap)}
                               className='px-2.5 py-1 rounded-lg bg-[#FFF7ED] hover:bg-[#FFEDD5] border border-[#FDBA74] text-[#EA580C] hover:text-[#C2410C] transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs'
-                              title='Giao việc & Xem tiến độ phân công'
+                              title={t('seriesChaptersModal.assignTooltip', 'Giao việc & Xem tiến độ phân công')}
                             >
                               <ClipboardList className='w-3.5 h-3.5 text-[#F97316]' />
-                              <span>Giao việc</span>
+                              <span>{t('seriesChaptersModal.assign', 'Giao việc')}</span>
                             </button>
 
                             {chap.status === 'InProduction' && (
@@ -903,11 +966,11 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                 onClick={() => handleApproveChapter(chap)}
                                 disabled={actionLoading}
                                 className='px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer flex items-center gap-1.5 font-bold text-xs shadow-xs disabled:opacity-50 active:scale-98'
-                                title='Producer duyệt hoàn tất sản xuất -> chuyển sang Approved'
+                                title={t('seriesChaptersModal.approveTooltip', 'Producer duyệt hoàn tất sản xuất -> chuyển sang Approved')}
                                 data-testid={`producer-approve-chapter-${chap.id}`}
                               >
                                 <CheckCircle2 className='w-3.5 h-3.5 text-emerald-200' />
-                                <span>Nghiệm thu & Duyệt</span>
+                                <span>{t('seriesChaptersModal.approve', 'Nghiệm thu & Duyệt')}</span>
                               </button>
                             )}
 
@@ -917,10 +980,10 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                 onClick={() => handleReopenChapter(chap)}
                                 disabled={actionLoading}
                                 className='px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs disabled:opacity-50'
-                                title='Mở lại sản xuất (chuyển về InProduction)'
+                                title={t('seriesChaptersModal.reopenTooltip', 'Mở lại sản xuất (chuyển về InProduction)')}
                               >
                                 <RotateCcw className='w-3.5 h-3.5 text-amber-600' />
-                                <span>Mở lại</span>
+                                <span>{t('seriesChaptersModal.reopen', 'Mở lại')}</span>
                               </button>
                             )}
 
@@ -930,12 +993,12 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                 type='button'
                                 onClick={() => setPreviewChapter(chap)}
                                 className='px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-300 text-indigo-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs'
-                                title='Tạo & Quản lý link xem thử bảo mật (CF5)'
+                                title={t('seriesChaptersModal.previewTooltip', 'Tạo & Quản lý link xem thử bảo mật (CF5)')}
                                 data-testid={`preview-links-btn-${chap.id}`}
                               >
                                 <Share2 className='w-3.5 h-3.5 text-indigo-600' />
                                 <span>
-                                  {chap.status === 'Approved' ? 'Gửi xem thử' : 'Phản hồi xem thử'}
+                                  {chap.status === 'Approved' ? t('seriesChaptersModal.previewSend', 'Gửi xem thử') : t('seriesChaptersModal.previewFeedback', 'Phản hồi xem thử')}
                                 </span>
                               </button>
                             )}
@@ -944,7 +1007,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               type='button'
                               onClick={() => setReviewingChapter(chap)}
                               className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer'
-                              title='Xem lịch sử phê duyệt & xuất bản'
+                              title={t('seriesChaptersModal.historyTooltip', 'Xem lịch sử phê duyệt & xuất bản')}
                             >
                               <History className='w-3.5 h-3.5' />
                             </button>
@@ -953,8 +1016,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               type='button'
                               onClick={() => setProvenanceChapter(chap)}
                               className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer'
-                              title='Bản duyệt, Provenance Report và lịch sử AI (CF4)'
-                              aria-label={`Lịch sử và nguồn gốc chương ${chap.chapterNumber}`}
+                              title={t('seriesChaptersModal.provenanceTooltip', 'Bản duyệt, Provenance Report và lịch sử AI (CF4)')}
+                              aria-label={t('seriesChaptersModal.provenanceAriaLabel', { number: chap.chapterNumber, defaultValue: `Lịch sử và nguồn gốc chương ${chap.chapterNumber}` })}
                             >
                               <GitBranch className='w-3.5 h-3.5' />
                             </button>
@@ -966,8 +1029,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
                               title={
                                 chap.status === 'Approved' || chap.status === 'Published'
-                                  ? 'Chương đã duyệt hoặc đã xuất bản'
-                                  : 'Sửa tiêu đề & ngày phát hành'
+                                  ? t('seriesChaptersModal.editDisabledTooltip', 'Chương đã duyệt hoặc đã xuất bản')
+                                  : t('seriesChaptersModal.editTooltip', 'Sửa tiêu đề & ngày phát hành')
                               }
                             >
                               <Edit2 className='w-3.5 h-3.5' />
@@ -979,8 +1042,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               className='p-1.5 rounded-lg hover:bg-red-50 text-[#888888] hover:text-red-600 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
                               title={
                                 chap.status === 'Approved' || chap.status === 'Published'
-                                  ? 'Chương đã duyệt hoặc đã xuất bản không thể xóa'
-                                  : 'Xóa chương'
+                                  ? t('seriesChaptersModal.deleteDisabledTooltip', 'Chương đã duyệt hoặc đã xuất bản không thể xóa')
+                                  : t('seriesChaptersModal.deleteTooltip', 'Xóa chương')
                               }
                             >
                               <Trash2 className='w-3.5 h-3.5' />
@@ -998,7 +1061,12 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
             {totalPages > 1 && (
               <div className='flex items-center justify-between text-xs font-mono text-[#737373] pt-2'>
                 <span>
-                  Trang {pageIndex} / {totalPages} (Tổng {totalCount} chương)
+                  {t('seriesChaptersModal.pagination', {
+                    current: pageIndex,
+                    total: totalPages,
+                    count: totalCount,
+                    defaultValue: `Trang ${pageIndex} / ${totalPages} (Tổng ${totalCount} chương)`,
+                  })}
                 </span>
                 <div className='flex items-center gap-1'>
                   <button
@@ -1023,15 +1091,14 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           {/* Footer */}
           <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] rounded-b-2xl flex items-center justify-between text-xs'>
             <div className='text-[11px] text-[#737373]'>
-              * Ngày phát hành dự kiến hỗ trợ ban biên tập đối chiếu và điều phối tiến độ sản xuất
-              kịp thời.
+              {t('seriesChaptersModal.footerNote', '* Ngày phát hành dự kiến hỗ trợ ban biên tập đối chiếu và điều phối tiến độ sản xuất kịp thời.')}
             </div>
             <button
               type='button'
               onClick={onClose}
               className='px-4 py-2 bg-[#171717] hover:bg-black text-white font-semibold rounded-lg'
             >
-              Đóng
+              {t('seriesChaptersModal.close', 'Đóng')}
             </button>
           </div>
         </div>
@@ -1098,8 +1165,11 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           targetName={
             deleteTargetChapter.title?.trim() || `Chương ${deleteTargetChapter.chapterNumber}`
           }
-          title='Xác nhận xóa chương'
-          description={`Bạn có chắc chắn muốn xóa Chương ${deleteTargetChapter.chapterNumber}? Dữ liệu trang và phân cảnh sẽ được đánh dấu xóa mềm. Vui lòng nhập chính xác tên chương bên dưới để xác nhận:`}
+          title={t('seriesChaptersModal.deleteConfirmTitle', 'Xác nhận xóa chương')}
+          description={t('seriesChaptersModal.deleteConfirmDesc', {
+            number: deleteTargetChapter.chapterNumber,
+            defaultValue: `Bạn có chắc chắn muốn xóa Chương ${deleteTargetChapter.chapterNumber}? Dữ liệu trang và phân cảnh sẽ được đánh dấu xóa mềm. Vui lòng nhập chính xác tên chương bên dưới để xác nhận:`,
+          })}
           onConfirm={executeDeleteChapter}
           onCancel={() => setDeleteTargetChapter(null)}
           isDeleting={isDeletingChapter}

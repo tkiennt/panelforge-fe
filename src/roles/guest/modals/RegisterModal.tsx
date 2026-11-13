@@ -15,6 +15,7 @@ import {
 import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
 import { PasswordStrengthMeter } from '@/shared/components/lucian';
+import { useTranslation } from '@/lib/i18n';
 
 interface RegisterModalProps {
   onClose: () => void;
@@ -29,6 +30,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
   onSwitchToLogin,
   initialEmail = '',
 }) => {
+  const { t } = useTranslation();
   // Mode: 'register' (Form nhập thông tin) hoặc 'verify_pin' (Form nhập mã OTP 6 số)
   const [step, setStep] = useState<'register' | 'verify_pin'>('register');
 
@@ -64,7 +66,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
 
     // Kiểm tra mật khẩu cơ bản
     if (password.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự.');
+      setError(t('common.auth.reqMinChars', 'Mật khẩu phải có ít nhất 6 ký tự.'));
       return;
     }
 
@@ -78,12 +80,16 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
       );
 
       setSuccessMsg(
-        res.message || 'Đăng ký thành công! Vui lòng nhập mã PIN 6 số đã được gửi đến email.',
+        res.message ||
+          t(
+            'common.auth.registerSuccess',
+            'Đăng ký thành công! Vui lòng nhập mã PIN 6 số đã được gửi đến email.',
+          ),
       );
       setStep('verify_pin');
       setResendCooldown(60); // Đặt 60s trước khi cho phép gửi lại
     } catch (err: any) {
-      setError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      setError(err.message || t('common.auth.errLoginFailed', 'Đăng ký thất bại. Vui lòng thử lại.'));
     } finally {
       setIsLoading(false);
     }
@@ -97,20 +103,20 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
 
     const cleanPin = pinCode.trim();
     if (cleanPin.length !== 6) {
-      setError('Vui lòng nhập đầy đủ mã PIN gồm 6 chữ số.');
+      setError(t('common.auth.errTwoFactorCodeLength', 'Vui lòng nhập đầy đủ mã PIN gồm 6 chữ số.'));
       return;
     }
 
     try {
       setIsLoading(true);
       const authResponse = await authService.verifyEmail(email.trim(), cleanPin);
-      setSuccessMsg('Xác thực tài khoản thành công! Đang chuyển hướng...');
+      setSuccessMsg(t('common.auth.pinVerified', 'Xác thực tài khoản thành công! Đang chuyển hướng...'));
 
       setTimeout(() => {
         onSuccess(authResponse);
       }, 800);
     } catch (err: any) {
-      setError(err.message || 'Mã PIN không chính xác hoặc đã hết hạn.');
+      setError(err.message || t('common.auth.errTwoFactorInvalid', 'Mã PIN không chính xác hoặc đã hết hạn.'));
     } finally {
       setIsLoading(false);
     }
@@ -125,10 +131,10 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
     try {
       setIsLoading(true);
       const res = await authService.resendVerification(email.trim());
-      setSuccessMsg(res.message || 'Mã PIN mới đã được gửi tới email của bạn!');
+      setSuccessMsg(res.message || t('common.auth.pinResent', 'Mã PIN mới đã được gửi tới email của bạn!'));
       setResendCooldown(60);
     } catch (err: any) {
-      setError(err.message || 'Không thể gửi lại mã PIN. Vui lòng thử lại sau.');
+      setError(err.message || t('common.auth.errForgotFailed', 'Không thể gửi lại mã PIN. Vui lòng thử lại sau.'));
     } finally {
       setIsLoading(false);
     }
@@ -258,9 +264,11 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
             {/* Title & Subtitle */}
             {step === 'register' ? (
               <>
-                <h2 className='font-serif font-light text-3xl text-[#0c0a09]'>Create Account</h2>
+                <h2 className='font-serif font-light text-3xl text-[#0c0a09]'>
+                  {t('common.auth.createAccount', 'Create Account')}
+                </h2>
                 <p className='text-[#777169] text-xs mt-1.5'>
-                  Join PanelForge studio to start serializing.
+                  {t('common.auth.registerSubtitle', 'Join PanelForge studio to start serializing.')}
                 </p>
               </>
             ) : (
@@ -269,15 +277,16 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                   <button
                     onClick={() => setStep('register')}
                     className='text-[#777169] hover:text-[#0c0a09] transition-colors p-1.5 -ml-1 rounded-full hover:bg-[#f0efed]'
-                    title='Quay lại form đăng ký'
+                    title={t('common.auth.backToRegister', 'Quay lại form đăng ký')}
                   >
                     <ArrowLeft className='w-4 h-4' />
                   </button>
-                  <h2 className='font-serif font-light text-3xl text-[#0c0a09]'>Verify PIN</h2>
+                  <h2 className='font-serif font-light text-3xl text-[#0c0a09]'>
+                    {t('common.auth.verifyPinTitle', 'Verify PIN')}
+                  </h2>
                 </div>
                 <p className='text-[#777169] text-xs mt-1 leading-relaxed'>
-                  Nhập mã PIN 6 số đã gửi tới <br />
-                  <span className='font-semibold text-[#0c0a09] font-mono'>{email}</span>
+                  {t('common.auth.checkEmailDesc', { email }, `Nhập mã PIN 6 số đã gửi tới ${email}`)}
                 </p>
               </>
             )}
@@ -303,7 +312,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
               <form className='mt-6 space-y-3.5' onSubmit={handleRegister}>
                 <div>
                   <label className='block text-xs font-semibold text-[#0c0a09] mb-1'>
-                    Full Name
+                    {t('common.auth.fullName', 'Full Name')}
                   </label>
                   <input
                     type='text'
@@ -316,7 +325,9 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                 </div>
 
                 <div>
-                  <label className='block text-xs font-semibold text-[#0c0a09] mb-1'>Email</label>
+                  <label className='block text-xs font-semibold text-[#0c0a09] mb-1'>
+                    {t('common.auth.email', 'Email')}
+                  </label>
                   <input
                     type='email'
                     value={email}
@@ -330,13 +341,16 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                 <PasswordStrengthMeter
                   value={password}
                   onChange={setPassword}
-                  label='Password'
+                  label={t('common.auth.password', 'Password')}
                   required
                 />
 
                 <div>
                   <label className='block text-xs font-semibold text-[#0c0a09] mb-1'>
-                    Phone Number <span className='text-stone-400 font-normal'>(Tùy chọn)</span>
+                    {t('common.auth.phoneNumber', 'Phone Number')}{' '}
+                    <span className='text-stone-400 font-normal'>
+                      {t('common.auth.phoneOptional', '(Tùy chọn)')}
+                    </span>
                   </label>
                   <input
                     type='tel'
@@ -352,14 +366,16 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                   disabled={isLoading}
                   className='w-full bg-[#292524] hover:bg-[#0c0a09] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 rounded-full shadow-soft-sm transition-all mt-5 cursor-pointer flex justify-center items-center gap-2 text-xs sm:text-sm'
                 >
-                  {isLoading ? 'Đang gửi mã PIN...' : 'Register & Receive PIN'}
+                  {isLoading
+                    ? t('common.auth.registerSubmitting', 'Đang gửi mã PIN...')
+                    : t('common.auth.registerSubmit', 'Register & Receive PIN')}
                   {!isLoading && <ArrowRight className='w-4 h-4' />}
                 </button>
 
                 <div className='flex items-center my-4'>
                   <div className='flex-1 border-t border-[#e7e5e4]'></div>
                   <span className='px-3 text-xs text-[#a8a29e] uppercase tracking-wider font-semibold font-mono'>
-                    or continue with
+                    {t('common.auth.or', 'or continue with')}
                   </span>
                   <div className='flex-1 border-t border-[#e7e5e4]'></div>
                 </div>
@@ -388,17 +404,17 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                       fill='#EA4335'
                     />
                   </svg>
-                  Sign in with Google
+                  {t('common.auth.googleSignUp', 'Sign in with Google')}
                 </button>
 
                 <p className='text-xs text-[#777169] text-center mt-5'>
-                  Already have an account?{' '}
+                  {t('common.auth.haveAccount', 'Already have an account?')}{' '}
                   <button
                     type='button'
                     onClick={onSwitchToLogin}
                     className='text-[#0c0a09] font-semibold hover:underline cursor-pointer'
                   >
-                    Log In
+                    {t('common.auth.signIn', 'Log In')}
                   </button>
                 </p>
               </form>
@@ -408,9 +424,11 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                 <div>
                   <div className='flex justify-between items-center mb-2'>
                     <label className='block text-xs font-semibold uppercase tracking-wider text-[#555555]'>
-                      6-Digit Security PIN
+                      {t('common.auth.pinSecurityLabel', '6-Digit Security PIN')}
                     </label>
-                    <span className='text-[11px] text-[#888888] font-mono'>Hạn: 15 phút</span>
+                    <span className='text-[11px] text-[#888888] font-mono'>
+                      {t('common.auth.pinExpires', 'Hạn: 15 phút')}
+                    </span>
                   </div>
 
                   {/* Ô nhập PIN 6 số phong cách Manga Studio / Terminal Key */}
@@ -430,7 +448,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                     required
                   />
                   <p className='text-[11px] text-[#888888] text-center mt-2'>
-                    Kiểm tra hộp thư đến (Inbox) hoặc thư rác (Spam)
+                    {t('common.auth.checkSpamHint', 'Kiểm tra hộp thư đến (Inbox) hoặc thư rác (Spam)')}
                   </p>
                 </div>
 
@@ -439,13 +457,15 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                   disabled={isLoading || pinCode.length !== 6}
                   className='w-full bg-[#F97316] hover:bg-[#EA580C] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg shadow-sm transition-all cursor-pointer flex justify-center items-center gap-2 text-sm'
                 >
-                  {isLoading ? 'Đang xác thực mã PIN...' : 'Verify PIN & Enter Studio'}
+                  {isLoading
+                    ? t('common.auth.verifyingPin', 'Đang xác thực mã PIN...')
+                    : t('common.auth.verifyPinSubmit', 'Verify PIN & Enter Studio')}
                   {!isLoading && <CheckCircle2 className='w-4 h-4' />}
                 </button>
 
                 {/* Gửi lại mã PIN */}
                 <div className='pt-2 flex items-center justify-between text-xs text-[#555555] border-t border-[#E7E7E7]'>
-                  <span>Chưa nhận được mã?</span>
+                  <span>{t('common.auth.resendPinPrompt', 'Chưa nhận được mã?')}</span>
                   <button
                     type='button'
                     onClick={handleResendPin}
@@ -455,7 +475,9 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                     <RotateCw
                       className={`w-3.5 h-3.5 ${resendCooldown > 0 ? 'animate-spin' : ''}`}
                     />
-                    {resendCooldown > 0 ? `Gửi lại sau ${resendCooldown}s` : 'Gửi lại mã PIN'}
+                    {resendCooldown > 0
+                      ? t('common.auth.resendPinCountdown', { seconds: resendCooldown }, `Gửi lại sau ${resendCooldown}s`)
+                      : t('common.auth.resendPin', 'Gửi lại mã PIN')}
                   </button>
                 </div>
 
@@ -468,7 +490,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                     }}
                     className='text-xs text-[#888888] hover:text-[#171717] underline cursor-pointer'
                   >
-                    Đổi email khác
+                    {t('common.auth.changeEmail', 'Đổi email khác')}
                   </button>
                 </div>
               </form>

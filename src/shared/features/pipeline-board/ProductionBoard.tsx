@@ -53,6 +53,7 @@ import { pipelineService } from '@/services/pipeline.service';
 import { pageService, type PageDto } from '@/services/page.service';
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import type { WorkspaceRole } from '@/types';
+import { useTranslation } from '@/lib/i18n';
 
 export interface ProductionBoardProps {
   chapterId?: string;
@@ -90,6 +91,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
   onShowToast,
   onOpenCreateAssignment,
 }) => {
+  const { t } = useTranslation('pipeline');
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -409,7 +411,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
               onChange={(e) => setFilters((f) => ({ ...f, overdueOnly: e.target.checked }))}
               className='h-4 w-4 accent-[#C2410C]'
             />
-            <span className='font-medium'>Chỉ việc quá hạn</span>
+            <span className='font-medium'>{t('board.overdueOnly', 'Chỉ việc quá hạn')}</span>
           </label>
         </div>
       </div>
@@ -424,14 +426,15 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
             aria-live='polite'
           >
             {cards === null ? (
-              <span className='text-landing-ink-muted'>Đang tải công việc…</span>
+              <span className='text-landing-ink-muted'>{t('board.loadingTasks', 'Đang tải công việc…')}</span>
             ) : (
               <>
-                Đang hiển thị{' '}
-                <strong className='tabular-nums font-bold'>{filteredCards.length}</strong> /{' '}
-                <span className='tabular-nums font-semibold'>{cards.length}</span> công việc của
-                chương
-                {anyFilterActive && <span className='text-landing-ink-muted'> (đã lọc)</span>}
+                {t(
+                  'board.showingTasks',
+                  { count: filteredCards.length, total: cards.length },
+                  `Đang hiển thị ${filteredCards.length} / ${cards.length} công việc của chương`,
+                )}
+                {anyFilterActive && <span className='text-landing-ink-muted'> {t('board.filtered', '(đã lọc)')}</span>}
               </>
             )}
           </h2>
@@ -442,7 +445,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
               className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-[#C2410C] bg-[#FFF2E6] border border-[#C2410C]/30 hover:bg-[#FFE5CC] transition-colors cursor-pointer ${focusRing}`}
             >
               <X className='h-3.5 w-3.5' aria-hidden='true' />
-              <span>Xoá bộ lọc</span>
+              <span>{t('board.clearFilters', 'Xoá bộ lọc')}</span>
             </button>
           )}
           {loading && cards !== null && (
@@ -454,7 +457,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
                 className='h-3.5 w-3.5 animate-spin motion-reduce:animate-none'
                 aria-hidden='true'
               />
-              Đang làm mới…
+              {t('board.refreshing', 'Đang làm mới…')}
             </span>
           )}
         </div>
@@ -463,7 +466,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
           {viewMode !== 'kanban' && (
             <div className='flex items-center gap-2'>
               <label htmlFor='pb-group' className='text-xs font-semibold text-landing-ink-muted'>
-                Nhóm theo
+                {t('board.groupBy', 'Nhóm theo')}
               </label>
               <select
                 id='pb-group'
@@ -483,7 +486,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
           {/* Cách xem Lưới / Danh sách / Kanban */}
           <div
             role='group'
-            aria-label='Cách xem'
+            aria-label={t('board.viewMode', 'Cách xem')}
             className='inline-flex rounded-lg border border-landing-border bg-[#FCFBF8] p-0.5 shadow-2xs'
           >
             {VIEW_MODES.map((v) => {

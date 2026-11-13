@@ -1,11 +1,18 @@
 {
+  "pageTitle": "PanelForge — Manga Production Collaboration Workspace",
+  "pageMetaDesc": "PanelForge — Structured comic production collaboration platform. Synchronize scripts, artwork, reviews, and version history in one unified workspace.",
   "nav": {
     "workflow": "Workflow",
     "features": "Features",
     "showcase": "Showcase",
     "faq": "FAQ",
     "login": "Sign In",
-    "register": "Sign Up"
+    "register": "Sign Up",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu",
+    "mobileDrawerAria": "Mobile navigation menu",
+    "homeAria": "PanelForge - Back to top",
+    "mainNavAria": "Main navigation"
   },
   "hero": {
     "docket": "PF / 01 · COMIC PRODUCTION STUDIO",
@@ -19,7 +26,25 @@
     "discoverWorkflow": "Discover the production workflow",
     "badgeScript": "Structured Scripts",
     "badgeCollab": "Collaboration",
-    "badgeVersion": "Version Provenance"
+    "badgeVersion": "Version Provenance",
+    "marginGuideline": "01 / Start of a story",
+    "manuscriptRegionAria": "PanelForge manga manuscript: Monochrome and Color",
+    "manuscriptImageAlt": "PanelForge comic manuscript split diagonally between monochrome and full color. Dialogue: The story continues. Artist: v3",
+    "stickyNoteText": "Editorial · Keep lighting consistent in panel 3",
+    "editorPinTitle": "Per-panel feedback",
+    "editorPinLabel": "Editorial · Panel Feedback",
+    "pipelineStoryTag": "One story. Two expressions.",
+    "pipelineStages": {
+      "script": "Script",
+      "sketch": "Sketch",
+      "finish": "Finishing"
+    }
+  },
+  "intro": {
+    "leftNoteTag": "For manga and comic creative teams",
+    "leftNoteTitle": "Empowering teams to focus on storytelling.",
+    "rightNoteBody": "Unify scripts, artwork, and review notes into one structured, dependable production pipeline. Eliminate fragmented chats and lost ideas across chapters.",
+    "rightNoteBadge": "Synchronized drafts · Never overwritten"
   },
   "pillars": {
     "tag": "02 / FOUNDATIONS",
@@ -55,7 +80,24 @@
       "writer": "Writer",
       "artist": "Artist",
       "editor": "Editor & Colorist"
+    },
+    "images": {
+      "sketch": "Comic panel sketching stage (Sketch)",
+      "ink": "Black inking stage (Inking)",
+      "color": "Color and lighting finalization stage (Color)",
+      "coloredDraft": "Final colored artwork",
+      "rawSketch": "Rough sketch artwork",
+      "sliderAria": "Sketch and final artwork comparison slider"
     }
+  },
+  "sections": {
+    "missionAria": "Product Mission",
+    "featuresAria": "Key Features",
+    "workflowAria": "Production Pipeline",
+    "showcaseAria": "Workspace Showcase",
+    "workspaceIlloAria": "Illustrated workspace showcase",
+    "faqAria": "Frequently Asked Questions",
+    "ctaAria": "Start Creating"
   },
   "footer": {
     "brand": "PanelForge Manga Studio AI",

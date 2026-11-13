@@ -16,7 +16,8 @@
     "publishing": "PUBLISHING",
     "systemAdmin": "SYSTEM ADMIN",
     "studioManagement": "STUDIO MANAGEMENT",
-    "publisherDesk": "PUBLISHER DESK"
+    "publisherDesk": "PUBLISHER DESK",
+    "productionUtilities": "PRODUCTION UTILITIES"
   },
   "menu": {
     "dashboard": "Dashboard",
@@ -54,7 +55,13 @@
     "searchPlaceholder": "Search frames, dialogues, assets...",
     "workspaces": "Workspaces",
     "menuTitle": "Navigation Menu",
-    "chapter": "Chapter"
+    "chapter": "Chapter",
+    "openMenu": "Open navigation menu",
+    "backToWorkspaces": "Back to Workspace Catalog",
+    "openSeriesList": "Open Series list",
+    "goToSeries": "Go to Series Workspace",
+    "currentChapter": "Current chapter",
+    "quickSearch": "Quick search or open command palette (⌘K / Ctrl+K)"
   },
   "breadcrumbs": {
     "studios": "Studio",
@@ -66,6 +73,17 @@
     "collapse": "Collapse navigation",
     "expand": "Expand navigation",
     "appearance": "Sidebar appearance",
+    "chooseWorkspace": "Select Workspace",
+    "chooseSeries": "Select Series...",
+    "seriesInStudio": "Series in Studio",
+    "allSeries": "View all",
+    "loading": "Loading...",
+    "noSeries": "No series yet",
+    "chaptersCount": "chapters",
+    "mainNav": "Main navigation",
+    "currentChapterSubtitle": "Current chapter",
+    "seriesListSubtitle": "Series list",
+    "activeSeriesFallback": "Series",
     "themes": {
       "paper": "Light paper",
       "ink": "Dark ink",

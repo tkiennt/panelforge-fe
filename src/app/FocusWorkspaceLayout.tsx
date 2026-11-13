@@ -45,6 +45,7 @@ export interface FocusHeaderConfig {
   isStageFlowCompleted?: boolean;
   isSubmittingStage?: boolean;
   onSubmitStage?: () => void;
+  onSelectStage?: (stageIndex: number) => void;
   submitButtonLabel?: string;
 }
 
@@ -295,7 +296,10 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                     data-stage-id={stage.id}
                     data-stage-state={stepState}
                     aria-current={isCurrent ? 'step' : undefined}
+                    onClick={() => headerConfig?.onSelectStage?.(idx)}
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-all whitespace-nowrap ${
+                      headerConfig?.onSelectStage ? 'cursor-pointer hover:opacity-90' : ''
+                    } ${
                       isCurrent
                         ? 'bg-white text-[#1C1917] border border-[#D8D2C5] shadow-2xs font-bold'
                         : isCompleted

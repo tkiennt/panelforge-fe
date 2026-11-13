@@ -213,8 +213,8 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
     ? `justify-start gap-3 px-4 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
     : 'justify-center w-10 h-10 mx-auto';
 
-  const workspaceLabel = `Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`;
-  const seriesLabel = `Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`;
+  const workspaceLabel = `Workspace: ${activeWorkspace?.name || t('navigation.sidebar.chooseWorkspace', 'Chọn Workspace')}`;
+  const seriesLabel = `Series: ${seriesId ? activeSeries?.title || t('navigation.sidebar.activeSeriesFallback', 'Bộ truyện') : t('navigation.sidebar.chooseSeries', 'Chọn Series')}`;
   const themeLabel = t('navigation.sidebar.appearance', 'Giao diện thanh bên');
   const themeName = (id: SidebarTheme) => t(`navigation.sidebar.themes.${id}`, THEME_FALLBACK[id]);
 
@@ -412,15 +412,16 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                     {showFullContent && (
                       <div className='min-w-0 pf-sb-label'>
                         <p className='text-xs font-semibold truncate leading-tight'>
-                          {seriesId ? activeSeries?.title || 'Active Series' : 'Chọn Series...'}
+                      {seriesId ? activeSeries?.title || 'Active Series' : t('navigation.sidebar.chooseSeries', 'Chọn Series...')}
                         </p>
                         <p
                           className='text-[10.5px] font-mono truncate'
                           style={{ color: 'var(--sb-muted)' }}
                         >
                           {seriesId
-                            ? activeSeries?.subtitle || 'Chương hiện tại'
-                            : 'Danh sách Series'}
+                            ? activeSeries?.subtitle ||
+                              t('navigation.sidebar.currentChapterSubtitle', 'Chương hiện tại')
+                            : t('navigation.sidebar.seriesListSubtitle', 'Danh sách Series')}
                         </p>
                       </div>
                     )}
@@ -444,7 +445,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                       className='px-3 py-1.5 border-b flex items-center justify-between text-[11px] font-semibold'
                       style={{ borderColor: 'var(--sb-border)', color: 'var(--sb-muted)' }}
                     >
-                      <span>Bộ truyện trong Studio</span>
+                  <span>{t('navigation.sidebar.seriesInStudio', 'Bộ truyện trong Studio')}</span>
                       <button
                         type='button'
                         onClick={(e) => {
@@ -454,17 +455,17 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                         className='text-[11px] font-medium cursor-pointer hover:underline'
                         style={{ color: 'var(--sb-accent)' }}
                       >
-                        Xem tất cả
+                    {t('navigation.sidebar.allSeries', 'Xem tất cả')}
                       </button>
                     </div>
                     {loadingSeries && (
                       <div className='p-3 text-xs text-center' style={{ color: 'var(--sb-muted)' }}>
-                        Đang tải...
+                    {t('navigation.sidebar.loading', 'Đang tải...')}
                       </div>
                     )}
                     {!loadingSeries && seriesList.length === 0 && (
                       <div className='p-3 text-xs text-center' style={{ color: 'var(--sb-muted)' }}>
-                        Chưa có bộ truyện nào
+                    {t('navigation.sidebar.noSeries', 'Chưa có bộ truyện nào')}
                       </div>
                     )}
                     {!loadingSeries &&
@@ -489,7 +490,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                             <div className='truncate pr-2 min-w-0'>
                               <p className='truncate'>{s.title}</p>
                               <p className='text-xs font-mono' style={{ color: 'var(--sb-muted)' }}>
-                                {s.genre || 'Manga'} • {s.chaptersCount || 0} chương
+                            {s.genre || 'Manga'} • {s.chaptersCount || 0} {t('navigation.sidebar.chaptersCount', 'chương')}
                               </p>
                             </div>
                             {isSelected && (
@@ -514,7 +515,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         className={`mt-4 flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-4 custom-scrollbar ${
           showFullContent ? 'px-4' : 'px-2'
         }`}
-        aria-label='Điều hướng chính'
+        aria-label={t('navigation.sidebar.mainNav', 'Điều hướng chính')}
         onScroll={() => setTip(null)}
       >
         {navSections.map((section, idx) => (

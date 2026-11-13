@@ -49,6 +49,7 @@ import {
   mapBibleCategory,
   resolveStageKey,
 } from '../lib/artistDeskHelpers';
+import { resolveChangeRequestLocation } from '../utils/changeRequestLocation';
 
 export type { PanelArtworkData };
 
@@ -481,24 +482,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const handleNavigateToChangeRequestTarget = useCallback(
     (cr: ChangeRequestDto) => {
       if (!cr) return;
-      let targetPanelId: string | null = null;
-      if (cr.regionJson) {
-        try {
-          const parsed = JSON.parse(cr.regionJson);
-          if (parsed.panelId) targetPanelId = parsed.panelId;
-        } catch {
-          // ignore
-        }
-      }
-
-      if (targetPanelId) {
-        for (const [pgId, pList] of Object.entries(panelsByPageId)) {
-          if (pList.some((p) => p.id === targetPanelId)) {
-            setSelectedPageId(pgId);
-            toast.info('Đã chuyển đến trang cần sửa', `Khung số ${targetPanelId}`);
-            return;
-          }
-        }
+      const loc = resolveChangeRequestLocation(cr, panelsByPageId);
+      if (loc && loc.pageId) {
+        setSelectedPageId(loc.pageId);
+        const pNum = loc.panelId ? panelPageMap[loc.panelId]?.panelNumber : undefined;
+        toast.info(
+          'Đã chuyển đến trang cần sửa',
+          pNum ? `Khung số ${pNum}` : cr.description?.slice(0, 80) || '',
+        );
+        return;
       }
 
       toast.info(
@@ -506,7 +498,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         cr.description?.slice(0, 80) || 'Kiểm tra bản vẽ của trang hiện tại.',
       );
     },
-    [panelsByPageId, toast],
+    [panelsByPageId, panelPageMap, toast],
   );
 
   // Khôi phục trang về một phiên bản cũ trong lịch sử

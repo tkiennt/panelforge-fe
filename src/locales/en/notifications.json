@@ -1,15 +1,24 @@
 {
   "title": "Notification Center",
-  "subtitle": "Updates on task progress, editorial feedback, and assignments",
+  "subtitle": "Track assignments, chapter progress, and revision requests from the production team.",
+  "refresh": "Refresh",
+  "refreshTooltip": "Refresh list",
   "markAllAsRead": "Mark all as read",
   "emptyTitle": "No new notifications",
-  "emptyDesc": "You are completely up to date with the latest production activities.",
+  "emptyUnread": "No unread notifications",
+  "emptyAll": "No notifications yet",
+  "emptyDesc": "When new tasks are assigned, editors leave feedback, or chapter progress updates, notifications will appear here.",
   "all": "All notifications",
+  "allCount": "All notifications ({count})",
   "unread": "{count} unread",
   "unreadTab": "Unread",
   "loading": "Loading notifications from system...",
   "viewTask": "View Task",
+  "viewTaskDetail": "Open task details",
+  "markRead": "Mark as read",
+  "markReadTooltip": "Mark as read",
   "types": {
+    "default": "Notification",
     "AssignmentAssigned": "New Task Assigned",
     "AssignmentUnassigned": "Task Unassigned",
     "AssignmentUpdated": "Task Updated",
@@ -21,6 +30,9 @@
     "ChapterReadyForPublication": "Ready for Publication",
     "ChapterReopened": "Chapter Reopened",
     "ChapterPublished": "Published Successfully",
-    "AssignmentDueSoon": "Due Soon"
+    "AssignmentDueSoon": "Due Soon",
+    "AssignmentOverdue": "Overdue",
+    "ChangeRequestDueSoon": "Revision Due Soon",
+    "ChangeRequestOverdue": "Revision Overdue"
   }
 }
