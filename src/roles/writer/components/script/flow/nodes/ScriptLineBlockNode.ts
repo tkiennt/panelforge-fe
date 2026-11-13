@@ -163,6 +163,21 @@ function acceptCharacterCompletion(editor: Editor): boolean {
   return true;
 }
 
+/**
+ * Kết thúc dòng Nhân vật: nhận tên đang gợi ý, đưa con trỏ về cuối tên rồi chèn dòng Thoại.
+ * Dùng cho phím ":" (Enter và Tab đã có luật riêng trong keymap).
+ */
+export function characterToDialogue(editor: Editor): boolean {
+  const line = currentLine(editor.state);
+  if (!line || line.el !== 'character') return false;
+  const end = line.pos + 1 + line.node.content.size;
+  if (editor.state.selection.from !== end) {
+    editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, end)));
+  }
+  acceptCharacterCompletion(editor);
+  return applyMove(editor, onEnter('character'));
+}
+
 // ───────────────────────── tự dựng lại khung Trang / Panel ─────────────────────────
 
 /** Thời gian không gõ trước khi dựng lại dòng Trang / Panel bị xoá (như WriterSolo). */
@@ -278,7 +293,20 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
 
   addProseMirrorPlugins() {
     const labels = this.options.labels;
+    const editor = this.editor;
     return [
+      // Gõ ":" sau tên nhân vật: không chèn dấu, nhận tên đang gợi ý rồi sang dòng Thoại (như Enter).
+      new Plugin({
+        key: new PluginKey('scriptCharacterColon'),
+        props: {
+          handleTextInput(view, _from, _to, text) {
+            if (text !== ':') return false;
+            const line = currentLine(view.state);
+            if (!line || line.el !== 'character' || line.isEmpty) return false;
+            return characterToDialogue(editor);
+          },
+        },
+      }),
       // Xoá dòng Trang / Panel rồi ngừng gõ một lúc thì dòng đó tự hiện lại (như WriterSolo).
       new Plugin({
         key: structureKey,
