@@ -1148,7 +1148,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   const matchedEntity = localEntities.find((e) => e.id === item.entryId);
                   return (
                     <div
-                      key={item.entryId}
+                      key={item.revisionId ?? item.entryId}
                       className='bg-white/95 rounded-lg border border-amber-200 p-2.5 flex items-center justify-between gap-2 hover:border-orange-400 transition-colors shadow-2xs'
                     >
                       <div className='min-w-0 flex-1'>
@@ -1161,17 +1161,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           </span>
                         </div>
                         <div className='flex items-center gap-1 mt-1'>
-                          {item.reviewStatus === 'ReworkRequired' ||
-                          (item as any).status === 'ReworkRequired' ||
-                          item.reviewStatus === 3 ||
-                          (item as any).status === 3 ? (
+                          {item.reviewStatus === 'ReworkRequired' ? (
                             <span className='px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-xs font-semibold whitespace-nowrap'>
                               Yêu cầu vẽ lại
                             </span>
-                          ) : item.reviewStatus === 'ConceptSubmitted' ||
-                            (item as any).status === 'ConceptSubmitted' ||
-                            item.reviewStatus === 2 ||
-                            (item as any).status === 2 ? (
+                          ) : item.reviewStatus === 'ConceptSubmitted' ? (
                             <span className='px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold whitespace-nowrap'>
                               Đã nộp (Chờ duyệt)
                             </span>
@@ -1192,10 +1186,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       </div>
 
                       {isArtist ? (
-                        item.reviewStatus === 'ConceptSubmitted' ||
-                        (item as any).status === 'ConceptSubmitted' ||
-                        item.reviewStatus === 2 ||
-                        (item as any).status === 2 ? (
+                        item.reviewStatus === 'ConceptSubmitted' ? (
                           <button
                             type='button'
                             onClick={() => {
@@ -1217,10 +1208,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             <RotateCcw className='w-3 h-3' />
                             <span>Nộp lại</span>
                           </button>
-                        ) : item.reviewStatus === 'ReworkRequired' ||
-                          (item as any).status === 'ReworkRequired' ||
-                          item.reviewStatus === 3 ||
-                          (item as any).status === 3 ? (
+                        ) : item.reviewStatus === 'ReworkRequired' ? (
                           <button
                             type='button'
                             onClick={() => {

@@ -402,8 +402,7 @@ export interface BibleDesignQueueItemDto {
   code: string;
   name: string;
   category: BibleCategory;
-  latestRevisionId?: string;
-  status?: BibleReviewStatus;
+  revisionId: string;
   reviewStatus: BibleReviewStatus;
   reworkFeedback?: string | null;
   artistUserId?: string | null;
