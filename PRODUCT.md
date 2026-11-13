@@ -41,7 +41,6 @@ Unlike generic creative tools (Clip Studio Paint, Photoshop) or generic project 
 
 ## Evidence on Hand
 - Implemented and live frontend views in `src/` (`SeriesBibleView`, `IsolatedSeriesBible`, `PublicCatalogView`, `ExportView`, `DashboardView`).
-- Detailed screen status audit in `docs/audit/UI_SCREEN_AUDIT.md`.
 - Comprehensive design tokens and component specs in `panelforge-hub/docs/spec/DESIGN_RULES.md`.
 
 ## Product Principles

@@ -21,7 +21,7 @@ Please describe the tests that you ran to verify your changes.
 - [ ] I have run `npm run quality` (typecheck, lint, test) and all checks pass
 - [ ] My changes generate no new warnings
 
-### 📚 Documentation Sync Verification (per docs/DOCUMENTATION_PROCESS.md):
+### 📚 Documentation Sync Verification:
 - [ ] I have updated corresponding documentation if code changed:
   - [ ] `panelforge-hub/docs/spec/DESIGN_RULES.md` (if modified styling, colors, font, buttons, or design tokens)
   - [ ] `PRODUCT.md` (if modified business logic, core flows, or permissions)

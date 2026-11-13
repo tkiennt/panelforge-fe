@@ -40,7 +40,7 @@ Frontend ↔ Backend coordination follows `.agents/CODEBASE_MAP.md` and Backend 
 14. Do not read or expose secrets unnecessarily (`.env*` except `.env.example`, tokens, keys).
 15. Do not send source code or local files to unknown external services.
 16. Ask before enabling a new network-connected MCP server.
-17. **Documentation Sync**: Follow `docs/DOCUMENTATION_PROCESS.md`. Any change to UI tokens/styling, business flows, role workspaces, or shared components must be synchronized into the corresponding docs (`panelforge-hub/docs/spec/DESIGN_RULES.md`, `PRODUCT.md`, `src/roles/*/README.md`, `src/shared/README.md`). When a task starts and when it is merged, update `panelforge-hub/docs/tracking/TEAM_WORKBOARD.md`. Do not create plan files inside this repo.
+17. **Documentation Sync**: Business specs and plans live only in `panelforge-hub/docs/`. Any change to UI tokens/styling, business flows, role workspaces, or shared components must be synchronized into the corresponding docs (`panelforge-hub/docs/spec/DESIGN_RULES.md`, `PRODUCT.md`, `src/roles/*/README.md`, `src/shared/README.md`). When a task starts and when it is merged, update `panelforge-hub/docs/tracking/TEAM_WORKBOARD.md`. Do not create plan files inside this repo.
 
 ## Precedence when instructions conflict
 

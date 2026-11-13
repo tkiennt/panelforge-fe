@@ -8,14 +8,14 @@ Web client for **PanelForge**, an AI-assisted manga and webtoon production manag
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38BDF8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
 
 - **What it is:** React 19 web client featuring role-specific screens, Kanban pipeline boards, script editor, and Konva panel canvas.
-- **How to run:** `npm install && npm run dev` on port `3000` (requires [Backend running](../../Backend/PanelForge_FA26SE251/README.md#getting-started)).
-- **Where to read more:** [Frontend Docs](docs/README.md) · [Backend README](../../Backend/PanelForge_FA26SE251/README.md) for product overview, roles, and business rules.
+- **How to run:** `npm install && npm run dev` on port `3000` (requires [Backend running](../PanelForge_FA26SE251/README.md#getting-started)).
+- **Where to read more:** [Frontend Docs](docs/README.md) · [Backend README](../PanelForge_FA26SE251/README.md) for product overview, roles, and business rules.
 
 ---
 
 ## Getting Started
 
-1. Start [Backend](../../Backend/PanelForge_FA26SE251/README.md#getting-started) on `http://localhost:5044` (requires Node.js 20+).
+1. Start [Backend](../PanelForge_FA26SE251/README.md#getting-started) on `http://localhost:5044` (requires Node.js 20+).
 2. Install dependencies and start dev server: `npm install && npm run dev` (`http://localhost:3000`).
 > Dev server must run on port **3000** (or 5173/5174); Backend CORS rejects other origins.
 
@@ -69,8 +69,8 @@ src/
 
 ## Design System & Docs
 
-- Editorial print magazine style (`#f5f5f5` canvas, `#292524` ink, pastel accents, Inter typography). Full specifications in [`docs/DESIGN_RULES.md`](./docs/DESIGN_RULES.md).
-- Further documentation: [Documentation Hub](./docs/README.md) · [Production Architecture](./docs/CORE_PRODUCTION_ARCHITECTURE.md) · [Product Spec](./PRODUCT.md).
+- Editorial print magazine style (`#f5f5f5` canvas, `#292524` ink, pastel accents, Inter typography). Full specifications in [`DESIGN_RULES.md`](../panelforge-hub/docs/spec/DESIGN_RULES.md).
+- Further documentation: [Documentation index](./docs/README.md) · [Product](./PRODUCT.md).
 
 ---
 
@@ -89,5 +89,4 @@ src/
 ## 📚 Technical Documentation Hub
 All architectural documentation and design specifications are organized under [`docs/`](./docs/README.md). Business spec for all three repos: [`panelforge-hub/docs/V2.6/PANELFORGE_MASTER_SPECIFICATION_V2_6.md`](../panelforge-hub/docs/V2.6/PANELFORGE_MASTER_SPECIFICATION_V2_6.md). Who is working on what: [`panelforge-hub/docs/tracking/TEAM_WORKBOARD.md`](../panelforge-hub/docs/tracking/TEAM_WORKBOARD.md) (update it when you start and finish a task).
 - [Documentation Hub & Index](./docs/README.md)
-- [Documentation Process & Sync Protocol](./docs/DOCUMENTATION_PROCESS.md)
 - [Design Rules & Tokens](../panelforge-hub/docs/spec/DESIGN_RULES.md)
