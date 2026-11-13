@@ -2,15 +2,15 @@
 /* Synchronized with PanelForge Warm Editorial AI Studio Design System */
 
 .u285 {
-  --u285-bg: #FFFFFF;
-  --u285-bg-subtle: #FAF8F4;
-  --u285-bg-hover: #F3F1EB;
-  --u285-border: #E7E7E7;
-  --u285-border-hover: #D4D4D4;
+  --u285-bg: #ffffff;
+  --u285-bg-subtle: #faf8f4;
+  --u285-bg-hover: #f3f1eb;
+  --u285-border: #e7e7e7;
+  --u285-border-hover: #d4d4d4;
   --u285-ink: #171717;
   --u285-ink-muted: #525252;
   --u285-ink-subtle: #737373;
-  --u285-accent: #F97316;
+  --u285-accent: #f97316;
 
   position: relative;
   width: 100%;
@@ -45,7 +45,7 @@
 .u285-hd-title span.u285-ct {
   padding: 1.5px 7px;
   border-radius: 999px;
-  background: #FFFFFF;
+  background: #ffffff;
   border: 1px solid var(--u285-border);
   font-size: 11px;
   font-weight: 700;
@@ -65,7 +65,7 @@
 }
 
 .u285-fm:focus-within {
-  background: #FFFFFF;
+  background: #ffffff;
   border-color: var(--u285-accent);
   box-shadow: 0 0 0 1px var(--u285-accent);
 }
@@ -98,7 +98,7 @@
   padding: 0 10px;
   border: 1px solid var(--u285-border);
   border-radius: 8px;
-  background: #FFFFFF;
+  background: #ffffff;
   color: var(--u285-ink);
   font: inherit;
   font-size: 11px;
@@ -125,7 +125,7 @@
   border: 0;
   border-radius: 8px;
   background: var(--u285-ink);
-  color: #FFFFFF;
+  color: #ffffff;
   font: inherit;
   font-size: 11.5px;
   font-weight: 700;
@@ -157,7 +157,9 @@
 .u285-it {
   display: grid;
   grid-template-rows: 1fr;
-  transition: grid-template-rows 0.45s cubic-bezier(0.3, 1, 0.4, 1), opacity 0.3s;
+  transition:
+    grid-template-rows 0.45s cubic-bezier(0.3, 1, 0.4, 1),
+    opacity 0.3s;
 }
 
 .u285-it > div {
@@ -195,7 +197,7 @@
 }
 
 .u285-av::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background: var(--c, var(--u285-accent));
@@ -245,25 +247,29 @@
 }
 
 .u285-st.pd {
-  background: #FEF3C7;
-  color: #B45309;
-  border: 1px solid #FDE68A;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
   animation: u285-bl 1.1s ease-in-out infinite;
 }
 
 .u285-st.ok {
-  background: #D1FAE5;
+  background: #d1fae5;
   color: #047857;
-  border: 1px solid #A7F3D0;
+  border: 1px solid #a7f3d0;
   animation: u285-pop 0.45s cubic-bezier(0.3, 1.7, 0.5, 1);
 }
 
 @keyframes u285-bl {
-  50% { opacity: 0.45; }
+  50% {
+    opacity: 0.45;
+  }
 }
 
 @keyframes u285-pop {
-  from { transform: scale(0.4); }
+  from {
+    transform: scale(0.4);
+  }
 }
 
 .u285-rb {
@@ -273,7 +279,7 @@
   padding: 0 8px;
   border: 1px solid var(--u285-border);
   border-radius: 6px;
-  background: #FFFFFF;
+  background: #ffffff;
   color: var(--u285-ink);
   font: inherit;
   font-size: 10px;
@@ -323,10 +329,12 @@
   max-height: 88vh;
   display: flex;
   flex-direction: column;
-  background: #FCFBF8;
-  border: 1px solid #E7E7E7;
+  background: #fcfbf8;
+  border: 1px solid #e7e7e7;
   border-radius: 20px;
-  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 45px -10px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   color: #171717;
   animation: u285-zoom-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
@@ -338,7 +346,7 @@
   padding: 0 12px;
   border: 1px solid var(--u285-border);
   border-radius: 10px;
-  background: #FFFFFF;
+  background: #ffffff;
   color: var(--u285-ink);
   font: inherit;
   font-size: 12px;
@@ -367,54 +375,74 @@
 }
 
 .u285-role-badge.writer {
-  background: #ECFDF5;
+  background: #ecfdf5;
   color: #047857;
-  border-color: #A7F3D0;
+  border-color: #a7f3d0;
 }
 
 .u285-role-badge.artist {
-  background: #EFF6FF;
-  color: #1D4ED8;
-  border-color: #BFDBFE;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
 }
 
 .u285-role-badge.letterer {
-  background: #FDF2F8;
-  color: #BE185D;
-  border-color: #FBCFE8;
+  background: #fdf2f8;
+  color: #be185d;
+  border-color: #fbcfe8;
 }
 
 .u285-role-badge.editor {
-  background: #FEF3C7;
-  color: #B45309;
-  border-color: #FDE68A;
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
 }
 
 .u285-role-badge.publisher {
-  background: #F5F3FF;
-  color: #6D28D9;
-  border-color: #DDD6FE;
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
 }
 
 .u285-role-badge.producer {
-  background: #FFFBEB;
-  color: #D97706;
-  border-color: #FDE68A;
+  background: #fffbeb;
+  color: #d97706;
+  border-color: #fde68a;
 }
 
 @keyframes u285-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes u285-zoom-in {
-  from { opacity: 0; transform: scale(0.97) translateY(4px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .u285-it, .u285-av::before, .u285-modal-overlay, .u285-modal-card { transition: none; animation: none; }
-  .u285-st.pd, .u285-st.ok, .u285-rb.is-fl { animation: none; }
+  .u285-it,
+  .u285-av::before,
+  .u285-modal-overlay,
+  .u285-modal-card {
+    transition: none;
+    animation: none;
+  }
+  .u285-st.pd,
+  .u285-st.ok,
+  .u285-rb.is-fl {
+    animation: none;
+  }
 }
 
 /* PanelForge: chọn vai trò bằng <select> thật (thay nút bấm xoay vòng) */

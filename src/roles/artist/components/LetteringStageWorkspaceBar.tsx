@@ -1,14 +1,6 @@
 /* Lucian UX/UI Prompt #039 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/ */
 import React from 'react';
-import {
-  Type,
-  Sparkles,
-  MessageSquare,
-  Volume2,
-  Compass,
-  Send,
-  Sliders,
-} from 'lucide-react';
+import { Type, Sparkles, MessageSquare, Volume2, Compass, Send, Sliders } from 'lucide-react';
 
 interface Props {
   // Reading Flow Path Previewer
@@ -66,9 +58,7 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
         <span>Kịch bản</span>
         <span
           className={`px-1 rounded text-[10px] font-mono font-bold ${
-            unplacedCount === 0
-              ? 'bg-emerald-100 text-emerald-800'
-              : 'bg-amber-100 text-amber-900'
+            unplacedCount === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
           }`}
         >
           {totalLetterableCount - unplacedCount}/{totalLetterableCount}

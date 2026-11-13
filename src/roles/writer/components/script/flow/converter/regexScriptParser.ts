@@ -21,10 +21,7 @@ interface ParsedBeat {
 /**
  * Phân tích tên nhân vật dựa trên văn bản và danh sách Series Bible
  */
-function resolveSpeaker(
-  candidateText: string,
-  bible?: SeriesBibleContext
-): string | null {
+function resolveSpeaker(candidateText: string, bible?: SeriesBibleContext): string | null {
   const characters = bible?.characters || [];
   // 1. Khớp chính xác với danh sách Series Bible
   for (const c of characters) {
@@ -36,7 +33,19 @@ function resolveSpeaker(
   // 2. Tìm danh từ riêng viết hoa tiếng Việt (ví dụ: Minh, Lan, Hoàng, Thám tử Ken)
   const nameMatch = candidateText.match(/\b([A-ZÀ-Ỹ][a-zà-ỹ]+(?:\s+[A-ZÀ-Ỹ][a-zà-ỹ]+)*)\b/);
   if (nameMatch) {
-    const ignoredWords = ['Người', 'Anh', 'Cô', 'Bọn', 'Hắn', 'Gã', 'Tôi', 'Cậu', 'Bà', 'Ông', 'Chúng'];
+    const ignoredWords = [
+      'Người',
+      'Anh',
+      'Cô',
+      'Bọn',
+      'Hắn',
+      'Gã',
+      'Tôi',
+      'Cậu',
+      'Bà',
+      'Ông',
+      'Chúng',
+    ];
     if (!ignoredWords.includes(nameMatch[1])) {
       return nameMatch[1];
     }
@@ -48,10 +57,7 @@ function resolveSpeaker(
 /**
  * Trích xuất các nhịp hành động (Beats) từ đoạn văn bản thô
  */
-function extractBeatsFromParagraph(
-  paragraph: string,
-  bible?: SeriesBibleContext
-): ParsedBeat[] {
+function extractBeatsFromParagraph(paragraph: string, bible?: SeriesBibleContext): ParsedBeat[] {
   const trimmed = paragraph.trim();
   if (!trimmed) return [];
 
@@ -68,7 +74,10 @@ function extractBeatsFromParagraph(
 
   if (/^(?:SFX:|\*)\s*(.*)/i.test(trimmed)) {
     const match = trimmed.match(/^(?:SFX:|\*)\s*(.*)/i);
-    beats.push({ type: 'sfx', text: match ? match[1].replace(/\*$/, '').trim().toUpperCase() : 'TIẾNG ĐỘNG' });
+    beats.push({
+      type: 'sfx',
+      text: match ? match[1].replace(/\*$/, '').trim().toUpperCase() : 'TIẾNG ĐỘNG',
+    });
     return beats;
   }
 
@@ -137,9 +146,7 @@ function extractBeatsFromParagraph(
     if (sfxStandalone && remainingText.length < 30 && !sfxInParens) {
       beats.push({ type: 'sfx', text: sfxStandalone[1].toUpperCase() });
     } else {
-      const cleanedAction = remainingText
-        .replace(/\(([^)]+!|tiếng[^)]+)\)/i, '')
-        .trim();
+      const cleanedAction = remainingText.replace(/\(([^)]+!|tiếng[^)]+)\)/i, '').trim();
       if (cleanedAction) {
         beats.push({ type: 'action', text: cleanedAction });
       }
@@ -152,9 +159,7 @@ function extractBeatsFromParagraph(
 /**
  * Heuristic Converter: Chuyển đổi văn bản thô / prompt thành định dạng kịch bản truyện tranh
  */
-export function convertRawTextHeuristically(
-  request: ConvertScriptRequest
-): ConvertScriptResponse {
+export function convertRawTextHeuristically(request: ConvertScriptRequest): ConvertScriptResponse {
   const {
     inputContent,
     seriesBibleContext,
@@ -213,9 +218,7 @@ export function convertRawTextHeuristically(
       shotIndex++;
 
       // Trích xuất mô tả hành động từ action beats
-      const actionTexts = currentPanelBeats
-        .filter((b) => b.type === 'action')
-        .map((b) => b.text);
+      const actionTexts = currentPanelBeats.filter((b) => b.type === 'action').map((b) => b.text);
       const description = actionTexts.join(' ') || 'Quan sát khung cảnh.';
 
       generatedPanels.push({
@@ -245,7 +248,7 @@ export function convertRawTextHeuristically(
         shot: 'Cận cảnh',
         description: p2Beats.map((b) => b.text).join(' '),
         beats: p2Beats,
-      }
+      },
     );
   }
 
@@ -305,4 +308,3 @@ export function convertRawTextHeuristically(
     source: 'heuristic',
   };
 }
-

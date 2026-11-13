@@ -126,11 +126,7 @@ export const ToastItem: React.FC<ToastNotificationProps> = ({
   };
 
   // Stack calculation (top-right downward expansion)
-  const yOffset = isStacked
-    ? isHovered
-      ? (index * 76)
-      : (index * 12)
-    : 0;
+  const yOffset = isStacked ? (isHovered ? index * 76 : index * 12) : 0;
 
   const scale = isStacked && !isHovered ? Math.max(0.85, 1 - index * 0.05) : 1;
   const opacity = isStacked && !isHovered && index > 2 ? 0 : 1;
@@ -179,7 +175,7 @@ export const ToastItem: React.FC<ToastNotificationProps> = ({
           </div>
         ) : (
           <div data-testid='toast-icon-success' className='flex items-center justify-center'>
-            <CheckCircle2 className='w-4 h-4' />
+            <CheckCircle2 className='w-[18px] h-[18px]' strokeWidth={2.2} />
           </div>
         )}
       </div>
@@ -213,15 +209,16 @@ export const ToastItem: React.FC<ToastNotificationProps> = ({
         aria-label='Đóng thông báo'
         className='u070-x'
       >
-        <X className='w-4 h-4' aria-hidden='true' />
+        <X className='w-4 h-4' aria-hidden='true' strokeWidth={2.2} />
       </button>
 
       {/* Dynamic Progress Countdown Bar */}
+      <span className='u070-bar-track' aria-hidden='true'>
       <span
         className='u070-bar'
         style={{ transform: `scaleX(${Math.max(0, Math.min(1, progress))})` }}
-        aria-hidden='true'
       />
+      </span>
     </div>
   );
 };

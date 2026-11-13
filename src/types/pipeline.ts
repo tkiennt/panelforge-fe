@@ -1,14 +1,7 @@
 import { StudioRole, RoleKey, WorkspaceRole } from './auth';
 
 export type KanbanStageKey =
-  | 'script'
-  | 'pencil'
-  | 'ink'
-  | 'color'
-  | 'letter'
-  | 'review'
-  | 'approved'
-  | 'thumbnail'; // Deprecated: Thumbnail stage is retired and merged into pre-split artist layout
+  'script' | 'pencil' | 'ink' | 'color' | 'letter' | 'review' | 'approved' | 'thumbnail'; // Deprecated: Thumbnail stage is retired and merged into pre-split artist layout
 
 export interface KanbanCard {
   id: string;
@@ -352,6 +345,10 @@ export interface ChangeRequestDto {
   sceneId?: string | null;
   scriptLineId?: string | null;
   quotedText?: string | null;
+  /** Trang của yêu cầu (BE suy ra từ khung / việc bị trả về). Chỉ có ở GET /chapters/{id}/change-requests. */
+  pageId?: string | null;
+  /** Công đoạn của việc bị trả về. Chỉ có ở GET /chapters/{id}/change-requests. */
+  pipelineStageId?: string | null;
 }
 
 export interface ChangeRequestItemRequest {
@@ -472,6 +469,8 @@ export interface PanelDto {
   sceneId?: string | null;
   /** BR-11 / CF4 4.2: gửi lại làm expectedVersion khi sửa toạ độ (thiếu ở BE cũ). */
   version?: number;
+  /** V1.2 / SCR-07: Mô tả hướng vẽ / chỉ dẫn hình ảnh của Panel */
+  direction?: string | null;
 }
 
 export interface PanelDetailDto extends PanelDto {
@@ -482,6 +481,12 @@ export interface CreatePanelRequest {
   panelNumber?: number;
   readingOrder?: number;
   boundingBox?: string;
+  direction?: string | null;
+}
+
+export interface UpdatePanelDirectionRequest {
+  direction?: string | null;
+  expectedVersion?: number;
 }
 
 export interface UpdatePanelCoordinatesRequest {
@@ -502,6 +507,8 @@ export interface AssignPanelScriptLinesRequest {
 export interface SplitPanelDto {
   order: number;
   bbox: [number, number, number, number];
+  /** Đỉnh [x, y] pixel ảnh gốc của khung; khác hình chữ nhật khi khung cắt chéo. BE cũ có thể không gửi. */
+  polygon?: [number, number][] | null;
 }
 
 export interface SplitBubbleDto {
@@ -676,4 +683,3 @@ export interface EditorReviewQueueItemDto {
   createdAt: string;
   artworkReferenceIds?: string[];
 }
-

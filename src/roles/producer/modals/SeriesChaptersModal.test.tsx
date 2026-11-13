@@ -57,7 +57,7 @@ describe('SeriesChaptersModal Component', () => {
             onClose={vi.fn()}
           />
         </ConfirmProvider>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -95,7 +95,7 @@ describe('SeriesChaptersModal Component', () => {
             onClose={vi.fn()}
           />
         </ConfirmProvider>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -138,7 +138,7 @@ describe('SeriesChaptersModal Component', () => {
             onClose={vi.fn()}
           />
         </ConfirmProvider>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -167,7 +167,7 @@ describe('SeriesChaptersModal Component', () => {
             onClose={vi.fn()}
           />
         </ConfirmProvider>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -186,7 +186,7 @@ describe('SeriesChaptersModal Component', () => {
             onClose={vi.fn()}
           />
         </ConfirmProvider>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(container.innerHTML).toBe('');

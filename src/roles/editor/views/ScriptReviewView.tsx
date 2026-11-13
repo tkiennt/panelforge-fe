@@ -1,37 +1,33 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CheckCircle2, CornerUpLeft, Lock } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { AlertTriangle, CheckCircle2, Lock, Play } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import {
   chapterService,
   type ChapterDto,
   type ChapterBibleGateResultDto,
+  type ScriptCommentDto,
+  type ScriptStatus,
+  type ScriptVersionDetailDto,
+  type ScriptVersionRow,
 } from '@/services/chapter.service';
-import { scriptLineService, type SceneDetailDto } from '@/services/scriptLine.service';
 import { assignmentService } from '@/services/assignment.service';
-import type {
-  AssignmentDto,
-  ChangeRequestDto,
-  ConsistencyFindingDto,
-  SubmissionDto,
-} from '@/types/pipeline';
-import { countUnclosed, getWorkActions } from '@/shared/features/collaboration/collaborationRules';
+import type { ConsistencyFindingDto } from '@/types/pipeline';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 import {
-  ManuscriptPane,
-  type AnchorMarks,
+  SubmittedScriptPane,
   type ComposerTarget,
-} from './script-review/ManuscriptPane';
-import { NotesTab, type LineLocation } from './script-review/NotesTab';
+  type LineMarks,
+} from './script-review/SubmittedScriptPane';
 import { ChecksTab, type FindingDecision } from './script-review/ChecksTab';
+import { ScriptVersionDiff } from '@/shared/features/script-versions/ScriptVersionDiff';
 import {
-  anchorKey,
-  draftsToChangeItems,
-  isCrClosed,
-  lineText,
-  type ReviewDraft,
-} from './script-review/scriptReviewModel';
-import { newDraftId, readDrafts, writeDrafts } from './review-shared/reviewModel';
-import { DecisionBar } from './review-shared/DecisionBar';
+  EMPTY_BASE,
+  renderRow,
+  rowLineId,
+  shortHash,
+  type RowLabels,
+} from '@/shared/features/script-versions/versionDiff';
 
 interface ScriptReviewViewProps {
   currentUserId?: string;
@@ -42,13 +38,16 @@ interface ScriptReviewViewProps {
 const errorMessage = (err: unknown, fallback: string) =>
   err instanceof Error && err.message ? err.message : fallback;
 
+type Tab = 'comments' | 'changes' | 'checks';
+type Staleness = 'changed' | 'removed' | null;
+
 /**
- * Duyệt kịch bản (cổng Script, CF3). Editor đọc bản nộp, mỗi nhận xét trên dòng/phân cảnh là một yêu cầu sửa;
- * trả bài gửi toàn bộ nhận xét cho Writer kèm nhận xét chung bắt buộc (BR-06). Duyệt chỉ khi mọi yêu cầu sửa
- * cũ đã được xác minh hoặc bỏ. Editor không sửa câu chữ của Writer.
+ * Duyệt kịch bản theo D12 (01_SCRIPT_PLAN). Lưu = commit, Gửi duyệt = push: Editor đọc đúng bản Writer đã gửi
+ * (Chapter.LastSubmittedVersionId), nên Writer sửa tiếp không làm đổi chữ Editor đang góp ý. Góp ý không đổi
+ * trạng thái kịch bản; tab "Thay đổi" so bản đang gửi với lần gửi trước. Producer bấm "Bắt đầu sản xuất" khi
+ * kịch bản đang chờ duyệt (máy chủ chặn nếu Writer đã sửa sau lần gửi mà chưa gửi lại).
  */
 export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
-  currentUserId,
   workspaceRole,
   onShowToast,
 }) => {
@@ -61,241 +60,135 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     seriesId: string;
     chapterId: string;
   }>();
-  const [searchParams] = useSearchParams();
-  const assignmentId = searchParams.get('assignmentId');
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const { t, lang } = useTranslation('review');
+  const { t: tp } = useTranslation('production');
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [chapter, setChapter] = useState<ChapterDto | null>(null);
-  const [scenes, setScenes] = useState<SceneDetailDto[]>([]);
+  const [pushed, setPushed] = useState<ScriptVersionDetailDto | null>(null);
   const [bibleGate, setBibleGate] = useState<ChapterBibleGateResultDto | null>(null);
   const [findings, setFindings] = useState<ConsistencyFindingDto[]>([]);
-  const [assignment, setAssignment] = useState<AssignmentDto | null>(null);
-  const [latestSubmission, setLatestSubmission] = useState<SubmissionDto | null>(null);
-  const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
+  const [comments, setComments] = useState<ScriptCommentDto[]>([]);
+  const [checkedAt, setCheckedAt] = useState<string | null>(null);
 
-  const [drafts, setDrafts] = useState<ReviewDraft[]>([]);
   const [composer, setComposer] = useState<ComposerTarget | null>(null);
-  const [activeAnchor, setActiveAnchor] = useState<string | null>(null);
-  const [tab, setTab] = useState<'notes' | 'checks'>('notes');
-  const [summary, setSummary] = useState('');
+  const [activeLineId, setActiveLineId] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>('comments');
   const [busy, setBusy] = useState<string | null>(null);
 
-  const isProducer = ['producer', 'owner'].includes((workspaceRole ?? '').toLowerCase());
+  const role = (workspaceRole ?? '').toLowerCase();
+  const isProducer = ['producer', 'owner'].includes(role);
+  const isEditor = role === 'editor';
 
   const loadData = useCallback(async () => {
     if (!chapterId) return;
     setLoading(true);
     setLoadError(null);
     try {
-      const [chapterData, sceneList, gate, findingList] = await Promise.all([
+      const [chapterData, gate, findingList, commentList] = await Promise.all([
         chapterService.getChapterById(chapterId),
-        scriptLineService.getScenesByChapter(chapterId),
         chapterService.checkBibleGate(chapterId).catch(() => null),
         assignmentService.getConsistencyFindings(chapterId).catch(() => []),
+        chapterService.getScriptComments(chapterId).catch(() => []),
       ]);
-      const details = await Promise.all(sceneList.map((s) => scriptLineService.getSceneById(s.id)));
+      const pushedVersion = chapterData.lastSubmittedVersionId
+        ? await chapterService.getScriptVersion(chapterId, chapterData.lastSubmittedVersionId)
+        : null;
       setChapter(chapterData);
-      setScenes(details.sort((a, b) => a.sceneNumber - b.sceneNumber));
+      setPushed(pushedVersion);
       setBibleGate(gate);
       setFindings(findingList);
-
-      if (assignmentId) {
-        const [a, crs, subs] = await Promise.all([
-          assignmentService.getAssignmentById(assignmentId, chapterId),
-          assignmentService.getChangeRequests(chapterId, { assignmentId }),
-          assignmentService.getSubmissions(chapterId, assignmentId),
-        ]);
-        setAssignment(a);
-        setChangeRequests(crs);
-        setLatestSubmission([...subs].sort((x, y) => y.attemptNumber - x.attemptNumber)[0] ?? null);
-      }
+      setComments(commentList);
     } catch (err) {
       setLoadError(errorMessage(err, t('scriptReview.errors.load')));
     } finally {
       setLoading(false);
     }
-  }, [chapterId, assignmentId, t]);
+  }, [chapterId, t]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const submissionId = latestSubmission?.id ?? null;
+  const scriptStatus: ScriptStatus =
+    chapter?.scriptStatus ?? (chapter?.isScriptFrozen ? 'Frozen' : 'Draft');
+  const isInReview = scriptStatus === 'InReview';
+  // Editor (chính) và Producer góp ý khi kịch bản đang chờ duyệt
+  const canComment = (isEditor || isProducer) && isInReview && !!pushed;
 
-  useEffect(() => {
-    if (assignmentId)
-      setDrafts(readDrafts<ReviewDraft>('scriptReview', assignmentId, submissionId));
-  }, [assignmentId, submissionId]);
-
-  const updateDrafts = (next: ReviewDraft[]) => {
-    setDrafts(next);
-    if (assignmentId) writeDrafts('scriptReview', assignmentId, submissionId, next);
-  };
-
-  const work = useMemo(
-    () =>
-      assignment
-        ? getWorkActions(assignment, {
-            userId: currentUserId,
-            workspaceRole,
-            changeRequests,
-            hasCurrentArtwork: null,
-          })
-        : null,
-    [assignment, currentUserId, workspaceRole, changeRequests],
+  const labels: RowLabels = useMemo(
+    () => ({
+      page: (n) => tp('scriptStudio.versions.rowPage', { n }),
+      panel: (n) => tp('scriptStudio.gn.panel', { n }),
+      caption: tp('scriptStudio.gn.caption'),
+      sfx: tp('scriptStudio.gn.sfx'),
+      thought: tp('scriptStudio.versions.rowThought'),
+    }),
+    [tp],
   );
-  const canDecide = work?.canDecide ?? false;
+  const renderText = useCallback((row: ScriptVersionRow) => renderRow(row, labels), [labels]);
+  const rows = useMemo(() => pushed?.rows ?? [], [pushed]);
 
-  // Kiểm tra nhất quán kịch bản là luật bằng code, chạy lại an toàn (ghép theo fingerprint, BR-21):
-  // tự chạy một lần cho mỗi lần nộp khi phiên duyệt đang mở để kết quả luôn mới, không bắt Editor tự bấm.
-  const [checkedAt, setCheckedAt] = useState<string | null>(null);
-  const autoCheckedFor = useRef<string | null>(null);
-  useEffect(() => {
-    const key = `${chapterId}:${submissionId ?? ''}`;
-    if (!canDecide || !chapterId || autoCheckedFor.current === key) return;
-    autoCheckedFor.current = key;
-    assignmentService
-      .runConsistencyCheck(chapterId)
-      .then((res) => {
-        setFindings(res.findings ?? []);
-        setCheckedAt(res.checkedAt);
-      })
-      .catch((err) =>
-        onShowToast?.(
-          t('scriptReview.toast.checkFailed'),
-          err instanceof Error ? err.message : t('scriptReview.errors.generic'),
-        ),
-      );
-  }, [canDecide, chapterId, submissionId, onShowToast, t]);
-
-  // ── Tra cứu vị trí: số thứ tự dòng trong cảnh khớp với số hiển thị ở bản thảo ──
+  // ── Tra cứu dòng trong bản đã gửi ──
   const lineIndex = useMemo(() => {
-    const map = new Map<string, { sceneNumber: number; order: number; text: string }>();
-    for (const scene of scenes) {
-      [...scene.scriptLines]
-        .sort((a, b) => a.lineOrder - b.lineOrder)
-        .forEach((line, i) =>
-          map.set(line.id, { sceneNumber: scene.sceneNumber, order: i + 1, text: lineText(line) }),
-        );
-    }
+    const map = new Map<string, ScriptVersionRow>();
+    rows.forEach((r) => {
+      const id = rowLineId(r);
+      if (id) map.set(id, r);
+    });
     return map;
-  }, [scenes]);
+  }, [rows]);
 
-  const locate = useCallback(
-    (sceneId: string | null | undefined, lineId: string | null | undefined): LineLocation => {
-      if (lineId) {
-        const hit = lineIndex.get(lineId);
-        if (hit)
-          return {
-            label: t('scriptReview.location.line', { scene: hit.sceneNumber, line: hit.order }),
-            currentText: hit.text,
-          };
-      }
-      const scene = scenes.find((s) => s.id === sceneId);
-      if (scene) {
-        return {
-          label: lineId
-            ? t('scriptReview.location.removedLine', { scene: scene.sceneNumber })
-            : t('scriptReview.location.scene', { scene: scene.sceneNumber }),
-          currentText: lineId ? null : scene.slugline || scene.heading || '',
-        };
-      }
-      return { label: t('scriptReview.location.general'), currentText: lineId ? null : '' };
+  const locateLabel = useCallback(
+    (_sceneId: string | null | undefined, lineId: string | null | undefined) => {
+      const row = lineId ? lineIndex.get(lineId) : undefined;
+      if (!row) return t('scriptReview.comments.general');
+      return row.panel > 0
+        ? t('scriptReview.location.row', { page: row.page, panel: row.panel })
+        : t('scriptReview.location.page', { page: row.page });
     },
-    [lineIndex, scenes, t],
+    [lineIndex, t],
   );
 
-  const speakers = useMemo(
-    () => new Map((bibleGate?.items ?? []).map((i) => [i.bibleEntryId, i.name])),
-    [bibleGate],
-  );
-  const speakerName = useCallback(
-    (id: string | null | undefined) => (id ? (speakers.get(id) ?? null) : null),
-    [speakers],
+  /** Góp ý cũ so với bản đang gửi: dòng bị xoá, hoặc chữ đã khác đoạn trích lúc góp ý. */
+  const staleness = useCallback(
+    (c: ScriptCommentDto): Staleness => {
+      if (!c.scriptLineId || !pushed) return null;
+      const row = lineIndex.get(c.scriptLineId);
+      if (!row) return 'removed';
+      return c.quotedText && renderText(row) !== c.quotedText ? 'changed' : null;
+    },
+    [lineIndex, pushed, renderText],
   );
 
+  // Góp ý và phát hiện nhất quán hiển thị như dấu trên bản thảo
   const marks = useMemo(() => {
-    const map = new Map<string, AnchorMarks>();
-    const at = (key: string) => {
-      let m = map.get(key);
+    const map = new Map<string, LineMarks>();
+    const at = (lineId: string) => {
+      let m = map.get(lineId);
       if (!m) {
-        m = { drafts: [], crs: [], findings: [] };
-        map.set(key, m);
+        m = { comments: 0, findings: [] };
+        map.set(lineId, m);
       }
       return m;
     };
-    drafts.forEach((d) => at(anchorKey(d.sceneId, d.scriptLineId)).drafts.push(d));
-    changeRequests
-      .filter((c) => c.sceneId)
-      .forEach((c) => at(anchorKey(c.sceneId, c.scriptLineId)).crs.push(c));
+    comments
+      .filter((c) => c.scriptLineId && !c.resolvedAt)
+      .forEach((c) => at(c.scriptLineId as string).comments++);
     findings
-      .filter((f) => f.sceneId || f.scriptLineId)
+      .filter((f) => f.scriptLineId)
       .filter((f) => ['Open', 'Confirmed', 'NeedsClarification'].includes(String(f.status)))
-      .forEach((f) => at(anchorKey(f.sceneId, f.scriptLineId)).findings.push(f));
+      .forEach((f) => at(f.scriptLineId as string).findings.push(f));
     return map;
-  }, [drafts, changeRequests, findings]);
+  }, [comments, findings]);
 
-  const sceneNoteCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    const add = (sceneId: string | null | undefined, n: number) => {
-      if (sceneId && n > 0) counts.set(sceneId, (counts.get(sceneId) ?? 0) + n);
-    };
-    drafts.forEach((d) => add(d.sceneId, 1));
-    changeRequests.filter((c) => !isCrClosed(c)).forEach((c) => add(c.sceneId, 1));
-    return counts;
-  }, [drafts, changeRequests]);
-
-  // ── Nhận xét nháp ──
-  const handleSaveComment = (text: string) => {
-    if (!composer) return;
-    if (composer.draftId) {
-      updateDrafts(drafts.map((d) => (d.id === composer.draftId ? { ...d, text } : d)));
-    } else {
-      updateDrafts([
-        ...drafts,
-        {
-          id: newDraftId(),
-          sceneId: composer.sceneId,
-          scriptLineId: composer.scriptLineId,
-          quotedText: composer.quotedText,
-          text,
-        },
-      ]);
-    }
-    setComposer(null);
-    setTab('notes');
+  const selectAnchor = (key: string) => {
+    if (key.startsWith('line:')) setActiveLineId(key.slice(5));
   };
 
-  const handleEditDraft = (d: ReviewDraft) => {
-    setActiveAnchor(anchorKey(d.sceneId, d.scriptLineId));
-    setComposer({
-      sceneId: d.sceneId,
-      scriptLineId: d.scriptLineId,
-      quotedText: d.quotedText,
-      draftId: d.id,
-      initialText: d.text,
-    });
-  };
-
-  const handleFindingToComment = (f: ConsistencyFindingDto) => {
-    const sceneId =
-      f.sceneId ??
-      scenes.find((s) => s.scriptLines.some((l) => l.id === f.scriptLineId))?.id ??
-      null;
-    if (!sceneId) return;
-    setActiveAnchor(anchorKey(sceneId, f.scriptLineId));
-    setComposer({
-      sceneId,
-      scriptLineId: f.scriptLineId ?? null,
-      quotedText: f.scriptLineId ? (lineIndex.get(f.scriptLineId)?.text ?? '') : '',
-      initialText: f.message,
-    });
-  };
-
-  // ── Hành động gọi API ──
   const run = async (key: string, action: () => Promise<void>, failTitle: string) => {
     setBusy(key);
     try {
@@ -307,60 +200,37 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     }
   };
 
-  const handleOpenReview = () =>
-    run(
-      'open',
+  // ── Góp ý: lưu ngay, không đổi trạng thái kịch bản ──
+  const handleSaveComment = (text: string) => {
+    const target = composer;
+    if (!target) return;
+    void run(
+      'comment',
       async () => {
-        if (!assignmentId) return;
-        await assignmentService.openReview(chapterId, assignmentId);
-        await loadData();
-      },
-      t('scriptReview.toast.openFailed'),
-    );
-
-  const handleReturn = () =>
-    run(
-      'return',
-      async () => {
-        if (!assignmentId || !summary.trim()) return;
-        await assignmentService.requestChanges(chapterId, assignmentId, {
-          comment: summary.trim(),
-          changes: drafts.length > 0 ? draftsToChangeItems(drafts) : undefined,
-          expectedSubmissionId: submissionId ?? undefined,
+        const saved = await chapterService.addScriptComment(chapterId, {
+          sceneId: null,
+          scriptLineId: target.scriptLineId,
+          quotedText: target.quotedText,
+          body: text,
         });
-        updateDrafts([]);
-        setSummary('');
-        onShowToast?.(
-          t('scriptReview.toast.returnedTitle'),
-          t('scriptReview.toast.returnedBody', { count: Math.max(drafts.length, 1) }),
-        );
-        await loadData();
+        setComments((list) => [...list, saved]);
+        setComposer(null);
+        setTab('comments');
       },
-      t('scriptReview.toast.returnFailed'),
+      t('scriptReview.comments.saveFailed'),
     );
+  };
 
-  const handleApprove = () =>
-    run(
-      'approve',
-      async () => {
-        if (!assignmentId) return;
-        await assignmentService.approveAssignment(
-          chapterId,
-          assignmentId,
-          submissionId ?? undefined,
-        );
-        updateDrafts([]);
-        onShowToast?.(t('scriptReview.toast.approvedTitle'), t('scriptReview.toast.approvedBody'));
-        await loadData();
-      },
-      t('scriptReview.toast.approveFailed'),
-    );
-
-  const replaceCr = (updated: ChangeRequestDto) =>
-    setChangeRequests((list) => list.map((c) => (c.id === updated.id ? updated : c)));
-
-  const crAction = (cr: ChangeRequestDto, call: () => Promise<ChangeRequestDto>) =>
-    run(cr.id, async () => replaceCr(await call()), t('scriptReview.toast.crFailed'));
+  const handleFindingToComment = (f: ConsistencyFindingDto) => {
+    const row = f.scriptLineId ? lineIndex.get(f.scriptLineId) : undefined;
+    if (!row || !f.scriptLineId || !canComment) return;
+    setActiveLineId(f.scriptLineId);
+    setComposer({
+      scriptLineId: f.scriptLineId,
+      quotedText: renderText(row),
+      initialText: f.message,
+    });
+  };
 
   const handleTriage = (f: ConsistencyFindingDto, decision: FindingDecision, note?: string) =>
     run(
@@ -391,6 +261,26 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
 
   const chapterAction = (key: string, call: () => Promise<ChapterDto>) =>
     run(key, async () => setChapter(await call()), t('scriptReview.toast.canonFailed'));
+
+  /** D12 / Gate 1: Producer bấm Bắt đầu sản xuất khi kịch bản đang chờ duyệt. */
+  const handleStartProduction = async () => {
+    if (!chapter) return;
+    const ok = await confirm({
+      title: t('scriptReview.lifecycle.startProduction'),
+      description: t('scriptReview.lifecycle.startConfirm', { n: chapter.chapterNumber }),
+      confirmText: t('scriptReview.lifecycle.startProduction'),
+      variant: 'info',
+    });
+    if (!ok) return;
+    await run(
+      'start',
+      async () => {
+        setChapter(await chapterService.freezeScript(chapterId));
+        onShowToast?.(t('scriptReview.lifecycle.started'), '');
+      },
+      t('scriptReview.lifecycle.startFailed'),
+    );
+  };
 
   const backToDesk = () =>
     workspaceId && seriesId
@@ -439,149 +329,90 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     );
   }
 
-  // ── Điều kiện quyết định ──
-  const unclosed = countUnclosed(changeRequests, true);
-  const blockingFindings = findings.filter(
-    (f) =>
-      String(f.severity) === 'Blocking' &&
-      ['Open', 'Confirmed', 'NeedsClarification'].includes(String(f.status)),
-  ).length;
-  const approveBlocker =
-    drafts.length > 0
-      ? t('scriptReview.decision.blockedByDrafts', { count: drafts.length })
-      : unclosed > 0
-        ? t('scriptReview.decision.blockedByUnclosed', { count: unclosed })
-        : null;
-
-  const reviewNotice = (() => {
-    if (!assignment) return t('scriptReview.notice.noAssignment');
-    if (canDecide) return null;
-    if (work?.isAssignee) return t('scriptReview.notice.selfReview');
-    if (!work?.isReviewer) return t('scriptReview.notice.notReviewer');
-    if (work.canOpenReview) return t('scriptReview.notice.notOpened');
-    return t('scriptReview.notice.status', {
-      status: t(`scriptReview.assignmentStatus.${assignment.status}`, String(assignment.status)),
-    });
-  })();
-
-  const liveCrCount = changeRequests.filter((c) => !isCrClosed(c)).length;
+  const notice =
+    scriptStatus === 'Draft'
+      ? t('scriptReview.lifecycle.draftNotice')
+      : scriptStatus === 'Frozen'
+        ? t('scriptReview.lifecycle.frozenNotice')
+        : t('scriptReview.lifecycle.inReviewNotice');
+  const openComments = comments.filter((c) => !c.resolvedAt).length;
+  const dateFormat = (iso: string) =>
+    new Date(iso).toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-GB');
+  const tabLabel = (key: Tab) =>
+    key === 'comments'
+      ? t('scriptReview.comments.tab', { count: openComments })
+      : key === 'changes'
+        ? t('scriptReview.tabs.changes')
+        : t('scriptReview.tabs.checks');
 
   return (
     <div className='flex min-h-0 flex-1 flex-col bg-[#FAF9F5] font-sans text-stone-900'>
       <header className='flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3'>
-        <div className='flex min-w-0 items-center gap-3'>
-          <div className='min-w-0'>
-            <h1 className='truncate font-serif text-lg font-bold tracking-tight text-stone-900'>
-              {t('scriptReview.header.title', { number: chapter.chapterNumber })}
-              {chapter.title ? `: ${chapter.title}` : ''}
-            </h1>
-            <p className='text-xs text-stone-500'>
-              {latestSubmission
-                ? t('scriptReview.header.submission', {
-                    attempt: latestSubmission.attemptNumber,
-                    date: new Date(latestSubmission.submittedAt).toLocaleString(
-                      lang === 'vi' ? 'vi-VN' : 'en-GB',
-                    ),
-                  })
-                : t('scriptReview.header.noSubmission')}
-              {' · '}
-              {t('scriptReview.header.scenes', { count: scenes.length })}
-            </p>
-          </div>
+        <div className='min-w-0'>
+          <h1 className='truncate font-serif text-lg font-bold tracking-tight text-stone-900'>
+            {t('scriptReview.header.title', { number: chapter.chapterNumber })}
+            {chapter.title ? `: ${chapter.title}` : ''}
+          </h1>
+          <p className='text-xs text-stone-500'>
+            {pushed
+              ? t('scriptReview.pushed.version', {
+                  n: pushed.version.versionNumber,
+                  hash: shortHash(pushed.version.contentHash),
+                })
+              : t('scriptReview.pushed.none')}
+            {chapter.scriptSubmittedAt ? ` · ${dateFormat(chapter.scriptSubmittedAt)}` : ''}
+          </p>
         </div>
-        {chapter.isScriptFrozen && (
-          <span className='inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700'>
-            <Lock className='h-3.5 w-3.5' aria-hidden='true' />
-            {t('scriptReview.checks.frozen')}
+        <div className='flex items-center gap-2'>
+          <span
+            data-testid='script-status-badge'
+            className='inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700'
+          >
+            {scriptStatus === 'Frozen' && <Lock className='h-3.5 w-3.5' aria-hidden='true' />}
+            {t(`scriptReview.lifecycle.status.${scriptStatus}`)}
           </span>
-        )}
+          {isProducer && isInReview && (
+            <button
+              type='button'
+              onClick={() => void handleStartProduction()}
+              disabled={busy === 'start'}
+              className='inline-flex items-center gap-1.5 rounded-full bg-[#EA580C] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C] disabled:opacity-50'
+            >
+              <Play className='h-3.5 w-3.5' aria-hidden='true' />
+              {t('scriptReview.lifecycle.startProduction')}
+            </button>
+          )}
+        </div>
       </header>
 
       <div className='flex min-h-0 flex-1 flex-col lg:flex-row'>
-        {/* Mục lục phân cảnh */}
-        <nav
-          aria-label={t('scriptReview.nav.label')}
-          className='hidden w-60 shrink-0 flex-col overflow-y-auto border-r border-stone-200 bg-white xl:flex'
-        >
-          <p className='px-4 pb-2 pt-4 text-xs font-semibold uppercase tracking-wide text-stone-500'>
-            {t('scriptReview.nav.title')}
-          </p>
-          <ol className='pb-4'>
-            {scenes.map((s) => {
-              const count = sceneNoteCounts.get(s.id) ?? 0;
-              return (
-                <li key={s.id}>
-                  <button
-                    type='button'
-                    onClick={() =>
-                      document
-                        .getElementById(`scene-${s.id}`)
-                        ?.scrollIntoView({ behavior: 'smooth' })
-                    }
-                    className='flex w-full items-start justify-between gap-2 px-4 py-2 text-left hover:bg-stone-50'
-                  >
-                    <span className='min-w-0'>
-                      <span className='block font-mono text-xs text-stone-500'>
-                        {t('scriptReview.manuscript.sceneLabel', { number: s.sceneNumber })}
-                      </span>
-                      <span className='block truncate text-sm text-stone-800'>
-                        {s.slugline || s.heading || s.sceneName || '—'}
-                      </span>
-                    </span>
-                    {count > 0 && (
-                      <span className='mt-0.5 rounded-full border border-stone-200 px-1.5 font-mono text-xs text-stone-600'>
-                        {count}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
-
         <main className='min-h-0 min-w-0 flex-1 overflow-y-auto'>
-          {reviewNotice && (
-            <div className='mx-auto mt-4 flex max-w-3xl items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5'>
-              <p className='text-xs leading-normal text-amber-900'>{reviewNotice}</p>
-              {work?.canOpenReview && (
-                <button
-                  type='button'
-                  onClick={handleOpenReview}
-                  disabled={busy === 'open'}
-                  className='shrink-0 rounded-full bg-[#EA580C] px-3 py-1 text-xs font-semibold text-white hover:bg-[#C2410C] disabled:opacity-50'
-                >
-                  {t('scriptReview.notice.openAction')}
-                </button>
-              )}
-            </div>
-          )}
-          {assignment?.lastFeedbackComment && !canDecide && (
-            <p className='mx-auto mt-3 max-w-3xl px-1 text-xs text-stone-600'>
-              <span className='font-semibold text-stone-700'>
-                {t('scriptReview.notice.lastFeedback')}
-              </span>{' '}
-              {assignment.lastFeedbackComment}
+          <div className='mx-auto mt-4 max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5'>
+            <p className='text-xs leading-normal text-amber-900'>{notice}</p>
+          </div>
+          {pushed ? (
+            <SubmittedScriptPane
+              rows={rows}
+              renderText={renderText}
+              marks={marks}
+              canComment={canComment}
+              activeLineId={activeLineId}
+              onSelectLine={setActiveLineId}
+              composer={composer}
+              onStartComment={setComposer}
+              onSaveComment={handleSaveComment}
+              onCancelComment={() => setComposer(null)}
+            />
+          ) : (
+            <p className='mx-auto mt-6 max-w-3xl px-4 text-sm text-stone-500'>
+              {t('scriptReview.pushed.none')}
             </p>
           )}
-          <ManuscriptPane
-            scenes={scenes}
-            speakerName={speakerName}
-            marks={marks}
-            canComment={canDecide}
-            activeAnchor={activeAnchor}
-            onSelectAnchor={setActiveAnchor}
-            composer={composer}
-            onStartComment={setComposer}
-            onSaveComment={handleSaveComment}
-            onCancelComment={() => setComposer(null)}
-          />
         </main>
 
-        {/* Nhận xét, kiểm tra và quyết định */}
-        <aside className='flex max-h-[45vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-96 lg:border-l lg:border-t-0'>
+        <aside className='flex max-h-[45vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-[28rem] lg:border-l lg:border-t-0'>
           <div role='tablist' className='flex shrink-0 border-b border-stone-200 px-2'>
-            {(['notes', 'checks'] as const).map((key) => (
+            {(['comments', 'changes', 'checks'] as const).map((key) => (
               <button
                 key={key}
                 type='button'
@@ -594,47 +425,90 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                     : 'border-transparent text-stone-600 hover:text-stone-900'
                 }`}
               >
-                {key === 'notes'
-                  ? t('scriptReview.tabs.notes', { count: drafts.length + liveCrCount })
-                  : t('scriptReview.tabs.checks')}
+                {tabLabel(key)}
               </button>
             ))}
           </div>
 
-          <div className='min-h-0 flex-1 overflow-y-auto'>
-            {tab === 'notes' ? (
-              <NotesTab
-                drafts={drafts}
-                changeRequests={changeRequests}
-                locate={locate}
-                onSelectAnchor={setActiveAnchor}
-                canDecide={canDecide}
-                busyId={busy}
-                onEditDraft={handleEditDraft}
-                onDeleteDraft={(id) => updateDrafts(drafts.filter((d) => d.id !== id))}
-                onVerify={(cr) =>
-                  crAction(cr, () => assignmentService.verifyChangeRequest(chapterId, cr.id))
-                }
-                onReopen={(cr, comment) =>
-                  crAction(cr, () =>
-                    assignmentService.reopenChangeRequest(chapterId, cr.id, comment),
-                  )
-                }
-                onReject={(cr, reason) =>
-                  crAction(cr, () =>
-                    assignmentService.rejectChangeRequest(chapterId, cr.id, reason),
-                  )
-                }
-              />
+          <div className='flex min-h-0 flex-1 flex-col overflow-y-auto'>
+            {tab === 'comments' ? (
+              comments.length === 0 ? (
+                <p className='p-4 text-xs text-stone-500'>{t('scriptReview.comments.empty')}</p>
+              ) : (
+                <ul className='divide-y divide-stone-100'>
+                  {comments.map((c) => {
+                    const stale = staleness(c);
+                    return (
+                      <li key={c.id}>
+                        <button
+                          type='button'
+                          onClick={() => c.scriptLineId && setActiveLineId(c.scriptLineId)}
+                          className='w-full px-4 py-3 text-left hover:bg-stone-50'
+                        >
+                          <div className='flex items-center justify-between gap-2 text-xs'>
+                            <span className='font-semibold text-stone-800'>
+                              {locateLabel(c.sceneId, c.scriptLineId)}
+                            </span>
+                            <span
+                              className={`inline-flex items-center gap-1 ${c.resolvedAt ? 'text-emerald-700' : 'text-amber-700'}`}
+                            >
+                              {c.resolvedAt && <CheckCircle2 className='h-3.5 w-3.5' />}
+                              {c.resolvedAt
+                                ? t('scriptReview.comments.resolved')
+                                : t('scriptReview.comments.open')}
+                            </span>
+                          </div>
+                          {stale && (
+                            <span className='mt-1 inline-block rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800'>
+                              {stale === 'removed'
+                                ? t('scriptReview.comments.staleRemoved')
+                                : t('scriptReview.comments.staleChanged')}
+                            </span>
+                          )}
+                          {c.quotedText && (
+                            <p className='mt-1 line-clamp-2 border-l-2 border-stone-200 pl-2 text-xs italic text-stone-500'>
+                              {c.quotedText}
+                            </p>
+                          )}
+                          <p className='mt-1 whitespace-pre-wrap text-sm text-stone-800'>
+                            {c.body}
+                          </p>
+                          <p className='mt-1 text-[11px] text-stone-400'>
+                            {c.authorName ?? ''} · {dateFormat(c.createdAt)}
+                          </p>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )
+            ) : tab === 'changes' ? (
+              pushed ? (
+                <>
+                  <p className='border-b border-stone-200 px-3 py-2 text-xs text-stone-500'>
+                    {chapter.previousSubmittedVersionId
+                      ? t('scriptReview.pushed.sincePrevious')
+                      : t('scriptReview.pushed.firstSubmit')}
+                  </p>
+                  <ScriptVersionDiff
+                    key={`${chapter.previousSubmittedVersionId ?? EMPTY_BASE}>${pushed.version.id}`}
+                    chapterId={chapterId}
+                    defaultFromId={chapter.previousSubmittedVersionId ?? EMPTY_BASE}
+                    defaultToId={pushed.version.id}
+                  />
+                </>
+              ) : (
+                <p className='p-4 text-xs text-stone-500'>{t('scriptReview.pushed.none')}</p>
+              )
             ) : (
               <ChecksTab
                 chapter={chapter}
                 bibleGate={bibleGate}
                 findings={findings}
-                locateLabel={(s, l) => locate(s, l).label}
-                onSelectAnchor={setActiveAnchor}
-                canTriage={canDecide || isProducer}
-                canComment={canDecide}
+                locateLabel={locateLabel}
+                onSelectAnchor={selectAnchor}
+                canTriage={isEditor || isProducer}
+                canComment={canComment}
                 isProducer={isProducer}
                 busy={busy}
                 onRunCheck={handleRunCheck}
@@ -657,32 +531,6 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               />
             )}
           </div>
-
-          {canDecide && (
-            <DecisionBar
-              summary={summary}
-              onSummaryChange={setSummary}
-              labels={{
-                summary: t('scriptReview.decision.summaryLabel'),
-                summaryPlaceholder: t('scriptReview.decision.summaryPlaceholder'),
-                summaryRequired: t('scriptReview.decision.summaryRequired'),
-                returnAction:
-                  drafts.length > 0
-                    ? t('scriptReview.decision.returnWithNotes', { count: drafts.length })
-                    : t('scriptReview.decision.return'),
-                approve: t('scriptReview.decision.approve'),
-              }}
-              warning={
-                blockingFindings > 0
-                  ? t('scriptReview.decision.blockingFindings', { count: blockingFindings })
-                  : null
-              }
-              approveBlocker={approveBlocker}
-              busy={busy === 'return' || busy === 'approve' ? busy : null}
-              onReturn={handleReturn}
-              onApprove={handleApprove}
-            />
-          )}
         </aside>
       </div>
     </div>

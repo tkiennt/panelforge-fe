@@ -38,7 +38,11 @@ export interface ComicStudioState {
   toggleDrawer: () => void;
   openDrawer: (panelId?: string) => void;
   closeDrawer: () => void;
-  setActivePanel: (panelId: string | null, pageNum?: number | null, panelNum?: number | null) => void;
+  setActivePanel: (
+    panelId: string | null,
+    pageNum?: number | null,
+    panelNum?: number | null,
+  ) => void;
   insertTransitionPage: (afterPageNumber: number, prevRank: string, nextRank?: string) => number;
   saveSketch: (panelId: string, dataUrl: string) => void;
   clearSketch: (panelId: string) => void;
@@ -104,12 +108,7 @@ export const useComicStudioStore = create<ComicStudioState>((set, get) => ({
 
   insertTransitionPage: (afterPageNumber, prevRank, nextRank) => {
     const state = get();
-    const result = insertTransitionPageStub(
-      state.rawScript,
-      afterPageNumber,
-      prevRank,
-      nextRank
-    );
+    const result = insertTransitionPageStub(state.rawScript, afterPageNumber, prevRank, nextRank);
     const updatedAst = parseComicScript(result.newScript);
     set({
       rawScript: result.newScript,

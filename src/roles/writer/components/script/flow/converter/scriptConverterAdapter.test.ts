@@ -222,7 +222,13 @@ Tiếng còi cảnh sát vang lên từ xa.
 
   it('tách tên nhân vật khỏi động từ nói, cảm xúc và dấu /', () => {
     const blocks = parseScriptTextToBlocks(
-      ['Trang 1', 'Panel 1', 'Lan đáp: "Tôi biết rồi."', 'Minh / Hét: Đứng lại!', 'Minh nói: "Đi thôi"'].join('\n')
+      [
+        'Trang 1',
+        'Panel 1',
+        'Lan đáp: "Tôi biết rồi."',
+        'Minh / Hét: Đứng lại!',
+        'Minh nói: "Đi thôi"',
+      ].join('\n'),
     );
     const dialogues = blocks.filter((b) => b.type === 'dialogue');
     expect(dialogues.map((d) => d.character)).toEqual(['Lan', 'Minh', 'Minh']);
@@ -231,7 +237,12 @@ Tiếng còi cảnh sát vang lên từ xa.
 
   it('không coi câu mô tả có dấu hai chấm là lời thoại', () => {
     const blocks = parseScriptTextToBlocks(
-      ['Trang 1', 'Panel 1', 'Góc máy thấp: nhìn lên tòa tháp', 'Khói đen bốc lên nghi ngút khắp nơi: rất dày'].join('\n')
+      [
+        'Trang 1',
+        'Panel 1',
+        'Góc máy thấp: nhìn lên tòa tháp',
+        'Khói đen bốc lên nghi ngút khắp nơi: rất dày',
+      ].join('\n'),
     );
     expect(blocks.filter((b) => b.type === 'dialogue')).toHaveLength(0);
   });
@@ -248,17 +259,37 @@ Tiếng còi cảnh sát vang lên từ xa.
   });
 
   it('gán speaker theo Bible cho dòng thoại gõ tay, giữ nguyên dòng đã có speaker', () => {
-    const base = { sceneId: 's', narrationMode: 'Present' as const, lineOrder: 1, stageDirection: null };
+    const base = {
+      sceneId: 's',
+      narrationMode: 'Present' as const,
+      lineOrder: 1,
+      stageDirection: null,
+    };
     const lines = linkTypedSpeakers(
       [
-        { ...base, scriptLineId: 'a', dialogueText: 'NARUTO: "Tớ sẽ thành Hokage!"', speakerCharacterId: null },
-        { ...base, scriptLineId: 'b', dialogueText: '@Sasuke : "..."', speakerCharacterId: 'chr-picked' },
-        { ...base, scriptLineId: 'c', dialogueText: 'Ai đó: "Không có trong Bible"', speakerCharacterId: null },
+        {
+          ...base,
+          scriptLineId: 'a',
+          dialogueText: 'NARUTO: "Tớ sẽ thành Hokage!"',
+          speakerCharacterId: null,
+        },
+        {
+          ...base,
+          scriptLineId: 'b',
+          dialogueText: '@Sasuke : "..."',
+          speakerCharacterId: 'chr-picked',
+        },
+        {
+          ...base,
+          scriptLineId: 'c',
+          dialogueText: 'Ai đó: "Không có trong Bible"',
+          speakerCharacterId: null,
+        },
       ],
       [
         { id: 'chr-naruto', name: 'Naruto' },
         { id: 'chr-sasuke', name: 'Sasuke' },
-      ]
+      ],
     );
     expect(lines.map((l) => l.speakerCharacterId)).toEqual(['chr-naruto', 'chr-picked', null]);
   });

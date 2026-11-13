@@ -1,7 +1,7 @@
 // src/roles/writer/components/script/flow/extensions/mentionSuggestion.ts
 import { BibleEntryDto } from '@/services/bible.service';
 import { MentionSuggestionItem } from '../types';
-import { generateTempCode, saveTempBibleCode } from '../tempBibleCodes';
+import { generateTempCode, saveTempBibleCode } from '@/shared/utils/tempBibleCodes';
 import { QuickViewCardData } from '../QuickViewCard';
 
 export interface PanelSuggestionData {
@@ -17,7 +17,7 @@ export function createMentionSuggestion(
   getPanels?: () => PanelSuggestionData[],
   onCreateStub?: (name: string, tempCode: string) => Promise<void> | void,
   onOpenInBible?: (codeOrId: string) => void,
-  onOpenInArtistDesk?: (pageNumber?: number, panelId?: string) => void
+  onOpenInArtistDesk?: (pageNumber?: number, panelId?: string) => void,
 ) {
   return {
     items: ({ query }: { query: string }): MentionSuggestionItem[] => {
@@ -38,7 +38,9 @@ export function createMentionSuggestion(
         .map((e) => ({
           id: e.id,
           name: e.name,
-          subtitle: e.subtitle || (e.effectiveRevision?.stageName ? `GĐ: ${e.effectiveRevision.stageName}` : null),
+          subtitle:
+            e.subtitle ||
+            (e.effectiveRevision?.stageName ? `GĐ: ${e.effectiveRevision.stageName}` : null),
           category: e.category,
           code: e.code,
           description: e.description || e.effectiveRevision?.summary || null,
@@ -94,7 +96,7 @@ export function createMentionSuggestion(
         const exactMatch = currentProps.items.some(
           (i: MentionSuggestionItem) =>
             i.name.toLowerCase() === rawQuery.toLowerCase() ||
-            i.code.toLowerCase() === rawQuery.toLowerCase()
+            i.code.toLowerCase() === rawQuery.toLowerCase(),
         );
         const tempCode = hasQuery ? generateTempCode(rawQuery, 'Character') : '';
         const showStubButton = hasQuery && !exactMatch;
@@ -125,7 +127,9 @@ export function createMentionSuggestion(
           btn.setAttribute('aria-selected', isSelected ? 'true' : 'false');
 
           btn.className = `w-full text-left px-2.5 py-1.5 flex items-center justify-between text-xs rounded-lg transition-colors cursor-pointer ${
-            isSelected ? 'bg-orange-50 text-[#C2410C] font-semibold ring-1 ring-[#F97316]/30' : 'text-gray-700 hover:bg-gray-50'
+            isSelected
+              ? 'bg-orange-50 text-[#C2410C] font-semibold ring-1 ring-[#F97316]/30'
+              : 'text-gray-700 hover:bg-gray-50'
           }`;
 
           const leftContainer = document.createElement('div');
@@ -145,7 +149,8 @@ export function createMentionSuggestion(
                 ? 'bg-purple-100 text-purple-700'
                 : 'bg-orange-100 text-orange-700'
             }`;
-            placeholder.textContent = item.category === 'Panel' ? '#' : item.name.charAt(0).toUpperCase();
+            placeholder.textContent =
+              item.category === 'Panel' ? '#' : item.name.charAt(0).toUpperCase();
             leftContainer.appendChild(placeholder);
           }
 
@@ -171,7 +176,8 @@ export function createMentionSuggestion(
 
             if (item.code && item.code !== item.name) {
               const codeBadge = document.createElement('span');
-              codeBadge.className = 'font-mono text-[10px] text-zinc-500 bg-zinc-100 px-1 py-0.2 rounded border border-zinc-200 shrink-0';
+              codeBadge.className =
+                'font-mono text-[10px] text-zinc-500 bg-zinc-100 px-1 py-0.2 rounded border border-zinc-200 shrink-0';
               codeBadge.textContent = item.code;
               leftContainer.appendChild(codeBadge);
             }
@@ -261,9 +267,7 @@ export function createMentionSuggestion(
           header.innerHTML = `
             <span class="font-bold text-zinc-900">${isPanel ? `@${selectedItem.code}` : `@${selectedItem.name || selectedItem.code}`}</span>
             <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold ${
-              isPanel
-                ? 'bg-purple-100 text-purple-800'
-                : 'bg-amber-100 text-amber-800'
+              isPanel ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-800'
             }">${selectedItem.category}</span>
           `;
           previewCol.appendChild(header);
@@ -273,11 +277,13 @@ export function createMentionSuggestion(
             const bigImg = document.createElement('img');
             bigImg.src = selectedItem.avatarUrl;
             bigImg.alt = selectedItem.name;
-            bigImg.className = 'w-full h-24 rounded-lg object-contain bg-zinc-900 border border-zinc-200';
+            bigImg.className =
+              'w-full h-24 rounded-lg object-contain bg-zinc-900 border border-zinc-200';
             previewCol.appendChild(bigImg);
           } else if (selectedItem.category === 'Panel') {
             const noSketch = document.createElement('div');
-            noSketch.className = 'h-20 rounded-lg bg-zinc-100 border border-dashed border-zinc-300 flex items-center justify-center text-zinc-400 text-[11px]';
+            noSketch.className =
+              'h-20 rounded-lg bg-zinc-100 border border-dashed border-zinc-300 flex items-center justify-center text-zinc-400 text-[11px]';
             noSketch.textContent = 'Chưa có phác thảo';
             previewCol.appendChild(noSketch);
           }
@@ -311,7 +317,7 @@ export function createMentionSuggestion(
       const selectItem = (item: MentionSuggestionItem) => {
         currentProps.command({
           id: item.id,
-          label: item.category === 'Panel' ? item.code : (item.name || item.code),
+          label: item.category === 'Panel' ? item.code : item.name || item.code,
           code: item.code,
           category: String(item.category),
           isLocked: item.isLocked,
@@ -374,7 +380,7 @@ export function createMentionSuggestion(
           const exactMatch = currentProps.items.some(
             (i: MentionSuggestionItem) =>
               i.name.toLowerCase() === rawQuery.toLowerCase() ||
-              i.code.toLowerCase() === rawQuery.toLowerCase()
+              i.code.toLowerCase() === rawQuery.toLowerCase(),
           );
           const showStubButton = hasQuery && !exactMatch;
           const totalCount = currentProps.items.length + (showStubButton ? 1 : 0);

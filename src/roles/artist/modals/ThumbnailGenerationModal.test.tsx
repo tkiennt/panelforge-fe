@@ -156,7 +156,7 @@ describe('ThumbnailGenerationModal', () => {
 
   it('displays error message when generation fails', async () => {
     vi.mocked(aiAgentsService.runThumbnail).mockRejectedValueOnce(
-      new Error('Panel chưa có prompt ảnh đã duyệt.')
+      new Error('Panel chưa có prompt ảnh đã duyệt.'),
     );
 
     render(<ThumbnailGenerationModal {...defaultProps} />);
@@ -172,7 +172,8 @@ describe('ThumbnailGenerationModal', () => {
     const onOpenStep1 = vi.fn();
     vi.mocked(aiAgentsService.runThumbnail).mockRejectedValueOnce({
       status: 409,
-      message: 'Panel chưa có prompt ảnh đã duyệt. Chạy nhiệm vụ "Prompt ảnh cho panel" và Accept trước.',
+      message:
+        'Panel chưa có prompt ảnh đã duyệt. Chạy nhiệm vụ "Prompt ảnh cho panel" và Accept trước.',
     });
 
     render(<ThumbnailGenerationModal {...defaultProps} onOpenStep1={onOpenStep1} />);

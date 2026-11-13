@@ -42,7 +42,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onDeletePage={vi.fn()}
         onMovePage={vi.fn()}
         onToggleVisibility={vi.fn()}
-      />
+      />,
     );
 
     // Primary dock is rendered
@@ -72,7 +72,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onDeletePage={vi.fn()}
         onMovePage={vi.fn()}
         onToggleVisibility={vi.fn()}
-      />
+      />,
     );
 
     // Click Script tab in dock to open it
@@ -98,7 +98,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onDeletePage={vi.fn()}
         onMovePage={vi.fn()}
         onToggleVisibility={vi.fn()}
-      />
+      />,
     );
 
     // Click Bible tab in dock to open it
@@ -124,7 +124,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onDeletePage={vi.fn()}
         onMovePage={vi.fn()}
         onToggleVisibility={vi.fn()}
-      />
+      />,
     );
 
     const drawer = screen.getByTestId('canva-secondary-drawer');
@@ -158,7 +158,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onDeletePage={vi.fn()}
         onMovePage={vi.fn()}
         onToggleVisibility={handleToggleVis}
-      />
+      />,
     );
 
     // Open pages drawer
@@ -188,7 +188,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onDeletePage={vi.fn()}
         onMovePage={vi.fn()}
         onToggleVisibility={vi.fn()}
-      />
+      />,
     );
 
     const sidebar = screen.getByTestId('artist-desk-sidebar');
@@ -207,7 +207,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onDeletePage={vi.fn()}
         onMovePage={vi.fn()}
         onToggleVisibility={vi.fn()}
-      />
+      />,
     );
 
     // Open Script tab
@@ -231,8 +231,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         name: 'Chiến Thần Viễn Cổ',
         category: 'character' as const,
         tag: 'Huyền thoại',
-        description:
-          'Chiến binh cổ đại mặc chiến giáp hoàng kim.',
+        description: 'Chiến binh cổ đại mặc chiến giáp hoàng kim.',
         visualNotes: ['Chiến giáp hoàng kim rực rỡ', 'Thương bạc dài 3 mét'],
         imageUrl: 'https://example.com/character-sheet.png',
       },
@@ -249,7 +248,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onMovePage={vi.fn()}
         onToggleVisibility={vi.fn()}
         bibleEntities={customBible}
-      />
+      />,
     );
 
     // Open Bible tab
@@ -279,7 +278,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         hasPagePanels={true}
         onSelectTemplate={handleSelectTemplate}
         onClearTemplate={handleClearTemplate}
-      />
+      />,
     );
 
     // Open Templates tab
@@ -290,15 +289,19 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     // Select a different template (4-Koma Classic)
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
     expect(handleSelectTemplate).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'f0000000-0000-0000-0000-00000000000c', panelCount: 4 })
+      expect.objectContaining({ id: 'f0000000-0000-0000-0000-00000000000c', panelCount: 4 }),
     );
 
     // Search filter
     fireEvent.change(screen.getByTestId('canva-input-search-templates'), {
       target: { value: 'Widescreen' },
     });
-    expect(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000f')).toBeInTheDocument();
-    expect(screen.queryByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000f'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'),
+    ).not.toBeInTheDocument();
 
     // Clear template button works
     fireEvent.click(screen.getByTestId('canva-btn-clear-template'));
@@ -325,7 +328,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         hasPageArtwork={true}
         onUnlockLayout={handleUnlock}
         onSelectTemplate={handleSelectTemplate}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByTestId('canva-tab-templates'));
@@ -352,6 +355,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         description: 'Vẽ lại góc nghiêng thanh kiếm của nhân vật chính ở khung 2',
         status: 'Open' as const,
         reviewerComment: 'Góc kiếm hiện tại che mất biểu cảm gương mặt',
+        pageId: 'page-1',
         createdAt: '2026-11-10T10:00:00Z',
       },
       {
@@ -380,7 +384,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         changeRequests={mockCRs}
         onResolveChangeRequest={handleResolve}
         onNavigateToChangeRequestTarget={handleNavigate}
-      />
+      />,
     );
 
     // Badge counter shows 1 open request
@@ -389,11 +393,15 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     // Click tab changes to open drawer
     fireEvent.click(screen.getByTestId('canva-tab-changes'));
     expect(screen.getByTestId('canva-drawer-changes')).toBeInTheDocument();
-    expect(screen.getByText('Vẽ lại góc nghiêng thanh kiếm của nhân vật chính ở khung 2')).toBeInTheDocument();
+    expect(
+      screen.getByText('Vẽ lại góc nghiêng thanh kiếm của nhân vật chính ở khung 2'),
+    ).toBeInTheDocument();
 
     // Click "Xem vị trí" triggers onNavigateToChangeRequestTarget
     fireEvent.click(screen.getByTestId('btn-navigate-cr-cr-1'));
     expect(handleNavigate).toHaveBeenCalledWith(mockCRs[0]);
+    // Yêu cầu không gắn trang / khung: không hiện "Xem vị trí"
+    expect(screen.queryByTestId('btn-navigate-cr-cr-2')).toBeNull();
 
     // Click "Báo đã sửa..." reveals resolve input
     fireEvent.click(screen.getByTestId('btn-resolve-cr-cr-1'));
@@ -415,9 +423,24 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
       pageSize: 50,
       totalCount: 3,
       items: [
-        { version: 3, eventType: 'CanvasUpdated', occurredAtUtc: '2026-11-10T10:00:00Z', summary: 'Cập nhật canvas' },
-        { version: 2, eventType: 'ElementAdded', occurredAtUtc: '2026-11-10T09:30:00Z', summary: 'Thêm đối tượng' },
-        { version: 1, eventType: 'PageCreated', occurredAtUtc: '2026-11-10T09:00:00Z', summary: 'Khởi tạo trang' },
+        {
+          version: 3,
+          eventType: 'CanvasUpdated',
+          occurredAtUtc: '2026-11-10T10:00:00Z',
+          summary: 'Cập nhật canvas',
+        },
+        {
+          version: 2,
+          eventType: 'ElementAdded',
+          occurredAtUtc: '2026-11-10T09:30:00Z',
+          summary: 'Thêm đối tượng',
+        },
+        {
+          version: 1,
+          eventType: 'PageCreated',
+          occurredAtUtc: '2026-11-10T09:00:00Z',
+          summary: 'Khởi tạo trang',
+        },
       ],
     };
 
@@ -434,7 +457,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         pageHistory={mockHistory}
         onRestoreVersion={handleRestore}
         onRefreshHistory={handleRefresh}
-      />
+      />,
     );
 
     // Click History tab

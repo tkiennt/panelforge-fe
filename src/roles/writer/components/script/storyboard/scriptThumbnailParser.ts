@@ -1,5 +1,10 @@
 // src/roles/writer/components/script/storyboard/scriptThumbnailParser.ts
-import { StoryboardPage, StoryboardPanel, StoryboardDialogue, CameraAngle } from './scriptThumbnail.types';
+import {
+  StoryboardPage,
+  StoryboardPanel,
+  StoryboardDialogue,
+  CameraAngle,
+} from './scriptThumbnail.types';
 import { SceneDetailDto } from '@/services/scriptLine.service';
 
 /**
@@ -69,7 +74,9 @@ export function parseScriptToStoryboard(rawText: string): StoryboardPage[] {
     if (!trimmed) continue;
 
     // 1. Nhận diện Trang: "! Trang 1", "# Page 1", "Trang 1", "Page 1", "PAGE 2"
-    const pageMatch = trimmed.match(/^(?:[!#📄]?\s*(?:Trang|Page)\s*(\d+)|(?:Trang|Page)\s+(\d+))/i);
+    const pageMatch = trimmed.match(
+      /^(?:[!#📄]?\s*(?:Trang|Page)\s*(\d+)|(?:Trang|Page)\s+(\d+))/iu,
+    );
     if (pageMatch) {
       const pageNum = parseInt(pageMatch[1] || pageMatch[2], 10);
       currentPage = {
@@ -84,7 +91,9 @@ export function parseScriptToStoryboard(rawText: string): StoryboardPage[] {
     }
 
     // 2. Nhận diện Panel: '" Panel 1.1', '- Panel 1.1', '#panel 1.1', 'Panel 1.1'
-    const panelMatch = trimmed.match(/^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*([0-9]+(?:\.[0-9]+)?)|[-"”]\s*([0-9]+(?:\.[0-9]+)?)|#panel\s*([0-9]+(?:\.[0-9]+)?))/i);
+    const panelMatch = trimmed.match(
+      /^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*([0-9]+(?:\.[0-9]+)?)|[-"”]\s*([0-9]+(?:\.[0-9]+)?)|#panel\s*([0-9]+(?:\.[0-9]+)?))/i,
+    );
     if (panelMatch) {
       if (!currentPage) {
         // Tự động khởi tạo Trang 1 nếu chưa có dòng Trang
@@ -98,7 +107,9 @@ export function parseScriptToStoryboard(rawText: string): StoryboardPage[] {
       }
 
       const panelKey = panelMatch[1] || panelMatch[2] || panelMatch[3];
-      const panelNum = parseInt(panelKey.includes('.') ? panelKey.split('.')[1] : panelKey, 10) || panelOrderCounter;
+      const panelNum =
+        parseInt(panelKey.includes('.') ? panelKey.split('.')[1] : panelKey, 10) ||
+        panelOrderCounter;
 
       currentPanel = {
         id: generateId(),
@@ -201,7 +212,7 @@ export function serializeStoryboardToScript(pages: StoryboardPage[]): string {
  */
 export function scenesToStoryboardPages(
   scenes: SceneDetailDto[],
-  getSpeakerName?: (id?: string | null) => string | null
+  getSpeakerName?: (id?: string | null) => string | null,
 ): StoryboardPage[] {
   if (!scenes || scenes.length === 0) {
     return parseScriptToStoryboard(SAMPLE_SCRIPT_TEXT);
@@ -253,9 +264,12 @@ export function scenesToStoryboardPages(
 
       groupLines.forEach((l) => {
         if (l.stageDirection && !l.dialogueText) {
-          stageDirection = stageDirection ? `${stageDirection}\n${l.stageDirection}` : l.stageDirection;
+          stageDirection = stageDirection
+            ? `${stageDirection}\n${l.stageDirection}`
+            : l.stageDirection;
         } else if (l.dialogueText) {
-          const speaker = (getSpeakerName ? getSpeakerName(l.speakerCharacterId) : null) || 'Nhân vật';
+          const speaker =
+            (getSpeakerName ? getSpeakerName(l.speakerCharacterId) : null) || 'Nhân vật';
           dialogues.push({
             id: l.id,
             speaker,

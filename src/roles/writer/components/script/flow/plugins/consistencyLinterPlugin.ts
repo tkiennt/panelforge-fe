@@ -44,7 +44,7 @@ export function createConsistencyLinterPlugin(getFindings: () => ConsistencyFind
                     : 'border-l-4 border-amber-500 bg-amber-50/40 rounded-r-md transition-all duration-200',
                   'data-finding-msg': finding.message || finding.ruleCode,
                   title: `[Cảnh báo Nhất quán] ${finding.message || finding.ruleCode}`,
-                })
+                }),
               );
             }
           }

@@ -115,8 +115,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
         lineOrder: 2,
         panelId: 'panel-02',
         speakerCharacterId: 'chr-minh',
-        dialogueText:
-          'Tín hiệu định vị dừng lại ở đây. Tầng hầm ngay phía trước.',
+        dialogueText: 'Tín hiệu định vị dừng lại ở đây. Tầng hầm ngay phía trước.',
         stageDirection:
           'Cận cảnh khuôn mặt góc cạnh của Minh. Nước mưa chảy dài trên sống mũi, ánh mắt sắc lạnh nhìn chằm chằm cánh cửa sắt gỉ sét.',
       },
@@ -354,7 +353,10 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
 
     // Panels
     await page.route(new RegExp(`/api/pages/([^/]+)/panels`, 'i'), async (route: any) => {
-      const match = route.request().url().match(/\/api\/pages\/([^/]+)\/panels/i);
+      const match = route
+        .request()
+        .url()
+        .match(/\/api\/pages\/([^/]+)\/panels/i);
       const targetPageId = match ? match[1] : '';
       const data = targetPageId === page2Id ? mockPanelsPage2 : mockPanelsPage1;
       await route.fulfill({
@@ -374,7 +376,10 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
     });
 
     await page.route(new RegExp(`/api/pages/([^/]+)$`, 'i'), async (route: any) => {
-      const match = route.request().url().match(/\/api\/pages\/([^/]+)$/i);
+      const match = route
+        .request()
+        .url()
+        .match(/\/api\/pages\/([^/]+)$/i);
       const targetPageId = match ? match[1] : '';
       const data = targetPageId === page2Id ? mockPage2Detail : mockPage1Detail;
       await route.fulfill({
@@ -407,7 +412,8 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
   }) => {
     // Đảm bảo thư mục lưu ảnh tồn tại
     const screenshotsDir = 'D:/FPT-STUDY/10_FALL-2026/SEP490/Github/panelforge-fe/e2e/screenshots';
-    const brainScreenshotsDir = 'C:/Users/ASUS/.gemini/antigravity/brain/ce620260-d9f4-4391-bf3a-2030e2a6001c';
+    const brainScreenshotsDir =
+      'C:/Users/ASUS/.gemini/antigravity/brain/ce620260-d9f4-4391-bf3a-2030e2a6001c';
     if (!fs.existsSync(screenshotsDir)) {
       fs.mkdirSync(screenshotsDir, { recursive: true });
     }

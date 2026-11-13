@@ -12,7 +12,10 @@ export function formatVersionNumber(major: number, minor: number): string {
  * Tăng minor version (khi Producer yêu cầu chỉnh sửa)
  * Ví dụ: 1.0 -> 1.1, 1.1 -> 1.2
  */
-export function bumpMinor(currentMajor: number, currentMinor: number): {
+export function bumpMinor(
+  currentMajor: number,
+  currentMinor: number,
+): {
   major: number;
   minor: number;
   versionNumber: string;
@@ -49,7 +52,7 @@ export function createInitialVersion(
   chapterId: string,
   rawText: string = '',
   snapshotAST: any = null,
-  userId: string = 'writer-current'
+  userId: string = 'writer-current',
 ): ScriptVersion {
   return {
     id: `ver-${chapterId}-1.0-${Date.now()}`,
@@ -74,7 +77,7 @@ export function autosaveDraftAction(
   versions: ScriptVersion[],
   currentVersionId: string,
   rawText: string,
-  snapshotAST?: any
+  snapshotAST?: any,
 ): { versions: ScriptVersion[]; updatedVersion: ScriptVersion } {
   const index = versions.findIndex((v) => v.id === currentVersionId);
   if (index === -1) {
@@ -108,7 +111,7 @@ export function autosaveDraftAction(
  */
 export function submitScriptAction(
   versions: ScriptVersion[],
-  currentVersionId: string
+  currentVersionId: string,
 ): { versions: ScriptVersion[]; updatedVersion: ScriptVersion } {
   const index = versions.findIndex((v) => v.id === currentVersionId);
   if (index === -1) {
@@ -117,7 +120,9 @@ export function submitScriptAction(
 
   const current = versions[index];
   if (current.status !== 'DRAFT') {
-    throw new Error(`Chỉ có thể gửi duyệt bản nháp (DRAFT). Trạng thái hiện tại: ${current.status}`);
+    throw new Error(
+      `Chỉ có thể gửi duyệt bản nháp (DRAFT). Trạng thái hiện tại: ${current.status}`,
+    );
   }
 
   const updatedVersion: ScriptVersion = {
@@ -141,7 +146,7 @@ export function requestChangesAction(
   versions: ScriptVersion[],
   currentVersionId: string,
   feedbackNotes: string,
-  producerId: string = 'producer-reviewer'
+  producerId: string = 'producer-reviewer',
 ): { versions: ScriptVersion[]; newDraftVersion: ScriptVersion } {
   const index = versions.findIndex((v) => v.id === currentVersionId);
   if (index === -1) {
@@ -192,7 +197,7 @@ export function requestChangesAction(
 export function approveScriptAction(
   versions: ScriptVersion[],
   currentVersionId: string,
-  producerId: string = 'producer-reviewer'
+  producerId: string = 'producer-reviewer',
 ): { versions: ScriptVersion[]; approvedVersion: ScriptVersion } {
   const index = versions.findIndex((v) => v.id === currentVersionId);
   if (index === -1) {
@@ -226,7 +231,7 @@ export function approveScriptAction(
 export function unlockScriptAction(
   versions: ScriptVersion[],
   currentVersionId: string,
-  producerId: string = 'producer-reviewer'
+  producerId: string = 'producer-reviewer',
 ): { versions: ScriptVersion[]; newMajorDraftVersion: ScriptVersion } {
   const index = versions.findIndex((v) => v.id === currentVersionId);
   if (index === -1) {
@@ -268,7 +273,7 @@ export function unlockScriptAction(
 export function restoreVersionAction(
   versions: ScriptVersion[],
   currentVersionId: string,
-  targetVersionId: string
+  targetVersionId: string,
 ): { versions: ScriptVersion[]; updatedVersion: ScriptVersion } {
   const target = versions.find((v) => v.id === targetVersionId);
   if (!target) {
@@ -298,4 +303,3 @@ export function restoreVersionAction(
   // Nếu bản hiện tại đã khóa/in review, không thể đè trực tiếp
   throw new Error(`Không thể khôi phục đè lên phiên bản đang khóa hoặc chờ duyệt.`);
 }
-

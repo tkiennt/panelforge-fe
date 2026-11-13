@@ -1,7 +1,10 @@
 // src/services/chapter.service.ts
 import axiosClient from '../api/axiosClient';
 
-export type ChapterStatus = 'InProduction' | 'Approved' | 'Locked' | 'Published';
+export type ChapterStatus = 'PreProduction' | 'InProduction' | 'Approved' | 'Locked' | 'Published';
+
+/** D12: vòng đời kịch bản Draft ↔ InReview → Frozen. */
+export type ScriptStatus = 'Draft' | 'InReview' | 'Frozen';
 
 export interface ChapterDto {
   id: string;
@@ -29,6 +32,68 @@ export interface ChapterDto {
   scriptContentHash?: string | null;
   isLocked?: boolean;
   priceVnd?: number;
+  scriptStatus?: ScriptStatus;
+  scriptSubmittedAt?: string | null;
+  /** Phiên bản đã gửi duyệt (push) gần nhất và lần trước — để so sánh từng dòng. */
+  lastSubmittedVersionId?: string | null;
+  previousSubmittedVersionId?: string | null;
+}
+
+/** Một hàng kịch bản theo thứ tự đọc; `key` ổn định giữa các phiên bản. */
+export interface ScriptVersionRow {
+  key: string;
+  /** page · panel · Action · Dialogue · Thought · Narration · Sfx */
+  type: string;
+  page: number;
+  panel: number;
+  label?: string | null;
+  text: string;
+}
+
+/** Lưu = commit, gửi duyệt = push (`submittedAt`). */
+export interface ScriptVersionSummaryDto {
+  id: string;
+  versionNumber: number;
+  message: string;
+  authorUserId: string;
+  authorName?: string | null;
+  createdAt: string;
+  lineCount: number;
+  contentHash: string;
+  submittedAt?: string | null;
+}
+
+export interface ScriptVersionDetailDto {
+  version: ScriptVersionSummaryDto;
+  rows: ScriptVersionRow[];
+}
+
+export interface ScriptWorkingCopyDto {
+  contentHash: string;
+  lineCount: number;
+  rows: ScriptVersionRow[];
+}
+
+/** D12: góp ý theo dòng trên kịch bản (Editor / Producer), không đổi trạng thái kịch bản. */
+export interface ScriptCommentDto {
+  id: string;
+  chapterId: string;
+  sceneId?: string | null;
+  scriptLineId?: string | null;
+  quotedText?: string | null;
+  body: string;
+  authorUserId: string;
+  authorName?: string | null;
+  createdAt: string;
+  resolvedAt?: string | null;
+  resolvedById?: string | null;
+}
+
+export interface AddScriptCommentRequest {
+  sceneId?: string | null;
+  scriptLineId?: string | null;
+  quotedText?: string | null;
+  body: string;
 }
 
 export interface PagedResult<T> {
@@ -384,8 +449,110 @@ export const chapterService = {
     }
   },
 
+  /** D12: góp ý theo dòng của chương. */
+  getScriptComments: async (chapterId: string): Promise<ScriptCommentDto[]> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/script-comments`);
+      return response.data ?? [];
+    } catch (error) {
+      throw new Error(extractError(error, 'Không tải được góp ý kịch bản.'));
+    }
+  },
+
+  addScriptComment: async (
+    chapterId: string,
+    data: AddScriptCommentRequest,
+  ): Promise<ScriptCommentDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/script-comments`, data);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không gửi được góp ý.'));
+    }
+  },
+
+  resolveScriptComment: async (chapterId: string, commentId: string): Promise<ScriptCommentDto> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/script-comments/${commentId}/resolve`,
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không đánh dấu được góp ý.'));
+    }
+  },
+
+  /** Phiên bản kịch bản, mới nhất trước. */
+  getScriptVersions: async (chapterId: string): Promise<ScriptVersionSummaryDto[]> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/script-versions`);
+      return response.data ?? [];
+    } catch (error) {
+      throw new Error(extractError(error, 'Không tải được danh sách phiên bản.'));
+    }
+  },
+
+  getScriptVersion: async (
+    chapterId: string,
+    versionId: string,
+  ): Promise<ScriptVersionDetailDto> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/script-versions/${versionId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không tải được phiên bản.'));
+    }
+  },
+
+  /** Kịch bản hiện tại (chưa commit). */
+  getScriptWorkingCopy: async (chapterId: string): Promise<ScriptWorkingCopyDto> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/script-versions/working-copy`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không tải được kịch bản hiện tại.'));
+    }
+  },
+
+  /** Lưu = commit; trùng nội dung bản gần nhất thì máy chủ trả lại bản đó. */
+  commitScriptVersion: async (
+    chapterId: string,
+    message?: string,
+  ): Promise<ScriptVersionSummaryDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/script-versions`, {
+        message: message ?? null,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không lưu được phiên bản kịch bản.'));
+    }
+  },
+
+  /** D12: Writer gửi duyệt (Draft → InReview) = push; kịch bản khoá sửa. */
+  submitScript: async (chapterId: string, message?: string): Promise<ChapterDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/submit-script`, {
+        message: message ?? null,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể nộp kịch bản.'));
+    }
+  },
+
+  /** D12: chỉ Writer rút kịch bản về sửa (InReview → Draft). */
+  recallScript: async (chapterId: string): Promise<ChapterDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/recall-script`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể rút kịch bản về sửa.'));
+    }
+  },
+
   /**
-   * Producer duyệt kịch bản và bắt đầu sản xuất hình ảnh (Freeze Script & Unlock Thumbnail)
+   * Gate 1 — Producer bấm Start Production khi kịch bản đang InReview (→ Frozen, chương → InProduction)
    */
   freezeScript: async (chapterId: string): Promise<ChapterDto> => {
     try {
@@ -413,7 +580,9 @@ export const chapterService = {
    */
   requestScriptReopen: async (chapterId: string, reason: string): Promise<ChapterDto> => {
     try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/request-script-reopen`, { reason });
+      const response = await axiosClient.post(`/chapters/${chapterId}/request-script-reopen`, {
+        reason,
+      });
       return response.data;
     } catch (error) {
       throw new Error(extractError(error, 'Không thể gửi yêu cầu mở lại kịch bản.'));

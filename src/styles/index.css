@@ -205,7 +205,13 @@ html {
 }
 
 body {
-  font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Be Vietnam Pro',
+    'Plus Jakarta Sans',
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
   background: #faf8f5;
   color: #171717;
   overflow-x: hidden;
@@ -953,16 +959,23 @@ body {
   font-weight: 400;
   color: var(--color-stone-500);
 }
-.ProseMirror .script-block[data-block-type='stage_direction']:has(> br.ProseMirror-trailingBreak:only-child)::before {
+.ProseMirror
+  .script-block[data-block-type='stage_direction']:has(
+    > br.ProseMirror-trailingBreak:only-child
+  )::before {
   content: 'Mô tả khung tranh… (gõ TÊN: để viết thoại)';
 }
 .ProseMirror .dialogue-text:has(> br.ProseMirror-trailingBreak:only-child)::before {
   content: 'Lời thoại…';
 }
-.ProseMirror .script-block[data-block-type='caption'] .dialogue-text:has(> br.ProseMirror-trailingBreak:only-child)::before {
+.ProseMirror
+  .script-block[data-block-type='caption']
+  .dialogue-text:has(> br.ProseMirror-trailingBreak:only-child)::before {
   content: 'Lời dẫn truyện…';
 }
-.ProseMirror .script-block[data-block-type='sfx'] .dialogue-text:has(> br.ProseMirror-trailingBreak:only-child)::before {
+.ProseMirror
+  .script-block[data-block-type='sfx']
+  .dialogue-text:has(> br.ProseMirror-trailingBreak:only-child)::before {
   content: 'Tiếng động…';
 }
 

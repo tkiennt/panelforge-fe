@@ -243,7 +243,7 @@ test.describe('E2E: Kịch Bản Phân Cảnh & Trải Nghiệm Soạn Thảo (S
           fullName: 'Nguyễn Kịch Bản (Writer)',
           role: 'User',
           canCreateStudio: true,
-        })
+        }),
       );
       localStorage.setItem('userRole', 'USER');
       localStorage.setItem('workspaceRole', 'WRITER');
@@ -291,7 +291,7 @@ test.describe('E2E: Kịch Bản Phân Cảnh & Trải Nghiệm Soạn Thảo (S
     // Dòng mới sau Enter từ Caption phải là khối caption (Lời dẫn truyện / văn bản bình thường), class 'not-italic' và KHÔNG chứa class 'italic'
     const nextLineAfterCaption = captionBlocks.last();
     await expect(nextLineAfterCaption).toBeVisible();
-    
+
     // Kiểm tra class not-italic
     const lineClass = await nextLineAfterCaption.getAttribute('class');
     expect(lineClass).toContain('not-italic');

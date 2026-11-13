@@ -175,7 +175,8 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
                   Trang {pageNumber} chưa có tranh
                 </h3>
                 <p className='text-xs text-[#57534E] max-w-sm mb-6 leading-relaxed'>
-                  Kéo thả bản vẽ toàn trang vào đây hoặc tải ảnh lên. Hỗ trợ nạp tranh toàn trang hoặc chọn mẫu khung để chia nhiều ô.
+                  Kéo thả bản vẽ toàn trang vào đây hoặc tải ảnh lên. Hỗ trợ nạp tranh toàn trang
+                  hoặc chọn mẫu khung để chia nhiều ô.
                 </p>
 
                 {/* 2 Centered CTA Buttons */}
@@ -202,7 +203,10 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
                 </div>
 
                 <span className='text-[10px] text-stone-400 mt-4 flex items-center gap-1'>
-                  Hỗ trợ kéo thả ảnh hoặc dán nhanh bằng phím tắt <kbd className='px-1 py-0.5 bg-stone-100 border border-stone-300 rounded font-mono text-[9px] text-stone-600'>Ctrl+V</kbd>
+                  Hỗ trợ kéo thả ảnh hoặc dán nhanh bằng phím tắt{' '}
+                  <kbd className='px-1 py-0.5 bg-stone-100 border border-stone-300 rounded font-mono text-[9px] text-stone-600'>
+                    Ctrl+V
+                  </kbd>
                 </span>
               </div>
             ) : (

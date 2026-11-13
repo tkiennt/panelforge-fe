@@ -1589,9 +1589,7 @@ describe('LetteringWorkspace', () => {
         id: 'pipe-1',
         seriesId: 'series-1',
         name: 'Default',
-        stages: [
-          { id: 'stage-color', name: 'Color', stageOrder: 3, isEnabled: true } as any,
-        ],
+        stages: [{ id: 'stage-color', name: 'Color', stageOrder: 3, isEnabled: true } as any],
         transitions: [],
       });
       vi.mocked(artworkService.getArtworks).mockResolvedValue([

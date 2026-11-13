@@ -1,13 +1,7 @@
 // src/roles/writer/components/script/thumbnail-studio/types.ts
 
 export type CameraShotType =
-  | 'extreme_wide'
-  | 'wide'
-  | 'medium'
-  | 'close_up'
-  | 'extreme_close_up'
-  | 'pov'
-  | 'unknown';
+  'extreme_wide' | 'wide' | 'medium' | 'close_up' | 'extreme_close_up' | 'pov' | 'unknown';
 
 export interface DialogueItem {
   id: string;

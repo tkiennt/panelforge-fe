@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { BookOpen, Image as ImageIcon, Users, ChevronLeft, Palette, Sparkles, User } from 'lucide-react';
+import {
+  BookOpen,
+  Image as ImageIcon,
+  Users,
+  ChevronLeft,
+  Palette,
+  Sparkles,
+  User,
+} from 'lucide-react';
 import { PanelBlockData, CharacterModelSheet } from './workspace.types';
 
 const DEFAULT_CHARACTERS: CharacterModelSheet[] = [
@@ -244,7 +252,11 @@ export const ScriptReaderColumn: React.FC<ScriptReaderColumnProps> = ({
                 <div className='flex items-start gap-3'>
                   <div className='w-11 h-11 rounded-lg bg-orange-100 flex items-center justify-center text-[#F97316] shrink-0 font-bold text-sm overflow-hidden border border-orange-200'>
                     {char.avatarUrl ? (
-                      <img src={char.avatarUrl} alt={char.name} className='w-full h-full object-cover' />
+                      <img
+                        src={char.avatarUrl}
+                        alt={char.name}
+                        className='w-full h-full object-cover'
+                      />
                     ) : (
                       char.name.charAt(0)
                     )}
@@ -312,10 +324,15 @@ export const ScriptReaderColumn: React.FC<ScriptReaderColumnProps> = ({
             </div>
 
             <div>
-              <span className='text-xs font-bold text-stone-700 block mb-1'>Bảng màu đặc trưng:</span>
+              <span className='text-xs font-bold text-stone-700 block mb-1'>
+                Bảng màu đặc trưng:
+              </span>
               <div className='flex items-center gap-2'>
                 {selectedCharacter.palette.map((color, idx) => (
-                  <div key={idx} className='flex items-center gap-1 bg-stone-50 px-2 py-1 rounded border border-stone-200'>
+                  <div
+                    key={idx}
+                    className='flex items-center gap-1 bg-stone-50 px-2 py-1 rounded border border-stone-200'
+                  >
                     <span className='w-3 h-3 rounded-full' style={{ backgroundColor: color }} />
                     <span className='text-[10px] font-mono text-stone-600'>{color}</span>
                   </div>
@@ -324,7 +341,9 @@ export const ScriptReaderColumn: React.FC<ScriptReaderColumnProps> = ({
             </div>
 
             <div>
-              <span className='text-xs font-bold text-stone-700 block mb-1'>Ghi chú trang phục & tạo hình:</span>
+              <span className='text-xs font-bold text-stone-700 block mb-1'>
+                Ghi chú trang phục & tạo hình:
+              </span>
               <p className='text-xs text-stone-600 leading-relaxed bg-stone-50 p-2.5 rounded-lg border border-stone-200'>
                 {selectedCharacter.notes}
               </p>

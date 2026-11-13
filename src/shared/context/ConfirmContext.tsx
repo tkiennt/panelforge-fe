@@ -91,7 +91,8 @@ export const useConfirm = (): ConfirmFunction => {
   if (!context) {
     // Graceful fallback to window.confirm in non-provider test environments
     return async (options: string | ConfirmOptions) => {
-      const msg = typeof options === 'string' ? options : `${options.title}\n${options.description || ''}`;
+      const msg =
+        typeof options === 'string' ? options : `${options.title}\n${options.description || ''}`;
       return typeof window !== 'undefined' && typeof window.confirm === 'function'
         ? window.confirm(msg)
         : true;

@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { CheckCircle2, RotateCcw, Trash2, XCircle } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import type { ChangeRequestDto } from '@/types/pipeline';
-import { CR_STATUS_BADGE, crStatus, type CrStatus } from '../review-shared/reviewModel';
-import { ReasonForm } from '../review-shared/ReasonForm';
+import {
+  CR_STATUS_BADGE,
+  crStatus,
+  type CrStatus,
+} from '@/shared/features/script-review/reviewModel';
+import { ReasonForm } from '@/shared/components/ReasonForm';
 import type { Box } from './artworkModel';
 
 /** Vùng khoanh nháp; thành một ChangeRequest khi Editor trả bài (CF3 bước 7). */

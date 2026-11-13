@@ -1,10 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import {
-  ArtistPageSidebar,
-  ArtistPageItem,
-} from './ArtistPageSidebar';
+import { ArtistPageSidebar, ArtistPageItem } from './ArtistPageSidebar';
 
 const MOCK_PAGES: ArtistPageItem[] = [
   {
@@ -58,7 +55,7 @@ describe('ArtistPageSidebar - Photoshop-style Pages Panel', () => {
         onToggleVisibility={handleToggleVis}
         isCollapsed={false}
         onToggleCollapse={handleToggleCollapse}
-      />
+      />,
     );
 
     // Sidebar exists
@@ -108,7 +105,7 @@ describe('ArtistPageSidebar - Photoshop-style Pages Panel', () => {
         onToggleVisibility={handleToggleVis}
         isCollapsed={false}
         onToggleCollapse={handleToggleCollapse}
-      />
+      />,
     );
 
     // Click on Page 2
@@ -145,7 +142,7 @@ describe('ArtistPageSidebar - Photoshop-style Pages Panel', () => {
         onToggleVisibility={vi.fn()}
         isCollapsed={false}
         onToggleCollapse={vi.fn()}
-      />
+      />,
     );
 
     // Filter to ink stage
@@ -174,7 +171,7 @@ describe('ArtistPageSidebar - Photoshop-style Pages Panel', () => {
         onToggleVisibility={vi.fn()}
         isCollapsed={false}
         onToggleCollapse={vi.fn()}
-      />
+      />,
     );
 
     // Switch to compact view
@@ -206,7 +203,7 @@ describe('ArtistPageSidebar - Photoshop-style Pages Panel', () => {
         onToggleVisibility={vi.fn()}
         isCollapsed={true}
         onToggleCollapse={handleToggleCollapse}
-      />
+      />,
     );
 
     // Collapsed sidebar exists

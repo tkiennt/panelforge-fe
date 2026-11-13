@@ -31,11 +31,11 @@ describe('LoginModal Component', () => {
 
     const { container } = render(<LoginModal onClose={handleClose} onLogin={handleLogin} />);
 
-    expect(screen.getByText('Welcome Back')).toBeInTheDocument();
-    expect(screen.getByText('Log in to your studio workspace.')).toBeInTheDocument();
+    expect(screen.getByText(/Welcome Back|Chào mừng trở lại/i)).toBeInTheDocument();
+    expect(screen.getByText(/Log in to your studio workspace|Tiếp tục sáng tạo/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/mika@studio.com/i)).toBeInTheDocument();
     expect(container.querySelector('input[type="password"]')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Log In/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Log In|Đăng nhập/i })).toBeInTheDocument();
   });
 
   it('gọi callback onLogin khi người dùng nhập thông tin và submit form', async () => {
@@ -51,7 +51,7 @@ describe('LoginModal Component', () => {
 
     const emailInput = screen.getByPlaceholderText(/mika@studio.com/i);
     const passwordInput = container.querySelector('input[type="password"]') as HTMLInputElement;
-    const submitBtn = screen.getByRole('button', { name: /Log In/i });
+    const submitBtn = screen.getByRole('button', { name: /Log In|Đăng nhập/i });
 
     await user.type(emailInput, 'editor@panelforge.com');
     await user.type(passwordInput, 'secret123');
@@ -76,7 +76,7 @@ describe('LoginModal Component', () => {
 
     const emailInput = screen.getByPlaceholderText(/mika@studio.com/i);
     const passwordInput = container.querySelector('input[type="password"]') as HTMLInputElement;
-    const submitBtn = screen.getByRole('button', { name: /Log In/i });
+    const submitBtn = screen.getByRole('button', { name: /Log In|Đăng nhập/i });
 
     await user.type(emailInput, 'artist@panelforge.com');
     await user.type(passwordInput, 'password123');

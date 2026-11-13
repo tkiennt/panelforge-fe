@@ -47,7 +47,9 @@ export const QuickSketchModal: React.FC<QuickSketchModalProps> = ({
 
   if (!isOpen) return null;
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  const startDrawing = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
+  ) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -126,79 +128,85 @@ export const QuickSketchModal: React.FC<QuickSketchModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-2xl max-w-lg w-full p-5 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]">
+    <div className='fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in'>
+      <div className='bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-2xl max-w-lg w-full p-5 space-y-4'>
+        <div className='flex items-center justify-between pb-3 border-b border-[#D8D2C5]'>
           <div>
-            <h3 className="text-sm font-bold font-serif text-[#1C1917] flex items-center gap-2">
-              <Edit3 className="w-4 h-4 text-[#C2410C]" /> Phác Thảo Nhanh: {panelTitle}
+            <h3 className='text-sm font-bold font-serif text-[#1C1917] flex items-center gap-2'>
+              <Edit3 className='w-4 h-4 text-[#C2410C]' /> Phác Thảo Nhanh: {panelTitle}
             </h3>
-            <p className="text-[11px] text-[#57534E]">Vẽ nét người que nhanh hoặc tải ảnh phác thảo cho ô truyện</p>
+            <p className='text-[11px] text-[#57534E]'>
+              Vẽ nét người que nhanh hoặc tải ảnh phác thảo cho ô truyện
+            </p>
           </div>
           <button
-            type="button"
+            type='button'
             onClick={onClose}
-            className="p-1 rounded-lg text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] cursor-pointer"
+            className='p-1 rounded-lg text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] cursor-pointer'
           >
-            <X className="w-5 h-5" />
+            <X className='w-5 h-5' />
           </button>
         </div>
 
         {/* Toolbar vẽ */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-[#F3F0E9] p-1 rounded-xl">
+        <div className='flex items-center justify-between gap-2 flex-wrap'>
+          <div className='flex items-center gap-1.5 bg-[#F3F0E9] p-1 rounded-xl'>
             <button
-              type="button"
+              type='button'
               onClick={() => setTool('pen')}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                tool === 'pen' ? 'bg-[#C2410C] text-white shadow-xs' : 'text-[#57534E] hover:text-[#1C1917]'
+                tool === 'pen'
+                  ? 'bg-[#C2410C] text-white shadow-xs'
+                  : 'text-[#57534E] hover:text-[#1C1917]'
               }`}
             >
-              <Edit3 className="w-3.5 h-3.5" /> Bút vẽ
+              <Edit3 className='w-3.5 h-3.5' /> Bút vẽ
             </button>
             <button
-              type="button"
+              type='button'
               onClick={() => setTool('eraser')}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                tool === 'eraser' ? 'bg-[#C2410C] text-white shadow-xs' : 'text-[#57534E] hover:text-[#1C1917]'
+                tool === 'eraser'
+                  ? 'bg-[#C2410C] text-white shadow-xs'
+                  : 'text-[#57534E] hover:text-[#1C1917]'
               }`}
             >
-              <Eraser className="w-3.5 h-3.5" /> Tẩy
+              <Eraser className='w-3.5 h-3.5' /> Tẩy
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className='flex items-center gap-2'>
             <input
-              type="file"
+              type='file'
               ref={fileInputRef}
-              accept="image/*"
-              className="hidden"
+              accept='image/*'
+              className='hidden'
               onChange={handleUploadImage}
             />
             <button
-              type="button"
+              type='button'
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-[#57534E] bg-white border border-[#D8D2C5] hover:bg-[#F3F0E9] cursor-pointer shadow-xs"
+              className='flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-[#57534E] bg-white border border-[#D8D2C5] hover:bg-[#F3F0E9] cursor-pointer shadow-xs'
             >
-              <Upload className="w-3.5 h-3.5" /> Tải ảnh
+              <Upload className='w-3.5 h-3.5' /> Tải ảnh
             </button>
             <button
-              type="button"
+              type='button'
               onClick={handleClear}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 cursor-pointer"
+              className='flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 cursor-pointer'
             >
-              <Trash2 className="w-3.5 h-3.5" /> Xoá hết
+              <Trash2 className='w-3.5 h-3.5' /> Xoá hết
             </button>
           </div>
         </div>
 
         {/* Canvas vẽ */}
-        <div className="relative border-2 border-[#D8D2C5] rounded-xl overflow-hidden bg-white shadow-inner flex items-center justify-center">
+        <div className='relative border-2 border-[#D8D2C5] rounded-xl overflow-hidden bg-white shadow-inner flex items-center justify-center'>
           <canvas
             ref={canvasRef}
             width={400}
             height={260}
-            className="cursor-crosshair touch-none"
+            className='cursor-crosshair touch-none'
             onMouseDown={startDrawing}
             onMouseMove={draw}
             onMouseUp={stopDrawing}
@@ -209,20 +217,20 @@ export const QuickSketchModal: React.FC<QuickSketchModalProps> = ({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#D8D2C5]">
+        <div className='flex items-center justify-end gap-2 pt-2 border-t border-[#D8D2C5]'>
           <button
-            type="button"
+            type='button'
             onClick={onClose}
-            className="px-4 py-1.5 text-xs font-semibold text-[#57534E] hover:bg-[#F3F0E9] rounded-xl cursor-pointer"
+            className='px-4 py-1.5 text-xs font-semibold text-[#57534E] hover:bg-[#F3F0E9] rounded-xl cursor-pointer'
           >
             Đóng
           </button>
           <button
-            type="button"
+            type='button'
             onClick={handleSave}
-            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-[#C2410C] hover:bg-[#EA580C] rounded-xl shadow-xs cursor-pointer"
+            className='flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-[#C2410C] hover:bg-[#EA580C] rounded-xl shadow-xs cursor-pointer'
           >
-            <Check className="w-4 h-4" /> Lưu phác thảo
+            <Check className='w-4 h-4' /> Lưu phác thảo
           </button>
         </div>
       </div>

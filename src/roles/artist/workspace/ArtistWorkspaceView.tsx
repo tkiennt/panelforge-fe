@@ -20,11 +20,7 @@ import {
 import { ScriptReaderColumn } from './ScriptReaderColumn';
 import { ArtistPageCanvas } from './ArtistPageCanvas';
 import { TemplateSelectorSidebar, MANGA_FRAME_PRESETS } from './TemplateSelectorSidebar';
-import {
-  PanelBlockData,
-  BreadcrumbInfo,
-  FramePresetTemplate,
-} from './workspace.types';
+import { PanelBlockData, BreadcrumbInfo, FramePresetTemplate } from './workspace.types';
 import { chapterService } from '@/services/chapter.service';
 import { artworkService, computeFileSha256 } from '@/services/artwork.service';
 import { pageService } from '@/services/page.service';
@@ -45,7 +41,8 @@ const INITIAL_SINGLE_PANEL: PanelBlockData[] = [
         id: 'line-1',
         lineOrder: 1,
         panelNumber: 1,
-        stageDirection: 'Góc toàn cảnh thung lũng hoang tàn sau cơn bão cát. Khói bốc lên từ đài quan sát cổng thành phía Nam.',
+        stageDirection:
+          'Góc toàn cảnh thung lũng hoang tàn sau cơn bão cát. Khói bốc lên từ đài quan sát cổng thành phía Nam.',
       },
       {
         id: 'line-2',
@@ -108,7 +105,7 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
       setToastMessage({ title, desc, type });
       setTimeout(() => setToastMessage(null), 3500);
     },
-    []
+    [],
   );
 
   // 6. Keyboard Shortcuts System cho Artist
@@ -196,7 +193,7 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
             };
           }
           return p;
-        })
+        }),
       );
       setSelectedPanelNumber(panelNumber);
       showToast(
@@ -204,10 +201,10 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
         templateId === 'single-full'
           ? `Tệp "${file.name}" đã được tải vào Trang ${currentPageNumber}`
           : `Đã nạp tranh vào Khung #${panelNumber}`,
-        'success'
+        'success',
       );
     },
-    [templateId, currentPageNumber, showToast]
+    [templateId, currentPageNumber, showToast],
   );
 
   // Handler: Xoá ảnh khỏi panel
@@ -222,11 +219,11 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
             };
           }
           return p;
-        })
+        }),
       );
       showToast('Đã xoá ảnh', `Đã xoá tranh khỏi Khung #${panelNumber}`);
     },
-    [showToast]
+    [showToast],
   );
 
   // Handler: Chọn Template từ Right Sidebar
@@ -263,10 +260,10 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
       showToast(
         'Đã áp dụng mẫu khung',
         `Đã chuyển sang mẫu "${preset.name}" (${preset.panelCount} khung)`,
-        'success'
+        'success',
       );
     },
-    [panels, showToast]
+    [panels, showToast],
   );
 
   // Handler: Trở về chế độ 1 Khung Toàn Trang
@@ -282,7 +279,7 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
         templateId === 'single-full'
           ? 'Vui lòng nạp tranh bản vẽ toàn trang trước khi nộp duyệt.'
           : 'Vui lòng nạp đủ tranh cho tất cả các khung trên trang trước khi nộp duyệt.',
-        'error'
+        'error',
       );
       return;
     }
@@ -297,20 +294,20 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
         showToast(
           'Bàn giao nét chì thành công!',
           'Đã hoàn thành nét chì và chuyển trang sang giai đoạn Ink (Nét mực).',
-          'success'
+          'success',
         );
       } else {
         showToast(
           'Nộp bản thảo thành công!',
           `Toàn bộ trang vẽ của Chương đã được chuyển sang hàng đợi thẩm định của Editor/Producer.`,
-          'success'
+          'success',
         );
       }
     } catch {
       showToast(
         'Nộp bản thảo thành công',
         'Bản thảo đã được ghi nhận và gửi đến người phụ trách phê duyệt.',
-        'success'
+        'success',
       );
     } finally {
       setIsSubmitting(false);

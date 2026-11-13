@@ -230,7 +230,8 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
     if (
       !(await confirm({
         title: `Xóa công đoạn "${stage.name}"?`,
-        description: 'Thao tác này sẽ tự động tái cấu trúc lại các bước chuyển giao (Transitions) giữa các công đoạn còn lại.',
+        description:
+          'Thao tác này sẽ tự động tái cấu trúc lại các bước chuyển giao (Transitions) giữa các công đoạn còn lại.',
         confirmText: 'Xóa công đoạn',
         cancelText: 'Giữ lại',
         variant: 'danger',

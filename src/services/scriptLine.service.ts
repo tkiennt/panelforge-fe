@@ -4,6 +4,14 @@ import axiosClient from '../api/axiosClient';
 export type NarrationMode =
   'Present' | 'Flashback' | 'Dream' | 'Imagination' | 'Lie' | 'Rumor' | 'UnreliableNarrator';
 
+export enum ScriptLineKind {
+  Action = 1,
+  Dialogue = 2,
+  Thought = 3,
+  Narration = 4,
+  Sfx = 5,
+}
+
 export interface SceneDto {
   id: string;
   chapterId: string;
@@ -27,6 +35,9 @@ export interface SceneDto {
 export interface SceneScriptLineSummaryDto {
   id: string;
   lineOrder: number;
+  kind?: ScriptLineKind | number | string;
+  speakerLabel?: string | null;
+  text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
   speakerCharacterId?: string | null;
@@ -58,6 +69,9 @@ export interface ScriptLineDto {
   id: string;
   sceneId: string;
   lineOrder: number;
+  kind?: ScriptLineKind | number | string;
+  speakerLabel?: string | null;
+  text?: string | null;
   speakerCharacterId?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
@@ -90,6 +104,9 @@ export interface ReorderSceneItem {
 }
 
 export interface CreateScriptLineRequest {
+  kind?: ScriptLineKind | number;
+  speakerLabel?: string | null;
+  text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
   speakerCharacterId?: string | null;
@@ -101,6 +118,9 @@ export interface CreateScriptLineRequest {
 }
 
 export interface UpdateScriptLineRequest {
+  kind?: ScriptLineKind | number;
+  speakerLabel?: string | null;
+  text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
   speakerCharacterId?: string | null;
@@ -117,6 +137,9 @@ export interface DeleteScriptLineResult {
 export interface BatchScriptLineItem {
   id?: string | null;
   lineOrder: number;
+  kind?: ScriptLineKind | number;
+  speakerLabel?: string | null;
+  text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
   speakerCharacterId?: string | null;

@@ -92,7 +92,8 @@ export const getActionTone = (act?: string | null): AdminTone => {
 
   // CRUD & workflow
   if (upper.includes('CREATE') || upper.includes('ADD')) return 'success';
-  if (upper.includes('DELETE') || upper.includes('REMOVE') || upper.includes('REJECT')) return 'danger';
+  if (upper.includes('DELETE') || upper.includes('REMOVE') || upper.includes('REJECT'))
+    return 'danger';
   if (upper.includes('UPDATE') || upper.includes('EDIT')) return 'info';
   if (upper.includes('ASSIGN')) return 'accent';
   if (upper.includes('APPROVE') || upper.includes('RESOLVE')) return 'success';

@@ -17,7 +17,7 @@ describe('Artist Desk 3-Column Workspace Suite', () => {
         currentPageNumber={2}
         totalPages={18}
         onSubmitReview={onSubmitReview}
-      />
+      />,
     );
 
     // 1. Top Header Navigation
@@ -74,7 +74,7 @@ describe('Artist Desk 3-Column Workspace Suite', () => {
         ]}
         selectedPanelId='panel-1'
         onSelectPanel={onSelectPanel}
-      />
+      />,
     );
 
     // Action / Stage Direction
@@ -110,7 +110,7 @@ describe('Artist Desk 3-Column Workspace Suite', () => {
         selectedPanelId='panel-1'
         onSelectPanel={onSelectPanel}
         onDropArtwork={onDropArtwork}
-      />
+      />,
     );
 
     // Check panel frame
@@ -143,7 +143,7 @@ describe('Artist Desk 3-Column Workspace Suite', () => {
           suggestedPrompt: 'Manga ink art of colossal ruined fortress gates',
         }}
         onGenerateAiImage={onGenerate}
-      />
+      />,
     );
 
     expect(screen.getByText('Khung #1 đang chọn')).toBeInTheDocument();
@@ -161,7 +161,33 @@ describe('Artist Desk 3-Column Workspace Suite', () => {
     expect(onGenerate).toHaveBeenCalledWith(
       'Manga ink art of colossal ruined fortress gates',
       expect.any(String),
-      'shonen'
+      'shonen',
     );
+  });
+
+  it('hỗ trợ bấm Phóng to xem chi tiết trên khung có ảnh để mở Lightbox', () => {
+    render(
+      <ArtistDeskLayout
+        initialPanels={[
+          {
+            id: 'panel-1',
+            panelNumber: 1,
+            readingOrder: 1,
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            imageUrl: 'https://example.com/panel1_art.png',
+          },
+        ]}
+      />
+    );
+
+    const zoomBtn = screen.getByTitle('Phóng to xem chi tiết');
+    expect(zoomBtn).toBeInTheDocument();
+    fireEvent.click(zoomBtn);
+
+    const lightbox = document.querySelector('.yarl__container');
+    expect(lightbox).toBeInTheDocument();
   });
 });

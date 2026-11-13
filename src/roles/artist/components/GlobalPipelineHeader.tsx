@@ -81,7 +81,9 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
     if (hasNext) onSelectPage(pages[currentIndex + 1]);
   };
 
-  const artistStages = stages.filter((s) => s.isEnabled !== false && getArtistStageKind(s) !== null);
+  const artistStages = stages.filter(
+    (s) => s.isEnabled !== false && getArtistStageKind(s) !== null,
+  );
   const stageList = artistStages.length > 0 ? artistStages : stages.slice(0, 3);
   const activeIndex = stageList.findIndex(
     (s) => s.id === (trueActiveStageId || currentActiveStage?.id || selectedStageFilter),
@@ -107,11 +109,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
       ? 'bg-indigo-500/10 text-indigo-900 border-indigo-300'
       : 'bg-purple-500/10 text-purple-900 border-purple-300';
 
-  const dotColor = isPencil
-    ? 'bg-amber-600'
-    : isInk
-      ? 'bg-indigo-600'
-      : 'bg-purple-600';
+  const dotColor = isPencil ? 'bg-amber-600' : isInk ? 'bg-indigo-600' : 'bg-purple-600';
 
   return (
     <header
@@ -130,7 +128,9 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
             onClick={onToggleLeftColumn}
             aria-expanded={!isLeftCollapsed}
             aria-controls='artist-left-column'
-            aria-label={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
+            aria-label={
+              isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'
+            }
             title={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
             data-testid='toggle-left-column'
             className='h-7 w-7 inline-flex items-center justify-center rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-stone-700 hover:text-stone-900 transition-colors cursor-pointer text-xs shrink-0'
@@ -163,7 +163,11 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-bold font-mono tracking-wide ${stageBadgeTone}`}
         >
           <span className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-pulse`} />
-          <span>{currentArtworkVersion ? `${stageProgressLabel} · v${currentArtworkVersion}` : stageProgressLabel}</span>
+          <span>
+            {currentArtworkVersion
+              ? `${stageProgressLabel} · v${currentArtworkVersion}`
+              : stageProgressLabel}
+          </span>
         </div>
       </div>
 
@@ -181,8 +185,20 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           const isInkTab = kind === 'ink' || (!kind && idx === 1);
           const isLetteringTab = kind === 'lettering' || (!kind && idx === 2);
 
-          const key = isPencilTab ? 'pencil' : isInkTab ? 'ink' : isLetteringTab ? 'lettering' : (stage.slug || stage.id);
-          const label = isPencilTab ? 'Pencil' : isInkTab ? 'Ink' : isLetteringTab ? 'Lettering' : stage.name;
+          const key = isPencilTab
+            ? 'pencil'
+            : isInkTab
+              ? 'ink'
+              : isLetteringTab
+                ? 'lettering'
+                : stage.slug || stage.id;
+          const label = isPencilTab
+            ? 'Pencil'
+            : isInkTab
+              ? 'Ink'
+              : isLetteringTab
+                ? 'Lettering'
+                : stage.name;
           const IconComp = isPencilTab ? Edit3 : isInkTab ? PenTool : Type;
 
           const isCurrentActive = idx === activeIndex;
@@ -200,7 +216,9 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
 
           return (
             <React.Fragment key={stage.id}>
-              {idx > 0 && <ChevronRight className='w-3 h-3 text-stone-400 shrink-0' aria-hidden='true' />}
+              {idx > 0 && (
+                <ChevronRight className='w-3 h-3 text-stone-400 shrink-0' aria-hidden='true' />
+              )}
               <button
                 type='button'
                 onClick={() => {
@@ -226,20 +244,34 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                       : 'text-stone-600 hover:text-stone-900 hover:bg-white/40 cursor-pointer'
                 }`}
               >
-                <span className={`flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-mono font-bold ${
-                  isSelected ? 'bg-orange-600 text-white' : isCompleted ? 'bg-emerald-600 text-white' : 'bg-stone-300 text-stone-700'
-                }`}>
+                <span
+                  className={`flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-mono font-bold ${
+                    isSelected
+                      ? 'bg-orange-600 text-white'
+                      : isCompleted
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-stone-300 text-stone-700'
+                  }`}
+                >
                   {isCompleted ? '✓' : idx + 1}
                 </span>
 
                 <div className='flex flex-col text-left leading-tight'>
                   <div className='flex items-center gap-1'>
-                    <IconComp className={`w-3 h-3 ${isSelected ? 'text-orange-600' : isLocked ? 'text-stone-400' : 'text-stone-500'}`} />
+                    <IconComp
+                      className={`w-3 h-3 ${isSelected ? 'text-orange-600' : isLocked ? 'text-stone-400' : 'text-stone-500'}`}
+                    />
                     <span className='font-bold'>{label}</span>
                   </div>
-                  <span className={`text-[9px] font-medium ${
-                    isSelected ? 'text-orange-700' : isCompleted ? 'text-emerald-700' : 'text-stone-400'
-                  }`}>
+                  <span
+                    className={`text-[9px] font-medium ${
+                      isSelected
+                        ? 'text-orange-700'
+                        : isCompleted
+                          ? 'text-emerald-700'
+                          : 'text-stone-400'
+                    }`}
+                  >
                     {statusText}
                   </span>
                 </div>
@@ -274,7 +306,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
               Trang {selectedPage ? String(selectedPage.pageNumber).padStart(2, '0') : '--'}/
               {String(pages.length).padStart(2, '0')}
               {selectedPage && (
-                <span data-testid="toolbar-page-context" className="sr-only">
+                <span data-testid='toolbar-page-context' className='sr-only'>
                   Trang {selectedPage.pageNumber}
                 </span>
               )}
@@ -303,7 +335,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           </div>
         </div>
 
-                {/* Nút Nhận diện AI Panel & Thoại (Trực quan trên Header Bar) */}
+        {/* Nút Nhận diện AI Panel & Thoại (Trực quan trên Header Bar) */}
         {canEdit && onTriggerDetect && hasArtworkForCurrentStage && (
           <button
             type='button'
@@ -323,7 +355,9 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
             {(() => {
               const currentIdx = stageList.findIndex((s) => s.id === activeStage.id);
               const canSubmit = hasArtworkForCurrentStage && !isSubmittingHandoff;
-              const kind = activeStageKind || (currentIdx === 0 ? 'pencil' : currentIdx === 1 ? 'ink' : 'lettering');
+              const kind =
+                activeStageKind ||
+                (currentIdx === 0 ? 'pencil' : currentIdx === 1 ? 'ink' : 'lettering');
 
               // BƯỚC 1: PENCIL ➔ INK: Submit to Ink
               if (kind === 'pencil') {

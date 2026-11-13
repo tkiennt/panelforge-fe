@@ -455,7 +455,10 @@ export const AiAssistPanel: React.FC<Props> = ({
             <div>
               <p className='font-semibold'>Phân cảnh này đã có khung tranh (panel)</p>
               <p className='mt-0.5 text-[11px] text-amber-800 leading-relaxed'>
-                Đề xuất phân khung Storyboard chỉ có thể áp dụng cho phân cảnh chưa có khung tranh. Để chia lại dòng kịch bản cho các khung có sẵn, vui lòng mở màn <strong>Bàn vẽ & Khung trang</strong> (Artist Desk) và dùng tính năng <strong>Tự động phân bổ kịch bản</strong>.
+                Đề xuất phân khung Storyboard chỉ có thể áp dụng cho phân cảnh chưa có khung tranh.
+                Để chia lại dòng kịch bản cho các khung có sẵn, vui lòng mở màn{' '}
+                <strong>Bàn vẽ & Khung trang</strong> (Artist Desk) và dùng tính năng{' '}
+                <strong>Tự động phân bổ kịch bản</strong>.
               </p>
             </div>
           </div>

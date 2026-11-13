@@ -61,7 +61,7 @@ export interface ScriptVersionState {
     initialRawText?: string,
     initialAST?: any,
     userRole?: 'WRITER' | 'PRODUCER',
-    userId?: string
+    userId?: string,
   ) => void;
   updateDraftText: (rawText: string, snapshotAST?: any) => void;
   submitForReview: () => void;
@@ -96,7 +96,7 @@ export const useScriptVersionStore = create<ScriptVersionState>((set, get) => ({
     initialRawText: string = '',
     initialAST: any = null,
     userRole: 'WRITER' | 'PRODUCER' = 'WRITER',
-    userId: string = 'writer-user'
+    userId: string = 'writer-user',
   ) => {
     const existing = loadVersionsFromStorage(chapterId);
     let versions: ScriptVersion[];
@@ -231,4 +231,3 @@ export const useScriptVersionStore = create<ScriptVersionState>((set, get) => ({
     return versions.find((v) => v.id === previewVersionId);
   },
 }));
-

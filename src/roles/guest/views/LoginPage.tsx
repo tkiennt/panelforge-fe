@@ -80,6 +80,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     // Default standalone auth handling if not provided by App wrapper
     const role: SystemRole = normalizeSystemRole(response.user?.role);
     localStorage.setItem('userRole', role);
+    localStorage.setItem('pf_has_session', 'true');
     if (response.user) {
       localStorage.setItem('user', JSON.stringify(response.user));
     }
@@ -167,7 +168,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     const cleanCode = twoFactorCode.trim();
     if (cleanCode.length !== 6) {
-      setServerError('Vui lòng nhập đầy đủ mã xác thực gồm 6 chữ số.');
+      setServerError(
+        t('common.auth.errTwoFactorCodeLength', 'Vui lòng nhập đầy đủ mã xác thực gồm 6 chữ số.'),
+      );
       return;
     }
 
@@ -190,7 +193,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       await handleAuthTransition(response);
     } catch (err: any) {
       console.error('Lỗi xác thực 2FA:', err);
-      setServerError(err.message || 'Mã xác thực 2FA không chính xác hoặc đã hết hạn.');
+      setServerError(
+        err.message ||
+          t('common.auth.errTwoFactorInvalid', 'Mã xác thực 2FA không chính xác hoặc đã hết hạn.'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -201,7 +207,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     const targetEmail = forgotEmail.trim() || email.trim();
     if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
-      setServerError('Vui lòng nhập địa chỉ email hợp lệ để nhận mã OTP.');
+      setServerError(
+        t(
+          'common.auth.errForgotEmailRequired',
+          'Vui lòng nhập địa chỉ email hợp lệ để nhận mã OTP.',
+        ),
+      );
       return;
     }
 
@@ -213,11 +224,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       setForgotEmail(targetEmail);
       setStep('reset');
       setSuccessNotice(
+        t(
+          'common.auth.otpSentNotice',
+          { email: targetEmail },
         `Mã OTP 6 chữ số đã được gửi đến email ${targetEmail}. Vui lòng kiểm tra hộp thư.`,
+        ),
       );
     } catch (err: any) {
       console.error('Lỗi yêu cầu quên mật khẩu:', err);
-      setServerError(err.message || 'Không thể gửi yêu cầu đặt lại mật khẩu.');
+      setServerError(
+        err.message || t('common.auth.errForgotFailed', 'Không thể gửi yêu cầu đặt lại mật khẩu.'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -228,24 +245,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     const targetEmail = forgotEmail.trim() || email.trim();
     if (!targetEmail) {
-      setServerError('Vui lòng nhập email tài khoản.');
+      setServerError(t('common.auth.errEmailRequired', 'Vui lòng nhập email tài khoản.'));
       return;
     }
 
     if (resetOtp.trim().length !== 6) {
-      setServerError('Mã OTP phải gồm đúng 6 chữ số.');
+      setServerError(t('common.auth.errOtpLength', 'Mã OTP phải gồm đúng 6 chữ số.'));
       return;
     }
 
     if (newPassword !== confirmNewPassword) {
-      setServerError('Mật khẩu xác nhận không khớp.');
+      setServerError(t('common.auth.errPasswordMismatch', 'Mật khẩu xác nhận không khớp.'));
       return;
     }
 
     const pwdRegex = /^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{6,}$/;
     if (!pwdRegex.test(newPassword)) {
       setServerError(
+        t(
+          'common.auth.errPasswordComplexity',
         'Mật khẩu mới phải có ít nhất 6 ký tự, chứa ít nhất 1 chữ hoa và 1 ký tự đặc biệt.',
+        ),
       );
       return;
     }
@@ -265,11 +285,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       setPassword('');
       setStep('login');
       setSuccessNotice(
+        t(
+          'common.auth.resetSuccessNotice',
         'Kích hoạt tài khoản / Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.',
+        ),
       );
     } catch (err: any) {
       console.error('Lỗi đặt lại mật khẩu:', err);
-      setServerError(err.message || 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.');
+      setServerError(
+        err.message || t('common.auth.errLoginFailed', 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -365,11 +390,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 <ArrowLeft className='w-4 h-4' />
               </button>
               <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
-                Xác thực hai bước (2FA)
+                {t('common.auth.twoFactorTitle', 'Xác thực hai bước (2FA)')}
               </h1>
             </div>
             <p className='text-xs text-[#777169] mt-1'>
-              Nhập mã 6 chữ số từ ứng dụng Authenticator của bạn.
+              {t(
+                'common.auth.twoFactorDesc',
+                'Nhập mã 6 chữ số từ ứng dụng Authenticator của bạn.',
+              )}
             </p>
           </div>
         )}
@@ -385,11 +413,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 <ArrowLeft className='w-4 h-4' />
               </button>
               <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
-                Quên mật khẩu
+                {t('common.auth.forgotTitle', 'Quên mật khẩu')}
               </h1>
             </div>
             <p className='text-xs text-[#777169] mt-1'>
-              Nhập email để nhận mã xác nhận đặt lại mật khẩu.
+              {t(
+                'common.auth.forgotDesc',
+                'Nhập email để nhận mã xác nhận đặt lại mật khẩu.',
+              )}
             </p>
           </div>
         )}
@@ -405,11 +436,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 <ArrowLeft className='w-4 h-4' />
               </button>
               <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
-                Kích hoạt & Đặt lại mật khẩu
+                {t('common.auth.resetTitle', 'Kích hoạt & Đặt lại mật khẩu')}
               </h1>
             </div>
             <p className='text-xs text-[#777169] mt-1'>
-              Nhập mã OTP 6 số và thiết lập mật khẩu mới.
+              {t('common.auth.resetDesc', 'Nhập mã OTP 6 số và thiết lập mật khẩu mới.')}
             </p>
           </div>
         )}
@@ -641,7 +672,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               htmlFor='two-factor-code'
               className='block text-xs font-semibold text-[#171717] mb-1.5'
             >
-              Mã xác thực 6 chữ số
+              {t('common.auth.twoFactorCodeLabel', 'Mã xác thực 6 chữ số')}
             </label>
             <input
               id='two-factor-code'
@@ -668,7 +699,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               className='w-4 h-4 rounded border-stone-300 text-[#F97316] focus:ring-[#F97316]'
             />
             <label htmlFor='remember-device' className='text-xs text-[#777169] cursor-pointer'>
-              Ghi nhớ thiết bị này trong 30 ngày
+              {t('common.auth.rememberDevice', 'Ghi nhớ thiết bị này trong 30 ngày')}
             </label>
           </div>
 
@@ -680,10 +711,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             {isLoading ? (
               <>
                 <Loader2 className='w-4 h-4 animate-spin' />
-                <span>Đang kiểm tra mã 2FA…</span>
+                <span>{t('common.auth.twoFactorChecking', 'Đang kiểm tra mã 2FA…')}</span>
               </>
             ) : (
-              <span>Xác nhận & Vào Studio</span>
+              <span>{t('common.auth.twoFactorConfirm', 'Xác nhận & Vào Studio')}</span>
             )}
           </button>
         </form>
@@ -699,7 +730,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               htmlFor='forgot-email'
               className='block text-xs font-semibold text-[#171717] mb-1.5'
             >
-              Email tài khoản
+              {t('common.auth.accountEmail', 'Email tài khoản')}
             </label>
             <input
               id='forgot-email'
@@ -721,10 +752,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             {isLoading ? (
               <>
                 <Loader2 className='w-4 h-4 animate-spin' />
-                <span>Đang gửi mã…</span>
+                <span>{t('common.auth.sendingOtp', 'Đang gửi mã…')}</span>
               </>
             ) : (
-              <span>Gửi mã xác nhận OTP</span>
+              <span>{t('common.auth.sendOtp', 'Gửi mã xác nhận OTP')}</span>
             )}
           </button>
         </form>
@@ -740,7 +771,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               htmlFor='reset-email'
               className='block text-xs font-semibold text-[#171717] mb-1'
             >
-              Email
+              {t('common.auth.email', 'Email')}
             </label>
             <input
               id='reset-email'
@@ -756,7 +787,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
           <div>
             <label htmlFor='reset-otp' className='block text-xs font-semibold text-[#171717] mb-1'>
-              Mã OTP (6 số)
+              {t('common.auth.otpLabel', 'Mã OTP (6 số)')}
             </label>
             <input
               id='reset-otp'
@@ -776,7 +807,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               htmlFor='reset-new-password'
               className='block text-xs font-semibold text-[#171717] mb-1'
             >
-              Mật khẩu mới
+              {t('common.auth.newPassword', 'Mật khẩu mới')}
             </label>
             <div className='relative'>
               <input
@@ -784,7 +815,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 type={showNewPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder='Tối thiểu 6 ký tự, 1 hoa, 1 ký tự đặc biệt'
+                placeholder={t('common.auth.newPasswordHint', 'Tối thiểu 6 ký tự, 1 hoa, 1 ký tự đặc biệt')}
                 required
                 disabled={isLoading}
                 className='w-full pl-3.5 pr-10 py-2 bg-white border border-[#E7E5E4] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 rounded-xl text-xs text-[#171717] outline-none'
@@ -804,14 +835,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               htmlFor='reset-confirm-password'
               className='block text-xs font-semibold text-[#171717] mb-1'
             >
-              Xác nhận mật khẩu mới
+              {t('common.auth.confirmNewPassword', 'Xác nhận mật khẩu mới')}
             </label>
             <input
               id='reset-confirm-password'
               type={showNewPassword ? 'text' : 'password'}
               value={confirmNewPassword}
               onChange={(e) => setConfirmNewPassword(e.target.value)}
-              placeholder='Nhập lại mật khẩu mới'
+              placeholder={t('common.auth.confirmNewPasswordPlaceholder', 'Nhập lại mật khẩu mới')}
               required
               disabled={isLoading}
               className='w-full px-3.5 py-2 bg-white border border-[#E7E5E4] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 rounded-xl text-xs text-[#171717] outline-none'
@@ -826,10 +857,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             {isLoading ? (
               <>
                 <Loader2 className='w-4 h-4 animate-spin' />
-                <span>Đang xử lý…</span>
+                <span>{t('common.actions.saving', 'Đang xử lý…')}</span>
               </>
             ) : (
-              <span>Xác nhận & Cập nhật mật khẩu</span>
+              <span>{t('common.auth.resetSubmit', 'Xác nhận & Cập nhật mật khẩu')}</span>
             )}
           </button>
         </form>

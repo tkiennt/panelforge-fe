@@ -68,7 +68,7 @@ describe('ThumbnailStudioBoard Component', () => {
 
     expect(onShowToast).toHaveBeenCalledWith(
       expect.stringContaining('Chèn trang đệm'),
-      expect.any(String)
+      expect.any(String),
     );
 
     // Page 1.5 should now exist in AST
@@ -85,7 +85,7 @@ describe('ThumbnailStudioBoard Component', () => {
 
     expect(onShowToast).toHaveBeenCalledWith(
       expect.stringContaining('Thêm trang thành công'),
-      expect.any(String)
+      expect.any(String),
     );
   });
 
@@ -117,7 +117,7 @@ describe('ThumbnailStudioBoard Component', () => {
         scenes={mockScenes}
         getSpeakerName={() => 'Minh'}
         onShowToast={onShowToast}
-      />
+      />,
     );
 
     const syncBtn = screen.getByTestId('sync-from-scenes-btn');
@@ -125,7 +125,7 @@ describe('ThumbnailStudioBoard Component', () => {
 
     expect(onShowToast).toHaveBeenCalledWith(
       expect.stringContaining('Đã đồng bộ kịch bản'),
-      expect.any(String)
+      expect.any(String),
     );
   });
 });

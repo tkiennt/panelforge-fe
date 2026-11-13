@@ -18,7 +18,7 @@ Bản nộp ở giữa, cột phải có hai tab **Nhận xét** / **Kiểm tra*
 - **Nhận xét = yêu cầu sửa.** Nhận xét (dòng kịch bản, hoặc vùng khoanh trên tranh) được giữ làm nháp theo từng lần nộp và chỉ gửi khi trả bài; mỗi nhận xét thành một `ChangeRequest`.
 - **Trả bài** bắt buộc có nhận xét chung (BR-06). **Duyệt** bị khoá khi còn nháp chưa gửi hoặc còn yêu cầu sửa `Open`/`Resolved`; lý do hiện bằng chữ.
 - Yêu cầu sửa `Resolved`: **Đạt** (Verified) hoặc **Chưa đạt** (mở lại, bắt buộc lý do). Yêu cầu `Open`: **Bỏ yêu cầu** (Rejected, bắt buộc lý do).
-- Phát hiện nhất quán: Bỏ qua / Cần làm rõ bắt buộc ghi lý do (BR-21). Lý do nhập tại chỗ (`review-shared/ReasonForm`), không dùng `window.prompt`.
+- Phát hiện nhất quán: Bỏ qua / Cần làm rõ bắt buộc ghi lý do (BR-21). Lý do nhập tại chỗ (`shared/components/ReasonForm`), không dùng `window.prompt`.
 - Người nhận việc không duyệt được việc của mình; backend chặn (403), giao diện chỉ báo lý do.
 
 ## 4. Cấu trúc thư mục

@@ -1,7 +1,7 @@
 import type { ChangeRequestItemRequest } from '@/types/pipeline';
 import type { SceneScriptLineSummaryDto } from '@/services/scriptLine.service';
 
-export { crStatus, isCrClosed, type CrStatus } from '../review-shared/reviewModel';
+export { crStatus, isCrClosed, type CrStatus } from './reviewModel';
 
 /**
  * Nhận xét nháp của phiên duyệt hiện tại. Mỗi nhận xét trở thành đúng một ChangeRequest khi Editor trả bài

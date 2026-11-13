@@ -27,7 +27,7 @@ import {
 } from '@/services/assignment.service';
 import { StatusBadge, StageLabel } from './ProductionTaskCard';
 import { useTaskThumbnail } from './useTaskThumbnail';
-import { DependencyGraphModal } from '@/roles/producer/components/DependencyGraphModal';
+import { DependencyGraphModal } from './DependencyGraphModal';
 
 export interface SideDrawerProps {
   isOpen: boolean;

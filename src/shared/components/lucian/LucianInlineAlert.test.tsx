@@ -37,13 +37,7 @@ describe('LucianInlineAlert Component', () => {
 
   it('đóng thông báo và gọi callback onDismiss', () => {
     const handleDismiss = vi.fn();
-    render(
-      <LucianInlineAlert
-        type='info'
-        title='Thông báo hệ thống'
-        onDismiss={handleDismiss}
-      />,
-    );
+    render(<LucianInlineAlert type='info' title='Thông báo hệ thống' onDismiss={handleDismiss} />);
 
     const closeBtn = screen.getByRole('button', { name: 'Đóng thông báo' });
     fireEvent.click(closeBtn);

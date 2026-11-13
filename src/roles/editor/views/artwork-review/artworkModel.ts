@@ -1,4 +1,4 @@
-import type { CrStatus } from '../review-shared/reviewModel';
+import type { CrStatus } from '@/shared/features/script-review/reviewModel';
 
 export interface Box {
   x: number;

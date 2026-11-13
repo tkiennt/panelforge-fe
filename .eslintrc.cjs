@@ -1,4 +1,14 @@
-const ROLES = ['admin', 'producer', 'writer', 'artist', 'letterer', 'editor', 'publisher', 'reader', 'guest'];
+const ROLES = [
+  'admin',
+  'producer',
+  'writer',
+  'artist',
+  'letterer',
+  'editor',
+  'publisher',
+  'reader',
+  'guest',
+];
 
 const roleOverrides = ROLES.map((role) => {
   const otherRoles = ROLES.filter((r) => r !== role);
@@ -42,6 +52,10 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
     'react-hooks/set-state-in-effect': 'off',
+    // Các rule dưới đây chỉ phục vụ React Compiler; dự án chưa bật compiler (vite dùng plugin react thường).
+    'react-hooks/refs': 'off',
+    'react-hooks/immutability': 'off',
+    'react-hooks/preserve-manual-memoization': 'off',
   },
   overrides: [
     // 1 & 2. Chặn import chéo giữa các role

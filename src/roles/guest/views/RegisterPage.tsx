@@ -16,12 +16,14 @@ import {
 import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
 import { AuthResponse, SystemRole, normalizeSystemRole } from '@/types';
+import { useTranslation } from '@/lib/i18n';
 
 export interface RegisterPageProps {
   onRegisterSuccess?: (authResponse: AuthResponse) => void;
 }
 
 export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -81,9 +83,15 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
   const handleConfirmPasswordBlur = () => {
     setConfirmPasswordTouched(true);
     if (!confirmPassword) {
-      setFieldErrors((prev) => ({ ...prev, confirmPassword: 'Vui lòng xác nhận mật khẩu.' }));
+      setFieldErrors((prev) => ({
+        ...prev,
+        confirmPassword: t('common.auth.errConfirmPasswordRequired', 'Vui lòng xác nhận mật khẩu.'),
+      }));
     } else if (confirmPassword !== password) {
-      setFieldErrors((prev) => ({ ...prev, confirmPassword: 'Mật khẩu xác nhận không khớp.' }));
+      setFieldErrors((prev) => ({
+        ...prev,
+        confirmPassword: t('common.auth.errPasswordMismatch', 'Mật khẩu xác nhận không khớp.'),
+      }));
     } else {
       setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
     }
@@ -93,12 +101,15 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
   useEffect(() => {
     if (confirmPasswordTouched && confirmPassword) {
       if (confirmPassword !== password) {
-        setFieldErrors((prev) => ({ ...prev, confirmPassword: 'Mật khẩu xác nhận không khớp.' }));
+        setFieldErrors((prev) => ({
+          ...prev,
+          confirmPassword: t('common.auth.errPasswordMismatch', 'Mật khẩu xác nhận không khớp.'),
+        }));
       } else {
         setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
       }
     }
-  }, [password, confirmPassword, confirmPasswordTouched]);
+  }, [password, confirmPassword, confirmPasswordTouched, t]);
 
   // Auth transition after PIN verification or Google Sign-In
   const handleAuthTransition = async (response: AuthResponse) => {
@@ -109,6 +120,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
 
     const role: SystemRole = normalizeSystemRole(response.user?.role);
     localStorage.setItem('userRole', role);
+    localStorage.setItem('pf_has_session', 'true');
     if (response.user) {
       localStorage.setItem('user', JSON.stringify(response.user));
     }
@@ -287,7 +299,9 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
             <span className='font-serif text-2xl font-bold tracking-tight text-[#171717]'>
               PanelForge
             </span>
-            <p className='text-xs text-[#777169] font-medium'>Không gian sản xuất truyện tranh</p>
+            <p className='text-xs text-[#777169] font-medium'>
+              {t('common.auth.mangaWorkspaceTagline', 'Không gian sản xuất truyện tranh')}
+            </p>
           </div>
         </div>
 
@@ -297,10 +311,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               id='auth-dialog-title'
               className='text-2xl sm:text-3xl font-serif font-light text-[#0c0a09] tracking-tight'
             >
-              Bắt đầu câu chuyện <em className='font-light italic text-[#292524]'>mới</em>
+              {t('common.auth.registerTitle', 'Bắt đầu câu chuyện mới')}
             </h1>
             <p className='text-xs sm:text-sm text-[#777169] mt-1'>
-              Tạo tài khoản để cộng tác cùng studio của bạn.
+              {t('common.auth.registerSubtitle', 'Tạo tài khoản để cộng tác cùng studio của bạn.')}
             </p>
           </div>
         ) : (
@@ -310,17 +324,20 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
                 type='button'
                 onClick={() => setStep('register')}
                 className='text-[#777169] hover:text-[#171717] transition-colors p-1 -ml-1 rounded-md'
-                title='Quay lại form đăng ký'
+                title={t('common.auth.backToRegister', 'Quay lại form đăng ký')}
               >
                 <ArrowLeft className='w-4 h-4' />
               </button>
               <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
-                Kiểm tra email để kích hoạt
+                {t('common.auth.checkEmailTitle', 'Kiểm tra email để kích hoạt')}
               </h1>
             </div>
             <p className='text-xs text-[#777169] mt-1 leading-relaxed'>
-              Nhập mã PIN 6 số đã được gửi đến hộp thư:{' '}
-              <span className='font-mono font-bold text-[#171717]'>{email}</span>
+              {t(
+                'common.auth.checkEmailDesc',
+                { email },
+                `Nhập mã PIN 6 số đã được gửi đến hộp thư: ${email}`,
+              )}
             </p>
           </div>
         )}
@@ -358,7 +375,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               htmlFor='register-fullname'
               className='block text-xs font-semibold text-[#171717] mb-1'
             >
-              Họ và tên <span className='text-red-500'>*</span>
+              {t('common.auth.fullName', 'Họ và tên')} <span className='text-red-500'>*</span>
             </label>
             <input
               id='register-fullname'
@@ -394,7 +411,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               htmlFor='register-email'
               className='block text-xs font-semibold text-[#171717] mb-1'
             >
-              Email <span className='text-red-500'>*</span>
+              {t('common.auth.email', 'Email')} <span className='text-red-500'>*</span>
             </label>
             <input
               id='register-email'
@@ -429,7 +446,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               htmlFor='register-password'
               className='block text-xs font-semibold text-[#171717] mb-1'
             >
-              Mật khẩu <span className='text-red-500'>*</span>
+              {t('common.auth.password', 'Mật khẩu')} <span className='text-red-500'>*</span>
             </label>
             <div className='relative'>
               <input
@@ -455,7 +472,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               <button
                 type='button'
                 onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                aria-label={
+                  showPassword
+                    ? t('common.auth.hidePassword', 'Ẩn mật khẩu')
+                    : t('common.auth.showPassword', 'Hiện mật khẩu')
+                }
                 className='absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#777169] hover:text-[#171717] transition-colors cursor-pointer rounded-md'
               >
                 {showPassword ? <EyeOff className='w-4 h-4' /> : <Eye className='w-4 h-4' />}
@@ -468,7 +489,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               className='mt-2 p-2.5 rounded-lg bg-stone-100/70 border border-stone-200/80 space-y-1'
             >
               <div className='text-[10px] font-mono uppercase font-semibold text-stone-500 mb-1'>
-                Yêu cầu mật khẩu:
+                {t('common.auth.passwordChecklistTitle', 'Yêu cầu mật khẩu:')}
               </div>
               <div className='flex items-center gap-2 text-xs'>
                 {hasMinLength ? (
@@ -477,7 +498,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
                   <span className='w-3.5 h-3.5 rounded-full border border-stone-300 shrink-0 inline-block' />
                 )}
                 <span className={hasMinLength ? 'text-emerald-700 font-medium' : 'text-stone-500'}>
-                  Ít nhất 6 ký tự
+                  {t('common.auth.reqMinChars', 'Ít nhất 6 ký tự')}
                 </span>
               </div>
 
@@ -488,7 +509,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
                   <span className='w-3.5 h-3.5 rounded-full border border-stone-300 shrink-0 inline-block' />
                 )}
                 <span className={hasUppercase ? 'text-emerald-700 font-medium' : 'text-stone-500'}>
-                  Ít nhất 1 chữ cái viết hoa (A-Z)
+                  {t('common.auth.reqUppercase', 'Ít nhất 1 chữ cái viết hoa (A-Z)')}
                 </span>
               </div>
 
@@ -501,7 +522,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
                 <span
                   className={hasSpecialChar ? 'text-emerald-700 font-medium' : 'text-stone-500'}
                 >
-                  Ít nhất 1 ký tự đặc biệt (ví dụ: !@#$%^&*...)
+                  {t('common.auth.reqSpecial', 'Ít nhất 1 ký tự đặc biệt (ví dụ: !@#$%^&*...)')}
                 </span>
               </div>
             </div>
@@ -516,7 +537,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               htmlFor='register-confirm-password'
               className='block text-xs font-semibold text-[#171717] mb-1'
             >
-              Xác nhận mật khẩu <span className='text-red-500'>*</span>
+              {t('common.auth.confirmNewPassword', 'Xác nhận mật khẩu')}{' '}
+              <span className='text-red-500'>*</span>
             </label>
             <div className='relative'>
               <input
@@ -526,7 +548,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 onBlur={handleConfirmPasswordBlur}
-                placeholder='Nhập lại mật khẩu vừa tạo'
+                placeholder={t(
+                  'common.auth.confirmPasswordPlaceholder',
+                  'Nhập lại mật khẩu vừa tạo',
+                )}
                 required
                 aria-describedby={
                   fieldErrors.confirmPassword ? 'register-confirm-error' : undefined
@@ -542,7 +567,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               <button
                 type='button'
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                aria-label={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                aria-label={
+                  showConfirmPassword
+                    ? t('common.auth.hidePassword', 'Ẩn mật khẩu')
+                    : t('common.auth.showPassword', 'Hiện mật khẩu')
+                }
                 className='absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#777169] hover:text-[#171717] transition-colors cursor-pointer rounded-md'
               >
                 {showConfirmPassword ? <EyeOff className='w-4 h-4' /> : <Eye className='w-4 h-4' />}
@@ -561,7 +590,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               htmlFor='register-phone'
               className='block text-xs font-semibold text-[#171717] mb-1'
             >
-              Số điện thoại <span className='text-stone-400 font-normal'>(Tùy chọn)</span>
+              {t('common.auth.phoneNumber', 'Số điện thoại')}{' '}
+              <span className='text-stone-400 font-normal'>
+                {t('common.auth.phoneOptional', '(Tùy chọn)')}
+              </span>
             </label>
             <input
               id='register-phone'
@@ -591,10 +623,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
             {isLoading ? (
               <>
                 <Loader2 className='w-4 h-4 animate-spin' />
-                <span>Đang tạo tài khoản…</span>
+                <span>{t('common.auth.registerSubmitting', 'Đang tạo tài khoản…')}</span>
               </>
             ) : (
-              <span>Đăng ký tài khoản</span>
+              <span>{t('common.auth.registerSubmit', 'Đăng ký tài khoản')}</span>
             )}
           </button>
 
@@ -602,7 +634,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
           <div className='relative flex items-center justify-center my-3.5'>
             <div className='w-full border-t border-[#E7E5E4]' />
             <span className='absolute bg-[#FAF8F5] px-3 text-[11px] font-mono text-[#777169] uppercase tracking-wider'>
-              hoặc
+              {t('common.auth.or', 'hoặc')}
             </span>
           </div>
 
@@ -631,19 +663,19 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
                 fill='#EA4335'
               />
             </svg>
-            <span>Đăng ký với Google</span>
+            <span>{t('common.auth.googleSignUp', 'Đăng ký với Google')}</span>
           </button>
 
           {/* Switch to login */}
           <div className='text-center pt-3'>
             <p className='text-xs text-[#777169]'>
-              Đã có tài khoản?{' '}
+              {t('common.auth.haveAccount', 'Đã có tài khoản?')}{' '}
               <Link
                 to={`/login${location.search}`}
                 replace
                 className='font-semibold text-[#171717] hover:text-[#F97316] hover:underline'
               >
-                Đăng nhập
+                {t('common.auth.signIn', 'Đăng nhập')}
               </Link>
             </p>
           </div>
@@ -658,9 +690,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
           <div>
             <div className='flex items-center justify-between mb-1.5'>
               <label htmlFor='register-pin' className='block text-xs font-semibold text-[#171717]'>
-                Mã PIN bảo mật 6 số
+                {t('common.auth.pinSecurityLabel', 'Mã PIN bảo mật 6 số')}
               </label>
-              <span className='text-[11px] font-mono text-stone-500'>Hạn 15 phút</span>
+              <span className='text-[11px] font-mono text-stone-500'>
+                {t('common.auth.pinExpires', 'Hạn 15 phút')}
+              </span>
             </div>
             <input
               id='register-pin'
@@ -677,7 +711,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               className='w-full text-center text-3xl font-mono font-bold tracking-[0.5em] py-3.5 px-4 bg-white border border-[#E7E5E4] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 rounded-xl outline-none transition-all shadow-xs'
             />
             <p className='text-[11px] text-[#777169] text-center mt-2'>
-              Kiểm tra hộp thư chính hoặc thư rác (Spam).
+              {t('common.auth.checkSpamHint', 'Kiểm tra hộp thư chính hoặc thư rác (Spam).')}
             </p>
           </div>
 
@@ -689,10 +723,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
             {isLoading ? (
               <>
                 <Loader2 className='w-4 h-4 animate-spin' />
-                <span>Đang xác thực mã PIN…</span>
+                <span>{t('common.auth.verifyingPin', 'Đang xác thực mã PIN…')}</span>
               </>
             ) : (
-              <span>Xác thực & Vào Studio</span>
+              <span>{t('common.auth.verifyPinSubmit', 'Xác thực & Vào Studio')}</span>
             )}
           </button>
 
@@ -707,8 +741,12 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
               <span>
                 {resendCooldown > 0
-                  ? `Gửi lại mã sau (${resendCooldown}s)`
-                  : 'Chưa nhận được mã? Gửi lại'}
+                  ? t(
+                      'common.auth.resendPinCountdown',
+                      { seconds: resendCooldown },
+                      `Gửi lại mã sau (${resendCooldown}s)`,
+                    )
+                  : t('common.auth.resendPinPrompt', 'Chưa nhận được mã? Gửi lại')}
               </span>
             </button>
           </div>

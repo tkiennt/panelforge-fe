@@ -78,7 +78,9 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
   const stats = useMemo(() => {
     const total = chapters.length;
     const frozen = chapters.filter((c) => !!c.isScriptFrozen).length;
-    const approved = chapters.filter((c) => c.status === 'Approved' || c.status === 'Published').length;
+    const approved = chapters.filter(
+      (c) => c.status === 'Approved' || c.status === 'Published',
+    ).length;
     const inProgress = chapters.filter(
       (c) => !c.isScriptFrozen && c.status !== 'Approved' && c.status !== 'Published',
     ).length;
@@ -103,7 +105,9 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
     if (statusFilter === 'frozen') {
       list = list.filter((c) => !!c.isScriptFrozen);
     } else if (statusFilter === 'in_progress') {
-      list = list.filter((c) => !c.isScriptFrozen && c.status !== 'Approved' && c.status !== 'Published');
+      list = list.filter(
+        (c) => !c.isScriptFrozen && c.status !== 'Approved' && c.status !== 'Published',
+      );
     } else if (statusFilter === 'approved') {
       list = list.filter((c) => c.status === 'Approved' || c.status === 'Published');
     }
@@ -123,7 +127,9 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
 
   const handleSelectChapter = (chapterId: string) => {
     if (!workspaceId || !seriesId) return;
-    navigate(`/workspaces/${workspaceId}/series/${seriesId}/artist/desk?chapterId=${chapterId}&tab=lettering`);
+    navigate(
+      `/workspaces/${workspaceId}/series/${seriesId}/artist/desk?chapterId=${chapterId}&tab=lettering`,
+    );
   };
 
   const getStatusBadge = (chapter: ChapterDto) => {
@@ -183,8 +189,8 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
               Chọn Chương Để Mở Bàn Xếp Chữ Chuyên Dụng
             </strong>{' '}
             — Lựa chọn một chương để bước vào không gian làm việc toàn màn hình độc lập (Focus
-            Workspace), định vị bóng thoại (Balloons), neo liên kết kịch bản (Script Anchoring),
-            căn chỉnh kiểu chữ và xuất trang thoại hoàn chỉnh.
+            Workspace), định vị bóng thoại (Balloons), neo liên kết kịch bản (Script Anchoring), căn
+            chỉnh kiểu chữ và xuất trang thoại hoàn chỉnh.
           </p>
         </div>
 
@@ -197,9 +203,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
             <div className='text-[10.5px] uppercase font-bold tracking-wider text-[#78716C]'>
               Tổng chương
             </div>
-            <div className='text-xl font-black text-[#1C1917] mt-0.5'>
-              {stats.total}
-            </div>
+            <div className='text-xl font-black text-[#1C1917] mt-0.5'>{stats.total}</div>
           </div>
 
           <div
@@ -209,9 +213,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
             <div className='text-[10.5px] uppercase font-bold tracking-wider text-amber-800'>
               Đang viết / vẽ
             </div>
-            <div className='text-xl font-black text-amber-900 mt-0.5'>
-              {stats.inProgress}
-            </div>
+            <div className='text-xl font-black text-amber-900 mt-0.5'>{stats.inProgress}</div>
           </div>
 
           <div
@@ -221,9 +223,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
             <div className='text-[10.5px] uppercase font-bold tracking-wider text-indigo-800'>
               Kịch bản khóa
             </div>
-            <div className='text-xl font-black text-indigo-900 mt-0.5'>
-              {stats.frozen}
-            </div>
+            <div className='text-xl font-black text-indigo-900 mt-0.5'>{stats.frozen}</div>
           </div>
         </div>
       </div>

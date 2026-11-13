@@ -33,7 +33,6 @@ export interface PageDto {
   contentReadyById?: string | null;
 }
 
-
 export interface ReorderPageRequest {
   newPageNumber: number;
 }
@@ -118,13 +117,15 @@ export interface SyncScriptStructureResult {
   pagesCreated: number;
   panelsCreated: number;
   linesAnchored: number;
-  unlistedPageNumbers: number[];
+  /** Trang / Panel kịch bản không còn nhắc tới, đã bị xoá mềm theo kịch bản. */
+  pagesRemoved: number;
+  panelsRemoved: number;
 }
 
 export const pageService = {
   syncScriptStructure: async (
     chapterId: string,
-    pages: ScriptStructurePage[]
+    pages: ScriptStructurePage[],
   ): Promise<SyncScriptStructureResult> => {
     try {
       const response = await axiosClient.put(`/chapters/${chapterId}/script-structure`, { pages });
@@ -133,7 +134,6 @@ export const pageService = {
       throw await toPageError(error, 'Lưu cấu trúc Trang / Panel thất bại.');
     }
   },
-
 
   createPage: async (chapterId: string, body: CreatePageRequestBody): Promise<PageDto> => {
     const validChapterId = toValidChapterGuid(chapterId);
@@ -252,7 +252,9 @@ export const pageService = {
   /** V2.5: Bật/tắt trạng thái phân trang sẵn sàng (POST /api/chapters/{chapterId}/pages/{pageId}/content-ready) */
   toggleContentReady: async (chapterId: string, pageId: string): Promise<PageDto> => {
     try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/pages/${pageId}/content-ready`);
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/pages/${pageId}/content-ready`,
+      );
       return response.data;
     } catch (error) {
       throw await toPageError(error, 'Không thể cập nhật trạng thái ContentReady của trang.');

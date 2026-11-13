@@ -12,7 +12,12 @@ export interface ChapterScriptContext {
 }
 
 export type ChapterScriptEvent =
-  | { type: 'SYNC_STATUS'; isScriptFrozen: boolean; scriptReopenStatus: 'None' | 'Requested' | 'Approved' | 'Rejected'; scriptReopenReason?: string | null }
+  | {
+      type: 'SYNC_STATUS';
+      isScriptFrozen: boolean;
+      scriptReopenStatus: 'None' | 'Requested' | 'Approved' | 'Rejected';
+      scriptReopenReason?: string | null;
+    }
   | { type: 'BIBLE_GATE_CHECKED'; isPassed: boolean; pendingCount: number }
   | { type: 'SUBMIT_FOR_APPROVAL' }
   | { type: 'PRODUCER_FREEZE' }
@@ -53,7 +58,8 @@ export const chapterScriptMachine = setup({
     evaluating: {
       always: [
         {
-          guard: ({ context }) => context.isScriptFrozen && context.scriptReopenStatus === 'Requested',
+          guard: ({ context }) =>
+            context.isScriptFrozen && context.scriptReopenStatus === 'Requested',
           target: 'reopenRequested',
         },
         {
@@ -61,7 +67,8 @@ export const chapterScriptMachine = setup({
           target: 'frozen',
         },
         {
-          guard: ({ context }) => !context.isScriptFrozen && context.scriptReopenStatus === 'Approved',
+          guard: ({ context }) =>
+            !context.isScriptFrozen && context.scriptReopenStatus === 'Approved',
           target: 'unfrozenRevision',
         },
         { target: 'drafting' },
@@ -177,4 +184,3 @@ export const chapterScriptMachine = setup({
     },
   },
 });
-

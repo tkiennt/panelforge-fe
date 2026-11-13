@@ -1,6 +1,10 @@
 // src/roles/writer/components/script/thumbnail-studio/lib/comicScriptParser.test.ts
 import { describe, it, expect } from 'vitest';
-import { parseComicScript, insertTransitionPageStub, normalizeCameraShot } from './comicScriptParser';
+import {
+  parseComicScript,
+  insertTransitionPageStub,
+  normalizeCameraShot,
+} from './comicScriptParser';
 
 describe('comicScriptParser (Lean Script-to-Thumbnail Two-Way AST)', () => {
   const sampleScript = `

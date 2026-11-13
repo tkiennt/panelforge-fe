@@ -19,6 +19,10 @@ export interface WorkspaceViewProps {
 }
 
 const CHAPTER_STATUS_META: Record<string, { label: string; cls: string }> = {
+  PreProduction: {
+    label: 'Tiền kỳ (viết kịch bản)',
+    cls: 'text-stone-800 bg-stone-50 border-stone-300',
+  },
   InProduction: { label: 'Đang sản xuất', cls: 'text-amber-900 bg-amber-50 border-amber-300' },
   Approved: { label: 'Đã duyệt chương', cls: 'text-emerald-900 bg-emerald-50 border-emerald-300' },
   Published: { label: 'Đã xuất bản', cls: 'text-violet-900 bg-violet-50 border-violet-300' },

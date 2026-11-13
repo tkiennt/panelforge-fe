@@ -9,6 +9,7 @@ export type MangaBlockType =
   | 'stage_direction'
   | 'character'
   | 'dialogue'
+  | 'thought'
   | 'transition'
   | 'caption'
   | 'sfx';

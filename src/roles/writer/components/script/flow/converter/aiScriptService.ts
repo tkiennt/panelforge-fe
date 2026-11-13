@@ -30,11 +30,9 @@ Nhiệm vụ của bạn là chuyển đổi văn bản thô (trích đoạn ti�
 /**
  * Gọi Gemini REST API trực tiếp nếu có API key
  */
-async function callGeminiApi(
-  request: ConvertScriptRequest,
-  apiKey: string
-): Promise<string> {
-  const charactersList = request.seriesBibleContext?.characters?.map((c) => c.name).join(', ') || 'Chưa có';
+async function callGeminiApi(request: ConvertScriptRequest, apiKey: string): Promise<string> {
+  const charactersList =
+    request.seriesBibleContext?.characters?.map((c) => c.name).join(', ') || 'Chưa có';
   const locationsList = request.seriesBibleContext?.locations?.join(', ') || 'Chưa có';
   const startPage = request.startingPageNumber || 1;
   const panelsPerPage = request.targetPanelsPerPage || 4;
@@ -67,7 +65,7 @@ Hãy tạo kịch bản theo đúng cú pháp chuẩn (! Trang XX, " Panel X.Y: 
           maxOutputTokens: 2048,
         },
       }),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -82,14 +80,17 @@ Hãy tạo kịch bản theo đúng cú pháp chuẩn (! Trang XX, " Panel X.Y: 
   }
 
   // Loại bỏ các thẻ code block ```markdown nếu AI sinh thừa
-  return text.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/i, '').trim();
+  return text
+    .replace(/^```[a-z]*\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
 }
 
 /**
  * Dịch vụ chuyển đổi chính: Tự động điều phối giữa Gemini AI và Heuristic Parser
  */
 export async function convertToComicScript(
-  request: ConvertScriptRequest
+  request: ConvertScriptRequest,
 ): Promise<ConvertScriptResponse> {
   // 1. Kiểm tra API Key từ request hoặc localStorage
   let apiKey = request.apiKey;
@@ -104,7 +105,7 @@ export async function convertToComicScript(
   if (apiKey) {
     try {
       const generatedText = await callGeminiApi(request, apiKey);
-      const pageMatches = generatedText.match(/^(?:[!#📄]?\s*(?:Trang|Page)\s*\d+)/gim) || [];
+      const pageMatches = generatedText.match(/^(?:[!#📄]?\s*(?:Trang|Page)\s*\d+)/gimu) || [];
       const panelMatches = generatedText.match(/^(?:[-"”]\s*)?(?:Panel|Khung)\s*[\d.]+/gim) || [];
 
       return {
@@ -114,7 +115,10 @@ export async function convertToComicScript(
         source: 'gemini',
       };
     } catch (err: any) {
-      console.warn('[AI Convert] Gemini API gặp sự cố, tự động kích hoạt Heuristic Fallback:', err.message);
+      console.warn(
+        '[AI Convert] Gemini API gặp sự cố, tự động kích hoạt Heuristic Fallback:',
+        err.message,
+      );
       // Fallback ngay về bộ phân tích Heuristic nếu gọi API thất bại
     }
   }
@@ -122,4 +126,3 @@ export async function convertToComicScript(
   // 3. Fallback Heuristic Parser chạy offline tốc độ cao O(1)
   return convertRawTextHeuristically(request);
 }
-

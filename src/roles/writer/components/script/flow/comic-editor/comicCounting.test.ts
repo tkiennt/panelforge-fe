@@ -1,6 +1,11 @@
 // src/roles/writer/components/script/flow/comic-editor/comicCounting.test.ts
 import { describe, it, expect } from 'vitest';
-import { getNextPageNumber, getNextPanelNumber, extractPageNumber, extractPanelNumber } from './comicCounting';
+import {
+  getNextPageNumber,
+  getNextPanelNumber,
+  extractPageNumber,
+  extractPanelNumber,
+} from './comicCounting';
 
 describe('comicCounting - Look-behind Page & Panel Calculation', () => {
   it('trả về Page 1 nếu tài liệu chưa có trang nào', () => {
@@ -84,7 +89,11 @@ describe('comicCounting - Look-behind Page & Panel Calculation', () => {
     // Khi con trỏ đang nằm NGAY TẠI tiêu đề Trang 3 (pos = 30), panel tiếp theo phải là Panel 3.1 (không bị lùi về Trang 2)
     const nodesWithPage3 = [
       ...nodesWithPage2,
-      { type: { name: 'scriptLineBlock' }, attrs: { blockType: 'page_heading', pageNumber: '3' }, textContent: 'Trang 03' },
+      {
+        type: { name: 'scriptLineBlock' },
+        attrs: { blockType: 'page_heading', pageNumber: '3' },
+        textContent: 'Trang 03',
+      },
     ];
     const mockDocPage3 = {
       descendants: (cb: any) => {

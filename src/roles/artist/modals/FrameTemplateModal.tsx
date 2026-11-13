@@ -36,7 +36,9 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'narrative' | 'action' | 'cinematic' | 'webtoon'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<
+    'all' | 'narrative' | 'action' | 'cinematic' | 'webtoon'
+  >('all');
 
   useEffect(() => {
     if (!isOpen || !workspaceId) return;
@@ -184,7 +186,10 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
           ) : (
             <div className='grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3'>
               {templates
-                .filter((tpl) => categoryFilter === 'all' || (tpl.category || 'narrative') === categoryFilter)
+                .filter(
+                  (tpl) =>
+                    categoryFilter === 'all' || (tpl.category || 'narrative') === categoryFilter,
+                )
                 .map((tpl) => {
                   const isSelected = tpl.id === selectedTemplateId;
                   const catLabel =
@@ -222,81 +227,81 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
                           {catLabel}
                         </span>
                       </div>
-                    {/* Miniature Slot Layout Visualization */}
-                    <div className='w-full h-28 sm:h-32 bg-[#F5F2EB] rounded-lg border border-[#E7E2D9] flex items-center justify-center p-1.5 mb-2 relative overflow-hidden group-hover:border-stone-300'>
-                      <div
-                        className={`${
-                          tpl.layoutFormat === 'SpreadDouble'
-                            ? 'aspect-[3/2] w-full max-h-full'
-                            : 'aspect-[2/3] h-full'
-                        } bg-white border border-stone-300 rounded-xs relative overflow-hidden shadow-2xs`}
-                      >
-                        {tpl.slots.map((s, idx) => (
-                          <div
-                            key={idx}
-                            className={`absolute border flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold transition-colors select-none ${
-                              s.borderless
-                                ? 'border-dashed border-orange-400'
-                                : isSelected
-                                  ? 'border-orange-500'
-                                  : 'border-stone-800'
-                            } ${
-                              isSelected
-                                ? 'bg-orange-500/20 text-orange-950'
-                                : 'bg-stone-200/85 text-stone-700'
-                            }`}
-                            style={{
-                              left: `${s.x * 100}%`,
-                              top: `${s.y * 100}%`,
-                              width: `${s.w * 100}%`,
-                              height: `${s.h * 100}%`,
-                              clipPath: s.corners?.length
-                                ? `polygon(${s.corners.map((c) => `${c.x * 100}% ${c.y * 100}%`).join(', ')})`
-                                : undefined,
-                            }}
-                          >
-                            {idx + 1}
-                          </div>
-                        ))}
-                      </div>
-
-                      {isSelected && (
-                        <div className='absolute top-1.5 right-1.5 w-4 h-4 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-xs'>
-                          <CheckCircle2 className='w-3 h-3' />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Metadata */}
-                    <div className='flex items-center justify-between gap-1.5 min-w-0'>
-                      <div className='flex items-center gap-1 min-w-0'>
-                        <span
-                          className={`text-xs truncate ${
-                            isSelected ? 'text-[#C2410C] font-bold' : 'text-stone-800 font-medium'
-                          }`}
-                          title={tpl.name}
+                      {/* Miniature Slot Layout Visualization */}
+                      <div className='w-full h-28 sm:h-32 bg-[#F5F2EB] rounded-lg border border-[#E7E2D9] flex items-center justify-center p-1.5 mb-2 relative overflow-hidden group-hover:border-stone-300'>
+                        <div
+                          className={`${
+                            tpl.layoutFormat === 'SpreadDouble'
+                              ? 'aspect-[3/2] w-full max-h-full'
+                              : 'aspect-[2/3] h-full'
+                          } bg-white border border-stone-300 rounded-xs relative overflow-hidden shadow-2xs`}
                         >
-                          {tpl.name}
-                        </span>
-                        {tpl.isBuiltIn && (
-                          <span className='px-1 py-0.2 rounded text-[9px] font-semibold bg-[#E7E2D9] text-[#57534E] shrink-0'>
-                            Mặc định
-                          </span>
+                          {tpl.slots.map((s, idx) => (
+                            <div
+                              key={idx}
+                              className={`absolute border flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold transition-colors select-none ${
+                                s.borderless
+                                  ? 'border-dashed border-orange-400'
+                                  : isSelected
+                                    ? 'border-orange-500'
+                                    : 'border-stone-800'
+                              } ${
+                                isSelected
+                                  ? 'bg-orange-500/20 text-orange-950'
+                                  : 'bg-stone-200/85 text-stone-700'
+                              }`}
+                              style={{
+                                left: `${s.x * 100}%`,
+                                top: `${s.y * 100}%`,
+                                width: `${s.w * 100}%`,
+                                height: `${s.h * 100}%`,
+                                clipPath: s.corners?.length
+                                  ? `polygon(${s.corners.map((c) => `${c.x * 100}% ${c.y * 100}%`).join(', ')})`
+                                  : undefined,
+                              }}
+                            >
+                              {idx + 1}
+                            </div>
+                          ))}
+                        </div>
+
+                        {isSelected && (
+                          <div className='absolute top-1.5 right-1.5 w-4 h-4 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-xs'>
+                            <CheckCircle2 className='w-3 h-3' />
+                          </div>
                         )}
                       </div>
-                      <span
-                        className={`shrink-0 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                          isSelected
-                            ? 'bg-orange-500 text-white'
-                            : 'bg-stone-200/70 text-stone-600'
-                        }`}
-                      >
-                        {tpl.panelCount} ô
-                      </span>
+
+                      {/* Metadata */}
+                      <div className='flex items-center justify-between gap-1.5 min-w-0'>
+                        <div className='flex items-center gap-1 min-w-0'>
+                          <span
+                            className={`text-xs truncate ${
+                              isSelected ? 'text-[#C2410C] font-bold' : 'text-stone-800 font-medium'
+                            }`}
+                            title={tpl.name}
+                          >
+                            {tpl.name}
+                          </span>
+                          {tpl.isBuiltIn && (
+                            <span className='px-1 py-0.2 rounded text-[9px] font-semibold bg-[#E7E2D9] text-[#57534E] shrink-0'>
+                              Mặc định
+                            </span>
+                          )}
+                        </div>
+                        <span
+                          className={`shrink-0 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            isSelected
+                              ? 'bg-orange-500 text-white'
+                              : 'bg-stone-200/70 text-stone-600'
+                          }`}
+                        >
+                          {tpl.panelCount} ô
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
         </div>

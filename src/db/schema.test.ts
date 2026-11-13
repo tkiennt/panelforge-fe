@@ -15,25 +15,43 @@ import {
 describe('Core Production Architecture - Schema & Domain Rules', () => {
   describe('Chapter State Machine Transitions', () => {
     it('should follow strict linear state progression', () => {
-      expect(canTransitionChapterStatus(ChapterStatus.PLANNING, ChapterStatus.SCRIPTING)).toBe(true);
-      expect(canTransitionChapterStatus(ChapterStatus.SCRIPTING, ChapterStatus.IN_REVIEW)).toBe(true);
-      expect(canTransitionChapterStatus(ChapterStatus.IN_REVIEW, ChapterStatus.APPROVED)).toBe(true);
-      expect(canTransitionChapterStatus(ChapterStatus.APPROVED, ChapterStatus.STORYBOARDING)).toBe(true);
-      expect(canTransitionChapterStatus(ChapterStatus.STORYBOARDING, ChapterStatus.DRAWING)).toBe(true);
+      expect(canTransitionChapterStatus(ChapterStatus.PLANNING, ChapterStatus.SCRIPTING)).toBe(
+        true,
+      );
+      expect(canTransitionChapterStatus(ChapterStatus.SCRIPTING, ChapterStatus.IN_REVIEW)).toBe(
+        true,
+      );
+      expect(canTransitionChapterStatus(ChapterStatus.IN_REVIEW, ChapterStatus.APPROVED)).toBe(
+        true,
+      );
+      expect(canTransitionChapterStatus(ChapterStatus.APPROVED, ChapterStatus.STORYBOARDING)).toBe(
+        true,
+      );
+      expect(canTransitionChapterStatus(ChapterStatus.STORYBOARDING, ChapterStatus.DRAWING)).toBe(
+        true,
+      );
       expect(canTransitionChapterStatus(ChapterStatus.DRAWING, ChapterStatus.PUBLISHED)).toBe(true);
     });
 
     it('should allow review rejection back to scripting', () => {
-      expect(canTransitionChapterStatus(ChapterStatus.IN_REVIEW, ChapterStatus.SCRIPTING)).toBe(true);
+      expect(canTransitionChapterStatus(ChapterStatus.IN_REVIEW, ChapterStatus.SCRIPTING)).toBe(
+        true,
+      );
     });
 
     it('should disallow invalid or skipped transitions', () => {
       // Cannot jump from PLANNING directly to APPROVED
-      expect(canTransitionChapterStatus(ChapterStatus.PLANNING, ChapterStatus.APPROVED)).toBe(false);
+      expect(canTransitionChapterStatus(ChapterStatus.PLANNING, ChapterStatus.APPROVED)).toBe(
+        false,
+      );
       // Cannot jump from SCRIPTING to DRAWING
-      expect(canTransitionChapterStatus(ChapterStatus.SCRIPTING, ChapterStatus.DRAWING)).toBe(false);
+      expect(canTransitionChapterStatus(ChapterStatus.SCRIPTING, ChapterStatus.DRAWING)).toBe(
+        false,
+      );
       // PUBLISHED is a terminal state
-      expect(canTransitionChapterStatus(ChapterStatus.PUBLISHED, ChapterStatus.SCRIPTING)).toBe(false);
+      expect(canTransitionChapterStatus(ChapterStatus.PUBLISHED, ChapterStatus.SCRIPTING)).toBe(
+        false,
+      );
     });
   });
 

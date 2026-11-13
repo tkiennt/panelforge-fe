@@ -51,44 +51,51 @@ import {
   UpdateSceneRequest,
   NarrationMode,
 } from '@/services/scriptLine.service';
-import { chapterService, ChapterDto, ChapterBibleGateResultDto, CreateChapterRequest } from '@/services/chapter.service';
+import {
+  chapterService,
+  ChapterDto,
+  ChapterBibleGateResultDto,
+  CreateChapterRequest,
+  ScriptStatus,
+  ScriptCommentDto,
+} from '@/services/chapter.service';
 import { pageService, PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { PanelDto } from '@/types/pipeline';
-import { generateTempCode, saveTempBibleCode } from '../components/script/flow/tempBibleCodes';
+import { generateTempCode, saveTempBibleCode } from '@/shared/utils/tempBibleCodes';
 import { ChapterSelectionView } from '../components/script/chapter-selection';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import {
   assignmentService,
-  AssignmentDto,
-  ChangeRequestDto,
   ConsistencyFindingDto,
   ConsistencyCheckResultDto,
 } from '@/services/assignment.service';
-import { crStatus } from '@/roles/editor/views/script-review/scriptReviewModel';
-import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { AiAssistPanel } from '@/shared/features/ai-agents/AiAssistPanel';
-import { ScriptHistoryModal } from '../components/script/ScriptHistoryModal';
 import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
-import { ExtractedScriptLinePayload } from '../components/script/flow/scriptFlowAdapter';
+import type { ScriptDocSnapshot } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
-import { WriterChangeRequestsDrawer } from '../components/script/WriterChangeRequestsDrawer';
+import { ScriptVersionsDrawer } from '../components/script/versions/ScriptVersionsDrawer';
 import { ScriptStudioRail, type ScriptRailItem } from '../components/script/ScriptStudioRail';
 import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
+import { ScriptChaptersDrawer } from '../components/script/ScriptChaptersDrawer';
 import { useFocusHeaderContext } from '@/app/FocusWorkspaceLayout';
 import { FileInput } from 'lucide-react';
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import { saveDraft, clearDraft, readRestorableDraft, type LocalDraft } from '@/lib/localDraft';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
-import { UnsavedChangesBar, LucianConfirmModal, TypeToConfirmModal } from '@/shared/components/lucian';
+import {
+  UnsavedChangesBar,
+  LucianConfirmModal,
+  TypeToConfirmModal,
+} from '@/shared/components/lucian';
 import { useTranslation } from '@/lib/i18n';
-import { ReasonForm } from '@/roles/editor/views/review-shared/ReasonForm';
+import { ReasonForm } from '@/shared/components/ReasonForm';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useComicStudioStore } from '../components/script/thumbnail-studio/store/useComicStudioStore';
 import { scenesToComicScriptText } from '../components/script/thumbnail-studio/lib/comicScriptParser';
@@ -130,7 +137,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // - Producer: Có toàn quyền quản lý chương (khởi tạo chương, xoá chương, đóng băng/mở lại) và viết kịch bản.
   // - Writer: Soạn thảo kịch bản, chỉnh sửa outline/story arc, nhưng TUYỆT ĐỐI KHÔNG ĐƯỢC tạo chương mới hoặc xoá chương.
   const normRole = workspaceRole ? normalizeWorkspaceRole(workspaceRole) : null;
-  const effectiveRole = normRole || (typeof window !== 'undefined' ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole')) : null);
+  const effectiveRole =
+    normRole ||
+    (typeof window !== 'undefined'
+      ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
+      : null);
   const isProducer = effectiveRole === 'PRODUCER';
   const canCreateChapter = isProducer;
 
@@ -159,112 +170,74 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Dữ liệu kịch bản
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [currentChapter, setCurrentChapter] = useState<ChapterDto | null>(null);
-  const isScriptFrozen = currentChapter?.isScriptFrozen === true;
-  const isChapterLocked =
-    isScriptFrozen ||
+  // D12: Draft ↔ InReview → Frozen. Lưu = commit, Gửi duyệt = push: Editor đọc bản đã gửi,
+  // nên khi InReview Writer vẫn sửa và lưu tiếp; chỉ Frozen (và chương đã duyệt/xuất bản) khoá sửa.
+  const scriptStatus: ScriptStatus =
+    currentChapter?.scriptStatus ?? (currentChapter?.isScriptFrozen ? 'Frozen' : 'Draft');
+  const isScriptFrozen = scriptStatus === 'Frozen';
+  const isScriptInReview = scriptStatus === 'InReview';
+  const isChapterContentLocked =
     currentChapter?.status === 'Approved' ||
+    currentChapter?.status === 'Locked' ||
     currentChapter?.status === 'Published';
-  const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
-  const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
-  const [chapterAssignments, setChapterAssignments] = useState<AssignmentDto[]>([]);
-  const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMemberDto[]>([]);
+  const isChapterLocked = isScriptFrozen || isChapterContentLocked;
 
-  // Phân quyền theo Assignment (Backend ScriptLineRules.cs):
-  // - Producer luôn có quyền sửa kịch bản.
-  // - Khi chương đã giao kịch bản cho Writer: chỉ người được giao mới sửa được; Writer khác nhận 403 / chỉ đọc.
-  // - Khi chương chưa giao cho ai: Writer vẫn sửa tự do như cũ.
-  // - Assignment đã huỷ (cancelReason != null) không tính.
-  // - Các vai trò khác (Artist, Editor, Viewer...): chỉ đọc.
-
-  const writerAssignments = useMemo(() => {
-    return chapterAssignments.filter((a) => {
-      const role = String(a.assignedRole || '').toUpperCase();
-      const isWriter = role === 'WRITER';
-      const isCancelled = !!(a as any).cancelReason;
-      return isWriter && !isCancelled;
-    });
-  }, [chapterAssignments]);
-
-  const hasWriterAssignment = writerAssignments.length > 0;
-
-  const isAssignedWriter = useMemo(() => {
-    if (!effectiveUserId || !hasWriterAssignment) return false;
-    return writerAssignments.some(
-      (a) => String(a.assigneeUserId).toLowerCase() === String(effectiveUserId).toLowerCase(),
-    );
-  }, [effectiveUserId, hasWriterAssignment, writerAssignments]);
-
-  const isWriterBlockedByOther = useMemo(() => {
-    if (effectiveRole !== 'WRITER') return false;
-    if (!hasWriterAssignment) return false;
-    return !isAssignedWriter;
-  }, [effectiveRole, hasWriterAssignment, isAssignedWriter]);
-
-  const assignedWriterNames = useMemo(() => {
-    if (!writerAssignments.length) return '';
-    const names = writerAssignments.map((a) => {
-      const member = workspaceMembers.find(
-        (m) => String(m.userId).toLowerCase() === String(a.assigneeUserId).toLowerCase(),
-      );
-      return member?.fullName || member?.email || 'Writer được giao';
-    });
-    return Array.from(new Set(names)).join(', ');
-  }, [writerAssignments, workspaceMembers]);
-
-  const myWriterAssignment = useMemo(() => {
-    if (!writerAssignments.length) return null;
-    if (effectiveUserId) {
-      const match = writerAssignments.find(
-        (a) => String(a.assigneeUserId).toLowerCase() === String(effectiveUserId).toLowerCase(),
-      );
-      if (match) return match;
-    }
-    return writerAssignments[0] || null;
-  }, [writerAssignments, effectiveUserId]);
-
-  // Yêu cầu sửa Editor gửi khi trả kịch bản; BE chặn nộp lại khi còn CR Open.
-  const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
-  const [loadingChangeRequests, setLoadingChangeRequests] = useState(false);
-  const autoOpenedCrForRef = useRef<string | null>(null);
-  const writerAssignmentChapterId = myWriterAssignment?.chapterId;
-  const writerAssignmentId = myWriterAssignment?.id;
-  const writerAssignmentStatus = myWriterAssignment?.status;
-
-  const loadChangeRequests = useCallback(async () => {
-    if (!writerAssignmentChapterId || !writerAssignmentId) {
-      setChangeRequests([]);
+  // Phiên bản mới nhất và bản đang gửi duyệt: khác mã băm = có thay đổi chưa gửi duyệt lại
+  const [versionsTick, setVersionsTick] = useState(0);
+  const [hasUnpushedChanges, setHasUnpushedChanges] = useState(false);
+  useEffect(() => {
+    const id = currentChapter?.id;
+    const pushedId = currentChapter?.lastSubmittedVersionId;
+    if (!id || !pushedId) {
+      setHasUnpushedChanges(false);
       return;
     }
-    setLoadingChangeRequests(true);
-    try {
-      const res = await assignmentService.getChangeRequests(writerAssignmentChapterId, {
-        assignmentId: writerAssignmentId,
-      });
-      setChangeRequests(res);
-    } finally {
-      setLoadingChangeRequests(false);
-    }
-  }, [writerAssignmentChapterId, writerAssignmentId]);
+    let cancelled = false;
+    chapterService
+      .getScriptVersions(id)
+      .then((list) => {
+        if (cancelled) return;
+        const pushed = list.find((v) => v.id === pushedId);
+        setHasUnpushedChanges(!!pushed && !!list[0] && list[0].contentHash !== pushed.contentHash);
+      })
+      .catch(() => !cancelled && setHasUnpushedChanges(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [currentChapter?.id, currentChapter?.lastSubmittedVersionId, versionsTick]);
 
+  // Hàm lưu của bàn viết, để lưu chữ chưa lưu trước khi gửi duyệt
+  const editorSaveRef = useRef<(() => Promise<boolean>) | null>(null);
+  const registerEditorSave = useCallback((save: (() => Promise<boolean>) | null) => {
+    editorSaveRef.current = save;
+  }, []);
+
+  // D12: góp ý theo dòng của Editor / Producer — Writer đọc để tự quyết định có hủy gửi duyệt hay không
+  const [scriptComments, setScriptComments] = useState<ScriptCommentDto[]>([]);
+  const openScriptComments = scriptComments.filter((c) => !c.resolvedAt);
   useEffect(() => {
-    void loadChangeRequests();
-  }, [loadChangeRequests, writerAssignmentStatus]);
-
-  const openChangeRequestCount = useMemo(
-    () => changeRequests.filter((c) => crStatus(c.status) === 'Open').length,
-    [changeRequests],
-  );
-
+    const id = currentChapter?.id;
+    if (!id) {
+      setScriptComments([]);
+      return;
+    }
+    let cancelled = false;
+    chapterService
+      .getScriptComments(id)
+      .then((list) => !cancelled && setScriptComments(list))
+      .catch(() => !cancelled && setScriptComments([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [currentChapter?.id, currentChapter?.scriptStatus]);
+  const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
+  const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
   const [submittingToEditor, setSubmittingToEditor] = useState(false);
 
-  const canEditScript = useMemo(() => {
-    if (!effectiveRole) return !isWriterBlockedByOther;
-    if (effectiveRole === 'PRODUCER') return true;
-    if (effectiveRole === 'WRITER') {
-      return !hasWriterAssignment || isAssignedWriter;
-    }
-    return false;
-  }, [effectiveRole, hasWriterAssignment, isAssignedWriter, isWriterBlockedByOther]);
+  // SCR-12: kịch bản không còn đi qua Assignment; studio có một Writer viết, Producer sửa được.
+  // Các vai trò khác (Artist, Editor, Viewer...) chỉ đọc.
+  const canEditScript =
+    !effectiveRole || effectiveRole === 'PRODUCER' || effectiveRole === 'WRITER';
 
   const [scenes, setScenes] = useState<SceneDto[]>([]);
   const [selectedScene, setSelectedScene] = useState<SceneDetailDto | null>(null);
@@ -352,14 +325,25 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Mặc định mở side drawer phù hợp môi trường
   const [activeSideDrawer, setActiveSideDrawer] = useState<
-    'scenes' | 'narrative' | 'consistency' | 'characters' | 'changeRequests' | null
+    'chapters' | 'scenes' | 'narrative' | 'consistency' | 'characters' | 'versions' | null
   >(null);
   const [importRequestKey, setImportRequestKey] = useState(0);
+
+  // Phím tắt bàn phím Alt+C: Mở nhanh side tab chuyển chương
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        setActiveSideDrawer((prev) => (prev === 'chapters' ? null : 'chapters'));
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Modals phụ trợ
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [storyboardPanelOpen, setStoryboardPanelOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
 
   // V2.5: Chapter-Scoped Bible Gate & Script Freeze Gate
   const [bibleGateResult, setBibleGateResult] = useState<ChapterBibleGateResultDto | null>(null);
@@ -472,7 +456,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     ])
       .then(([chapRes, bibleRes, seriesRes]) => {
         if (!isMounted) return;
-        const chapterList = Array.isArray(chapRes) ? chapRes : (chapRes?.items || []);
+        const chapterList = Array.isArray(chapRes) ? chapRes : chapRes?.items || [];
         setChapters(chapterList);
 
         if (seriesRes) {
@@ -535,22 +519,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   }, [chapterIdFromUrl, chapters, currentChapter?.id]);
 
-  // Tải danh sách thành viên workspace để hiển thị tên Writer được phân công (nếu có)
-  const effectiveWsId = workspaceId || seriesDetail?.workspaceId;
-  useEffect(() => {
-    if (!effectiveWsId) return;
-    workspaceService
-      .getMembers(effectiveWsId)
-      .then((mems) => setWorkspaceMembers(mems || []))
-      .catch(() => setWorkspaceMembers([]));
-  }, [effectiveWsId]);
-
-  // Đồng bộ Outline, findings nhất quán và danh sách Assignment khi currentChapter thay đổi
+  // Đồng bộ Outline và findings nhất quán khi currentChapter thay đổi
   useEffect(() => {
     if (!currentChapter?.id) {
       setOutlineInput('');
       setFindings([]);
-      setChapterAssignments([]);
       return;
     }
     // Xoá ngay findings cũ để tránh hiển thị kết quả của chương trước khi chuyển chương
@@ -566,25 +539,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         setFindings([]);
       });
 
-    assignmentService
-      .getAssignments(currentChapter.id)
-      .then((res) => {
-        setChapterAssignments(res || []);
-      })
-      .catch(() => {
-        setChapterAssignments([]);
-      });
-
     void checkChapterBibleGate(currentChapter.id);
   }, [currentChapter?.id, currentChapter?.outline, checkChapterBibleGate]);
 
-  // 2. Nạp chi tiết Chapter (cập nhật versionVector) & cập nhật lại phân công
+  // 2. Nạp chi tiết Chapter (cập nhật versionVector)
   const refreshChapterDetail = useCallback(async (chapId: string) => {
     try {
       const detail = await chapterService.getChapterById(chapId);
       setCurrentChapter((prev) => (prev ? { ...prev, ...detail } : detail));
-      const assignments = await assignmentService.getAssignments(chapId);
-      setChapterAssignments(assignments || []);
     } catch (err) {
       console.error('Lỗi refresh chi tiết chương:', err);
     }
@@ -618,314 +580,182 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // 4. Tải danh sách Scenes khi currentChapter thay đổi
   // V2.5: Đồng bộ kịch bản từ Screenplay Flow Editor (TipTap) lên Backend khi bấm Lưu (Explicit Commit)
-  const handleSaveFlowLines = useCallback(
-    async (extractedLines: ExtractedScriptLinePayload[]) => {
+  const loadPagesAndPanels = useCallback(async (chapId: string): Promise<PanelDto[]> => {
+    try {
+      const pages = await pageService.getPagesByChapter(chapId);
+      setChapterPages(pages || []);
+      if (!pages || pages.length === 0) {
+        setChapterPanels([]);
+        return [];
+      }
+      const panelsByPages = await Promise.all(
+        pages.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
+      );
+      const allPanels: PanelDto[] = [];
+      panelsByPages.forEach((list, idx) => {
+        list.forEach((p) => {
+          (p as any).pageNumber = pages[idx].pageNumber;
+          allPanels.push(p);
+        });
+      });
+      setChapterPanels(allPanels);
+      return allPanels;
+    } catch {
+      setChapterPages([]);
+      setChapterPanels([]);
+      return [];
+    }
+  }, []);
+
+  /**
+   * Lưu kịch bản Graphic Novel: toàn bộ dòng vào Scene mặc định của chương (D2) trong một request,
+   * dựng khung Trang → Panel, rồi ghi chữ của dòng Panel vào Panel.Direction.
+   */
+  const handleSaveScript = useCallback(
+    async (snapshot: ScriptDocSnapshot) => {
       if (!currentChapter) return;
-
-      // 1. Xác định ngữ cảnh phân cảnh
-      const allScenes =
-        chapterScenesDetail.length > 0 ? chapterScenesDetail : selectedScene ? [selectedScene] : [];
-      let activeScene = selectedScene || allScenes[0] || null;
-
-      if (!activeScene) {
-        if (scenes.length > 0) {
-          try {
-            activeScene = await scriptLineService.getSceneById(scenes[0].id);
-          } catch {
-            activeScene = null;
-          }
-        } else if (canEditScript && !isChapterLocked) {
-          try {
-            const created = await scriptLineService.createScene(currentChapter.id, {
-              sceneNumber: 1,
-              heading: 'CẢNH 1: MỞ ĐẦU',
-              summary: null,
-              defaultNarrationMode: 'Present',
-            });
-            setScenes([created]);
-            activeScene = await scriptLineService.getSceneById(created.id);
-          } catch {
-            activeScene = null;
-          }
-        }
-      }
-
-      if (!activeScene) return;
-
-      // 2. Theo dõi version tuần tự (Sequential Concurrency Tracker) để tránh bẫy 409 Conflict
-      let currentVersion = currentChapter.versionVector ?? 0;
-      let hasChanges = false;
-
-      // 1b. Nhận diện, cập nhật hoặc tự động tạo mới các Phân cảnh (Auto-Extract Multi-Scenes from Continuous Doc)
-      const headingBlocks = extractedLines.filter((l) => l.blockType === 'scene_heading');
-      const sceneIdMap = new Map<string, string>(); // Ánh xạ từ ID tạm (scene_num_X) sang Backend GUID
-      let currentScenesList = [...scenes];
-
-      // Nếu không có khối scene_heading nào nhưng có activeScene, map mặc định
-      if (headingBlocks.length === 0 && activeScene) {
-        sceneIdMap.set(activeScene.id, activeScene.id);
-      }
-
-      for (let i = 0; i < headingBlocks.length; i++) {
-        const hb = headingBlocks[i];
-        const rawHeadingText = hb.stageDirection?.trim() || '';
-
-        // Phân tích số cảnh: "CẢNH 2: TIÊU ĐỀ", "SCENE 2: TIÊU ĐỀ", "#cảnh 2", v.v.
-        const numMatch = rawHeadingText.match(/(?:CẢNH|SCENE)\s*(\d+)/i);
-        const parsedSceneNum = numMatch ? parseInt(numMatch[1], 10) : i + 1;
-
-        // Phân tích tiêu đề cảnh
-        const headingMatch = rawHeadingText.match(/^(?:CẢNH|SCENE)\s*\d+\s*[:\-–—]\s*(.*)$/i);
-        const parsedHeading = headingMatch
-          ? headingMatch[1].trim()
-          : rawHeadingText.replace(/^(?:CẢNH|SCENE)\s*\d+\s*/i, '').trim() || `Cảnh ${parsedSceneNum}`;
-
-        // Tìm cảnh hiện có theo sceneNumber hoặc theo id
-        let targetScene =
-          currentScenesList.find((s) => s.sceneNumber === parsedSceneNum) ||
-          currentScenesList.find((s) => s.id === hb.sceneId);
-
-        if (targetScene) {
-          sceneIdMap.set(hb.sceneId, targetScene.id);
-          if (hb.sceneId !== targetScene.id) {
-            sceneIdMap.set(`scene_num_${parsedSceneNum}`, targetScene.id);
-          }
-          // Cập nhật tiêu đề phân cảnh nếu có thay đổi
-          if (parsedHeading && parsedHeading !== targetScene.heading) {
-            try {
-              const updated = await scriptLineService.updateScene(targetScene.id, {
-                heading: parsedHeading,
-                summary: targetScene.summary || null,
-                defaultNarrationMode: targetScene.defaultNarrationMode || 'Present',
-                expectedVersion: targetScene.version,
-              });
-              currentScenesList = currentScenesList.map((s) => (s.id === updated.id ? updated : s));
-              hasChanges = true;
-            } catch (sceneErr) {
-              console.error('Lỗi cập nhật tiêu đề phân cảnh:', sceneErr);
-            }
-          }
-        } else {
-          // Tự động tạo phân cảnh mới trên máy chủ nếu Writer gõ cảnh mới trong văn bản
-          try {
-            const created = await scriptLineService.createScene(currentChapter.id, {
-              sceneNumber: parsedSceneNum,
-              heading: parsedHeading,
-              summary: null,
-              defaultNarrationMode: 'Present',
-            });
-            sceneIdMap.set(hb.sceneId, created.id);
-            sceneIdMap.set(`scene_num_${parsedSceneNum}`, created.id);
-            currentScenesList.push(created);
-            hasChanges = true;
-          } catch (createSceneErr) {
-            console.error('Lỗi tự động tạo phân cảnh từ kịch bản:', createSceneErr);
-          }
-        }
-      }
-
-      // Lọc bỏ khối tiêu đề cảnh ra khỏi danh sách script lines để tránh lưu nhầm vào bảng ScriptLine
-      const scriptLinesToProcess = extractedLines.filter((l) => l.blockType !== 'scene_heading');
-
+      const chapterId = currentChapter.id;
       const isValidGuid = (id?: string | null) =>
         Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
 
-      const createdLineIdMap = new Map<string, string>();
-
-      // 3. Phân nhóm các dòng kịch bản theo Phân cảnh (Multi-Scene Persistence trên 1 trang giấy)
-      const linesByScene = new Map<string, ExtractedScriptLinePayload[]>();
-      for (const line of scriptLinesToProcess) {
-        const hasValidText = Boolean(line.dialogueText?.trim() || line.stageDirection?.trim());
-        if (!hasValidText) continue;
-        const resolvedSceneId =
-          sceneIdMap.get(line.sceneId) ||
-          (isValidGuid(line.sceneId) ? line.sceneId : activeScene.id);
-        if (!linesByScene.has(resolvedSceneId)) {
-          linesByScene.set(resolvedSceneId, []);
-        }
-        linesByScene.get(resolvedSceneId)!.push(line);
+      // 1. Scene mặc định của chương
+      let scene: SceneDetailDto | null = chapterScenesDetail[0] ?? selectedScene ?? null;
+      if (!scene && scenes.length > 0) {
+        scene = await scriptLineService.getSceneById(scenes[0].id).catch(() => null);
+      }
+      if (!scene) {
+        const created = await scriptLineService.createScene(chapterId, {
+          sceneNumber: 1,
+          heading: 'CẢNH 1',
+          summary: null,
+          defaultNarrationMode: 'Present',
+        });
+        setScenes([created]);
+        scene = await scriptLineService.getSceneById(created.id);
       }
 
-      // 3b. Tạo chuỗi văn bản kịch bản phân cảnh hoàn chỉnh (Screenplay Manuscript RawText)
-      const continuousScriptRawText = extractedLines
-        .map((l) => {
-          if (l.blockType === 'scene_heading') return `\n[ ${l.stageDirection?.toUpperCase()} ]\n`;
-          if (l.blockType === 'page_heading') return `\n=== ${l.stageDirection?.toUpperCase()} ===\n`;
-          if (l.blockType === 'panel_heading') return `\n--- ${l.stageDirection?.toUpperCase()} ---\n`;
-          if (l.dialogueText) return l.dialogueText;
-          return l.stageDirection || '';
-        })
-        .filter(Boolean)
-        .join('\n');
-
-      // 4. Lưu đồng bộ hàng loạt (Batch Save) nguyên tử từng phân cảnh (Atomic 1-HTTP Roundtrip)
-      for (const [targetSceneId, sceneLines] of linesByScene.entries()) {
-        const batchPayload = sceneLines.map((line, idx) => ({
-          id: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
-          lineOrder: idx + 1,
-          dialogueText: line.dialogueText || null,
-          stageDirection: line.stageDirection || null,
-          speakerCharacterId: isValidGuid(line.speakerCharacterId) ? line.speakerCharacterId : null,
-          narrationMode: line.narrationMode,
-          clientLineId: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
-          panelId: isValidGuid(line.panelId) ? line.panelId : null,
-        }));
-
-        try {
-          const res = await scriptLineService.batchSaveScriptLines(
-            currentChapter.id,
-            targetSceneId,
-            {
-              lines: batchPayload,
-              expectedChapterVersion: currentVersion,
-              summary: 'Lưu kịch bản từ trình soạn thảo',
-              rawText: continuousScriptRawText,
-            }
-          );
-          if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
-            currentVersion = res.chapterVersion;
-            hasChanges = true;
-          }
-          if (res?.lines) {
-            sceneLines.forEach((srcLine, idx) => {
-              const savedLine = res.lines[idx];
-              if (savedLine) {
-                createdLineIdMap.set(srcLine.scriptLineId, savedLine.id);
-              }
-            });
-          }
-        } catch (batchErr: any) {
-          console.error(`Lỗi lưu hàng loạt kịch bản cho Scene ${targetSceneId}:`, batchErr);
-          if (
-            batchErr?.status === 409 ||
-            batchErr?.code === 'CONFLICT' ||
-            batchErr?.message?.includes('Chapter đã đổi') ||
-            batchErr?.message?.includes('version hiện tại')
-          ) {
-            await refreshChapterDetail(currentChapter.id);
-          }
-          throw batchErr;
+      // 2. Toàn bộ dòng trong một request (dòng không còn trong tài liệu sẽ bị gỡ)
+      let currentVersion = currentChapter.versionVector ?? 0;
+      let res;
+      try {
+        res = await scriptLineService.batchSaveScriptLines(chapterId, scene.id, {
+          lines: snapshot.lines.map((line, idx) => ({
+            id: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
+            lineOrder: idx + 1,
+            kind: line.kind,
+            speakerLabel: line.speakerLabel ?? null,
+            text: line.text ?? null,
+            dialogueText: line.dialogueText ?? null,
+            stageDirection: line.stageDirection ?? null,
+            speakerCharacterId: null,
+            narrationMode: line.narrationMode,
+            clientLineId: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
+            panelId: isValidGuid(line.panelId) ? line.panelId : null,
+          })),
+          expectedChapterVersion: currentVersion,
+          summary: 'Lưu kịch bản từ trình soạn thảo',
+        });
+      } catch (batchErr: any) {
+        if (batchErr?.status === 409 || batchErr?.code === 'CONFLICT') {
+          await refreshChapterDetail(chapterId);
         }
+        throw batchErr;
       }
+      if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
+        currentVersion = res.chapterVersion;
+      }
+      const savedIds = snapshot.lines.map(
+        (line, idx) => res?.lines?.[idx]?.id ?? line.scriptLineId,
+      );
 
-      // 5. Xoá hoặc dọn sạch các phân cảnh nếu người dùng xoá cảnh đó trên giấy
-      for (const sc of allScenes) {
-        const hasLinesInDoc = linesByScene.has(sc.id);
-        const headingInDoc = extractedLines.some(
-          (l) => l.blockType === 'scene_heading' && (l.sceneId === sc.id || l.sceneId === `scene_num_${sc.sceneNumber}`)
+      // 3. Khung Trang → Panel → dòng (một transaction phía máy chủ)
+      const idsByPanel = new Map<string, string[]>();
+      snapshot.lines.forEach((line, idx) => {
+        if (!line.pageNumber || !line.panelNumber || !isValidGuid(savedIds[idx])) return;
+        const key = `${line.pageNumber}:${line.panelNumber}`;
+        idsByPanel.set(key, [...(idsByPanel.get(key) ?? []), savedIds[idx]]);
+      });
+      try {
+        // Kịch bản là nguồn của khung: Trang / Panel không còn trong kịch bản bị gỡ phía máy chủ
+        await pageService.syncScriptStructure(
+          chapterId,
+          snapshot.pages.map((page) => ({
+            pageNumber: page.pageNumber,
+            panels: page.panels.map((panel) => ({
+              panelNumber: panel.panelNumber,
+              scriptLineIds: idsByPanel.get(`${page.pageNumber}:${panel.panelNumber}`) ?? [],
+            })),
+          })),
         );
-        if (!hasLinesInDoc && !headingInDoc && allScenes.length > 1) {
-          try {
-            await scriptLineService.deleteScene(sc.id);
-            hasChanges = true;
-          } catch (delErr) {
-            console.warn(`Không thể xóa scene thừa ${sc.id}:`, delErr);
-            try {
-              const res = await scriptLineService.batchSaveScriptLines(
-                currentChapter.id,
-                sc.id,
-                {
-                  lines: [],
-                  expectedChapterVersion: currentVersion,
-                  summary: 'Xoá toàn bộ dòng của phân cảnh',
-                }
-              );
-              if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
-                currentVersion = res.chapterVersion;
-                hasChanges = true;
-              }
-            } catch {}
-          }
-        } else if (!hasLinesInDoc && sc.scriptLines && sc.scriptLines.length > 0) {
-          try {
-            const res = await scriptLineService.batchSaveScriptLines(
-              currentChapter.id,
-              sc.id,
-              {
-                lines: [],
-                expectedChapterVersion: currentVersion,
-                summary: 'Xoá toàn bộ dòng của phân cảnh',
-              }
+      } catch (structureErr: any) {
+        // Dòng kịch bản đã lưu; chỉ khung Trang/Panel chưa đồng bộ nên báo rõ thay vì nuốt lỗi
+        notify(t('scriptStudio.save.structureFailed'), structureErr?.message ?? '');
+      }
+
+      // 4. Chữ của dòng Panel → Panel.Direction
+      const freshPanels = await loadPagesAndPanels(chapterId);
+      const directionUpdates: Promise<unknown>[] = [];
+      for (const page of snapshot.pages) {
+        for (const draft of page.panels) {
+          const server = freshPanels.find(
+            (p) => (p as any).pageNumber === page.pageNumber && p.panelNumber === draft.panelNumber,
+          );
+          if (server && (server.direction ?? '') !== draft.direction) {
+            directionUpdates.push(
+              panelService.updatePanelDirection(server.id, {
+                direction: draft.direction || null,
+                expectedVersion: server.version,
+              }),
             );
-            if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
-              currentVersion = res.chapterVersion;
-              hasChanges = true;
-            }
-          } catch (cleanErr) {
-            console.error(`Lỗi dọn sạch dòng kịch bản phân cảnh ${sc.id}:`, cleanErr);
           }
         }
       }
-
-      // 5.5 Khung Trang → Panel → dòng: một request, một transaction phía server; không xoá trang nào
-      if (currentChapter?.id) {
-        const structure = new Map<number, Map<number, string[]>>();
-        for (const line of extractedLines) {
-          if (line.blockType === 'scene_heading' || !line.pageNumber || line.pageNumber <= 0) continue;
-          const panelsOfPage = structure.get(line.pageNumber) ?? new Map<number, string[]>();
-          structure.set(line.pageNumber, panelsOfPage);
-          if (!line.panelNumber || line.panelNumber <= 0) continue;
-          const ids = panelsOfPage.get(line.panelNumber) ?? [];
-          panelsOfPage.set(line.panelNumber, ids);
-          const savedId = createdLineIdMap.get(line.scriptLineId) || line.scriptLineId;
-          if (isValidGuid(savedId)) ids.push(savedId);
+      if (directionUpdates.length > 0) {
+        const results = await Promise.allSettled(directionUpdates);
+        if (results.some((r) => r.status === 'rejected')) {
+          notify(t('scriptStudio.save.structureFailed'), '');
         }
-        const pagesPayload = Array.from(structure.entries())
-          .sort(([a], [b]) => a - b)
-          .map(([pageNumber, panelsOfPage]) => ({
-            pageNumber,
-            panels: Array.from(panelsOfPage.entries())
-              .sort(([a], [b]) => a - b)
-              .map(([panelNumber, scriptLineIds]) => ({ panelNumber, scriptLineIds })),
-          }));
-
-        try {
-          const synced = await pageService.syncScriptStructure(currentChapter.id, pagesPayload);
-          if (synced.unlistedPageNumbers.length > 0) {
-            notify(
-              t('scriptStudio.save.unlistedTitle'),
-              t('scriptStudio.save.unlistedDesc', { pages: synced.unlistedPageNumbers.join(', ') }),
-            );
-          }
-          await loadPagesAndPanels(currentChapter.id);
-        } catch (structureErr: any) {
-          // Dòng kịch bản đã lưu; chỉ khung Trang/Panel chưa đồng bộ nên báo rõ thay vì nuốt lỗi
-          notify(t('scriptStudio.save.structureFailed'), structureErr?.message ?? '');
-        }
+        await loadPagesAndPanels(chapterId);
       }
 
-      // 6. Cập nhật version mới nhất vào React state
       setCurrentChapter((prev) => (prev ? { ...prev, versionVector: currentVersion } : null));
 
-      // 7. Tự động đồng bộ và nạp lại danh sách phân cảnh cho Left Bar, giữ nguyên cảnh đang chọn
+      // 4b. Lưu = commit: chụp phiên bản kịch bản (máy chủ bỏ qua nếu nội dung không đổi)
       try {
-        const freshScenes = await scriptLineService.getScenesByChapter(currentChapter.id);
+        await chapterService.commitScriptVersion(chapterId);
+      } catch (commitErr: any) {
+        notify(t('scriptStudio.versions.commitFailed'), commitErr?.message ?? '');
+      }
+      setVersionsTick((n) => n + 1);
+
+      // 5. Nạp lại Scene để editor nhận Id dòng từ máy chủ
+      try {
+        const freshScenes = await scriptLineService.getScenesByChapter(chapterId);
         freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
         setScenes(freshScenes);
-
-        const allDetails = await Promise.all(
-          freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null))
-        );
-        const validDetails = allDetails.filter((d): d is SceneDetailDto => d !== null);
-        validDetails.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setChapterScenesDetail(validDetails);
-
-        // Giữ nguyên activeScene hiện tại, tuyệt đối không nhảy sang cảnh khác
-        const currentActiveId = activeScene.id;
-        const stillActive = validDetails.find((s) => s.id === currentActiveId);
-        if (stillActive) {
-          setSelectedScene(stillActive);
-        } else if (validDetails.length > 0) {
-          setSelectedScene(validDetails[0]);
-        }
+        const details = (
+          await Promise.all(
+            freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
+          )
+        ).filter((d): d is SceneDetailDto => d !== null);
+        details.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        setChapterScenesDetail(details);
+        setSelectedScene(details.find((d) => d.id === scene!.id) ?? details[0] ?? null);
       } catch (refreshErr) {
-        console.error('Lỗi làm mới danh sách phân cảnh sau khi lưu:', refreshErr);
+        console.error('Lỗi làm mới kịch bản sau khi lưu:', refreshErr);
       }
     },
-    [currentChapter, chapterScenesDetail, selectedScene, scenes, canEditScript, isChapterLocked]
+    [
+      currentChapter,
+      chapterScenesDetail,
+      selectedScene,
+      scenes,
+      loadPagesAndPanels,
+      notify,
+      refreshChapterDetail,
+      t,
+    ],
   );
-
-
 
   // Xử lý Xoá Phân Cảnh (Delete Scene - Lucian #269 TypeToConfirmModal)
   const handleConfirmDeleteScene = async () => {
@@ -935,7 +765,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       await scriptLineService.deleteScene(sceneToDelete.id);
       notify(
         'Đã xoá phân cảnh',
-        `Cảnh ${sceneToDelete.sceneNumber} đã được xoá an toàn khỏi chuỗi sản xuất.`
+        `Cảnh ${sceneToDelete.sceneNumber} đã được xoá an toàn khỏi chuỗi sản xuất.`,
       );
       setSceneToDelete(null);
       await loadScenes();
@@ -954,12 +784,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       await chapterService.deleteChapter(chapterToDelete.id);
       notify(
         'Đã xoá chương',
-        `Chương ${chapterToDelete.chapterNumber} đã được xoá an toàn khỏi chuỗi sản xuất.`
+        `Chương ${chapterToDelete.chapterNumber} đã được xoá an toàn khỏi chuỗi sản xuất.`,
       );
       setChapterToDelete(null);
       if (seriesId) {
         const chapRes = await chapterService.getChaptersBySeries(seriesId, 1, 50);
-        const remainingChapters = Array.isArray(chapRes) ? chapRes : (chapRes?.items || []);
+        const remainingChapters = Array.isArray(chapRes) ? chapRes : chapRes?.items || [];
         setChapters(remainingChapters);
         if (remainingChapters.length > 0) {
           handleSelectChapter(remainingChapters[0].id);
@@ -989,7 +819,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         });
         setAllBibleEntries((prev) => [...prev, created]);
         setCharacters((prev) => [...prev, created]);
-        notify('Đã tạo thực thể tạm', `Đã lưu tạm "${name}" vào Series Bible để biên kịch tiếp tục.`);
+        notify(
+          'Đã tạo thực thể tạm',
+          `Đã lưu tạm "${name}" vào Series Bible để biên kịch tiếp tục.`,
+        );
       } catch (err: any) {
         console.error('Lỗi tự sinh Stub Entity:', err);
       }
@@ -997,49 +830,38 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     [seriesId, notify],
   );
 
-  const loadPagesAndPanels = useCallback(async (chapId: string) => {
-    try {
-      const pages = await pageService.getPagesByChapter(chapId);
-      setChapterPages(pages || []);
-      if (pages && pages.length > 0) {
-        const panelPromises = pages.map((page) =>
-          panelService.getPanelsByPage(page.id).catch(() => [])
+  const handleOpenInBible = useCallback(
+    (codeOrId: string) => {
+      if (workspaceId && seriesId) {
+        navigate(
+          `/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(codeOrId)}`,
         );
-        const panelsByPages = await Promise.all(panelPromises);
-        const allPanels: PanelDto[] = [];
-        panelsByPages.forEach((list, idx) => {
-          list.forEach((p) => {
-            (p as any).pageNumber = pages[idx].pageNumber;
-            allPanels.push(p);
-          });
-        });
-        setChapterPanels(allPanels);
-      } else {
-        setChapterPanels([]);
       }
-    } catch {
-      setChapterPages([]);
-      setChapterPanels([]);
-    }
-  }, []);
+    },
+    [workspaceId, seriesId, navigate],
+  );
 
-  const handleOpenInBible = useCallback((codeOrId: string) => {
-    if (workspaceId && seriesId) {
-      navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(codeOrId)}`);
-    }
-  }, [workspaceId, seriesId, navigate]);
+  const handleOpenInArtistDesk = useCallback(
+    (pageNumber?: number) => {
+      if (workspaceId && seriesId && currentChapter?.id) {
+        navigate(
+          `/workspaces/${workspaceId}/series/${seriesId}/artist?chapterId=${currentChapter.id}${pageNumber ? `&page=${pageNumber}` : ''}`,
+        );
+      }
+    },
+    [workspaceId, seriesId, currentChapter, navigate],
+  );
 
-  const handleOpenInArtistDesk = useCallback((pageNumber?: number) => {
-    if (workspaceId && seriesId && currentChapter?.id) {
-      navigate(`/workspaces/${workspaceId}/series/${seriesId}/artist?chapterId=${currentChapter.id}${pageNumber ? `&page=${pageNumber}` : ''}`);
-    }
-  }, [workspaceId, seriesId, currentChapter, navigate]);
-
-  const handleCreateInBible = useCallback((tempCode: string) => {
-    if (workspaceId && seriesId) {
-      navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(tempCode)}`);
-    }
-  }, [workspaceId, seriesId, navigate]);
+  const handleCreateInBible = useCallback(
+    (tempCode: string) => {
+      if (workspaceId && seriesId) {
+        navigate(
+          `/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(tempCode)}`,
+        );
+      }
+    },
+    [workspaceId, seriesId, navigate],
+  );
 
   const loadScenes = useCallback(async () => {
     if (!currentChapter?.id) {
@@ -1057,7 +879,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       if (list.length > 0) {
         // Tải chi tiết tất cả các phân cảnh để dựng không gian kịch bản liền mạch
         const allDetails = await Promise.all(
-          list.map((s) => scriptLineService.getSceneById(s.id).catch(() => null))
+          list.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
         );
         const validDetails = allDetails.filter((d): d is SceneDetailDto => d !== null);
         validDetails.sort((a, b) => a.sceneNumber - b.sceneNumber);
@@ -1124,14 +946,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (editorMode === 'flow') {
       setTimeout(() => {
         const sceneHeadings = Array.from(
-          document.querySelectorAll('.script-block[data-block-type="scene_heading"]')
+          document.querySelectorAll('.script-block[data-block-type="scene_heading"]'),
         );
         const targetEl =
           sceneHeadings.find((el) => el.getAttribute('data-scene-id') === scene.id) ||
           sceneHeadings.find(
             (el) =>
               el.textContent?.includes(`CẢNH ${scene.sceneNumber}`) ||
-              el.textContent?.includes(`SCENE ${scene.sceneNumber}`)
+              el.textContent?.includes(`SCENE ${scene.sceneNumber}`),
           );
         if (targetEl) {
           targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1206,7 +1028,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const handleCreateNewChapter = async (data: CreateChapterRequest) => {
     if (!seriesId) return;
     if (!canCreateChapter) {
-      notify('Quyền hạn bị từ chối', 'Chỉ có Producer mới có quyền khởi tạo chương mới cho series.');
+      notify(
+        'Quyền hạn bị từ chối',
+        'Chỉ có Producer mới có quyền khởi tạo chương mới cho series.',
+      );
       return;
     }
     const created = await chapterService.createChapter(seriesId, data);
@@ -1354,44 +1179,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }, 4500);
   };
 
-  // Mở bảng yêu cầu sửa một lần cho mỗi lượt Editor trả kịch bản còn CR Open.
-  useEffect(() => {
-    if (!writerAssignmentId || writerAssignmentStatus !== 'ReworkRequired') return;
-    if (openChangeRequestCount === 0 || autoOpenedCrForRef.current === writerAssignmentId) return;
-    autoOpenedCrForRef.current = writerAssignmentId;
-    setActiveSideDrawer('changeRequests');
-  }, [writerAssignmentId, writerAssignmentStatus, openChangeRequestCount]);
-
-  const handleResolveChangeRequest = async (changeRequestId: string, note: string) => {
-    if (!writerAssignmentChapterId) return false;
-    try {
-      const updated = await assignmentService.resolveChangeRequest(
-        writerAssignmentChapterId,
-        changeRequestId,
-        note || undefined,
-      );
-      setChangeRequests((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-      notify(t('writerChangeRequests.resolvedToastTitle'), t('writerChangeRequests.resolvedToastDesc'));
-      return true;
-    } catch (err: any) {
-      notify(t('writerChangeRequests.resolveFailed'), err?.message ?? '');
-      return false;
-    }
-  };
-
-  const handleJumpToChangeRequest = (cr: ChangeRequestDto) => {
-    if (cr.scriptLineId) {
-      void handleScrollToLine(cr.scriptLineId);
-      return;
-    }
-    const scene = scenes.find((sc) => sc.id === cr.sceneId);
-    if (scene) {
-      handleSelectScene(scene);
-    } else {
-      notify(t('writerChangeRequests.sceneMissingTitle'), t('writerChangeRequests.sceneMissingDesc'));
-    }
-  };
-
   // --- CRUD SCENE ---
   const handleOpenCreateScene = () => {
     setIsEditingScene(false);
@@ -1431,9 +1218,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         setChapterScenesDetail((prev) =>
           prev.map((s) =>
             s.id === updated.id
-              ? { ...s, heading: updated.heading, summary: updated.summary, version: updated.version }
-              : s
-          )
+              ? {
+                  ...s,
+                  heading: updated.heading,
+                  summary: updated.summary,
+                  version: updated.version,
+                }
+              : s,
+          ),
         );
       } else {
         const req: CreateSceneRequest = {
@@ -1473,7 +1265,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const handleDeleteScene = () => {
     notify(
       'Không thể xoá phân cảnh',
-      'Hệ thống không cho phép xoá phân cảnh để đảm bảo tính liên tục của mạch truyện. Bạn chỉ có thể sửa tiêu đề phân cảnh.'
+      'Hệ thống không cho phép xoá phân cảnh để đảm bảo tính liên tục của mạch truyện. Bạn chỉ có thể sửa tiêu đề phân cảnh.',
     );
   };
 
@@ -1829,54 +1621,54 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Helper tìm tên nhân vật từ ID có kèm giai đoạn
   const getSpeakerName = (speakerId?: string | null) => {
     if (!speakerId) return null;
-    const found = characters.find((c) => c.id === speakerId) || allBibleEntries.find((c) => c.id === speakerId);
+    const found =
+      characters.find((c) => c.id === speakerId) || allBibleEntries.find((c) => c.id === speakerId);
     return found ? getBibleEntryNameWithStage(found) : 'Nhân vật (Chưa rõ)';
   };
 
+  // D12 — áp trạng thái chương máy chủ trả về rồi nạp lại chi tiết
+  const applyChapterUpdate = async (updated: ChapterDto | null | undefined) => {
+    if (updated) setCurrentChapter((prev) => (prev ? { ...prev, ...updated } : prev));
+    if (currentChapter?.id) await refreshChapterDetail(currentChapter.id);
+  };
 
+  /** D12 / Gate 1: Producer bấm Start Production khi kịch bản đang InReview. */
   const handleFreezeScript = async () => {
     if (!currentChapter?.id) return;
+    const n = currentChapter.chapterNumber;
     const confirmed = await confirm({
-      title: `Duyệt kịch bản & Đưa vào sản xuất Chương ${currentChapter.chapterNumber}?`,
-      description:
-        'Kịch bản sẽ được đóng băng (Frozen / Read-only) để bộ phận Artist bắt đầu dàn trang (Thumbnail & Layout). Bước giao việc Script trên Kanban sẽ tự động hoàn tất.',
-      confirmText: 'Duyệt kịch bản & Đưa vào sản xuất',
-      cancelText: 'Hủy',
+      title: t('scriptStudio.lifecycle.startConfirmTitle', { n }),
+      description: t('scriptStudio.lifecycle.startConfirmBody'),
+      confirmText: t('scriptStudio.submit.producer'),
+      cancelText: t('scriptStudio.lifecycle.cancel'),
       variant: 'info',
     });
     if (!confirmed) return;
 
     setFreezingScript(true);
     try {
-      const updatedChapter = await chapterService.freezeScript(currentChapter.id);
-      notify(
-        'Đã duyệt kịch bản',
-        `Kịch bản Chương ${currentChapter.chapterNumber} đã đóng băng và chuyển giao sang khâu sản xuất hình ảnh thành công.`,
-      );
-      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: true, scriptContentHash: updatedChapter?.scriptContentHash ?? prev.scriptContentHash } : prev));
-      await refreshChapterDetail(currentChapter.id);
-      void checkChapterBibleGate(currentChapter.id);
+      const updated = await chapterService.freezeScript(currentChapter.id);
+      notify(t('scriptStudio.lifecycle.started'), t('scriptStudio.lifecycle.startedBody', { n }));
+      await applyChapterUpdate(updated);
     } catch (err: any) {
-      notify('Không thể duyệt kịch bản', err.message);
+      notify(t('scriptStudio.lifecycle.startFailed'), err.message);
     } finally {
       setFreezingScript(false);
     }
   };
 
-  // BR-18: lý do mở lại là bắt buộc, Backend ghi vào Audit Log
+  // BR-18: lý do mở lại là bắt buộc, Backend ghi vào Audit Log (Frozen → Draft)
   const handleUnfreezeScript = async (reason: string) => {
     if (!currentChapter?.id) return;
     setUnfreezeReasonOpen(false);
     setFreezingScript(true);
     try {
-      await chapterService.unfreezeScript(currentChapter.id, reason);
+      const updated = await chapterService.unfreezeScript(currentChapter.id, reason);
       notify(
         'Đã mở lại kịch bản',
         `Kịch bản Chương ${currentChapter.chapterNumber} đã được mở lại cho Writer chỉnh sửa.`,
       );
-      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: false, scriptContentHash: null } : prev));
-      await refreshChapterDetail(currentChapter.id);
-      void checkChapterBibleGate(currentChapter.id);
+      await applyChapterUpdate(updated);
     } catch (err: any) {
       notify('Không thể mở lại kịch bản', err.message);
     } finally {
@@ -1884,36 +1676,51 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   };
 
-  const handleSubmitScriptToEditor = async () => {
+  /**
+   * D12: Writer gửi duyệt = push (Draft → InReview, hoặc gửi lại khi InReview để Editor đọc bản mới).
+   * Tự lưu chữ chưa lưu trên bàn viết trước; lưu lỗi thì không gửi.
+   */
+  const handleSubmitScript = async () => {
     if (!currentChapter?.id) return;
-    if (!myWriterAssignment) {
-      notify('Chưa có phân công việc', 'Chương này chưa có phân công kịch bản Writer trên Kanban để nộp duyệt.');
-      return;
-    }
-
+    if (editorSaveRef.current && !(await editorSaveRef.current())) return;
+    const n = currentChapter.chapterNumber;
     const confirmed = await confirm({
-      title: `Gửi kịch bản Chương ${currentChapter.chapterNumber} cho Editor duyệt?`,
-      description: `Kịch bản (Bản v${currentChapter.versionVector ?? 0}) sẽ được chuyển sang hàng đợi thẩm định của Editor. Nếu Editor yêu cầu chỉnh sửa lại, hệ thống sẽ tự động tăng số version của bản thảo.`,
-      confirmText: 'Gửi duyệt kịch bản',
-      cancelText: 'Hủy',
+      title: isScriptInReview
+        ? t('scriptStudio.lifecycle.resubmitConfirmTitle', { n })
+        : t('scriptStudio.lifecycle.submitConfirmTitle', { n }),
+      description: t('scriptStudio.lifecycle.submitConfirmBody'),
+      confirmText: t('scriptStudio.submit.writer'),
+      cancelText: t('scriptStudio.lifecycle.cancel'),
       variant: 'info',
     });
     if (!confirmed) return;
 
     setSubmittingToEditor(true);
     try {
-      if (myWriterAssignment.status === 'Assigned') {
-        await assignmentService.startAssignment(currentChapter.id, myWriterAssignment.id);
-      }
-      await assignmentService.submitAssignment(currentChapter.id, myWriterAssignment.id);
+      const updated = await chapterService.submitScript(currentChapter.id);
       notify(
-        'Đã gửi kịch bản cho Editor duyệt',
-        `Kịch bản Chương ${currentChapter.chapterNumber} (Bản v${currentChapter.versionVector ?? 0}) đã được chuyển cho Editor thẩm định thành công.`,
+        t('scriptStudio.lifecycle.submitted'),
+        t('scriptStudio.lifecycle.submittedBody', { n }),
       );
-      await refreshChapterDetail(currentChapter.id);
+      await applyChapterUpdate(updated);
+      setVersionsTick((v) => v + 1);
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Lỗi khi gửi duyệt kịch bản';
-      notify('Không thể gửi duyệt', msg);
+      notify(t('scriptStudio.lifecycle.submitFailed'), err.message);
+    } finally {
+      setSubmittingToEditor(false);
+    }
+  };
+
+  /** D12: chỉ Writer rút kịch bản về sửa (InReview → Draft). */
+  const handleRecallScript = async () => {
+    if (!currentChapter?.id) return;
+    setSubmittingToEditor(true);
+    try {
+      const updated = await chapterService.recallScript(currentChapter.id);
+      notify(t('scriptStudio.lifecycle.recalled'), '');
+      await applyChapterUpdate(updated);
+    } catch (err: any) {
+      notify(t('scriptStudio.lifecycle.recallFailed'), err.message);
     } finally {
       setSubmittingToEditor(false);
     }
@@ -1933,7 +1740,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   const currentSceneDto = useMemo(
     () => scenes.find((s) => s.id === selectedScene?.id),
-    [scenes, selectedScene?.id]
+    [scenes, selectedScene?.id],
   );
   const sceneHasPanels = useMemo(() => {
     if (!selectedScene) return false;
@@ -1958,43 +1765,45 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     : 0;
 
   // Lọc danh sách phân cảnh
-  const filteredScenes = scenes.filter((s): s is SceneDto => Boolean(s && s.id)).filter((s) => {
-    if (!sceneSearchQuery.trim()) return true;
-    const q = sceneSearchQuery.toLowerCase();
-    return (
-      (s.heading && s.heading.toLowerCase().includes(q)) ||
-      (s.summary && s.summary.toLowerCase().includes(q)) ||
-      String(s.sceneNumber).includes(q)
-    );
-  });
+  const filteredScenes = scenes
+    .filter((s): s is SceneDto => Boolean(s && s.id))
+    .filter((s) => {
+      if (!sceneSearchQuery.trim()) return true;
+      const q = sceneSearchQuery.toLowerCase();
+      return (
+        (s.heading && s.heading.toLowerCase().includes(q)) ||
+        (s.summary && s.summary.toLowerCase().includes(q)) ||
+        String(s.sceneNumber).includes(q)
+      );
+    });
 
   // Đưa Bộ truyện / Chương, các công đoạn kịch bản và nút Gửi duyệt lên header chung (giống Bàn vẽ).
   // Handler đi qua ref vì chúng được tạo lại mỗi lần render; đưa trực tiếp vào deps sẽ gây vòng lặp setHeaderConfig.
   const focusHeader = useFocusHeaderContext();
   const isWriterRole = normRole === 'WRITER' || effectiveRole === 'WRITER';
-  const writerStatus = myWriterAssignment?.status;
-  const isAwaitingReview =
-    writerStatus === 'Submitted' || writerStatus === 'UnderReview' || writerStatus === 'Approved';
+  // D12: Writer gửi duyệt (Draft) / gửi lại khi đã sửa sau lần gửi (InReview); hủy gửi duyệt nằm ở banner.
+  // Producer Start Production (InReview). Editor không có nút đổi trạng thái.
+  const scriptAction: 'submit' | 'resubmit' | 'start' | null =
+    !currentChapter || isChapterContentLocked
+      ? null
+      : isWriterRole && scriptStatus === 'Draft'
+        ? 'submit'
+        : isWriterRole && isScriptInReview
+          ? 'resubmit'
+          : isProducer && isScriptInReview
+            ? 'start'
+            : null;
+  // Gửi lại chỉ khi đã lưu thay đổi sau lần gửi duyệt gần nhất
   const canSubmitScript =
-    Boolean(currentChapter) &&
-    !isScriptFrozen &&
-    (isProducer ||
-      (isWriterRole && Boolean(myWriterAssignment) && !isAwaitingReview && openChangeRequestCount === 0));
-  const scriptStageIndex = isScriptFrozen ? 2 : isAwaitingReview ? 1 : 0;
+    scriptAction !== null && (scriptAction !== 'resubmit' || hasUnpushedChanges);
+  const scriptStageIndex = isScriptFrozen ? 2 : isScriptInReview ? 1 : 0;
 
   const submitScriptRef = React.useRef<() => void>(() => {});
   const selectChapterRef = React.useRef(handleSelectChapter);
   useEffect(() => {
     submitScriptRef.current = () => {
-      if (isProducer) {
-        if (bibleGateResult && !bibleGateResult.isPassed) {
-          setBibleGateModalOpen(true);
-          return;
-        }
-        void handleFreezeScript();
-        return;
-      }
-      void handleSubmitScriptToEditor();
+      if (scriptAction === 'start') void handleFreezeScript();
+      else if (scriptAction === 'submit' || scriptAction === 'resubmit') void handleSubmitScript();
     };
     selectChapterRef.current = handleSelectChapter;
   });
@@ -2016,7 +1825,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (!focusHeader?.isInsideFocusLayout || !currentChapter) return;
     focusHeader.setHeaderConfig({
       seriesTitle: seriesDetail?.title,
-      seriesPath: workspaceId && seriesId ? `/workspaces/${workspaceId}/series/${seriesId}/script` : undefined,
+      seriesPath:
+        workspaceId && seriesId
+          ? `/workspaces/${workspaceId}/series/${seriesId}/script`
+          : undefined,
       chapters: headerChapters,
       currentChapterId: currentChapter.id,
       onSelectChapter: (id: string) => selectChapterRef.current(id),
@@ -2025,7 +1837,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       isStageFlowCompleted: isScriptFrozen,
       isSubmittingStage: submittingToEditor || freezingScript,
       onSubmitStage: canSubmitScript ? () => submitScriptRef.current() : undefined,
-      submitButtonLabel: isProducer ? t('scriptStudio.submit.producer') : t('scriptStudio.submit.writer'),
+      submitButtonLabel:
+        scriptAction === 'start'
+          ? t('scriptStudio.submit.producer')
+          : scriptAction === 'resubmit'
+            ? t('scriptStudio.submit.resubmit')
+            : t('scriptStudio.submit.writer'),
     });
   }, [
     focusHeader,
@@ -2040,7 +1857,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     submittingToEditor,
     freezingScript,
     canSubmitScript,
-    isProducer,
+    scriptAction,
     t,
   ]);
 
@@ -2079,6 +1896,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   const railItems: ScriptRailItem[] = [
     {
+      id: 'chapters',
+      label: t('scriptStudio.rail.chapters', 'Chương'),
+      icon: BookOpen,
+      active: activeSideDrawer === 'chapters',
+      testId: 'rail-chapters-btn',
+      onClick: () => toggleDrawer('chapters'),
+    },
+    {
       id: 'outline',
       label: t('scriptStudio.rail.outline'),
       icon: Compass,
@@ -2105,21 +1930,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       testId: 'run-consistency-check-btn',
       onClick: handleRunConsistencyCheck,
     },
-    ...(changeRequests.length > 0 || writerAssignmentStatus === 'ReworkRequired'
-      ? [
-          {
-            id: 'change-requests',
-            label: t('writerChangeRequests.toggle'),
-            icon: ClipboardList,
-            tone: openChangeRequestCount > 0 ? 'warn' : 'default',
-            active: activeSideDrawer === 'changeRequests',
-            badge: openChangeRequestCount,
-            busy: loadingChangeRequests,
-            testId: 'writer-change-requests-btn',
-            onClick: () => toggleDrawer('changeRequests'),
-          } satisfies ScriptRailItem,
-        ]
-      : []),
     ...(canEditScript && !isChapterLocked
       ? [
           {
@@ -2167,9 +1977,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       id: 'history',
       label: t('scriptStudio.rail.history'),
       icon: History,
-      disabled: !selectedScene,
+      active: activeSideDrawer === 'versions',
+      tone: hasUnpushedChanges ? 'warn' : 'default',
       testId: 'open-script-history-btn',
-      onClick: () => setHistoryOpen(true),
+      onClick: () => toggleDrawer('versions'),
     },
   ];
 
@@ -2297,7 +2108,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       })}
 
       {/* 2. Thanh thông báo ngắn gọn gom thông báo chỉ đọc & xung đột */}
-      {(concurrencyError || isChapterLocked || !canEditScript || loadError) && (
+      {(concurrencyError ||
+        isChapterLocked ||
+        !canEditScript ||
+        loadError ||
+        openScriptComments.length > 0) && (
         <div className='px-4 py-2.5 bg-white border-b border-[#E7E2D9] shrink-0 text-xs space-y-2'>
           {concurrencyError && (
             <div
@@ -2348,7 +2163,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 <div>
                   <div className='flex items-center gap-2'>
                     <span className='font-bold text-xs uppercase tracking-wider bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded inline-flex items-center gap-1.5'>
-                      <span>🔒 Kịch bản đã đóng băng (Frozen / Read-only)</span>
+                      <span>🔒 Kịch bản đã chốt (chỉ đọc)</span>
                       {currentChapter?.scriptContentHash && (
                         <span
                           className='font-mono font-semibold text-[10px] text-indigo-900 bg-indigo-100 px-1.5 py-0.5 rounded border border-indigo-300'
@@ -2395,7 +2210,87 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           )}
 
-          {isChapterLocked && !isScriptFrozen && (
+          {isScriptInReview && (
+            <div
+              data-testid='script-in-review-banner'
+              className='p-3 bg-amber-50 border border-amber-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-amber-950'
+            >
+              <div className='flex items-center gap-2.5 min-w-0'>
+                <Send className='w-4 h-4 text-amber-700 shrink-0' />
+                <div>
+                  <p className='text-xs font-semibold'>
+                    {t('scriptStudio.lifecycle.inReviewTitle')}
+                  </p>
+                  <p className='text-[11px] text-amber-900/80 mt-0.5'>
+                    {hasUnpushedChanges
+                      ? t('scriptStudio.lifecycle.inReviewDirty')
+                      : t('scriptStudio.lifecycle.inReviewBody')}
+                  </p>
+                </div>
+              </div>
+              {isWriterRole && !isChapterContentLocked && (
+                <button
+                  type='button'
+                  disabled={submittingToEditor}
+                  onClick={() => void handleRecallScript()}
+                  className='px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shrink-0 cursor-pointer transition-colors disabled:opacity-60 flex items-center gap-1.5'
+                >
+                  <RefreshCw className='w-3.5 h-3.5' />
+                  {t('scriptStudio.submit.recall')}
+                </button>
+              )}
+            </div>
+          )}
+
+          {openScriptComments.length > 0 && (
+            <details
+              data-testid='script-comments-panel'
+              open={isScriptInReview}
+              className='rounded-xl border border-stone-200 bg-stone-50 px-3 py-2'
+            >
+              <summary className='cursor-pointer text-xs font-semibold text-stone-800'>
+                {t('scriptStudio.comments.title', { count: openScriptComments.length })}
+              </summary>
+              <ul className='mt-2 space-y-2'>
+                {openScriptComments.map((c) => (
+                  <li key={c.id} className='rounded-lg bg-white px-3 py-2 border border-stone-200'>
+                    {c.quotedText && (
+                      <p className='line-clamp-2 border-l-2 border-stone-200 pl-2 text-[11px] italic text-stone-500'>
+                        {c.quotedText}
+                      </p>
+                    )}
+                    <p className='mt-1 whitespace-pre-wrap text-xs text-stone-800'>{c.body}</p>
+                    <div className='mt-1 flex items-center justify-between gap-2'>
+                      <span className='text-[11px] text-stone-400'>{c.authorName ?? ''}</span>
+                      {isWriterRole && (
+                        <button
+                          type='button'
+                          onClick={() =>
+                            currentChapter?.id &&
+                            void chapterService
+                              .resolveScriptComment(currentChapter.id, c.id)
+                              .then((updated) =>
+                                setScriptComments((list) =>
+                                  list.map((x) => (x.id === updated.id ? updated : x)),
+                                ),
+                              )
+                              .catch((err) =>
+                                notify(t('scriptStudio.comments.resolveFailed'), err.message),
+                              )
+                          }
+                          className='text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 cursor-pointer'
+                        >
+                          {t('scriptStudio.comments.resolve')}
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+
+          {isChapterContentLocked && !isScriptFrozen && (
             <div
               data-testid='chapter-locked-banner'
               className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
@@ -2404,7 +2299,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 <ShieldAlert className='w-4 h-4 text-amber-600 shrink-0' />
                 <span className='text-xs font-medium'>
                   Chương này đã ở trạng thái <strong>{currentChapter?.status}</strong> — Kịch bản ở
-                  chế độ chỉ đọc để bảo vệ tính toàn vẹn sản xuất. Thẻ xem nhanh vẫn dùng được qua hover hoặc Ctrl+.
+                  chế độ chỉ đọc để bảo vệ tính toàn vẹn sản xuất. Thẻ xem nhanh vẫn dùng được qua
+                  hover hoặc Ctrl+.
                 </span>
               </div>
               <span className='text-xs font-bold uppercase tracking-wider bg-amber-200/90 text-amber-900 px-2.5 py-0.5 rounded-full shrink-0'>
@@ -2413,23 +2309,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           )}
 
-          {isWriterBlockedByOther && !isChapterLocked ? (
-            <div
-              data-testid='writer-not-assigned-banner'
-              className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
-            >
-              <div className='flex items-center gap-2'>
-                <AlertCircle className='w-4 h-4 text-amber-600 shrink-0' />
-                <span className='text-xs font-medium'>
-                  Chế độ chỉ đọc: Kịch bản chương này đã được giao cho Writer khác
-                  {assignedWriterNames ? ` (${assignedWriterNames})` : ''}. Chỉ người được giao hoặc Producer mới có quyền chỉnh sửa.
-                </span>
-              </div>
-              <span className='text-xs font-bold uppercase tracking-wider bg-amber-200/90 text-amber-900 px-2.5 py-0.5 rounded-full shrink-0'>
-                Đã giao người khác
-              </span>
-            </div>
-          ) : !canEditScript && !isChapterLocked ? (
+          {!canEditScript && !isChapterLocked ? (
             <div
               data-testid='role-view-only-banner'
               className='p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 text-blue-900'
@@ -2438,8 +2318,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 <Info className='w-4 h-4 text-blue-600 shrink-0' />
                 <span className='text-xs font-medium'>
                   Chế độ xem: Bạn đang xem kịch bản với quyền tham khảo. Chỉ vai trò{' '}
-                  <strong>Producer</strong> hoặc <strong>Writer</strong> được phân công mới có quyền tạo và chỉnh
-                  sửa kịch bản.
+                  <strong>Producer</strong> hoặc <strong>Writer</strong> được phân công mới có quyền
+                  tạo và chỉnh sửa kịch bản.
                 </span>
               </div>
               <span className='text-xs font-bold uppercase tracking-wider bg-blue-200/90 text-blue-900 px-2.5 py-0.5 rounded-full shrink-0'>
@@ -2459,6 +2339,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           items={railItems}
           footerItems={railFooterItems}
         />
+
+        {activeSideDrawer === 'chapters' && (
+          <ScriptChaptersDrawer
+            chapters={chapters}
+            selectedChapterId={currentChapter?.id}
+            onSelectChapter={(chapId) => {
+              handleSelectChapter(chapId);
+            }}
+            onBackToSelection={handleBackToChapterSelection}
+            onClose={() => setActiveSideDrawer(null)}
+          />
+        )}
 
         {activeSideDrawer === 'scenes' && (
           <ScriptScenesDrawer
@@ -2490,8 +2382,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <ScreenplayFlowEditor
               key={currentChapter?.id || 'flow-editor'}
               chapterId={currentChapter?.id}
-              chapterNumber={currentChapter?.chapterNumber}
-              chapterVersion={currentChapter?.versionVector ?? 0}
               scenes={
                 chapterScenesDetail.length > 0
                   ? chapterScenesDetail
@@ -2499,25 +2389,26 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     ? [selectedScene]
                     : []
               }
-              allBibleEntries={allBibleEntries}
-              consistencyFindings={findings}
+              pages={chapterPages}
+              panels={chapterPanels}
               canEditScript={canEditScript}
               isChapterLocked={isChapterLocked}
-              scriptContentHash={currentChapter?.scriptContentHash}
-              getSpeakerName={getSpeakerName}
-              onSaveLines={handleSaveFlowLines}
-              onCreateStub={handleCreateStubEntity}
+              onSave={handleSaveScript}
+              registerSave={registerEditorSave}
               onShowToast={onShowToast}
-              importRequestKey={importRequestKey}
-              onActiveSceneChange={handleCaretSceneChange}
               dockLeading={viewSwitcher}
-              manuscriptTitle={formatChapterOption(currentChapter.chapterNumber, currentChapter.title)}
+              manuscriptTitle={formatChapterOption(
+                currentChapter.chapterNumber,
+                currentChapter.title,
+              )}
             />
           ) : (
             <div className='flex-1 min-h-0 flex flex-col'>
               <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar'>
                 {!selectedScene ? (
-                  <p className='text-center text-sm text-stone-500 py-20'>{t('scriptStudio.ai.needScene')}</p>
+                  <p className='text-center text-sm text-stone-500 py-20'>
+                    {t('scriptStudio.ai.needScene')}
+                  </p>
                 ) : (
                   <div className='max-w-3xl mx-auto w-full px-4 py-8 space-y-3'>
                     <div className='flex items-center justify-between gap-3 pb-2'>
@@ -2640,16 +2531,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           characters={characters}
         />
 
-        <WriterChangeRequestsDrawer
-          isOpen={activeSideDrawer === 'changeRequests'}
-          onClose={() => setActiveSideDrawer(null)}
-          changeRequests={changeRequests}
-          loading={loadingChangeRequests}
-          generalNote={myWriterAssignment?.lastFeedbackComment}
-          canResolve={isAssignedWriter && !isScriptFrozen}
-          onResolve={handleResolveChangeRequest}
-          onJump={handleJumpToChangeRequest}
-        />
+        {/* 4. Lịch sử commit (Lưu = commit, Gửi duyệt = push) và so với bản đã gửi duyệt */}
+        {activeSideDrawer === 'versions' && currentChapter?.id && (
+          <ScriptVersionsDrawer
+            chapterId={currentChapter.id}
+            pushedVersionId={currentChapter.lastSubmittedVersionId}
+            refreshKey={versionsTick}
+            onClose={() => setActiveSideDrawer(null)}
+          />
+        )}
       </div>
 
       {/* Trợ lý AI viết nháp kịch bản */}
@@ -2692,38 +2582,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           hasPanels={sceneHasPanels}
           onClose={() => setStoryboardPanelOpen(false)}
           onReload={handleAiReload}
-        />
-      )}
-
-      {/* Lịch sử phiên bản kịch bản (UC-13) */}
-      {historyOpen && seriesId && currentChapter?.id && selectedScene?.id && (
-        <ScriptHistoryModal
-          key={selectedScene.id}
-          seriesId={seriesId}
-          chapterId={currentChapter.id}
-          sceneId={selectedScene.id}
-          chapterVersion={currentChapter.versionVector}
-          currentLines={selectedScene.scriptLines ?? []}
-          canRestore={
-            canEditScript && (!currentChapter.status || currentChapter.status === 'InProduction')
-          }
-          nameById={aiNameById}
-          onClose={() => setHistoryOpen(false)}
-          onRestored={async (res) => {
-            setConcurrencyError(null);
-            setCurrentChapter((prev) =>
-              prev ? { ...prev, versionVector: res.chapterVersion } : null,
-            );
-            notify(
-              'Đã khôi phục kịch bản',
-              `Đã khôi phục về v${res.restoredFromVersionNumber}; tạo phiên bản mới v${res.versionNumber}.`,
-            );
-            await loadSceneDetail(selectedScene.id);
-          }}
-          onConflict={async (msg) => {
-            notify('Xung đột phiên bản (409 CONFLICT)', msg);
-            await handleAiReload();
-          }}
         />
       )}
 
@@ -3072,7 +2930,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         onClose={() => setConflictModalOpen(false)}
       />
 
-
       {/* Lucian #269: Type-to-Confirm Modal Xoá Chương (Destructive Chapter Delete) */}
       {chapterToDelete && (
         <TypeToConfirmModal
@@ -3234,11 +3091,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </div>
         </div>
       )}
-
-
     </div>
   );
 };
 
 export default ScriptEditorView;
-

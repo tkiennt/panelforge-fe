@@ -649,7 +649,6 @@ describe('AiAssistPanel · mở lại panel thấy lại lượt chạy / đề 
   });
 });
 
-
 describe('AiAssistPanel (Storyboard & Layout)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -686,7 +685,13 @@ describe('AiAssistPanel (Storyboard & Layout)', () => {
             {
               panelNumber: 1,
               readingOrder: 1,
-              bbox: { x: 0.05, y: 0.05, w: 0.9, h: 0.3, coordinateSpace: 'PageNormalized' as const },
+              bbox: {
+                x: 0.05,
+                y: 0.05,
+                w: 0.9,
+                h: 0.3,
+                coordinateSpace: 'PageNormalized' as const,
+              },
               sourceScriptLineIds: ['line-1'],
             },
           ],

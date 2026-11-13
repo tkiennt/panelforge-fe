@@ -47,8 +47,8 @@ export async function detectPanelsFromSketchImage(
     pageWidth?: number;
     pageHeight?: number;
     safeMarginPercent?: number; // mặc định 2.8%
-    gutterGapPercent?: number;  // rãnh cách giữa các khung mặc định ~1.8%
-  } = {}
+    gutterGapPercent?: number; // rãnh cách giữa các khung mặc định ~1.8%
+  } = {},
 ): Promise<PanelDetectionResult> {
   let objectUrl: string | null = null;
   let imageUrl = '';
@@ -246,9 +246,33 @@ function fallbackHeuristicPanels(panelCount: number = 4): PanelDetectionResult {
     // 3 Tầng Manga kinh điển
     return {
       panels: [
-        { panelNumber: 1, readingOrder: 1, x: 0.028, y: 0.028, w: 0.944, h: 0.28, borderless: false },
-        { panelNumber: 2, readingOrder: 2, x: 0.505, y: 0.33, w: 0.467, h: 0.32, borderless: false },
-        { panelNumber: 3, readingOrder: 3, x: 0.028, y: 0.33, w: 0.467, h: 0.32, borderless: false },
+        {
+          panelNumber: 1,
+          readingOrder: 1,
+          x: 0.028,
+          y: 0.028,
+          w: 0.944,
+          h: 0.28,
+          borderless: false,
+        },
+        {
+          panelNumber: 2,
+          readingOrder: 2,
+          x: 0.505,
+          y: 0.33,
+          w: 0.467,
+          h: 0.32,
+          borderless: false,
+        },
+        {
+          panelNumber: 3,
+          readingOrder: 3,
+          x: 0.028,
+          y: 0.33,
+          w: 0.467,
+          h: 0.32,
+          borderless: false,
+        },
       ],
       detectedCount: 3,
       confidence: 0.75,
@@ -262,7 +286,7 @@ function fallbackHeuristicPanels(panelCount: number = 4): PanelDetectionResult {
       { panelNumber: 1, readingOrder: 1, x: 0.028, y: 0.028, w: 0.944, h: 0.28, borderless: false },
       { panelNumber: 2, readingOrder: 2, x: 0.505, y: 0.33, w: 0.467, h: 0.32, borderless: false },
       { panelNumber: 3, readingOrder: 3, x: 0.028, y: 0.33, w: 0.467, h: 0.32, borderless: false },
-      { panelNumber: 4, readingOrder: 4, x: 0.028, y: 0.672, w: 0.944, h: 0.30, borderless: false },
+      { panelNumber: 4, readingOrder: 4, x: 0.028, y: 0.672, w: 0.944, h: 0.3, borderless: false },
     ],
     detectedCount: 4,
     confidence: 0.75,
@@ -276,7 +300,7 @@ function fallbackHeuristicPanels(panelCount: number = 4): PanelDetectionResult {
  */
 export async function cropImageByBoundingBox(
   imageUrl: string,
-  box: { x: number; y: number; w: number; h: number }
+  box: { x: number; y: number; w: number; h: number },
 ): Promise<string> {
   const img = await loadImage(imageUrl);
   const canvas = document.createElement('canvas');

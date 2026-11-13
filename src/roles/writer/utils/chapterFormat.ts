@@ -21,4 +21,3 @@ export const formatChapterOption = (chapterNumber: number, title?: string | null
 
   return clean ? `Chương ${chapterNumber}: ${clean}` : `Chương ${chapterNumber}`;
 };
-

@@ -37,7 +37,6 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
   onOpenEditAccess,
   onDeleteMember,
 }) => {
-
   return (
     <div role='tabpanel' id='tabpanel-members' aria-labelledby='tab-members' className='space-y-6'>
       {/* Tab Selection Row & Search */}
@@ -93,7 +92,6 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
             Thành viên Studio ({filteredMembers.length})
           </h3>
         </div>
-
 
         <div className='divide-y divide-[#E7E7E7]'>
           {filteredMembers.length === 0 ? (

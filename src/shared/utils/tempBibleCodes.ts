@@ -1,4 +1,4 @@
-// src/roles/writer/components/script/flow/tempBibleCodes.ts
+// src/shared/utils/tempBibleCodes.ts
 
 export interface TempBibleCodeItem {
   code: string;
@@ -39,9 +39,17 @@ export function generateTempCode(name: string, category: string = 'Character'): 
   const catLower = category.toLowerCase();
   if (catLower.includes('loc') || catLower.includes('địa danh')) {
     prefix = 'LOC';
-  } else if (catLower.includes('prop') || catLower.includes('đạo cụ') || catLower.includes('vật phẩm')) {
+  } else if (
+    catLower.includes('prop') ||
+    catLower.includes('đạo cụ') ||
+    catLower.includes('vật phẩm')
+  ) {
     prefix = 'PRP';
-  } else if (catLower.includes('term') || catLower.includes('thuật ngữ') || catLower.includes('khái niệm')) {
+  } else if (
+    catLower.includes('term') ||
+    catLower.includes('thuật ngữ') ||
+    catLower.includes('khái niệm')
+  ) {
     prefix = 'TRM';
   }
 

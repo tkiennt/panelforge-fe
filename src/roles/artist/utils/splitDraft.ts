@@ -14,6 +14,29 @@ export interface DraftRegion {
   h: number;
   /** Chỉ cho bubble: id vùng panel chứa nó (null = không gắn panel nào). */
   panelId?: string | null;
+  /** Cho bubble: true nếu là khung dẫn chuyện / caption chữ nhật (từ BE polygon / tỷ lệ contour). */
+  isCaption?: boolean;
+  /**
+   * Chỉ cho panel cắt chéo: các đỉnh 0–1 trong hộp (x, y, w, h), cùng quy ước `corners` của boundingBox Panel.
+   * Tương đối theo hộp nên kéo / co giãn hộp vẫn giữ đúng hình. undefined = khung chữ nhật.
+   */
+  corners?: { x: number; y: number }[];
+}
+
+/** Đa giác pixel ảnh → corners 0–1 trong bbox; trả undefined nếu đa giác thực chất là hình chữ nhật của bbox. */
+export function polygonToCorners(
+  poly: [number, number][] | null | undefined,
+  [bx, by, bw, bh]: [number, number, number, number],
+): { x: number; y: number }[] | undefined {
+  if (!poly || poly.length < 3 || bw <= 0 || bh <= 0) return undefined;
+  const corners = poly.map(([px, py]) => ({
+    x: Math.min(1, Math.max(0, Number(((px - bx) / bw).toFixed(4)))),
+    y: Math.min(1, Math.max(0, Number(((py - by) / bh).toFixed(4)))),
+  }));
+  // Mọi đỉnh sát một góc hộp (lệch ≤ 3%) → khung chữ nhật, không cần corners
+  const nearBoxCorner = (c: { x: number; y: number }) =>
+    (c.x <= 0.03 || c.x >= 0.97) && (c.y <= 0.03 || c.y >= 0.97);
+  return corners.length === 4 && corners.every(nearBoxCorner) ? undefined : corners;
 }
 
 export interface SplitDraft {
@@ -29,12 +52,48 @@ export const MIN_REGION_PX = 8;
 let seq = 0;
 const nextId = (kind: DraftKind) => `${kind}-${++seq}`;
 
+/**
+ * Nhận diện khung dẫn chuyện / caption chữ nhật dựa vào polygon và bounding box.
+ * OpenCV splitter ở BE: caption chữ nhật là contour dạng khối đặc có tỷ lệ diện tích / bounding box >= 0.85
+ * và xấp xỉ đa giác 4-6 đỉnh.
+ */
+export function isCaptionPolygon(
+  poly?: [number, number][],
+  bbox?: [number, number, number, number],
+): boolean {
+  if (!poly || poly.length < 3) return false;
+  const w = bbox ? bbox[2] : 0;
+  const h = bbox ? bbox[3] : 0;
+  const boxArea = w * h;
+  if (boxArea <= 0) return false;
+
+  let area = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const j = (i + 1) % poly.length;
+    area += poly[i][0] * poly[j][1];
+    area -= poly[j][0] * poly[i][1];
+  }
+  area = Math.abs(area) / 2;
+
+  const ratio = area / boxArea;
+  return ratio >= 0.85 && (poly.length <= 6 || Math.abs(ratio - 1) < 0.1);
+}
+
 export function draftFromSplitResult(result: PanelSplitResult): SplitDraft {
   const W = result.width;
   const H = result.height;
   const sorted = [...result.panels].sort((a, b) => a.order - b.order);
   const panels = sorted.map((p) =>
-    clampRegion({ id: nextId('panel'), kind: 'panel' as const, ...bboxToRect(p.bbox) }, W, H),
+    clampRegion(
+      {
+        id: nextId('panel'),
+        kind: 'panel' as const,
+        ...bboxToRect(p.bbox),
+        corners: polygonToCorners(p.polygon, p.bbox),
+      },
+      W,
+      H,
+    ),
   );
   const byOrder = new Map(sorted.map((p, i) => [p.order, panels[i].id]));
   const bubbles = result.bubbles.map((b) =>
@@ -44,6 +103,7 @@ export function draftFromSplitResult(result: PanelSplitResult): SplitDraft {
         kind: 'bubble' as const,
         ...bboxToRect(b.bbox),
         panelId: byOrder.get(b.panelOrder) ?? null,
+        isCaption: isCaptionPolygon(b.polygon, b.bbox),
       },
       W,
       H,
@@ -68,7 +128,12 @@ export function clampRegion<T extends DraftRegion>(
 }
 
 /** Vùng mới (bị bỏ sót) đặt giữa ảnh. */
-export function newRegion(kind: DraftKind, imageWidth: number, imageHeight: number): DraftRegion {
+export function newRegion(
+  kind: DraftKind,
+  imageWidth: number,
+  imageHeight: number,
+  isCaption = false,
+): DraftRegion {
   const w = Math.round(imageWidth * (kind === 'panel' ? 0.3 : 0.2));
   const h = Math.round(imageHeight * (kind === 'panel' ? 0.2 : 0.08));
   return clampRegion(
@@ -80,6 +145,7 @@ export function newRegion(kind: DraftKind, imageWidth: number, imageHeight: numb
       w,
       h,
       panelId: null,
+      isCaption: kind === 'bubble' ? isCaption : undefined,
     },
     imageWidth,
     imageHeight,

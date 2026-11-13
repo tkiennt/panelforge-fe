@@ -400,4 +400,18 @@ describe('App Integration Smoke Test', () => {
       expect(screen.getByTestId('toast-icon-warning')).toBeInTheDocument();
     });
   });
+
+  it('khách chưa từng có phiên đăng nhập (chưa lưu user/token/cờ) TUYỆT ĐỐI KHÔNG hiện toast "Phiên đăng nhập đã hết hạn"', async () => {
+    localStorage.clear();
+
+    render(<App />);
+
+    // Giả lập backend trả 401 khi kiểm tra me/refresh và phát auth:unauthorized
+    act(() => {
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    });
+
+    // Xác nhận tuyệt đối không có toast cảnh báo hết phiên
+    expect(screen.queryByText('Phiên đăng nhập đã hết hạn')).not.toBeInTheDocument();
+  });
 });

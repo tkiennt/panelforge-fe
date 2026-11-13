@@ -97,9 +97,9 @@ export const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
         }`}
       >
         {/* Card Header: Panel Number + Shot Badge */}
-        <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[#FCFBF8] border-b border-[#EBE7DF]">
-          <div className="flex items-center gap-1.5">
-            <span className="px-1.5 py-0.5 rounded-md bg-[#1C1917] text-[#FCFBF8] font-mono text-[10px] font-bold">
+        <div className='flex items-center justify-between gap-2 px-3 py-2 bg-[#FCFBF8] border-b border-[#EBE7DF]'>
+          <div className='flex items-center gap-1.5'>
+            <span className='px-1.5 py-0.5 rounded-md bg-[#1C1917] text-[#FCFBF8] font-mono text-[10px] font-bold'>
               P{pageNumber}.{panel.panelNumber}
             </span>
             <span
@@ -110,80 +110,83 @@ export const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
           </div>
 
           {panel.cameraNote && (
-            <span className="text-[10px] font-mono text-[#57534E] truncate max-w-[110px]" title={panel.cameraNote}>
+            <span
+              className='text-[10px] font-mono text-[#57534E] truncate max-w-[110px]'
+              title={panel.cameraNote}
+            >
               {panel.cameraNote}
             </span>
           )}
         </div>
 
         {/* Thumbnail Visual Area (Sketch or Dropzone) */}
-        <div className="relative aspect-video w-full bg-[#F7F5EE] border-b border-[#EBE7DF] overflow-hidden flex items-center justify-center">
+        <div className='relative aspect-video w-full bg-[#F7F5EE] border-b border-[#EBE7DF] overflow-hidden flex items-center justify-center'>
           {sketchDataUrl ? (
-            <div className="relative w-full h-full group/thumb">
+            <div className='relative w-full h-full group/thumb'>
               <img
                 src={sketchDataUrl}
                 alt={`Phác thảo P${pageNumber}.${panel.panelNumber}`}
-                className="w-full h-full object-contain bg-white"
+                className='w-full h-full object-contain bg-white'
               />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <div className='absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center gap-2'>
                 <button
-                  type="button"
+                  type='button'
                   onClick={(e) => {
                     e.stopPropagation();
                     setSketchModalOpen(true);
                   }}
-                  className="p-1.5 rounded-lg bg-white text-[#1C1917] hover:bg-[#F3F0E9] shadow-xs cursor-pointer text-xs flex items-center gap-1 font-semibold"
+                  className='p-1.5 rounded-lg bg-white text-[#1C1917] hover:bg-[#F3F0E9] shadow-xs cursor-pointer text-xs flex items-center gap-1 font-semibold'
                 >
-                  <Edit2 className="w-3.5 h-3.5" /> Sửa
+                  <Edit2 className='w-3.5 h-3.5' /> Sửa
                 </button>
                 <button
-                  type="button"
+                  type='button'
                   onClick={(e) => {
                     e.stopPropagation();
                     onClearSketch(panel.id);
                   }}
-                  className="p-1.5 rounded-lg bg-white text-rose-600 hover:bg-rose-50 shadow-xs cursor-pointer text-xs flex items-center gap-1 font-semibold"
+                  className='p-1.5 rounded-lg bg-white text-rose-600 hover:bg-rose-50 shadow-xs cursor-pointer text-xs flex items-center gap-1 font-semibold'
                 >
-                  <Trash2 className="w-3.5 h-3.5" /> Xoá
+                  <Trash2 className='w-3.5 h-3.5' /> Xoá
                 </button>
               </div>
             </div>
           ) : (
             <button
-              type="button"
+              type='button'
               onClick={(e) => {
                 e.stopPropagation();
                 setSketchModalOpen(true);
               }}
-              className="flex flex-col items-center justify-center gap-1 text-[#57534E] hover:text-[#C2410C] p-3 w-full h-full transition-colors cursor-pointer border border-dashed border-transparent hover:border-[#C2410C]/40"
+              className='flex flex-col items-center justify-center gap-1 text-[#57534E] hover:text-[#C2410C] p-3 w-full h-full transition-colors cursor-pointer border border-dashed border-transparent hover:border-[#C2410C]/40'
             >
-              <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-2xs border border-[#D8D2C5]">
-                <ImageIcon className="w-3.5 h-3.5 text-[#57534E]" />
+              <div className='w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-2xs border border-[#D8D2C5]'>
+                <ImageIcon className='w-3.5 h-3.5 text-[#57534E]' />
               </div>
-              <span className="text-[11px] font-semibold">+ Thêm hình phác</span>
+              <span className='text-[11px] font-semibold'>+ Thêm hình phác</span>
             </button>
           )}
         </div>
 
         {/* Action Description Snippet */}
         {panel.actionDescription && (
-          <div className="p-2.5 text-xs text-[#1C1917] leading-snug line-clamp-2 italic font-serif">
+          <div className='p-2.5 text-xs text-[#1C1917] leading-snug line-clamp-2 italic font-serif'>
             &ldquo;{panel.actionDescription}&rdquo;
           </div>
         )}
 
         {/* Dialogue Bubbles & SFX Preview */}
         {(panel.dialogues.length > 0 || panel.sfx.length > 0) && (
-          <div className="p-2 pt-0 space-y-1.5">
+          <div className='p-2 pt-0 space-y-1.5'>
             {/* SFX Badges */}
             {panel.sfx.length > 0 && (
-              <div className="flex flex-wrap gap-1">
+              <div className='flex flex-wrap gap-1'>
                 {panel.sfx.map((s) => (
                   <span
                     key={s.id}
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-mono text-[10px] font-black uppercase tracking-wider shadow-2xs"
+                    className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-mono text-[10px] font-black uppercase tracking-wider shadow-2xs'
                   >
-                    <Volume2 className="w-2.5 h-2.5 text-amber-600" /> {s.text}
+                    <Volume2 className='w-2.5 h-2.5 text-amber-600' /> {s.text}
                   </span>
                 ))}
               </div>
@@ -203,36 +206,36 @@ export const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
                     isShout
                       ? 'bg-rose-50/80 border-rose-200 text-rose-950 font-bold'
                       : isThought
-                      ? 'bg-indigo-50/80 border-indigo-200 text-indigo-950 italic'
-                      : isWhisper
-                      ? 'bg-stone-50 border-stone-200 text-stone-600 italic'
-                      : isFilter
-                      ? 'bg-amber-50/80 border-amber-200 text-amber-950 font-mono'
-                      : 'bg-amber-50/50 border-[#EBE7DF] text-[#1C1917]'
+                        ? 'bg-indigo-50/80 border-indigo-200 text-indigo-950 italic'
+                        : isWhisper
+                          ? 'bg-stone-50 border-stone-200 text-stone-600 italic'
+                          : isFilter
+                            ? 'bg-amber-50/80 border-amber-200 text-amber-950 font-mono'
+                            : 'bg-amber-50/50 border-[#EBE7DF] text-[#1C1917]'
                   }`}
                 >
-                  <span className="shrink-0 mt-0.5">
+                  <span className='shrink-0 mt-0.5'>
                     {isShout ? (
-                      <Zap className="w-3 h-3 text-rose-600" />
+                      <Zap className='w-3 h-3 text-rose-600' />
                     ) : isThought ? (
-                      <Sparkles className="w-3 h-3 text-indigo-600" />
+                      <Sparkles className='w-3 h-3 text-indigo-600' />
                     ) : isFilter ? (
-                      <Phone className="w-3 h-3 text-amber-600" />
+                      <Phone className='w-3 h-3 text-amber-600' />
                     ) : (
-                      <MessageSquare className="w-3 h-3 text-amber-700" />
+                      <MessageSquare className='w-3 h-3 text-amber-700' />
                     )}
                   </span>
-                  <div className="min-w-0">
-                    <span className="font-mono font-bold uppercase tracking-wider text-[10px] text-[#C2410C] mr-1">
+                  <div className='min-w-0'>
+                    <span className='font-mono font-bold uppercase tracking-wider text-[10px] text-[#C2410C] mr-1'>
                       {d.character}
                       {d.modifier && (
-                        <span className="text-[9px] font-normal lowercase ml-0.5 opacity-70">
+                        <span className='text-[9px] font-normal lowercase ml-0.5 opacity-70'>
                           ({d.modifier})
                         </span>
                       )}
                       :
                     </span>
-                    <span className="text-[11px] leading-tight line-clamp-2">{d.text}</span>
+                    <span className='text-[11px] leading-tight line-clamp-2'>{d.text}</span>
                   </div>
                 </div>
               );

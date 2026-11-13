@@ -167,7 +167,8 @@ export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => 
           <div className='flex items-center gap-2 p-3 bg-[#F8F6F0] rounded-lg text-[#737373] text-xs'>
             <Lock className='w-4 h-4 shrink-0' />
             <p>
-              Nhật ký hỗ trợ sáng tác này được lưu vết bảo toàn nhằm bảo vệ tính minh bạch và bản quyền tác phẩm.
+              Nhật ký hỗ trợ sáng tác này được lưu vết bảo toàn nhằm bảo vệ tính minh bạch và bản
+              quyền tác phẩm.
             </p>
           </div>
         </div>

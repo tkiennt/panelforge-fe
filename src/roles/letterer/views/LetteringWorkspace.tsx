@@ -67,7 +67,7 @@ import { aiAgentsService, LetteringSuggestion, AiSuggestionDto } from '@/service
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
-import { AutoAssignScriptLinesModal } from '@/roles/artist/modals/AutoAssignScriptLinesModal';
+import { AutoAssignScriptLinesModal } from '@/shared/modals/AutoAssignScriptLinesModal';
 import {
   LETTERING_FONT_PX,
   LETTERING_CHAR_WIDTH_EM,
@@ -2270,7 +2270,6 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     return ids;
   }, [elements, sceneLines, panels, pageDim.width, pageDim.height, getNormalizedElementBox]);
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const containingPanel = useMemo(() => {
     if (!selectedElement) return null;
     const box = getNormalizedElementBox(selectedElement);
@@ -2334,10 +2333,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   }, [selectedElementId, pageSnapshot?.warnings, overflowInfo, selectedTextConstraints]);
 
   // ── Tính toán ảnh nền & Nhóm kịch bản theo Khung (Req 1, 2, 3, 4) ──
-  const wholePageArt = useMemo(
-    () => pickPageArtwork(pageArtworks, stages),
-    [pageArtworks, stages],
-  );
+  const wholePageArt = useMemo(() => pickPageArtwork(pageArtworks, stages), [pageArtworks, stages]);
   const wholePageArtUrl = wholePageArt ? panelArtworkUrls[wholePageArt.id] : null;
 
   const hasAnyPanelArt = useMemo(() => {
@@ -2453,7 +2449,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
         <div className='w-16 h-16 rounded-2xl bg-[#FCFBF8] border border-[#D8D2C5] flex items-center justify-center text-[#C2410C] mb-4 shadow-soft-sm'>
           <Type className='w-8 h-8' />
         </div>
-        <h3 className='text-base font-serif font-bold text-[#1C1917] mb-1'>Chọn một trang để bắt đầu</h3>
+        <h3 className='text-base font-serif font-bold text-[#1C1917] mb-1'>
+          Chọn một trang để bắt đầu
+        </h3>
         <p className='text-xs text-[#57534E] max-w-sm'>
           Vui lòng chọn một chương và trang truyện từ danh sách phía trên để mở bàn làm việc chèn
           chữ.
@@ -2473,7 +2471,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   const toolBtn = (active: boolean, activeClass: string) =>
     `px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-      active ? `${activeClass} text-white shadow-xs` : 'text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
+      active
+        ? `${activeClass} text-white shadow-xs`
+        : 'text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
     }`;
 
   const pendingScreen = pending
@@ -2510,7 +2510,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
             )}
           </button>
           <Type className='w-4 h-4 text-[#C2410C] shrink-0' />
-          <h3 className='font-serif font-bold text-xs text-[#1C1917] truncate'>Bàn Làm Việc Chèn Chữ</h3>
+          <h3 className='font-serif font-bold text-xs text-[#1C1917] truncate'>
+            Bàn Làm Việc Chèn Chữ
+          </h3>
           {pageSnapshot && (
             <span className='font-mono text-xs px-2 py-0.5 bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] rounded-full shrink-0 font-medium'>
               v{pageSnapshot.version} • {pageDim.width}×{pageDim.height}px
@@ -2598,7 +2600,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
             title={focusMode ? 'Thoát chế độ tập trung (Esc)' : 'Chế độ tập trung: ẩn các bảng phụ'}
             data-testid='toggle-focus-mode'
             className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
-              focusMode ? 'bg-[#1C1917] text-white' : 'text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
+              focusMode
+                ? 'bg-[#1C1917] text-white'
+                : 'text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
             }`}
           >
             {focusMode ? <Minimize2 className='w-4 h-4' /> : <Maximize2 className='w-4 h-4' />}
@@ -2762,7 +2766,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                   </div>
                 ) : (
                   panelGroups.map((group) => {
-                    const isGroupActive = Boolean(group.panelId && selectedPanelId === group.panelId);
+                    const isGroupActive = Boolean(
+                      group.panelId && selectedPanelId === group.panelId,
+                    );
                     return (
                       <div
                         key={group.key}
@@ -2824,16 +2830,20 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                                 (line.speakerCharacterId
                                   ? (speakerNames[line.speakerCharacterId] ?? 'Nhân vật')
                                   : null);
-                              const canDrag = !isReadOnly && !isPlaced && classification.isLetterable;
+                              const canDrag =
+                                !isReadOnly && !isPlaced && classification.isLetterable;
 
                               const narrationMode = (line as any).narrationMode || 'Present';
-                              const lineText = isDirection ? (line.stageDirection || '') : classification.cleanText;
+                              const lineText = isDirection
+                                ? line.stageDirection || ''
+                                : classification.cleanText;
                               const lineWordCount = countWords(line.dialogueText || '');
                               const isTooLong = lineWordCount > MAX_WORDS_PER_BALLOON;
                               const isFlashback = narrationMode === 'Flashback';
                               const isDream = narrationMode === 'Dream';
                               const isImagination = narrationMode === 'Imagination';
-                              const isMissingTime = isFlashback && !hasTimeMarker(line.dialogueText || '');
+                              const isMissingTime =
+                                isFlashback && !hasTimeMarker(line.dialogueText || '');
 
                               return (
                                 <div
@@ -2869,7 +2879,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                                     }
                                   }}
                                   className={`p-2.5 rounded-xl border transition-all text-xs space-y-1.5 ${
-                                    canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+                                    canDrag
+                                      ? 'cursor-grab active:cursor-grabbing'
+                                      : 'cursor-pointer'
                                   } ${
                                     isDirection
                                       ? 'border-dashed border-stone-300 bg-stone-50/70 opacity-75'
@@ -2888,7 +2900,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                                         <GripVertical className='w-3 h-3 text-[#57534E]/60 shrink-0' />
                                       )}
                                       <span className='truncate'>
-                                        #{line.lineOrder} • {speaker || (isDirection ? 'Chỉ dẫn' : 'Người dẫn truyện')}
+                                        #{line.lineOrder} •{' '}
+                                        {speaker || (isDirection ? 'Chỉ dẫn' : 'Người dẫn truyện')}
                                       </span>
                                     </span>
 
@@ -2966,7 +2979,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                                           data-testid={`badge-toolong-${line.id}`}
                                           className='text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 border border-red-300 flex items-center gap-0.5'
                                         >
-                                          <AlertTriangle className='w-3 h-3' /> Quá dài ({lineWordCount} từ)
+                                          <AlertTriangle className='w-3 h-3' /> Quá dài (
+                                          {lineWordCount} từ)
                                         </span>
                                       )}
                                       {isMissingTime && (
@@ -2982,8 +2996,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
                                   {isSelected && canDrag && (
                                     <div className='text-xs font-semibold text-[#C2410C] flex items-center gap-1 pt-1 border-t border-[#FDBA74]'>
-                                      <Plus className='w-3.5 h-3.5' /> Bấm hoặc kéo thả lên trang để đặt dòng
-                                      này
+                                      <Plus className='w-3.5 h-3.5' /> Bấm hoặc kéo thả lên trang để
+                                      đặt dòng này
                                     </div>
                                   )}
                                 </div>
@@ -3194,7 +3208,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               }
             >
               {/* Priority 1 / 2 / 3 background artwork */}
-              {(wholePageArtUrl || backdropUrl) ? (
+              {wholePageArtUrl || backdropUrl ? (
                 <img
                   src={wholePageArtUrl || backdropUrl}
                   alt='Ảnh nền trang truyện'
@@ -3791,15 +3805,15 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         : null;
                       const isDirectionWarning = Boolean(
                         b.content?.trim() &&
-                          ((linked?.stageDirection &&
-                            b.content.trim() === linked.stageDirection.trim()) ||
-                            (linked && !linked.dialogueText && linked.stageDirection) ||
-                            sceneLines.some(
-                              (l) =>
-                                l.stageDirection &&
-                                !l.dialogueText &&
-                                l.stageDirection.trim() === b.content?.trim(),
-                            )),
+                        ((linked?.stageDirection &&
+                          b.content.trim() === linked.stageDirection.trim()) ||
+                          (linked && !linked.dialogueText && linked.stageDirection) ||
+                          sceneLines.some(
+                            (l) =>
+                              l.stageDirection &&
+                              !l.dialogueText &&
+                              l.stageDirection.trim() === b.content?.trim(),
+                          )),
                       );
                       if (!isDirectionWarning || hideBadges) return null;
                       return (

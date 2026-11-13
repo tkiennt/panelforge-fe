@@ -87,9 +87,7 @@ function detailOf(s: AiSuggestionDto): string {
     }
     case 'Thumbnail': {
       const tn = s.payload as ThumbnailSuggestion | undefined;
-      return tn?.provider
-        ? `Model: ${tn.model} (${tn.provider})`
-        : 'Ảnh thumbnail AI cho panel';
+      return tn?.provider ? `Model: ${tn.model} (${tn.provider})` : 'Ảnh thumbnail AI cho panel';
     }
     case 'ImagePrompt':
       return `${(s.payload as ArtistPromptSet | undefined)?.panels?.length ?? 0} prompt ảnh cho panel`;
@@ -130,7 +128,7 @@ export const SuggestionCard: React.FC<Props> = ({
         ? 'Cần Accept đề xuất Script trước'
         : hasPanels && s.kind === 'Layout'
           ? 'Scene đã có Panel; không thể áp dụng layout AI. Hãy dùng Tự động phân bổ trên Bàn vẽ.'
-        : '';
+          : '';
   const canPreview =
     s.kind === 'ImagePrompt' ||
     s.kind === 'Lettering' ||
@@ -209,7 +207,11 @@ export const SuggestionCard: React.FC<Props> = ({
                   {(s.payload as ThumbnailSuggestion)?.sha256 && (
                     <div className='w-full max-w-xs h-40 bg-stone-900 rounded-lg overflow-hidden border border-stone-200 flex items-center justify-center mx-auto'>
                       <AuthenticatedImage
-                        src={seriesId ? `/api/series/${seriesId}/bible/assets/${(s.payload as ThumbnailSuggestion).sha256}` : ''}
+                        src={
+                          seriesId
+                            ? `/api/series/${seriesId}/bible/assets/${(s.payload as ThumbnailSuggestion).sha256}`
+                            : ''
+                        }
                         alt='Thumbnail Preview'
                         className='max-w-full max-h-full object-contain'
                       />
@@ -219,7 +221,9 @@ export const SuggestionCard: React.FC<Props> = ({
                     Prompt: {(s.payload as ThumbnailSuggestion)?.prompt}
                   </div>
                   <div className='mt-1 text-[11px] text-[#737373]'>
-                    Provider: {(s.payload as ThumbnailSuggestion)?.provider} · Model: {(s.payload as ThumbnailSuggestion)?.model} · SHA-256: {(s.payload as ThumbnailSuggestion)?.sha256?.slice(0, 12)}...
+                    Provider: {(s.payload as ThumbnailSuggestion)?.provider} · Model:{' '}
+                    {(s.payload as ThumbnailSuggestion)?.model} · SHA-256:{' '}
+                    {(s.payload as ThumbnailSuggestion)?.sha256?.slice(0, 12)}...
                   </div>
                 </div>
               ) : s.kind === 'LineRewrite' ? (

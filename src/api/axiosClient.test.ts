@@ -406,4 +406,10 @@ describe('HttpOnly Cookie Authentication & Refresh Flow', () => {
     expect(res.data).toEqual({ items: [{ id: 'series-1', title: 'Public Series' }] });
     expect(adapter).toHaveBeenCalledTimes(1);
   });
+
+  it('clearSession() khi khách chưa từng đăng nhập: không phát sự kiện auth:unauthorized', () => {
+    localStorage.clear();
+    clearSession();
+    expect(unauthorizedEvents).toBe(0);
+  });
 });

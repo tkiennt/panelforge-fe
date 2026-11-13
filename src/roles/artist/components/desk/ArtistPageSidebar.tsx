@@ -173,9 +173,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
               >
                 <span className='font-semibold'>P{p.pageNumber}</span>
                 {/* Dot trạng thái giai đoạn */}
-                <span
-                  className={`w-1.5 h-1.5 rounded-full mt-0.5 ${STAGE_CONFIG[p.stage].dot}`}
-                />
+                <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${STAGE_CONFIG[p.stage].dot}`} />
               </button>
             );
           })}

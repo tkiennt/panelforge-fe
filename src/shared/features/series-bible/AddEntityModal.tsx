@@ -18,7 +18,7 @@ import {
   getTempBibleCodes,
   removeTempBibleCode,
   TempBibleCodeItem,
-} from '@/roles/writer/components/script/flow/tempBibleCodes';
+} from '@/shared/utils/tempBibleCodes';
 
 export type NewBibleEntityPayload = BibleEntity & {
   stageName?: string;

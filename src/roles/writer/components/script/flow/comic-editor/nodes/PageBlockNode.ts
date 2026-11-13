@@ -46,22 +46,32 @@ export const PageBlockNode = Node.create({
     return [
       'div',
       mergeAttributes(HTMLAttributes, {
-        class: 'page-block border-2 border-[#C2410C] bg-[#FFF2E6] rounded-xl p-4 my-6 shadow-sm transition-all',
+        class:
+          'page-block border-2 border-[#C2410C] bg-[#FFF2E6] rounded-xl p-4 my-6 shadow-sm transition-all',
         'data-type': 'page-block',
       }),
       [
         'div',
         {
-          class: 'text-xs font-bold text-[#C2410C] uppercase tracking-wider mb-2 flex items-center gap-1.5 select-none pointer-events-none',
+          class:
+            'text-xs font-bold text-[#C2410C] uppercase tracking-wider mb-2 flex items-center gap-1.5 select-none pointer-events-none',
           contenteditable: 'false',
         },
-        ['span', { class: 'inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#C2410C] text-white text-[11px] font-black mr-1' }, '!'],
+        [
+          'span',
+          {
+            class:
+              'inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#C2410C] text-white text-[11px] font-black mr-1',
+          },
+          '!',
+        ],
         ['span', { class: 'page-badge tracking-widest' }, displayLabel],
       ],
       [
         'div',
         {
-          class: 'page-content font-sans font-semibold text-[#1C1917] text-sm leading-relaxed outline-none',
+          class:
+            'page-content font-sans font-semibold text-[#1C1917] text-sm leading-relaxed outline-none',
         },
         0,
       ],

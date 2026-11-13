@@ -182,9 +182,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                 <div className='absolute top-2 left-2 flex items-center gap-1 z-30 pointer-events-none'>
                   <span
                     className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shadow-2xs ${
-                      isSelected
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-stone-900 text-white'
+                      isSelected ? 'bg-orange-500 text-white' : 'bg-stone-900 text-white'
                     }`}
                   >
                     #{panel.panelNumber}
@@ -275,9 +273,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                           <p className='text-[11px] font-semibold text-stone-700'>
                             Kéo thả ảnh vào đây
                           </p>
-                          <p className='text-[9px] text-stone-400'>
-                            Hỗ trợ PNG, JPG, WebP
-                          </p>
+                          <p className='text-[9px] text-stone-400'>Hỗ trợ PNG, JPG, WebP</p>
                         </div>
 
                         <div className='flex items-center gap-1 pt-1'>

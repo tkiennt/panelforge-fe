@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
+import { useTranslation } from '@/lib/i18n';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -32,6 +33,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onApiLoginSuccess,
   onSwitchToRegister,
 }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState<'login' | '2fa' | 'forgot' | 'reset'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -90,7 +92,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       if (!lowerEmail.includes('@') && mockAccounts.includes(lowerEmail)) {
         onLogin(email, password);
       } else {
-        setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+        setError(err.message || t('common.auth.errLoginFailed', 'Đăng nhập thất bại. Vui lòng thử lại.'));
       }
     } finally {
       setIsLoading(false);
@@ -100,7 +102,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const handleTwoFactorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (twoFactorCode.trim().length !== 6) {
-      setError('Vui lòng nhập đầy đủ 6 chữ số từ ứng dụng Authenticator.');
+      setError(t('common.auth.errTwoFactorCodeLength', 'Vui lòng nhập đầy đủ 6 chữ số từ ứng dụng Authenticator.'));
       return;
     }
 
@@ -128,7 +130,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
     } catch (err: any) {
       console.error('2FA Challenge Error:', err);
-      setError(err.message || 'Mã xác thực 2FA không chính xác hoặc đã hết hạn.');
+      setError(err.message || t('common.auth.errTwoFactorInvalid', 'Mã xác thực 2FA không chính xác hoặc đã hết hạn.'));
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +139,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail.trim()) {
-      setError('Vui lòng nhập địa chỉ email đã đăng ký.');
+      setError(t('common.auth.errForgotEmailRequired', 'Vui lòng nhập địa chỉ email đã đăng ký.'));
       return;
     }
 
@@ -148,11 +150,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       await authService.forgotPassword(forgotEmail.trim());
       setStep('reset');
       setSuccessNotice(
-        `Mã OTP 6 chữ số đã được gửi đến email ${forgotEmail.trim()}. Vui lòng kiểm tra hộp thư.`,
+        t('common.auth.otpSentNotice', { email: forgotEmail.trim() }, `Mã OTP 6 chữ số đã được gửi đến email ${forgotEmail.trim()}. Vui lòng kiểm tra hộp thư.`),
       );
     } catch (err: any) {
       console.error('Forgot Password Error:', err);
-      setError(err.message || 'Không thể gửi yêu cầu đặt lại mật khẩu.');
+      setError(err.message || t('common.auth.errForgotFailed', 'Không thể gửi yêu cầu đặt lại mật khẩu.'));
     } finally {
       setIsLoading(false);
     }
@@ -161,23 +163,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail.trim()) {
-      setError('Vui lòng nhập email tài khoản.');
+      setError(t('common.auth.errEmailRequired', 'Vui lòng nhập email tài khoản.'));
       return;
     }
 
     if (resetOtp.trim().length !== 6) {
-      setError('Mã OTP phải gồm đúng 6 chữ số.');
+      setError(t('common.auth.errOtpLength', 'Mã OTP phải gồm đúng 6 chữ số.'));
       return;
     }
 
     if (newPassword !== confirmNewPassword) {
-      setError('Mật khẩu xác nhận không khớp.');
+      setError(t('common.auth.errPasswordMismatch', 'Mật khẩu xác nhận không khớp.'));
       return;
     }
 
     const pwdRegex = /^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{6,}$/;
     if (!pwdRegex.test(newPassword)) {
-      setError('Mật khẩu mới phải có ít nhất 6 ký tự, chứa ít nhất 1 chữ hoa và 1 ký tự đặc biệt.');
+      setError(t('common.auth.errPasswordComplexity', 'Mật khẩu mới phải có ít nhất 6 ký tự, chứa ít nhất 1 chữ hoa và 1 ký tự đặc biệt.'));
       return;
     }
 
@@ -196,11 +198,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setPassword('');
       setStep('login');
       setSuccessNotice(
-        'Kích hoạt tài khoản / Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.',
+        t('common.auth.resetSuccessNotice', 'Kích hoạt tài khoản / Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.'),
       );
     } catch (err: any) {
       console.error('Reset Password Error:', err);
-      setError(err.message || 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.');
+      setError(err.message || t('common.auth.errLoginFailed', 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.'));
     } finally {
       setIsLoading(false);
     }
@@ -337,14 +339,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <div className='animate-in fade-in duration-300'>
                 <BrandMark size={36} className='mb-6' />
                 <h2 className='font-serif font-light text-3xl text-[#0c0a09] tracking-tight'>
-                  Welcome Back
+                  {t('common.auth.welcomeBack', 'Welcome Back')}
                 </h2>
-                <p className='text-[#777169] text-xs mt-1.5'>Log in to your studio workspace.</p>
+                <p className='text-[#777169] text-xs mt-1.5'>
+                  {t('common.auth.loginSubtitle', 'Log in to your studio workspace.')}
+                </p>
 
                 <form className='mt-8 space-y-4' onSubmit={handleLoginSubmit}>
                   <div>
-                    <label htmlFor='login-email' className='block text-xs font-semibold text-[#0c0a09] mb-1.5'>
-                      Email
+                    <label
+                      htmlFor='login-email'
+                      className='block text-xs font-semibold text-[#0c0a09] mb-1.5'
+                    >
+                      {t('common.auth.email', 'Email')}
                     </label>
                     <input
                       id='login-email'
@@ -361,7 +368,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
                   <div>
                     <div className='flex items-center justify-between mb-1.5'>
-                      <label htmlFor='login-password' className='block text-xs font-semibold text-[#0c0a09]'>Password</label>
+                      <label
+                        htmlFor='login-password'
+                        className='block text-xs font-semibold text-[#0c0a09]'
+                      >
+                        {t('common.auth.password', 'Password')}
+                      </label>
                       <div className='flex items-center gap-1.5'>
                         <button
                           type='button'
@@ -372,9 +384,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                             setStep('reset');
                           }}
                           className='text-xs font-medium text-emerald-600 hover:text-emerald-700 cursor-pointer'
-                          title='Kích hoạt tài khoản nhận được lời mời qua email bằng mã OTP 6 số'
+                          title={t('common.auth.activate', 'Kích hoạt tài khoản mời bằng mã OTP 6 số')}
                         >
-                          Kích hoạt tài khoản mời?
+                          {t('common.auth.activate', 'Kích hoạt tài khoản mời?')}
                         </button>
                         <span className='text-xs text-stone-300'>•</span>
                         <button
@@ -387,7 +399,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           }}
                           className='text-xs font-medium text-[#777169] hover:text-[#0c0a09] cursor-pointer'
                         >
-                          Quên mật khẩu?
+                          {t('common.auth.forgot', 'Quên mật khẩu?')}
                         </button>
                       </div>
                     </div>
@@ -411,14 +423,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     disabled={isLoading}
                     className='w-full bg-[#292524] hover:bg-[#0c0a09] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 rounded-full shadow-soft-sm transition-all mt-6 cursor-pointer flex justify-center items-center gap-2 text-xs sm:text-sm'
                   >
-                    {isLoading ? 'Đang xử lý...' : 'Log In'}
+                    {isLoading ? t('common.actions.saving', 'Đang xử lý...') : t('common.auth.submit', 'Log In')}
                   </button>
                 </form>
 
                 <div className='flex items-center my-6'>
                   <div className='flex-1 border-t border-[#e7e5e4]'></div>
                   <span className='px-3 text-xs text-[#a8a29e] uppercase tracking-wider font-semibold font-mono'>
-                    or continue with
+                    {t('common.auth.or', 'or continue with')}
                   </span>
                   <div className='flex-1 border-t border-[#e7e5e4]'></div>
                 </div>
@@ -448,18 +460,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         fill='#EA4335'
                       />
                     </svg>
-                    Sign in with Google
+                    {t('common.auth.google', 'Sign in with Google')}
                   </button>
                 </div>
 
                 <p className='text-sm text-[#555555] text-center mt-8'>
-                  Don't have an account?{' '}
+                  {t('common.auth.noAccount', "Don't have an account?")}{' '}
                   <button
                     type='button'
                     onClick={onSwitchToRegister}
                     className='text-[#F97316] font-semibold hover:text-[#EA580C] cursor-pointer'
                   >
-                    Sign up
+                    {t('common.auth.createAccount', 'Sign up')}
                   </button>
                 </p>
               </div>
@@ -477,24 +489,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   className='inline-flex items-center gap-1.5 text-xs font-semibold text-[#555555] hover:text-[#171717] mb-6 transition-colors cursor-pointer'
                 >
                   <ArrowLeft className='w-4 h-4' />
-                  Quay lại đăng nhập
+                  {t('common.actions.back', 'Quay lại đăng nhập')}
                 </button>
 
                 <div className='w-10 h-10 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-2xs mb-4'>
                   <ShieldCheck className='w-5 h-5' />
                 </div>
                 <h2 className='font-serif text-2xl font-bold text-[#171717]'>
-                  Xác thực 2 bước (2FA)
+                  {t('common.auth.twoFactorTitle', 'Xác thực 2 bước (2FA)')}
                 </h2>
                 <p className='text-[#555555] text-xs mt-1.5 leading-relaxed'>
-                  Nhập mã 6 chữ số từ ứng dụng Google Authenticator cho tài khoản{' '}
-                  <strong>{twoFactorEmail}</strong>.
+                  {t(
+                    'common.auth.twoFactorAccountPrompt',
+                    { email: twoFactorEmail },
+                    `Nhập mã 6 chữ số từ ứng dụng Google Authenticator cho tài khoản ${twoFactorEmail}.`,
+                  )}
                 </p>
 
                 <form onSubmit={handleTwoFactorSubmit} className='mt-6 space-y-4'>
                   <div>
                     <label className='block text-xs font-semibold text-[#171717] mb-1.5'>
-                      Mã xác thực 6 chữ số
+                      {t('common.auth.twoFactorCodeLabel', 'Mã xác thực 6 chữ số')}
                     </label>
                     <input
                       type='text'
@@ -520,7 +535,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       htmlFor='rememberDevice'
                       className='text-xs text-[#555555] cursor-pointer select-none'
                     >
-                      Ghi nhớ thiết bị này trong <strong>30 ngày (1 tháng)</strong>
+                      {t('common.auth.rememberDevice', 'Ghi nhớ thiết bị này trong 30 ngày')}
                     </label>
                   </div>
 
@@ -532,10 +547,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     {isLoading ? (
                       <>
                         <RefreshCw className='w-4 h-4 animate-spin' />
-                        Đang xác thực...
+                        {t('common.auth.twoFactorChecking', 'Đang xác thực...')}
                       </>
                     ) : (
-                      'Xác nhận & Đăng nhập'
+                      t('common.auth.twoFactorConfirm', 'Xác nhận & Đăng nhập')
                     )}
                   </button>
                 </form>
@@ -554,21 +569,26 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   className='inline-flex items-center gap-1.5 text-xs font-semibold text-[#555555] hover:text-[#171717] mb-6 transition-colors cursor-pointer'
                 >
                   <ArrowLeft className='w-4 h-4' />
-                  Quay lại đăng nhập
+                  {t('common.actions.back', 'Quay lại đăng nhập')}
                 </button>
 
                 <div className='w-10 h-10 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-2xs mb-4'>
                   <KeyRound className='w-5 h-5' />
                 </div>
-                <h2 className='font-serif text-2xl font-bold text-[#171717]'>Khôi phục mật khẩu</h2>
+                <h2 className='font-serif text-2xl font-bold text-[#171717]'>
+                  {t('common.auth.forgotTitle', 'Khôi phục mật khẩu')}
+                </h2>
                 <p className='text-[#555555] text-xs mt-1.5 leading-relaxed'>
-                  Nhập địa chỉ Gmail đã đăng ký vào hệ thống để nhận mã OTP đặt lại mật khẩu.
+                  {t(
+                    'common.auth.forgotDesc',
+                    'Nhập địa chỉ Gmail đã đăng ký vào hệ thống để nhận mã OTP đặt lại mật khẩu.',
+                  )}
                 </p>
 
                 <form onSubmit={handleForgotPasswordSubmit} className='mt-6 space-y-4'>
                   <div>
                     <label className='block text-xs font-semibold text-[#171717] mb-1.5'>
-                      Gmail đăng ký
+                      {t('common.auth.accountEmail', 'Gmail đăng ký')}
                     </label>
                     <div className='relative'>
                       <input
@@ -592,10 +612,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     {isLoading ? (
                       <>
                         <RefreshCw className='w-4 h-4 animate-spin' />
-                        Đang gửi mã OTP...
+                        {t('common.auth.sendingOtp', 'Đang gửi mã OTP...')}
                       </>
                     ) : (
-                      'Gửi mã xác nhận OTP'
+                      t('common.auth.sendOtp', 'Gửi mã xác nhận OTP')
                     )}
                   </button>
                 </form>
@@ -614,24 +634,26 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   className='inline-flex items-center gap-1.5 text-xs font-semibold text-[#555555] hover:text-[#171717] mb-6 transition-colors cursor-pointer'
                 >
                   <ArrowLeft className='w-4 h-4' />
-                  Nhập email khác
+                  {t('common.actions.back', 'Nhập email khác')}
                 </button>
 
                 <div className='w-10 h-10 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-2xs mb-4'>
                   <Lock className='w-5 h-5' />
                 </div>
                 <h2 className='font-serif text-2xl font-bold text-[#171717]'>
-                  Kích hoạt tài khoản & Tạo mật khẩu mới
+                  {t('common.auth.resetTitle', 'Kích hoạt tài khoản & Tạo mật khẩu mới')}
                 </h2>
                 <p className='text-[#555555] text-xs mt-1.5 leading-relaxed'>
-                  Nhập email, mã OTP 6 số (từ email mời Workspace hoặc email đặt lại mật khẩu) và
-                  mật khẩu mới để đăng nhập.
+                  {t(
+                    'common.auth.resetDesc',
+                    'Nhập email, mã OTP 6 số và mật khẩu mới để đăng nhập.',
+                  )}
                 </p>
 
                 <form onSubmit={handleResetPasswordSubmit} className='mt-6 space-y-3.5'>
                   <div>
                     <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                      Email tài khoản
+                      {t('common.auth.accountEmail', 'Email tài khoản')}
                     </label>
                     <input
                       type='email'
@@ -645,7 +667,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
                   <div>
                     <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                      Mã OTP 6 số từ Email (hạn 15 phút)
+                      {t('common.auth.otpLabel', 'Mã OTP 6 số')}
                     </label>
                     <input
                       type='text'
@@ -661,7 +683,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
                   <div>
                     <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                      Mật khẩu mới
+                      {t('common.auth.newPassword', 'Mật khẩu mới')}
                     </label>
                     <input
                       type='password'
@@ -672,13 +694,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       required
                     />
                     <p className='text-[10px] text-gray-500 mt-0.5'>
-                      Tối thiểu 6 ký tự, có chữ in hoa và ký tự đặc biệt.
+                      {t('common.auth.newPasswordHint', 'Tối thiểu 6 ký tự, có chữ in hoa và ký tự đặc biệt.')}
                     </p>
                   </div>
 
                   <div>
                     <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                      Xác nhận mật khẩu mới
+                      {t('common.auth.confirmNewPassword', 'Xác nhận mật khẩu mới')}
                     </label>
                     <input
                       type='password'
@@ -698,10 +720,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     {isLoading ? (
                       <>
                         <RefreshCw className='w-4 h-4 animate-spin' />
-                        Đang đặt lại mật khẩu...
+                        {t('common.actions.saving', 'Đang đặt lại mật khẩu...')}
                       </>
                     ) : (
-                      'Đặt lại mật khẩu'
+                      t('common.auth.resetSubmit', 'Đặt lại mật khẩu')
                     )}
                   </button>
                 </form>

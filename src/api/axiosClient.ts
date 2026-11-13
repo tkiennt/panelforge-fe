@@ -57,8 +57,16 @@ export function clearSession() {
   sessionEnded = true;
   clearLegacyTokens();
   if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-    // Phiên đã kết thúc: bỏ cả token fallback trong localStorage (trừ token demo 'mock-...')
+    // Chỉ coi là hết phiên nếu trước đó ĐÃ TỪNG có phiên làm việc thật (có cờ pf_has_session, user, role hoặc token)
     const token = localStorage.getItem('token');
+    const hadSession = Boolean(
+      localStorage.getItem('pf_has_session') === 'true' ||
+      localStorage.getItem('user') ||
+      localStorage.getItem('userRole') ||
+      (token && !token.startsWith('mock-')) ||
+      localStorage.getItem(REFRESH_TOKEN_KEY)
+    );
+    // Phiên đã kết thúc: bỏ cả token fallback trong localStorage (trừ token demo 'mock-...')
     if (token && !token.startsWith('mock-')) {
       localStorage.removeItem('token');
     }
@@ -66,7 +74,10 @@ export function clearSession() {
     localStorage.removeItem('user');
     localStorage.removeItem('userRole');
     localStorage.removeItem('activeWorkspace');
-    if (!alreadyEnded) window.dispatchEvent(new Event('auth:unauthorized'));
+    localStorage.removeItem('pf_has_session');
+    if (!alreadyEnded && hadSession) {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { hadSession: true } }));
+    }
   }
 }
 

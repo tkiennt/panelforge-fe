@@ -63,7 +63,7 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
         ) : (
           lines.map((line) => {
             const isLinkedToSelectedPanel = Boolean(
-              selectedPanelId && line.panelId === selectedPanelId
+              selectedPanelId && line.panelId === selectedPanelId,
             );
 
             return (

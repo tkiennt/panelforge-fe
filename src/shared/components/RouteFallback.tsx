@@ -10,4 +10,3 @@ export const RouteFallback: React.FC = () => (
     <span className='text-xs font-medium'>Đang tải giao diện...</span>
   </div>
 );
-

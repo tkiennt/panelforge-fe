@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  AlertTriangle,
-  Check,
-  Loader2,
-  Palette,
-  Sparkles,
-  X,
-} from 'lucide-react';
+import { AlertTriangle, Check, Loader2, Palette, Sparkles, X } from 'lucide-react';
 import {
   AiApiError,
   AiSuggestionDto,
@@ -103,7 +96,7 @@ export const ThumbnailGenerationModal: React.FC<ThumbnailGenerationModalProps> =
           msg.includes('prompt ảnh đã duyệt') ||
           msg.includes('ImagePrompt') ||
           msg.includes('chưa có prompt') ||
-          msg.includes('bước 1')
+          msg.includes('bước 1'),
         );
       setIsPromptMissing(promptMissing);
       setErrorMsg(
@@ -111,7 +104,7 @@ export const ThumbnailGenerationModal: React.FC<ThumbnailGenerationModalProps> =
           ? msg.includes('chưa có prompt')
             ? msg
             : 'Panel chưa có mô tả vẽ đã duyệt. Vui lòng chạy bước 1 (Tạo mô tả vẽ) và Chấp nhận (Accept) trước khi sinh ảnh.'
-          : msg
+          : msg,
       );
     } finally {
       setGenerating(false);
@@ -173,7 +166,10 @@ export const ThumbnailGenerationModal: React.FC<ThumbnailGenerationModalProps> =
               <Palette className='w-5 h-5' />
             </div>
             <div>
-              <h2 id='thumbnail-modal-title' className='font-bold text-sm text-[#1C1917] flex items-center gap-2'>
+              <h2
+                id='thumbnail-modal-title'
+                className='font-bold text-sm text-[#1C1917] flex items-center gap-2'
+              >
                 <span>Sinh Ảnh Mẫu AI (Thumbnail)</span>
                 {panelNumber !== undefined && (
                   <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74]'>
@@ -231,11 +227,15 @@ export const ThumbnailGenerationModal: React.FC<ThumbnailGenerationModalProps> =
           {!suggestion ? (
             <div className='space-y-4'>
               <div className='p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 leading-relaxed'>
-                <strong>Lưu ý:</strong> Quá trình sinh ảnh AI mất khoảng <strong>10–60 giây</strong>. Khung tranh phải có <em>Mô tả vẽ AI</em> đã được Chấp nhận (Accept).
+                <strong>Lưu ý:</strong> Quá trình sinh ảnh AI mất khoảng <strong>10–60 giây</strong>
+                . Khung tranh phải có <em>Mô tả vẽ AI</em> đã được Chấp nhận (Accept).
               </div>
 
               <div>
-                <label htmlFor='ai-thumbnail-instruction' className='block text-xs font-semibold text-[#1C1917] mb-1.5'>
+                <label
+                  htmlFor='ai-thumbnail-instruction'
+                  className='block text-xs font-semibold text-[#1C1917] mb-1.5'
+                >
                   Yêu cầu bổ sung cho ảnh khung này (tùy chọn)
                 </label>
                 <textarea
@@ -256,11 +256,10 @@ export const ThumbnailGenerationModal: React.FC<ThumbnailGenerationModalProps> =
               {generating && (
                 <div className='p-6 rounded-xl border border-orange-200 bg-orange-50/50 flex flex-col items-center justify-center text-center space-y-2.5 animate-pulse'>
                   <Loader2 className='w-8 h-8 text-[#C2410C] animate-spin' />
-                  <div className='text-xs font-bold text-[#1C1917]'>
-                    Đang sinh ảnh bằng AI...
-                  </div>
+                  <div className='text-xs font-bold text-[#1C1917]'>Đang sinh ảnh bằng AI...</div>
                   <p className='text-[11px] text-[#57534E] max-w-xs'>
-                    Mô hình đang kết hợp nhân vật Series Bible và mô tả kịch bản để vẽ thumbnail. Vui lòng không đóng cửa sổ.
+                    Mô hình đang kết hợp nhân vật Series Bible và mô tả kịch bản để vẽ thumbnail.
+                    Vui lòng không đóng cửa sổ.
                   </p>
                 </div>
               )}
@@ -291,7 +290,9 @@ export const ThumbnailGenerationModal: React.FC<ThumbnailGenerationModalProps> =
               {/* Prompt info */}
               {payload?.prompt && (
                 <div className='p-3 bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl space-y-1 text-xs'>
-                  <span className='font-bold text-[#1C1917] block'>Mô tả lệnh tạo ảnh (Prompt):</span>
+                  <span className='font-bold text-[#1C1917] block'>
+                    Mô tả lệnh tạo ảnh (Prompt):
+                  </span>
                   <p className='text-[#57534E] italic leading-relaxed line-clamp-4'>
                     "{payload.prompt}"
                   </p>

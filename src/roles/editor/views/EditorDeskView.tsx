@@ -25,6 +25,7 @@ import {
 } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
 import { bibleService } from '@/services/bible.service';
+import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 
 export interface EditorDeskViewProps {
@@ -57,6 +58,8 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
 
   // Load Queue & Series Detail
   const [pendingBibleConcepts, setPendingBibleConcepts] = useState(0);
+  /** D12: chương có kịch bản đang chờ duyệt (không đi qua Assignment). */
+  const [scriptsInReview, setScriptsInReview] = useState<ChapterDto[]>([]);
 
   const loadData = useCallback(async () => {
     if (!seriesId) return;
@@ -64,16 +67,23 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
       setLoading(true);
       setError(null);
 
-      const [items, series, bible] = await Promise.all([
+      const [items, series, bible, chapterPage] = await Promise.all([
         assignmentService.getEditorReviewQueue(seriesId, {
           gate: activeGate !== 'all' ? activeGate : undefined,
           status: statusFilter !== 'all' ? statusFilter : undefined,
         }),
         seriesService.getSeriesById(seriesId).catch(() => null),
         bibleService.getSeriesBible(seriesId).catch(() => null),
+        chapterService.getChaptersBySeries(seriesId, 1, 100).catch(() => null),
       ]);
 
-      setQueueItems(items);
+      // D12: duyệt kịch bản không còn đi qua Assignment — bỏ việc kịch bản cũ khỏi hàng đợi
+      setQueueItems(items.filter((i) => i.stageSlug !== 'script'));
+      setScriptsInReview(
+        (chapterPage?.items ?? [])
+          .filter((c) => c.scriptStatus === 'InReview')
+          .sort((a, b) => a.chapterNumber - b.chapterNumber),
+      );
       setPendingBibleConcepts(
         (bible?.entries ?? []).filter((e) => {
           const r = e.effectiveRevision;
@@ -363,6 +373,44 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
               Đang nạp hàng đợi duyệt bài của Editor...
             </p>
           </div>
+        )}
+
+        {/* D12: Kịch bản chờ duyệt — Editor mở để góp ý theo dòng */}
+        {!loading && !error && scriptsInReview.length > 0 && (
+          <section className='mb-6' data-testid='scripts-in-review'>
+            <h2 className='mb-2 text-sm font-semibold text-stone-800'>
+              {t('scriptReview.desk.scriptsInReview', { count: scriptsInReview.length })}
+            </h2>
+            <ul className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
+              {scriptsInReview
+                .filter((c) => !paramChapterId || c.id === paramChapterId)
+                .map((c) => (
+                  <li
+                    key={c.id}
+                    className='flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3'
+                  >
+                    <div className='min-w-0'>
+                      <p className='truncate text-sm font-semibold text-stone-900'>
+                        {t('scriptReview.header.title', { number: c.chapterNumber })}
+                        {c.title ? `: ${c.title}` : ''}
+                      </p>
+                      <p className='text-xs text-stone-500'>{formatDate(c.scriptSubmittedAt)}</p>
+                    </div>
+                    <button
+                      type='button'
+                      onClick={() =>
+                        navigate(
+                          `/workspaces/${workspaceId}/series/${seriesId}/chapters/${c.id}/script/review`,
+                        )
+                      }
+                      className='shrink-0 rounded-full bg-[#EA580C] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C]'
+                    >
+                      {t('scriptReview.desk.openComments')}
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </section>
         )}
 
         {/* Empty State */}

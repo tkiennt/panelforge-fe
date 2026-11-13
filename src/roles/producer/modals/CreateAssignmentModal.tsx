@@ -188,9 +188,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
 
         let loadedStages: PipelineStageDto[] = [];
         if (pipelineData?.stages && pipelineData.stages.length > 0) {
-          loadedStages = pipelineData.stages.filter(
-            (s) => s.isEnabled !== false && !s.isTerminal,
-          );
+          loadedStages = pipelineData.stages.filter((s) => s.isEnabled !== false && !s.isTerminal);
         } else {
           loadedStages = [];
         }
@@ -1023,8 +1021,6 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
           )}
         </div>
 
-
-
         {assignmentMode === 'plan' ? (
           /* Plan Mode Form Body */
           <form
@@ -1043,7 +1039,10 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             <div className='p-3.5 bg-orange-50/60 border border-orange-200/80 rounded-2xl flex items-start gap-2.5 text-xs text-orange-900'>
               <Sparkles className='w-4 h-4 text-orange-600 shrink-0 mt-0.5' />
               <div className='leading-relaxed'>
-                <span className='font-semibold'>Giao việc toàn chương theo kế hoạch:</span> Hệ thống sẽ giao nhiều công đoạn cùng lúc, tự động nối quan hệ phụ thuộc tiền đề theo thứ tự Pipeline. Khi công đoạn trước được duyệt, người nhận công đoạn sau sẽ tự động nhận thông báo <strong className='text-orange-950 font-medium'>Đến lượt bạn</strong>.
+                <span className='font-semibold'>Giao việc toàn chương theo kế hoạch:</span> Hệ thống
+                sẽ giao nhiều công đoạn cùng lúc, tự động nối quan hệ phụ thuộc tiền đề theo thứ tự
+                Pipeline. Khi công đoạn trước được duyệt, người nhận công đoạn sau sẽ tự động nhận
+                thông báo <strong className='text-orange-950 font-medium'>Đến lượt bạn</strong>.
               </div>
             </div>
 
@@ -1142,7 +1141,8 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   Các công đoạn phân công ({stages.length} công đoạn)
                 </h3>
                 <span className='text-xs text-stone-500'>
-                  Đã chọn {Object.values(planStageAssignments).filter((s) => s.enabled).length}/{stages.length} công đoạn
+                  Đã chọn {Object.values(planStageAssignments).filter((s) => s.enabled).length}/
+                  {stages.length} công đoạn
                 </span>
               </div>
 
@@ -1154,7 +1154,9 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     brief: '',
                     dueDate: '',
                   };
-                  const normRole = stage.allowedRole ? normalizeWorkspaceRole(stage.allowedRole) : null;
+                  const normRole = stage.allowedRole
+                    ? normalizeWorkspaceRole(stage.allowedRole)
+                    : null;
                   const eligibleMembers = members.filter((m) => {
                     if (!normRole) return true;
                     return normalizeWorkspaceRole(m.studioRole) === normRole;
@@ -1285,826 +1287,835 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
               <div className='p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl text-xs space-y-1.5'>
                 <div className='flex items-center gap-2 font-semibold text-emerald-950'>
                   <CheckCircle2 className='w-4 h-4 text-emerald-600' />
-                  <span>Kiểm tra kế hoạch hoàn tất: Sẵn sàng tạo {planDryRunResult.createdCount} công việc.</span>
+                  <span>
+                    Kiểm tra kế hoạch hoàn tất: Sẵn sàng tạo {planDryRunResult.createdCount} công
+                    việc.
+                  </span>
                 </div>
                 <p className='text-emerald-800 leading-relaxed'>
-                  Các công đoạn và phụ thuộc đều hợp lệ. Bấm <strong>Giao Kế Hoạch Toàn Chương</strong> bên dưới để lưu chính thức.
+                  Các công đoạn và phụ thuộc đều hợp lệ. Bấm{' '}
+                  <strong>Giao Kế Hoạch Toàn Chương</strong> bên dưới để lưu chính thức.
                 </p>
               </div>
             )}
           </form>
         ) : (
-        <form
-          id='create-assignment-form'
-          onSubmit={handleSubmit}
-          className='p-5 sm:p-6 overflow-y-auto space-y-4 flex-1 text-sm custom-scrollbar min-h-0'
-        >
-          {error && !isDependencyError && (
-            <div className='p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-start gap-2.5 text-xs leading-relaxed'>
-              <AlertCircle className='w-4 h-4 shrink-0 mt-0.5 text-rose-600' />
-              <span className='font-medium'>{error}</span>
-            </div>
-          )}
-
-          {scopeOverlapWarning && (
-            <div className='p-3.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl flex items-start gap-2.5 text-xs leading-relaxed'>
-              <AlertTriangle className='w-4 h-4 shrink-0 mt-0.5 text-amber-600' />
-              <div>
-                <span className='font-semibold'>Trùng lặp phạm vi giao việc (409 Conflict):</span>{' '}
-                <span>{scopeOverlapWarning}</span>
+          <form
+            id='create-assignment-form'
+            onSubmit={handleSubmit}
+            className='p-5 sm:p-6 overflow-y-auto space-y-4 flex-1 text-sm custom-scrollbar min-h-0'
+          >
+            {error && !isDependencyError && (
+              <div className='p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-start gap-2.5 text-xs leading-relaxed'>
+                <AlertCircle className='w-4 h-4 shrink-0 mt-0.5 text-rose-600' />
+                <span className='font-medium'>{error}</span>
               </div>
-            </div>
-          )}
+            )}
 
-          {loadingInitial ? (
-            <div className='py-12 text-center text-stone-500 text-xs'>
-              <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-orange-600' />
-              <span>Đang tải thông tin thành viên, công đoạn và danh sách trang...</span>
-            </div>
-          ) : (
-            <>
-              {/* Entity Type & Target Entity Selection */}
-              <div className='space-y-3.5 p-4 bg-[#FAF8F5] rounded-2xl border border-stone-200/80'>
-                <div
-                  className={
-                    entityType === 'Chapter'
-                      ? 'space-y-1.5'
-                      : 'grid grid-cols-1 sm:grid-cols-2 gap-3.5'
-                  }
-                >
-                  <div>
-                    <label
-                      htmlFor='assignment-entity-type'
-                      className='block text-sm font-semibold text-stone-800 mb-1.5'
-                    >
-                      Phạm vi giao việc (Entity Type) *
-                    </label>
-                    <select
-                      id='assignment-entity-type'
-                      value={entityType}
-                      onChange={(e) => setEntityType(e.target.value as WorkflowEntityType)}
-                      className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
-                    >
-                      <option
-                        value='Chapter'
-                        disabled={isChapterAssignedAtStage || hasAnyPageOrPanelAssignedAtStage}
+            {scopeOverlapWarning && (
+              <div className='p-3.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl flex items-start gap-2.5 text-xs leading-relaxed'>
+                <AlertTriangle className='w-4 h-4 shrink-0 mt-0.5 text-amber-600' />
+                <div>
+                  <span className='font-semibold'>Trùng lặp phạm vi giao việc (409 Conflict):</span>{' '}
+                  <span>{scopeOverlapWarning}</span>
+                </div>
+              </div>
+            )}
+
+            {loadingInitial ? (
+              <div className='py-12 text-center text-stone-500 text-xs'>
+                <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-orange-600' />
+                <span>Đang tải thông tin thành viên, công đoạn và danh sách trang...</span>
+              </div>
+            ) : (
+              <>
+                {/* Entity Type & Target Entity Selection */}
+                <div className='space-y-3.5 p-4 bg-[#FAF8F5] rounded-2xl border border-stone-200/80'>
+                  <div
+                    className={
+                      entityType === 'Chapter'
+                        ? 'space-y-1.5'
+                        : 'grid grid-cols-1 sm:grid-cols-2 gap-3.5'
+                    }
+                  >
+                    <div>
+                      <label
+                        htmlFor='assignment-entity-type'
+                        className='block text-sm font-semibold text-stone-800 mb-1.5'
                       >
-                        Toàn bộ Chương (Chapter)
-                        {isChapterAssignedAtStage
-                          ? ' — (Đã giao việc cả chương)'
-                          : hasAnyPageOrPanelAssignedAtStage
-                            ? ' — (Đã có việc theo trang/khung)'
+                        Phạm vi giao việc (Entity Type) *
+                      </label>
+                      <select
+                        id='assignment-entity-type'
+                        value={entityType}
+                        onChange={(e) => setEntityType(e.target.value as WorkflowEntityType)}
+                        className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
+                      >
+                        <option
+                          value='Chapter'
+                          disabled={isChapterAssignedAtStage || hasAnyPageOrPanelAssignedAtStage}
+                        >
+                          Toàn bộ Chương (Chapter)
+                          {isChapterAssignedAtStage
+                            ? ' — (Đã giao việc cả chương)'
+                            : hasAnyPageOrPanelAssignedAtStage
+                              ? ' — (Đã có việc theo trang/khung)'
+                              : ''}
+                        </option>
+                        <option
+                          value='Page'
+                          disabled={isChapterAssignedAtStage && !canCarveOutFromChapter}
+                        >
+                          Theo Trang (Page)
+                          {isChapterAssignedAtStage
+                            ? canCarveOutFromChapter
+                              ? ' — (Tách từ việc cả chương)'
+                              : ' — (Chương đã giao việc)'
                             : ''}
-                      </option>
-                      <option
-                        value='Page'
-                        disabled={isChapterAssignedAtStage && !canCarveOutFromChapter}
-                      >
-                        Theo Trang (Page)
-                        {isChapterAssignedAtStage
-                          ? canCarveOutFromChapter
-                            ? ' — (Tách từ việc cả chương)'
-                            : ' — (Chương đã giao việc)'
-                          : ''}
-                      </option>
-                      <option
-                        value='Panel'
-                        disabled={isChapterAssignedAtStage && !canCarveOutFromChapter}
-                      >
-                        Theo Khung hình (Panel)
-                        {isChapterAssignedAtStage
-                          ? canCarveOutFromChapter
-                            ? ' — (Tách từ việc cả chương)'
-                            : ' — (Chương đã giao việc)'
-                          : ''}
-                      </option>
-                    </select>
-                    {entityType === 'Chapter' && (
-                      <p className='mt-1.5 text-xs text-stone-600 flex items-center gap-1.5'>
-                        <Info className='w-4 h-4 text-orange-600 shrink-0' />
-                        <span>
-                          Phân công này sẽ áp dụng cho toàn bộ nội dung của{' '}
-                          <strong className='text-stone-800'>Chương {chapterNumber || ''}</strong> ở
-                          công đoạn được chọn.
-                        </span>
-                      </p>
+                        </option>
+                        <option
+                          value='Panel'
+                          disabled={isChapterAssignedAtStage && !canCarveOutFromChapter}
+                        >
+                          Theo Khung hình (Panel)
+                          {isChapterAssignedAtStage
+                            ? canCarveOutFromChapter
+                              ? ' — (Tách từ việc cả chương)'
+                              : ' — (Chương đã giao việc)'
+                            : ''}
+                        </option>
+                      </select>
+                      {entityType === 'Chapter' && (
+                        <p className='mt-1.5 text-xs text-stone-600 flex items-center gap-1.5'>
+                          <Info className='w-4 h-4 text-orange-600 shrink-0' />
+                          <span>
+                            Phân công này sẽ áp dụng cho toàn bộ nội dung của{' '}
+                            <strong className='text-stone-800'>Chương {chapterNumber || ''}</strong>{' '}
+                            ở công đoạn được chọn.
+                          </span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Chọn Trang khi EntityType === 'Page' (Đơn lẻ hoặc Hàng loạt) */}
+                    {entityType === 'Page' && (
+                      <div className='sm:col-span-1'>
+                        <div className='flex items-center justify-between mb-1.5'>
+                          <label
+                            htmlFor='assignment-page-select'
+                            className='text-sm font-semibold text-stone-800 block'
+                          >
+                            {isBulkMode ? 'Chọn các Trang (Bulk) *' : 'Chọn Trang (Page) *'}
+                          </label>
+                          {!isChapterAssignedAtStage && pages.length > 0 && (
+                            <label className='flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-orange-600 hover:text-orange-700 select-none transition-studio'>
+                              <input
+                                type='checkbox'
+                                checked={isBulkMode}
+                                onChange={(e) => {
+                                  setIsBulkMode(e.target.checked);
+                                  if (e.target.checked && bulkPageIds.length === 0) {
+                                    setBulkPageIds(pages.map((p) => p.id));
+                                  }
+                                  setDryRunResult(null);
+                                }}
+                                className='rounded border-stone-300 text-orange-600 focus:ring-orange-500'
+                              />
+                              <span>Giao hàng loạt (Bulk)</span>
+                            </label>
+                          )}
+                        </div>
+
+                        {loadingPages ? (
+                          <div className='py-2.5 text-stone-500 text-xs flex items-center gap-1.5'>
+                            <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> Đang tải
+                            trang...
+                          </div>
+                        ) : pages.length > 0 ? (
+                          isBulkMode ? (
+                            <div
+                              className='space-y-2.5 bg-white p-3 rounded-xl border border-stone-200/80 shadow-xs'
+                              data-testid='bulk-page-section'
+                            >
+                              <div className='flex items-center justify-between text-xs'>
+                                <span className='font-semibold text-stone-700 font-mono'>
+                                  Đã chọn {bulkPageIds.length}/{pages.length} trang
+                                </span>
+                                <div className='flex items-center gap-2'>
+                                  <button
+                                    type='button'
+                                    onClick={() => {
+                                      setBulkPageIds(pages.map((p) => p.id));
+                                      setDryRunResult(null);
+                                    }}
+                                    className='text-orange-600 hover:underline font-semibold cursor-pointer transition-studio'
+                                  >
+                                    Chọn tất cả
+                                  </button>
+                                  <span className='text-stone-300'>|</span>
+                                  <button
+                                    type='button'
+                                    onClick={() => {
+                                      setBulkPageIds([]);
+                                      setDryRunResult(null);
+                                    }}
+                                    className='text-stone-500 hover:text-stone-700 hover:underline font-medium cursor-pointer transition-studio'
+                                  >
+                                    Bỏ chọn
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className='max-h-36 overflow-y-auto space-y-1 p-1 border border-stone-200 rounded-lg'>
+                                {pages.map((p) => {
+                                  const isChecked = bulkPageIds.includes(p.id);
+                                  const dryRunItem = dryRunResult?.items.find(
+                                    (i) => i.targetEntityId === p.id,
+                                  );
+                                  return (
+                                    <div
+                                      key={p.id}
+                                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-studio ${
+                                        dryRunItem?.conflictReason
+                                          ? 'bg-rose-50 text-rose-900 border border-rose-200'
+                                          : isChecked
+                                            ? 'bg-orange-50/60 text-stone-900'
+                                            : 'text-stone-600 hover:bg-stone-50'
+                                      }`}
+                                    >
+                                      <label className='flex items-center gap-2 cursor-pointer flex-1'>
+                                        <input
+                                          type='checkbox'
+                                          aria-label={`Chọn trang ${p.pageNumber}`}
+                                          checked={isChecked}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setBulkPageIds((prev) => [...prev, p.id]);
+                                            } else {
+                                              setBulkPageIds((prev) =>
+                                                prev.filter((id) => id !== p.id),
+                                              );
+                                            }
+                                            setDryRunResult(null);
+                                          }}
+                                          className='rounded border-stone-300 text-orange-600 focus:ring-orange-500'
+                                        />
+                                        <span className='font-mono font-medium text-stone-800'>
+                                          Trang {p.pageNumber}
+                                        </span>
+                                        <span className='text-stone-500 text-xs'>
+                                          ({p.layoutFormat})
+                                        </span>
+                                      </label>
+
+                                      {dryRunItem && (
+                                        <div className='text-xs flex items-center gap-1 font-medium'>
+                                          {dryRunItem.conflictReason ? (
+                                            <span className='text-rose-600 flex items-center gap-1 font-semibold'>
+                                              <AlertCircle className='w-3.5 h-3.5' />
+                                              {dryRunItem.conflictReason}
+                                            </span>
+                                          ) : (
+                                            <span className='text-emerald-700 flex items-center gap-1 font-semibold'>
+                                              <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
+                                              Hợp lệ
+                                              {dryRunItem.dependsOnAssignmentIds &&
+                                                dryRunItem.dependsOnAssignmentIds.length > 0 && (
+                                                  <span className='text-stone-500 text-xs font-mono font-normal'>
+                                                    (Chờ {dryRunItem.dependsOnAssignmentIds.length}{' '}
+                                                    việc)
+                                                  </span>
+                                                )}
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              <div className='flex items-center justify-between pt-1'>
+                                <button
+                                  type='button'
+                                  onClick={handleDryRun}
+                                  disabled={dryRunLoading || bulkPageIds.length === 0}
+                                  className='btn-cta-secondary px-3 py-1.5 text-xs font-semibold rounded-full flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-studio'
+                                >
+                                  {dryRunLoading ? (
+                                    <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                                  ) : (
+                                    <Sparkles className='w-3.5 h-3.5 text-orange-600' />
+                                  )}
+                                  <span>Kiểm tra xung đột trước (Dry Run)</span>
+                                </button>
+
+                                {dryRunResult?.items.some((i) => i.conflictReason) && (
+                                  <button
+                                    type='button'
+                                    onClick={() => {
+                                      const conflictingIds = new Set(
+                                        dryRunResult.items
+                                          .filter((i) => i.conflictReason)
+                                          .map((i) => i.targetEntityId),
+                                      );
+                                      setBulkPageIds((prev) =>
+                                        prev.filter((id) => !conflictingIds.has(id)),
+                                      );
+                                    }}
+                                    className='text-xs text-rose-600 hover:underline font-semibold cursor-pointer transition-studio'
+                                  >
+                                    Bỏ chọn các trang bị xung đột
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <select
+                              id='assignment-page-select'
+                              value={selectedPageId}
+                              onChange={(e) => setSelectedPageId(e.target.value)}
+                              required
+                              className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
+                            >
+                              {pages.map((p) => {
+                                const isAssigned = assignedPageIdsAtStage.has(p.id);
+                                return (
+                                  <option key={p.id} value={p.id} disabled={isAssigned}>
+                                    Trang {p.pageNumber} ({p.layoutFormat} • {p.widthPx}×
+                                    {p.heightPx}
+                                    px)
+                                    {isAssigned ? ' — (Đã giao việc ở stage này)' : ''}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          )
+                        ) : (
+                          <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs'>
+                            Chương này chưa có trang nào. Vui lòng tạo trang ở Bàn làm việc Artist
+                            trước khi giao việc.
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 
-                  {/* Chọn Trang khi EntityType === 'Page' (Đơn lẻ hoặc Hàng loạt) */}
-                  {entityType === 'Page' && (
-                    <div className='sm:col-span-1'>
-                      <div className='flex items-center justify-between mb-1.5'>
+                  {/* Dropdowns chọn Trang và Panel khi EntityType === 'Panel' */}
+                  {entityType === 'Panel' && (
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-3 border-t border-stone-200/80'>
+                      <div>
                         <label
-                          htmlFor='assignment-page-select'
-                          className='text-sm font-semibold text-stone-800 block'
+                          htmlFor='assignment-panel-page-select'
+                          className='block text-sm font-semibold text-stone-800 mb-1.5 flex items-center gap-1.5'
                         >
-                          {isBulkMode ? 'Chọn các Trang (Bulk) *' : 'Chọn Trang (Page) *'}
+                          <FileText className='w-4 h-4 text-stone-500' />
+                          <span>Bước 1: Chọn Trang *</span>
                         </label>
-                        {!isChapterAssignedAtStage && pages.length > 0 && (
-                          <label className='flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-orange-600 hover:text-orange-700 select-none transition-studio'>
-                            <input
-                              type='checkbox'
-                              checked={isBulkMode}
-                              onChange={(e) => {
-                                setIsBulkMode(e.target.checked);
-                                if (e.target.checked && bulkPageIds.length === 0) {
-                                  setBulkPageIds(pages.map((p) => p.id));
-                                }
-                                setDryRunResult(null);
-                              }}
-                              className='rounded border-stone-300 text-orange-600 focus:ring-orange-500'
-                            />
-                            <span>Giao hàng loạt (Bulk)</span>
-                          </label>
-                        )}
-                      </div>
-
-                      {loadingPages ? (
-                        <div className='py-2.5 text-stone-500 text-xs flex items-center gap-1.5'>
-                          <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> Đang tải
-                          trang...
-                        </div>
-                      ) : pages.length > 0 ? (
-                        isBulkMode ? (
-                          <div
-                            className='space-y-2.5 bg-white p-3 rounded-xl border border-stone-200/80 shadow-xs'
-                            data-testid='bulk-page-section'
-                          >
-                            <div className='flex items-center justify-between text-xs'>
-                              <span className='font-semibold text-stone-700 font-mono'>
-                                Đã chọn {bulkPageIds.length}/{pages.length} trang
-                              </span>
-                              <div className='flex items-center gap-2'>
-                                <button
-                                  type='button'
-                                  onClick={() => {
-                                    setBulkPageIds(pages.map((p) => p.id));
-                                    setDryRunResult(null);
-                                  }}
-                                  className='text-orange-600 hover:underline font-semibold cursor-pointer transition-studio'
-                                >
-                                  Chọn tất cả
-                                </button>
-                                <span className='text-stone-300'>|</span>
-                                <button
-                                  type='button'
-                                  onClick={() => {
-                                    setBulkPageIds([]);
-                                    setDryRunResult(null);
-                                  }}
-                                  className='text-stone-500 hover:text-stone-700 hover:underline font-medium cursor-pointer transition-studio'
-                                >
-                                  Bỏ chọn
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className='max-h-36 overflow-y-auto space-y-1 p-1 border border-stone-200 rounded-lg'>
-                              {pages.map((p) => {
-                                const isChecked = bulkPageIds.includes(p.id);
-                                const dryRunItem = dryRunResult?.items.find(
-                                  (i) => i.targetEntityId === p.id,
-                                );
-                                return (
-                                  <div
-                                    key={p.id}
-                                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-studio ${
-                                      dryRunItem?.conflictReason
-                                        ? 'bg-rose-50 text-rose-900 border border-rose-200'
-                                        : isChecked
-                                          ? 'bg-orange-50/60 text-stone-900'
-                                          : 'text-stone-600 hover:bg-stone-50'
-                                    }`}
-                                  >
-                                    <label className='flex items-center gap-2 cursor-pointer flex-1'>
-                                      <input
-                                        type='checkbox'
-                                        aria-label={`Chọn trang ${p.pageNumber}`}
-                                        checked={isChecked}
-                                        onChange={(e) => {
-                                          if (e.target.checked) {
-                                            setBulkPageIds((prev) => [...prev, p.id]);
-                                          } else {
-                                            setBulkPageIds((prev) =>
-                                              prev.filter((id) => id !== p.id),
-                                            );
-                                          }
-                                          setDryRunResult(null);
-                                        }}
-                                        className='rounded border-stone-300 text-orange-600 focus:ring-orange-500'
-                                      />
-                                      <span className='font-mono font-medium text-stone-800'>
-                                        Trang {p.pageNumber}
-                                      </span>
-                                      <span className='text-stone-500 text-xs'>
-                                        ({p.layoutFormat})
-                                      </span>
-                                    </label>
-
-                                    {dryRunItem && (
-                                      <div className='text-xs flex items-center gap-1 font-medium'>
-                                        {dryRunItem.conflictReason ? (
-                                          <span className='text-rose-600 flex items-center gap-1 font-semibold'>
-                                            <AlertCircle className='w-3.5 h-3.5' />
-                                            {dryRunItem.conflictReason}
-                                          </span>
-                                        ) : (
-                                          <span className='text-emerald-700 flex items-center gap-1 font-semibold'>
-                                            <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                                            Hợp lệ
-                                            {dryRunItem.dependsOnAssignmentIds &&
-                                              dryRunItem.dependsOnAssignmentIds.length > 0 && (
-                                                <span className='text-stone-500 text-xs font-mono font-normal'>
-                                                  (Chờ {dryRunItem.dependsOnAssignmentIds.length}{' '}
-                                                  việc)
-                                                </span>
-                                              )}
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-
-                            <div className='flex items-center justify-between pt-1'>
-                              <button
-                                type='button'
-                                onClick={handleDryRun}
-                                disabled={dryRunLoading || bulkPageIds.length === 0}
-                                className='btn-cta-secondary px-3 py-1.5 text-xs font-semibold rounded-full flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-studio'
-                              >
-                                {dryRunLoading ? (
-                                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                                ) : (
-                                  <Sparkles className='w-3.5 h-3.5 text-orange-600' />
-                                )}
-                                <span>Kiểm tra xung đột trước (Dry Run)</span>
-                              </button>
-
-                              {dryRunResult?.items.some((i) => i.conflictReason) && (
-                                <button
-                                  type='button'
-                                  onClick={() => {
-                                    const conflictingIds = new Set(
-                                      dryRunResult.items
-                                        .filter((i) => i.conflictReason)
-                                        .map((i) => i.targetEntityId),
-                                    );
-                                    setBulkPageIds((prev) =>
-                                      prev.filter((id) => !conflictingIds.has(id)),
-                                    );
-                                  }}
-                                  className='text-xs text-rose-600 hover:underline font-semibold cursor-pointer transition-studio'
-                                >
-                                  Bỏ chọn các trang bị xung đột
-                                </button>
-                              )}
-                            </div>
+                        {loadingPages ? (
+                          <div className='py-2.5 text-stone-500 text-xs flex items-center gap-1.5'>
+                            <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> Đang tải
+                            trang...
                           </div>
-                        ) : (
+                        ) : pages.length > 0 ? (
                           <select
-                            id='assignment-page-select'
+                            id='assignment-panel-page-select'
                             value={selectedPageId}
                             onChange={(e) => setSelectedPageId(e.target.value)}
                             required
                             className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
                           >
-                            {pages.map((p) => {
-                              const isAssigned = assignedPageIdsAtStage.has(p.id);
+                            {pages.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                Trang {p.pageNumber} ({p.layoutFormat})
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs'>
+                            Chưa có trang nào.
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor='assignment-panel-select'
+                          className='block text-sm font-semibold text-stone-800 mb-1.5 flex items-center justify-between'
+                        >
+                          <span className='flex items-center gap-1.5'>
+                            <Layers className='w-4 h-4 text-stone-500' />
+                            <span>Bước 2: Chọn Khung hình *</span>
+                          </span>
+                          {panels.length > 0 && (
+                            <span className='text-xs text-stone-500 font-mono'>
+                              {panels.length} panel
+                            </span>
+                          )}
+                        </label>
+                        {loadingPanels ? (
+                          <div className='py-2.5 text-stone-500 text-xs flex items-center gap-1.5'>
+                            <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> Đang tải
+                            panel...
+                          </div>
+                        ) : panels.length > 0 ? (
+                          <select
+                            id='assignment-panel-select'
+                            value={selectedPanelId}
+                            onChange={(e) => setSelectedPanelId(e.target.value)}
+                            required
+                            disabled={assignedPageIdsAtStage.has(selectedPageId)}
+                            className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
+                          >
+                            {panels.map((p) => {
+                              const isAssigned = assignedPanelIdsAtStage.has(p.id);
                               return (
                                 <option key={p.id} value={p.id} disabled={isAssigned}>
-                                  Trang {p.pageNumber} ({p.layoutFormat} • {p.widthPx}×{p.heightPx}
-                                  px)
+                                  Panel #{p.panelNumber ?? p.readingOrder ?? p.id.slice(0, 8)}{' '}
                                   {isAssigned ? ' — (Đã giao việc ở stage này)' : ''}
                                 </option>
                               );
                             })}
                           </select>
-                        )
-                      ) : (
-                        <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs'>
-                          Chương này chưa có trang nào. Vui lòng tạo trang ở Bàn làm việc Artist
-                          trước khi giao việc.
-                        </div>
-                      )}
+                        ) : (
+                          <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs'>
+                            Trang được chọn chưa có panel nào. Vui lòng tạo panel trước khi giao
+                            việc.
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
+
+                  {isChapterAssignedAtStage &&
+                    canCarveOutFromChapter &&
+                    (entityType === 'Page' || entityType === 'Panel') && (
+                      <div className='p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl text-blue-900 text-xs space-y-3'>
+                        <div className='flex items-center gap-2'>
+                          <Sparkles className='w-4 h-4 text-blue-600 shrink-0' />
+                          <span className='leading-relaxed'>
+                            <strong>Chuyển giao trang/khung:</strong> Phần này đang thuộc việc cả
+                            chương của công đoạn. Chọn nhiều trang/khung và nhập lý do riêng để
+                            chuyển giao sang người mới.
+                          </span>
+                        </div>
+
+                        {/* Chọn nhiều trang cùng lúc khi chuyển giao Page */}
+                        {entityType === 'Page' && pages.length > 0 && (
+                          <div className='space-y-1.5' data-testid='transfer-multi-pages'>
+                            <span className='text-xs font-semibold text-blue-950 flex items-center justify-between'>
+                              <span>Chọn các trang chuyển giao:</span>
+                              <span className='text-xs text-blue-700 font-mono font-medium'>
+                                Đã chọn {selectedTargetIds.length} trang
+                              </span>
+                            </span>
+                            <div className='max-h-32 overflow-y-auto border border-blue-200 rounded-lg p-2 bg-white space-y-1'>
+                              {pages.map((p) => {
+                                const isChecked = selectedTargetIds.includes(p.id);
+                                return (
+                                  <label
+                                    key={p.id}
+                                    className='flex items-center gap-2 px-2 py-1 text-xs hover:bg-blue-50/50 rounded-lg cursor-pointer transition-studio'
+                                  >
+                                    <input
+                                      type='checkbox'
+                                      aria-label={`Chọn trang ${p.pageNumber}`}
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedTargetIds((prev) => [...prev, p.id]);
+                                          setSelectedPageId(p.id);
+                                        } else {
+                                          setSelectedTargetIds((prev) =>
+                                            prev.filter((id) => id !== p.id),
+                                          );
+                                        }
+                                      }}
+                                      className='rounded border-blue-300 text-orange-600 focus:ring-orange-500'
+                                    />
+                                    <span className='font-mono font-medium text-stone-800'>
+                                      Trang {p.pageNumber}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Ô nhập lý do chuyển giao riêng */}
+                        <div>
+                          <label
+                            htmlFor='assignment-transfer-reason'
+                            className='block font-semibold text-blue-950 mb-1 text-xs'
+                          >
+                            Lý do chuyển giao (riêng biệt) *
+                          </label>
+                          <input
+                            id='assignment-transfer-reason'
+                            aria-label='Lý do chuyển giao'
+                            type='text'
+                            value={transferReason}
+                            onChange={(e) => setTransferReason(e.target.value)}
+                            placeholder='Nhập lý do chuyển giao cho người nhận mới...'
+                            className='w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs font-medium text-stone-800 focus:outline-none focus:border-orange-500 transition-studio'
+                          />
+                        </div>
+                      </div>
+                    )}
                 </div>
 
-                {/* Dropdowns chọn Trang và Panel khi EntityType === 'Panel' */}
-                {entityType === 'Panel' && (
-                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-3 border-t border-stone-200/80'>
-                    <div>
-                      <label
-                        htmlFor='assignment-panel-page-select'
-                        className='block text-sm font-semibold text-stone-800 mb-1.5 flex items-center gap-1.5'
+                {/* Pipeline Stage & Assignee with Role Filter */}
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3.5'>
+                  <div>
+                    <label
+                      htmlFor='assignment-stage-select'
+                      className='block text-sm font-semibold text-stone-800 mb-1.5'
+                    >
+                      Công đoạn Pipeline *
+                    </label>
+                    {stages.length > 0 ? (
+                      <select
+                        id='assignment-stage-select'
+                        value={pipelineStageId}
+                        onChange={(e) => handleStageChange(e.target.value)}
+                        required
+                        className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
                       >
-                        <FileText className='w-4 h-4 text-stone-500' />
-                        <span>Bước 1: Chọn Trang *</span>
-                      </label>
-                      {loadingPages ? (
-                        <div className='py-2.5 text-stone-500 text-xs flex items-center gap-1.5'>
-                          <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> Đang tải
-                          trang...
-                        </div>
-                      ) : pages.length > 0 ? (
-                        <select
-                          id='assignment-panel-page-select'
-                          value={selectedPageId}
-                          onChange={(e) => setSelectedPageId(e.target.value)}
-                          required
-                          className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
-                        >
-                          {pages.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              Trang {p.pageNumber} ({p.layoutFormat})
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs'>
-                          Chưa có trang nào.
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor='assignment-panel-select'
-                        className='block text-sm font-semibold text-stone-800 mb-1.5 flex items-center justify-between'
-                      >
-                        <span className='flex items-center gap-1.5'>
-                          <Layers className='w-4 h-4 text-stone-500' />
-                          <span>Bước 2: Chọn Khung hình *</span>
+                        {stages.map((st) => (
+                          <option key={st.id} value={st.id}>
+                            {st.stageOrder}. {st.name} {st.allowedRole ? `(${st.allowedRole})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-1.5'>
+                        <AlertCircle className='w-4 h-4 shrink-0 text-rose-600' />
+                        <span>
+                          Không có công đoạn Pipeline hợp lệ. Vui lòng cấu hình Pipeline cho Series.
                         </span>
-                        {panels.length > 0 && (
-                          <span className='text-xs text-stone-500 font-mono'>
-                            {panels.length} panel
-                          </span>
-                        )}
-                      </label>
-                      {loadingPanels ? (
-                        <div className='py-2.5 text-stone-500 text-xs flex items-center gap-1.5'>
-                          <Loader2 className='w-4 h-4 animate-spin text-orange-600' /> Đang tải
-                          panel...
-                        </div>
-                      ) : panels.length > 0 ? (
-                        <select
-                          id='assignment-panel-select'
-                          value={selectedPanelId}
-                          onChange={(e) => setSelectedPanelId(e.target.value)}
-                          required
-                          disabled={assignedPageIdsAtStage.has(selectedPageId)}
-                          className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
-                        >
-                          {panels.map((p) => {
-                            const isAssigned = assignedPanelIdsAtStage.has(p.id);
-                            return (
-                              <option key={p.id} value={p.id} disabled={isAssigned}>
-                                Panel #{p.panelNumber ?? p.readingOrder ?? p.id.slice(0, 8)}{' '}
-                                {isAssigned ? ' — (Đã giao việc ở stage này)' : ''}
-                              </option>
-                            );
-                          })}
-                        </select>
-                      ) : (
-                        <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs'>
-                          Trang được chọn chưa có panel nào. Vui lòng tạo panel trước khi giao việc.
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
-                )}
 
-                {isChapterAssignedAtStage &&
-                  canCarveOutFromChapter &&
-                  (entityType === 'Page' || entityType === 'Panel') && (
-                    <div className='p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl text-blue-900 text-xs space-y-3'>
-                      <div className='flex items-center gap-2'>
-                        <Sparkles className='w-4 h-4 text-blue-600 shrink-0' />
-                        <span className='leading-relaxed'>
-                          <strong>Chuyển giao trang/khung:</strong> Phần này đang thuộc việc cả
-                          chương của công đoạn. Chọn nhiều trang/khung và nhập lý do riêng để chuyển
-                          giao sang người mới.
-                        </span>
-                      </div>
-
-                      {/* Chọn nhiều trang cùng lúc khi chuyển giao Page */}
-                      {entityType === 'Page' && pages.length > 0 && (
-                        <div className='space-y-1.5' data-testid='transfer-multi-pages'>
-                          <span className='text-xs font-semibold text-blue-950 flex items-center justify-between'>
-                            <span>Chọn các trang chuyển giao:</span>
-                            <span className='text-xs text-blue-700 font-mono font-medium'>
-                              Đã chọn {selectedTargetIds.length} trang
-                            </span>
-                          </span>
-                          <div className='max-h-32 overflow-y-auto border border-blue-200 rounded-lg p-2 bg-white space-y-1'>
-                            {pages.map((p) => {
-                              const isChecked = selectedTargetIds.includes(p.id);
-                              return (
-                                <label
-                                  key={p.id}
-                                  className='flex items-center gap-2 px-2 py-1 text-xs hover:bg-blue-50/50 rounded-lg cursor-pointer transition-studio'
-                                >
-                                  <input
-                                    type='checkbox'
-                                    aria-label={`Chọn trang ${p.pageNumber}`}
-                                    checked={isChecked}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        setSelectedTargetIds((prev) => [...prev, p.id]);
-                                        setSelectedPageId(p.id);
-                                      } else {
-                                        setSelectedTargetIds((prev) =>
-                                          prev.filter((id) => id !== p.id),
-                                        );
-                                      }
-                                    }}
-                                    className='rounded border-blue-300 text-orange-600 focus:ring-orange-500'
-                                  />
-                                  <span className='font-mono font-medium text-stone-800'>
-                                    Trang {p.pageNumber}
-                                  </span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Ô nhập lý do chuyển giao riêng */}
-                      <div>
+                  <div>
+                    <div className='flex items-center justify-between mb-1.5'>
+                      <div className='flex items-center justify-between w-full'>
                         <label
-                          htmlFor='assignment-transfer-reason'
-                          className='block font-semibold text-blue-950 mb-1 text-xs'
+                          htmlFor='assignment-assignee-select'
+                          className='block text-sm font-semibold text-stone-800'
                         >
-                          Lý do chuyển giao (riêng biệt) *
+                          Người nhận việc (Assignee) *
                         </label>
-                        <input
-                          id='assignment-transfer-reason'
-                          aria-label='Lý do chuyển giao'
-                          type='text'
-                          value={transferReason}
-                          onChange={(e) => setTransferReason(e.target.value)}
-                          placeholder='Nhập lý do chuyển giao cho người nhận mới...'
-                          className='w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs font-medium text-stone-800 focus:outline-none focus:border-orange-500 transition-studio'
-                        />
+                        <button
+                          type='button'
+                          onClick={handleLoadTemplate}
+                          disabled={loadingTemplate}
+                          data-testid='apply-stage-template-btn'
+                          title='Lấy người nhận và brief của công đoạn này từ chương trước'
+                          className='text-xs text-orange-700 hover:text-orange-800 font-medium inline-flex items-center gap-1 hover:underline transition-studio cursor-pointer disabled:opacity-50'
+                        >
+                          {loadingTemplate ? (
+                            <Loader2 className='w-3 h-3 animate-spin' />
+                          ) : (
+                            <History className='w-3 h-3' />
+                          )}
+                          <span>Mẫu chương trước</span>
+                        </button>
                       </div>
+                      {requiredRole && (
+                        <span className='px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'>
+                          Yêu cầu: {requiredRole}
+                        </span>
+                      )}
                     </div>
-                  )}
-              </div>
-
-              {/* Pipeline Stage & Assignee with Role Filter */}
-              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3.5'>
-                <div>
-                  <label
-                    htmlFor='assignment-stage-select'
-                    className='block text-sm font-semibold text-stone-800 mb-1.5'
-                  >
-                    Công đoạn Pipeline *
-                  </label>
-                  {stages.length > 0 ? (
                     <select
-                      id='assignment-stage-select'
-                      value={pipelineStageId}
-                      onChange={(e) => handleStageChange(e.target.value)}
+                      id='assignment-assignee-select'
+                      value={assigneeUserId}
+                      onChange={(e) => setAssigneeUserId(e.target.value)}
                       required
                       className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
                     >
-                      {stages.map((st) => (
-                        <option key={st.id} value={st.id}>
-                          {st.stageOrder}. {st.name} {st.allowedRole ? `(${st.allowedRole})` : ''}
+                      {filteredMembers.length > 0 ? (
+                        filteredMembers.map((m) => {
+                          const isTop = suggestions[0]?.userId === m.userId;
+                          return (
+                            <option key={m.id} value={m.userId}>
+                              {m.fullName || m.email.split('@')[0]} — {m.studioRole}
+                              {isTop ? ' (★ Gợi ý tốt nhất)' : ''}
+                            </option>
+                          );
+                        })
+                      ) : (
+                        <option value=''>
+                          {requiredRole
+                            ? `Không có thành viên vai trò ${requiredRole}`
+                            : 'Chưa có thành viên trong Workspace'}
                         </option>
-                      ))}
+                      )}
                     </select>
-                  ) : (
-                    <div className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-1.5'>
-                      <AlertCircle className='w-4 h-4 shrink-0 text-rose-600' />
-                      <span>
-                        Không có công đoạn Pipeline hợp lệ. Vui lòng cấu hình Pipeline cho Series.
-                      </span>
-                    </div>
-                  )}
-                </div>
 
-                <div>
-                  <div className='flex items-center justify-between mb-1.5'>
-                    <div className='flex items-center justify-between w-full'>
-                      <label
-                        htmlFor='assignment-assignee-select'
-                        className='block text-sm font-semibold text-stone-800'
+                    {/* Hiển thị lý do đề xuất của ứng viên đang chọn */}
+                    {selectedSuggestion && selectedSuggestion.reasons?.length > 0 && (
+                      <div
+                        className='flex flex-wrap items-center gap-1.5 mt-2'
+                        data-testid='assignee-reasons'
                       >
-                        Người nhận việc (Assignee) *
-                      </label>
-                      <button
-                        type='button'
-                        onClick={handleLoadTemplate}
-                        disabled={loadingTemplate}
-                        data-testid='apply-stage-template-btn'
-                        title='Lấy người nhận và brief của công đoạn này từ chương trước'
-                        className='text-xs text-orange-700 hover:text-orange-800 font-medium inline-flex items-center gap-1 hover:underline transition-studio cursor-pointer disabled:opacity-50'
-                      >
-                        {loadingTemplate ? (
-                          <Loader2 className='w-3 h-3 animate-spin' />
-                        ) : (
-                          <History className='w-3 h-3' />
-                        )}
-                        <span>Mẫu chương trước</span>
-                      </button>
-                    </div>
-                    {requiredRole && (
-                      <span className='px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'>
-                        Yêu cầu: {requiredRole}
-                      </span>
-                    )}
-                  </div>
-                  <select
-                    id='assignment-assignee-select'
-                    value={assigneeUserId}
-                    onChange={(e) => setAssigneeUserId(e.target.value)}
-                    required
-                    className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
-                  >
-                    {filteredMembers.length > 0 ? (
-                      filteredMembers.map((m) => {
-                        const isTop = suggestions[0]?.userId === m.userId;
-                        return (
-                          <option key={m.id} value={m.userId}>
-                            {m.fullName || m.email.split('@')[0]} — {m.studioRole}
-                            {isTop ? ' (★ Gợi ý tốt nhất)' : ''}
-                          </option>
-                        );
-                      })
-                    ) : (
-                      <option value=''>
-                        {requiredRole
-                          ? `Không có thành viên vai trò ${requiredRole}`
-                          : 'Chưa có thành viên trong Workspace'}
-                      </option>
-                    )}
-                  </select>
-
-                  {/* Hiển thị lý do đề xuất của ứng viên đang chọn */}
-                  {selectedSuggestion && selectedSuggestion.reasons?.length > 0 && (
-                    <div
-                      className='flex flex-wrap items-center gap-1.5 mt-2'
-                      data-testid='assignee-reasons'
-                    >
-                      <span className='text-xs text-emerald-800 font-semibold flex items-center gap-1 mr-0.5'>
-                        <ThumbsUp className='w-3.5 h-3.5 text-emerald-600' /> Lý do đề xuất:
-                      </span>
-                      {selectedSuggestion.reasons.map((r, idx) => (
-                        <span
-                          key={idx}
-                          className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0]'
-                        >
-                          {r}
+                        <span className='text-xs text-emerald-800 font-semibold flex items-center gap-1 mr-0.5'>
+                          <ThumbsUp className='w-3.5 h-3.5 text-emerald-600' /> Lý do đề xuất:
                         </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Nút chọn nhanh ứng viên tốt nhất nếu chưa chọn */}
-                  {suggestions.length > 0 && suggestions[0].userId !== assigneeUserId && (
-                    <div className='mt-2 flex items-center'>
-                      <button
-                        type='button'
-                        onClick={() => setAssigneeUserId(suggestions[0].userId)}
-                        className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:text-emerald-900 border border-emerald-300 transition-studio cursor-pointer active:scale-[0.98]'
-                      >
-                        <UserCheck className='w-3.5 h-3.5 text-emerald-600' />
-                        <span>Chọn ứng viên tốt nhất: {suggestions[0].fullName}</span>
-                      </button>
-                    </div>
-                  )}
-
-                  <p className='mt-2 text-xs text-stone-500 leading-snug flex items-center gap-1.5'>
-                    <Info className='w-4 h-4 text-stone-400 shrink-0' />
-                    <span>
-                      Người nhận chưa có trong đội Series sẽ được tự động thêm vào khi giao việc.
-                    </span>
-                  </p>
-
-                  {/* Cảnh báo rõ ràng nếu Workspace chưa có thành viên đúng vai trò của stage */}
-                  {filteredMembers.length === 0 && requiredRole && (
-                    <div className='mt-2 p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2 leading-relaxed'>
-                      <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
-                      <div>
-                        Chưa có thành viên nào trong Workspace có vai trò{' '}
-                        <strong>{requiredRole}</strong>. Cần mời thành viên{' '}
-                        <strong>{requiredRole}</strong> vào Workspace trước khi giao việc stage này.
+                        {selectedSuggestion.reasons.map((r, idx) => (
+                          <span
+                            key={idx}
+                            className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0]'
+                          >
+                            {r}
+                          </span>
+                        ))}
                       </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Brief (Required) */}
-              <div>
-                <div className='flex items-center justify-between mb-1.5'>
-                  <label
-                    htmlFor='assignment-brief-input'
-                    className='text-sm font-semibold text-stone-800 block'
-                  >
-                    Yêu cầu công việc (Brief) *
-                  </label>
-                  <div className='flex items-center gap-2'>
-                    {brief.length > 0 && (
-                      <span className='text-xs text-stone-500 font-mono'>{brief.length} ký tự</span>
                     )}
-                    <span className='px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200'>
-                      Bắt buộc
-                    </span>
+
+                    {/* Nút chọn nhanh ứng viên tốt nhất nếu chưa chọn */}
+                    {suggestions.length > 0 && suggestions[0].userId !== assigneeUserId && (
+                      <div className='mt-2 flex items-center'>
+                        <button
+                          type='button'
+                          onClick={() => setAssigneeUserId(suggestions[0].userId)}
+                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:text-emerald-900 border border-emerald-300 transition-studio cursor-pointer active:scale-[0.98]'
+                        >
+                          <UserCheck className='w-3.5 h-3.5 text-emerald-600' />
+                          <span>Chọn ứng viên tốt nhất: {suggestions[0].fullName}</span>
+                        </button>
+                      </div>
+                    )}
+
+                    <p className='mt-2 text-xs text-stone-500 leading-snug flex items-center gap-1.5'>
+                      <Info className='w-4 h-4 text-stone-400 shrink-0' />
+                      <span>
+                        Người nhận chưa có trong đội Series sẽ được tự động thêm vào khi giao việc.
+                      </span>
+                    </p>
+
+                    {/* Cảnh báo rõ ràng nếu Workspace chưa có thành viên đúng vai trò của stage */}
+                    {filteredMembers.length === 0 && requiredRole && (
+                      <div className='mt-2 p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2 leading-relaxed'>
+                        <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
+                        <div>
+                          Chưa có thành viên nào trong Workspace có vai trò{' '}
+                          <strong>{requiredRole}</strong>. Cần mời thành viên{' '}
+                          <strong>{requiredRole}</strong> vào Workspace trước khi giao việc stage
+                          này.
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <textarea
-                  id='assignment-brief-input'
-                  rows={3}
-                  required
-                  placeholder='Mô tả chi tiết công việc cần làm, quy chuẩn phong cách hoặc phân đoạn kịch bản...'
-                  value={brief}
-                  onChange={(e) => setBrief(e.target.value)}
-                  className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
-                />
-              </div>
 
-              {/* Reference Notes (Optional) */}
-              <div>
-                <label
-                  htmlFor='assignment-reference-input'
-                  className='block text-sm font-semibold text-stone-800 mb-1.5'
-                >
-                  Ghi chú tham chiếu / Tài liệu đính kèm (Reference Notes)
-                </label>
-                <div className='relative'>
-                  <input
-                    id='assignment-reference-input'
-                    type='text'
-                    placeholder='Đường dẫn moodboard, ảnh mẫu hoặc ghi chú phân cảnh...'
-                    value={referenceNotes}
-                    onChange={(e) => setReferenceNotes(e.target.value)}
-                    className='w-full pl-9 pr-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
-                  />
-                  <Paperclip className='w-4 h-4 text-stone-400 absolute left-3 top-3 pointer-events-none' />
-                </div>
-              </div>
-
-              {/* Priority & Due Date */}
-              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3.5'>
-                <div>
-                  <label
-                    htmlFor='assignment-priority-select'
-                    className='block text-sm font-semibold text-stone-800 mb-1.5'
-                  >
-                    Mức độ ưu tiên (Priority)
-                  </label>
-                  <select
-                    id='assignment-priority-select'
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value as AssignmentPriority)}
-                    className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
-                  >
-                    <option value='Low'>🟢 Thấp (Low)</option>
-                    <option value='Medium'>🟡 Bình thường (Medium)</option>
-                    <option value='High'>🟠 Cao (High)</option>
-                    <option value='Urgent'>🔴 Khẩn cấp (Urgent)</option>
-                  </select>
-                </div>
-
+                {/* Brief (Required) */}
                 <div>
                   <div className='flex items-center justify-between mb-1.5'>
                     <label
-                      htmlFor='assignment-due-date-input'
+                      htmlFor='assignment-brief-input'
                       className='text-sm font-semibold text-stone-800 block'
                     >
-                      Hạn hoàn thành (Due Date)
+                      Yêu cầu công việc (Brief) *
                     </label>
-                    {dueDateRelativeLabel && (
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-semibold font-mono ${
-                          dueDateRelativeLabel === 'Đã quá hạn'
-                            ? 'bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C]'
-                            : dueDateRelativeLabel === 'Hôm nay'
-                              ? 'bg-[#FFFBEB] border border-[#FDE68A] text-[#B45309]'
-                              : 'bg-[#EFF6FF] border border-[#BFDBFE] text-[#1D4ED8]'
-                        }`}
-                      >
-                        ({dueDateRelativeLabel})
+                    <div className='flex items-center gap-2'>
+                      {brief.length > 0 && (
+                        <span className='text-xs text-stone-500 font-mono'>
+                          {brief.length} ký tự
+                        </span>
+                      )}
+                      <span className='px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200'>
+                        Bắt buộc
                       </span>
-                    )}
+                    </div>
                   </div>
-                  <input
-                    id='assignment-due-date-input'
-                    type='date'
-                    min={todayStr}
-                    value={dueDate}
-                    onChange={(e) => {
-                      setDueDate(e.target.value);
-                      if (error && error.includes('quá khứ')) setError(null);
-                    }}
-                    className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-mono focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
+                  <textarea
+                    id='assignment-brief-input'
+                    rows={3}
+                    required
+                    placeholder='Mô tả chi tiết công việc cần làm, quy chuẩn phong cách hoặc phân đoạn kịch bản...'
+                    value={brief}
+                    onChange={(e) => setBrief(e.target.value)}
+                    className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
                   />
+                </div>
 
-                  {/* Quick Preset Buttons */}
-                  <div className='flex items-center gap-1.5 mt-2'>
-                    <span className='text-xs text-stone-500 font-medium'>Gợi ý nhanh:</span>
-                    {[
-                      { label: '+3 ngày', days: 3 },
-                      { label: '+1 tuần', days: 7 },
-                      { label: '+2 tuần', days: 14 },
-                    ].map((preset) => (
-                      <button
-                        key={preset.days}
-                        type='button'
-                        onClick={() => {
-                          const d = new Date();
-                          d.setDate(d.getDate() + preset.days);
-                          const y = d.getFullYear();
-                          const m = String(d.getMonth() + 1).padStart(2, '0');
-                          const dt = String(d.getDate()).padStart(2, '0');
-                          setDueDate(`${y}-${m}-${dt}`);
-                          if (error && error.includes('quá khứ')) setError(null);
-                        }}
-                        className='px-2.5 py-1 rounded-full text-xs font-semibold bg-stone-100 hover:bg-orange-50 text-stone-700 hover:text-orange-700 border border-stone-200 hover:border-orange-200 transition-studio cursor-pointer active:scale-95'
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                    {dueDate && (
-                      <button
-                        type='button'
-                        onClick={() => setDueDate('')}
-                        className='text-xs text-stone-400 hover:text-stone-700 ml-auto hover:underline cursor-pointer transition-studio'
-                      >
-                        Xóa hạn
-                      </button>
-                    )}
+                {/* Reference Notes (Optional) */}
+                <div>
+                  <label
+                    htmlFor='assignment-reference-input'
+                    className='block text-sm font-semibold text-stone-800 mb-1.5'
+                  >
+                    Ghi chú tham chiếu / Tài liệu đính kèm (Reference Notes)
+                  </label>
+                  <div className='relative'>
+                    <input
+                      id='assignment-reference-input'
+                      type='text'
+                      placeholder='Đường dẫn moodboard, ảnh mẫu hoặc ghi chú phân cảnh...'
+                      value={referenceNotes}
+                      onChange={(e) => setReferenceNotes(e.target.value)}
+                      className='w-full pl-9 pr-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
+                    />
+                    <Paperclip className='w-4 h-4 text-stone-400 absolute left-3 top-3 pointer-events-none' />
                   </div>
                 </div>
-              </div>
 
-              {/* Dependency on another assignment (Cần hoàn thành trước · Thu gọn dạng Accordion) */}
-              <div className='border border-stone-200 rounded-2xl overflow-hidden bg-[#FAF8F5] transition-studio'>
-                <button
-                  type='button'
-                  onClick={() => setShowDependencies((prev) => !prev)}
-                  className='w-full px-4 py-3 flex items-center justify-between text-left hover:bg-stone-100/60 transition-studio cursor-pointer'
-                >
-                  <div className='flex items-center gap-2'>
-                    <Network className='w-4 h-4 text-orange-600' />
-                    <span className='font-semibold text-stone-800 text-sm'>
-                      Điều kiện tiên quyết / Phụ thuộc (Dependencies)
-                    </span>
-                    {selectedDependsOnIds.length > 0 ? (
-                      <span className='px-2 py-0.5 rounded-full text-xs font-mono font-semibold bg-orange-100 text-orange-700 border border-orange-200'>
-                        {selectedDependsOnIds.length} đã chọn
-                      </span>
-                    ) : (
-                      <span className='text-xs text-stone-500 font-normal'>(Tùy chọn)</span>
-                    )}
+                {/* Priority & Due Date */}
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3.5'>
+                  <div>
+                    <label
+                      htmlFor='assignment-priority-select'
+                      className='block text-sm font-semibold text-stone-800 mb-1.5'
+                    >
+                      Mức độ ưu tiên (Priority)
+                    </label>
+                    <select
+                      id='assignment-priority-select'
+                      value={priority}
+                      onChange={(e) => setPriority(e.target.value as AssignmentPriority)}
+                      className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
+                    >
+                      <option value='Low'>🟢 Thấp (Low)</option>
+                      <option value='Medium'>🟡 Bình thường (Medium)</option>
+                      <option value='High'>🟠 Cao (High)</option>
+                      <option value='Urgent'>🔴 Khẩn cấp (Urgent)</option>
+                    </select>
                   </div>
-                  <div className='flex items-center gap-1.5 text-stone-500 text-xs'>
-                    <span>{showDependencies || isDependencyError ? 'Thu gọn' : 'Thiết lập'}</span>
-                    {showDependencies || isDependencyError ? (
-                      <ChevronUp className='w-4 h-4' />
-                    ) : (
-                      <ChevronDown className='w-4 h-4' />
-                    )}
-                  </div>
-                </button>
 
-                {(showDependencies || isDependencyError || selectedDependsOnIds.length > 0) && (
-                  <div className='p-4 pt-1 border-t border-stone-200 bg-white'>
-                    <DependencySelector
-                      workspaceId={workspaceId}
-                      seriesId={seriesId}
-                      chapterId={chapterId}
-                      chapterNumber={chapterNumber}
-                      currentBrief={brief}
-                      currentEntityType={entityType}
-                      currentPageId={selectedPageId}
-                      currentPanelId={selectedPanelId}
-                      currentStageId={pipelineStageId}
-                      stages={stages}
-                      pages={pages}
-                      members={members}
-                      existingAssignments={existingAssignments}
-                      selectedIds={selectedDependsOnIds}
-                      onChange={(newIds) => {
-                        setSelectedDependsOnIds(newIds);
-                        setDependsOnAssignmentId(newIds[0] || '');
+                  <div>
+                    <div className='flex items-center justify-between mb-1.5'>
+                      <label
+                        htmlFor='assignment-due-date-input'
+                        className='text-sm font-semibold text-stone-800 block'
+                      >
+                        Hạn hoàn thành (Due Date)
+                      </label>
+                      {dueDateRelativeLabel && (
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-semibold font-mono ${
+                            dueDateRelativeLabel === 'Đã quá hạn'
+                              ? 'bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C]'
+                              : dueDateRelativeLabel === 'Hôm nay'
+                                ? 'bg-[#FFFBEB] border border-[#FDE68A] text-[#B45309]'
+                                : 'bg-[#EFF6FF] border border-[#BFDBFE] text-[#1D4ED8]'
+                          }`}
+                        >
+                          ({dueDateRelativeLabel})
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      id='assignment-due-date-input'
+                      type='date'
+                      min={todayStr}
+                      value={dueDate}
+                      onChange={(e) => {
+                        setDueDate(e.target.value);
+                        if (error && error.includes('quá khứ')) setError(null);
                       }}
-                      backendError={isDependencyError ? error : null}
+                      className='w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 font-mono focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-studio shadow-xs'
                     />
+
+                    {/* Quick Preset Buttons */}
+                    <div className='flex items-center gap-1.5 mt-2'>
+                      <span className='text-xs text-stone-500 font-medium'>Gợi ý nhanh:</span>
+                      {[
+                        { label: '+3 ngày', days: 3 },
+                        { label: '+1 tuần', days: 7 },
+                        { label: '+2 tuần', days: 14 },
+                      ].map((preset) => (
+                        <button
+                          key={preset.days}
+                          type='button'
+                          onClick={() => {
+                            const d = new Date();
+                            d.setDate(d.getDate() + preset.days);
+                            const y = d.getFullYear();
+                            const m = String(d.getMonth() + 1).padStart(2, '0');
+                            const dt = String(d.getDate()).padStart(2, '0');
+                            setDueDate(`${y}-${m}-${dt}`);
+                            if (error && error.includes('quá khứ')) setError(null);
+                          }}
+                          className='px-2.5 py-1 rounded-full text-xs font-semibold bg-stone-100 hover:bg-orange-50 text-stone-700 hover:text-orange-700 border border-stone-200 hover:border-orange-200 transition-studio cursor-pointer active:scale-95'
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                      {dueDate && (
+                        <button
+                          type='button'
+                          onClick={() => setDueDate('')}
+                          className='text-xs text-stone-400 hover:text-stone-700 ml-auto hover:underline cursor-pointer transition-studio'
+                        >
+                          Xóa hạn
+                        </button>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            </>
-          )}
-        </form>
+                </div>
+
+                {/* Dependency on another assignment (Cần hoàn thành trước · Thu gọn dạng Accordion) */}
+                <div className='border border-stone-200 rounded-2xl overflow-hidden bg-[#FAF8F5] transition-studio'>
+                  <button
+                    type='button'
+                    onClick={() => setShowDependencies((prev) => !prev)}
+                    className='w-full px-4 py-3 flex items-center justify-between text-left hover:bg-stone-100/60 transition-studio cursor-pointer'
+                  >
+                    <div className='flex items-center gap-2'>
+                      <Network className='w-4 h-4 text-orange-600' />
+                      <span className='font-semibold text-stone-800 text-sm'>
+                        Điều kiện tiên quyết / Phụ thuộc (Dependencies)
+                      </span>
+                      {selectedDependsOnIds.length > 0 ? (
+                        <span className='px-2 py-0.5 rounded-full text-xs font-mono font-semibold bg-orange-100 text-orange-700 border border-orange-200'>
+                          {selectedDependsOnIds.length} đã chọn
+                        </span>
+                      ) : (
+                        <span className='text-xs text-stone-500 font-normal'>(Tùy chọn)</span>
+                      )}
+                    </div>
+                    <div className='flex items-center gap-1.5 text-stone-500 text-xs'>
+                      <span>{showDependencies || isDependencyError ? 'Thu gọn' : 'Thiết lập'}</span>
+                      {showDependencies || isDependencyError ? (
+                        <ChevronUp className='w-4 h-4' />
+                      ) : (
+                        <ChevronDown className='w-4 h-4' />
+                      )}
+                    </div>
+                  </button>
+
+                  {(showDependencies || isDependencyError || selectedDependsOnIds.length > 0) && (
+                    <div className='p-4 pt-1 border-t border-stone-200 bg-white'>
+                      <DependencySelector
+                        workspaceId={workspaceId}
+                        seriesId={seriesId}
+                        chapterId={chapterId}
+                        chapterNumber={chapterNumber}
+                        currentBrief={brief}
+                        currentEntityType={entityType}
+                        currentPageId={selectedPageId}
+                        currentPanelId={selectedPanelId}
+                        currentStageId={pipelineStageId}
+                        stages={stages}
+                        pages={pages}
+                        members={members}
+                        existingAssignments={existingAssignments}
+                        selectedIds={selectedDependsOnIds}
+                        onChange={(newIds) => {
+                          setSelectedDependsOnIds(newIds);
+                          setDependsOnAssignmentId(newIds[0] || '');
+                        }}
+                        backendError={isDependencyError ? error : null}
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </form>
         )}
 
         {/* Pinned Bottom Footer Buttons */}

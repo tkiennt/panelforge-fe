@@ -1,6 +1,6 @@
 # CLAUDE.md – PanelForge Frontend
 
-React 19 + TypeScript · Vite · Tailwind CSS v4 · HTML5 / Konva Canvas editor · dnd-kit · TanStack Query · Vitest · Playwright.
+React 19 + TypeScript · Vite · Tailwind CSS v4 · HTML5 / Konva (react-konva) canvas editor · dnd-kit · TanStack Query · Vitest · Playwright e2e (`e2e/`, `npm run test:e2e`).
 
 ```bash
 npm run typecheck
@@ -13,11 +13,15 @@ npm run i18n:check # ensure 100% VI <-> EN key parity
 
 Frontend ↔ Backend coordination follows `.agents/CODEBASE_MAP.md` and Backend DTOs/Swagger. Take field names directly from Backend models (`PanelForge.Application/Features/<Domain>/...`), never guess.
 
-## Spec & team workboard (shared by backend, frontend and mobile)
+## Central Knowledge Base & Spec (Tất cả tài liệu đọc tại Hub)
 
-- Business spec for all three repos: `docs/PANELFORGE_MASTER_SPECIFICATION_V2_6.md` (decision log Q1–Q14 at the top). Cite BR-xx / Module / Q-n in commits and the workboard.
-- **Team workboard `docs/TEAM_WORKBOARD.md` is mandatory.** Before coding: pull `trungkien`, add one row to §2 "Đang làm", commit `docs(tracker): start <task>` and push. When merged: remove your row, add one row at the top of §3 "Đã xong" (including API/DB/enum changes other repos must know), commit `docs(tracker): finish <task>`. Rules in the file's §1. Work done in the backend or mobile repo is recorded here too.
-- Do not add implementation-plan files to this repo.
+> 🚨 **QUY TẮC CỐT LÕI:** Tất cả tài liệu đặc tả, nghiệp vụ, hiểu biết hệ thống, kiến trúc và kế hoạch triển khai **ĐƯỢC ĐỌC TẬP TRUNG TẠI `../panelforge-hub/docs/`**, KHÔNG đọc tại các repo riêng lẻ.
+
+- **Master Spec V2.6:** `../panelforge-hub/docs/V2.6/PANELFORGE_MASTER_SPECIFICATION_V2_6.md` (quyết định Q1–Q14, BR-xx, 5 vai trò, 5 luồng CF1–CF5). Trích dẫn mã BR-xx / Module trong commit.
+- **Kế hoạch triển khai (Plans):** `../panelforge-hub/docs/note/PANELFORGE_V2_6_IMPLEMENTATION_PLAN.md` và `../panelforge-hub/docs/note/plans/`. Không tạo hay lưu file plan trong repo này.
+- **Quy chuẩn thiết kế UI/UX:** `../panelforge-hub/docs/spec/DESIGN_RULES.md`.
+- **Thuật ngữ & State Machines:** `../panelforge-hub/docs/standards/`.
+- **Team Workboard:** `../panelforge-hub/docs/tracking/TEAM_WORKBOARD.md`. Trước khi code: kéo nhánh mới từ `trungkien`, ghi nhận task. Khi hoàn tất: cập nhật trạng thái "Đã xong" và thông tin thay đổi API/DB cần lưu ý cho nhóm.
 ## PanelForge Agent Rules
 
 1. Read existing implementation before writing code.
@@ -36,7 +40,7 @@ Frontend ↔ Backend coordination follows `.agents/CODEBASE_MAP.md` and Backend 
 14. Do not read or expose secrets unnecessarily (`.env*` except `.env.example`, tokens, keys).
 15. Do not send source code or local files to unknown external services.
 16. Ask before enabling a new network-connected MCP server.
-17. **Documentation Sync**: Follow `docs/DOCUMENTATION_PROCESS.md`. Any change to UI tokens/styling, business flows, role workspaces, or shared components must be synchronized into the corresponding docs (`docs/DESIGN_RULES.md`, `PRODUCT.md`, `src/roles/*/README.md`, `src/shared/README.md`). When a task starts and when it is merged, update `docs/TEAM_WORKBOARD.md`. Do not create plan files inside this repo.
+17. **Documentation Sync**: Follow `docs/DOCUMENTATION_PROCESS.md`. Any change to UI tokens/styling, business flows, role workspaces, or shared components must be synchronized into the corresponding docs (`panelforge-hub/docs/spec/DESIGN_RULES.md`, `PRODUCT.md`, `src/roles/*/README.md`, `src/shared/README.md`). When a task starts and when it is merged, update `panelforge-hub/docs/tracking/TEAM_WORKBOARD.md`. Do not create plan files inside this repo.
 
 ## Precedence when instructions conflict
 

@@ -76,7 +76,11 @@ export const LayoutPreview: React.FC<{
                   {p.readingOrder}
                 </text>
                 <text x={x + 8} y={y + 20} fontSize={15} fill='#525252'>
-                  {p.camera ? (p.camera.length > 22 ? `${p.camera.slice(0, 21)}…` : p.camera) : null}
+                  {p.camera
+                    ? p.camera.length > 22
+                      ? `${p.camera.slice(0, 21)}…`
+                      : p.camera
+                    : null}
                 </text>
               </g>
             );

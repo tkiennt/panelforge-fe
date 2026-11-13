@@ -40,6 +40,7 @@ import { elementService, type ElementSnapshotDto } from '@/services/element.serv
 import { panelService } from '@/services/panel.service';
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import { chapterService } from '@/services/chapter.service';
+import { useTranslation } from '@/lib/i18n';
 import {
   getActivePipelineStages,
   computePageProgressSummary,
@@ -119,6 +120,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   currentUserId,
   onShowToast,
 }) => {
+  const { t } = useTranslation('review');
   const navigate = useNavigate();
 
   // Core Data States
@@ -931,17 +933,17 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         <div className='hidden lg:flex items-center gap-1.5 px-3 py-1 bg-[#F8F6F0] border border-[#D8D2C5] rounded-full text-xs font-semibold'>
           <span className='px-2 py-0.5 rounded-full bg-indigo-600 text-white flex items-center gap-1 shadow-xs'>
             <span>1</span>
-            <span>Editor duyệt</span>
+            <span>{t('chapterReview.stepper.editor', 'Editor duyệt')}</span>
           </span>
           <span className='text-zinc-400'>→</span>
           <span className='px-2 py-0.5 rounded-full text-zinc-500 flex items-center gap-1'>
             <span>2</span>
-            <span>Producer duyệt</span>
+            <span>{t('chapterReview.stepper.producer', 'Producer duyệt')}</span>
           </span>
           <span className='text-zinc-400'>→</span>
           <span className='px-2 py-0.5 rounded-full text-zinc-500 flex items-center gap-1'>
             <span>3</span>
-            <span>Publisher phát hành</span>
+            <span>{t('chapterReview.stepper.publisher', 'Publisher phát hành')}</span>
           </span>
         </div>
 
@@ -955,7 +957,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             data-testid='btn-provenance-modal'
           >
             <History className='w-3.5 h-3.5 text-[#78716C]' />
-            <span>Nguồn gốc</span>
+            <span>{t('chapterReview.provenance', 'Nguồn gốc')}</span>
           </button>
 
           <button
@@ -1179,7 +1181,11 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 <ChevronLeft className='w-4 h-4' />
               </button>
               <span className='text-xs font-semibold font-mono text-[#1C1917]'>
-                Trang {currentPage?.pageNumber || 1} / {pages.length}
+                {t(
+                  'chapterReview.pageCounter',
+                  { current: currentPage?.pageNumber || 1, total: pages.length },
+                  `Trang ${currentPage?.pageNumber || 1} / ${pages.length}`,
+                )}
               </span>
               <button
                 type='button'
@@ -1403,7 +1409,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   : 'border-transparent text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
               }`}
             >
-              <span>Yêu cầu sửa</span>
+              <span>{t('chapterReview.changeRequests', 'Yêu cầu sửa')}</span>
               {changeRequests.filter((c) => String(c.status) === 'Open').length > 0 && (
                 <span className='px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-red-100 text-red-700'>
                   {changeRequests.filter((c) => String(c.status) === 'Open').length}
@@ -1420,7 +1426,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               }`}
             >
               <CheckSquare className='w-3.5 h-3.5 text-[#C2410C]' />
-              <span>Checklist</span>
+              <span>{t('chapterReview.checklist', 'Checklist')}</span>
               <span className='px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-[#F3F0E9] text-[#57534E]'>
                 {Object.values(checklist).filter(Boolean).length}/5
               </span>
@@ -1435,7 +1441,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               }`}
             >
               <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' />
-              <span>Nhất quán</span>
+              <span>{t('chapterReview.consistency', 'Nhất quán')}</span>
               {findings.length > 0 && (
                 <span className='px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-[#F3F0E9] text-[#57534E]'>
                   {findings.length}

@@ -9,8 +9,14 @@
       "rejected": "Đã trả về"
     },
     "approveAction": "Duyệt bản nộp",
-    "rejectAction": "Trả về sửa",
-    "notes": "Ghi chú duyệt bài"
+    "rejectAction": "Trả về để sửa",
+    "notes": "Ghi chú duyệt bài",
+    "openReview": "Mở xét duyệt",
+    "returnReasonPlaceholder": "Lý do trả về (bắt buộc)",
+    "sendReturn": "Gửi trả về",
+    "openedToast": "Đã mở xét duyệt",
+    "approvedToast": "Đã duyệt",
+    "returnedToast": "Đã trả về để sửa"
   },
   "changeRequest": {
     "title": "Yêu Cầu Sửa Đổi (Change Request)",
@@ -27,15 +33,17 @@
     },
     "description": "Nội dung yêu cầu sửa",
     "markFixed": "Đã sửa xong",
-    "markVerified": "Duyệt khắc phục"
+    "markVerified": "Duyệt khắc phục",
+    "addSpecific": "Thêm yêu cầu sửa cụ thể"
   },
   "diff": {
     "title": "So Sánh Nét Vẽ (Diff View)",
     "previousStage": "Công đoạn trước",
     "currentSubmission": "Bản nộp hiện tại",
-    "slider": "Thanh trượt so sánh",
-    "sideBySide": "Xem song song",
-    "onionSkin": "Lớp bóng mờ (Onion Skin)"
+    "slider": "Thanh trượt",
+    "sideBySide": "Cạnh nhau",
+    "onionSkin": "Chồng ảnh",
+    "pixelDiff": "Đối chiếu pixel (Diff)"
   },
   "consistency": {
     "title": "Kiểm Tra Tính Nhất Quán (AI Consistency)",
@@ -89,7 +97,8 @@
     },
     "tabs": {
       "notes": "Nhận xét ({count})",
-      "checks": "Kiểm tra"
+      "checks": "Kiểm tra",
+      "changes": "Thay đổi"
     },
     "composer": {
       "label": "Nhận xét cho Writer",
@@ -102,18 +111,20 @@
       "unknownSpeaker": "Chưa gán nhân vật",
       "noteCount": "{count} nhận xét",
       "commentLine": "Nhận xét",
-      "commentLineTitle": "Nhận xét dòng này (thành yêu cầu sửa khi trả bài)",
+      "commentLineTitle": "Góp ý dòng này",
       "commentScene": "Nhận xét cảnh",
       "sceneLabel": "CẢNH {number}",
       "emptyScene": "Phân cảnh chưa có dòng kịch bản.",
       "emptyTitle": "Chương chưa có kịch bản",
-      "emptyBody": "Writer chưa tạo phân cảnh nào cho chương này."
+      "emptyBody": "Bản đã gửi duyệt chưa có dòng nào."
     },
     "location": {
       "line": "Cảnh {scene} · dòng {line}",
       "removedLine": "Cảnh {scene} · dòng đã xoá",
       "scene": "Cảnh {scene}",
-      "general": "Nhận xét chung"
+      "general": "Nhận xét chung",
+      "row": "Trang {page} · Panel {panel}",
+      "page": "Trang {page}"
     },
     "crStatus": {
       "Open": "Đang mở",
@@ -236,6 +247,41 @@
       "loadTitle": "Không mở được kịch bản",
       "load": "Không tải được dữ liệu kịch bản của chương này.",
       "generic": "Đã có lỗi xảy ra."
+    },
+    "lifecycle": {
+      "status": {
+        "Draft": "Đang viết",
+        "InReview": "Chờ duyệt",
+        "Frozen": "Đã chốt"
+      },
+      "draftNotice": "Writer chưa gửi duyệt kịch bản này. Bạn vẫn xem được; góp ý mở khi kịch bản ở trạng thái Chờ duyệt.",
+      "frozenNotice": "Kịch bản đã được chốt để sản xuất. Góp ý mới không còn nhận.",
+      "inReviewNotice": "Kịch bản đang chờ duyệt. Góp ý theo từng dòng để Writer tham khảo; góp ý không đổi trạng thái kịch bản.",
+      "startProduction": "Bắt đầu sản xuất",
+      "startConfirm": "Bắt đầu sản xuất Chương {n}? Kịch bản sẽ được chốt (chỉ đọc).",
+      "started": "Đã bắt đầu sản xuất",
+      "startFailed": "Không bắt đầu sản xuất được"
+    },
+    "comments": {
+      "tab": "Góp ý ({count})",
+      "empty": "Chưa có góp ý nào. Chọn một dòng trong bản thảo để góp ý.",
+      "resolved": "Đã xử lý",
+      "open": "Chưa xử lý",
+      "general": "Góp ý chung",
+      "saveFailed": "Không gửi được góp ý",
+      "saved": "Đã gửi góp ý",
+      "staleChanged": "Dòng đã đổi sau góp ý",
+      "staleRemoved": "Dòng đã bị xoá"
+    },
+    "desk": {
+      "scriptsInReview": "Kịch bản chờ duyệt ({count})",
+      "openComments": "Mở để góp ý"
+    },
+    "pushed": {
+      "version": "Bản đã gửi duyệt v{n} · #{hash}",
+      "none": "Writer chưa gửi duyệt bản nào cho chương này.",
+      "firstSubmit": "Lần gửi duyệt đầu tiên: so với bản trống.",
+      "sincePrevious": "So với lần gửi duyệt trước."
     }
   },
   "artworkReview": {
@@ -356,5 +402,24 @@
     },
     "fitImage": "Thu ảnh vừa khung",
     "chaptersOpen": "Ch.{from} trở đi"
+  },
+  "sidebar": {
+    "changeRequests": "Yêu cầu sửa",
+    "consistency": "Nhất quán",
+    "visualReport": "Hình ảnh"
+  },
+  "chapterReview": {
+    "stepper": {
+      "editor": "Editor duyệt",
+      "producer": "Producer duyệt",
+      "publisher": "Publisher phát hành"
+    },
+    "provenance": "Nguồn gốc",
+    "pagesOverview": "Tổng quan trang",
+    "pageCounter": "Trang {current} / {total}",
+    "checklist": "Checklist",
+    "consistency": "Nhất quán",
+    "changeRequests": "Yêu cầu sửa",
+    "returnWork": "Gửi yêu cầu sửa (Trả việc)"
   }
 }

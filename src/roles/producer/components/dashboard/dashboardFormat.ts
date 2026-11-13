@@ -1,4 +1,5 @@
 export const CHAPTER_STATUS_STYLE: Record<string, { label: string; className: string }> = {
+  PreProduction: { label: 'Tiền kỳ', className: 'bg-stone-50 text-stone-700 border-stone-200' },
   InProduction: { label: 'Đang sản xuất', className: 'bg-blue-50 text-blue-800 border-blue-200' },
   Approved: { label: 'Đã duyệt', className: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
   Published: { label: 'Đã phát hành', className: 'bg-emerald-600 text-white border-emerald-600' },

@@ -31,7 +31,9 @@ export function analyzeScriptLineCategory(lineText: string): {
   }
 
   // 4. Lời thoại: TÊN_NV: Lời thoại hoặc @Tên: ...
-  const dialogueMatch = trimmed.match(/^[@]?[A-ZÀ-Ỹa-z0-9_\s]+(?:\/[A-Za-z]+|\s*\([^)]*\))?\s*:\s*(.*)$/);
+  const dialogueMatch = trimmed.match(
+    /^[@]?[A-ZÀ-Ỹa-z0-9_\s]+(?:\/[A-Za-z]+|\s*\([^)]*\))?\s*:\s*(.*)$/,
+  );
   if (dialogueMatch) {
     return {
       category: 'dialogue',
