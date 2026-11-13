@@ -80,7 +80,7 @@ import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
-import { ExtractedScriptLinePayload } from '../components/script/flow/scriptFlowAdapter';
+import type { ScriptDocSnapshot } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { WriterChangeRequestsDrawer } from '../components/script/WriterChangeRequestsDrawer';
 import { ScriptStudioRail, type ScriptRailItem } from '../components/script/ScriptStudioRail';
@@ -631,337 +631,166 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // 4. Tải danh sách Scenes khi currentChapter thay đổi
   // V2.5: Đồng bộ kịch bản từ Screenplay Flow Editor (TipTap) lên Backend khi bấm Lưu (Explicit Commit)
-  const loadPagesAndPanels = useCallback(async (chapId: string) => {
+  const loadPagesAndPanels = useCallback(async (chapId: string): Promise<PanelDto[]> => {
     try {
       const pages = await pageService.getPagesByChapter(chapId);
       setChapterPages(pages || []);
-      if (pages && pages.length > 0) {
-        const panelPromises = pages.map((page) =>
-          panelService.getPanelsByPage(page.id).catch(() => []),
-        );
-        const panelsByPages = await Promise.all(panelPromises);
-        const allPanels: PanelDto[] = [];
-        panelsByPages.forEach((list, idx) => {
-          list.forEach((p) => {
-            (p as any).pageNumber = pages[idx].pageNumber;
-            allPanels.push(p);
-          });
-        });
-        setChapterPanels(allPanels);
-      } else {
+      if (!pages || pages.length === 0) {
         setChapterPanels([]);
+        return [];
       }
+      const panelsByPages = await Promise.all(
+        pages.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
+      );
+      const allPanels: PanelDto[] = [];
+      panelsByPages.forEach((list, idx) => {
+        list.forEach((p) => {
+          (p as any).pageNumber = pages[idx].pageNumber;
+          allPanels.push(p);
+        });
+      });
+      setChapterPanels(allPanels);
+      return allPanels;
     } catch {
       setChapterPages([]);
       setChapterPanels([]);
+      return [];
     }
   }, []);
 
-  const handleSaveFlowLines = useCallback(
-    async (extractedLines: ExtractedScriptLinePayload[]) => {
+  /**
+   * Lưu kịch bản Graphic Novel: toàn bộ dòng vào Scene mặc định của chương (D2) trong một request,
+   * dựng khung Trang → Panel, rồi ghi chữ của dòng Panel vào Panel.Direction.
+   */
+  const handleSaveScript = useCallback(
+    async (snapshot: ScriptDocSnapshot) => {
       if (!currentChapter) return;
-
-      // 1. Xác định ngữ cảnh phân cảnh
-      const allScenes =
-        chapterScenesDetail.length > 0 ? chapterScenesDetail : selectedScene ? [selectedScene] : [];
-      let activeScene = selectedScene || allScenes[0] || null;
-
-      if (!activeScene) {
-        if (scenes.length > 0) {
-          try {
-            activeScene = await scriptLineService.getSceneById(scenes[0].id);
-          } catch {
-            activeScene = null;
-          }
-        } else if (canEditScript && !isChapterLocked) {
-          try {
-            const created = await scriptLineService.createScene(currentChapter.id, {
-              sceneNumber: 1,
-              heading: 'CẢNH 1: MỞ ĐẦU',
-              summary: null,
-              defaultNarrationMode: 'Present',
-            });
-            setScenes([created]);
-            activeScene = await scriptLineService.getSceneById(created.id);
-          } catch {
-            activeScene = null;
-          }
-        }
-      }
-
-      if (!activeScene) return;
-
-      // 2. Theo dõi version tuần tự (Sequential Concurrency Tracker) để tránh bẫy 409 Conflict
-      let currentVersion = currentChapter.versionVector ?? 0;
-      let hasChanges = false;
-
-      // 1b. Nhận diện, cập nhật hoặc tự động tạo mới các Phân cảnh (Auto-Extract Multi-Scenes from Continuous Doc)
-      const headingBlocks = extractedLines.filter((l) => l.blockType === 'scene_heading');
-      const sceneIdMap = new Map<string, string>(); // Ánh xạ từ ID tạm (scene_num_X) sang Backend GUID
-      let currentScenesList = [...scenes];
-
-      // Nếu không có khối scene_heading nào nhưng có activeScene, map mặc định
-      if (headingBlocks.length === 0 && activeScene) {
-        sceneIdMap.set(activeScene.id, activeScene.id);
-      }
-
-      for (let i = 0; i < headingBlocks.length; i++) {
-        const hb = headingBlocks[i];
-        const rawHeadingText = hb.stageDirection?.trim() || '';
-
-        // Phân tích số cảnh: "CẢNH 2: TIÊU ĐỀ", "SCENE 2: TIÊU ĐỀ", "#cảnh 2", v.v.
-        const numMatch = rawHeadingText.match(/(?:CẢNH|SCENE)\s*(\d+)/i);
-        const parsedSceneNum = numMatch ? parseInt(numMatch[1], 10) : i + 1;
-
-        // Phân tích tiêu đề cảnh
-        const headingMatch = rawHeadingText.match(/^(?:CẢNH|SCENE)\s*\d+\s*[:\-–—]\s*(.*)$/i);
-        const parsedHeading = headingMatch
-          ? headingMatch[1].trim()
-          : rawHeadingText.replace(/^(?:CẢNH|SCENE)\s*\d+\s*/i, '').trim() ||
-            `Cảnh ${parsedSceneNum}`;
-
-        // Tìm cảnh hiện có theo sceneNumber hoặc theo id
-        const targetScene =
-          currentScenesList.find((s) => s.sceneNumber === parsedSceneNum) ||
-          currentScenesList.find((s) => s.id === hb.sceneId);
-
-        if (targetScene) {
-          sceneIdMap.set(hb.sceneId, targetScene.id);
-          if (hb.sceneId !== targetScene.id) {
-            sceneIdMap.set(`scene_num_${parsedSceneNum}`, targetScene.id);
-          }
-          // Cập nhật tiêu đề phân cảnh nếu có thay đổi
-          if (parsedHeading && parsedHeading !== targetScene.heading) {
-            try {
-              const updated = await scriptLineService.updateScene(targetScene.id, {
-                heading: parsedHeading,
-                summary: targetScene.summary || null,
-                defaultNarrationMode: targetScene.defaultNarrationMode || 'Present',
-                expectedVersion: targetScene.version,
-              });
-              currentScenesList = currentScenesList.map((s) => (s.id === updated.id ? updated : s));
-              hasChanges = true;
-            } catch (sceneErr) {
-              console.error('Lỗi cập nhật tiêu đề phân cảnh:', sceneErr);
-            }
-          }
-        } else {
-          // Tự động tạo phân cảnh mới trên máy chủ nếu Writer gõ cảnh mới trong văn bản
-          try {
-            const created = await scriptLineService.createScene(currentChapter.id, {
-              sceneNumber: parsedSceneNum,
-              heading: parsedHeading,
-              summary: null,
-              defaultNarrationMode: 'Present',
-            });
-            sceneIdMap.set(hb.sceneId, created.id);
-            sceneIdMap.set(`scene_num_${parsedSceneNum}`, created.id);
-            currentScenesList.push(created);
-            hasChanges = true;
-          } catch (createSceneErr) {
-            console.error('Lỗi tự động tạo phân cảnh từ kịch bản:', createSceneErr);
-          }
-        }
-      }
-
-      // Lọc bỏ khối tiêu đề cảnh ra khỏi danh sách script lines để tránh lưu nhầm vào bảng ScriptLine
-      const scriptLinesToProcess = extractedLines.filter((l) => l.blockType !== 'scene_heading');
-
+      const chapterId = currentChapter.id;
       const isValidGuid = (id?: string | null) =>
         Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
 
-      const createdLineIdMap = new Map<string, string>();
-
-      // 3. Phân nhóm các dòng kịch bản theo Phân cảnh (Multi-Scene Persistence trên 1 trang giấy)
-      const linesByScene = new Map<string, ExtractedScriptLinePayload[]>();
-      for (const line of scriptLinesToProcess) {
-        const hasValidText = Boolean(line.dialogueText?.trim() || line.stageDirection?.trim());
-        if (!hasValidText) continue;
-        const resolvedSceneId =
-          sceneIdMap.get(line.sceneId) ||
-          (isValidGuid(line.sceneId) ? line.sceneId : activeScene.id);
-        if (!linesByScene.has(resolvedSceneId)) {
-          linesByScene.set(resolvedSceneId, []);
-        }
-        linesByScene.get(resolvedSceneId)!.push(line);
+      // 1. Scene mặc định của chương
+      let scene: SceneDetailDto | null = chapterScenesDetail[0] ?? selectedScene ?? null;
+      if (!scene && scenes.length > 0) {
+        scene = await scriptLineService.getSceneById(scenes[0].id).catch(() => null);
+      }
+      if (!scene) {
+        const created = await scriptLineService.createScene(chapterId, {
+          sceneNumber: 1,
+          heading: 'CẢNH 1',
+          summary: null,
+          defaultNarrationMode: 'Present',
+        });
+        setScenes([created]);
+        scene = await scriptLineService.getSceneById(created.id);
       }
 
-      // 3b. Tạo chuỗi văn bản kịch bản phân cảnh hoàn chỉnh (Screenplay Manuscript RawText)
-      const continuousScriptRawText = extractedLines
-        .map((l) => {
-          if (l.blockType === 'scene_heading') return `\n[ ${l.stageDirection?.toUpperCase()} ]\n`;
-          if (l.blockType === 'page_heading')
-            return `\n=== ${l.stageDirection?.toUpperCase()} ===\n`;
-          if (l.blockType === 'panel_heading')
-            return `\n--- ${l.stageDirection?.toUpperCase()} ---\n`;
-          if (l.dialogueText) return l.dialogueText;
-          return l.stageDirection || '';
-        })
-        .filter(Boolean)
-        .join('\n');
-
-      // 4. Lưu đồng bộ hàng loạt (Batch Save) nguyên tử từng phân cảnh (Atomic 1-HTTP Roundtrip)
-      for (const [targetSceneId, sceneLines] of linesByScene.entries()) {
-        const batchPayload = sceneLines.map((line, idx) => ({
-          id: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
-          lineOrder: idx + 1,
-          kind: line.kind,
-          speakerLabel: line.speakerLabel || null,
-          text: line.text || line.dialogueText || line.stageDirection || null,
-          dialogueText: line.dialogueText || null,
-          stageDirection: line.stageDirection || null,
-          speakerCharacterId: isValidGuid(line.speakerCharacterId) ? line.speakerCharacterId : null,
-          narrationMode: line.narrationMode,
-          clientLineId: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
-          panelId: isValidGuid(line.panelId) ? line.panelId : null,
-        }));
-
-        try {
-          const res = await scriptLineService.batchSaveScriptLines(
-            currentChapter.id,
-            targetSceneId,
-            {
-              lines: batchPayload,
-              expectedChapterVersion: currentVersion,
-              summary: 'Lưu kịch bản từ trình soạn thảo',
-              rawText: continuousScriptRawText,
-            },
-          );
-          if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
-            currentVersion = res.chapterVersion;
-            hasChanges = true;
-          }
-          if (res?.lines) {
-            sceneLines.forEach((srcLine, idx) => {
-              const savedLine = res.lines[idx];
-              if (savedLine) {
-                createdLineIdMap.set(srcLine.scriptLineId, savedLine.id);
-              }
-            });
-          }
-        } catch (batchErr: any) {
-          console.error(`Lỗi lưu hàng loạt kịch bản cho Scene ${targetSceneId}:`, batchErr);
-          if (
-            batchErr?.status === 409 ||
-            batchErr?.code === 'CONFLICT' ||
-            batchErr?.message?.includes('Chapter đã đổi') ||
-            batchErr?.message?.includes('version hiện tại')
-          ) {
-            await refreshChapterDetail(currentChapter.id);
-          }
-          throw batchErr;
+      // 2. Toàn bộ dòng trong một request (dòng không còn trong tài liệu sẽ bị gỡ)
+      let currentVersion = currentChapter.versionVector ?? 0;
+      let res;
+      try {
+        res = await scriptLineService.batchSaveScriptLines(chapterId, scene.id, {
+          lines: snapshot.lines.map((line, idx) => ({
+            id: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
+            lineOrder: idx + 1,
+            kind: line.kind,
+            speakerLabel: line.speakerLabel ?? null,
+            text: line.text ?? null,
+            dialogueText: line.dialogueText ?? null,
+            stageDirection: line.stageDirection ?? null,
+            speakerCharacterId: null,
+            narrationMode: line.narrationMode,
+            clientLineId: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
+            panelId: isValidGuid(line.panelId) ? line.panelId : null,
+          })),
+          expectedChapterVersion: currentVersion,
+          summary: 'Lưu kịch bản từ trình soạn thảo',
+        });
+      } catch (batchErr: any) {
+        if (batchErr?.status === 409 || batchErr?.code === 'CONFLICT') {
+          await refreshChapterDetail(chapterId);
         }
+        throw batchErr;
       }
+      if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
+        currentVersion = res.chapterVersion;
+      }
+      const savedIds = snapshot.lines.map(
+        (line, idx) => res?.lines?.[idx]?.id ?? line.scriptLineId,
+      );
 
-      // 5. Xoá hoặc dọn sạch các phân cảnh nếu người dùng xoá cảnh đó trên giấy
-      for (const sc of allScenes) {
-        const hasLinesInDoc = linesByScene.has(sc.id);
-        const headingInDoc = extractedLines.some(
-          (l) =>
-            l.blockType === 'scene_heading' &&
-            (l.sceneId === sc.id || l.sceneId === `scene_num_${sc.sceneNumber}`),
+      // 3. Khung Trang → Panel → dòng (một transaction phía máy chủ)
+      const idsByPanel = new Map<string, string[]>();
+      snapshot.lines.forEach((line, idx) => {
+        if (!line.pageNumber || !line.panelNumber || !isValidGuid(savedIds[idx])) return;
+        const key = `${line.pageNumber}:${line.panelNumber}`;
+        idsByPanel.set(key, [...(idsByPanel.get(key) ?? []), savedIds[idx]]);
+      });
+      try {
+        const synced = await pageService.syncScriptStructure(
+          chapterId,
+          snapshot.pages.map((page) => ({
+            pageNumber: page.pageNumber,
+            panels: page.panels.map((panel) => ({
+              panelNumber: panel.panelNumber,
+              scriptLineIds: idsByPanel.get(`${page.pageNumber}:${panel.panelNumber}`) ?? [],
+            })),
+          })),
         );
-        if (!hasLinesInDoc && !headingInDoc && allScenes.length > 1) {
-          try {
-            await scriptLineService.deleteScene(sc.id);
-            hasChanges = true;
-          } catch (delErr) {
-            console.warn(`Không thể xóa scene thừa ${sc.id}:`, delErr);
-            try {
-              const res = await scriptLineService.batchSaveScriptLines(currentChapter.id, sc.id, {
-                lines: [],
-                expectedChapterVersion: currentVersion,
-                summary: 'Xoá toàn bộ dòng của phân cảnh',
-              });
-              if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
-                currentVersion = res.chapterVersion;
-                hasChanges = true;
-              }
-            } catch (cleanErr) {
-              console.error(`Lỗi dọn sạch dòng kịch bản phân cảnh ${sc.id}:`, cleanErr);
-            }
-          }
-        } else if (!hasLinesInDoc && sc.scriptLines && sc.scriptLines.length > 0) {
-          try {
-            const res = await scriptLineService.batchSaveScriptLines(currentChapter.id, sc.id, {
-              lines: [],
-              expectedChapterVersion: currentVersion,
-              summary: 'Xoá toàn bộ dòng của phân cảnh',
-            });
-            if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
-              currentVersion = res.chapterVersion;
-              hasChanges = true;
-            }
-          } catch (cleanErr) {
-            console.error(`Lỗi dọn sạch dòng kịch bản phân cảnh ${sc.id}:`, cleanErr);
-          }
+        if (synced.unlistedPageNumbers.length > 0) {
+          notify(
+            t('scriptStudio.save.unlistedTitle'),
+            t('scriptStudio.save.unlistedDesc', { pages: synced.unlistedPageNumbers.join(', ') }),
+          );
         }
+      } catch (structureErr: any) {
+        // Dòng kịch bản đã lưu; chỉ khung Trang/Panel chưa đồng bộ nên báo rõ thay vì nuốt lỗi
+        notify(t('scriptStudio.save.structureFailed'), structureErr?.message ?? '');
       }
 
-      // 5.5 Khung Trang → Panel → dòng: một request, một transaction phía server; không xoá trang nào
-      if (currentChapter?.id) {
-        const structure = new Map<number, Map<number, string[]>>();
-        for (const line of extractedLines) {
-          if (line.blockType === 'scene_heading' || !line.pageNumber || line.pageNumber <= 0)
-            continue;
-          const panelsOfPage = structure.get(line.pageNumber) ?? new Map<number, string[]>();
-          structure.set(line.pageNumber, panelsOfPage);
-          if (!line.panelNumber || line.panelNumber <= 0) continue;
-          const ids = panelsOfPage.get(line.panelNumber) ?? [];
-          panelsOfPage.set(line.panelNumber, ids);
-          const savedId = createdLineIdMap.get(line.scriptLineId) || line.scriptLineId;
-          if (isValidGuid(savedId)) ids.push(savedId);
-        }
-        const pagesPayload = Array.from(structure.entries())
-          .sort(([a], [b]) => a - b)
-          .map(([pageNumber, panelsOfPage]) => ({
-            pageNumber,
-            panels: Array.from(panelsOfPage.entries())
-              .sort(([a], [b]) => a - b)
-              .map(([panelNumber, scriptLineIds]) => ({ panelNumber, scriptLineIds })),
-          }));
-
-        try {
-          const synced = await pageService.syncScriptStructure(currentChapter.id, pagesPayload);
-          if (synced.unlistedPageNumbers.length > 0) {
-            notify(
-              t('scriptStudio.save.unlistedTitle'),
-              t('scriptStudio.save.unlistedDesc', { pages: synced.unlistedPageNumbers.join(', ') }),
+      // 4. Chữ của dòng Panel → Panel.Direction
+      const freshPanels = await loadPagesAndPanels(chapterId);
+      const directionUpdates: Promise<unknown>[] = [];
+      for (const page of snapshot.pages) {
+        for (const draft of page.panels) {
+          const server = freshPanels.find(
+            (p) => (p as any).pageNumber === page.pageNumber && p.panelNumber === draft.panelNumber,
+          );
+          if (server && (server.direction ?? '') !== draft.direction) {
+            directionUpdates.push(
+              panelService.updatePanelDirection(server.id, {
+                direction: draft.direction || null,
+                expectedVersion: server.version,
+              }),
             );
           }
-          await loadPagesAndPanels(currentChapter.id);
-        } catch (structureErr: any) {
-          // Dòng kịch bản đã lưu; chỉ khung Trang/Panel chưa đồng bộ nên báo rõ thay vì nuốt lỗi
-          notify(t('scriptStudio.save.structureFailed'), structureErr?.message ?? '');
         }
       }
+      if (directionUpdates.length > 0) {
+        const results = await Promise.allSettled(directionUpdates);
+        if (results.some((r) => r.status === 'rejected')) {
+          notify(t('scriptStudio.save.structureFailed'), '');
+        }
+        await loadPagesAndPanels(chapterId);
+      }
 
-      // 6. Cập nhật version mới nhất vào React state
       setCurrentChapter((prev) => (prev ? { ...prev, versionVector: currentVersion } : null));
 
-      // 7. Tự động đồng bộ và nạp lại danh sách phân cảnh cho Left Bar, giữ nguyên cảnh đang chọn
+      // 5. Nạp lại Scene để editor nhận Id dòng từ máy chủ
       try {
-        const freshScenes = await scriptLineService.getScenesByChapter(currentChapter.id);
+        const freshScenes = await scriptLineService.getScenesByChapter(chapterId);
         freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
         setScenes(freshScenes);
-
-        const allDetails = await Promise.all(
-          freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-        );
-        const validDetails = allDetails.filter((d): d is SceneDetailDto => d !== null);
-        validDetails.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setChapterScenesDetail(validDetails);
-
-        // Giữ nguyên activeScene hiện tại, tuyệt đối không nhảy sang cảnh khác
-        const currentActiveId = activeScene.id;
-        const stillActive = validDetails.find((s) => s.id === currentActiveId);
-        if (stillActive) {
-          setSelectedScene(stillActive);
-        } else if (validDetails.length > 0) {
-          setSelectedScene(validDetails[0]);
-        }
+        const details = (
+          await Promise.all(
+            freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
+          )
+        ).filter((d): d is SceneDetailDto => d !== null);
+        details.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        setChapterScenesDetail(details);
+        setSelectedScene(details.find((d) => d.id === scene!.id) ?? details[0] ?? null);
       } catch (refreshErr) {
-        console.error('Lỗi làm mới danh sách phân cảnh sau khi lưu:', refreshErr);
+        console.error('Lỗi làm mới kịch bản sau khi lưu:', refreshErr);
       }
     },
     [
@@ -969,8 +798,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       chapterScenesDetail,
       selectedScene,
       scenes,
-      canEditScript,
-      isChapterLocked,
       loadPagesAndPanels,
       notify,
       refreshChapterDetail,
@@ -2572,8 +2399,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <ScreenplayFlowEditor
               key={currentChapter?.id || 'flow-editor'}
               chapterId={currentChapter?.id}
-              chapterNumber={currentChapter?.chapterNumber}
-              chapterVersion={currentChapter?.versionVector ?? 0}
               scenes={
                 chapterScenesDetail.length > 0
                   ? chapterScenesDetail
@@ -2581,17 +2406,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     ? [selectedScene]
                     : []
               }
-              allBibleEntries={allBibleEntries}
-              consistencyFindings={findings}
+              pages={chapterPages}
+              panels={chapterPanels}
               canEditScript={canEditScript}
               isChapterLocked={isChapterLocked}
-              scriptContentHash={currentChapter?.scriptContentHash}
-              getSpeakerName={getSpeakerName}
-              onSaveLines={handleSaveFlowLines}
-              onCreateStub={handleCreateStubEntity}
+              onSave={handleSaveScript}
               onShowToast={onShowToast}
-              importRequestKey={importRequestKey}
-              onActiveSceneChange={handleCaretSceneChange}
               dockLeading={viewSwitcher}
               manuscriptTitle={formatChapterOption(
                 currentChapter.chapterNumber,

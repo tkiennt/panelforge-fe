@@ -144,6 +144,28 @@
       "cards": "Line cards",
       "thumbnail": "Thumbnails"
     },
+    "gn": {
+      "page": "PAGE {n} - PANELS: {k}",
+      "panel": "PANEL {n}",
+      "caption": "CAPTION:",
+      "sfx": "SFX:",
+      "accept": "(Enter)",
+      "sheet": "Script page",
+      "toolbar": "Line type",
+      "save": "Save",
+      "saveFailed": "Could not save the script",
+      "help": "Enter: next line · Tab: character / ( ) · Shift+Tab: step back · Ctrl+1..8: change line type · Ctrl+S: save",
+      "el": {
+        "page": "Page",
+        "panel": "Panel",
+        "action": "Action",
+        "character": "Character",
+        "parens": "( ) Parens",
+        "dialogue": "Dialogue",
+        "caption": "Caption",
+        "sfx": "SFX"
+      }
+    },
     "dock": {
       "addPage": "Add page",
       "fourPanels": "4-panel page",

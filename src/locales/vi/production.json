@@ -144,6 +144,28 @@
       "cards": "Thẻ dòng",
       "thumbnail": "Thumbnail"
     },
+    "gn": {
+      "page": "TRANG {n} - PANEL: {k}",
+      "panel": "PANEL {n}",
+      "caption": "DẪN TRUYỆN:",
+      "sfx": "SFX:",
+      "accept": "(Enter)",
+      "sheet": "Trang kịch bản",
+      "toolbar": "Loại dòng",
+      "save": "Lưu",
+      "saveFailed": "Chưa lưu được kịch bản",
+      "help": "Enter: dòng kế tiếp · Tab: nhân vật / ( ) · Shift+Tab: lùi loại dòng · Ctrl+1..8: đổi loại dòng · Ctrl+S: lưu",
+      "el": {
+        "page": "Trang",
+        "panel": "Panel",
+        "action": "Hành động",
+        "character": "Nhân vật",
+        "parens": "( ) Sắc thái",
+        "dialogue": "Thoại",
+        "caption": "Dẫn truyện",
+        "sfx": "SFX"
+      }
+    },
     "dock": {
       "addPage": "Thêm trang",
       "fourPanels": "Trang 4 khung",
