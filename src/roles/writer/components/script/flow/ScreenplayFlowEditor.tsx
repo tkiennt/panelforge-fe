@@ -42,7 +42,7 @@ export interface ScreenplayFlowEditorProps {
 
 const SHEET_CSS = `
 .gn-sheet .ProseMirror { outline: none; font-family: 'Courier Prime', 'Courier New', ui-monospace, monospace;
-  font-size: 15px; line-height: 1.75rem; color: #1c1917; caret-color: #c2410c; }
+  font-size: 15px; line-height: 1.75rem; color: #1c1917; caret-color: #c2410c; min-height: 900px; }
 .gn-sheet .gn-line { clear: both; min-height: 1.75rem; white-space: pre-wrap; word-break: break-word; }
 .gn-sheet .gn-page { margin-top: 3rem; padding-top: .75rem; border-top: 1px solid #e7e5e4;
   font-weight: 700; font-size: 17px; letter-spacing: .04em; }
@@ -311,10 +311,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         )}
       </div>
 
-      <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-6 sm:py-10'>
+      <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-6 sm:py-10 pb-32'>
         <div
           data-testid='paper-editor-sheet'
-          className='gn-sheet paper-editor-sheet max-w-[760px] mx-auto bg-white rounded-md border border-[#C5BDAF] shadow-[0_8px_30px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)] px-6 sm:px-16 lg:px-20 py-14 my-2 sm:my-4 transition-all duration-150'
+          className='gn-sheet paper-editor-sheet max-w-[760px] mx-auto bg-white rounded-md border border-[#C5BDAF] shadow-[0_8px_30px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)] px-6 sm:px-16 lg:px-20 pt-14 pb-48 my-2 sm:my-4 transition-all duration-150 min-h-[1100px] sm:min-h-[1200px] cursor-text'
           onClick={() => {
             if (editor && !editor.isFocused) editor.commands.focus();
           }}
