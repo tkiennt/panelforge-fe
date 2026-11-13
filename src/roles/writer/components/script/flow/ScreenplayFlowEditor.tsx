@@ -16,7 +16,6 @@ import { SceneDetailDto } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
 import { ScriptCommentDto } from '@/services/chapter.service';
-import { ScriptCommentItemCard } from '@/shared/features/script-review/ScriptCommentCard';
 import { GN_ELEMENTS, GnElement } from './grammar/scriptGrammar';
 import {
   GnLabels,
@@ -50,6 +49,9 @@ export interface ScreenplayFlowEditorProps {
   comments?: ScriptCommentDto[];
   canResolveComment?: boolean;
   onResolveComment?: (commentId: string) => Promise<void>;
+  onToggleCommentsSidePanel?: () => void;
+  isCommentsSidePanelOpen?: boolean;
+  activeLineId?: string | null;
 }
 
 const SHEET_CSS = `
@@ -91,6 +93,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   comments,
   canResolveComment,
   onResolveComment,
+  onToggleCommentsSidePanel,
+  isCommentsSidePanelOpen,
+  activeLineId,
 }) => {
   const { t } = useTranslation('production');
   const isReadOnly = !canEditScript || isChapterLocked;
@@ -98,7 +103,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [active, setActive] = useState<GnElement | null>(null);
-  const [showCommentsPanel, setShowCommentsPanel] = useState(true);
   /** Menu chọn loại dòng (Enter trên dòng trống): vị trí neo theo con trỏ + mục đang chọn. */
   const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
   const dirtyRef = useRef(false);
@@ -276,6 +280,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (activeLineId) {
+      scrollToLine(activeLineId);
+    }
+  }, [activeLineId]);
+
   // Màn cha có thể truyền mảng mới mỗi lần render: chỉ nạp lại khi nội dung máy chủ thực sự đổi.
   const serverDocJson = useMemo(
     () => JSON.stringify(scriptToDoc(scenes, pages, panels)),
@@ -396,16 +406,16 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         {comments && comments.length > 0 && (
           <button
             type='button'
-            onClick={() => setShowCommentsPanel((v) => !v)}
+            onClick={onToggleCommentsSidePanel}
             className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
-              showCommentsPanel
+              isCommentsSidePanelOpen
                 ? 'bg-[#EA580C] text-white shadow-xs'
                 : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
             }`}
             title='Xem nhận xét của Editor'
           >
             <MessageSquare className='w-3.5 h-3.5' />
-            Nhận xét ({comments.length})
+            Nhận xét ({comments.filter((c) => !c.resolvedAt).length})
           </button>
         )}
 
@@ -455,32 +465,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             )}
             <EditorContent editor={editor} />
           </div>
-
-          {/* Cột nhận xét nổi bên phải trang giấy theo đúng mẫu thiết kế */}
-          {showCommentsPanel && comments && comments.length > 0 && (
-            <aside
-              data-testid='editor-comments-sidebar'
-              className='hidden lg:flex flex-col gap-3 w-80 shrink-0 sticky top-4 my-2 sm:my-4'
-            >
-              <div className='flex items-center justify-between pb-1 text-xs font-bold text-stone-800'>
-                <span className='inline-flex items-center gap-1.5'>
-                  <MessageSquare className='w-4 h-4 text-[#EA580C]' />
-                  Nhận xét của Editor ({comments.length})
-                </span>
-              </div>
-              <div className='space-y-3 max-h-[80vh] overflow-y-auto custom-scrollbar pr-1'>
-                {comments.map((c) => (
-                  <ScriptCommentItemCard
-                    key={c.id}
-                    comment={c}
-                    canResolve={canResolveComment}
-                    onResolve={onResolveComment}
-                    onSelect={() => scrollToLine(c.scriptLineId)}
-                  />
-                ))}
-              </div>
-            </aside>
-          )}
         </div>
       </div>
 

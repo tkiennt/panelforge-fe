@@ -58,6 +58,7 @@ import {
   CreateChapterRequest,
   ScriptStatus,
   ScriptCommentDto,
+  ScriptVersionDetailDto,
 } from '@/services/chapter.service';
 import { pageService, PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
@@ -77,6 +78,7 @@ import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
+import { ScriptReviewSidePanel } from '@/shared/features/script-review/ScriptReviewSidePanel';
 import type { ScriptDocSnapshot } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { ScriptVersionsDrawer } from '../components/script/versions/ScriptVersionsDrawer';
@@ -234,6 +236,35 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       cancelled = true;
     };
   }, [currentChapter?.id, currentChapter?.scriptStatus]);
+
+  const [showCommentsSidePanel, setShowCommentsSidePanel] = useState(false);
+  const [activeCommentLineId, setActiveCommentLineId] = useState<string | null>(null);
+  const [pushedVersion, setPushedVersion] = useState<ScriptVersionDetailDto | null>(null);
+
+  useEffect(() => {
+    if (!currentChapter?.id || !currentChapter.lastSubmittedVersionId) {
+      setPushedVersion(null);
+      return;
+    }
+    let cancelled = false;
+    chapterService
+      .getScriptVersion(currentChapter.id, currentChapter.lastSubmittedVersionId)
+      .then((ver) => {
+        if (!cancelled) setPushedVersion(ver);
+      })
+      .catch(() => {
+        if (!cancelled) setPushedVersion(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentChapter?.id, currentChapter?.lastSubmittedVersionId, versionsTick]);
+
+  useEffect(() => {
+    if (openScriptComments.length > 0) {
+      setShowCommentsSidePanel(true);
+    }
+  }, [currentChapter?.id, openScriptComments.length > 0]);
   const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
   const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
   const [submittingToEditor, setSubmittingToEditor] = useState(false);
@@ -1947,6 +1978,19 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       testId: 'run-consistency-check-btn',
       onClick: handleRunConsistencyCheck,
     },
+    ...(scriptComments.length > 0
+      ? [
+          {
+            id: 'comments',
+            label: 'Góp ý',
+            icon: MessageSquare,
+            active: showCommentsSidePanel,
+            badge: openScriptComments.length > 0 ? openScriptComments.length : undefined,
+            testId: 'rail-comments-btn',
+            onClick: () => setShowCommentsSidePanel((v) => !v),
+          } satisfies ScriptRailItem,
+        ]
+      : []),
     ...(canEditScript && !isChapterLocked
       ? [
           {
@@ -2364,6 +2408,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               comments={openScriptComments}
               canResolveComment={isWriterRole}
               onResolveComment={handleResolveComment}
+              isCommentsSidePanelOpen={showCommentsSidePanel}
+              onToggleCommentsSidePanel={() => setShowCommentsSidePanel((v) => !v)}
+              activeLineId={activeCommentLineId}
               onSave={handleSaveScript}
               registerSave={registerEditorSave}
               onShowToast={onShowToast}
@@ -2463,6 +2510,28 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           )}
         </div>
+
+        {/* Panel nhận xét / thay đổi / kiểm tra bên phải giống Editor */}
+        {showCommentsSidePanel && (
+          <ScriptReviewSidePanel
+            chapter={currentChapter}
+            comments={scriptComments}
+            pushedVersion={pushedVersion}
+            activeLineId={activeCommentLineId}
+            canResolve={isWriterRole}
+            onResolveComment={handleResolveComment}
+            onSelectComment={(c) => {
+              if (c.scriptLineId) {
+                setActiveCommentLineId(c.scriptLineId);
+                handleScrollToLine(c.scriptLineId);
+              }
+            }}
+            onClose={() => setShowCommentsSidePanel(false)}
+            findings={findings}
+            onRunCheck={handleRunConsistencyCheck}
+            loadingCheck={loadingConsistency}
+          />
+        )}
 
         {/* RIGHT: Secondary Panels (Drawers) */}
         {/* 1. Drawer Đề Cương & Bối Cảnh */}
