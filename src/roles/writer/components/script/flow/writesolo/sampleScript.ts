@@ -195,12 +195,11 @@ export const SAMPLE_BIBLE_ENTRIES: BibleEntryDto[] = [
     category: 'Character',
     subtitle: 'Nữ chính trong kịch bản',
     description: 'Thường ấm áp nhưng vụng về khi nói dối.',
-    seriesId: 'series-story',
     effectiveRevision: {
       stageName: 'Canon V1',
       reviewStatus: 'CanonLocked',
       summary: 'Trang phục mùa đông',
-    },
+    } as any,
   },
   {
     id: 'char-fred',
@@ -209,12 +208,11 @@ export const SAMPLE_BIBLE_ENTRIES: BibleEntryDto[] = [
     category: 'Character',
     subtitle: 'Người bạn đồng hành',
     description: 'Nhiệt tình, đôi mắt cún con.',
-    seriesId: 'series-story',
     effectiveRevision: {
       stageName: 'Canon V1',
       reviewStatus: 'CanonLocked',
       summary: 'Áo khoác ướt sũng',
-    },
+    } as any,
   },
   {
     id: 'char-akira',
@@ -223,12 +221,11 @@ export const SAMPLE_BIBLE_ENTRIES: BibleEntryDto[] = [
     category: 'Character',
     subtitle: 'Chiến binh kháng chiến Neo-Shinjuku',
     description: 'Nhân vật chính, thành thạo công nghệ và kiếm thuật.',
-    seriesId: 'series-cyber',
     effectiveRevision: {
       stageName: 'GĐ 1: Khởi nguồn • Ch. 1–14',
       reviewStatus: 'CanonLocked',
       summary: 'Phiên bản áo khoác xanh cổ cao',
-    },
+    } as any,
   },
   {
     id: 'loc-neo-shinjuku',
@@ -237,11 +234,10 @@ export const SAMPLE_BIBLE_ENTRIES: BibleEntryDto[] = [
     category: 'Location',
     subtitle: 'Đô thị cyberpunk tầng thấp',
     description: 'Thành phố ngập trong ánh đèn neon và mưa axít.',
-    seriesId: 'series-cyber',
     effectiveRevision: {
       stageName: 'Canon Toàn cảnh',
       reviewStatus: 'CanonLocked',
       summary: 'Khu vực quận 4',
-    },
+    } as any,
   },
-];
+] as unknown as BibleEntryDto[];

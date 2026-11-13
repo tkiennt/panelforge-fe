@@ -693,7 +693,7 @@ export function extractScriptLinesFromDoc(
     const textTrimmed = text.trim();
     if (!textTrimmed) continue;
 
-    // Thoại có nhãn người nói (gõ "Tên:" hoặc nạp từ dữ liệu): lưu lại đúng định dạng Tên: "lời thoại"
+    // Thoại có nhãn người nói
     if (attrs.blockType === 'dialogue' && attrs.speakerName) {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
@@ -701,7 +701,26 @@ export function extractScriptLinesFromDoc(
         kind: ScriptLineKind.Dialogue,
         speakerLabel: attrs.speakerName,
         text: textTrimmed,
-        dialogueText: composeSpeakerLine(attrs.speakerName, textTrimmed),
+        dialogueText: textTrimmed,
+        stageDirection: null,
+        speakerCharacterId: attrs.speakerCharacterId || null,
+        narrationMode: attrs.narrationMode || 'Present',
+        lineOrder: order++,
+        panelId: currentPanelId || attrs.panelId || null,
+        pageNumber: currentPageNumber,
+        panelNumber: currentPanelNumber,
+      });
+      continue;
+    }
+
+    if (attrs.blockType === 'thought') {
+      results.push({
+        scriptLineId: attrs.scriptLineId || generateGuid(),
+        sceneId: currentSceneId,
+        kind: ScriptLineKind.Thought,
+        speakerLabel: attrs.speakerName || null,
+        text: textTrimmed,
+        dialogueText: textTrimmed,
         stageDirection: null,
         speakerCharacterId: attrs.speakerCharacterId || null,
         narrationMode: attrs.narrationMode || 'Present',
@@ -948,14 +967,7 @@ export function extractScriptLinesFromDoc(
       effectiveBlockType === 'thought'
     ) {
       // Giữ loại dòng khi lưu: "SFX: ..." / "Lời dẫn: ..." (Bàn vẽ và lần mở sau đọc lại được)
-      const typedText =
-        effectiveBlockType === 'sfx' &&
-        !SFX_PREFIX.test(textTrimmed) &&
-        !/^\*.+\*$/.test(textTrimmed)
-          ? `SFX: ${textTrimmed}`
-          : effectiveBlockType === 'caption' && !CAPTION_PREFIX.test(textTrimmed)
-            ? `Lời dẫn: ${textTrimmed}`
-            : textTrimmed;
+      const typedText = textTrimmed;
 
       let resolvedKind: ScriptLineKind = ScriptLineKind.Action;
       if (effectiveBlockType === 'sfx') resolvedKind = ScriptLineKind.Sfx;

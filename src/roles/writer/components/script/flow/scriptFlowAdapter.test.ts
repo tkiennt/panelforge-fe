@@ -521,7 +521,7 @@ describe('Lưu đúng cấu trúc Nhân vật -> Lời thoại', () => {
     );
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatchObject({
-      dialogueText: 'Minh: "Xin chào"',
+      dialogueText: 'Xin chào',
       speakerCharacterId: 'chr-1',
     });
   });
@@ -597,9 +597,9 @@ describe('Thoại có nhãn người nói và loại dòng khi lưu / mở lại
       { stageDirection: 'Naruto chạy ra cổng làng.' },
     ]);
     expect(saved.map((l) => l.dialogueText ?? l.stageDirection)).toEqual([
-      'Naruto: "Tớ sẽ thành Hokage!"',
-      'SFX: Bùm!',
-      'Lời dẫn: Mười năm sau.',
+      'Tớ sẽ thành Hokage!',
+      'Bùm!',
+      'Mười năm sau.',
       'Naruto chạy ra cổng làng.',
     ]);
     expect(saved[0].speakerCharacterId).toBe('chr-naruto');
@@ -608,7 +608,7 @@ describe('Thoại có nhãn người nói và loại dòng khi lưu / mở lại
   it('dòng thoại cũ bị lưu nhầm thành chỉ dẫn được sửa thành lời thoại khi lưu lại', () => {
     const saved = roundTrip([{ stageDirection: '(NARUTO) : "Chào Iruka-sensei"' }]);
     expect(saved[0]).toMatchObject({
-      dialogueText: 'Naruto: "Chào Iruka-sensei"',
+      dialogueText: 'Chào Iruka-sensei',
       stageDirection: null,
       speakerCharacterId: 'chr-naruto',
     });

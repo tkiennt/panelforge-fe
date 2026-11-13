@@ -10,7 +10,10 @@ import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
 import { BibleEntryDto } from '@/services/bible.service';
 import { ConsistencyFindingDto } from '@/types/pipeline';
-import { ScriptLineBlockNode } from './nodes/ScriptLineBlockNode';
+import {
+  ScriptLineBlockNode,
+  getRecentSpeakersFromDoc,
+} from './nodes/ScriptLineBlockNode';
 import { BibleMention } from './extensions/BibleMention';
 import { createMentionSuggestion, PanelSuggestionData } from './extensions/mentionSuggestion';
 import { ConsistencyLinterExtension } from './plugins/consistencyLinterPlugin';
@@ -563,152 +566,49 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           return true;
         }
 
+        // 5. Nhấp vào nhãn Người nói (.script-line-label) để đổi nhân vật (Series Bible & Recent Speakers)
+        const speakerSlot = target.closest('.script-line-label');
+        if (speakerSlot && view.editable) {
+          const blockEl = speakerSlot.closest('[data-block-type="dialogue"], [data-block-type="thought"]');
+          if (blockEl) {
+            const domPos = view.posAtDOM(blockEl, 0);
+            const $pos = view.state.doc.resolve(domPos);
+            let d = $pos.depth;
+            while (d > 0 && $pos.node(d).type.name !== 'scriptLineBlock') d--;
+            if (d > 0) {
+              const node = $pos.node(d);
+              const from = $pos.before(d);
+              const currentName = node.attrs.speakerName;
+              const bibleNames = (allBibleEntries || [])
+                .filter((e) => e.category === 'Character' && e.name)
+                .map((e) => e.name);
+              const recentNames = getRecentSpeakersFromDoc(view.state.doc, from);
+              const candidates = Array.from(new Set([...recentNames, ...bibleNames]));
+              if (candidates.length > 0) {
+                const curIdx = candidates.findIndex(
+                  (c) => c.toUpperCase() === (currentName || '').toUpperCase(),
+                );
+                const nextName = candidates[(curIdx + 1) % candidates.length];
+                const matchedEntry = (allBibleEntries || []).find(
+                  (e) => e.name.toLowerCase() === nextName.toLowerCase(),
+                );
+                const tr = view.state.tr.setNodeMarkup(from, undefined, {
+                  ...node.attrs,
+                  speakerName: nextName,
+                  speakerCharacterId: matchedEntry?.id || null,
+                });
+                view.dispatch(tr);
+                setHasUnsavedChanges(true);
+                return true;
+              }
+            }
+          }
+        }
+
         return false;
       },
-      handleTextInput: (view, from, to, text) => {
-        // Khoảng trắng gõ ngay sau "Tên:" không thuộc lời thoại (nhãn đã tách riêng)
-        if (text === ' ' && from === to) {
-          const block = view.state.selection.$from.parent;
-          if (
-            block.attrs?.blockType === 'dialogue' &&
-            block.attrs.speakerName &&
-            block.content.size === 0
-          )
-            return true;
-        }
-
-        // 0. Gõ "Tên:" ở đầu một dòng hành động / lời dẫn / thoại → dòng thành lời thoại có nhãn người nói
-        if (text === ':' && from === to) {
-          const { state } = view;
-          const { $from } = state.selection;
-          const block = $from.parent;
-          const type = block.attrs?.blockType;
-          if (
-            block.type.name === 'scriptLineBlock' &&
-            ['stage_direction', 'caption', 'dialogue'].includes(type) &&
-            !block.attrs.speakerName &&
-            $from.parentOffset === block.content.size
-          ) {
-            const onlyChild = block.childCount === 1 ? block.firstChild : null;
-            const mention = onlyChild?.type.name === 'bibleMention' ? onlyChild.attrs : null;
-            const speaker = mention
-              ? {
-                  speakerName: mention.label || mention.code,
-                  speakerCharacterId: mention.isStub ? null : mention.id,
-                }
-              : splitSpeakerLine(`${block.textContent}:`, bibleEntriesRef.current);
-            if (speaker?.speakerName) {
-              const blockPos = $from.before();
-              const tr = state.tr
-                .delete(blockPos + 1, blockPos + 1 + block.content.size)
-                .setNodeMarkup(blockPos, undefined, {
-                  ...block.attrs,
-                  blockType: 'dialogue',
-                  speakerName: speaker.speakerName,
-                  speakerCharacterId: speaker.speakerCharacterId,
-                });
-              tr.setSelection(TextSelection.create(tr.doc, blockPos + 1));
-              view.dispatch(tr);
-              return true;
-            }
-          }
-        }
-
-        // A. Nhấn Space sau ký tự "#" / "!" hoặc "-" / '"' để chuyển đổi tức thì thành Trang hoặc Panel
-        if (text === ' ') {
-          const { state } = view;
-          const { $from } = state.selection;
-          const currentBlock = $from.parent;
-
-          if (currentBlock.type.name === 'scriptLineBlock') {
-            const textBefore = currentBlock.textBetween(0, $from.parentOffset).trim();
-
-            // "# " hoặc "! " -> Biến thành Page Block
-            const isPageSpace =
-              textBefore === '#' ||
-              textBefore === '!' ||
-              /^(?:#|!)\s*(?:Trang|Page\s*\d*)?$/i.test(textBefore);
-
-            if (isPageSpace) {
-              const numMatch = textBefore.match(/\d+/);
-              const explicitNum = numMatch ? parseInt(numMatch[0], 10) : undefined;
-              const pageNum = getNextPageNumber(state.doc, $from.pos, explicitNum);
-              const formattedPage = String(pageNum).padStart(2, '0');
-              const defaultText = `Trang ${formattedPage} `;
-
-              const blockStart = $from.start();
-              const blockEnd = $from.end();
-              const tr = state.tr.replaceWith(blockStart, blockEnd, state.schema.text(defaultText));
-              tr.setNodeMarkup($from.before(), undefined, {
-                ...currentBlock.attrs,
-                blockType: 'page_heading',
-              });
-              tr.setSelection(TextSelection.create(tr.doc, blockStart + defaultText.length));
-              view.dispatch(tr);
-              return true;
-            }
-
-            // "- " hoặc '" ' -> Biến thành Panel Block
-            const isPanelSpace =
-              textBefore === '-' ||
-              textBefore === '"' ||
-              textBefore === '”' ||
-              /^[-"”]\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore);
-
-            if (isPanelSpace) {
-              const panelMatch = textBefore.match(/(\d+)\.(\d+)/);
-              const explicit = panelMatch
-                ? { pageNum: parseInt(panelMatch[1], 10), panelNum: parseInt(panelMatch[2], 10) }
-                : undefined;
-              const { pageNum, panelNum } = getNextPanelNumber(state.doc, $from.pos, explicit);
-              const defaultText = `" Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
-
-              const blockStart = $from.start();
-              const blockEnd = $from.end();
-              const tr = state.tr.replaceWith(blockStart, blockEnd, state.schema.text(defaultText));
-              tr.setNodeMarkup($from.before(), undefined, {
-                ...currentBlock.attrs,
-                blockType: 'panel_heading',
-              });
-              tr.setSelection(TextSelection.create(tr.doc, blockStart + defaultText.length));
-              view.dispatch(tr);
-              return true;
-            }
-          }
-        }
-
-        if (text === ':') {
-          const { state } = view;
-          const { $from } = state.selection;
-          const currentBlock = $from.parent;
-
-          // 1. Phía trước con trỏ là node bibleMention (hoặc có khoảng trắng sau mention)
-          const nodeBefore = $from.nodeBefore;
-          const isDirectlyAfterMention = nodeBefore?.type.name === 'bibleMention';
-          const spaceLen = nodeBefore?.isText ? nodeBefore.text?.length || 0 : 0;
-          const isAfterSpaceMention =
-            nodeBefore?.isText &&
-            nodeBefore.text?.trim() === '' &&
-            from - spaceLen > 0 &&
-            $from.doc.resolve(from - spaceLen).nodeBefore?.type.name === 'bibleMention';
-
-          // 2. Hoặc người dùng gõ text thủ công BẮT BUỘC bắt đầu bằng @Tên nhân vật (không khớp số hay từ thường)
-          const textBefore = currentBlock.textBetween(0, $from.parentOffset);
-          const isManualCharacterName = /^@[\w\p{L}_-]{1,30}\s*$/u.test(textBefore);
-
-          if (isDirectlyAfterMention || isAfterSpaceMention || isManualCharacterName) {
-            const endsWithSpace =
-              textBefore.endsWith(' ') || (nodeBefore?.isText && nodeBefore.text?.endsWith(' '));
-            const insertStr = endsWithSpace ? ': ""' : ' : ""';
-
-            const tr = state.tr.insertText(insertStr, from, to);
-            // Đặt con trỏ vào chính giữa 2 dấu ngoặc kép "" (vị trí trước dấu ngoặc đóng)
-            const targetPos = from + insertStr.length - 1;
-            tr.setSelection(TextSelection.create(tr.doc, targetPos));
-            view.dispatch(tr);
-            return true;
-          }
-        }
+      handleTextInput: () => {
+        // Phím và cú pháp kịch bản hoàn toàn do scriptGrammar và keymap của ScriptLineBlockNode điều phối
         return false;
       },
     },

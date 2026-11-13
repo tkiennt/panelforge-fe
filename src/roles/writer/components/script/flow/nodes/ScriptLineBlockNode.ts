@@ -9,9 +9,118 @@ import {
 } from '../comic-editor/comicCounting';
 import { MangaBlockType } from '../types';
 import { generateGuid, renumberEditorState } from '../scriptFlowAdapter';
+import {
+  nextKindOnEnter,
+  nextKindOnTab,
+  ScriptFocusLocation,
+} from '../grammar/scriptGrammar';
+
+/** Lấy danh sách các nhân vật gần nhất xuất hiện trước con trỏ */
+export function getRecentSpeakersFromDoc(doc: any, currentPos: number): string[] {
+  const speakers: string[] = [];
+  doc.descendants((node: any, pos: number) => {
+    if (pos >= currentPos) return false;
+    if (node.type?.name === 'scriptLineBlock') {
+      const spk = node.attrs?.speakerName;
+      if (spk && typeof spk === 'string' && spk.trim()) {
+        const trimmed = spk.trim();
+        const idx = speakers.findIndex((s) => s.toUpperCase() === trimmed.toUpperCase());
+        if (idx !== -1) speakers.splice(idx, 1);
+        speakers.push(trimmed);
+      }
+    }
+    return true;
+  });
+  return speakers;
+}
+
+/** Luân phiên người nói A -> B -> A */
+export function getAlternatingSpeaker(
+  doc: any,
+  currentPos: number,
+  currentSpeaker?: string | null,
+): string | null {
+  const recent = getRecentSpeakersFromDoc(doc, currentPos);
+  if (recent.length === 0) return null;
+  if (recent.length === 1) return recent[0];
+
+  const lastSpeaker = currentSpeaker?.trim() || recent[recent.length - 1];
+  if (lastSpeaker && lastSpeaker.toUpperCase() === recent[recent.length - 1].toUpperCase()) {
+    return recent[recent.length - 2];
+  }
+  return recent[recent.length - 1];
+}
+
+function getFocusLocation(blockType: MangaBlockType): ScriptFocusLocation {
+  switch (blockType) {
+    case 'page_heading':
+      return 'page';
+    case 'panel_heading':
+      return 'panel';
+    case 'stage_direction':
+      return 'action';
+    case 'dialogue':
+      return 'dialogue';
+    case 'thought':
+      return 'thought';
+    case 'caption':
+      return 'narration';
+    case 'sfx':
+      return 'sfx';
+    default:
+      return 'action';
+  }
+}
+
+function getLocationBlockType(location: ScriptFocusLocation): MangaBlockType {
+  switch (location) {
+    case 'page':
+      return 'page_heading';
+    case 'panel':
+      return 'panel_heading';
+    case 'action':
+      return 'stage_direction';
+    case 'speaker':
+    case 'dialogue':
+      return 'dialogue';
+    case 'thought':
+      return 'thought';
+    case 'narration':
+      return 'caption';
+    case 'sfx':
+      return 'sfx';
+    default:
+      return 'stage_direction';
+  }
+}
+
+function morphCurrentBlock(editor: any, targetType: MangaBlockType): boolean {
+  const { state, view } = editor;
+  const { $from } = state.selection;
+  const block = $from.parent;
+  if (block.type.name !== 'scriptLineBlock') return false;
+  if (block.attrs?.blockType === 'page_heading' || block.attrs?.blockType === 'panel_heading') return false;
+
+  let speakerName: string | null = null;
+  let speakerCharacterId: string | null = null;
+  if (targetType === 'dialogue' || targetType === 'thought') {
+    speakerName = block.attrs?.speakerName || getAlternatingSpeaker(state.doc, $from.before(), null);
+    speakerCharacterId = block.attrs?.speakerCharacterId || null;
+  }
+
+  view.dispatch(
+    state.tr.setNodeMarkup($from.before(), undefined, {
+      ...block.attrs,
+      blockType: targetType,
+      speakerName,
+      speakerCharacterId,
+    }),
+  );
+  return true;
+}
 
 /** Tab / Shift+Tab xoay vòng loại dòng nội dung (tiêu đề Trang/Panel/Cảnh không nằm trong vòng) */
-const CYCLE_TYPES: MangaBlockType[] = ['stage_direction', 'dialogue', 'caption', 'sfx'];
+const CYCLE_TYPES: MangaBlockType[] = ['stage_direction', 'dialogue', 'thought', 'caption', 'sfx'];
 
 /** Khối dòng nội dung mới khi nhấn Enter: luôn là hành động, giữ phân cảnh và vị trí Trang/Panel hiện tại */
 function nextActionAttrs(current: Record<string, unknown>) {
@@ -256,29 +365,39 @@ export const ScriptLineBlockNode = Node.create({
           0,
         ];
 
-      // Định dạng full script: "1. TÊN (OFF):   lời thoại" — số thứ tự đếm lại mỗi trang bằng CSS counter
+      // Định dạng graphic novel: Cột trái (Nhân vật / SFX / Lời dẫn) - Cột phải (Lời thoại / Nội dung)
       case 'dialogue':
+      case 'thought':
       case 'caption':
       case 'sfx': {
         const speaker = node.attrs.speakerName as string | null;
         const label =
-          blockType === 'sfx' ? 'SFX' : blockType === 'caption' ? 'Dẫn truyện' : speaker;
+          blockType === 'sfx'
+            ? 'SFX'
+            : blockType === 'caption'
+              ? 'Dẫn truyện'
+              : blockType === 'thought'
+                ? (speaker ? `${speaker} (Nghĩ)` : 'Suy nghĩ')
+                : (speaker || 'Thoại');
         const textClass =
           blockType === 'sfx'
             ? 'dialogue-text font-studio text-[15px] leading-7 font-bold italic tracking-wide text-stone-900'
             : blockType === 'caption'
               ? 'dialogue-text font-serif italic text-[15px] leading-7 text-stone-800'
-              : 'dialogue-text font-studio text-[15px] leading-7 text-stone-900';
+              : blockType === 'thought'
+                ? 'dialogue-text font-studio text-[15px] leading-7 italic text-stone-700'
+                : 'dialogue-text font-studio text-[15px] leading-7 text-stone-900';
         return [
           'div',
-          attrs('script-line grid grid-cols-[minmax(7rem,11rem)_1fr] gap-x-4 my-1.5'),
+          attrs('script-line grid grid-cols-[minmax(7rem,11rem)_1fr] gap-x-4 my-1.5 items-baseline'),
           [
             'span',
             {
-              class: `script-line-label font-studio text-sm leading-7 uppercase tracking-wide select-none ${
+              class: `script-line-label font-studio text-sm leading-7 uppercase tracking-wide select-none cursor-pointer ${
                 label ? 'font-semibold text-stone-700' : 'text-stone-400'
               }`,
               contenteditable: 'false',
+              title: blockType === 'dialogue' || blockType === 'thought' ? 'Nhấp để đổi nhân vật' : undefined,
             },
             label || 'Thoại',
           ],
@@ -300,86 +419,87 @@ export const ScriptLineBlockNode = Node.create({
 
   addKeyboardShortcuts() {
     return {
-      // 1. Space Trigger: # / ! + Space -> Trang, - / " + Space -> Panel (Look-behind Counting)
-      Space: ({ editor }) => {
+      // 1. Phím tắt số: Ctrl+1..5 đổi loại dòng trực tiếp
+      'Mod-1': ({ editor }) => morphCurrentBlock(editor, 'stage_direction'),
+      'Mod-2': ({ editor }) => morphCurrentBlock(editor, 'dialogue'),
+      'Mod-3': ({ editor }) => morphCurrentBlock(editor, 'thought'),
+      'Mod-4': ({ editor }) => morphCurrentBlock(editor, 'caption'),
+      'Mod-5': ({ editor }) => morphCurrentBlock(editor, 'sfx'),
+
+      // 2. Phím tắt cấu trúc: Ctrl+Enter (Panel mới), Ctrl+Shift+Enter (Trang mới)
+      'Mod-Enter': ({ editor }) => {
         const { state, view } = editor;
-        const { selection } = state;
-        const { $from, empty } = selection;
+        const { $from } = state.selection;
         const currentBlock = $from.parent;
+        const to = $from.after();
+        const { pageNum, panelNum } = getNextPanelNumber(state.doc, to);
+        const defaultText = `" Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
 
-        if (
-          (currentBlock.type.name !== this.name && currentBlock.type.name !== 'paragraph') ||
-          !empty
-        ) {
-          return false;
+        const panelBlock = state.schema.nodes.scriptLineBlock.create(
+          {
+            scriptLineId: generateGuid(),
+            sceneId: currentBlock.attrs?.sceneId || null,
+            blockType: 'panel_heading',
+            pageNumber: pageNum,
+            panelNumber: panelNum,
+          },
+          state.schema.text(defaultText),
+        );
+        const actionBlock = state.schema.nodes.scriptLineBlock.create(
+          nextActionAttrs({ ...currentBlock.attrs, pageNumber: pageNum, panelNumber: panelNum, inPanel: true }),
+        );
+        const tr = state.tr.insert(to, [panelBlock, actionBlock]);
+        tr.setSelection(TextSelection.create(tr.doc, to + panelBlock.nodeSize + 1));
+        view.dispatch(tr);
+        if (typeof setTimeout === 'function') {
+          setTimeout(() => renumberEditorState(editor, to + 1), 0);
         }
-
-        const textBefore = currentBlock.textBetween(0, $from.parentOffset, '\n', '\0').trim();
-
-        // 1.1 Gõ "# " hoặc "! " -> Biến thành Tiêu đề trang với số tăng tự động
-        const isPageSpace =
-          textBefore === '#' ||
-          textBefore === '!' ||
-          /^(?:#|!)\s*(?:Trang|Page\s*\d*)?$/i.test(textBefore);
-
-        if (isPageSpace) {
-          const explicitNum = extractPageNumber(textBefore) ?? undefined;
-          const from = $from.before();
-          const to = $from.after();
-          const nextPage = getNextPageNumber(state.doc, from, explicitNum);
-          const pageNum = String(nextPage).padStart(2, '0');
-          const defaultText = `Trang ${pageNum} `;
-
-          const newBlock = state.schema.nodes.scriptLineBlock.create(
-            {
-              scriptLineId: currentBlock.attrs?.scriptLineId || generateGuid(),
-              sceneId: currentBlock.attrs?.sceneId || null,
-              blockType: 'page_heading',
-              lineOrder: currentBlock.attrs?.lineOrder || 1,
-            },
-            state.schema.text(defaultText),
-          );
-
-          const tr = state.tr.replaceWith(from, to, newBlock);
-          tr.setSelection(TextSelection.create(tr.doc, from + 1 + defaultText.length));
-          view.dispatch(tr);
-          return true;
-        }
-
-        // 1.2 Gõ "- " hoặc '" ' -> Biến thành Tiêu đề panel với số tăng tự động theo trang
-        const isPanelSpace =
-          textBefore === '-' ||
-          textBefore === '"' ||
-          textBefore === '”' ||
-          /^[-"”]\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore);
-
-        if (isPanelSpace) {
-          const explicit = extractPanelNumber(textBefore) ?? undefined;
-          const from = $from.before();
-          const to = $from.after();
-          const { pageNum, panelNum } = getNextPanelNumber(state.doc, from, explicit);
-          const defaultText = `" Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
-
-          const newBlock = state.schema.nodes.scriptLineBlock.create(
-            {
-              scriptLineId: currentBlock.attrs?.scriptLineId || generateGuid(),
-              sceneId: currentBlock.attrs?.sceneId || null,
-              blockType: 'panel_heading',
-              lineOrder: currentBlock.attrs?.lineOrder || 1,
-            },
-            state.schema.text(defaultText),
-          );
-
-          const tr = state.tr.replaceWith(from, to, newBlock);
-          tr.setSelection(TextSelection.create(tr.doc, from + 1 + defaultText.length));
-          view.dispatch(tr);
-          return true;
-        }
-
-        return false;
+        return true;
       },
 
-      // 2. Tab Trigger: # / ! + Tab -> Trang, - / " + Tab -> Panel
+      'Mod-Shift-Enter': ({ editor }) => {
+        const { state, view } = editor;
+        const { $from } = state.selection;
+        const currentBlock = $from.parent;
+        const to = $from.after();
+        const nextPage = getNextPageNumber(state.doc, to);
+        const pStr = String(nextPage).padStart(2, '0');
+        const defaultPageText = `Trang ${pStr}`;
+        const defaultPanelText = `" Panel ${nextPage}.1: [Toàn cảnh] `;
+
+        const pageBlock = state.schema.nodes.scriptLineBlock.create(
+          {
+            scriptLineId: generateGuid(),
+            sceneId: currentBlock.attrs?.sceneId || null,
+            blockType: 'page_heading',
+            pageNumber: nextPage,
+            panelNumber: 0,
+          },
+          state.schema.text(defaultPageText),
+        );
+        const panelBlock = state.schema.nodes.scriptLineBlock.create(
+          {
+            scriptLineId: generateGuid(),
+            sceneId: currentBlock.attrs?.sceneId || null,
+            blockType: 'panel_heading',
+            pageNumber: nextPage,
+            panelNumber: 1,
+          },
+          state.schema.text(defaultPanelText),
+        );
+        const actionBlock = state.schema.nodes.scriptLineBlock.create(
+          nextActionAttrs({ ...currentBlock.attrs, pageNumber: nextPage, panelNumber: 1, inPanel: true }),
+        );
+        const tr = state.tr.insert(to, [pageBlock, panelBlock, actionBlock]);
+        tr.setSelection(TextSelection.create(tr.doc, to + pageBlock.nodeSize + panelBlock.nodeSize + 1));
+        view.dispatch(tr);
+        if (typeof setTimeout === 'function') {
+          setTimeout(() => renumberEditorState(editor, to + 1), 0);
+        }
+        return true;
+      },
+
+      // 3. Tab: Luân chuyển loại dòng theo hàm thuần nextKindOnTab (Action -> Dialogue -> Narration -> SFX -> Action)
       Tab: ({ editor }) => {
         const { state, view } = editor;
         const { selection } = state;
@@ -390,83 +510,99 @@ export const ScriptLineBlockNode = Node.create({
           return false;
         }
 
-        const textBefore = currentBlock.textBetween(0, $from.parentOffset, '\n', '\0').trim();
-        const fullLineText = currentBlock.textContent.trim();
+        const currentType = (currentBlock.attrs?.blockType || 'stage_direction') as MangaBlockType;
+        const location = getFocusLocation(currentType);
 
-        // 2.1 Kiểm tra Page Trigger (# / ! + Tab)
-        const isPageTrigger =
-          textBefore === '#' ||
-          textBefore === '!' ||
-          fullLineText === '#' ||
-          fullLineText === '!' ||
-          /^(?:#|!)\s*(?:Trang|Page\s*\d*)?$/i.test(textBefore) ||
-          /^(?:#|!)\s*(?:Trang|Page\s*\d*)?$/i.test(fullLineText);
+        const transition = nextKindOnTab(location, 'forward');
+        if (!transition) return false;
 
-        if (isPageTrigger) {
-          const explicitNum = extractPageNumber(fullLineText || textBefore) ?? undefined;
-          const from = $from.before();
-          const to = $from.after();
-          const nextPage = getNextPageNumber(state.doc, from, explicitNum);
-          const pageNum = String(nextPage).padStart(2, '0');
-          const defaultText = `Trang ${pageNum}`;
+        const targetType = getLocationBlockType(transition.target);
+        const from = $from.before();
 
-          const newBlock = state.schema.nodes.scriptLineBlock.create(
-            {
-              scriptLineId: currentBlock.attrs?.scriptLineId || generateGuid(),
-              sceneId: currentBlock.attrs?.sceneId || null,
-              blockType: 'page_heading',
-              lineOrder: currentBlock.attrs?.lineOrder || 1,
-            },
-            state.schema.text(defaultText),
+        if (targetType === 'dialogue') {
+          const alternatingSpeaker = getAlternatingSpeaker(state.doc, from, null);
+          view.dispatch(
+            state.tr.setNodeMarkup(from, undefined, {
+              ...currentBlock.attrs,
+              blockType: 'dialogue',
+              speakerName: alternatingSpeaker || currentBlock.attrs.speakerName || null,
+            }),
           );
-
-          const tr = state.tr.replaceWith(from, to, newBlock);
-          tr.setSelection(TextSelection.create(tr.doc, from + 1 + defaultText.length));
-          view.dispatch(tr);
           return true;
         }
 
-        // 2.2 Kiểm tra Panel Trigger (- / " + Tab)
-        const isPanelTrigger =
-          textBefore === '-' ||
-          textBefore === '"' ||
-          textBefore === '”' ||
-          fullLineText === '-' ||
-          fullLineText === '"' ||
-          fullLineText === '”' ||
-          /^[-"”]\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore) ||
-          /^[-"”]\s*(?:Panel\s*[\d.]*)?$/i.test(fullLineText);
-
-        if (isPanelTrigger) {
-          const explicit = extractPanelNumber(fullLineText || textBefore) ?? undefined;
-          const from = $from.before();
-          const to = $from.after();
-          const { pageNum, panelNum } = getNextPanelNumber(state.doc, from, explicit);
-          const defaultText = `" Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
-
-          const newBlock = state.schema.nodes.scriptLineBlock.create(
-            {
-              scriptLineId: currentBlock.attrs?.scriptLineId || generateGuid(),
-              sceneId: currentBlock.attrs?.sceneId || null,
-              blockType: 'panel_heading',
-              lineOrder: currentBlock.attrs?.lineOrder || 1,
-            },
-            state.schema.text(defaultText),
-          );
-
-          const tr = state.tr.replaceWith(from, to, newBlock);
-          tr.setSelection(TextSelection.create(tr.doc, from + 1 + defaultText.length));
-          view.dispatch(tr);
-          return true;
-        }
-
-        // 2.3 Tab đổi loại dòng: Hành động → Thoại → Lời dẫn → SFX
-        return cycleBlockType(editor, 1);
+        view.dispatch(
+          state.tr.setNodeMarkup(from, undefined, {
+            ...currentBlock.attrs,
+            blockType: targetType,
+            speakerName: null,
+            speakerCharacterId: null,
+          }),
+        );
+        return true;
       },
 
-      'Shift-Tab': ({ editor }) => cycleBlockType(editor, -1),
+      // 4. Shift+Tab: Luân chuyển ngược theo hàm thuần nextKindOnTab
+      'Shift-Tab': ({ editor }) => {
+        const { state, view } = editor;
+        const { selection } = state;
+        const { $from } = selection;
+        const currentBlock = $from.parent;
 
-      // 3. Backspace: Cho phép xóa Scene, Page, Panel mượt mà kèm tự động đánh số lại
+        if (currentBlock.type.name !== this.name && currentBlock.type.name !== 'paragraph') {
+          return false;
+        }
+
+        const currentType = (currentBlock.attrs?.blockType || 'stage_direction') as MangaBlockType;
+        if (currentType === 'page_heading' || currentType === 'panel_heading' || currentType === 'scene_heading') {
+          return false;
+        }
+
+        const from = $from.before();
+
+        // Xoay vòng ngược khép kín: Stage Direction -> SFX -> Narration -> Dialogue -> Stage Direction
+        if (currentType === 'stage_direction') {
+          view.dispatch(
+            state.tr.setNodeMarkup(from, undefined, {
+              ...currentBlock.attrs,
+              blockType: 'sfx',
+              speakerName: null,
+              speakerCharacterId: null,
+            }),
+          );
+          return true;
+        }
+
+        if (currentType === 'dialogue' || currentType === 'thought') {
+          view.dispatch(
+            state.tr.setNodeMarkup(from, undefined, {
+              ...currentBlock.attrs,
+              blockType: 'stage_direction',
+              speakerName: null,
+              speakerCharacterId: null,
+            }),
+          );
+          return true;
+        }
+
+        const location = getFocusLocation(currentType);
+        const transition = nextKindOnTab(location, 'backward');
+        if (!transition) return false;
+
+        const targetType = getLocationBlockType(transition.target);
+
+        view.dispatch(
+          state.tr.setNodeMarkup(from, undefined, {
+            ...currentBlock.attrs,
+            blockType: targetType,
+            speakerName: targetType === 'dialogue' || targetType === 'thought' ? currentBlock.attrs.speakerName : null,
+            speakerCharacterId: targetType === 'dialogue' || targetType === 'thought' ? currentBlock.attrs.speakerCharacterId : null,
+          }),
+        );
+        return true;
+      },
+
+      // 5. Backspace: Cho phép xóa Scene, Page, Panel mượt mà kèm tự động đánh số lại
       Backspace: ({ editor }) => {
         const { state, view } = editor;
         const { selection } = state;
@@ -479,9 +615,9 @@ export const ScriptLineBlockNode = Node.create({
         if (currentBlock.type.name === this.name) {
           const currentType = currentBlock.attrs.blockType || 'stage_direction';
 
-          // 3.-1 Backspace ở đầu lời thoại: bỏ nhãn người nói trước (lần sau mới nối dòng)
+          // Backspace ở đầu lời thoại có tên người nói: bỏ nhãn trước
           if (
-            currentType === 'dialogue' &&
+            (currentType === 'dialogue' || currentType === 'thought') &&
             currentBlock.attrs.speakerName &&
             empty &&
             $from.parentOffset === 0
@@ -496,7 +632,7 @@ export const ScriptLineBlockNode = Node.create({
             return true;
           }
 
-          // 3.0 Tiêu đề cảnh (scene_heading): Cho phép xóa cảnh nếu không phải cảnh đầu tiên
+          // Tiêu đề cảnh: không thể xóa cảnh đầu tiên
           if (currentType === 'scene_heading') {
             const isAtStartOrEmpty =
               (empty && $from.parentOffset === 0) || currentBlock.textContent.trim() === '';
@@ -515,7 +651,6 @@ export const ScriptLineBlockNode = Node.create({
             });
 
             if (isFirstScene) {
-              // Tiêu đề cảnh đầu tiên trong chương: Không xóa bằng Backspace để giữ cấu trúc kịch bản
               return true;
             } else {
               const tr = state.tr.delete(from, to);
@@ -523,7 +658,7 @@ export const ScriptLineBlockNode = Node.create({
                 const targetPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
                 tr.setSelection(Selection.near(tr.doc.resolve(targetPos), -1));
               } catch {
-                // Vị trí vượt khỏi tài liệu sau khi xoá: giữ selection mặc định của ProseMirror.
+                // Vị trí vượt khỏi tài liệu: giữ selection mặc định
               }
               view.dispatch(tr);
               if (typeof setTimeout === 'function') {
@@ -533,7 +668,7 @@ export const ScriptLineBlockNode = Node.create({
             }
           }
 
-          // 3.1 Tiêu đề trang (page_heading): Không thể xóa tiêu đề trang đầu tiên bằng backspace
+          // Tiêu đề trang: không thể xóa trang đầu tiên
           if (currentType === 'page_heading') {
             const isAtStartOrEmpty =
               (empty && $from.parentOffset === 0) || currentBlock.textContent.trim() === '';
@@ -552,16 +687,14 @@ export const ScriptLineBlockNode = Node.create({
             });
 
             if (isFirstPage) {
-              // Tiêu đề trang đầu tiên: KHÔNG THỂ XÓA BẰNG BACKSPACE
               return true;
             } else {
-              // Các trang tiếp theo (Page 2, 3...): Cho phép xóa Page bằng Backspace
               const tr = state.tr.delete(from, to);
               try {
                 const targetPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
                 tr.setSelection(Selection.near(tr.doc.resolve(targetPos), -1));
               } catch {
-                // Vị trí vượt khỏi tài liệu sau khi xoá: giữ selection mặc định của ProseMirror.
+                // giữ selection mặc định
               }
               view.dispatch(tr);
               if (typeof setTimeout === 'function') {
@@ -571,7 +704,7 @@ export const ScriptLineBlockNode = Node.create({
             }
           }
 
-          // 3.2 Cho phép xóa Panel bằng Backspace khi con trỏ ở đầu dòng hoặc khối trống
+          // Cho phép xóa Panel bằng Backspace khi con trỏ ở đầu dòng hoặc khối trống
           if (currentType === 'panel_heading') {
             const isAtStartOrEmpty =
               (empty && $from.parentOffset === 0) || currentBlock.textContent.trim() === '';
@@ -584,7 +717,7 @@ export const ScriptLineBlockNode = Node.create({
               const targetPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
               tr.setSelection(Selection.near(tr.doc.resolve(targetPos), -1));
             } catch {
-              // Vị trí vượt khỏi tài liệu sau khi xoá: giữ selection mặc định của ProseMirror.
+              // giữ selection mặc định
             }
             view.dispatch(tr);
             if (typeof setTimeout === 'function') {
@@ -593,10 +726,14 @@ export const ScriptLineBlockNode = Node.create({
             return true;
           }
 
-          // 3.3 Hoàn nguyên SFX / Dialogue về Lời dẫn truyện (caption)
+          // Hoàn nguyên SFX / Dialogue / Thought / Caption về Action (stage_direction)
           if (empty && $from.parentOffset === 0) {
-            if (currentType === 'sfx' || currentType === 'dialogue') {
-              return editor.commands.updateAttributes(this.name, { blockType: 'caption' });
+            if (['sfx', 'dialogue', 'thought', 'caption'].includes(currentType)) {
+              return editor.commands.updateAttributes(this.name, {
+                blockType: 'stage_direction',
+                speakerName: null,
+                speakerCharacterId: null,
+              });
             }
           }
         }
@@ -629,7 +766,7 @@ export const ScriptLineBlockNode = Node.create({
         return false;
       },
 
-      // 3.5 Delete: Cho phép xóa xuôi các khối heading rỗng và chặn joinForward làm hỏng heading
+      // 6. Delete: Cho phép xóa xuôi các khối heading rỗng và chặn joinForward làm hỏng heading
       Delete: ({ editor }) => {
         const { state, view } = editor;
         const { selection } = state;
@@ -640,7 +777,6 @@ export const ScriptLineBlockNode = Node.create({
         const from = $from.before();
         const to = $from.after();
 
-        // Nếu khối hiện tại là heading rỗng, cho phép Delete xóa xuôi
         if (currentBlock.type.name === this.name) {
           const currentType = currentBlock.attrs?.blockType;
           if (currentBlock.textContent.trim() === '') {
@@ -691,7 +827,6 @@ export const ScriptLineBlockNode = Node.create({
           }
         }
 
-        // Chặn joinForward làm hỏng heading khi nhấn Delete ở cuối dòng trước
         if ($from.parentOffset === currentBlock.content.size) {
           const $afterPos = state.doc.resolve(to);
           const nextNode = $afterPos.nodeAfter;
@@ -710,7 +845,7 @@ export const ScriptLineBlockNode = Node.create({
         return false;
       },
 
-      // 4. Enter: Incremental Line Completion & Paragraph Creation
+      // 7. Enter: Xử lý theo hàm thuần nextKindOnEnter (Bảng H.1) - Không regex, không ký tự mồi
       Enter: ({ editor }) => {
         const { state, view } = editor;
         const { selection } = state;
@@ -722,112 +857,23 @@ export const ScriptLineBlockNode = Node.create({
         }
 
         const rawText = currentBlock.textContent.trim();
-        const currentType = currentBlock.attrs?.blockType || 'caption';
+        const isEmpty = rawText.length === 0;
+        const currentType = (currentBlock.attrs?.blockType || 'stage_direction') as MangaBlockType;
+        const location = getFocusLocation(currentType);
 
-        // 4.1 Cú pháp thoại NGHIÊM NGẶT CÓ DẤU NGOẶC KÉP:
-        // Chỉ chuyển thành thoại nếu có CẢ @Character: VÀ "Lời thoại"!
-        // Nếu không có dấu ngoặc kép (như "@Minh walks away" hoặc viết tự do), coi là lời dẫn bình thường!
-        const strictDialogueMatch = rawText.match(/^@([\w\p{L}_-]+)\s*:\s*["“]([^"”]*?)["”]$/u);
-        if (strictDialogueMatch) {
-          const speakerName = strictDialogueMatch[1].trim();
-          const displayText = strictDialogueMatch[2].trim();
+        const transition = nextKindOnEnter(location, isEmpty);
+        if (!transition) return false;
 
-          const from = $from.before();
-          const to = $from.after();
-          const dialogueBlock = state.schema.nodes.scriptLineBlock.create(
-            {
-              scriptLineId: currentBlock.attrs?.scriptLineId || generateGuid(),
-              sceneId: currentBlock.attrs?.sceneId || null,
-              blockType: 'dialogue',
-              speakerName,
-            },
-            displayText ? state.schema.text(displayText) : undefined,
-          );
+        const from = $from.before();
+        const to = $from.after();
 
-          // Tạo một scriptLineBlock mặc định rỗng (caption) bên dưới cho phép viết tự do
-          const nextBlock = state.schema.nodes.scriptLineBlock.create(
-            nextActionAttrs(currentBlock.attrs),
-          );
-
-          return editor.commands.command(({ tr, dispatch }) => {
-            tr.replaceWith(from, to, [dialogueBlock, nextBlock]);
-            const insertPos = from + dialogueBlock.nodeSize + 1;
-            tr.setSelection(TextSelection.create(tr.doc, insertPos));
-            if (dispatch) dispatch(tr);
-            return true;
-          });
-        }
-
-        // 4.2 Phân tích SFX: SFX: ... hoặc * TIẾNG NỔ *
-        const sfxMatch = rawText.match(/^(?:SFX:|\*)\s*(.*)/i);
-        if (sfxMatch) {
-          const sfxBody = sfxMatch[1].replace(/\*$/, '').trim() || 'TIẾNG ĐỘNG';
-          const displayText = `* ${sfxBody} *`;
-
-          const from = $from.before();
-          const to = $from.after();
-          const sfxBlock = state.schema.nodes.scriptLineBlock.create(
-            {
-              scriptLineId: currentBlock.attrs?.scriptLineId || generateGuid(),
-              sceneId: currentBlock.attrs?.sceneId || null,
-              blockType: 'sfx',
-            },
-            state.schema.text(displayText),
-          );
-
-          // Dòng tiếp theo là caption cho phép viết tự do
-          const nextBlock = state.schema.nodes.scriptLineBlock.create(
-            nextActionAttrs(currentBlock.attrs),
-          );
-
-          return editor.commands.command(({ tr, dispatch }) => {
-            tr.replaceWith(from, to, [sfxBlock, nextBlock]);
-            const insertPos = from + sfxBlock.nodeSize + 1;
-            tr.setSelection(TextSelection.create(tr.doc, insertPos));
-            if (dispatch) dispatch(tr);
-            return true;
-          });
-        }
-
-        // 4.3 Phân tích Caption: Caption: ... hoặc Lời dẫn truyện: ...
-        const captionMatch = rawText.match(
-          /^(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện):\s*(.*)/i,
-        );
-        if (captionMatch) {
-          const captionBody = captionMatch[1].trim();
-          const displayText = captionBody;
-
-          const from = $from.before();
-          const to = $from.after();
-          const captionBlock = state.schema.nodes.scriptLineBlock.create(
-            {
-              scriptLineId: currentBlock.attrs?.scriptLineId || generateGuid(),
-              sceneId: currentBlock.attrs?.sceneId || null,
-              blockType: 'caption',
-            },
-            state.schema.text(displayText),
-          );
-
-          // Dòng tiếp theo là caption cho phép viết tự do
-          const nextBlock = state.schema.nodes.scriptLineBlock.create(
-            nextActionAttrs(currentBlock.attrs),
-          );
-
-          return editor.commands.command(({ tr, dispatch }) => {
-            tr.replaceWith(from, to, [captionBlock, nextBlock]);
-            const insertPos = from + captionBlock.nodeSize + 1;
-            tr.setSelection(TextSelection.create(tr.doc, insertPos));
-            if (dispatch) dispatch(tr);
-            return true;
-          });
-        }
-
-        // 4.35 Enter trên dòng thoại / lời dẫn / SFX còn trống: quay về dòng hành động thay vì thêm dòng trống
-        if (!rawText && ['dialogue', 'caption', 'sfx', 'character'].includes(currentType)) {
+        // 7.1 Nếu transition là morph_block (Enter trên dòng trống của thoại/thought/caption/sfx -> quay về action)
+        if (transition.action === 'morph_block') {
+          const targetType = getLocationBlockType(transition.target);
           view.dispatch(
-            state.tr.setNodeMarkup($from.before(), undefined, {
+            state.tr.setNodeMarkup(from, undefined, {
               ...currentBlock.attrs,
-              blockType: 'stage_direction',
+              blockType: targetType,
               speakerName: null,
               speakerCharacterId: null,
             }),
@@ -835,29 +881,11 @@ export const ScriptLineBlockNode = Node.create({
           return true;
         }
 
-        // 4.4 Khi nhấn Enter trên Page hoặc Panel: chèn 1 dòng hành động rỗng bên dưới
+        // 7.15 Tách đôi dòng nếu con trỏ ở giữa chuỗi (parentOffset < content.size)
         if (
-          currentType === 'page_heading' ||
-          currentType === 'panel_heading' ||
-          currentBlock.type.name === 'pageBlock' ||
-          currentBlock.type.name === 'panelBlock'
+          $from.parentOffset < currentBlock.content.size &&
+          !['page_heading', 'panel_heading', 'scene_heading'].includes(currentType)
         ) {
-          const emptyActionBlock = state.schema.nodes.scriptLineBlock.create(
-            nextActionAttrs(currentBlock.attrs),
-          );
-
-          const insertPos = $from.after();
-          return editor.commands.command(({ tr, dispatch }) => {
-            tr.insert(insertPos, emptyActionBlock);
-            tr.setSelection(TextSelection.create(tr.doc, insertPos + 1));
-            if (dispatch) dispatch(tr);
-            return true;
-          });
-        }
-
-        // 4.5 Đối với các dòng văn bản (caption, stage_direction, dialogue, sfx...):
-        // Nếu con trỏ ở giữa dòng: tách dòng chính xác tại vị trí con trỏ
-        if ($from.parentOffset < currentBlock.content.size) {
           const nextAttrs = {
             ...currentBlock.attrs,
             scriptLineId: generateGuid(),
@@ -869,16 +897,134 @@ export const ScriptLineBlockNode = Node.create({
           return true;
         }
 
-        // 4.6 Con trỏ ở cuối dòng: dòng mới luôn là hành động (sau lời thoại cũng vậy, như kịch bản phim)
-        const emptyBlock = state.schema.nodes.scriptLineBlock.create(
-          nextActionAttrs(currentBlock.attrs),
-        );
+        // 7.2 Khi nhấn Enter trên Page: tạo Panel mới bên dưới
+        if (currentType === 'page_heading') {
+          const pageNum = currentBlock.attrs?.pageNumber || 1;
+          const { panelNum } = getNextPanelNumber(state.doc, to);
+          const defaultPanelText = `" Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
+          const newPanelBlock = state.schema.nodes.scriptLineBlock.create(
+            {
+              scriptLineId: generateGuid(),
+              sceneId: currentBlock.attrs?.sceneId || null,
+              blockType: 'panel_heading',
+              pageNumber: pageNum,
+              panelNumber: panelNum,
+              lineOrder: (currentBlock.attrs?.lineOrder || 0) + 1,
+            },
+            state.schema.text(defaultPanelText),
+          );
+          const tr = state.tr.insert(to, newPanelBlock);
+          tr.setSelection(TextSelection.create(tr.doc, to + 1 + defaultPanelText.length));
+          view.dispatch(tr);
+          if (typeof setTimeout === 'function') {
+            setTimeout(() => renumberEditorState(editor, to + 1), 0);
+          }
+          return true;
+        }
 
-        const insertPos = $from.after();
-        const tr = state.tr.insert(insertPos, emptyBlock);
-        tr.setSelection(TextSelection.create(tr.doc, insertPos + 1));
-        view.dispatch(tr);
-        return true;
+        // 7.3 Khi nhấn Enter trên Panel: tạo dòng hành động (Action) bên dưới
+        if (currentType === 'panel_heading') {
+          const newActionBlock = state.schema.nodes.scriptLineBlock.create(
+            nextActionAttrs(currentBlock.attrs),
+          );
+          const tr = state.tr.insert(to, newActionBlock);
+          tr.setSelection(TextSelection.create(tr.doc, to + 1));
+          view.dispatch(tr);
+          return true;
+        }
+
+        // 7.4 Khi nhấn Enter trên Action (stage_direction):
+        if (currentType === 'stage_direction') {
+          if (isEmpty) {
+            // Enter trên Action rỗng -> Tạo Panel mới! (Enter 2 lần tạo Panel)
+            const { pageNum, panelNum } = getNextPanelNumber(state.doc, from);
+            const defaultPanelText = `" Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
+            const newPanelBlock = state.schema.nodes.scriptLineBlock.create(
+              {
+                scriptLineId: currentBlock.attrs?.scriptLineId || generateGuid(),
+                sceneId: currentBlock.attrs?.sceneId || null,
+                blockType: 'panel_heading',
+                pageNumber: pageNum,
+                panelNumber: panelNum,
+                lineOrder: currentBlock.attrs?.lineOrder || 1,
+              },
+              state.schema.text(defaultPanelText),
+            );
+            const tr = state.tr.replaceWith(from, to, newPanelBlock);
+            tr.setSelection(TextSelection.create(tr.doc, from + 1 + defaultPanelText.length));
+            view.dispatch(tr);
+            if (typeof setTimeout === 'function') {
+              setTimeout(() => renumberEditorState(editor, from + 1), 0);
+            }
+            return true;
+          }
+
+          // Có chữ: nếu con trỏ ở giữa dòng -> tách dòng
+          if ($from.parentOffset < currentBlock.content.size) {
+            const nextAttrs = {
+              ...currentBlock.attrs,
+              scriptLineId: generateGuid(),
+            };
+            const tr = state.tr.split($from.pos, 1, [
+              { type: state.schema.nodes.scriptLineBlock, attrs: nextAttrs },
+            ]);
+            view.dispatch(tr);
+            return true;
+          }
+
+          // Con trỏ ở cuối dòng -> tạo dòng hành động mới
+          const emptyActionBlock = state.schema.nodes.scriptLineBlock.create(
+            nextActionAttrs(currentBlock.attrs),
+          );
+          const tr = state.tr.insert(to, emptyActionBlock);
+          tr.setSelection(TextSelection.create(tr.doc, to + 1));
+          view.dispatch(tr);
+          return true;
+        }
+
+        // 7.5 Khi nhấn Enter trên Dialogue hoặc Thought có chữ:
+        // Tạo dòng thoại mới với người nói gợi ý luân phiên A -> B -> A!
+        if (currentType === 'dialogue' || currentType === 'thought') {
+          const nextSpeaker = getAlternatingSpeaker(
+            state.doc,
+            $from.pos,
+            currentBlock.attrs.speakerName,
+          );
+          const newDialogueBlock = state.schema.nodes.scriptLineBlock.create({
+            scriptLineId: generateGuid(),
+            sceneId: currentBlock.attrs?.sceneId || null,
+            blockType: currentType,
+            speakerName: nextSpeaker,
+            speakerCharacterId: null,
+            narrationMode: currentBlock.attrs?.narrationMode || 'Present',
+            pageNumber: currentBlock.attrs?.pageNumber ?? null,
+            panelNumber: currentBlock.attrs?.panelNumber ?? null,
+            inPanel: currentBlock.attrs?.inPanel ?? false,
+          });
+          const tr = state.tr.insert(to, newDialogueBlock);
+          tr.setSelection(TextSelection.create(tr.doc, to + 1));
+          view.dispatch(tr);
+          return true;
+        }
+
+        // 7.6 Khi nhấn Enter trên Caption hoặc SFX: tạo dòng mới cùng loại
+        if (currentType === 'caption' || currentType === 'sfx') {
+          const newBlock = state.schema.nodes.scriptLineBlock.create({
+            scriptLineId: generateGuid(),
+            sceneId: currentBlock.attrs?.sceneId || null,
+            blockType: currentType,
+            narrationMode: currentBlock.attrs?.narrationMode || 'Present',
+            pageNumber: currentBlock.attrs?.pageNumber ?? null,
+            panelNumber: currentBlock.attrs?.panelNumber ?? null,
+            inPanel: currentBlock.attrs?.inPanel ?? false,
+          });
+          const tr = state.tr.insert(to, newBlock);
+          tr.setSelection(TextSelection.create(tr.doc, to + 1));
+          view.dispatch(tr);
+          return true;
+        }
+
+        return false;
       },
     };
   },
