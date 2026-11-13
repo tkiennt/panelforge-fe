@@ -156,10 +156,58 @@ function acceptCharacterCompletion(editor: Editor): boolean {
   const typed = line.node.textContent;
   const full = completeCharacterName(typed, characterNames(state.doc, line.pos));
   if (!full) return false;
-  const end = line.pos + 1 + line.node.content.size;
-  view.dispatch(state.tr.insertText(full.slice(typed.trim().length), end).scrollIntoView());
+  // Thay cả chữ đã gõ bằng tên đầy đủ để tên lưu đúng như lần dùng trước ("k" → "KAI", không phải "kAI").
+  const start = line.pos + 1;
+  const end = start + line.node.content.size;
+  view.dispatch(state.tr.insertText(full, start, end).scrollIntoView());
   return true;
 }
+
+// ───────────────────────── tự dựng lại khung Trang / Panel ─────────────────────────
+
+/** Thời gian không gõ trước khi dựng lại dòng Trang / Panel bị xoá (như WriterSolo). */
+export const STRUCTURE_IDLE_MS = 1500;
+
+/**
+ * Transaction dựng lại khung: tài liệu luôn bắt đầu bằng một Trang, và mỗi Trang có ít nhất một Panel
+ * (chèn ngay sau dòng Trang). Trả null khi khung đã đủ. Không ghi vào lịch sử Undo.
+ */
+export function structureFixTransaction(state: EditorState) {
+  const lines: { el: GnElement; pos: number; end: number }[] = [];
+  state.doc.forEach((node, offset) => {
+    lines.push({ el: node.attrs.el as GnElement, pos: offset, end: offset + node.nodeSize });
+  });
+  if (lines.length === 0) return null;
+
+  const inserts: { pos: number; els: GnElement[] }[] = [];
+  const hasPanelBefore = (from: number) => {
+    for (let i = from; i < lines.length && lines[i].el !== 'page'; i++) {
+      if (lines[i].el === 'panel') return true;
+    }
+    return false;
+  };
+
+  if (lines[0].el !== 'page') {
+    inserts.push({ pos: 0, els: hasPanelBefore(0) ? ['page'] : ['page', 'panel'] });
+  }
+  lines.forEach((line, i) => {
+    if (line.el === 'page' && !hasPanelBefore(i + 1))
+      inserts.push({ pos: line.end, els: ['panel'] });
+  });
+  if (inserts.length === 0) return null;
+
+  const tr = state.tr;
+  // Chèn từ cuối lên đầu để vị trí các điểm chèn phía trước không bị lệch.
+  for (const ins of [...inserts].sort((a, b) => b.pos - a.pos)) {
+    tr.insert(
+      ins.pos,
+      ins.els.map((el) => lineNode(state, el)),
+    );
+  }
+  return tr.setMeta('addToHistory', false).setMeta(structureKey, true);
+}
+
+const structureKey = new PluginKey('scriptStructureRestore');
 
 // ───────────────────────── extension chính ─────────────────────────
 
@@ -231,6 +279,31 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
   addProseMirrorPlugins() {
     const labels = this.options.labels;
     return [
+      // Xoá dòng Trang / Panel rồi ngừng gõ một lúc thì dòng đó tự hiện lại (như WriterSolo).
+      new Plugin({
+        key: structureKey,
+        view(view) {
+          let timer: ReturnType<typeof setTimeout> | null = null;
+          const schedule = () => {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => {
+              timer = null;
+              if (!view.editable || view.isDestroyed) return;
+              const tr = structureFixTransaction(view.state);
+              if (tr) view.dispatch(tr);
+            }, STRUCTURE_IDLE_MS);
+          };
+          schedule();
+          return {
+            update(v, prevState) {
+              if (!v.state.doc.eq(prevState.doc)) schedule();
+            },
+            destroy() {
+              if (timer) clearTimeout(timer);
+            },
+          };
+        },
+      }),
       // Nhãn tự sinh: PAGE n - PANELS: k, PANEL n (đếm lại mỗi trang), CAPTION:, SFX:
       new Plugin({
         key: labelsKey,

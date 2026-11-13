@@ -15,6 +15,7 @@ import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
 import { GN_ELEMENTS, GnElement } from './grammar/scriptGrammar';
 import {
+  GnLabels,
   ScriptDocument,
   ScriptLineBlockNode,
   ScriptTypingBehavior,
@@ -72,7 +73,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   dockLeading,
   manuscriptTitle,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation('production');
   const isReadOnly = !canEditScript || isChapterLocked;
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -81,16 +82,23 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const dirtyRef = useRef(false);
   const loadingRef = useRef(false);
 
-  const labels = useMemo(
-    () => ({
-      page: (n: number, k: number) => t('scriptStudio.gn.page', { n, k }),
-      panel: (n: number) => t('scriptStudio.gn.panel', { n }),
-      caption: t('scriptStudio.gn.caption'),
-      sfx: t('scriptStudio.gn.sfx'),
-      acceptHint: t('scriptStudio.gn.accept'),
-    }),
-    [t],
-  );
+  // Một object cố định đưa vào extension; nội dung cập nhật theo ngôn ngữ hiện tại ở mỗi lần render,
+  // nên nhãn PAGE/PANEL đổi theo ngôn ngữ mà không phải tạo lại editor.
+  const labelsRef = useRef<GnLabels>({
+    page: () => '',
+    panel: () => '',
+    caption: '',
+    sfx: '',
+    acceptHint: '',
+  });
+  Object.assign(labelsRef.current, {
+    page: (n: number, k: number) => t('scriptStudio.gn.page', { n, k }),
+    panel: (n: number) => t('scriptStudio.gn.panel', { n }),
+    caption: t('scriptStudio.gn.caption'),
+    sfx: t('scriptStudio.gn.sfx'),
+    acceptHint: t('scriptStudio.gn.accept'),
+  });
+  const labels = labelsRef.current;
 
   const markDirty = (value: boolean) => {
     dirtyRef.current = value;
@@ -145,6 +153,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   useEffect(() => {
     editor?.setEditable(!isReadOnly);
   }, [editor, isReadOnly]);
+
+  // Đổi ngôn ngữ: vẽ lại nhãn (decoration tính lại ở mỗi transaction).
+  useEffect(() => {
+    if (editor && !editor.isDestroyed)
+      editor.view.dispatch(editor.state.tr.setMeta('labels', true));
+  }, [editor, t]);
 
   // Màn cha có thể truyền mảng mới mỗi lần render: chỉ nạp lại khi nội dung máy chủ thực sự đổi.
   const serverDocJson = useMemo(
@@ -280,6 +294,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
       <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-10'>
         <div
+          data-testid='paper-editor-sheet'
           className='gn-sheet max-w-[760px] mx-auto bg-white rounded-sm border border-stone-200/80 shadow-xs px-6 sm:px-16 lg:px-20 py-14'
           onClick={() => {
             if (editor && !editor.isFocused) editor.commands.focus();

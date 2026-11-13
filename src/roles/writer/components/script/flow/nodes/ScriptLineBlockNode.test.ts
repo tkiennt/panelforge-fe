@@ -60,14 +60,31 @@ const texts = (editor: Editor) => {
 };
 const activeEl = (editor: Editor) => editor.state.selection.$from.parent.attrs.el as GnElement;
 
+/**
+ * Gửi phím như trình duyệt (qua handleKeyDown của ProseMirror). Không dùng `commands.keyboardShortcut`
+ * vì lệnh đó chỉ gom bước sửa của một transaction và bỏ qua vị trí con trỏ.
+ */
+function press(editor: Editor, name: string) {
+  const parts = name.split('-');
+  const key = parts[parts.length - 1];
+  const event = new KeyboardEvent('keydown', {
+    key,
+    ctrlKey: parts.includes('Mod') || parts.includes('Ctrl'),
+    shiftKey: parts.includes('Shift'),
+    bubbles: true,
+    cancelable: true,
+  });
+  editor.view.someProp('handleKeyDown', (f) => f(editor.view, event));
+}
+
 describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
   it('Enter đi đúng chuỗi Page → Panel → Action', () => {
     const editor = createEditor([line('page')]);
     caretAtEndOf(editor, 0);
-    editor.commands.keyboardShortcut('Enter');
+    press(editor, 'Enter');
     expect(activeEl(editor)).toBe('panel');
     editor.commands.insertContent('Toàn cảnh mái nhà');
-    editor.commands.keyboardShortcut('Enter');
+    press(editor, 'Enter');
     expect(activeEl(editor)).toBe('action');
     expect(els(editor)).toEqual(['page', 'panel', 'action']);
   });
@@ -75,13 +92,13 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
   it('Tab trên Action có chữ chèn Character; Enter sang Dialogue; Enter tiếp về Action', () => {
     const editor = createEditor([line('page'), line('panel'), line('action', 'Kai đứng ở mép')]);
     caretAtEndOf(editor, 2);
-    editor.commands.keyboardShortcut('Tab');
+    press(editor, 'Tab');
     expect(activeEl(editor)).toBe('character');
     editor.commands.insertContent('Kai');
-    editor.commands.keyboardShortcut('Enter');
+    press(editor, 'Enter');
     expect(activeEl(editor)).toBe('dialogue');
     editor.commands.insertContent('Thành phố này không ngủ.');
-    editor.commands.keyboardShortcut('Enter');
+    press(editor, 'Enter');
     expect(activeEl(editor)).toBe('action');
     expect(els(editor)).toEqual(['page', 'panel', 'action', 'character', 'dialogue', 'action']);
   });
@@ -89,19 +106,19 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
   it('Tab trên dòng trống đổi loại tại chỗ; Shift+Tab lùi lại', () => {
     const editor = createEditor([line('page'), line('panel'), line('action')]);
     caretAtEndOf(editor, 2);
-    editor.commands.keyboardShortcut('Tab');
+    press(editor, 'Tab');
     expect(els(editor)).toEqual(['page', 'panel', 'character']);
-    editor.commands.keyboardShortcut('Shift-Tab');
+    press(editor, 'Shift-Tab');
     expect(els(editor)).toEqual(['page', 'panel', 'action']);
   });
 
   it('Tab trên Dialogue trống thành Parens, Enter từ Parens sang Dialogue', () => {
     const editor = createEditor([line('character', 'MIA'), line('dialogue')]);
     caretAtEndOf(editor, 1);
-    editor.commands.keyboardShortcut('Tab');
+    press(editor, 'Tab');
     expect(activeEl(editor)).toBe('parens');
     editor.commands.insertContent('thì thầm');
-    editor.commands.keyboardShortcut('Enter');
+    press(editor, 'Enter');
     expect(activeEl(editor)).toBe('dialogue');
     expect(els(editor)).toEqual(['character', 'parens', 'dialogue']);
   });
@@ -113,7 +130,7 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
       line('character', 'k'),
     ]);
     caretAtEndOf(editor, 2);
-    editor.commands.keyboardShortcut('Enter');
+    press(editor, 'Enter');
     expect(texts(editor)[2]).toBe('KAI');
     expect(activeEl(editor)).toBe('dialogue');
   });
@@ -121,9 +138,9 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
   it('Ctrl+1..8 đổi loại dòng; đổi dòng có chữ thành Trang thì chèn Trang mới, không mất chữ', () => {
     const editor = createEditor([line('action', 'BÙM')]);
     caretAtEndOf(editor, 0);
-    editor.commands.keyboardShortcut('Mod-8');
+    press(editor, 'Mod-8');
     expect(els(editor)).toEqual(['sfx']);
-    editor.commands.keyboardShortcut('Mod-1');
+    press(editor, 'Mod-1');
     expect(els(editor)).toEqual(['sfx', 'page']);
     expect(texts(editor)[0]).toBe('BÙM');
   });
@@ -131,7 +148,7 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
   it('Enter giữa dòng tách dòng, nửa sau giữ cùng loại', () => {
     const editor = createEditor([line('action', 'AB')]);
     editor.commands.setTextSelection(2);
-    editor.commands.keyboardShortcut('Enter');
+    press(editor, 'Enter');
     expect(texts(editor)).toEqual(['A', 'B']);
     expect(els(editor)).toEqual(['action', 'action']);
   });
