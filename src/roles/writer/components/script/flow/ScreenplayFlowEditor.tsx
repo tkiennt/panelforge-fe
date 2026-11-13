@@ -38,6 +38,11 @@ export interface ScreenplayFlowEditorProps {
   /** Nút chuyển chế độ xem của màn cha, đặt ở đầu thanh công cụ. */
   dockLeading?: React.ReactNode;
   manuscriptTitle?: string;
+  /**
+   * Đưa hàm lưu lên màn cha (vd lưu trước khi gửi duyệt). Hàm trả true khi đã lưu xong hoặc không có gì để lưu,
+   * false khi lưu thất bại. Gọi lại với null khi bàn viết unmount.
+   */
+  registerSave?: (save: (() => Promise<boolean>) | null) => void;
 }
 
 const SHEET_CSS = `
@@ -75,6 +80,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   onShowToast,
   dockLeading,
   manuscriptTitle,
+  registerSave,
 }) => {
   const { t } = useTranslation('production');
   const isReadOnly = !canEditScript || isChapterLocked;
@@ -200,21 +206,30 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     }
   }, [editor, serverDocJson]);
 
-  const handleSave = useCallback(async () => {
-    if (!editor || isReadOnly || isSaving || !dirtyRef.current) return;
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!editor || isReadOnly || !dirtyRef.current) return true;
+    if (isSaving) return false;
     setIsSaving(true);
     try {
       const snapshot = docToScript(editor.state.doc, scenes[0]?.id ?? '');
       markDirty(false);
       await onSave(snapshot);
       setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      return true;
     } catch (err: any) {
       markDirty(true);
       onShowToast?.(t('scriptStudio.gn.saveFailed'), err?.message ?? '');
+      return false;
     } finally {
       setIsSaving(false);
     }
   }, [editor, isReadOnly, isSaving, scenes, onSave, onShowToast, t]);
+
+  useEffect(() => {
+    if (!registerSave) return;
+    registerSave(handleSave);
+    return () => registerSave(null);
+  }, [registerSave, handleSave]);
 
   // Ctrl+S / Cmd+S
   useEffect(() => {
@@ -253,9 +268,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       {/* Thanh loại dòng: bấm không làm mất con trỏ trong trang */}
       <div className='shrink-0 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-[#D4CBBF] bg-[#F4EFEA]/95 text-stone-900 px-3 py-1.5'>
         {dockLeading}
-        {dockLeading && (
-          <span className='w-px h-6 bg-[#D4CBBF] shrink-0' aria-hidden='true' />
-        )}
+        {dockLeading && <span className='w-px h-6 bg-[#D4CBBF] shrink-0' aria-hidden='true' />}
         <div
           role='toolbar'
           aria-label={t('scriptStudio.gn.toolbar')}

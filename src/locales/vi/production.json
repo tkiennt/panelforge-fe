@@ -138,7 +138,8 @@
     "submit": {
       "writer": "Gửi duyệt",
       "recall": "Hủy gửi duyệt",
-      "producer": "Bắt đầu sản xuất"
+      "producer": "Bắt đầu sản xuất",
+      "resubmit": "Gửi duyệt lại"
     },
     "views": {
       "label": "Chế độ xem",
@@ -213,26 +214,54 @@
       "hint": "Cứ viết. Enter xuống dòng · gõ \"Tên:\" để viết lời thoại · Tab đổi loại dòng"
     },
     "lifecycle": {
-      "inReviewTitle": "Kịch bản đang chờ duyệt — tạm khoá chỉnh sửa",
-      "inReviewBody": "Editor góp ý theo từng dòng; Producer bấm \"Bắt đầu sản xuất\" khi sẵn sàng. Muốn chỉnh sửa tiếp, Writer bấm \"Hủy gửi duyệt\".",
+      "inReviewTitle": "Kịch bản đang chờ duyệt",
+      "inReviewBody": "Editor đang đọc bản bạn đã gửi. Bạn vẫn sửa và lưu tiếp được; Editor chỉ thấy bản mới khi bạn bấm \"Gửi duyệt lại\".",
       "submitConfirmTitle": "Gửi duyệt kịch bản Chương {n}?",
-      "submitConfirmBody": "Kịch bản sẽ tạm khoá chỉnh sửa trong lúc chờ duyệt; Editor và Producer sẽ nhận thông báo. Bạn có thể hủy gửi duyệt bất cứ lúc nào trước khi Producer bắt đầu sản xuất.",
+      "submitConfirmBody": "Editor và Producer sẽ nhận thông báo và đọc đúng bản này. Bạn vẫn có thể sửa tiếp và gửi duyệt lại trước khi Producer bắt đầu sản xuất.",
       "submitted": "Đã gửi duyệt kịch bản",
       "submittedBody": "Kịch bản Chương {n} đang chờ duyệt.",
       "submitFailed": "Không gửi duyệt được",
-      "recalled": "Đã hủy gửi duyệt, bạn có thể chỉnh sửa tiếp",
+      "recalled": "Đã hủy gửi duyệt",
       "recallFailed": "Không hủy gửi duyệt được",
       "startConfirmTitle": "Bắt đầu sản xuất Chương {n}?",
       "startConfirmBody": "Kịch bản sẽ được chốt (chỉ đọc) và chương chuyển sang sản xuất hình ảnh. Muốn sửa lại phải mở lại kịch bản kèm lý do.",
       "started": "Đã bắt đầu sản xuất",
       "startedBody": "Kịch bản Chương {n} đã được chốt; chương chuyển sang sản xuất.",
       "startFailed": "Không bắt đầu sản xuất được",
-      "cancel": "Huỷ"
+      "cancel": "Huỷ",
+      "inReviewDirty": "Bạn đã lưu thay đổi sau lần gửi duyệt gần nhất. Producer chỉ bắt đầu sản xuất được khi bạn gửi duyệt lại.",
+      "resubmitConfirmTitle": "Gửi duyệt lại kịch bản Chương {n}?"
     },
     "comments": {
       "title": "Góp ý chưa xử lý ({count})",
       "resolve": "Đã xử lý",
       "resolveFailed": "Không đánh dấu được góp ý"
+    },
+    "versions": {
+      "title": "Phiên bản kịch bản",
+      "open": "Xem thay đổi",
+      "close": "Đóng",
+      "from": "So với",
+      "to": "Bản",
+      "working": "Bản đang viết (chưa lưu phiên bản)",
+      "emptyBase": "(trống)",
+      "none": "Chưa có phiên bản nào. Mỗi lần lưu sẽ tạo một phiên bản.",
+      "noChanges": "Không có thay đổi giữa hai bản.",
+      "pushed": "đã gửi duyệt",
+      "committed": "đã lưu",
+      "loading": "Đang tải…",
+      "commitFailed": "Đã lưu kịch bản nhưng chưa tạo được phiên bản",
+      "rowPage": "TRANG {n}",
+      "rowThought": "(nghĩ)",
+      "tab": "Thay đổi",
+      "drawerSubtitle": "Lưu = commit · Gửi duyệt = push",
+      "compareWithPushed": "So với bản đã gửi duyệt",
+      "pushedBadge": "ĐÃ GỬI DUYỆT",
+      "head": "MỚI NHẤT",
+      "unpushed": "Có thay đổi chưa gửi duyệt",
+      "noMessage": "(không ghi chú)",
+      "back": "Danh sách phiên bản",
+      "viewChanges": "Xem thay đổi của bản này"
     }
   },
   "createProjectModal": {

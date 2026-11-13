@@ -97,7 +97,8 @@
     },
     "tabs": {
       "notes": "Notes ({count})",
-      "checks": "Checks"
+      "checks": "Checks",
+      "changes": "Changes"
     },
     "composer": {
       "label": "Note for the writer",
@@ -110,18 +111,20 @@
       "unknownSpeaker": "No character linked",
       "noteCount": "{count} notes",
       "commentLine": "Note",
-      "commentLineTitle": "Note this line (becomes a change request when you return the script)",
+      "commentLineTitle": "Comment on this line",
       "commentScene": "Note scene",
       "sceneLabel": "SCENE {number}",
       "emptyScene": "This scene has no script lines.",
       "emptyTitle": "This chapter has no script",
-      "emptyBody": "The writer has not created any scenes for this chapter."
+      "emptyBody": "The submitted version has no lines."
     },
     "location": {
       "line": "Scene {scene} · line {line}",
       "removedLine": "Scene {scene} · removed line",
       "scene": "Scene {scene}",
-      "general": "General note"
+      "general": "General note",
+      "row": "Page {page} · Panel {panel}",
+      "page": "Page {page}"
     },
     "crStatus": {
       "Open": "Open",
@@ -266,11 +269,19 @@
       "open": "Open",
       "general": "General comment",
       "saveFailed": "Could not send the comment",
-      "saved": "Comment sent"
+      "saved": "Comment sent",
+      "staleChanged": "Line changed after the comment",
+      "staleRemoved": "Line was removed"
     },
     "desk": {
       "scriptsInReview": "Scripts in review ({count})",
       "openComments": "Open to comment"
+    },
+    "pushed": {
+      "version": "Submitted version v{n} · #{hash}",
+      "none": "The Writer has not submitted a version of this chapter yet.",
+      "firstSubmit": "First submission: compared with an empty script.",
+      "sincePrevious": "Compared with the previous submission."
     }
   },
   "artworkReview": {
