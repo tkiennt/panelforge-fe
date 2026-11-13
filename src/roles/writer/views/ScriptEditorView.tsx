@@ -740,7 +740,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         idsByPanel.set(key, [...(idsByPanel.get(key) ?? []), savedIds[idx]]);
       });
       try {
-        const synced = await pageService.syncScriptStructure(
+        // Kịch bản là nguồn của khung: Trang / Panel không còn trong kịch bản bị gỡ phía máy chủ
+        await pageService.syncScriptStructure(
           chapterId,
           snapshot.pages.map((page) => ({
             pageNumber: page.pageNumber,
@@ -750,12 +751,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             })),
           })),
         );
-        if (synced.unlistedPageNumbers.length > 0) {
-          notify(
-            t('scriptStudio.save.unlistedTitle'),
-            t('scriptStudio.save.unlistedDesc', { pages: synced.unlistedPageNumbers.join(', ') }),
-          );
-        }
       } catch (structureErr: any) {
         // Dòng kịch bản đã lưu; chỉ khung Trang/Panel chưa đồng bộ nên báo rõ thay vì nuốt lỗi
         notify(t('scriptStudio.save.structureFailed'), structureErr?.message ?? '');

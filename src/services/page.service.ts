@@ -117,7 +117,9 @@ export interface SyncScriptStructureResult {
   pagesCreated: number;
   panelsCreated: number;
   linesAnchored: number;
-  unlistedPageNumbers: number[];
+  /** Trang / Panel kịch bản không còn nhắc tới, đã bị xoá mềm theo kịch bản. */
+  pagesRemoved: number;
+  panelsRemoved: number;
 }
 
 export const pageService = {
