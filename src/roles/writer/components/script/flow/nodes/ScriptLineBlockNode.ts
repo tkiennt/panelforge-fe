@@ -207,7 +207,7 @@ export function characterNames(doc: PMNode, exceptPos?: number): string[] {
   return seen;
 }
 
-/** Hoàn thành tên nhân vật đang gợi ý (nếu có). Trả true khi đã chèn phần còn lại của tên. */
+/** Hoàn thành tên nhân vật đang gợi ý (nếu có). Trả true khi đã chèn phần còn lại của tên kèm dấu ":". */
 function acceptCharacterCompletion(editor: Editor): boolean {
   const { state, view } = editor;
   const line = currentLine(state);
@@ -215,10 +215,11 @@ function acceptCharacterCompletion(editor: Editor): boolean {
   const typed = line.node.textContent.replace(/:+$/, '').trim();
   const full = completeCharacterName(typed, characterNames(state.doc, line.pos));
   if (!full) return false;
-  // Thay cả chữ đã gõ bằng tên đầy đủ để tên lưu đúng như lần dùng trước ("k" → "KAI", không phải "kAI").
+  // Thay cả chữ đã gõ bằng tên đầy đủ kèm dấu ":" để sang dòng thoại
+  const textWithColon = full.endsWith(':') ? full : `${full}:`;
   const start = line.pos + 1;
   const end = start + line.node.content.size;
-  view.dispatch(state.tr.insertText(full, start, end).scrollIntoView());
+  view.dispatch(state.tr.insertText(textWithColon, start, end).scrollIntoView());
   return true;
 }
 
@@ -358,9 +359,12 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
         if (menuHandled !== null) return menuHandled;
         if (!currentLine(editor.state)) return false;
         if (!editor.state.selection.empty) editor.commands.deleteSelection();
-        acceptCharacterCompletion(editor);
         const line = currentLine(editor.state);
         if (!line) return false;
+        if (line.el === 'character') {
+          if (line.isEmpty) return applyMove(editor, onEnter('character', true));
+          return characterToDialogue(editor);
+        }
         // Con trỏ giữa dòng có chữ: tách dòng; nửa sau giữ cùng loại (nửa sau của Panel thành Action).
         if (!line.atEnd && !line.isEmpty) {
           const { state, view } = editor;
@@ -384,8 +388,9 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
         if (menuHandled !== null) return menuHandled;
         const line = currentLine(editor.state);
         if (!line) return true;
-        if (line.el === 'character' && acceptCharacterCompletion(editor)) {
-          return applyMove(editor, onTab('character', false));
+        if (line.el === 'character') {
+          if (line.isEmpty) return applyMove(editor, onTab('character', true));
+          return characterToDialogue(editor);
         }
         return applyMove(editor, onTab(line.el, line.isEmpty));
       },
@@ -518,7 +523,7 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
             const widget = document.createElement('span');
             widget.className = 'gn-ghost';
             widget.setAttribute('contenteditable', 'false');
-            widget.textContent = `${full.slice(typed.trim().length)} ${labels.acceptHint}`;
+            widget.textContent = `${full.slice(typed.trim().length)}: ${labels.acceptHint}`;
             return DecorationSet.create(state.doc, [
               Decoration.widget(line.pos + 1 + line.node.content.size, widget, { side: 1 }),
             ]);

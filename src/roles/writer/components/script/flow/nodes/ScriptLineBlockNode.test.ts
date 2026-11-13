@@ -123,7 +123,7 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
     expect(els(editor)).toEqual(['character', 'parens', 'dialogue']);
   });
 
-  it('Enter / Tab nhận tên nhân vật đang gợi ý', () => {
+  it('Enter / Tab nhận tên nhân vật đang gợi ý (kèm dấu ":") và chuyển sang Dialogue', () => {
     const editor = createEditor([
       line('character', 'KAI'),
       line('dialogue', 'A'),
@@ -131,7 +131,7 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
     ]);
     caretAtEndOf(editor, 2);
     press(editor, 'Enter');
-    expect(texts(editor)[2]).toBe('KAI');
+    expect(texts(editor)[2]).toBe('KAI:');
     expect(activeEl(editor)).toBe('dialogue');
   });
 

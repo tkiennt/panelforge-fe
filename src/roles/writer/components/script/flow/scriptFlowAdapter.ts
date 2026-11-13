@@ -130,7 +130,7 @@ function linesToNodes(lines: ServerLine[]): JSONContent[] {
       const speaker = name.toUpperCase();
       // Cùng người nói ngay sau thoại trước, có Parens: viết tiếp dưới tên cũ như WriterSolo.
       if (!(parens && prevSpeaker === speaker && out[out.length - 1]?.attrs?.el === 'dialogue')) {
-        out.push(line('character', speaker));
+        out.push(line('character', speaker ? `${speaker}:` : ''));
       }
       if (parens) out.push(line('parens', parens));
       out.push(line('dialogue', l.text, l.id));

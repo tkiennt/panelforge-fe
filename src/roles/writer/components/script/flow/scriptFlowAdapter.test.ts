@@ -87,11 +87,11 @@ describe('scriptFlowAdapter', () => {
       ['page', ''],
       ['panel', 'Toàn cảnh mái nhà'],
       ['action', 'Kai đứng ở mép'],
-      ['character', 'KAI'],
+      ['character', 'KAI:'],
       ['parens', 'OFF'],
       ['dialogue', 'Đi thôi'],
       ['panel', ''],
-      ['character', 'MIA'],
+      ['character', 'MIA:'],
       ['parens', 'nghĩ'],
       ['dialogue', 'Hắn nói dối'],
       ['caption', 'Nửa đêm'],
@@ -194,7 +194,7 @@ describe('scriptFlowAdapter', () => {
       [panels[0]],
     );
     const shape = (doc.content ?? []).map((n) => [n.attrs?.el, n.content?.[0]?.text ?? '']);
-    expect(shape).toContainEqual(['character', 'NARUTO']);
+    expect(shape).toContainEqual(['character', 'NARUTO:']);
     expect(shape).toContainEqual(['dialogue', 'Xin chào']);
   });
 });
