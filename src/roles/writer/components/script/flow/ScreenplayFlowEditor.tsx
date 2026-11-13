@@ -20,6 +20,8 @@ import {
   ScriptLineBlockNode,
   ScriptTypingBehavior,
   activeElement,
+  chooseElement,
+  getElementMenu,
   setLineElement,
 } from './nodes/ScriptLineBlockNode';
 import { ScriptDocSnapshot, docToScript, scriptToDoc } from './scriptFlowAdapter';
@@ -50,6 +52,7 @@ const SHEET_CSS = `
 .gn-sheet .gn-panel::before { content: attr(data-label) "\\00a0\\00a0"; }
 .gn-sheet .gn-action { margin-top: .5rem; }
 .gn-sheet .gn-character { float: left; clear: both; width: 10rem; margin-top: .5rem; text-transform: uppercase; }
+.gn-sheet .gn-character.gn-filled::after { content: ':'; }
 .gn-sheet .gn-dialogue { clear: none; margin-left: 11rem; }
 .gn-sheet .gn-parens { clear: none; margin-left: 14rem; text-transform: uppercase; }
 .gn-sheet .gn-parens::before { content: '('; }
@@ -79,6 +82,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [active, setActive] = useState<GnElement | null>(null);
+  /** Menu chọn loại dòng (Enter trên dòng trống): vị trí neo theo con trỏ + mục đang chọn. */
+  const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
   const dirtyRef = useRef(false);
   const loadingRef = useRef(false);
 
@@ -145,7 +150,16 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         if (transaction.docChanged && !loadingRef.current) markDirty(true);
       },
       onSelectionUpdate: ({ editor: ed }) => setActive(activeElement(ed)),
-      onTransaction: ({ editor: ed }) => setActive(activeElement(ed)),
+      onTransaction: ({ editor: ed }) => {
+        setActive(activeElement(ed));
+        const m = getElementMenu(ed.state);
+        if (!m.open) {
+          setMenu(null);
+          return;
+        }
+        const c = ed.view.coordsAtPos(ed.state.selection.from);
+        setMenu({ index: m.index, top: c.bottom + 4, left: c.left });
+      },
     },
     [chapterId],
   );
@@ -233,17 +247,19 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         : t('scriptStudio.dock.idle');
 
   return (
-    <div className='relative flex-1 min-h-0 flex flex-col bg-[#FAF9F5]'>
+    <div className='relative flex-1 min-h-0 flex flex-col bg-[#DDD5C7]'>
       <style>{SHEET_CSS}</style>
 
       {/* Thanh loại dòng: bấm không làm mất con trỏ trong trang */}
-      <div className='shrink-0 flex items-center gap-2 border-b border-stone-200 bg-white/95 px-3 py-1.5 overflow-x-auto custom-scrollbar'>
+      <div className='shrink-0 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-[#D4CBBF] bg-[#F4EFEA]/95 text-stone-900 px-3 py-1.5'>
         {dockLeading}
-        {dockLeading && <span className='w-px h-6 bg-stone-200 shrink-0' aria-hidden='true' />}
+        {dockLeading && (
+          <span className='w-px h-6 bg-[#D4CBBF] shrink-0' aria-hidden='true' />
+        )}
         <div
           role='toolbar'
           aria-label={t('scriptStudio.gn.toolbar')}
-          className='flex items-center gap-0.5'
+          className='flex flex-wrap items-center gap-0.5 min-w-0'
         >
           {GN_ELEMENTS.map((el, i) => {
             const isActive = active === el;
@@ -257,7 +273,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor && setLineElement(editor, el)}
                 className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 ${
-                  isActive ? 'bg-orange-50 text-[#C2410C]' : 'text-stone-600 hover:bg-stone-100'
+                  isActive
+                    ? 'bg-orange-100 text-[#C2410C] font-semibold ring-1 ring-orange-300'
+                    : 'text-stone-700 hover:bg-stone-200/80 hover:text-stone-900'
                 }`}
               >
                 {t(`scriptStudio.gn.el.${el}`)}
@@ -265,8 +283,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             );
           })}
         </div>
+
         <span
-          className='ml-auto shrink-0 text-xs text-stone-500 whitespace-nowrap'
+          className='ml-auto shrink-0 text-xs text-stone-600 whitespace-nowrap'
           aria-live='polite'
         >
           {saveStatus}
@@ -279,7 +298,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             disabled={!isDirty || isSaving}
             title='Ctrl + S'
             className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer disabled:cursor-default ${
-              isDirty ? 'bg-[#EA580C] text-white hover:bg-[#C2410C]' : 'text-stone-500'
+              isDirty ? 'bg-[#EA580C] text-white hover:bg-[#C2410C]' : 'text-stone-400'
             }`}
           >
             {isSaving ? (
@@ -292,10 +311,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         )}
       </div>
 
-      <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-10'>
+      <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-6 sm:py-10'>
         <div
           data-testid='paper-editor-sheet'
-          className='gn-sheet max-w-[760px] mx-auto bg-white rounded-sm border border-stone-200/80 shadow-xs px-6 sm:px-16 lg:px-20 py-14'
+          className='gn-sheet paper-editor-sheet max-w-[760px] mx-auto bg-white rounded-md border border-[#C5BDAF] shadow-[0_8px_30px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)] px-6 sm:px-16 lg:px-20 py-14 my-2 sm:my-4 transition-all duration-150'
           onClick={() => {
             if (editor && !editor.isFocused) editor.commands.focus();
           }}
@@ -311,6 +330,35 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           <EditorContent editor={editor} />
         </div>
       </div>
+
+      {menu && editor && (
+        <ul
+          role='listbox'
+          aria-label={t('scriptStudio.gn.toolbar')}
+          style={{ top: menu.top, left: menu.left }}
+          className='fixed z-50 w-48 rounded-lg border border-stone-200 bg-white py-1 shadow-lg text-sm'
+        >
+          {GN_ELEMENTS.map((el, i) => (
+            <li
+              key={el}
+              role='option'
+              aria-selected={i === menu.index}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                chooseElement(editor, el);
+              }}
+              className={`flex items-center justify-between px-3 py-1.5 cursor-pointer ${
+                i === menu.index
+                  ? 'bg-orange-50 text-[#C2410C]'
+                  : 'text-stone-700 hover:bg-stone-50'
+              }`}
+            >
+              <span>{t(`scriptStudio.gn.el.${el}`)}</span>
+              <span className='text-xs text-stone-400'>Ctrl+{i + 1}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };
