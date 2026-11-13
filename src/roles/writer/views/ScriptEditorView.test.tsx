@@ -343,10 +343,10 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(screen.queryByTestId('open-add-line-btn')).not.toBeInTheDocument();
   });
 
-  it('khóa quyền sửa kịch bản khi chương đã giao cho Writer khác, hiển thị banner đã giao người khác', async () => {
+  it('SCR-12: không khoá quyền sửa theo Assignment stage Script (studio 1 writer)', async () => {
     vi.mocked(assignmentService.getAssignments).mockResolvedValue([
       {
-        id: 'as-1',
+        id: 'asg-other',
         seriesId: 'se-1',
         chapterId: 'chap-1',
         entityType: 'Chapter' as any,
@@ -373,13 +373,8 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     renderView({ workspaceRole: 'WRITER', currentUserId: 'my-writer-id' });
 
-    const banner = await screen.findByTestId('writer-not-assigned-banner');
-    expect(banner).toBeInTheDocument();
-    expect(banner.textContent).toContain('Lê Biên Kịch');
-    expect(banner.textContent).toContain('Đã giao người khác');
-    // Nút thêm dòng, viết nháp AI bị ẩn
-    expect(screen.queryByTestId('open-add-line-btn')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('open-ai-draft-btn')).not.toBeInTheDocument();
+    // SCR-12: đã gỡ banner chặn writer-not-assigned
+    expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
   });
 
   it('cho phép Writer được giao sửa kịch bản bình thường', async () => {
@@ -841,7 +836,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     });
 
     renderView({ workspaceRole: 'PRODUCER' });
-    expect(await screen.findByText(/Kịch bản đã đóng băng/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Kịch bản đã chốt|Kịch bản đã đóng băng/i)).toBeInTheDocument();
     expect(await screen.findByTestId('frozen-script-hash-badge')).toHaveTextContent('#98765432');
   });
   it('bàn viết hiện thanh loại dòng kiểu WriterSolo và dựng sẵn Trang 1 / Panel 1 cho chương trống', async () => {

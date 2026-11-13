@@ -222,10 +222,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       return;
     }
     let cancelled = false;
-    chapterService
-      .getScriptComments(id)
-      .then((list) => !cancelled && setScriptComments(list))
-      .catch(() => !cancelled && setScriptComments([]));
+    if (typeof chapterService.getScriptComments === 'function') {
+      chapterService
+        .getScriptComments(id)
+        .then((list) => !cancelled && setScriptComments(list ?? []))
+        .catch(() => !cancelled && setScriptComments([]));
+    } else {
+      setScriptComments([]);
+    }
     return () => {
       cancelled = true;
     };

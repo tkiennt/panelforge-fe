@@ -161,4 +161,31 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
     ]);
     expect(characterNames(editor.state.doc)).toEqual(['KAI', 'MIA']);
   });
+
+  it('gõ ":" sau tên nhân vật thì hoàn thành tên (kèm ":") và chuyển sang Dialogue', () => {
+    const editor = createEditor([
+      line('page'),
+      line('panel'),
+      line('character', 'NARUTO'),
+    ]);
+    caretAtEndOf(editor, 2);
+    // Gõ text ":" thông qua someProp handleTextInput
+    editor.view.someProp('handleTextInput', (f: any) => f(editor.view, 0, 0, ':'));
+    expect(els(editor)).toEqual(['page', 'panel', 'character', 'dialogue']);
+    expect(texts(editor)[2]).toBe('NARUTO:');
+    expect(activeEl(editor)).toBe('dialogue');
+  });
+
+  it('gõ "TÊN:" trên dòng action thì tự động đổi thành character và chuyển sang Dialogue', () => {
+    const editor = createEditor([
+      line('page'),
+      line('panel'),
+      line('action', 'SASUKE'),
+    ]);
+    caretAtEndOf(editor, 2);
+    editor.view.someProp('handleTextInput', (f: any) => f(editor.view, 0, 0, ':'));
+    expect(els(editor)).toEqual(['page', 'panel', 'character', 'dialogue']);
+    expect(texts(editor)[2]).toBe('SASUKE:');
+    expect(activeEl(editor)).toBe('dialogue');
+  });
 });

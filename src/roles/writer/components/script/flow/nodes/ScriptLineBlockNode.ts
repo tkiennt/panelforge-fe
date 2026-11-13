@@ -198,7 +198,7 @@ export function characterNames(doc: PMNode, exceptPos?: number): string[] {
   const seen: string[] = [];
   doc.forEach((node, offset) => {
     if (node.attrs.el !== 'character' || offset === exceptPos) return;
-    const name = node.textContent.trim().toUpperCase();
+    const name = node.textContent.replace(/:+$/, '').trim().toUpperCase();
     if (!name) return;
     const i = seen.indexOf(name);
     if (i !== -1) seen.splice(i, 1);
@@ -212,7 +212,7 @@ function acceptCharacterCompletion(editor: Editor): boolean {
   const { state, view } = editor;
   const line = currentLine(state);
   if (!line || line.el !== 'character' || !line.atEnd) return false;
-  const typed = line.node.textContent;
+  const typed = line.node.textContent.replace(/:+$/, '').trim();
   const full = completeCharacterName(typed, characterNames(state.doc, line.pos));
   if (!full) return false;
   // Thay cả chữ đã gõ bằng tên đầy đủ để tên lưu đúng như lần dùng trước ("k" → "KAI", không phải "kAI").
@@ -222,18 +222,62 @@ function acceptCharacterCompletion(editor: Editor): boolean {
   return true;
 }
 
+/** Kiểm tra chuỗi nhập vào có phải là tên nhân vật hợp lệ trước dấu ":" (1-4 từ, <= 40 ký tự, không chứa dấu câu). */
+export function isValidCharacterNameInput(text: string): boolean {
+  const trimmed = text.replace(/:+$/, '').trim();
+  if (!trimmed || trimmed.length > 40) return false;
+  if (/[.!?;"\\]/.test(trimmed)) return false;
+  const words = trimmed.split(/\s+/);
+  return words.length <= 4;
+}
+
 /**
- * Kết thúc dòng Nhân vật: nhận tên đang gợi ý, đưa con trỏ về cuối tên rồi chèn dòng Thoại.
- * Dùng cho phím ":" (Enter và Tab đã có luật riêng trong keymap).
+ * Kết thúc dòng Nhân vật khi người dùng gõ ":" hoặc nhấn Enter:
+ * Nhận tên đang gợi ý (nếu có), thêm dấu ":" vào cuối tên, rồi chèn dòng Thoại (dialogue).
  */
 export function characterToDialogue(editor: Editor): boolean {
   const line = currentLine(editor.state);
   if (!line || line.el !== 'character') return false;
-  const end = line.pos + 1 + line.node.content.size;
-  if (editor.state.selection.from !== end) {
-    editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, end)));
-  }
+
   acceptCharacterCompletion(editor);
+
+  const freshLine = currentLine(editor.state);
+  if (!freshLine) return false;
+
+  const currentText = freshLine.node.textContent.trim();
+  let tr = editor.state.tr;
+  let end = freshLine.pos + 1 + freshLine.node.content.size;
+  if (!currentText.endsWith(':')) {
+    tr = tr.insertText(':', end);
+    end += 1;
+  }
+  tr = tr.setSelection(TextSelection.create(tr.doc, end));
+  editor.view.dispatch(tr);
+
+  return applyMove(editor, onEnter('character'));
+}
+
+/**
+ * Khi gõ "TÊN:" trên dòng Hành động (action): tự động đổi dòng thành Nhân vật (character)
+ * và chuyển tiếp sang dòng Thoại (dialogue).
+ */
+export function actionToCharacterAndDialogue(editor: Editor, name: string): boolean {
+  const line = currentLine(editor.state);
+  if (!line || line.el !== 'action') return false;
+
+  const cleanName = name.replace(/:+$/, '').trim().toUpperCase();
+  if (!cleanName) return false;
+
+  let tr = editor.state.tr;
+  const start = line.pos + 1;
+  const end = start + line.node.content.size;
+
+  tr = tr.setNodeMarkup(line.pos, undefined, { ...line.node.attrs, el: 'character' });
+  tr = tr.insertText(`${cleanName}:`, start, end);
+  const newEnd = start + cleanName.length + 1;
+  tr = tr.setSelection(TextSelection.create(tr.doc, newEnd));
+  editor.view.dispatch(tr);
+
   return applyMove(editor, onEnter('character'));
 }
 
@@ -362,15 +406,31 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
     const editor = this.editor;
     return [
       ElementMenuPlugin,
-      // Gõ ":" sau tên nhân vật: không chèn dấu, nhận tên đang gợi ý rồi sang dòng Thoại (như Enter).
+      // Gõ ":" sau tên nhân vật: không tự sinh dấu hai chấm trước đó,
+      // khi người dùng gõ ":" thủ công thì hoàn thành tên (kèm ":") rồi sang dòng Thoại.
       new Plugin({
         key: new PluginKey('scriptCharacterColon'),
         props: {
           handleTextInput(view, _from, _to, text) {
             if (text !== ':') return false;
             const line = currentLine(view.state);
-            if (!line || line.el !== 'character' || line.isEmpty) return false;
-            return characterToDialogue(editor);
+            if (!line) return false;
+
+            // Đang ở dòng Nhân vật (character)
+            if (line.el === 'character') {
+              if (line.isEmpty) return false;
+              return characterToDialogue(editor);
+            }
+
+            // Đang ở dòng Hành động (action) mà gõ tên nhân vật rồi gõ ":"
+            if (line.el === 'action') {
+              const typed = line.node.textContent.trim();
+              if (isValidCharacterNameInput(typed)) {
+                return actionToCharacterAndDialogue(editor, typed);
+              }
+            }
+
+            return false;
           },
         },
       }),
@@ -420,9 +480,6 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
                 panelNo += 1;
                 if (pages.length) pages[pages.length - 1].panels += 1;
                 decos.push(range(labels.panel(panelNo)));
-              } else if (el === 'character' && node.content.size > 0) {
-                // Hiện "TÊN:" — dấu hai chấm chỉ để nhìn, không nằm trong chữ lưu
-                decos.push(Decoration.node(offset, offset + node.nodeSize, { class: 'gn-filled' }));
               } else if (el === 'caption') {
                 decos.push(range(labels.caption));
               } else if (el === 'sfx') {
@@ -455,7 +512,7 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
             if (!state.selection.empty) return null;
             const line = currentLine(state);
             if (!line || line.el !== 'character' || !line.atEnd || line.isEmpty) return null;
-            const typed = line.node.textContent;
+            const typed = line.node.textContent.replace(/:+$/, '').trim();
             const full = completeCharacterName(typed, characterNames(state.doc, line.pos));
             if (!full) return null;
             const widget = document.createElement('span');

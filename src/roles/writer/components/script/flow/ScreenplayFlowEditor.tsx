@@ -57,7 +57,6 @@ const SHEET_CSS = `
 .gn-sheet .gn-panel::before { content: attr(data-label) "\\00a0\\00a0"; }
 .gn-sheet .gn-action { margin-top: .5rem; }
 .gn-sheet .gn-character { float: left; clear: both; width: 10rem; margin-top: .5rem; text-transform: uppercase; }
-.gn-sheet .gn-character.gn-filled::after { content: ':'; }
 .gn-sheet .gn-dialogue { clear: none; margin-left: 11rem; }
 .gn-sheet .gn-parens { clear: none; margin-left: 14rem; text-transform: uppercase; }
 .gn-sheet .gn-parens::before { content: '('; }

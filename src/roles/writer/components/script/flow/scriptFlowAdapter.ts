@@ -86,7 +86,7 @@ function line(el: GnElement, text?: string | null, refId: string | null = null):
 
 /** "KAI (OFF)" → { name: "KAI", parens: "OFF" } */
 export function splitSpeakerLabel(label?: string | null): { name: string; parens: string | null } {
-  const raw = (label ?? '').trim();
+  const raw = (label ?? '').replace(/:+$/, '').trim();
   const m = raw.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
   if (m && m[1].trim()) return { name: m[1].trim(), parens: m[2].trim() || null };
   return { name: raw, parens: null };
@@ -280,7 +280,7 @@ export function docToScript(doc: PMNode, sceneId: string): ScriptDocSnapshot {
         });
         return;
       case 'character':
-        speaker = text ? text.toUpperCase() : null;
+        speaker = text ? text.replace(/:+$/, '').trim().toUpperCase() : null;
         parens = null;
         return;
       case 'parens':
