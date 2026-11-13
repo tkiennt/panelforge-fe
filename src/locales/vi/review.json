@@ -97,7 +97,8 @@
     },
     "tabs": {
       "notes": "Nhận xét ({count})",
-      "checks": "Kiểm tra"
+      "checks": "Kiểm tra",
+      "changes": "Thay đổi"
     },
     "composer": {
       "label": "Nhận xét cho Writer",
@@ -110,18 +111,20 @@
       "unknownSpeaker": "Chưa gán nhân vật",
       "noteCount": "{count} nhận xét",
       "commentLine": "Nhận xét",
-      "commentLineTitle": "Nhận xét dòng này (thành yêu cầu sửa khi trả bài)",
+      "commentLineTitle": "Góp ý dòng này",
       "commentScene": "Nhận xét cảnh",
       "sceneLabel": "CẢNH {number}",
       "emptyScene": "Phân cảnh chưa có dòng kịch bản.",
       "emptyTitle": "Chương chưa có kịch bản",
-      "emptyBody": "Writer chưa tạo phân cảnh nào cho chương này."
+      "emptyBody": "Bản đã gửi duyệt chưa có dòng nào."
     },
     "location": {
       "line": "Cảnh {scene} · dòng {line}",
       "removedLine": "Cảnh {scene} · dòng đã xoá",
       "scene": "Cảnh {scene}",
-      "general": "Nhận xét chung"
+      "general": "Nhận xét chung",
+      "row": "Trang {page} · Panel {panel}",
+      "page": "Trang {page}"
     },
     "crStatus": {
       "Open": "Đang mở",
@@ -266,11 +269,19 @@
       "open": "Chưa xử lý",
       "general": "Góp ý chung",
       "saveFailed": "Không gửi được góp ý",
-      "saved": "Đã gửi góp ý"
+      "saved": "Đã gửi góp ý",
+      "staleChanged": "Dòng đã đổi sau góp ý",
+      "staleRemoved": "Dòng đã bị xoá"
     },
     "desk": {
       "scriptsInReview": "Kịch bản chờ duyệt ({count})",
       "openComments": "Mở để góp ý"
+    },
+    "pushed": {
+      "version": "Bản đã gửi duyệt v{n} · #{hash}",
+      "none": "Writer chưa gửi duyệt bản nào cho chương này.",
+      "firstSubmit": "Lần gửi duyệt đầu tiên: so với bản trống.",
+      "sincePrevious": "So với lần gửi duyệt trước."
     }
   },
   "artworkReview": {

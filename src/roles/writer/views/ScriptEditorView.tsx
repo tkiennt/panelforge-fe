@@ -68,23 +68,18 @@ import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import {
   assignmentService,
-  AssignmentDto,
-  ChangeRequestDto,
   ConsistencyFindingDto,
   ConsistencyCheckResultDto,
 } from '@/services/assignment.service';
-import { crStatus } from '@/shared/features/script-review/scriptReviewModel';
-import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { AiAssistPanel } from '@/shared/features/ai-agents/AiAssistPanel';
-import { ScriptHistoryModal } from '../components/script/ScriptHistoryModal';
 import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
 import type { ScriptDocSnapshot } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
-import { WriterChangeRequestsDrawer } from '../components/script/WriterChangeRequestsDrawer';
+import { ScriptVersionsDrawer } from '../components/script/versions/ScriptVersionsDrawer';
 import { ScriptStudioRail, type ScriptRailItem } from '../components/script/ScriptStudioRail';
 import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
 import { ScriptChaptersDrawer } from '../components/script/ScriptChaptersDrawer';
@@ -175,7 +170,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Dữ liệu kịch bản
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [currentChapter, setCurrentChapter] = useState<ChapterDto | null>(null);
-  // D12: Draft ↔ InReview → Frozen. InReview và Frozen đều khoá sửa kịch bản.
+  // D12: Draft ↔ InReview → Frozen. Lưu = commit, Gửi duyệt = push: Editor đọc bản đã gửi,
+  // nên khi InReview Writer vẫn sửa và lưu tiếp; chỉ Frozen (và chương đã duyệt/xuất bản) khoá sửa.
   const scriptStatus: ScriptStatus =
     currentChapter?.scriptStatus ?? (currentChapter?.isScriptFrozen ? 'Frozen' : 'Draft');
   const isScriptFrozen = scriptStatus === 'Frozen';
@@ -184,7 +180,37 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     currentChapter?.status === 'Approved' ||
     currentChapter?.status === 'Locked' ||
     currentChapter?.status === 'Published';
-  const isChapterLocked = isScriptFrozen || isScriptInReview || isChapterContentLocked;
+  const isChapterLocked = isScriptFrozen || isChapterContentLocked;
+
+  // Phiên bản mới nhất và bản đang gửi duyệt: khác mã băm = có thay đổi chưa gửi duyệt lại
+  const [versionsTick, setVersionsTick] = useState(0);
+  const [hasUnpushedChanges, setHasUnpushedChanges] = useState(false);
+  useEffect(() => {
+    const id = currentChapter?.id;
+    const pushedId = currentChapter?.lastSubmittedVersionId;
+    if (!id || !pushedId) {
+      setHasUnpushedChanges(false);
+      return;
+    }
+    let cancelled = false;
+    chapterService
+      .getScriptVersions(id)
+      .then((list) => {
+        if (cancelled) return;
+        const pushed = list.find((v) => v.id === pushedId);
+        setHasUnpushedChanges(!!pushed && !!list[0] && list[0].contentHash !== pushed.contentHash);
+      })
+      .catch(() => !cancelled && setHasUnpushedChanges(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [currentChapter?.id, currentChapter?.lastSubmittedVersionId, versionsTick]);
+
+  // Hàm lưu của bàn viết, để lưu chữ chưa lưu trước khi gửi duyệt
+  const editorSaveRef = useRef<(() => Promise<boolean>) | null>(null);
+  const registerEditorSave = useCallback((save: (() => Promise<boolean>) | null) => {
+    editorSaveRef.current = save;
+  }, []);
 
   // D12: góp ý theo dòng của Editor / Producer — Writer đọc để tự quyết định có hủy gửi duyệt hay không
   const [scriptComments, setScriptComments] = useState<ScriptCommentDto[]>([]);
@@ -206,105 +232,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   }, [currentChapter?.id, currentChapter?.scriptStatus]);
   const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
   const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
-  const [chapterAssignments, setChapterAssignments] = useState<AssignmentDto[]>([]);
-  const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMemberDto[]>([]);
-
-  // Phân quyền theo Assignment (Backend ScriptLineRules.cs):
-  // - Producer luôn có quyền sửa kịch bản.
-  // - Khi chương đã giao kịch bản cho Writer: chỉ người được giao mới sửa được; Writer khác nhận 403 / chỉ đọc.
-  // - Khi chương chưa giao cho ai: Writer vẫn sửa tự do như cũ.
-  // - Assignment đã huỷ (cancelReason != null) không tính.
-  // - Các vai trò khác (Artist, Editor, Viewer...): chỉ đọc.
-
-  const writerAssignments = useMemo(() => {
-    return chapterAssignments.filter((a) => {
-      const role = String(a.assignedRole || '').toUpperCase();
-      const isWriter = role === 'WRITER';
-      const isCancelled = !!(a as any).cancelReason;
-      return isWriter && !isCancelled;
-    });
-  }, [chapterAssignments]);
-
-  const hasWriterAssignment = writerAssignments.length > 0;
-
-  const isAssignedWriter = useMemo(() => {
-    if (!effectiveUserId || !hasWriterAssignment) return false;
-    return writerAssignments.some(
-      (a) => String(a.assigneeUserId).toLowerCase() === String(effectiveUserId).toLowerCase(),
-    );
-  }, [effectiveUserId, hasWriterAssignment, writerAssignments]);
-
-  const isWriterBlockedByOther = useMemo(() => {
-    if (effectiveRole !== 'WRITER') return false;
-    if (!hasWriterAssignment) return false;
-    return !isAssignedWriter;
-  }, [effectiveRole, hasWriterAssignment, isAssignedWriter]);
-
-  const assignedWriterNames = useMemo(() => {
-    if (!writerAssignments.length) return '';
-    const names = writerAssignments.map((a) => {
-      const member = workspaceMembers.find(
-        (m) => String(m.userId).toLowerCase() === String(a.assigneeUserId).toLowerCase(),
-      );
-      return member?.fullName || member?.email || 'Writer được giao';
-    });
-    return Array.from(new Set(names)).join(', ');
-  }, [writerAssignments, workspaceMembers]);
-
-  const myWriterAssignment = useMemo(() => {
-    if (!writerAssignments.length) return null;
-    if (effectiveUserId) {
-      const match = writerAssignments.find(
-        (a) => String(a.assigneeUserId).toLowerCase() === String(effectiveUserId).toLowerCase(),
-      );
-      if (match) return match;
-    }
-    return writerAssignments[0] || null;
-  }, [writerAssignments, effectiveUserId]);
-
-  // Yêu cầu sửa Editor gửi khi trả kịch bản; BE chặn nộp lại khi còn CR Open.
-  const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
-  const [loadingChangeRequests, setLoadingChangeRequests] = useState(false);
-  const autoOpenedCrForRef = useRef<string | null>(null);
-  const writerAssignmentChapterId = myWriterAssignment?.chapterId;
-  const writerAssignmentId = myWriterAssignment?.id;
-  const writerAssignmentStatus = myWriterAssignment?.status;
-
-  const loadChangeRequests = useCallback(async () => {
-    if (!writerAssignmentChapterId || !writerAssignmentId) {
-      setChangeRequests([]);
-      return;
-    }
-    setLoadingChangeRequests(true);
-    try {
-      const res = await assignmentService.getChangeRequests(writerAssignmentChapterId, {
-        assignmentId: writerAssignmentId,
-      });
-      setChangeRequests(res);
-    } finally {
-      setLoadingChangeRequests(false);
-    }
-  }, [writerAssignmentChapterId, writerAssignmentId]);
-
-  useEffect(() => {
-    void loadChangeRequests();
-  }, [loadChangeRequests, writerAssignmentStatus]);
-
-  const openChangeRequestCount = useMemo(
-    () => changeRequests.filter((c) => crStatus(c.status) === 'Open').length,
-    [changeRequests],
-  );
-
   const [submittingToEditor, setSubmittingToEditor] = useState(false);
 
-  const canEditScript = useMemo(() => {
-    if (!effectiveRole) return !isWriterBlockedByOther;
-    if (effectiveRole === 'PRODUCER') return true;
-    if (effectiveRole === 'WRITER') {
-      return !hasWriterAssignment || isAssignedWriter;
-    }
-    return false;
-  }, [effectiveRole, hasWriterAssignment, isAssignedWriter, isWriterBlockedByOther]);
+  // SCR-12: kịch bản không còn đi qua Assignment; studio có một Writer viết, Producer sửa được.
+  // Các vai trò khác (Artist, Editor, Viewer...) chỉ đọc.
+  const canEditScript =
+    !effectiveRole || effectiveRole === 'PRODUCER' || effectiveRole === 'WRITER';
 
   const [scenes, setScenes] = useState<SceneDto[]>([]);
   const [selectedScene, setSelectedScene] = useState<SceneDetailDto | null>(null);
@@ -392,7 +325,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Mặc định mở side drawer phù hợp môi trường
   const [activeSideDrawer, setActiveSideDrawer] = useState<
-    'chapters' | 'scenes' | 'narrative' | 'consistency' | 'characters' | 'changeRequests' | null
+    'chapters' | 'scenes' | 'narrative' | 'consistency' | 'characters' | 'versions' | null
   >(null);
   const [importRequestKey, setImportRequestKey] = useState(0);
 
@@ -411,7 +344,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Modals phụ trợ
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [storyboardPanelOpen, setStoryboardPanelOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
 
   // V2.5: Chapter-Scoped Bible Gate & Script Freeze Gate
   const [bibleGateResult, setBibleGateResult] = useState<ChapterBibleGateResultDto | null>(null);
@@ -587,22 +519,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   }, [chapterIdFromUrl, chapters, currentChapter?.id]);
 
-  // Tải danh sách thành viên workspace để hiển thị tên Writer được phân công (nếu có)
-  const effectiveWsId = workspaceId || seriesDetail?.workspaceId;
-  useEffect(() => {
-    if (!effectiveWsId) return;
-    workspaceService
-      .getMembers(effectiveWsId)
-      .then((mems) => setWorkspaceMembers(mems || []))
-      .catch(() => setWorkspaceMembers([]));
-  }, [effectiveWsId]);
-
-  // Đồng bộ Outline, findings nhất quán và danh sách Assignment khi currentChapter thay đổi
+  // Đồng bộ Outline và findings nhất quán khi currentChapter thay đổi
   useEffect(() => {
     if (!currentChapter?.id) {
       setOutlineInput('');
       setFindings([]);
-      setChapterAssignments([]);
       return;
     }
     // Xoá ngay findings cũ để tránh hiển thị kết quả của chương trước khi chuyển chương
@@ -618,25 +539,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         setFindings([]);
       });
 
-    assignmentService
-      .getAssignments(currentChapter.id)
-      .then((res) => {
-        setChapterAssignments(res || []);
-      })
-      .catch(() => {
-        setChapterAssignments([]);
-      });
-
     void checkChapterBibleGate(currentChapter.id);
   }, [currentChapter?.id, currentChapter?.outline, checkChapterBibleGate]);
 
-  // 2. Nạp chi tiết Chapter (cập nhật versionVector) & cập nhật lại phân công
+  // 2. Nạp chi tiết Chapter (cập nhật versionVector)
   const refreshChapterDetail = useCallback(async (chapId: string) => {
     try {
       const detail = await chapterService.getChapterById(chapId);
       setCurrentChapter((prev) => (prev ? { ...prev, ...detail } : detail));
-      const assignments = await assignmentService.getAssignments(chapId);
-      setChapterAssignments(assignments || []);
     } catch (err) {
       console.error('Lỗi refresh chi tiết chương:', err);
     }
@@ -809,6 +719,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       }
 
       setCurrentChapter((prev) => (prev ? { ...prev, versionVector: currentVersion } : null));
+
+      // 4b. Lưu = commit: chụp phiên bản kịch bản (máy chủ bỏ qua nếu nội dung không đổi)
+      try {
+        await chapterService.commitScriptVersion(chapterId);
+      } catch (commitErr: any) {
+        notify(t('scriptStudio.versions.commitFailed'), commitErr?.message ?? '');
+      }
+      setVersionsTick((n) => n + 1);
 
       // 5. Nạp lại Scene để editor nhận Id dòng từ máy chủ
       try {
@@ -1259,50 +1177,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setTimeout(() => {
       setHighlightedLineId((prev) => (prev === scriptLineId ? null : prev));
     }, 4500);
-  };
-
-  // Mở bảng yêu cầu sửa một lần cho mỗi lượt Editor trả kịch bản còn CR Open.
-  useEffect(() => {
-    if (!writerAssignmentId || writerAssignmentStatus !== 'ReworkRequired') return;
-    if (openChangeRequestCount === 0 || autoOpenedCrForRef.current === writerAssignmentId) return;
-    autoOpenedCrForRef.current = writerAssignmentId;
-    setActiveSideDrawer('changeRequests');
-  }, [writerAssignmentId, writerAssignmentStatus, openChangeRequestCount]);
-
-  const handleResolveChangeRequest = async (changeRequestId: string, note: string) => {
-    if (!writerAssignmentChapterId) return false;
-    try {
-      const updated = await assignmentService.resolveChangeRequest(
-        writerAssignmentChapterId,
-        changeRequestId,
-        note || undefined,
-      );
-      setChangeRequests((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-      notify(
-        t('writerChangeRequests.resolvedToastTitle'),
-        t('writerChangeRequests.resolvedToastDesc'),
-      );
-      return true;
-    } catch (err: any) {
-      notify(t('writerChangeRequests.resolveFailed'), err?.message ?? '');
-      return false;
-    }
-  };
-
-  const handleJumpToChangeRequest = (cr: ChangeRequestDto) => {
-    if (cr.scriptLineId) {
-      void handleScrollToLine(cr.scriptLineId);
-      return;
-    }
-    const scene = scenes.find((sc) => sc.id === cr.sceneId);
-    if (scene) {
-      handleSelectScene(scene);
-    } else {
-      notify(
-        t('writerChangeRequests.sceneMissingTitle'),
-        t('writerChangeRequests.sceneMissingDesc'),
-      );
-    }
   };
 
   // --- CRUD SCENE ---
@@ -1802,12 +1676,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   };
 
-  /** D12: Writer nộp kịch bản (Draft → InReview). Lưu bản đang sửa trước khi nộp là việc của bàn viết (Ctrl+S). */
+  /**
+   * D12: Writer gửi duyệt = push (Draft → InReview, hoặc gửi lại khi InReview để Editor đọc bản mới).
+   * Tự lưu chữ chưa lưu trên bàn viết trước; lưu lỗi thì không gửi.
+   */
   const handleSubmitScript = async () => {
     if (!currentChapter?.id) return;
+    if (editorSaveRef.current && !(await editorSaveRef.current())) return;
     const n = currentChapter.chapterNumber;
     const confirmed = await confirm({
-      title: t('scriptStudio.lifecycle.submitConfirmTitle', { n }),
+      title: isScriptInReview
+        ? t('scriptStudio.lifecycle.resubmitConfirmTitle', { n })
+        : t('scriptStudio.lifecycle.submitConfirmTitle', { n }),
       description: t('scriptStudio.lifecycle.submitConfirmBody'),
       confirmText: t('scriptStudio.submit.writer'),
       cancelText: t('scriptStudio.lifecycle.cancel'),
@@ -1823,6 +1703,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         t('scriptStudio.lifecycle.submittedBody', { n }),
       );
       await applyChapterUpdate(updated);
+      setVersionsTick((v) => v + 1);
     } catch (err: any) {
       notify(t('scriptStudio.lifecycle.submitFailed'), err.message);
     } finally {
@@ -1900,18 +1781,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Handler đi qua ref vì chúng được tạo lại mỗi lần render; đưa trực tiếp vào deps sẽ gây vòng lặp setHeaderConfig.
   const focusHeader = useFocusHeaderContext();
   const isWriterRole = normRole === 'WRITER' || effectiveRole === 'WRITER';
-  // D12: Writer nộp (Draft) / rút về (InReview); Producer Start Production (InReview). Editor không có nút đổi trạng thái.
-  const scriptAction: 'submit' | 'recall' | 'start' | null =
+  // D12: Writer gửi duyệt (Draft) / gửi lại khi đã sửa sau lần gửi (InReview); hủy gửi duyệt nằm ở banner.
+  // Producer Start Production (InReview). Editor không có nút đổi trạng thái.
+  const scriptAction: 'submit' | 'resubmit' | 'start' | null =
     !currentChapter || isChapterContentLocked
       ? null
       : isWriterRole && scriptStatus === 'Draft'
         ? 'submit'
         : isWriterRole && isScriptInReview
-          ? 'recall'
+          ? 'resubmit'
           : isProducer && isScriptInReview
             ? 'start'
             : null;
-  const canSubmitScript = scriptAction !== null;
+  // Gửi lại chỉ khi đã lưu thay đổi sau lần gửi duyệt gần nhất
+  const canSubmitScript =
+    scriptAction !== null && (scriptAction !== 'resubmit' || hasUnpushedChanges);
   const scriptStageIndex = isScriptFrozen ? 2 : isScriptInReview ? 1 : 0;
 
   const submitScriptRef = React.useRef<() => void>(() => {});
@@ -1919,8 +1803,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   useEffect(() => {
     submitScriptRef.current = () => {
       if (scriptAction === 'start') void handleFreezeScript();
-      else if (scriptAction === 'recall') void handleRecallScript();
-      else if (scriptAction === 'submit') void handleSubmitScript();
+      else if (scriptAction === 'submit' || scriptAction === 'resubmit') void handleSubmitScript();
     };
     selectChapterRef.current = handleSelectChapter;
   });
@@ -1957,8 +1840,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       submitButtonLabel:
         scriptAction === 'start'
           ? t('scriptStudio.submit.producer')
-          : scriptAction === 'recall'
-            ? t('scriptStudio.submit.recall')
+          : scriptAction === 'resubmit'
+            ? t('scriptStudio.submit.resubmit')
             : t('scriptStudio.submit.writer'),
     });
   }, [
@@ -2047,21 +1930,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       testId: 'run-consistency-check-btn',
       onClick: handleRunConsistencyCheck,
     },
-    ...(changeRequests.length > 0 || writerAssignmentStatus === 'ReworkRequired'
-      ? [
-          {
-            id: 'change-requests',
-            label: t('writerChangeRequests.toggle'),
-            icon: ClipboardList,
-            tone: openChangeRequestCount > 0 ? 'warn' : 'default',
-            active: activeSideDrawer === 'changeRequests',
-            badge: openChangeRequestCount,
-            busy: loadingChangeRequests,
-            testId: 'writer-change-requests-btn',
-            onClick: () => toggleDrawer('changeRequests'),
-          } satisfies ScriptRailItem,
-        ]
-      : []),
     ...(canEditScript && !isChapterLocked
       ? [
           {
@@ -2109,9 +1977,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       id: 'history',
       label: t('scriptStudio.rail.history'),
       icon: History,
-      disabled: !selectedScene,
+      active: activeSideDrawer === 'versions',
+      tone: hasUnpushedChanges ? 'warn' : 'default',
       testId: 'open-script-history-btn',
-      onClick: () => setHistoryOpen(true),
+      onClick: () => toggleDrawer('versions'),
     },
   ];
 
@@ -2347,13 +2216,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               className='p-3 bg-amber-50 border border-amber-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-amber-950'
             >
               <div className='flex items-center gap-2.5 min-w-0'>
-                <Lock className='w-4 h-4 text-amber-700 shrink-0' />
+                <Send className='w-4 h-4 text-amber-700 shrink-0' />
                 <div>
                   <p className='text-xs font-semibold'>
                     {t('scriptStudio.lifecycle.inReviewTitle')}
                   </p>
                   <p className='text-[11px] text-amber-900/80 mt-0.5'>
-                    {t('scriptStudio.lifecycle.inReviewBody')}
+                    {hasUnpushedChanges
+                      ? t('scriptStudio.lifecycle.inReviewDirty')
+                      : t('scriptStudio.lifecycle.inReviewBody')}
                   </p>
                 </div>
               </div>
@@ -2438,24 +2309,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           )}
 
-          {isWriterBlockedByOther && !isChapterLocked ? (
-            <div
-              data-testid='writer-not-assigned-banner'
-              className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
-            >
-              <div className='flex items-center gap-2'>
-                <AlertCircle className='w-4 h-4 text-amber-600 shrink-0' />
-                <span className='text-xs font-medium'>
-                  Chế độ chỉ đọc: Kịch bản chương này đã được giao cho Writer khác
-                  {assignedWriterNames ? ` (${assignedWriterNames})` : ''}. Chỉ người được giao hoặc
-                  Producer mới có quyền chỉnh sửa.
-                </span>
-              </div>
-              <span className='text-xs font-bold uppercase tracking-wider bg-amber-200/90 text-amber-900 px-2.5 py-0.5 rounded-full shrink-0'>
-                Đã giao người khác
-              </span>
-            </div>
-          ) : !canEditScript && !isChapterLocked ? (
+          {!canEditScript && !isChapterLocked ? (
             <div
               data-testid='role-view-only-banner'
               className='p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 text-blue-900'
@@ -2540,6 +2394,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               canEditScript={canEditScript}
               isChapterLocked={isChapterLocked}
               onSave={handleSaveScript}
+              registerSave={registerEditorSave}
               onShowToast={onShowToast}
               dockLeading={viewSwitcher}
               manuscriptTitle={formatChapterOption(
@@ -2676,16 +2531,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           characters={characters}
         />
 
-        <WriterChangeRequestsDrawer
-          isOpen={activeSideDrawer === 'changeRequests'}
-          onClose={() => setActiveSideDrawer(null)}
-          changeRequests={changeRequests}
-          loading={loadingChangeRequests}
-          generalNote={myWriterAssignment?.lastFeedbackComment}
-          canResolve={isAssignedWriter && !isScriptFrozen}
-          onResolve={handleResolveChangeRequest}
-          onJump={handleJumpToChangeRequest}
-        />
+        {/* 4. Lịch sử commit (Lưu = commit, Gửi duyệt = push) và so với bản đã gửi duyệt */}
+        {activeSideDrawer === 'versions' && currentChapter?.id && (
+          <ScriptVersionsDrawer
+            chapterId={currentChapter.id}
+            pushedVersionId={currentChapter.lastSubmittedVersionId}
+            refreshKey={versionsTick}
+            onClose={() => setActiveSideDrawer(null)}
+          />
+        )}
       </div>
 
       {/* Trợ lý AI viết nháp kịch bản */}
@@ -2728,39 +2582,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           hasPanels={sceneHasPanels}
           onClose={() => setStoryboardPanelOpen(false)}
           onReload={handleAiReload}
-        />
-      )}
-
-      {/* Lịch sử phiên bản kịch bản (UC-13) */}
-      {historyOpen && seriesId && currentChapter?.id && selectedScene?.id && (
-        <ScriptHistoryModal
-          key={selectedScene.id}
-          seriesId={seriesId}
-          chapterId={currentChapter.id}
-          sceneId={selectedScene.id}
-          chapterVersion={currentChapter.versionVector}
-          currentLines={selectedScene.scriptLines ?? []}
-          canRestore={
-            // D12: chỉ khôi phục khi kịch bản đang Draft và chương chưa khoá nội dung
-            canEditScript && !isChapterLocked
-          }
-          nameById={aiNameById}
-          onClose={() => setHistoryOpen(false)}
-          onRestored={async (res) => {
-            setConcurrencyError(null);
-            setCurrentChapter((prev) =>
-              prev ? { ...prev, versionVector: res.chapterVersion } : null,
-            );
-            notify(
-              'Đã khôi phục kịch bản',
-              `Đã khôi phục về v${res.restoredFromVersionNumber}; tạo phiên bản mới v${res.versionNumber}.`,
-            );
-            await loadSceneDetail(selectedScene.id);
-          }}
-          onConflict={async (msg) => {
-            notify('Xung đột phiên bản (409 CONFLICT)', msg);
-            await handleAiReload();
-          }}
         />
       )}
 

@@ -138,7 +138,8 @@
     "submit": {
       "writer": "Submit for review",
       "recall": "Cancel submission",
-      "producer": "Start production"
+      "producer": "Start production",
+      "resubmit": "Submit again"
     },
     "views": {
       "label": "View",
@@ -213,26 +214,54 @@
       "hint": "Just write. Enter for a new line · type \"Name:\" for dialogue · Tab changes the line type"
     },
     "lifecycle": {
-      "inReviewTitle": "Script is in review — editing paused",
-      "inReviewBody": "Editors comment line by line; the Producer clicks \"Start production\" when ready. To keep editing, the Writer clicks \"Cancel submission\".",
+      "inReviewTitle": "Script is in review",
+      "inReviewBody": "The Editor is reading the version you submitted. You can keep editing and saving; the Editor sees the new version only after you press \"Submit again\".",
       "submitConfirmTitle": "Submit the script of chapter {n} for review?",
-      "submitConfirmBody": "Editing is paused while in review and the Editor and Producer are notified. You can cancel the submission any time before production starts.",
+      "submitConfirmBody": "The Editor and Producer are notified and read exactly this version. You can keep editing and submit again before the Producer starts production.",
       "submitted": "Script submitted for review",
       "submittedBody": "The script of chapter {n} is now in review.",
       "submitFailed": "Could not submit for review",
-      "recalled": "Submission cancelled, you can keep editing",
+      "recalled": "Submission withdrawn",
       "recallFailed": "Could not cancel the submission",
       "startConfirmTitle": "Start production of chapter {n}?",
       "startConfirmBody": "The script will be finalized (read-only) and the chapter moves into production. Editing again requires reopening the script with a reason.",
       "started": "Production started",
       "startedBody": "The script of chapter {n} is finalized and the chapter is in production.",
       "startFailed": "Could not start production",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "inReviewDirty": "You saved changes after the last submission. The Producer can start production only after you submit again.",
+      "resubmitConfirmTitle": "Submit the Chapter {n} script again?"
     },
     "comments": {
       "title": "Open comments ({count})",
       "resolve": "Mark resolved",
       "resolveFailed": "Could not mark the comment"
+    },
+    "versions": {
+      "title": "Script versions",
+      "open": "View changes",
+      "close": "Close",
+      "from": "Compare",
+      "to": "With",
+      "working": "Current draft (not saved as a version)",
+      "emptyBase": "(empty)",
+      "none": "No versions yet. Each save creates one.",
+      "noChanges": "No changes between the two versions.",
+      "pushed": "submitted",
+      "committed": "saved",
+      "loading": "Loading…",
+      "commitFailed": "Script saved, but the version was not created",
+      "rowPage": "PAGE {n}",
+      "rowThought": "(thinks)",
+      "tab": "Changes",
+      "drawerSubtitle": "Save = commit · Submit = push",
+      "compareWithPushed": "Compare with submitted version",
+      "pushedBadge": "SUBMITTED",
+      "head": "LATEST",
+      "unpushed": "Changes not yet submitted",
+      "noMessage": "(no note)",
+      "back": "All versions",
+      "viewChanges": "View changes in this version"
     }
   },
   "createProjectModal": {
