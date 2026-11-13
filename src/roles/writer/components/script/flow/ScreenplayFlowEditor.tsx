@@ -49,12 +49,12 @@ const SHEET_CSS = `
 .gn-sheet .ProseMirror { outline: none; font-family: 'Courier Prime', 'Courier New', ui-monospace, monospace;
   font-size: 15px; line-height: 1.75rem; color: #1c1917; caret-color: #c2410c; min-height: 900px; }
 .gn-sheet .gn-line { clear: both; min-height: 1.75rem; white-space: pre-wrap; word-break: break-word; }
-.gn-sheet .gn-page { margin-top: 3rem; padding-top: .75rem; border-top: 1px solid #e7e5e4;
-  font-weight: 700; font-size: 17px; letter-spacing: .04em; }
+.gn-sheet .gn-page { margin-top: 3.5rem; padding-top: 1rem; border-top: 2px solid #a8a29e;
+  font-weight: 800; font-size: 18px; letter-spacing: .05em; color: #0c0a09; }
 .gn-sheet .gn-page:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
-.gn-sheet .gn-page::before { content: attr(data-label); }
-.gn-sheet .gn-panel { margin-top: 1.25rem; font-weight: 700; text-transform: uppercase; }
-.gn-sheet .gn-panel::before { content: attr(data-label) "\\00a0\\00a0"; }
+.gn-sheet .gn-page::before { content: attr(data-label); font-weight: 800; color: #0c0a09; }
+.gn-sheet .gn-panel { margin-top: 1.5rem; font-weight: 800; font-size: 15px; letter-spacing: .03em; color: #0c0a09; text-transform: uppercase; }
+.gn-sheet .gn-panel::before { content: attr(data-label) "\\00a0\\00a0"; font-weight: 800; color: #0c0a09; }
 .gn-sheet .gn-action { margin-top: .5rem; }
 .gn-sheet .gn-character { float: left; clear: both; width: 10rem; margin-top: .5rem; text-transform: uppercase; }
 .gn-sheet .gn-dialogue { clear: none; margin-left: 11rem; }
