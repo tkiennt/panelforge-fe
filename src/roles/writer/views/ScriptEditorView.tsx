@@ -2741,7 +2741,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           chapterVersion={currentChapter.versionVector}
           currentLines={selectedScene.scriptLines ?? []}
           canRestore={
-            canEditScript && (!currentChapter.status || currentChapter.status === 'InProduction')
+            // D12: chỉ khôi phục khi kịch bản đang Draft và chương chưa khoá nội dung
+            canEditScript && !isChapterLocked
           }
           nameById={aiNameById}
           onClose={() => setHistoryOpen(false)}
