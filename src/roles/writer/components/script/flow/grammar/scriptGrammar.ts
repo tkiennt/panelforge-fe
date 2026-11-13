@@ -21,13 +21,19 @@ export const GN_ELEMENTS: readonly GnElement[] = [
 
 /** Kết quả của một phím: đổi loại dòng hiện tại, hoặc chèn dòng mới bên dưới. */
 export type GnMove =
-  { op: 'morph'; to: GnElement } | { op: 'insert'; to: GnElement } | { op: 'none' };
+  | { op: 'morph'; to: GnElement }
+  | { op: 'insert'; to: GnElement }
+  | { op: 'menu' }
+  | { op: 'none' };
 
 /**
- * Enter. WriterSolo luôn tạo dòng mới (kể cả khi dòng đang trống):
+ * Enter trên dòng có chữ:
  * Page → Panel → Action → Action; Character → Dialogue; Parens → Dialogue; Dialogue / Caption / SFX → Action.
+ * Enter trên dòng nội dung trống mở menu chọn loại dòng; Trang / Panel trống vẫn đi tiếp như trên.
  */
-export function onEnter(el: GnElement): GnMove {
+export function onEnter(el: GnElement, isEmpty = false): GnMove {
+  // Dòng nội dung đang trống: mở menu chọn loại dòng (Trang/Panel giữ luật riêng).
+  if (isEmpty && el !== 'page' && el !== 'panel') return { op: 'menu' };
   switch (el) {
     case 'page':
       return { op: 'insert', to: 'panel' };

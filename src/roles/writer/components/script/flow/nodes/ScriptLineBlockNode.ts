@@ -128,10 +128,69 @@ export function setLineElement(editor: Editor, el: GnElement): boolean {
   return true;
 }
 
+// ───────────────────────── menu chọn loại dòng (Enter trên dòng trống) ─────────────────────────
+
+export interface ElementMenuState {
+  open: boolean;
+  /** Vị trí trong GN_ELEMENTS đang được chọn. */
+  index: number;
+}
+
+export const elementMenuKey = new PluginKey<ElementMenuState>('scriptElementMenu');
+
+export function getElementMenu(state: EditorState): ElementMenuState {
+  return elementMenuKey.getState(state) ?? { open: false, index: 0 };
+}
+
+function setElementMenu(editor: Editor, next: ElementMenuState): boolean {
+  editor.view.dispatch(editor.state.tr.setMeta(elementMenuKey, next));
+  return true;
+}
+
+export function closeElementMenu(editor: Editor): boolean {
+  return setElementMenu(editor, { open: false, index: 0 });
+}
+
+/** Chọn một loại dòng trong menu: đổi dòng trống hiện tại sang loại đó rồi đóng menu. */
+export function chooseElement(editor: Editor, el: GnElement): boolean {
+  setLineElement(editor, el);
+  return closeElementMenu(editor);
+}
+
+const ElementMenuPlugin = new Plugin<ElementMenuState>({
+  key: elementMenuKey,
+  state: {
+    init: () => ({ open: false, index: 0 }),
+    apply(tr, value) {
+      const meta = tr.getMeta(elementMenuKey) as ElementMenuState | undefined;
+      if (meta) return meta;
+      // Gõ chữ hoặc di chuyển con trỏ thì menu tự đóng.
+      if (value.open && (tr.docChanged || tr.selectionSet)) return { open: false, index: 0 };
+      return value;
+    },
+  },
+});
+
 function applyMove(editor: Editor, move: GnMove): boolean {
   if (move.op === 'morph') return setLineElement(editor, move.to);
   if (move.op === 'insert') return insertLineAfter(editor, move.to);
+  if (move.op === 'menu') {
+    const line = currentLine(editor.state);
+    const index = Math.max(0, GN_ELEMENTS.indexOf(line?.el ?? 'action'));
+    return setElementMenu(editor, { open: true, index });
+  }
   return true; // 'none': vẫn nuốt phím để con trỏ không rời editor
+}
+
+/** Phím khi menu đang mở; trả null nếu menu đóng (để keymap thường xử lý). */
+function handleMenuKey(editor: Editor, key: 'up' | 'down' | 'pick' | 'close'): boolean | null {
+  const menu = getElementMenu(editor.state);
+  if (!menu.open) return null;
+  const n = GN_ELEMENTS.length;
+  if (key === 'up') return setElementMenu(editor, { open: true, index: (menu.index - 1 + n) % n });
+  if (key === 'down') return setElementMenu(editor, { open: true, index: (menu.index + 1) % n });
+  if (key === 'pick') return chooseElement(editor, GN_ELEMENTS[menu.index]);
+  return closeElementMenu(editor);
 }
 
 /** Tên nhân vật đã gõ trong kịch bản (trừ dòng đang sửa), tên dùng gần nhất đứng trước. */
@@ -251,6 +310,8 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
   addKeyboardShortcuts() {
     const shortcuts: Record<string, (props: { editor: Editor }) => boolean> = {
       Enter: ({ editor }) => {
+        const menuHandled = handleMenuKey(editor, 'pick');
+        if (menuHandled !== null) return menuHandled;
         if (!currentLine(editor.state)) return false;
         if (!editor.state.selection.empty) editor.commands.deleteSelection();
         acceptCharacterCompletion(editor);
@@ -269,9 +330,14 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
           );
           return true;
         }
-        return applyMove(editor, onEnter(line.el));
+        return applyMove(editor, onEnter(line.el, line.isEmpty));
       },
+      ArrowUp: ({ editor }) => handleMenuKey(editor, 'up') ?? false,
+      ArrowDown: ({ editor }) => handleMenuKey(editor, 'down') ?? false,
+      Escape: ({ editor }) => handleMenuKey(editor, 'close') ?? false,
       Tab: ({ editor }) => {
+        const menuHandled = handleMenuKey(editor, 'pick');
+        if (menuHandled !== null) return menuHandled;
         const line = currentLine(editor.state);
         if (!line) return true;
         if (line.el === 'character' && acceptCharacterCompletion(editor)) {
@@ -295,6 +361,7 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
     const labels = this.options.labels;
     const editor = this.editor;
     return [
+      ElementMenuPlugin,
       // Gõ ":" sau tên nhân vật: không chèn dấu, nhận tên đang gợi ý rồi sang dòng Thoại (như Enter).
       new Plugin({
         key: new PluginKey('scriptCharacterColon'),
@@ -353,6 +420,9 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
                 panelNo += 1;
                 if (pages.length) pages[pages.length - 1].panels += 1;
                 decos.push(range(labels.panel(panelNo)));
+              } else if (el === 'character' && node.content.size > 0) {
+                // Hiện "TÊN:" — dấu hai chấm chỉ để nhìn, không nằm trong chữ lưu
+                decos.push(Decoration.node(offset, offset + node.nodeSize, { class: 'gn-filled' }));
               } else if (el === 'caption') {
                 decos.push(range(labels.caption));
               } else if (el === 'sfx') {
