@@ -31,6 +31,8 @@ import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { LucianInlineAlert } from '@/shared/components/lucian/LucianInlineAlert';
 import { LucianConfirmModal } from '@/shared/components/lucian/LucianConfirmModal';
 import { getCategoryLabel, getCategoryBadgeStyle } from './bibleCategory';
+import { SPEC_DELIVERABLES, SPEC_SCHEMA, specCategoryOf, specCompleteness } from './bibleSpec';
+import type { BibleEntryUsageDto } from '@/services/bible.service';
 
 export interface CharacterEraStage {
   stageKey: string;
@@ -203,6 +205,9 @@ interface BibleEntityDetailModalProps {
   onZoomImage: (image: { url: string; title: string }) => void;
   onDeleteRevision?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => Promise<void>;
   onDeleteEra?: (entity: BibleEntity, stage: CharacterEraStage) => Promise<void>;
+  /** Danh sách mục của Bible để chuyển nhanh sang mục cùng danh mục ở sidebar. */
+  entities?: BibleEntity[];
+  onSelectEntity?: (entity: BibleEntity) => void;
 }
 
 export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
@@ -225,6 +230,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   onZoomImage,
   onDeleteRevision,
   onDeleteEra,
+  entities = [],
+  onSelectEntity,
 }) => {
   const [showConceptGuide, setShowConceptGuide] = useState(false);
   const [activeArtTab, setActiveArtTab] = useState<'turnaround' | 'action'>('turnaround');
@@ -309,6 +316,26 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     rawEntry?.effectiveRevision?.id,
     rawEntry?.effectiveRevision?.versionNumber,
   ]);
+
+  // Sidebar: chương nào trong kịch bản dùng mục này (cùng quy tắc Gate 1, BR-21)
+  const [usages, setUsages] = useState<BibleEntryUsageDto[] | null | 'error'>(null);
+  useEffect(() => {
+    if (!seriesId || !entity.id) return;
+    let active = true;
+    setUsages(null);
+    bibleService
+      .getEntryUsages(seriesId, entity.id)
+      .then((list) => active && setUsages(list || []))
+      .catch(() => active && setUsages('error'));
+    return () => {
+      active = false;
+    };
+  }, [seriesId, entity.id]);
+
+  const siblings = useMemo(
+    () => entities.filter((e) => e.category === entity.category),
+    [entities, entity.category],
+  );
 
   const stages = useMemo(() => {
     const fallback = rawEntry?.effectiveRevision || null;
@@ -429,23 +456,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   }, [activeRevision]);
 
   // Entity Category detection
-  const normalizedCategory = useMemo<
-    'character' | 'location' | 'prop' | 'terminology' | 'style'
-  >(() => {
-    const cat = String(entity.category || '').toLowerCase();
-    if (cat.includes('loc') || cat === '2') return 'location';
-    if (cat.includes('prop') || cat === '3') return 'prop';
-    if (
-      cat.includes('term') ||
-      cat.includes('lore') ||
-      cat.includes('plot') ||
-      cat === '4' ||
-      cat === '6'
-    )
-      return 'terminology';
-    if (cat.includes('style') || cat.includes('rule') || cat === '5') return 'style';
-    return 'character';
-  }, [entity.category]);
+  const normalizedCategory = useMemo(
+    () => specCategoryOf(entity, rawEntry?.category),
+    [entity, rawEntry?.category],
+  );
 
   const isCharacter = normalizedCategory === 'character';
   const isLocation = normalizedCategory === 'location';
@@ -482,6 +496,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     const combined = { ...(entity.attributes || {}), ...rawDetailsObj, ...parsed };
 
     return {
+      raw: combined as Record<string, unknown>,
       // Character fields (No 17 tuổi or 178 cm fallbacks!)
       age: combined.age || combined['tuổi'] || combined['độ tuổi'] || '',
       height: combined.height || combined['chiều cao'] || combined['vóc dáng'] || '',
@@ -756,8 +771,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    closeButtonRef.current?.focus();
-
     const handleKeyDown = (e: KeyboardEvent) => {
       // Do not close workbench if any child modal (e.g. Add Revision, Confirm, Zoom) is currently open on top
       const hasOpenChildModal =
@@ -772,27 +785,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         e.preventDefault();
         onClose();
         return;
-      }
-
-      if (e.key === 'Tab' && modalContainerRef.current) {
-        const focusableElements = modalContainerRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusableElements.length === 0) return;
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
-
-        if (e.shiftKey) {
-          if (document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement.focus();
-          }
-        } else {
-          if (document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
-        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -859,73 +851,93 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     }
   };
 
+  // Spec V2.6 §5.2: vòng đời của giai đoạn đang chọn và "bóng đang ở chân ai"
+  const isVisualDesign = ['character', 'location', 'prop'].includes(normalizedCategory);
+  const lifecycleStatus = (():
+    'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'WriterEndorsed' | 'CanonLocked' => {
+    if (!activeRevision) return 'Draft';
+    if (activeRevision.isLocked) return 'CanonLocked';
+    const st = activeRevision.reviewStatus as string | number | undefined;
+    const byNumber = [
+      '',
+      'Draft',
+      'ConceptSubmitted',
+      'ReworkRequired',
+      'WriterEndorsed',
+      'CanonLocked',
+    ];
+    const name = typeof st === 'number' ? byNumber[st] : st;
+    return (name as 'Draft') || 'Draft';
+  })();
+  const lifecycleSteps = isVisualDesign
+    ? ['Bản nháp', 'Đã nộp Concept', 'Đã xác nhận', 'Canon Locked']
+    : ['Bản nháp', 'Đã xác nhận'];
+  const lifecycleIndex = isVisualDesign
+    ? { Draft: 0, ConceptSubmitted: 1, ReworkRequired: 1, WriterEndorsed: 2, CanonLocked: 3 }[
+        lifecycleStatus
+      ]
+    : lifecycleStatus === 'Draft'
+      ? 0
+      : 1;
+  const lifecycleDone = isVisualDesign
+    ? lifecycleStatus === 'CanonLocked'
+    : lifecycleStatus !== 'Draft';
+  const waitingFor = {
+    Draft: isVisualDesign
+      ? 'Artist tải Model Sheet theo đặc tả'
+      : 'Writer / Editor xác nhận nội dung',
+    ConceptSubmitted: 'Writer / Editor đối chiếu bản vẽ với đặc tả',
+    ReworkRequired: 'Artist vẽ lại theo nhận xét',
+    WriterEndorsed: isVisualDesign ? 'Producer khoá Canon' : 'Đã có hiệu lực',
+    CanonLocked: 'Đã khoá. Muốn thay đổi hãy tạo giai đoạn mới',
+  }[lifecycleStatus];
+  const isMyTurn =
+    (lifecycleStatus === 'Draft' && (isVisualDesign ? isArtistUser : canEndorse)) ||
+    (lifecycleStatus === 'ConceptSubmitted' && canEndorse) ||
+    (lifecycleStatus === 'ReworkRequired' && isArtistUser) ||
+    (lifecycleStatus === 'WriterEndorsed' && isVisualDesign && isProducerUser);
+  const specDescription = (() => {
+    try {
+      const snap = JSON.parse(activeRevision?.snapshotJson || '{}');
+      return (snap.Description ?? snap.description ?? entity.description ?? '') as string;
+    } catch {
+      return entity.description ?? '';
+    }
+  })();
+  const specProgress = specCompleteness(normalizedCategory, stageAttributes.raw);
+
   const modalContent = (
-    <div
+    <section
       ref={modalContainerRef}
-      className='fixed inset-0 z-[1000] bg-[#FAF8F5] flex flex-col overflow-hidden animate-in fade-in duration-150'
-      onClick={(e) => e.stopPropagation()}
-      role='dialog'
-      aria-modal='true'
+      className='space-y-4 animate-in fade-in duration-150'
       aria-labelledby='bible-entity-title'
+      data-testid='bible-entity-workbench'
     >
-      {/* ================= WORKBENCH TOP BAR ================= */}
-      <header className='h-14 sm:h-16 bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-2xs z-30'>
-        {/* Left: Back button + Breadcrumb + Entity Name */}
-        <div className='flex items-center gap-2.5 sm:gap-3 min-w-0'>
+      {/* ================= HEADER (hero card như màn danh sách Series Bible) ================= */}
+      <header className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'>
+        <div className='flex items-center justify-between gap-3'>
           <button
             type='button'
             onClick={onClose}
-            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-xs font-semibold text-[#1C1917] transition-all cursor-pointer shadow-2xs'
-            title='Quay lại danh sách Series Bible'
+            className='inline-flex items-center gap-1.5 text-sm font-semibold text-stone-600 hover:text-[#C2410C] transition-colors cursor-pointer'
+            title='Quay lại danh sách Series Bible (Esc)'
           >
-            <ArrowLeft className='w-3.5 h-3.5 text-[#F97316]' />
-            <span className='hidden sm:inline'>Quay lại Series Bible</span>
+            <ArrowLeft className='w-4 h-4' />
+            <span>Series Bible</span>
           </button>
-
-          <span className='text-zinc-300 font-mono hidden sm:inline'>/</span>
-
-          <nav className='flex items-center gap-1.5 text-xs text-[#57534E] min-w-0'>
-            <span className='hover:text-[#1C1917] transition hidden md:inline'>Series Bible</span>
-            <span className='hidden md:inline'>›</span>
-            <span className='hover:text-[#1C1917] transition hidden md:inline'>Kho tri thức</span>
-            <span className='hidden md:inline'>›</span>
-            <div className='flex items-center gap-1.5 bg-[#FAF8F5] px-2.5 py-1 rounded-lg border border-[#D8D2C5]'>
-              <span className='w-2 h-2 rounded-full bg-[#F97316]'></span>
-              <h2
-                id='bible-entity-title'
-                className='text-xs sm:text-sm font-bold font-serif text-[#1C1917] truncate'
-              >
-                {entity.name}
-              </h2>
-            </div>
-          </nav>
-
-          <span className='font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 border border-zinc-300 shrink-0 hidden sm:inline'>
-            {entity.code}
-          </span>
-          <span
-            className={`px-2.5 py-0.5 rounded text-xs font-bold border shrink-0 ${getCategoryBadgeStyle(entity.category)}`}
-          >
-            {getCategoryLabel(entity.category)}
-          </span>
-        </div>
-
-        {/* Right: Concept Guide & Role Badge */}
-        <div className='flex items-center gap-2 shrink-0'>
-          <button
-            type='button'
-            onClick={() => setShowConceptGuide((v) => !v)}
-            className='text-xs font-semibold px-2.5 py-1 rounded-lg border border-[#D8D2C5] hover:bg-[#FAF8F5] text-[#57534E] hover:text-[#1C1917] transition flex items-center gap-1.5 cursor-pointer shadow-2xs'
-            title='Xem hướng dẫn phân biệt Giai đoạn cốt truyện và Phiên bản mỹ thuật'
-          >
-            <HelpCircle className='w-3.5 h-3.5 text-[#F97316]' />
-            <span className='hidden sm:inline'>Quy ước Giai đoạn</span>
-          </button>
-
-          {/* Role indicator badge */}
-          <div className='px-2.5 py-1 rounded-lg text-xs font-bold border shrink-0 flex items-center gap-1.5 shadow-2xs bg-stone-100 text-stone-800 border-stone-300'>
-            <User className='w-3 h-3 text-[#F97316]' />
-            <span>
+          <div className='flex items-center gap-2'>
+            <button
+              type='button'
+              onClick={() => setShowConceptGuide((v) => !v)}
+              aria-pressed={showConceptGuide}
+              className='px-3 py-1.5 rounded-full border border-[#E7E5E4] bg-white hover:bg-[#F5F5F4] text-xs font-semibold text-stone-700 transition-colors flex items-center gap-1.5 cursor-pointer'
+              title='Phân biệt Giai đoạn cốt truyện và Phiên bản mỹ thuật'
+            >
+              <HelpCircle className='w-3.5 h-3.5 text-stone-500' />
+              <span className='hidden sm:inline'>Quy ước Giai đoạn</span>
+            </button>
+            <span className='px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 bg-stone-100 text-stone-700 border-stone-200'>
+              <User className='w-3.5 h-3.5 text-stone-500' />
               {isProducerUser
                 ? 'Nhà sản xuất'
                 : isWriterUser
@@ -936,33 +948,80 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       ? 'Biên tập viên'
                       : 'Người xem'}
             </span>
+            <button
+              ref={closeButtonRef}
+              type='button'
+              onClick={onClose}
+              className='p-1.5 rounded-full hover:bg-stone-200 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer'
+              title='Đóng (Esc)'
+              aria-label='Đóng cửa sổ chi tiết'
+            >
+              <X className='w-4 h-4' />
+            </button>
+          </div>
+        </div>
+
+        <div className='flex flex-col xl:flex-row xl:items-end justify-between gap-4'>
+          <div className='min-w-0 space-y-1.5'>
+            <div className='flex items-center gap-2 flex-wrap'>
+              <span className='font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200'>
+                {entity.code}
+              </span>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getCategoryBadgeStyle(entity.category)}`}
+              >
+                {getCategoryLabel(entity.category)}
+              </span>
+            </div>
+            <h2
+              id='bible-entity-title'
+              className='text-2xl font-bold font-serif text-stone-900 tracking-tight truncate'
+            >
+              {entity.name}
+            </h2>
+            {entity.subtitle && <p className='text-sm text-stone-600'>{entity.subtitle}</p>}
           </div>
 
-          <button
-            ref={closeButtonRef}
-            type='button'
-            onClick={onClose}
-            className='p-1.5 rounded-lg hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800 transition-colors cursor-pointer shrink-0'
-            title='Đóng bàn làm việc (Phím Esc)'
-            aria-label='Đóng cửa sổ chi tiết'
-          >
-            <X className='w-4 h-4' />
-          </button>
+          <div className='flex items-center gap-2 flex-wrap shrink-0'>
+            <button
+              type='button'
+              onClick={() => onOpenHistory(entity)}
+              className='px-4 py-2 rounded-full bg-white hover:bg-[#F5F5F4] text-[#292524] border border-[#E7E5E4] text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
+            >
+              <History className='w-4 h-4 text-stone-500' />
+              <span>Lịch sử phiên bản</span>
+            </button>
+            {canCreateDraft ? (
+              <button
+                type='button'
+                onClick={() => onOpenAddRevision(entity)}
+                className='px-4 py-2 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
+              >
+                <GitCommit className='w-4 h-4' />
+                <span>{isProducer ? 'Tạo phiên bản mới' : 'Tạo bản nháp mới'}</span>
+              </button>
+            ) : (
+              <span className='px-3 py-1.5 rounded-full bg-stone-100 border border-stone-200 text-stone-600 text-xs font-medium flex items-center gap-1.5'>
+                <Lock className='w-3.5 h-3.5 text-stone-500' />
+                {isArtist ? 'Họa sĩ nộp Concept Art theo từng giai đoạn' : 'Chế độ chỉ xem'}
+              </span>
+            )}
+          </div>
         </div>
       </header>
 
       {/* ================= WORKSPACE BODY CONTAINER ================= */}
-      <main className='flex-1 overflow-y-auto max-w-7xl w-full mx-auto p-3 sm:p-5 md:p-6 space-y-4 custom-scrollbar'>
+      <div className='space-y-4'>
         {/* ================= COLLAPSIBLE CONCEPT NOTICE BANNER ================= */}
         {showConceptGuide && (
-          <div className='bg-gradient-to-r from-amber-50 via-white to-violet-50 border border-amber-200 rounded-xl p-3.5 sm:p-4 shadow-xs relative transition-all animate-in fade-in duration-200'>
+          <div className='bg-white border border-stone-200/80 rounded-xl p-4 shadow-xs relative transition-all animate-in fade-in duration-200'>
             <button
               type='button'
               onClick={() => setShowConceptGuide(false)}
-              className='absolute top-2.5 right-2.5 text-stone-400 hover:text-stone-700 text-xs'
+              className='absolute top-2.5 right-2.5 p-1 rounded-full text-stone-500 hover:text-stone-800 hover:bg-stone-100'
               aria-label='Đóng hướng dẫn'
             >
-              ✕
+              <X className='w-3.5 h-3.5' />
             </button>
             <div className='flex items-start gap-3'>
               <div className='w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0 mt-0.5'>
@@ -973,7 +1032,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   Hiểu đúng cấu trúc: Narrative Era (Thời kỳ) vs. Asset Version (Phiên bản mỹ thuật)
                 </div>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1 text-stone-600 text-xs'>
-                  <div className='bg-white/90 p-2.5 rounded-lg border border-amber-200/60'>
+                  <div className='bg-stone-50 p-2.5 rounded-lg border border-stone-200'>
                     <span className='font-bold text-[#C2410C] uppercase tracking-wider text-xs block mb-0.5'>
                       Trục Cốt Truyện — ERA (Narrative Timeline)
                     </span>
@@ -981,8 +1040,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     <strong>Mốc chương hiệu lực (Effective from Chapter)</strong> để Họa sĩ và ban
                     biên kịch đảm bảo tính nhất quán hình thái.
                   </div>
-                  <div className='bg-white/90 p-2.5 rounded-lg border border-violet-100'>
-                    <span className='font-bold text-violet-700 uppercase tracking-wider text-xs block mb-0.5'>
+                  <div className='bg-stone-50 p-2.5 rounded-lg border border-stone-200'>
+                    <span className='font-bold text-emerald-700 uppercase tracking-wider text-xs block mb-0.5'>
                       Tiến trình phiên bản thiết kế
                     </span>
                     Vòng đời phê duyệt: Bản thảo ➔ Kiểm duyệt ➔ Đã khóa chuẩn (Canon Locked). Theo
@@ -995,789 +1054,823 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           </div>
         )}
 
-        {/* ================= SINGLE CONTEXTUAL STATUS ALERT (LUCIAN INLINE ALERT) ================= */}
-        {activeRevision?.reviewStatus === 'ReworkRequired' ? (
-          <LucianInlineAlert
-            type='warning'
-            title='Yêu cầu chỉnh sửa bản vẽ từ Writer / Editor'
-            description={
-              activeRevision.reworkFeedback ||
-              'Writer yêu cầu chỉnh sửa lại thiết kế cho giai đoạn này.'
-            }
-            details={`Giai đoạn: "${activeStage?.stageName || 'Chuẩn'}" · Hiệu lực từ Chương ${activeStage?.effectiveFromChapterNumber ?? 1} đến ${activeStage?.effectiveToChapterNumber || 'hết truyện'}. Vui lòng chỉnh sửa nét vẽ theo yêu cầu trên và nộp lại.`}
-            dismissible={false}
-          />
-        ) : activeRevision?.reviewStatus === 'ConceptSubmitted' && !activeRevision.isLocked ? (
-          <LucianInlineAlert
-            type='info'
-            title='Bản vẽ Model Sheet đã nộp – Đang chờ kiểm duyệt'
-            description='Bản thiết kế đang chờ Writer/Editor xác nhận. Nếu bạn phát hiện đã tải nhầm ảnh hoặc muốn cập nhật nét vẽ tốt hơn trước khi được duyệt, bạn có thể nộp lại ngay.'
-            details={`Giai đoạn: "${activeStage?.stageName || 'Chuẩn'}" · Lần sửa #${activeRevision.versionNumber}.`}
-            dismissible={false}
-          />
-        ) : activeRevision?.isLocked || activeRevision?.reviewStatus === 'CanonLocked' ? (
-          <div className='p-3 sm:p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start gap-3 text-xs text-amber-950 shadow-2xs'>
-            <div className='w-7 h-7 rounded-lg bg-amber-100 border border-amber-300/70 flex items-center justify-center text-amber-700 shrink-0 mt-0.5'>
-              <Lock className='w-4 h-4' />
-            </div>
-            <div className='space-y-1 flex-1 min-w-0'>
-              <div className='flex items-center gap-2 flex-wrap'>
-                <span className='font-bold uppercase tracking-wider text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded'>
-                  🔒 Đã khóa chuẩn (Canon Locked)
-                </span>
-                <span className='text-xs font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
-                  {activeStage?.stageName ? `${activeStage.stageName} · ` : ''}
-                  Ch.{activeRevision?.effectiveFromChapterNumber ?? 1}
-                  {activeRevision?.effectiveToChapterNumber
-                    ? `–${activeRevision.effectiveToChapterNumber}`
-                    : ' → hết'}
-                </span>
-                <span className='font-mono font-bold text-xs bg-amber-200/70 text-amber-900 px-1.5 py-0.2 rounded'>
-                  Lần sửa #{activeRevision.versionNumber}
-                </span>
-                {activeRevision.lockedAt && (
-                  <span className='text-xs font-medium text-amber-800'>
-                    • Đã duyệt {new Date(activeRevision.lockedAt).toLocaleDateString('vi-VN')}
+        <div className='grid grid-cols-1 xl:grid-cols-[272px_minmax(0,1fr)] gap-5 items-start'>
+          {/* ================= SIDEBAR: mục cùng danh mục · giai đoạn · xuất hiện trong kịch bản ================= */}
+          <aside
+            className='space-y-4 xl:sticky xl:top-5'
+            aria-label='Điều hướng mục Series Bible'
+            data-testid='bible-workbench-sidebar'
+          >
+            {siblings.length > 1 && onSelectEntity && (
+              <nav
+                className='bg-white border border-stone-200/80 rounded-xl shadow-xs p-2'
+                aria-label='Mục cùng danh mục'
+              >
+                <p className='px-2.5 pt-1.5 pb-2 text-xs font-semibold uppercase tracking-wider text-stone-500'>
+                  Cùng danh mục · {siblings.length}
+                </p>
+                <ul className='max-h-64 overflow-y-auto space-y-0.5'>
+                  {siblings.map((e) => {
+                    const isActive = e.id === entity.id;
+                    return (
+                      <li key={e.id}>
+                        <button
+                          type='button'
+                          onClick={() => !isActive && onSelectEntity(e)}
+                          aria-current={isActive ? 'true' : undefined}
+                          className={`w-full px-2.5 py-2 rounded-lg text-left flex items-center gap-2 border-l-4 transition-all duration-150 cursor-pointer ${
+                            isActive
+                              ? 'bg-orange-50 border-orange-500 text-orange-800'
+                              : 'border-transparent text-stone-700 hover:bg-stone-100'
+                          }`}
+                        >
+                          <span className='font-mono text-xs text-stone-500 shrink-0'>
+                            {e.code}
+                          </span>
+                          <span className='text-sm font-medium truncate flex-1'>{e.name}</span>
+                          {e.isLocked && (
+                            <Lock
+                              className='w-3.5 h-3.5 text-emerald-600 shrink-0'
+                              aria-label='Đã khoá Canon'
+                            />
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </nav>
+            )}
+
+            <section className='space-y-3' data-testid='era-stages-selector'>
+              <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+                <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
+                  <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
+                    <Layers className='w-4 h-4 text-[#F97316]' />
+                    <span>Thời kỳ &amp; Giai đoạn</span>
+                  </div>
+                  <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600'>
+                    {stages.length} giai đoạn
+                  </span>
+                </div>
+
+                {/* Vertical list of era stages */}
+                <div className='space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5'>
+                  {stages.map((stage) => {
+                    const isActive = selectedStageKey === stage.stageKey;
+                    const isStandardStage =
+                      stage.stageName === 'Giai đoạn chuẩn' ||
+                      stage.stageName.toLowerCase().includes('chuẩn');
+                    const stageIcon = isStandardStage
+                      ? null
+                      : getStageIcon(stage.stageName, entity.category);
+                    return (
+                      <div
+                        key={stage.stageKey}
+                        onClick={() => {
+                          setSelectedStageKey(stage.stageKey);
+                          setSelectedVersionId(null);
+                        }}
+                        data-testid={`era-tab-${stage.stageKey}`}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
+                          isActive
+                            ? 'bg-[#FFF7ED] text-[#EA580C] border-2 border-[#F97316] shadow-xs'
+                            : 'bg-white text-stone-700 border-stone-200 hover:border-stone-400 hover:bg-stone-50/60'
+                        }`}
+                      >
+                        <div className='flex items-center justify-between gap-1.5'>
+                          <div className='flex items-center gap-1.5 min-w-0 font-semibold text-xs sm:text-sm'>
+                            {stageIcon && <span>{stageIcon}</span>}
+                            <span className='truncate'>{stage.stageName}</span>
+                          </div>
+                          {stage.isLocked ? (
+                            <span className='text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0'>
+                              Chính thức
+                            </span>
+                          ) : (
+                            <span className='text-xs font-medium px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 shrink-0'>
+                              Bản nháp
+                            </span>
+                          )}
+                        </div>
+
+                        <div className='flex items-center justify-between text-xs text-stone-500'>
+                          <span className='font-mono font-medium text-xs bg-stone-100 px-2 py-0.5 rounded-full'>
+                            Ch.{stage.effectiveFromChapterNumber}
+                            {stage.effectiveToChapterNumber
+                              ? `–${stage.effectiveToChapterNumber}`
+                              : '+'}
+                          </span>
+                          <span className='text-xs text-stone-400'>
+                            {stage.revisions.length} phiên bản
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Bottom Quick Create Stage Action */}
+                {canCreateDraft && (
+                  <button
+                    type='button'
+                    onClick={() => {
+                      onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
+                    }}
+                    data-testid='add-new-era-btn'
+                    className='w-full py-2 border-2 border-dashed border-stone-300 hover:border-orange-400 text-stone-600 hover:text-[#C2410C] hover:bg-orange-50/60 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer'
+                    title='Thêm giai đoạn cốt truyện mới'
+                  >
+                    <Plus className='w-4 h-4' />
+                    <span>Tạo giai đoạn mới</span>
+                  </button>
+                )}
+              </div>
+            </section>
+
+            {seriesId && (
+              <section
+                className='bg-white border border-stone-200/80 rounded-xl shadow-xs p-4 space-y-2.5'
+                data-testid='bible-usages'
+              >
+                <p className='text-sm font-bold text-stone-900 flex items-center gap-1.5'>
+                  <FileText className='w-4 h-4 text-orange-600' />
+                  Xuất hiện trong kịch bản
+                </p>
+                {usages === null ? (
+                  <p className='text-xs text-stone-500'>Đang tải…</p>
+                ) : usages === 'error' ? (
+                  <p className='text-xs text-rose-700'>Không tải được danh sách chương.</p>
+                ) : usages.length === 0 ? (
+                  <p className='text-xs text-stone-500'>
+                    Chưa được @Tag hay làm người nói trong kịch bản nào.
+                  </p>
+                ) : (
+                  <ul className='space-y-2'>
+                    {usages.map((u) => (
+                      <li key={u.chapterId} className='flex items-start justify-between gap-2'>
+                        <span className='min-w-0'>
+                          <span className='font-mono text-xs text-stone-500 mr-1.5'>
+                            Ch.{u.chapterNumber}
+                          </span>
+                          <span className='text-sm text-stone-800'>
+                            {u.chapterTitle || 'Chưa đặt tên'}
+                          </span>
+                          <span className='block text-xs text-stone-500'>
+                            {u.lineCount} dòng kịch bản
+                            {u.isScriptFrozen ? ' · đã chốt kịch bản' : ''}
+                          </span>
+                        </span>
+                        <span
+                          className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                            u.isCanonSatisfied
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : 'bg-rose-50 text-rose-800 border-rose-200'
+                          }`}
+                        >
+                          {u.isCanonSatisfied
+                            ? 'Đạt Canon'
+                            : isVisualDesign
+                              ? 'Chưa khoá Canon'
+                              : 'Chưa có bản hiệu lực'}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {Array.isArray(usages) &&
+                  usages.some((u) => !u.isCanonSatisfied && !u.isScriptFrozen) && (
+                    <p className='text-xs text-rose-700 border-t border-stone-100 pt-2'>
+                      Chương chưa đạt sẽ bị chặn ở Gate 1 khi Producer chốt kịch bản (BR-21).
+                    </p>
+                  )}
+              </section>
+            )}
+          </aside>
+
+          {/* ================= MAIN: trạng thái · Đặc tả | Bản vẽ · Phiên bản ================= */}
+          <div className='min-w-0 space-y-4'>
+            <div
+              className='bg-white border border-stone-200/80 rounded-xl shadow-xs p-4 space-y-3'
+              data-testid='bible-status-strip'
+            >
+              <ol
+                className='flex items-center gap-2 overflow-x-auto'
+                aria-label='Vòng đời phiên bản'
+              >
+                {lifecycleSteps.map((label, i) => {
+                  const done = lifecycleDone || i < lifecycleIndex;
+                  const current = !lifecycleDone && i === lifecycleIndex;
+                  const rework = current && lifecycleStatus === 'ReworkRequired';
+                  return (
+                    <li
+                      key={label}
+                      className='flex items-center gap-2 shrink-0'
+                      aria-current={current ? 'step' : undefined}
+                    >
+                      <span
+                        className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
+                          done
+                            ? 'bg-emerald-600 text-white'
+                            : rework
+                              ? 'bg-rose-600 text-white'
+                              : current
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-stone-100 text-stone-500 border border-stone-200'
+                        }`}
+                      >
+                        {done ? <CheckCircle2 className='w-3.5 h-3.5' /> : i + 1}
+                      </span>
+                      <span
+                        className={`text-sm ${current ? 'font-semibold text-stone-900' : 'text-stone-500'}`}
+                      >
+                        {rework ? 'Cần vẽ lại' : label}
+                      </span>
+                      {i < lifecycleSteps.length - 1 && (
+                        <span className='w-8 h-px bg-stone-300' aria-hidden='true' />
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+              <div className='flex items-center gap-2 flex-wrap text-sm'>
+                <span className='text-stone-500'>Đang chờ:</span>
+                <span className='font-semibold text-stone-800'>{waitingFor}</span>
+                {isMyTurn && (
+                  <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 text-xs font-semibold'>
+                    Đến lượt bạn
                   </span>
                 )}
               </div>
-              <p className='text-xs text-amber-900/90 leading-relaxed'>
-                Bản thiết kế cho giai đoạn này đã được Producer phê duyệt chính thức (Canon Locked).
-                Toàn bộ đội ngũ sản xuất sử dụng bản vẽ này làm quy chuẩn tham chiếu thống nhất.
-              </p>
             </div>
-          </div>
-        ) : null}
 
-        {/* ================= 3-COLUMN WORKBENCH: THỜI KỲ (3) - ARTWORK (6) - THÔNG TIN (3) ================= */}
-        <div className='grid grid-cols-1 lg:grid-cols-12 gap-4 items-start'>
-          {/* ================= COLUMN 1: THỜI KỲ & GIAI ĐOẠN (COL-SPAN 3) ================= */}
-          <section className='lg:col-span-3 space-y-3' data-testid='era-stages-selector'>
-            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3'>
-              <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
-                <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
-                  <Layers className='w-4 h-4 text-[#F97316]' />
-                  <span>Thời kỳ &amp; Giai đoạn</span>
+            {/* ================= SINGLE CONTEXTUAL STATUS ALERT (LUCIAN INLINE ALERT) ================= */}
+            {activeRevision?.reviewStatus === 'ReworkRequired' ? (
+              <LucianInlineAlert
+                type='warning'
+                title='Yêu cầu chỉnh sửa bản vẽ từ Writer / Editor'
+                description={
+                  activeRevision.reworkFeedback ||
+                  'Writer yêu cầu chỉnh sửa lại thiết kế cho giai đoạn này.'
+                }
+                details={`Giai đoạn: "${activeStage?.stageName || 'Chuẩn'}" · Hiệu lực từ Chương ${activeStage?.effectiveFromChapterNumber ?? 1} đến ${activeStage?.effectiveToChapterNumber || 'hết truyện'}. Vui lòng chỉnh sửa nét vẽ theo yêu cầu trên và nộp lại.`}
+                dismissible={false}
+              />
+            ) : activeRevision?.reviewStatus === 'ConceptSubmitted' && !activeRevision.isLocked ? (
+              <LucianInlineAlert
+                type='info'
+                title='Bản vẽ Model Sheet đã nộp – Đang chờ kiểm duyệt'
+                description='Bản thiết kế đang chờ Writer/Editor xác nhận. Nếu bạn phát hiện đã tải nhầm ảnh hoặc muốn cập nhật nét vẽ tốt hơn trước khi được duyệt, bạn có thể nộp lại ngay.'
+                details={`Giai đoạn: "${activeStage?.stageName || 'Chuẩn'}" · Lần sửa #${activeRevision.versionNumber}.`}
+                dismissible={false}
+              />
+            ) : activeRevision?.isLocked || activeRevision?.reviewStatus === 'CanonLocked' ? (
+              <div className='p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-start gap-3 text-sm text-emerald-950 shadow-2xs'>
+                <div className='w-8 h-8 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0'>
+                  <Lock className='w-4 h-4' />
                 </div>
-                <span className='text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600'>
-                  {stages.length} giai đoạn
-                </span>
-              </div>
-
-              {/* Prominent Primary Create Stage Button */}
-              {canCreateDraft && (
-                <button
-                  type='button'
-                  onClick={() => {
-                    onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
-                  }}
-                  data-testid='add-new-era-btn'
-                  className='w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]'
-                  title='Tạo giai đoạn cốt truyện mới cho nhân vật'
-                >
-                  <Plus className='w-4 h-4' />
-                  <span>+ Tạo giai đoạn</span>
-                </button>
-              )}
-
-              {/* Vertical list of era stages */}
-              <div className='space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5'>
-                {stages.map((stage) => {
-                  const isActive = selectedStageKey === stage.stageKey;
-                  const isStandardStage =
-                    stage.stageName === 'Giai đoạn chuẩn' ||
-                    stage.stageName.toLowerCase().includes('chuẩn');
-                  const stageIcon = isStandardStage
-                    ? null
-                    : getStageIcon(stage.stageName, entity.category);
-                  return (
-                    <div
-                      key={stage.stageKey}
-                      onClick={() => {
-                        setSelectedStageKey(stage.stageKey);
-                        setSelectedVersionId(null);
-                      }}
-                      data-testid={`era-tab-${stage.stageKey}`}
-                      className={`p-3 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
-                        isActive
-                          ? 'bg-[#FFF7ED] text-[#EA580C] border-2 border-[#F97316] shadow-xs'
-                          : 'bg-white text-stone-700 border-stone-200 hover:border-stone-400 hover:bg-stone-50/60'
-                      }`}
-                    >
-                      <div className='flex items-center justify-between gap-1.5'>
-                        <div className='flex items-center gap-1.5 min-w-0 font-semibold text-xs sm:text-sm'>
-                          {stageIcon && <span>{stageIcon}</span>}
-                          <span className='truncate'>{stage.stageName}</span>
-                        </div>
-                        {stage.isLocked ? (
-                          <span className='text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0'>
-                            🔒 Chính thức
-                          </span>
-                        ) : (
-                          <span className='text-[10px] font-medium px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 shrink-0'>
-                            Bản nháp
-                          </span>
-                        )}
-                      </div>
-
-                      <div className='flex items-center justify-between text-xs text-stone-500'>
-                        <span className='font-mono font-medium text-[11px] bg-stone-100 px-2 py-0.5 rounded-full'>
-                          Ch.{stage.effectiveFromChapterNumber}
-                          {stage.effectiveToChapterNumber
-                            ? `–${stage.effectiveToChapterNumber}`
-                            : '+'}
-                        </span>
-                        <span className='text-[11px] text-stone-400'>
-                          {stage.revisions.length} phiên bản
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Bottom Quick Create Stage Action */}
-              {canCreateDraft && (
-                <button
-                  type='button'
-                  onClick={() => {
-                    onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
-                  }}
-                  className='w-full py-2 border-2 border-dashed border-stone-300 hover:border-[#F97316] text-stone-600 hover:text-[#EA580C] hover:bg-orange-50/50 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1'
-                  title='Thêm giai đoạn cốt truyện mới'
-                >
-                  <Plus className='w-3.5 h-3.5' />
-                  <span>+ Tạo giai đoạn mới</span>
-                </button>
-              )}
-            </div>
-          </section>
-
-          {/* ================= COLUMN 2: HERO ARTWORK & MODEL SHEET (COL-SPAN 6) ================= */}
-          <section className='lg:col-span-6 space-y-3.5'>
-            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3'>
-              {/* Artwork Header: Tab Turnaround vs Action / Expressions + Zoom button */}
-              <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
-                <div className='flex items-center gap-2 min-w-0'>
-                  <Palette className='w-4 h-4 text-[#F97316] shrink-0' />
-                  <span className='font-bold text-xs sm:text-sm text-[#1C1917] truncate'>
-                    {visualCardInfo.title}
-                  </span>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200`}
-                  >
-                    {visualCardInfo.badge}
-                  </span>
-                </div>
-
-                <div className='flex items-center gap-2 shrink-0'>
-                  <div className='flex bg-stone-100 p-0.5 rounded-xl border border-stone-200'>
-                    <button
-                      type='button'
-                      onClick={() => setActiveArtTab('turnaround')}
-                      className={`px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer ${
-                        activeArtTab === 'turnaround'
-                          ? 'bg-white text-[#1C1917] shadow-xs font-bold'
-                          : 'text-stone-500 hover:text-stone-800'
-                      }`}
-                    >
-                      {visualCardInfo.tab1}
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => setActiveArtTab('action')}
-                      className={`px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer ${
-                        activeArtTab === 'action'
-                          ? 'bg-white text-[#1C1917] shadow-xs font-bold'
-                          : 'text-stone-500 hover:text-stone-800'
-                      }`}
-                    >
-                      {visualCardInfo.tab2}
-                    </button>
-                  </div>
-
-                  {selectedImageUrl && (
-                    <button
-                      type='button'
-                      onClick={() =>
-                        onZoomImage({
-                          url: selectedImageUrl,
-                          title: selectedImageTitle || entity.name,
-                        })
-                      }
-                      className='p-1.5 rounded-lg border border-stone-200 hover:bg-white text-stone-600 hover:text-orange-600 transition shadow-2xs cursor-pointer'
-                      title='Phóng to ảnh'
-                    >
-                      <Eye className='w-4 h-4' />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Hero Canvas Viewport (To, Rõ Ràng, Nổi Bật) */}
-              {selectedImageUrl ? (
-                <div className='space-y-3'>
-                  <div className='flex items-center justify-between text-xs font-semibold text-stone-700'>
-                    <span className='truncate max-w-[280px] text-xs font-bold text-[#1C1917]'>
-                      {selectedImageTitle || `${entity.name} - Model Sheet`}
+                <div className='space-y-1 flex-1 min-w-0'>
+                  <div className='flex items-center gap-2 flex-wrap'>
+                    <span className='font-bold uppercase tracking-wider text-xs bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full'>
+                      Đã khóa chuẩn (Canon Locked)
                     </span>
-                    <span className='text-[11px] text-stone-400 font-mono'>
-                      Turnaround / Model Sheet Canvas
+                    <span className='text-xs font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
+                      {activeStage?.stageName ? `${activeStage.stageName} · ` : ''}
+                      Ch.{activeRevision?.effectiveFromChapterNumber ?? 1}
+                      {activeRevision?.effectiveToChapterNumber
+                        ? `–${activeRevision.effectiveToChapterNumber}`
+                        : ' → hết'}
                     </span>
+                    <span className='font-mono font-bold text-xs bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded'>
+                      Lần sửa #{activeRevision.versionNumber}
+                    </span>
+                    {activeRevision.lockedAt && (
+                      <span className='text-xs font-medium text-amber-800'>
+                        • Đã duyệt {new Date(activeRevision.lockedAt).toLocaleDateString('vi-VN')}
+                      </span>
+                    )}
                   </div>
-                  <div
-                    className='relative w-full h-[480px] sm:h-[520px] md:h-[560px] bg-[#121214] rounded-2xl overflow-hidden border border-stone-800 cursor-pointer group flex items-center justify-center p-3 shadow-inner'
-                    onClick={() =>
-                      onZoomImage({
-                        url: selectedImageUrl,
-                        title: selectedImageTitle || entity.name,
-                      })
-                    }
-                  >
-                    <AuthenticatedImage
-                      src={selectedImageUrl}
-                      alt={selectedImageTitle || entity.name}
-                      className='w-full h-full object-contain drop-shadow-md'
-                    />
-                    <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5 backdrop-blur-[1px]'>
-                      <Eye className='w-4 h-4' />
-                      <span>Bấm để phóng to xem đầy đủ</span>
-                    </div>
-                  </div>
+                  <p className='text-xs text-amber-900/90 leading-relaxed'>
+                    Bản thiết kế cho giai đoạn này đã được Producer phê duyệt chính thức (Canon
+                    Locked). Toàn bộ đội ngũ sản xuất sử dụng bản vẽ này làm quy chuẩn tham chiếu
+                    thống nhất.
+                  </p>
+                </div>
+              </div>
+            ) : null}
 
-                  {/* Character Sheet Gallery Strip */}
-                  {entity.gallery && entity.gallery.length > 0 && (
-                    <div className='space-y-1.5 pt-2 border-t border-stone-200/80'>
-                      <div className='flex items-center justify-between text-xs font-semibold text-stone-700'>
-                        <span>Góc nhìn &amp; Biểu cảm ({entity.gallery.length}):</span>
-                        <span className='text-xs text-stone-500'>Bấm để đổi góc xem</span>
-                      </div>
-                      <div className='flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar'>
-                        {entity.imageUrl && (
+            <div
+              className={`grid grid-cols-1 gap-4 items-start ${isVisualDesign ? 'lg:grid-cols-2' : ''}`}
+            >
+              <section className='min-w-0' data-testid='bible-spec-column'>
+                {/* CARD 1: THÔNG TIN ĐẶC TẢ THU GỌN (METADATA SPECS) */}
+                <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+                  <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
+                    <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
+                      <FileText className='w-4 h-4 text-[#F97316]' />
+                      <span>{card1Title}</span>
+                      <span
+                        className='px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200 text-xs font-mono font-medium'
+                        title='Số trường đặc tả đã điền'
+                        data-testid='spec-completeness'
+                      >
+                        {specProgress.filled}/{specProgress.total}
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-1.5'>
+                      {canCreateDraft && (
+                        <button
+                          type='button'
+                          onClick={() => onOpenAddRevision(entity, activeRevision)}
+                          className='inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-orange-50 border border-stone-200 hover:border-orange-300 text-stone-700 hover:text-orange-700 text-xs font-semibold rounded-lg transition-all cursor-pointer shadow-2xs'
+                          title='Cập nhật đặc tả thông số cho mục này'
+                        >
+                          <Edit3 className='w-3 h-3 text-orange-600' />
+                          <span>Sửa</span>
+                        </button>
+                      )}
+                      {canCreateDraft &&
+                        activeStage &&
+                        !activeStage.isLocked &&
+                        !activeStage.revisions.some((r) => r.isInitialVersion) &&
+                        onDeleteEra && (
                           <button
                             type='button'
-                            onClick={() => {
-                              setSelectedImageUrl(entity.imageUrl!);
-                              setSelectedImageTitle(`${entity.name} - Mặt chính diện`);
-                            }}
-                            className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border shrink-0 transition-all cursor-pointer ${
-                              selectedImageUrl === entity.imageUrl
-                                ? 'border-[#F97316] bg-orange-50/50 ring-1 ring-[#F97316]/20'
-                                : 'border-stone-200 hover:border-stone-300 bg-white'
-                            }`}
+                            onClick={() => setEraToDelete(activeStage)}
+                            className='p-1 bg-white hover:bg-rose-50 border border-stone-200 hover:border-rose-300 text-stone-600 hover:text-rose-600 rounded-lg transition-all cursor-pointer shadow-2xs'
+                            title='Xóa toàn bộ thời kỳ này'
+                            data-testid='delete-era-btn'
                           >
-                            <div className='w-8 h-8 rounded overflow-hidden shrink-0'>
-                              <AuthenticatedImage
-                                src={entity.imageUrl}
-                                alt={entity.name}
-                                className='w-full h-full object-cover'
-                              />
-                            </div>
-                            <span className='text-xs font-medium text-stone-800'>
-                              Mặt chính diện
-                            </span>
+                            <Trash2 className='w-3 h-3' />
                           </button>
                         )}
-                        {entity.gallery.map((img, i) => (
-                          <button
-                            key={i}
-                            type='button'
-                            onClick={() => {
-                              setSelectedImageUrl(img.url);
-                              setSelectedImageTitle(
-                                `${entity.name} - ${img.label || `Góc ${i + 1}`}`,
-                              );
-                            }}
-                            className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border shrink-0 transition-all cursor-pointer ${
-                              selectedImageUrl === img.url
-                                ? 'border-[#F97316] bg-orange-50/50 ring-1 ring-[#F97316]/20'
-                                : 'border-stone-200 hover:border-stone-300 bg-white'
-                            }`}
-                          >
-                            <div className='w-8 h-8 rounded overflow-hidden shrink-0'>
-                              <AuthenticatedImage
-                                src={img.url}
-                                alt={img.label || `${entity.name} góc ${i + 1}`}
-                                className='w-full h-full object-cover'
-                              />
-                            </div>
-                            <span className='text-xs font-medium text-stone-800'>
-                              {img.label || `Góc ${i + 1}`}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    if (canCreateDraft) setIsDraggingOver(true);
-                  }}
-                  onDragLeave={() => setIsDraggingOver(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setIsDraggingOver(false);
-                    if (canCreateDraft) {
-                      onOpenAddRevision(entity, activeRevision);
-                    }
-                  }}
-                  className={`p-8 sm:p-12 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-3.5 text-center min-h-[460px] group ${
-                    isDraggingOver
-                      ? 'border-[#F97316] bg-orange-50/70 shadow-inner ring-4 ring-[#F97316]/10'
-                      : 'border-stone-300 hover:border-[#F97316] bg-stone-50/60 hover:bg-orange-50/30'
-                  }`}
-                >
-                  <div className='w-14 h-14 rounded-2xl bg-orange-100/80 border border-orange-200 flex items-center justify-center text-[#EA580C] group-hover:scale-105 group-hover:bg-[#F97316] group-hover:text-white transition-all shadow-2xs'>
-                    <Upload className='w-7 h-7' />
                   </div>
-                  <div className='max-w-md space-y-1.5'>
-                    <div className='text-sm sm:text-base font-bold text-stone-900'>
-                      Chưa có ảnh Reference Sheet cho mục này
-                    </div>
-                    <p className='text-xs text-stone-500 leading-relaxed'>
-                      {isArtistUser
-                        ? visualCardInfo.emptyArtistPrompt
-                        : visualCardInfo.emptyWriterPrompt}
+
+                  {specDescription && (
+                    <p className='text-sm text-stone-700 leading-relaxed whitespace-pre-line'>
+                      {specDescription}
                     </p>
-                  </div>
-                  {canCreateDraft && (
-                    <div className='flex flex-col items-center gap-2 pt-2'>
-                      <button
-                        type='button'
-                        onClick={() => {
-                          onOpenAddRevision(entity, activeRevision);
-                        }}
-                        className='inline-flex items-center gap-2 px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-[0.98]'
-                        title='Tải lên bản vẽ tham chiếu Model Sheet mới'
-                      >
-                        <Upload className='w-4 h-4' />
-                        <span>+ Tải lên Model Sheet</span>
-                      </button>
-                      <div className='flex items-center gap-1.5 text-[11px] text-stone-400'>
-                        <span>Kéo thả file ảnh vào đây hoặc nhấn</span>
-                        <kbd className='px-1.5 py-0.5 bg-stone-200/80 border border-stone-300 rounded font-mono text-[10px] text-stone-700 font-semibold'>
-                          Ctrl + V
-                        </kbd>
-                        <span>để dán</span>
+                  )}
+                  <div className='space-y-4'>
+                    {SPEC_SCHEMA[normalizedCategory].map((group) => (
+                      <div key={group.title}>
+                        <p className='text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1.5'>
+                          {group.title}
+                        </p>
+                        <dl className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
+                          {group.fields.map((field) => {
+                            const value = String(stageAttributes.raw[field.key] ?? '').trim();
+                            const isForbidden = field.key === 'forbidden' && value !== '';
+                            return (
+                              <div
+                                key={field.key}
+                                className={`rounded-lg border p-2.5 ${field.multiline ? 'sm:col-span-2' : ''} ${
+                                  isForbidden
+                                    ? 'bg-rose-50/70 border-rose-200'
+                                    : 'bg-stone-50/80 border-stone-200/60'
+                                }`}
+                              >
+                                <dt className='text-xs font-semibold text-stone-500'>
+                                  {field.label}
+                                </dt>
+                                <dd
+                                  className={
+                                    value
+                                      ? 'mt-0.5 text-sm text-stone-800 whitespace-pre-line'
+                                      : 'mt-0.5 text-xs italic text-stone-500'
+                                  }
+                                >
+                                  {value || 'Chưa thiết lập'}
+                                </dd>
+                              </div>
+                            );
+                          })}
+                        </dl>
                       </div>
-                      <button
-                        type='button'
-                        onClick={() => {
-                          onOpenAddRevision(entity);
-                        }}
-                        className='inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg text-[11px] font-medium text-stone-600 transition-colors cursor-pointer mt-0.5'
-                      >
-                        <Edit3 className='w-3 h-3 text-stone-500' />
-                        <span>
-                          {isWriterUser
-                            ? 'Chỉnh sửa đặc tả / Cập nhật kịch bản'
-                            : 'Tạo phiên bản mới để thêm ảnh'}
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              {isVisualDesign && (
+                <section className='min-w-0 space-y-3.5' data-testid='bible-artwork-column'>
+                  {SPEC_DELIVERABLES[normalizedCategory] && (
+                    <div className='bg-amber-50/60 border border-amber-200 rounded-xl px-3.5 py-2.5 text-sm text-amber-900 flex items-center gap-2 flex-wrap'>
+                      <span className='font-semibold'>Artist cần nộp:</span>
+                      {SPEC_DELIVERABLES[normalizedCategory]!.map((d) => (
+                        <span
+                          key={d}
+                          className='px-2 py-0.5 rounded-full bg-white border border-amber-200 text-xs font-medium'
+                        >
+                          {d}
                         </span>
-                      </button>
+                      ))}
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* ROLE ACTIONS BAR (FOCUSED & MINIMAL) */}
-              <div className='pt-2 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2'>
-                {/* Status indicator on the left of action bar */}
-                <div className='text-xs text-stone-500 flex items-center gap-1.5'>
-                  {!selectedImageUrl ? (
-                    <span className='inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200'>
-                      <Clock className='w-3 h-3 text-amber-600' />
-                      Chờ Họa sĩ tải lên bản vẽ
-                    </span>
-                  ) : activeRevision?.reviewStatus === 'Draft' ? (
-                    <span className='inline-flex items-center gap-1 text-xs font-medium text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200'>
-                      Bản thảo (Chưa nộp duyệt)
-                    </span>
-                  ) : activeRevision?.reviewStatus === 'ConceptSubmitted' ? (
-                    <span className='inline-flex items-center gap-1 text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 animate-pulse'>
-                      ● Chờ Writer / Editor duyệt thiết kế
-                    </span>
-                  ) : activeRevision?.reviewStatus === 'WriterEndorsed' ? (
-                    <span className='inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200'>
-                      ✓ Writer đã duyệt (Chờ Producer khóa Canon)
-                    </span>
-                  ) : activeRevision?.reviewStatus === 'ReworkRequired' ? (
-                    <span className='inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200'>
-                      ↺ Yêu cầu vẽ lại
-                    </span>
-                  ) : null}
-                </div>
-
-                <div className='flex items-center gap-2 flex-wrap ml-auto'>
-                  {/* Artist Actions */}
-                  {isArtistUser && (
-                    <>
-                      {activeRevision?.reviewStatus === 'ConceptSubmitted' && (
-                        <button
-                          type='button'
-                          onClick={() => {
-                            onOpenAddRevision(
-                              entity,
-                              null,
-                              true,
-                              activeRevision.effectiveFromChapterNumber,
-                              undefined,
-                              true,
-                            );
-                          }}
-                          className='px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
-                          data-testid='detail-artist-resubmit-btn'
+                  <div className='bg-white border border-stone-200/80 rounded-xl p-4 sm:p-5 shadow-xs space-y-3'>
+                    {/* Artwork Header: Tab Turnaround vs Action / Expressions + Zoom button */}
+                    <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
+                      <div className='flex items-center gap-2 min-w-0'>
+                        <Palette className='w-4 h-4 text-[#F97316] shrink-0' />
+                        <span className='font-bold text-xs sm:text-sm text-[#1C1917] truncate'>
+                          {visualCardInfo.title}
+                        </span>
+                        <span
+                          className={`text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200`}
                         >
-                          <RotateCcw className='w-3.5 h-3.5' />
-                          <span>🔄 Nộp lại bản vẽ</span>
-                        </button>
-                      )}
-                      {activeRevision?.reviewStatus === 'ReworkRequired' && (
-                        <button
-                          type='button'
-                          onClick={() => {
-                            onOpenAddRevision(
-                              entity,
-                              null,
-                              true,
-                              activeRevision.effectiveFromChapterNumber,
-                              activeRevision.reworkFeedback || undefined,
-                              false,
-                            );
-                          }}
-                          className='px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
-                          data-testid='detail-artist-rework-btn'
-                        >
-                          <RotateCcw className='w-3.5 h-3.5' />
-                          <span>Nộp bản vẽ sửa đổi</span>
-                        </button>
-                      )}
-                    </>
-                  )}
+                          {visualCardInfo.badge}
+                        </span>
+                      </div>
 
-                  {/* Review Actions (Writer/Editor Endorse & Request Rework) */}
-                  {canRequestRework && activeRevision && (
-                    <div className='flex items-center gap-2'>
-                      {canEndorse && (
-                        <button
-                          type='button'
-                          disabled={isEndorsing || activeRevision.reviewStatus === 'WriterEndorsed'}
-                          onClick={() => void handleEndorse(activeRevision)}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-xs transition-all ${
-                            activeRevision.reviewStatus === 'WriterEndorsed'
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-default'
-                              : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-[0.98]'
-                          } disabled:opacity-60`}
-                          data-testid='detail-endorse-btn'
-                        >
-                          <CheckCircle2 className='w-3.5 h-3.5' />
-                          <span>
-                            {isEndorsing
-                              ? 'Đang duyệt...'
-                              : activeRevision.reviewStatus === 'WriterEndorsed'
-                                ? '✓ Đã duyệt thiết kế'
-                                : '✓ Duyệt thiết kế'}
+                      <div className='flex items-center gap-2 shrink-0'>
+                        <div className='flex bg-stone-100 p-0.5 rounded-xl border border-stone-200'>
+                          <button
+                            type='button'
+                            onClick={() => setActiveArtTab('turnaround')}
+                            className={`px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer ${
+                              activeArtTab === 'turnaround'
+                                ? 'bg-white text-[#1C1917] shadow-xs font-bold'
+                                : 'text-stone-500 hover:text-stone-800'
+                            }`}
+                          >
+                            {visualCardInfo.tab1}
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => setActiveArtTab('action')}
+                            className={`px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer ${
+                              activeArtTab === 'action'
+                                ? 'bg-white text-[#1C1917] shadow-xs font-bold'
+                                : 'text-stone-500 hover:text-stone-800'
+                            }`}
+                          >
+                            {visualCardInfo.tab2}
+                          </button>
+                        </div>
+
+                        {selectedImageUrl && (
+                          <button
+                            type='button'
+                            onClick={() =>
+                              onZoomImage({
+                                url: selectedImageUrl,
+                                title: selectedImageTitle || entity.name,
+                              })
+                            }
+                            className='p-1.5 rounded-lg border border-stone-200 hover:bg-white text-stone-600 hover:text-orange-600 transition shadow-2xs cursor-pointer'
+                            title='Phóng to ảnh'
+                          >
+                            <Eye className='w-4 h-4' />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Hero Canvas Viewport (To, Rõ Ràng, Nổi Bật) */}
+                    {selectedImageUrl ? (
+                      <div className='space-y-3'>
+                        <div className='flex items-center justify-between text-xs font-semibold text-stone-700'>
+                          <span className='truncate max-w-[280px] text-xs font-bold text-[#1C1917]'>
+                            {selectedImageTitle || `${entity.name} - Model Sheet`}
                           </span>
-                        </button>
-                      )}
-                      <button
-                        type='button'
-                        disabled={
-                          activeRevision.reviewStatus === 'WriterEndorsed' ||
-                          activeRevision.isLocked ||
-                          isEndorsing
-                        }
-                        onClick={() => handleRequestRework(activeRevision)}
-                        className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all ${
-                          activeRevision.reviewStatus === 'WriterEndorsed' ||
-                          activeRevision.isLocked
-                            ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed opacity-50'
-                            : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer active:scale-[0.98]'
+                          <span className='text-xs text-stone-400 font-mono'>
+                            Turnaround / Model Sheet Canvas
+                          </span>
+                        </div>
+                        <div
+                          className='relative w-full h-[480px] sm:h-[520px] md:h-[560px] bg-[#121214] rounded-2xl overflow-hidden border border-stone-800 cursor-pointer group flex items-center justify-center p-3 shadow-inner'
+                          onClick={() =>
+                            onZoomImage({
+                              url: selectedImageUrl,
+                              title: selectedImageTitle || entity.name,
+                            })
+                          }
+                        >
+                          <AuthenticatedImage
+                            src={selectedImageUrl}
+                            alt={selectedImageTitle || entity.name}
+                            className='w-full h-full object-contain drop-shadow-md'
+                          />
+                          <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5 backdrop-blur-[1px]'>
+                            <Eye className='w-4 h-4' />
+                            <span>Bấm để phóng to xem đầy đủ</span>
+                          </div>
+                        </div>
+
+                        {/* Character Sheet Gallery Strip */}
+                        {entity.gallery && entity.gallery.length > 0 && (
+                          <div className='space-y-1.5 pt-2 border-t border-stone-200/80'>
+                            <div className='flex items-center justify-between text-xs font-semibold text-stone-700'>
+                              <span>Góc nhìn &amp; Biểu cảm ({entity.gallery.length}):</span>
+                              <span className='text-xs text-stone-500'>Bấm để đổi góc xem</span>
+                            </div>
+                            <div className='flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar'>
+                              {entity.imageUrl && (
+                                <button
+                                  type='button'
+                                  onClick={() => {
+                                    setSelectedImageUrl(entity.imageUrl!);
+                                    setSelectedImageTitle(`${entity.name} - Mặt chính diện`);
+                                  }}
+                                  className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border shrink-0 transition-all cursor-pointer ${
+                                    selectedImageUrl === entity.imageUrl
+                                      ? 'border-[#F97316] bg-orange-50/50 ring-1 ring-[#F97316]/20'
+                                      : 'border-stone-200 hover:border-stone-300 bg-white'
+                                  }`}
+                                >
+                                  <div className='w-8 h-8 rounded overflow-hidden shrink-0'>
+                                    <AuthenticatedImage
+                                      src={entity.imageUrl}
+                                      alt={entity.name}
+                                      className='w-full h-full object-cover'
+                                    />
+                                  </div>
+                                  <span className='text-xs font-medium text-stone-800'>
+                                    Mặt chính diện
+                                  </span>
+                                </button>
+                              )}
+                              {entity.gallery.map((img, i) => (
+                                <button
+                                  key={i}
+                                  type='button'
+                                  onClick={() => {
+                                    setSelectedImageUrl(img.url);
+                                    setSelectedImageTitle(
+                                      `${entity.name} - ${img.label || `Góc ${i + 1}`}`,
+                                    );
+                                  }}
+                                  className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border shrink-0 transition-all cursor-pointer ${
+                                    selectedImageUrl === img.url
+                                      ? 'border-[#F97316] bg-orange-50/50 ring-1 ring-[#F97316]/20'
+                                      : 'border-stone-200 hover:border-stone-300 bg-white'
+                                  }`}
+                                >
+                                  <div className='w-8 h-8 rounded overflow-hidden shrink-0'>
+                                    <AuthenticatedImage
+                                      src={img.url}
+                                      alt={img.label || `${entity.name} góc ${i + 1}`}
+                                      className='w-full h-full object-cover'
+                                    />
+                                  </div>
+                                  <span className='text-xs font-medium text-stone-800'>
+                                    {img.label || `Góc ${i + 1}`}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (canCreateDraft) setIsDraggingOver(true);
+                        }}
+                        onDragLeave={() => setIsDraggingOver(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDraggingOver(false);
+                          if (canCreateDraft) {
+                            onOpenAddRevision(entity, activeRevision);
+                          }
+                        }}
+                        className={`p-8 sm:p-12 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-3.5 text-center min-h-[460px] group ${
+                          isDraggingOver
+                            ? 'border-[#F97316] bg-orange-50/70 shadow-inner ring-4 ring-[#F97316]/10'
+                            : 'border-stone-300 hover:border-[#F97316] bg-stone-50/60 hover:bg-orange-50/30'
                         }`}
-                        title={
-                          activeRevision.reviewStatus === 'WriterEndorsed' ||
-                          activeRevision.isLocked
-                            ? 'Phiên bản này đã được duyệt/khoá, không thể yêu cầu vẽ lại.'
-                            : 'Yêu cầu Artist chỉnh sửa lại bản vẽ'
-                        }
-                        data-testid='detail-rework-btn'
                       >
-                        <MessageSquare className='w-3.5 h-3.5' />
-                        <span>Yêu cầu sửa</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Producer Canon Lock Action */}
-                  {isProducerUser &&
-                    (entity.isVisualDesign ?? isCharacter) &&
-                    activeRevision &&
-                    !activeRevision.isLocked &&
-                    activeRevision.reviewStatus !== 'CanonLocked' && (
-                      <button
-                        type='button'
-                        disabled={
-                          isLocking ||
-                          (activeRevision.reviewStatus !== 'WriterEndorsed' &&
-                            activeRevision.reviewStatus !== 4)
-                        }
-                        onClick={() => void handleLock(activeRevision)}
-                        className='px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow transition-all cursor-pointer disabled:opacity-50'
-                        data-testid='detail-lock-btn'
-                        title={
-                          activeRevision.reviewStatus !== 'WriterEndorsed' &&
-                          activeRevision.reviewStatus !== 4
-                            ? 'Chỉ có thể khoá Canon phiên bản đã được Writer/Editor xác nhận (WriterEndorsed) (BR-01)'
-                            : 'Khóa phiên bản này làm quy chuẩn chính thức cho toàn bộ dự án'
-                        }
-                      >
-                        <Lock className='w-3.5 h-3.5' />
-                        <span>{isLocking ? 'Đang khóa...' : 'Khóa Canon chính thức'}</span>
-                      </button>
+                        <div className='w-14 h-14 rounded-2xl bg-orange-100/80 border border-orange-200 flex items-center justify-center text-[#EA580C] group-hover:scale-105 group-hover:bg-[#F97316] group-hover:text-white transition-all shadow-2xs'>
+                          <Upload className='w-7 h-7' />
+                        </div>
+                        <div className='max-w-md space-y-1.5'>
+                          <div className='text-sm sm:text-base font-bold text-stone-900'>
+                            Chưa có ảnh Reference Sheet cho mục này
+                          </div>
+                          <p className='text-xs text-stone-500 leading-relaxed'>
+                            {isArtistUser
+                              ? visualCardInfo.emptyArtistPrompt
+                              : visualCardInfo.emptyWriterPrompt}
+                          </p>
+                        </div>
+                        {canCreateDraft && (
+                          <div className='flex flex-col items-center gap-2 pt-2'>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                onOpenAddRevision(entity, activeRevision);
+                              }}
+                              className='inline-flex items-center gap-2 px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-[0.98]'
+                              title='Tải lên bản vẽ tham chiếu Model Sheet mới'
+                            >
+                              <Upload className='w-4 h-4' />
+                              <span>Tải lên Model Sheet</span>
+                            </button>
+                            <div className='flex items-center gap-1.5 text-xs text-stone-400'>
+                              <span>Kéo thả file ảnh vào đây hoặc nhấn</span>
+                              <kbd className='px-1.5 py-0.5 bg-stone-200/80 border border-stone-300 rounded font-mono text-xs text-stone-700 font-semibold'>
+                                Ctrl + V
+                              </kbd>
+                              <span>để dán</span>
+                            </div>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                onOpenAddRevision(entity);
+                              }}
+                              className='inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg text-xs font-medium text-stone-600 transition-colors cursor-pointer mt-0.5'
+                            >
+                              <Edit3 className='w-3 h-3 text-stone-500' />
+                              <span>
+                                {isWriterUser
+                                  ? 'Chỉnh sửa đặc tả / Cập nhật kịch bản'
+                                  : 'Tạo phiên bản mới để thêm ảnh'}
+                              </span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
 
-                  {/* Canon locked status badge */}
-                  {(activeRevision?.isLocked ||
-                    activeRevision?.reviewStatus === 'CanonLocked' ||
-                    !(entity.isVisualDesign ?? isCharacter)) && (
-                    <div className='px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center gap-1.5'>
-                      <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                      <span>Tham chiếu {getCategoryLabel(entity.category)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
+                    {/* ROLE ACTIONS BAR (FOCUSED & MINIMAL) */}
+                    <div className='pt-2 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2'>
+                      {/* Status indicator on the left of action bar */}
+                      <div className='text-xs text-stone-500 flex items-center gap-1.5'>
+                        {!selectedImageUrl ? (
+                          <span className='inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200'>
+                            <Clock className='w-3 h-3 text-amber-600' />
+                            Chờ Họa sĩ tải lên bản vẽ
+                          </span>
+                        ) : activeRevision?.reviewStatus === 'Draft' ? (
+                          <span className='inline-flex items-center gap-1 text-xs font-medium text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200'>
+                            Bản thảo (Chưa nộp duyệt)
+                          </span>
+                        ) : activeRevision?.reviewStatus === 'ConceptSubmitted' ? (
+                          <span className='inline-flex items-center gap-1 text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 animate-pulse'>
+                            ● Chờ Writer / Editor duyệt thiết kế
+                          </span>
+                        ) : activeRevision?.reviewStatus === 'WriterEndorsed' ? (
+                          <span className='inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200'>
+                            Writer/Editor đã xác nhận (chờ Producer khoá Canon)
+                          </span>
+                        ) : activeRevision?.reviewStatus === 'ReworkRequired' ? (
+                          <span className='inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200'>
+                            ↺ Yêu cầu vẽ lại
+                          </span>
+                        ) : null}
+                      </div>
 
-          {/* ================= COLUMN 3: THÔNG TIN & PHIÊN BẢN (COL-SPAN 3) ================= */}
-          <section className='lg:col-span-3 space-y-3.5'>
-            {/* CARD 1: THÔNG TIN ĐẶC TẢ THU GỌN (METADATA SPECS) */}
-            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3'>
-              <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
-                <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
-                  <FileText className='w-4 h-4 text-[#F97316]' />
-                  <span>{card1Title}</span>
-                </div>
-                <div className='flex items-center gap-1.5'>
-                  {canCreateDraft && (
-                    <button
-                      type='button'
-                      onClick={() => onOpenAddRevision(entity, activeRevision)}
-                      className='inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-orange-50 border border-stone-200 hover:border-orange-300 text-stone-700 hover:text-orange-700 text-xs font-semibold rounded-lg transition-all cursor-pointer shadow-2xs'
-                      title='Cập nhật đặc tả thông số cho mục này'
-                    >
-                      <Edit3 className='w-3 h-3 text-orange-600' />
-                      <span>Sửa</span>
-                    </button>
-                  )}
-                  {canCreateDraft &&
-                    activeStage &&
-                    !activeStage.isLocked &&
-                    !activeStage.revisions.some((r) => r.isInitialVersion) &&
-                    onDeleteEra && (
-                      <button
-                        type='button'
-                        onClick={() => setEraToDelete(activeStage)}
-                        className='p-1 bg-white hover:bg-rose-50 border border-stone-200 hover:border-rose-300 text-stone-600 hover:text-rose-600 rounded-lg transition-all cursor-pointer shadow-2xs'
-                        title='Xóa toàn bộ thời kỳ này'
-                        data-testid='delete-era-btn'
-                      >
-                        <Trash2 className='w-3 h-3' />
-                      </button>
-                    )}
-                </div>
-              </div>
+                      <div className='flex items-center gap-2 flex-wrap ml-auto'>
+                        {/* Artist Actions */}
+                        {isArtistUser && (
+                          <>
+                            {activeRevision?.reviewStatus === 'ConceptSubmitted' && (
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  onOpenAddRevision(
+                                    entity,
+                                    null,
+                                    true,
+                                    activeRevision.effectiveFromChapterNumber,
+                                    undefined,
+                                    true,
+                                  );
+                                }}
+                                className='px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
+                                data-testid='detail-artist-resubmit-btn'
+                              >
+                                <RotateCcw className='w-3.5 h-3.5' />
+                                <span>🔄 Nộp lại bản vẽ</span>
+                              </button>
+                            )}
+                            {activeRevision?.reviewStatus === 'ReworkRequired' && (
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  onOpenAddRevision(
+                                    entity,
+                                    null,
+                                    true,
+                                    activeRevision.effectiveFromChapterNumber,
+                                    activeRevision.reworkFeedback || undefined,
+                                    false,
+                                  );
+                                }}
+                                className='px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
+                                data-testid='detail-artist-rework-btn'
+                              >
+                                <RotateCcw className='w-3.5 h-3.5' />
+                                <span>Nộp bản vẽ sửa đổi</span>
+                              </button>
+                            )}
+                          </>
+                        )}
 
-              {/* Dynamic Compact Specifications Grid */}
-              {isCharacter ? (
-                <div className='space-y-2 text-xs'>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh độ tuổi' : undefined}
-                  >
-                    <div className='flex items-center justify-between mb-0.5'>
-                      <span className='text-stone-500 text-xs font-semibold'>Độ tuổi:</span>
-                      {canCreateDraft && (
-                        <Edit3 className='w-3 h-3 text-stone-400 group-hover:text-orange-600 transition' />
-                      )}
+                        {/* Review Actions (Writer/Editor Endorse & Request Rework) */}
+                        {canRequestRework && activeRevision && (
+                          <div className='flex items-center gap-2'>
+                            {canEndorse && (
+                              <button
+                                type='button'
+                                disabled={
+                                  isEndorsing || activeRevision.reviewStatus === 'WriterEndorsed'
+                                }
+                                onClick={() => void handleEndorse(activeRevision)}
+                                className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-xs transition-all ${
+                                  activeRevision.reviewStatus === 'WriterEndorsed'
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-default'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-[0.98]'
+                                } disabled:opacity-60`}
+                                data-testid='detail-endorse-btn'
+                              >
+                                <CheckCircle2 className='w-3.5 h-3.5' />
+                                <span>
+                                  {isEndorsing
+                                    ? 'Đang duyệt...'
+                                    : activeRevision.reviewStatus === 'WriterEndorsed'
+                                      ? 'Đã duyệt thiết kế'
+                                      : 'Duyệt thiết kế'}
+                                </span>
+                              </button>
+                            )}
+                            <button
+                              type='button'
+                              disabled={
+                                activeRevision.reviewStatus === 'WriterEndorsed' ||
+                                activeRevision.isLocked ||
+                                isEndorsing
+                              }
+                              onClick={() => handleRequestRework(activeRevision)}
+                              className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all ${
+                                activeRevision.reviewStatus === 'WriterEndorsed' ||
+                                activeRevision.isLocked
+                                  ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed opacity-50'
+                                  : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer active:scale-[0.98]'
+                              }`}
+                              title={
+                                activeRevision.reviewStatus === 'WriterEndorsed' ||
+                                activeRevision.isLocked
+                                  ? 'Phiên bản này đã được duyệt/khoá, không thể yêu cầu vẽ lại.'
+                                  : 'Yêu cầu Artist chỉnh sửa lại bản vẽ'
+                              }
+                              data-testid='detail-rework-btn'
+                            >
+                              <MessageSquare className='w-3.5 h-3.5' />
+                              <span>Yêu cầu sửa</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Producer Canon Lock Action */}
+                        {isProducerUser &&
+                          (entity.isVisualDesign ?? isCharacter) &&
+                          activeRevision &&
+                          !activeRevision.isLocked &&
+                          activeRevision.reviewStatus !== 'CanonLocked' && (
+                            <button
+                              type='button'
+                              disabled={
+                                isLocking ||
+                                (activeRevision.reviewStatus !== 'WriterEndorsed' &&
+                                  activeRevision.reviewStatus !== 4)
+                              }
+                              onClick={() => void handleLock(activeRevision)}
+                              className='px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow transition-all cursor-pointer disabled:opacity-50'
+                              data-testid='detail-lock-btn'
+                              title={
+                                activeRevision.reviewStatus !== 'WriterEndorsed' &&
+                                activeRevision.reviewStatus !== 4
+                                  ? 'Chỉ có thể khoá Canon phiên bản đã được Writer/Editor xác nhận (WriterEndorsed) (BR-01)'
+                                  : 'Khóa phiên bản này làm quy chuẩn chính thức cho toàn bộ dự án'
+                              }
+                            >
+                              <Lock className='w-3.5 h-3.5' />
+                              <span>{isLocking ? 'Đang khóa...' : 'Khóa Canon chính thức'}</span>
+                            </button>
+                          )}
+
+                        {/* Canon locked status badge */}
+                        {(activeRevision?.isLocked ||
+                          activeRevision?.reviewStatus === 'CanonLocked' ||
+                          !(entity.isVisualDesign ?? isCharacter)) && (
+                          <div className='px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center gap-1.5'>
+                            <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
+                            <span>Tham chiếu {getCategoryLabel(entity.category)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {stageAttributes.age ? (
-                      <span className='font-bold text-stone-800 text-sm block'>
-                        {stageAttributes.age}
-                      </span>
-                    ) : (
-                      <span className='text-stone-400 group-hover:text-orange-600 text-xs italic block'>
-                        Chưa thiết lập
-                      </span>
-                    )}
                   </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh chiều cao' : undefined}
-                  >
-                    <div className='flex items-center justify-between mb-0.5'>
-                      <span className='text-stone-500 text-xs font-semibold'>Chiều cao:</span>
-                      {canCreateDraft && (
-                        <Edit3 className='w-3 h-3 text-stone-400 group-hover:text-orange-600 transition' />
-                      )}
-                    </div>
-                    {stageAttributes.height ? (
-                      <span className='font-bold text-stone-800 text-sm block'>
-                        {stageAttributes.height}
-                      </span>
-                    ) : (
-                      <span className='text-stone-400 group-hover:text-orange-600 text-xs italic block'>
-                        Chưa thiết lập
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh diện mạo' : undefined}
-                  >
-                    <div className='flex items-center justify-between mb-0.5'>
-                      <span className='text-stone-500 text-xs font-semibold'>
-                        Đặc điểm diện mạo:
-                      </span>
-                      {canCreateDraft && (
-                        <Edit3 className='w-3 h-3 text-stone-400 group-hover:text-orange-600 transition' />
-                      )}
-                    </div>
-                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
-                      {stageAttributes.appearance || (
-                        <span className='text-stone-400 group-hover:text-orange-600 italic'>
-                          Chưa thiết lập
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              ) : isLocation ? (
-                <div className='space-y-2 text-xs'>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Phân loại địa hình:
-                    </span>
-                    <span className='font-bold text-stone-800 text-sm block truncate'>
-                      {stageAttributes.environmentType || 'Địa điểm / Bối cảnh'}
-                    </span>
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Quy mô / Khí hậu:
-                    </span>
-                    <span className='font-bold text-stone-800 text-sm block truncate'>
-                      {[stageAttributes.scale, stageAttributes.atmosphere]
-                        .filter(Boolean)
-                        .join(' · ') || 'Chưa thiết lập'}
-                    </span>
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Chi tiết kiến trúc & Cảnh quan:
-                    </span>
-                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
-                      {stageAttributes.architecture || 'Chưa thiết lập'}
-                    </span>
-                  </div>
-                </div>
-              ) : isProp ? (
-                <div className='space-y-2 text-xs'>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Loại đạo cụ:
-                    </span>
-                    <span className='font-bold text-stone-800 text-sm block truncate'>
-                      {stageAttributes.propType || 'Đạo cụ / Vũ khí'}
-                    </span>
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Kích thước &amp; Chất liệu:
-                    </span>
-                    <span className='font-bold text-stone-800 text-sm block truncate'>
-                      {[stageAttributes.sizeWeight, stageAttributes.material]
-                        .filter(Boolean)
-                        .join(' · ') || 'Chưa thiết lập'}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className='space-y-2 text-xs'>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Quy chuẩn &amp; Phân loại:
-                    </span>
-                    <span className='font-bold text-stone-800 text-sm block truncate'>
-                      {stageAttributes.termType || stageAttributes.strictness || 'Tiêu chuẩn'}
-                    </span>
-                  </div>
-                </div>
+                </section>
               )}
             </div>
 
             {/* CARD 2: PHIÊN BẢN & NHẬT KÝ SỬA ĐỔI (VERSION & AUDIT TRAIL GỘP CHUNG) */}
-            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+            <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
               <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                 <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
                   <History className='w-4 h-4 text-[#F97316]' />
@@ -1813,7 +1906,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             v{rev.versionNumber}
                           </span>
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
+                            className={`text-xs px-1.5 py-0.5 rounded-full border ${
                               isCanon
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold'
                                 : rev.reviewStatus === 'ConceptSubmitted'
@@ -1826,7 +1919,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             }`}
                           >
                             {isCanon
-                              ? 'Chính thức 🔒'
+                              ? 'Chính thức'
                               : rev.reviewStatus === 'ConceptSubmitted'
                                 ? 'Chờ thẩm định'
                                 : rev.reviewStatus === 'WriterEndorsed'
@@ -1836,7 +1929,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                     : 'Bản nháp'}
                           </span>
                         </div>
-                        <span className='text-[10px] text-stone-400 font-mono'>
+                        <span className='text-xs text-stone-400 font-mono'>
                           {new Date(rev.createdAt).toLocaleDateString('vi-VN')}
                         </span>
                       </div>
@@ -1870,7 +1963,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             : 'Bản nháp'}
                     )
                   </span>
-                  <span className='text-[10px] text-stone-500 font-medium'>
+                  <span className='text-xs text-stone-500 font-medium'>
                     {activeRevision?.isLocked ? 'Bất biến' : 'Có thể chỉnh sửa'}
                   </span>
                 </div>
@@ -1892,7 +1985,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               <div className='space-y-2 pt-2 border-t border-stone-200/80'>
                 <div className='font-bold text-xs uppercase tracking-wider text-stone-700 flex items-center justify-between'>
                   <span>Lịch sử thay đổi</span>
-                  <span className='text-[10px] font-normal text-stone-400'>
+                  <span className='text-xs font-normal text-stone-400'>
                     {auditLogs.length} sự kiện
                   </span>
                 </div>
@@ -1901,13 +1994,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   {auditLogs.map((log, i) => (
                     <div
                       key={i}
-                      className='p-1.5 rounded-lg bg-stone-50 border border-stone-100 flex items-center justify-between gap-1 text-[11px]'
+                      className='p-1.5 rounded-lg bg-stone-50 border border-stone-100 flex items-center justify-between gap-1 text-xs'
                     >
                       <div className='truncate min-w-0'>
                         <strong className='text-stone-900'>{log.actor}</strong>{' '}
                         <span className='text-stone-600'>{log.action}</span>
                       </div>
-                      <span className='text-[10px] text-stone-400 shrink-0 font-medium'>
+                      <span className='text-xs text-stone-400 shrink-0 font-medium'>
                         {log.time}
                       </span>
                     </div>
@@ -1915,72 +2008,23 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </div>
               </div>
             </div>
-          </section>
+          </div>
         </div>
-      </main>
-
-      {/* ================= WORKBENCH BOTTOM FOOTER ================= */}
-      <footer className='h-14 bg-[#FCFBF8] border-t border-[#D8D2C5] px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-2xs'>
-        <div className='flex items-center gap-2'>
-          <button
-            type='button'
-            onClick={() => {
-              onOpenHistory(entity);
-            }}
-            className='px-4 py-2 bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-[0.98]'
-          >
-            <History className='w-3.5 h-3.5 text-[#EA580C]' />
-            <span>Xem lịch sử phiên bản</span>
-          </button>
-
-          {canCreateDraft ? (
-            <div className='flex items-center gap-2'>
-              <button
-                type='button'
-                onClick={() => {
-                  onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
-                }}
-                className='px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]'
-                title='Tạo giai đoạn cốt truyện mới'
-              >
-                <Plus className='w-3.5 h-3.5' />
-                <span>+ Tạo giai đoạn</span>
-              </button>
-
-              <button
-                type='button'
-                onClick={() => {
-                  onOpenAddRevision(entity);
-                }}
-                className='px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]'
-              >
-                <GitCommit className='w-3.5 h-3.5' />
-                <span>{isProducer ? '+ Tạo phiên bản mới' : '+ Tạo bản nháp mới'}</span>
-              </button>
-            </div>
-          ) : isArtist ? (
-            <span className='text-xs text-zinc-500 italic'>
-              Họa sĩ (Artist) tải và nộp Concept Art theo từng giai đoạn.
-            </span>
-          ) : (
-            <span className='text-xs text-zinc-500 italic'>Chế độ chỉ xem.</span>
-          )}
-        </div>
-
-        <button
-          type='button'
-          onClick={onClose}
-          className='px-5 py-2 bg-stone-900 hover:bg-black text-white text-xs font-semibold rounded-xl transition-all cursor-pointer active:scale-95 shadow-sm'
-        >
-          Đóng
-        </button>
-      </footer>
-    </div>
+      </div>
+    </section>
   );
 
   const finalContent = (
     <>
-      {modalContent}
+      {/* Toàn trang trên nền giấy (không có sidebar/top bar của AppShell) */}
+      <div
+        className='fixed inset-0 z-[1000] bg-[#FAF9F5] overflow-y-auto animate-in fade-in duration-150'
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='bible-entity-title'
+      >
+        <div className='max-w-[1600px] mx-auto px-4 py-5 sm:px-6 lg:px-8'>{modalContent}</div>
+      </div>
 
       {/* Confirm Delete Revision Modal */}
       <LucianConfirmModal

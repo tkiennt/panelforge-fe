@@ -22,6 +22,7 @@ vi.mock('@/services/bible.service', () => ({
     requestReworkRevision: vi.fn().mockResolvedValue({}),
     addRevision: vi.fn().mockResolvedValue({}),
     getEntryHistory: vi.fn().mockResolvedValue([]),
+    getEntryUsages: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -141,15 +142,22 @@ describe('SeriesBibleView UX/UI improvements', () => {
     (chapterService.getChaptersBySeries as any).mockResolvedValue({ items: mockChapters });
   });
 
-  it('renders compact header with Vietnamese breadcrumb and count badge', async () => {
+  it('renders hero header with series name, KPI tiles, category sidebar and count badge', async () => {
     render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
-    expect(screen.getByText('Trang chủ')).toBeDefined();
+    expect(screen.getByText('Canon Hub')).toBeDefined();
+    expect(screen.getByTestId('bible-sidebar')).toBeDefined();
     expect(screen.getByRole('heading', { level: 1, name: 'Series Bible' })).toBeDefined();
 
     await waitFor(() => {
       expect(screen.getByText('2 mục tri thức')).toBeDefined();
     });
+
+    // KPI: Tần Mục đã khoá Canon
+    expect(screen.getByTestId('bible-stat-locked').textContent).toContain('1');
+
+    // KPI: Tần Mục đã khoá Canon
+    expect(screen.getByTestId('bible-stat-locked').textContent).toContain('1');
 
     // Check primary button for producer
     expect(screen.getByText('Thêm mục mới')).toBeDefined();

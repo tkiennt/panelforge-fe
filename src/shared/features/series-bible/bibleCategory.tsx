@@ -79,7 +79,7 @@ export const getCategoryBadgeStyle = (category: string | number): string => {
     return 'bg-blue-50 text-blue-800 border-blue-300';
   }
   if (catStr.includes('style') || catStr.includes('rule') || catStr === '5') {
-    return 'bg-violet-50 text-violet-800 border-violet-300';
+    return 'bg-stone-100 text-stone-800 border-stone-300';
   }
   return 'bg-stone-50 text-stone-700 border-stone-200';
 };

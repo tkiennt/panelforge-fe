@@ -248,7 +248,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
 
   const modalContent = (
     <div
-      className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1000] flex items-center justify-center p-3 sm:p-4 font-sans'
+      className='fixed inset-0 bg-black/60 z-[1000] flex items-center justify-center p-3 sm:p-4 font-sans'
       role='dialog'
       aria-modal='true'
       aria-labelledby='add-bible-entity-title'
@@ -267,7 +267,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               >
                 Thêm mục mới vào Series Bible
               </h3>
-              <p className='text-[11px] text-zinc-500'>
+              <p className='text-xs text-stone-500'>
                 Tạo thiết kế nhân vật, địa điểm, thuật ngữ hoặc quy tắc mỹ thuật
               </p>
             </div>
@@ -276,7 +276,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             type='button'
             onClick={onClose}
             aria-label='Đóng'
-            className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-zinc-400 hover:text-zinc-700 transition-colors'
+            className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors'
           >
             <X className='w-4 h-4' />
           </button>
@@ -289,7 +289,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             <div className='sm:col-span-2'>
               <label
                 htmlFor='bible-entity-name'
-                className='block text-xs font-semibold text-zinc-800 mb-1'
+                className='block text-xs font-semibold text-stone-800 mb-1'
               >
                 Tên mục <span className='text-red-500'>*</span>
               </label>
@@ -301,14 +301,14 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 placeholder='Ví dụ: Kaito Shion, Thành phố Neo-Tokyo'
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F97316] transition-colors'
+                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
               />
             </div>
 
             <div>
               <label
                 htmlFor='bible-entity-code'
-                className='block text-xs font-semibold text-zinc-800 mb-1'
+                className='block text-xs font-semibold text-stone-800 mb-1'
               >
                 Mã định danh
               </label>
@@ -318,11 +318,11 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 placeholder='Tự động'
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] font-mono text-xs text-zinc-900 placeholder-zinc-400 uppercase focus:outline-none focus:border-[#F97316] transition-colors'
+                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] font-mono text-xs text-stone-900 placeholder-stone-400 uppercase focus:outline-none focus:border-[#F97316] transition-colors'
               />
               {tempCodes.length > 0 && (
                 <div className='mt-1.5' data-testid='temp-bible-code-suggestions'>
-                  <span className='text-[10px] text-zinc-500 font-medium block mb-1'>
+                  <span className='text-xs text-stone-500 font-medium block mb-1'>
                     Gợi ý mã tạm từ kịch bản:
                   </span>
                   <div className='flex flex-wrap gap-1'>
@@ -346,11 +346,11 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                             setCategory('characters');
                           }
                         }}
-                        className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-dashed border-amber-300 transition-colors cursor-pointer'
+                        className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-dashed border-amber-300 transition-colors cursor-pointer'
                         title={`Dùng ${item.count} lần${item.chapterNumber ? ` ở Chương ${item.chapterNumber}` : ''}`}
                       >
                         <span>@{item.code}</span>
-                        <span className='text-[9px] text-amber-700 font-normal'>
+                        <span className='text-xs text-amber-700 font-normal'>
                           ({item.count}x{item.chapterNumber ? ` Ch.${item.chapterNumber}` : ''})
                         </span>
                       </button>
@@ -366,7 +366,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             <div>
               <label
                 htmlFor='bible-entity-category'
-                className='block text-xs font-semibold text-zinc-800 mb-1'
+                className='block text-xs font-semibold text-stone-800 mb-1'
               >
                 Danh mục tri thức <span className='text-red-500'>*</span>
               </label>
@@ -378,7 +378,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   setAttrField1('');
                   setAttrField2('');
                 }}
-                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 font-medium focus:outline-none focus:border-[#F97316] cursor-pointer'
+                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 font-medium focus:outline-none focus:border-[#F97316] cursor-pointer'
               >
                 <option value='characters'>Nhân vật (Character)</option>
                 <option value='locations'>Bối cảnh &amp; Địa điểm (Location)</option>
@@ -390,7 +390,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             <div>
               <label
                 htmlFor='bible-entity-subtitle'
-                className='block text-xs font-semibold text-zinc-800 mb-1'
+                className='block text-xs font-semibold text-stone-800 mb-1'
               >
                 Phụ đề / Vai trò
               </label>
@@ -400,14 +400,14 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 placeholder='Ví dụ: Nhân vật chính, Căn cứ kháng chiến'
                 value={subtitle}
                 onChange={(e) => setSubtitle(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F97316] transition-colors'
+                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
               />
             </div>
           </div>
 
           {/* Contextual Attributes Inputs per Category */}
           <div className='p-3 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-2.5'>
-            <span className='text-xs font-bold text-zinc-800 block'>
+            <span className='text-xs font-bold text-stone-800 block'>
               {category === 'characters'
                 ? 'Thông số nhân vật (Tùy chọn)'
                 : category === 'locations'
@@ -418,7 +418,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             </span>
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
               <div>
-                <label className='block text-xs font-medium text-zinc-700 mb-1'>
+                <label className='block text-xs font-medium text-stone-700 mb-1'>
                   {category === 'characters'
                     ? 'Độ tuổi'
                     : category === 'locations'
@@ -440,12 +440,12 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   }
                   value={attrField1}
                   onChange={(e) => setAttrField1(e.target.value)}
-                  className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F97316]'
+                  className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316]'
                 />
               </div>
 
               <div>
-                <label className='block text-xs font-medium text-zinc-700 mb-1'>
+                <label className='block text-xs font-medium text-stone-700 mb-1'>
                   {category === 'characters'
                     ? 'Chiều cao / Vóc dáng'
                     : category === 'locations'
@@ -467,7 +467,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   }
                   value={attrField2}
                   onChange={(e) => setAttrField2(e.target.value)}
-                  className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F97316]'
+                  className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316]'
                 />
               </div>
             </div>
@@ -478,7 +478,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             <div>
               <label
                 htmlFor='bible-entity-stage-name'
-                className='block text-xs font-semibold text-zinc-800 mb-1'
+                className='block text-xs font-semibold text-stone-800 mb-1'
               >
                 Tên giai đoạn (Tùy chọn)
               </label>
@@ -489,7 +489,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 placeholder='Ví dụ: Lúc nhỏ, Trưởng thành, Khởi nghiệp...'
                 value={stageName}
                 onChange={(e) => setStageName(e.target.value)}
-                className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F97316] transition-colors'
+                className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
               />
             </div>
 
@@ -497,7 +497,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               <div>
                 <label
                   htmlFor='bible-entity-from-chapter'
-                  className='block text-xs font-semibold text-zinc-800 mb-1'
+                  className='block text-xs font-semibold text-stone-800 mb-1'
                 >
                   Hiệu lực từ Chương số *
                 </label>
@@ -510,14 +510,14 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   onChange={(e) =>
                     setEffectiveFromChapter(Math.max(1, parseInt(e.target.value, 10) || 1))
                   }
-                  className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs font-mono text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                  className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs font-mono text-stone-900 focus:outline-none focus:border-[#F97316]'
                 />
               </div>
 
               <div>
                 <label
                   htmlFor='bible-entity-to-chapter'
-                  className='block text-xs font-semibold text-zinc-800 mb-1'
+                  className='block text-xs font-semibold text-stone-800 mb-1'
                 >
                   Đến Chương (Để trống = tới hết truyện)
                 </label>
@@ -530,7 +530,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   onChange={(e) =>
                     setEffectiveToChapter(e.target.value ? parseInt(e.target.value, 10) : '')
                   }
-                  className={`w-full px-3 py-2 bg-white rounded-lg border text-xs font-mono text-zinc-900 focus:outline-none ${
+                  className={`w-full px-3 py-2 bg-white rounded-lg border text-xs font-mono text-stone-900 focus:outline-none ${
                     isRangeInvalid
                       ? 'border-red-400 focus:border-red-500'
                       : 'border-[#E7E7E7] focus:border-[#F97316]'
@@ -540,7 +540,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             </div>
 
             {isRangeInvalid && (
-              <p className='text-[11px] text-red-600 font-medium'>
+              <p className='text-xs text-red-600 font-medium'>
                 Chương kết thúc ({effectiveToChapter}) phải lớn hơn hoặc bằng chương bắt đầu (
                 {effectiveFromChapter}).
               </p>
@@ -548,7 +548,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
           </div>
 
           {!isProducer && (
-            <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-[11px] flex items-start gap-1.5'>
+            <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs flex items-start gap-1.5'>
               <HelpCircle className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
               <span>
                 <strong>Bản nháp (Hướng B):</strong> Mục bạn tạo sẽ được lưu dưới dạng Bản nháp và
@@ -568,7 +568,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               <p className='text-xs font-semibold text-[#44403C]'>
                 Phân vai chuyên trách: Chỉ Họa sĩ (Artist) mới tải ảnh lên
               </p>
-              <p className='text-[11px] text-[#78716C] max-w-md mx-auto leading-relaxed'>
+              <p className='text-xs text-[#78716C] max-w-md mx-auto leading-relaxed'>
                 Biên kịch và Nhà sản xuất thiết lập thông tin kịch bản và quy chuẩn thiết kế bằng
                 văn bản. Sau khi lưu, mục này sẽ tự động chuyển vào{' '}
                 <b>Hàng đợi thiết kế (Bible Design Queue)</b> để Họa sĩ vẽ và tải Model Sheet /
@@ -580,14 +580,14 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               {/* Reference Sheet Image Upload Dropzone */}
               <div>
                 <div className='flex items-center justify-between mb-1'>
-                  <label className='text-xs font-semibold text-zinc-800 flex items-center gap-1.5'>
+                  <label className='text-xs font-semibold text-stone-800 flex items-center gap-1.5'>
                     <span>Ảnh Reference Sheet / Model Sheet</span>
-                    <span className='text-[10px] text-zinc-400 font-normal'>(Khuyên dùng)</span>
+                    <span className='text-xs text-stone-400 font-normal'>(Khuyên dùng)</span>
                   </label>
                   <button
                     type='button'
                     onClick={() => setShowUrlInput((v) => !v)}
-                    className='text-[11px] text-[#F97316] hover:underline font-medium flex items-center gap-1 cursor-pointer'
+                    className='text-xs text-[#F97316] hover:underline font-medium flex items-center gap-1 cursor-pointer'
                   >
                     <LinkIcon className='w-3 h-3' />
                     <span>{showUrlInput ? 'Ẩn nhập URL' : 'Dán URL trực tiếp'}</span>
@@ -607,9 +607,9 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 />
 
                 {imageUrl ? (
-                  <div className='p-3 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center justify-between gap-3'>
+                  <div className='p-3 bg-stone-50 border border-stone-200 rounded-xl flex items-center justify-between gap-3'>
                     <div className='flex items-center gap-3 min-w-0'>
-                      <div className='w-14 h-14 rounded-lg overflow-hidden border border-zinc-200 bg-zinc-900 shrink-0 relative'>
+                      <div className='w-14 h-14 rounded-lg overflow-hidden border border-stone-200 bg-stone-900 shrink-0 relative'>
                         <AuthenticatedImage
                           src={imageUrl}
                           alt={name || 'Reference Sheet Preview'}
@@ -617,12 +617,12 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                         />
                       </div>
                       <div className='min-w-0'>
-                        <span className='inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200'>
+                        <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200'>
                           <CheckCircle2 className='w-3 h-3' />
                           Đã nạp ảnh hợp lệ
                         </span>
                         <p
-                          className='text-[10px] text-zinc-500 truncate font-mono mt-0.5 max-w-[220px]'
+                          className='text-xs text-stone-500 truncate font-mono mt-0.5 max-w-[220px]'
                           title={imageUrl}
                         >
                           {imageUrl}
@@ -634,7 +634,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                       <button
                         type='button'
                         onClick={() => fileInputRef.current?.click()}
-                        className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-[#E7E7E7] hover:bg-zinc-50 text-zinc-700 transition-colors'
+                        className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-[#E7E7E7] hover:bg-stone-50 text-stone-700 transition-colors'
                       >
                         Đổi ảnh
                       </button>
@@ -660,7 +660,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                     className={`p-5 rounded-xl border-2 border-dashed transition-all text-center cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
                       isDragActive
                         ? 'border-[#F97316] bg-[#FFF7ED]'
-                        : 'border-zinc-300 hover:border-[#F97316] bg-[#FAF8F5] hover:bg-[#FFFDF9]'
+                        : 'border-stone-300 hover:border-[#F97316] bg-[#FAF8F5] hover:bg-[#FFFDF9]'
                     }`}
                   >
                     {uploadingImage ? (
@@ -670,14 +670,14 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                       </div>
                     ) : (
                       <>
-                        <div className='w-9 h-9 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[#F97316] shadow-2xs mb-0.5'>
+                        <div className='w-9 h-9 rounded-full bg-white border border-stone-200 flex items-center justify-center text-[#F97316] shadow-2xs mb-0.5'>
                           <Upload className='w-4 h-4' />
                         </div>
-                        <p className='text-xs font-semibold text-zinc-800'>
+                        <p className='text-xs font-semibold text-stone-800'>
                           Kéo thả ảnh reference sheet vào đây, hoặc{' '}
                           <span className='text-[#F97316] underline'>chọn file</span>
                         </p>
-                        <p className='text-[10px] text-zinc-500'>
+                        <p className='text-xs text-stone-500'>
                           Định dạng PNG, JPEG, WebP dung lượng tối đa 10 MB
                         </p>
                       </>
@@ -692,7 +692,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                       placeholder='Hoặc dán URL ảnh trực tiếp (https://...)'
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
-                      className='w-full px-3 py-1.5 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                      className='w-full px-3 py-1.5 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
                     />
                   </div>
                 )}
@@ -706,11 +706,11 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                       Bộ Sưu Tập Phác Thảo Góc Nhìn &amp; Biểu Cảm (Character Sheet Gallery)
                     </span>
                   </label>
-                  <span className='text-[10px] font-mono text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded'>
+                  <span className='text-xs font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded'>
                     {gallery.length} góc phác thảo
                   </span>
                 </div>
-                <p className='text-[11px] text-[#737373]'>
+                <p className='text-xs text-[#737373]'>
                   Tải lên nhiều góc nhìn (Turnaround 360°, Góc 3/4, Biểu cảm, Trang phục) để hoạ sĩ
                   đối chiếu đa chiều.
                 </p>
@@ -720,7 +720,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   <select
                     value={galleryLabel}
                     onChange={(e) => setGalleryLabel(e.target.value)}
-                    className='h-8 px-2.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-semibold text-zinc-800 cursor-pointer focus:outline-none focus:border-[#F97316]'
+                    className='h-8 px-2.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-semibold text-stone-800 cursor-pointer focus:outline-none focus:border-[#F97316]'
                   >
                     <option value='Chính diện (Front)'>Chính diện (Front)</option>
                     <option value='Góc nghiêng 3/4'>Góc nghiêng 3/4</option>
@@ -749,7 +749,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                     type='button'
                     onClick={() => galleryInputRef.current?.click()}
                     disabled={uploadingGallery}
-                    className='h-8 px-3 rounded-lg bg-[#FAF8F5] hover:bg-[#F3F1EB] border border-[#E7E7E7] text-zinc-800 font-semibold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
+                    className='h-8 px-3 rounded-lg bg-[#FAF8F5] hover:bg-[#F3F1EB] border border-[#E7E7E7] text-stone-800 font-semibold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
                   >
                     {uploadingGallery ? (
                       <>
@@ -773,7 +773,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                         key={idx}
                         className='p-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl flex items-center gap-2 relative group hover:border-[#F97316]/50 transition-colors'
                       >
-                        <div className='w-11 h-11 rounded-lg overflow-hidden bg-zinc-900 shrink-0 border border-zinc-200'>
+                        <div className='w-11 h-11 rounded-lg overflow-hidden bg-stone-900 shrink-0 border border-stone-200'>
                           <AuthenticatedImage
                             src={item.url}
                             alt={item.label}
@@ -782,17 +782,17 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                         </div>
                         <div className='min-w-0 flex-1'>
                           <div
-                            className='text-[11px] font-bold text-zinc-900 truncate'
+                            className='text-xs font-bold text-stone-900 truncate'
                             title={item.label}
                           >
                             {item.label}
                           </div>
-                          <div className='text-[9px] text-[#737373] font-mono'>Góc #{idx + 1}</div>
+                          <div className='text-xs text-[#737373] font-mono'>Góc #{idx + 1}</div>
                         </div>
                         <button
                           type='button'
                           onClick={() => setGallery((prev) => prev.filter((_, i) => i !== idx))}
-                          className='p-1 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors'
+                          className='p-1 rounded-md text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors'
                           title='Xóa góc này'
                         >
                           <Trash2 className='w-3 h-3' />
@@ -809,7 +809,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
           <div>
             <label
               htmlFor='bible-entity-desc'
-              className='block text-xs font-semibold text-zinc-800 mb-1'
+              className='block text-xs font-semibold text-stone-800 mb-1'
             >
               Mô tả quy chuẩn thiết kế &amp; Nhận dạng <span className='text-red-500'>*</span>
             </label>
@@ -820,11 +820,11 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               placeholder='Mô tả chi tiết ngoại hình, màu sắc trang phục, tính cách, đặc điểm nhận diện bắt buộc...'
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F97316] transition-colors resize-none'
+              className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors resize-none'
             ></textarea>
           </div>
 
-          <div className='pt-3 border-t border-zinc-100 flex items-center justify-end gap-2.5'>
+          <div className='pt-3 border-t border-stone-100 flex items-center justify-end gap-2.5'>
             <button
               type='button'
               onClick={onClose}

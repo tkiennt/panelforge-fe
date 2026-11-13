@@ -26,7 +26,7 @@ export const ReworkModal: React.FC<ReworkModalProps> = React.memo(
 
     return createPortal(
       <div
-        className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1050] flex items-center justify-center p-4'
+        className='fixed inset-0 bg-black/60 z-[1050] flex items-center justify-center p-4'
         role='dialog'
         aria-modal='true'
         data-child-modal='true'
@@ -37,19 +37,19 @@ export const ReworkModal: React.FC<ReworkModalProps> = React.memo(
         }}
       >
         <div
-          className='bg-white rounded-2xl max-w-md w-full border border-zinc-200 shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150'
+          className='bg-white rounded-2xl max-w-md w-full border border-stone-200 shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150'
           onClick={(e) => e.stopPropagation()}
         >
-          <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
+          <div className='flex items-center justify-between border-b border-stone-100 pb-3'>
             <div className='flex items-center gap-2'>
               <div className='w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center'>
                 <MessageSquare className='w-4 h-4' />
               </div>
               <div>
-                <h3 className='font-bold text-sm text-zinc-900'>
+                <h3 className='font-bold text-sm text-stone-900'>
                   Yêu cầu vẽ lại thiết kế (Rework)
                 </h3>
-                <p className='text-[11px] text-zinc-500'>
+                <p className='text-xs text-stone-500'>
                   Phiên bản v{targetRev.versionNumber} của &quot;{entityName}&quot;
                 </p>
               </div>
@@ -57,14 +57,14 @@ export const ReworkModal: React.FC<ReworkModalProps> = React.memo(
             <button
               type='button'
               onClick={onClose}
-              className='p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700'
+              className='p-1 rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700'
             >
               <X className='w-4 h-4' />
             </button>
           </div>
 
           <div>
-            <label className='block text-xs font-semibold text-zinc-800 mb-1.5'>
+            <label className='block text-xs font-semibold text-stone-800 mb-1.5'>
               Nhận xét chi tiết cho Artist (Lý do chưa chuẩn / Rắc-co) *
             </label>
             <textarea
@@ -74,19 +74,19 @@ export const ReworkModal: React.FC<ReworkModalProps> = React.memo(
               placeholder='Ví dụ: Kiểu tóc chưa đúng với nguyên tác, màu trang phục cần chỉnh lại thành màu xanh đậm, thiếu biểu cảm giận dữ...'
               value={localReason}
               onChange={(e) => setLocalReason(e.target.value)}
-              className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-300 rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-rose-500 resize-none'
+              className='w-full px-3 py-2 bg-[#FAF8F5] border border-stone-300 rounded-lg text-xs text-stone-900 focus:outline-none focus:border-rose-500 resize-none'
             />
-            <p className='text-[10px] text-zinc-500 mt-1'>
+            <p className='text-xs text-stone-500 mt-1'>
               Ghi chú này sẽ được chuyển ngay đến hàng đợi vẽ của Artist để vẽ bản cập nhật tiếp
               theo.
             </p>
           </div>
 
-          <div className='flex items-center justify-end gap-2 pt-2 border-t border-zinc-100'>
+          <div className='flex items-center justify-end gap-2 pt-2 border-t border-stone-100'>
             <button
               type='button'
               onClick={onClose}
-              className='px-3.5 py-1.5 border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-600 hover:bg-zinc-50'
+              className='px-3.5 py-1.5 border border-stone-200 rounded-lg text-xs font-semibold text-stone-600 hover:bg-stone-50'
             >
               Hủy
             </button>

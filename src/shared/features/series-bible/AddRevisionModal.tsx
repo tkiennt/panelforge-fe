@@ -20,6 +20,14 @@ import type { BibleEntryRevisionDto } from '@/services/bible.service';
 import type { CharacterEraStage } from './BibleEntityDetailModal';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { LucianInlineAlert } from '@/shared/components/lucian';
+import {
+  SPEC_SCHEMA,
+  mergeSpecAttributes,
+  specCategoryOf,
+  specCompleteness,
+  specFields,
+  type SpecCategory,
+} from './bibleSpec';
 
 export interface AddRevisionModalProps {
   isOpen: boolean;
@@ -119,8 +127,10 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     const [summary, setSummary] = useState(initialSummary);
     const [description, setDescription] = useState(initialDescription);
     const [referenceImageUrl, setReferenceImageUrl] = useState(initialReferenceImageUrl);
-    const [revAttr1, setRevAttr1] = useState('');
-    const [revAttr2, setRevAttr2] = useState('');
+    const [specValues, setSpecValues] = useState<Record<string, string>>({});
+    const specCategory: SpecCategory = revisionTarget
+      ? specCategoryOf(revisionTarget)
+      : 'character';
     const [isSpecsExpanded, setIsSpecsExpanded] = useState(!isArtistConceptSubmit);
     const [isDragging, setIsDragging] = useState(false);
     const revFileInputRef = useRef<HTMLInputElement>(null);
@@ -178,31 +188,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
           }
         }
         if (revisionTarget) {
-          const isCatChar =
-            revisionTarget.category === 'characters' || revisionTarget.category === 'character';
-          const isCatLoc =
-            revisionTarget.category === 'locations' || revisionTarget.category === 'location';
-          const isCatProp = revisionTarget.category === 'prop';
-          const isCatTerm = revisionTarget.category === 'terminology';
-          const isCatStyle =
-            revisionTarget.category === 'style' || revisionTarget.category === 'rule';
-
-          if (isCatChar) {
-            setRevAttr1(initialAttrs.age || '');
-            setRevAttr2(initialAttrs.height || '');
-          } else if (isCatLoc) {
-            setRevAttr1(initialAttrs.environmentType || '');
-            setRevAttr2(initialAttrs.scale || initialAttrs.atmosphere || '');
-          } else if (isCatProp) {
-            setRevAttr1(initialAttrs.sizeWeight || '');
-            setRevAttr2(initialAttrs.material || '');
-          } else if (isCatTerm) {
-            setRevAttr1(initialAttrs.termType || '');
-            setRevAttr2(initialAttrs.origin || '');
-          } else if (isCatStyle) {
-            setRevAttr1(initialAttrs.colorPalette || '');
-            setRevAttr2(initialAttrs.lineArtRules || '');
-          }
+          const cat = specCategoryOf(revisionTarget);
+          setSpecValues(
+            Object.fromEntries(
+              specFields(cat).map((fd) => [fd.key, String(initialAttrs[fd.key] ?? '')]),
+            ),
+          );
         }
 
         if (mode === 'existing' && existingStages && existingStages.length > 0) {
@@ -242,33 +233,11 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     if (!isOpen || !revisionTarget) return null;
 
     const handleSubmit = () => {
-      const isCatChar =
-        revisionTarget.category === 'characters' || revisionTarget.category === 'character';
-      const isCatLoc =
-        revisionTarget.category === 'locations' || revisionTarget.category === 'location';
-      const isCatProp = revisionTarget.category === 'prop';
-      const isCatTerm = revisionTarget.category === 'terminology';
-      const isCatStyle = revisionTarget.category === 'style' || revisionTarget.category === 'rule';
-
-      const updatedAttrs: Record<string, any> = { ...(revisionTarget.attributes || {}) };
-      if (isCatChar) {
-        if (revAttr1.trim()) updatedAttrs.age = revAttr1.trim();
-        else delete updatedAttrs.age;
-        if (revAttr2.trim()) updatedAttrs.height = revAttr2.trim();
-        else delete updatedAttrs.height;
-      } else if (isCatLoc) {
-        if (revAttr1.trim()) updatedAttrs.environmentType = revAttr1.trim();
-        if (revAttr2.trim()) updatedAttrs.scale = revAttr2.trim();
-      } else if (isCatProp) {
-        if (revAttr1.trim()) updatedAttrs.sizeWeight = revAttr1.trim();
-        if (revAttr2.trim()) updatedAttrs.material = revAttr2.trim();
-      } else if (isCatTerm) {
-        if (revAttr1.trim()) updatedAttrs.termType = revAttr1.trim();
-        if (revAttr2.trim()) updatedAttrs.origin = revAttr2.trim();
-      } else if (isCatStyle) {
-        if (revAttr1.trim()) updatedAttrs.colorPalette = revAttr1.trim();
-        if (revAttr2.trim()) updatedAttrs.lineArtRules = revAttr2.trim();
-      }
+      const updatedAttrs = mergeSpecAttributes(
+        specCategory,
+        revisionTarget.attributes || {},
+        specValues,
+      ) as Record<string, any>;
 
       const detailsPayload = JSON.stringify({
         turnaroundGallery: revisionTarget.gallery || [],
@@ -299,7 +268,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
 
     return createPortal(
       <div
-        className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1050] flex items-center justify-center p-3 sm:p-4'
+        className='fixed inset-0 bg-black/60 z-[1050] flex items-center justify-center p-3 sm:p-4'
         role='dialog'
         aria-modal='true'
         data-child-modal='true'
@@ -341,12 +310,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                               : `Tạo bản nháp mới: ${revisionTarget.name}`}
                   </h3>
                   {isArtistConceptSubmit && isArtist && (
-                    <span className='px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-300'>
+                    <span className='px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300'>
                       Họa sĩ (Artist)
                     </span>
                   )}
                   {eraMode === 'new' && (
-                    <span className='px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300'>
+                    <span className='px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300'>
                       Thời kỳ mới
                     </span>
                   )}
@@ -405,13 +374,11 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     <label className='text-xs sm:text-sm font-bold text-stone-900'>
                       Bản vẽ Concept Art / Model Sheet
                     </label>
-                    <span className='px-2 py-0.5 rounded text-[10px] font-bold bg-[#EA580C] text-white shadow-2xs'>
+                    <span className='px-2 py-0.5 rounded text-xs font-bold bg-[#EA580C] text-white shadow-2xs'>
                       Trọng tâm nộp bài
                     </span>
                   </div>
-                  <span className='text-[11px] text-stone-500 font-medium'>
-                    PNG, JPG, WebP ≤ 10MB
-                  </span>
+                  <span className='text-xs text-stone-500 font-medium'>PNG, JPG, WebP ≤ 10MB</span>
                 </div>
 
                 <input
@@ -441,7 +408,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         <CheckCircle2 className='w-4 h-4 shrink-0' />
                         <span>Đã tải lên bản vẽ thành công</span>
                       </div>
-                      <p className='text-[11px] text-stone-500 font-mono truncate'>
+                      <p className='text-xs text-stone-500 font-mono truncate'>
                         {referenceImageUrl}
                       </p>
                       <div className='flex items-center gap-2 pt-1'>
@@ -504,7 +471,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                             chọn tệp từ máy
                           </span>
                         </p>
-                        <p className='text-[11px] text-stone-400'>
+                        <p className='text-xs text-stone-400'>
                           Hỗ trợ PNG, JPG, WebP tối đa 10MB • Hỗ trợ dán trực tiếp từ Clipboard
                           (Ctrl + V)
                         </p>
@@ -523,7 +490,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               <div className='flex items-center justify-between gap-2 flex-wrap'>
                 <div className='flex items-center gap-2'>
                   <Clock className='w-4 h-4 text-[#EA580C]' />
-                  <span className='text-xs font-bold text-zinc-900'>
+                  <span className='text-xs font-bold text-stone-900'>
                     Thời kỳ & Tiến trình cốt truyện (Era)
                   </span>
                 </div>
@@ -549,8 +516,8 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                       }}
                       className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                         eraMode === 'existing'
-                          ? 'bg-white text-zinc-900 shadow-2xs'
-                          : 'text-zinc-600 hover:text-zinc-900'
+                          ? 'bg-white text-stone-900 shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
                       }`}
                       data-testid='switch-to-existing-era-tab'
                     >
@@ -572,7 +539,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                       className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${
                         eraMode === 'new'
                           ? 'bg-[#EA580C] text-white shadow-2xs'
-                          : 'text-zinc-600 hover:text-zinc-900'
+                          : 'text-stone-600 hover:text-stone-900'
                       }`}
                       data-testid='switch-to-new-era-tab'
                     >
@@ -588,7 +555,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               existingStages.length > 0 &&
               !supersedeTarget ? (
                 <div className='space-y-2 pt-1'>
-                  <label className='block text-xs font-semibold text-zinc-700'>
+                  <label className='block text-xs font-semibold text-stone-700'>
                     {isArtistConceptSubmit
                       ? 'Chọn thời kỳ áp dụng bản vẽ Concept Art *'
                       : 'Chọn thời kỳ của nhân vật để thêm phiên bản *'}
@@ -605,7 +572,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         setEffectiveToChapter(stg.effectiveToChapterNumber ?? '');
                       }
                     }}
-                    className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs font-medium text-zinc-900 focus:outline-none focus:border-[#F97316] cursor-pointer'
+                    className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-[#F97316] cursor-pointer'
                     data-testid='existing-era-select'
                   >
                     {existingStages.map((stg) => (
@@ -615,7 +582,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                       </option>
                     ))}
                   </select>
-                  <p className='text-[11px] text-zinc-500'>
+                  <p className='text-xs text-stone-500'>
                     {isArtistConceptSubmit
                       ? `Bản vẽ sẽ được thẩm định và liên kết với thời kỳ `
                       : `Phiên bản mới sẽ bổ sung vào thời kỳ `}
@@ -627,11 +594,11 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                 <div className='space-y-3 pt-1'>
                   <div>
                     <div className='flex items-center justify-between mb-1'>
-                      <label className='text-xs font-semibold text-zinc-800 flex items-center gap-1.5'>
+                      <label className='text-xs font-semibold text-stone-800 flex items-center gap-1.5'>
                         <span>Tên Thời kỳ mới (Era Name)</span>
                         <span className='text-red-500'>*</span>
                       </label>
-                      <span className='text-[10.5px] text-zinc-400'>
+                      <span className='text-[10.5px] text-stone-400'>
                         VD: Lúc nhỏ, Siêu Saiyan, Trưởng thành...
                       </span>
                     </div>
@@ -641,12 +608,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                       placeholder='Nhập tên thời kỳ (VD: Thiếu niên, Trưởng thành, Hắc hóa...)'
                       value={stageName}
                       onChange={(e) => setStageName(e.target.value)}
-                      className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                      className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
                       data-testid='revision-stage-name-input'
                     />
                     {/* Quick Preset Pills */}
                     <div className='flex items-center gap-1.5 mt-2 flex-wrap'>
-                      <span className='text-[11px] text-zinc-400'>Gợi ý nhanh:</span>
+                      <span className='text-xs text-stone-400'>Gợi ý nhanh:</span>
                       {[
                         'Lúc nhỏ',
                         'Thiếu niên',
@@ -658,7 +625,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                           key={preset}
                           type='button'
                           onClick={() => setStageName(preset)}
-                          className='px-2.5 py-0.5 rounded-lg bg-stone-100 hover:bg-orange-50 hover:text-[#EA580C] hover:border-orange-200 border border-stone-200 text-xs text-zinc-600 transition-colors cursor-pointer'
+                          className='px-2.5 py-0.5 rounded-lg bg-stone-100 hover:bg-orange-50 hover:text-[#EA580C] hover:border-orange-200 border border-stone-200 text-xs text-stone-600 transition-colors cursor-pointer'
                         >
                           +{preset}
                         </button>
@@ -669,7 +636,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                   {/* Chapter Range: From & To */}
                   <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
                     <div>
-                      <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                      <label className='block text-xs font-semibold text-stone-800 mb-1'>
                         Bắt đầu từ Chương *
                       </label>
                       <input
@@ -680,7 +647,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         onChange={(e) =>
                           setEffectiveChapter(Math.max(1, parseInt(e.target.value, 10) || 1))
                         }
-                        className={`w-full px-3 py-2 bg-white border rounded-xl text-xs font-mono text-zinc-900 focus:outline-none disabled:opacity-60 ${
+                        className={`w-full px-3 py-2 bg-white border rounded-xl text-xs font-mono text-stone-900 focus:outline-none disabled:opacity-60 ${
                           !supersedeTarget && lockedChapterNumbers.includes(effectiveChapter)
                             ? 'border-red-400 focus:border-red-500'
                             : 'border-[#D8D2C5] focus:border-[#F97316]'
@@ -688,7 +655,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         data-testid='revision-effective-from-input'
                       />
                       {!supersedeTarget && lockedChapterNumbers.includes(effectiveChapter) && (
-                        <p className='text-[11px] text-red-600 mt-1 font-medium flex items-center gap-1'>
+                        <p className='text-xs text-red-600 mt-1 font-medium flex items-center gap-1'>
                           <AlertCircle className='w-3 h-3 text-red-500 shrink-0' />
                           Chương {effectiveChapter} đã có phiên bản bị khoá!
                         </p>
@@ -696,7 +663,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     </div>
 
                     <div>
-                      <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                      <label className='block text-xs font-semibold text-stone-800 mb-1'>
                         Đến Chương (Tùy chọn)
                       </label>
                       <input
@@ -708,7 +675,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                           const val = e.target.value;
                           setEffectiveToChapter(val === '' ? '' : parseInt(val, 10));
                         }}
-                        className={`w-full px-3 py-2 bg-white border rounded-xl text-xs font-mono text-zinc-900 focus:outline-none ${
+                        className={`w-full px-3 py-2 bg-white border rounded-xl text-xs font-mono text-stone-900 focus:outline-none ${
                           effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter
                             ? 'border-red-400 focus:border-red-500'
                             : 'border-[#D8D2C5] focus:border-[#F97316]'
@@ -717,7 +684,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                       />
                       {effectiveToChapter !== '' &&
                         Number(effectiveToChapter) < effectiveChapter && (
-                          <p className='text-[11px] text-red-600 mt-1 font-medium'>
+                          <p className='text-xs text-red-600 mt-1 font-medium'>
                             Chương kết thúc phải ≥ chương bắt đầu ({effectiveChapter}).
                           </p>
                         )}
@@ -729,7 +696,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
 
             {/* ================= SUMMARY / REVISION NOTE ================= */}
             <div>
-              <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+              <label className='block text-xs font-semibold text-stone-800 mb-1'>
                 {supersedeTarget
                   ? 'Lý do thay thế bản đã khoá *'
                   : isArtistConceptSubmit
@@ -747,7 +714,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
                 data-testid='revision-summary-input'
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
               />
             </div>
 
@@ -763,12 +730,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     <FileText className='w-4 h-4 text-stone-500 shrink-0' />
                     <div className='min-w-0'>
                       <span className='text-xs font-bold text-stone-800 block'>
-                        Thông số & Đặc tả kịch bản (Tùy chọn)
+                        Đặc tả của Writer (chỉ đọc)
                       </span>
-                      <span className='text-[11px] text-stone-500 truncate block'>
+                      <span className='text-xs text-stone-500 truncate block'>
                         {isSpecsExpanded
-                          ? 'Mặc định giữ nguyên theo kịch bản của Writer. Nhấp để thu gọn.'
-                          : `${name} • ${revAttr1 || 'Chưa thiết lập'} • ${revAttr2 || 'Chưa thiết lập'}`}
+                          ? 'Vẽ theo đặc tả này; muốn đổi đặc tả hãy nhờ Writer. Nhấp để thu gọn.'
+                          : `${name} • đặc tả ${specCompleteness(specCategory, specValues).filled}/${specCompleteness(specCategory, specValues).total} trường`}
                       </span>
                     </div>
                   </div>
@@ -781,75 +748,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
 
                 {isSpecsExpanded && (
                   <div className='p-4 pt-2 border-t border-stone-200/70 space-y-3 bg-white'>
-                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                      <div>
-                        <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                          Tên mục *
-                        </label>
-                        <input
-                          type='text'
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                        />
-                      </div>
-                      <div>
-                        <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                          Phụ đề / Vai trò
-                        </label>
-                        <input
-                          type='text'
-                          value={subtitle}
-                          onChange={(e) => setSubtitle(e.target.value)}
-                          className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                        />
-                      </div>
-                    </div>
-
-                    <div className='p-3 bg-[#FAF8F5] border border-[#E7E5E4] rounded-xl space-y-2'>
-                      <span className='text-xs font-bold text-zinc-800 block'>
-                        Thông số nhân vật (Độ tuổi & Vóc dáng)
-                      </span>
-                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                        <div>
-                          <label className='block text-xs font-medium text-zinc-700 mb-1'>
-                            Độ tuổi
-                          </label>
-                          <input
-                            type='text'
-                            placeholder='Ví dụ: 17 tuổi, 25 tuổi...'
-                            value={revAttr1}
-                            onChange={(e) => setRevAttr1(e.target.value)}
-                            className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                          />
-                        </div>
-                        <div>
-                          <label className='block text-xs font-medium text-zinc-700 mb-1'>
-                            Chiều cao / Vóc dáng
-                          </label>
-                          <input
-                            type='text'
-                            placeholder='Ví dụ: 178 cm, Cao gầy...'
-                            value={revAttr2}
-                            onChange={(e) => setRevAttr2(e.target.value)}
-                            className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                        Mô tả chi tiết (Tùy chọn)
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder='Mô tả chi tiết ngoại hình, phục trang, tính cách...'
-                        className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316] resize-y custom-scrollbar leading-relaxed'
-                      />
-                    </div>
+                    <SpecFieldsEditor category={specCategory} values={specValues} readOnly />
+                    {description && (
+                      <p className='text-sm text-stone-700 leading-relaxed whitespace-pre-line'>
+                        {description}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -857,104 +761,38 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               <>
                 <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
                   <div>
-                    <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                    <label className='block text-xs font-semibold text-stone-800 mb-1'>
                       Tên mục *
                     </label>
                     <input
                       type='text'
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                      className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
                     />
                   </div>
                   <div>
-                    <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                    <label className='block text-xs font-semibold text-stone-800 mb-1'>
                       Phụ đề / Vai trò
                     </label>
                     <input
                       type='text'
                       value={subtitle}
                       onChange={(e) => setSubtitle(e.target.value)}
-                      className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                      className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
                     />
                   </div>
                 </div>
 
-                {/* Contextual Attributes (Specs) */}
-                <div className='p-3 bg-[#FAF8F5] border border-[#E7E5E4] rounded-xl space-y-2'>
-                  <span className='text-xs font-bold text-zinc-800 block'>
-                    {revisionTarget.category === 'characters' ||
-                    revisionTarget.category === 'character'
-                      ? 'Thông số nhân vật (Độ tuổi & Vóc dáng)'
-                      : revisionTarget.category === 'locations' ||
-                          revisionTarget.category === 'location'
-                        ? 'Thông số không gian & Bối cảnh'
-                        : revisionTarget.category === 'prop'
-                          ? 'Thông số đạo cụ & Vật phẩm'
-                          : revisionTarget.category === 'terminology'
-                            ? 'Đặc tả thuật ngữ / Cốt truyện'
-                            : 'Quy chuẩn mỹ thuật'}
-                  </span>
-                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                    <div>
-                      <label className='block text-xs font-medium text-zinc-700 mb-1'>
-                        {revisionTarget.category === 'characters' ||
-                        revisionTarget.category === 'character'
-                          ? 'Độ tuổi'
-                          : revisionTarget.category === 'locations' ||
-                              revisionTarget.category === 'location'
-                            ? 'Loại địa hình / Phân khu'
-                            : revisionTarget.category === 'prop'
-                              ? 'Kích thước & Trọng lượng'
-                              : revisionTarget.category === 'terminology'
-                                ? 'Phân loại lĩnh vực'
-                                : 'Bảng màu chủ đạo'}
-                      </label>
-                      <input
-                        type='text'
-                        placeholder={
-                          revisionTarget.category === 'characters' ||
-                          revisionTarget.category === 'character'
-                            ? 'Ví dụ: 17 tuổi, 25 tuổi...'
-                            : 'Ví dụ: Hang động, Rừng lớn...'
-                        }
-                        value={revAttr1}
-                        onChange={(e) => setRevAttr1(e.target.value)}
-                        className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                      />
-                    </div>
-                    <div>
-                      <label className='block text-xs font-medium text-zinc-700 mb-1'>
-                        {revisionTarget.category === 'characters' ||
-                        revisionTarget.category === 'character'
-                          ? 'Chiều cao / Vóc dáng'
-                          : revisionTarget.category === 'locations' ||
-                              revisionTarget.category === 'location'
-                            ? 'Quy mô / Khí hậu'
-                            : revisionTarget.category === 'prop'
-                              ? 'Chất liệu cấu tạo'
-                              : revisionTarget.category === 'terminology'
-                                ? 'Nguồn gốc / Khởi nguyên'
-                                : 'Quy chuẩn nét vẽ'}
-                      </label>
-                      <input
-                        type='text'
-                        placeholder={
-                          revisionTarget.category === 'characters' ||
-                          revisionTarget.category === 'character'
-                            ? 'Ví dụ: 178 cm, Cao gầy...'
-                            : 'Ví dụ: U tối, Đầy sương...'
-                        }
-                        value={revAttr2}
-                        onChange={(e) => setRevAttr2(e.target.value)}
-                        className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                      />
-                    </div>
-                  </div>
-                </div>
+                {/* Đặc tả theo danh mục (bibleSpec) */}
+                <SpecFieldsEditor
+                  category={specCategory}
+                  values={specValues}
+                  onChange={(key, value) => setSpecValues((prev) => ({ ...prev, [key]: value }))}
+                />
 
                 <div>
-                  <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                  <label className='block text-xs font-semibold text-stone-800 mb-1'>
                     Mô tả chi tiết (Tùy chọn)
                   </label>
                   <textarea
@@ -962,17 +800,17 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder='Mô tả chi tiết ngoại hình, tính cách hoặc lưu ý cho họa sĩ...'
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316] resize-y custom-scrollbar leading-relaxed'
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316] resize-y custom-scrollbar leading-relaxed'
                   />
                 </div>
 
                 {/* Upload reference sheet image for Producer/Writer */}
                 <div>
                   <div className='flex items-center justify-between mb-1'>
-                    <label className='text-xs font-semibold text-zinc-800'>
+                    <label className='text-xs font-semibold text-stone-800'>
                       Ảnh tham chiếu / Moodboard (Tùy chọn)
                     </label>
-                    <span className='text-[10px] text-zinc-400 font-normal'>
+                    <span className='text-xs text-stone-400 font-normal'>
                       {isArtist ? 'Dành cho Artist' : 'Chỉ Artist được tải'}
                     </span>
                   </div>
@@ -991,7 +829,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                   {referenceImageUrl ? (
                     <div className='p-2.5 bg-[#FAF8F4] border border-[#E7E7E7] rounded-xl flex items-center justify-between gap-3'>
                       <div className='flex items-center gap-2.5 min-w-0'>
-                        <div className='w-12 h-12 rounded-lg overflow-hidden border border-zinc-200 bg-zinc-900 shrink-0 relative'>
+                        <div className='w-12 h-12 rounded-lg overflow-hidden border border-stone-200 bg-stone-900 shrink-0 relative'>
                           <AuthenticatedImage
                             src={referenceImageUrl}
                             alt={name || 'Reference Sheet'}
@@ -999,7 +837,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                           />
                         </div>
                         <div className='min-w-0'>
-                          <span className='text-[10px] text-zinc-500 font-mono truncate block max-w-[200px]'>
+                          <span className='text-xs text-stone-500 font-mono truncate block max-w-[200px]'>
                             {referenceImageUrl}
                           </span>
                         </div>
@@ -1008,7 +846,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         <button
                           type='button'
                           onClick={() => revFileInputRef.current?.click()}
-                          className='px-2 py-1 text-[11px] font-semibold rounded bg-white border border-[#E7E7E7] hover:bg-zinc-50 text-zinc-700'
+                          className='px-2 py-1 text-xs font-semibold rounded bg-white border border-[#E7E7E7] hover:bg-stone-50 text-stone-700'
                         >
                           Đổi ảnh
                         </button>
@@ -1023,8 +861,8 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                       </div>
                     </div>
                   ) : !isArtist ? (
-                    <div className='p-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-center text-xs text-zinc-500 flex items-center justify-center gap-2'>
-                      <Lock className='w-3.5 h-3.5 text-zinc-400' />
+                    <div className='p-3 rounded-xl border border-dashed border-stone-200 bg-stone-50 text-center text-xs text-stone-500 flex items-center justify-center gap-2'>
+                      <Lock className='w-3.5 h-3.5 text-stone-400' />
                       <span>Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Model Sheet mới.</span>
                     </div>
                   ) : (
@@ -1032,7 +870,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                       type='button'
                       onClick={() => revFileInputRef.current?.click()}
                       disabled={uploadingRevImage}
-                      className='w-full p-3 rounded-xl border border-dashed border-zinc-300 hover:border-[#F97316] bg-[#FAF8F5] text-center text-xs text-zinc-600 hover:text-zinc-900 flex items-center justify-center gap-2 cursor-pointer transition-colors'
+                      className='w-full p-3 rounded-xl border border-dashed border-stone-300 hover:border-[#F97316] bg-[#FAF8F5] text-center text-xs text-stone-600 hover:text-stone-900 flex items-center justify-center gap-2 cursor-pointer transition-colors'
                     >
                       {uploadingRevImage ? (
                         <>
@@ -1125,3 +963,66 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
   },
 );
 AddRevisionModal.displayName = 'AddRevisionModal';
+
+const SpecFieldsEditor: React.FC<{
+  category: SpecCategory;
+  values: Record<string, string>;
+  readOnly?: boolean;
+  onChange?: (key: string, value: string) => void;
+}> = ({ category, values, readOnly = false, onChange }) => (
+  <div className='space-y-3'>
+    {SPEC_SCHEMA[category].map((group) => (
+      <fieldset
+        key={group.title}
+        className='p-3 bg-stone-50 border border-stone-200 rounded-xl space-y-2'
+      >
+        <legend className='px-1 text-xs font-semibold uppercase tracking-wider text-stone-500'>
+          {group.title}
+        </legend>
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+          {group.fields.map((field) => {
+            const id = `spec-${field.key}`;
+            const value = values[field.key] ?? '';
+            return (
+              <div key={field.key} className={field.multiline ? 'sm:col-span-2' : undefined}>
+                <label htmlFor={id} className='block text-xs font-semibold text-stone-700 mb-1'>
+                  {field.label}
+                </label>
+                {readOnly ? (
+                  <p
+                    id={id}
+                    className={
+                      value
+                        ? 'text-sm text-stone-800 whitespace-pre-line'
+                        : 'text-xs italic text-stone-500'
+                    }
+                  >
+                    {value || 'Chưa thiết lập'}
+                  </p>
+                ) : field.multiline ? (
+                  <textarea
+                    id={id}
+                    rows={2}
+                    value={value}
+                    placeholder={field.placeholder}
+                    onChange={(e) => onChange?.(field.key, e.target.value)}
+                    className='w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:border-orange-500 resize-y'
+                  />
+                ) : (
+                  <input
+                    id={id}
+                    type='text'
+                    value={value}
+                    placeholder={field.placeholder}
+                    onChange={(e) => onChange?.(field.key, e.target.value)}
+                    className='w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:border-orange-500'
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </fieldset>
+    ))}
+  </div>
+);
