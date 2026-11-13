@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Lock,
@@ -752,13 +753,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   // Focus trap, Escape key listener & Body scroll locking
   useEffect(() => {
     lastActiveElementRef.current = document.activeElement as HTMLElement | null;
-    modalContainerRef.current?.scrollIntoView?.({ block: 'start' });
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Do not close workbench if any child modal (e.g. Add Revision, Confirm, Zoom) is currently open on top
       const hasOpenChildModal =
         document.querySelector('[data-child-modal="true"]') ||
-        document.querySelectorAll('[role="dialog"]').length > 0;
+        document.querySelectorAll('[role="dialog"]').length > 1;
 
       if (e.key === 'Escape') {
         if (hasOpenChildModal) {
@@ -773,6 +775,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);
       lastActiveElementRef.current?.focus?.();
     };
@@ -1894,7 +1897,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
   const finalContent = (
     <>
-      {modalContent}
+      {/* Toàn trang trên nền giấy (không có sidebar/top bar của AppShell) */}
+      <div
+        className='fixed inset-0 z-[1000] bg-[#FAF9F5] overflow-y-auto animate-in fade-in duration-150'
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='bible-entity-title'
+      >
+        <div className='max-w-[1600px] mx-auto px-4 py-5 sm:px-6 lg:px-8'>{modalContent}</div>
+      </div>
 
       {/* Confirm Delete Revision Modal */}
       <LucianConfirmModal
@@ -1952,5 +1963,5 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     </>
   );
 
-  return finalContent;
+  return typeof document !== 'undefined' ? createPortal(finalContent, document.body) : finalContent;
 };

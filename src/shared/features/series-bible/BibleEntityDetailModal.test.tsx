@@ -79,13 +79,16 @@ describe('BibleEntityDetailModal UX/UI', () => {
     vi.clearAllMocks();
   });
 
-  it('renders inline inside the page (keeps AppShell sidebar), not as a fullscreen body overlay', () => {
-    const { container } = render(<BibleEntityDetailModal {...defaultProps} />);
+  it('renders as a full-page overlay in document.body (no AppShell sidebar) and locks body scroll', () => {
+    const { unmount } = render(<BibleEntityDetailModal {...defaultProps} />);
 
-    const workbench = screen.getByTestId('bible-entity-workbench');
-    expect(container.contains(workbench)).toBe(true);
-    expect(workbench.className).not.toContain('fixed');
-    expect(screen.queryByRole('dialog')).toBeNull();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.parentElement).toBe(document.body);
+    expect(dialog.className).toContain('fixed inset-0');
+    expect(dialog).toContainElement(screen.getByTestId('bible-entity-workbench'));
+    expect(document.body.style.overflow).toBe('hidden');
+
+    unmount();
     expect(document.body.style.overflow).not.toBe('hidden');
   });
 
