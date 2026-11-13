@@ -49,7 +49,9 @@
     "payments": "Payments & Revenue",
     "logout": "Log Out",
     "reviewDesk": "Review desk",
-    "bibleReview": "Bible design review"
+    "bibleReview": "Bible design review",
+    "readerStats": "Reader stats",
+    "revenue": "Revenue"
   },
   "header": {
     "searchPlaceholder": "Search frames, dialogues, assets...",

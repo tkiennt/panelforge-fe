@@ -46,7 +46,6 @@ import {
   Palette,
   CreditCard,
 } from 'lucide-react';
-import { paymentService } from '@/services/payment.service';
 import { AppShellSidebar } from './AppShellSidebar';
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
@@ -123,9 +122,9 @@ const getRoleNavConfig = (
         { icon: Calendar, label: t('navigation.menu.releaseCalendar'), href: '/calendar' },
         { icon: History, label: t('navigation.menu.provenance'), href: '/provenance' },
         {
-          icon: CreditCard,
-          label: t('navigation.menu.payments'),
-          href: '/payments',
+          icon: Eye,
+          label: t('navigation.menu.readerStats'),
+          href: '/reader-stats',
         },
       ],
     },
@@ -246,29 +245,6 @@ export function AppShell({
       ? String(currentUser.activeRoles[0]).toUpperCase()
       : 'PRODUCER';
 
-  const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
-
-  useEffect(() => {
-    if (!workspaceId || effectiveRole !== 'PRODUCER') {
-      setPendingPaymentsCount(0);
-      return;
-    }
-    let isMounted = true;
-    paymentService
-      .getPayments(workspaceId, { status: 'Pending', pageSize: 1 })
-      .then((res) => {
-        if (isMounted) {
-          setPendingPaymentsCount(res?.summary?.pendingCount || 0);
-        }
-      })
-      .catch(() => {
-        if (isMounted) setPendingPaymentsCount(0);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [workspaceId, effectiveRole, location.pathname]);
-
   const isSeriesContext = !!seriesId;
   const effectiveActiveSeries = isSeriesContext
     ? activeSeries
@@ -334,17 +310,9 @@ export function AppShell({
                 href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
               },
               {
-                icon: CreditCard,
-                label: t('navigation.menu.payments'),
-                href: `/workspaces/${workspaceId}/payments`,
-                badge:
-                  pendingPaymentsCount > 0
-                    ? {
-                        type: 'text',
-                        text: `${pendingPaymentsCount}`,
-                        color: 'bg-amber-500 text-white',
-                      }
-                    : undefined,
+                icon: Eye,
+                label: t('navigation.menu.readerStats'),
+                href: `/workspaces/${workspaceId}/reader-stats`,
               },
             ],
           },
@@ -360,17 +328,9 @@ export function AppShell({
                 href: seriesListHref,
               },
               {
-                icon: CreditCard,
-                label: t('navigation.menu.payments'),
-                href: `/workspaces/${workspaceId}/payments`,
-                badge:
-                  pendingPaymentsCount > 0
-                    ? {
-                        type: 'text',
-                        text: `${pendingPaymentsCount}`,
-                        color: 'bg-amber-500 text-white',
-                      }
-                    : undefined,
+                icon: Eye,
+                label: t('navigation.menu.readerStats'),
+                href: `/workspaces/${workspaceId}/reader-stats`,
               },
             ],
           },
@@ -393,6 +353,11 @@ export function AppShell({
               icon: BookOpen,
               label: 'Danh mục công khai',
               href: '/publisher/catalog',
+            },
+            {
+              icon: CreditCard,
+              label: t('navigation.menu.revenue'),
+              href: '/publisher/revenue',
             },
           ],
         },

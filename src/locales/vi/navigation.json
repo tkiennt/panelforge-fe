@@ -49,7 +49,9 @@
     "payments": "Thanh toán & Doanh thu",
     "logout": "Đăng xuất",
     "reviewDesk": "Bàn duyệt",
-    "bibleReview": "Duyệt thiết kế Bible"
+    "bibleReview": "Duyệt thiết kế Bible",
+    "readerStats": "Lượt đọc",
+    "revenue": "Doanh thu"
   },
   "header": {
     "searchPlaceholder": "Tìm kiếm khung tranh, thoại, tư liệu...",
