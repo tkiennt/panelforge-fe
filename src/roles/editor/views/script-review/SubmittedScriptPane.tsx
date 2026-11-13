@@ -3,13 +3,17 @@
  * Bản kịch bản Writer đã gửi duyệt (push), theo Trang → Panel → dòng. Editor đọc đúng ảnh chụp này,
  * nên Writer sửa tiếp ở bàn viết không làm đổi chữ Editor đang góp ý. Góp ý neo theo Id dòng.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect } from 'react';
 import { MessageSquare, MessageSquarePlus } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import type { ScriptVersionRow } from '@/services/chapter.service';
+import type { ScriptVersionRow, ScriptCommentDto } from '@/services/chapter.service';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { isAiFinding } from '@/shared/features/script-review/reviewModel';
 import { rowLineId } from '@/shared/features/script-versions/versionDiff';
+import {
+  ScriptCommentComposer,
+  renderQuotedHighlight,
+} from '@/shared/features/script-review/ScriptCommentCard';
 
 export interface LineMarks {
   comments: number;
@@ -26,6 +30,7 @@ interface SubmittedScriptPaneProps {
   rows: ScriptVersionRow[];
   renderText: (row: ScriptVersionRow) => string;
   marks: Map<string, LineMarks>;
+  comments?: ScriptCommentDto[];
   canComment: boolean;
   activeLineId: string | null;
   onSelectLine: (lineId: string) => void;
@@ -44,69 +49,11 @@ const markerClass = (m: LineMarks | undefined) => {
   return 'border-transparent';
 };
 
-const Composer: React.FC<{
-  target: ComposerTarget;
-  onSave: (text: string) => void;
-  onCancel: () => void;
-}> = ({ target, onSave, onCancel }) => {
-  const { t } = useTranslation('review');
-  const [text, setText] = useState(target.initialText ?? '');
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    ref.current?.focus();
-  }, []);
-
-  const save = () => {
-    if (text.trim()) onSave(text.trim());
-  };
-
-  return (
-    <div className='mb-2 ml-14 mr-4 mt-1 rounded-lg border border-orange-300 bg-white p-3 shadow-xs'>
-      <label htmlFor='script-review-composer' className='sr-only'>
-        {t('scriptReview.composer.label')}
-      </label>
-      <textarea
-        id='script-review-composer'
-        ref={ref}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') onCancel();
-          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) save();
-        }}
-        rows={3}
-        placeholder={t('scriptReview.composer.placeholder')}
-        className='w-full resize-y rounded-md border border-stone-200 bg-[#FAF9F5] px-3 py-2 text-sm leading-relaxed text-stone-800 focus:border-orange-500 focus:outline-none'
-      />
-      <div className='mt-2 flex items-center justify-between gap-2'>
-        <span className='text-xs text-stone-500'>{t('scriptReview.composer.hint')}</span>
-        <div className='flex gap-2'>
-          <button
-            type='button'
-            onClick={onCancel}
-            className='rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-100'
-          >
-            {t('scriptReview.common.cancel')}
-          </button>
-          <button
-            type='button'
-            onClick={save}
-            disabled={!text.trim()}
-            className='rounded-full bg-[#EA580C] px-3 py-1 text-xs font-semibold text-white hover:bg-[#C2410C] disabled:cursor-not-allowed disabled:opacity-50'
-          >
-            {t('scriptReview.composer.add')}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
   rows,
   renderText,
   marks,
+  comments,
   canComment,
   activeLineId,
   onSelectLine,
@@ -119,9 +66,10 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
 
   useEffect(() => {
     if (!activeLineId) return;
-    document
-      .querySelector(`[data-line-id="${activeLineId}"]`)
-      ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    const el = document.querySelector(`[data-line-id="${activeLineId}"]`);
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
   }, [activeLineId]);
 
   if (rows.length === 0) {
@@ -183,7 +131,12 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
                     isDialogue ? 'pl-6 text-stone-900' : 'italic text-stone-700'
                   }`}
                 >
-                  {text}
+                  {renderQuotedHighlight(
+                    text,
+                    (composer && composer.scriptLineId === lineId ? composer.quotedText : null) ||
+                      comments?.find((c) => c.scriptLineId === lineId && !c.resolvedAt)?.quotedText ||
+                      null,
+                  )}
                 </p>
                 <div className='flex shrink-0 items-start gap-1.5 pt-0.5'>
                   {(m?.comments ?? 0) > 0 && (
@@ -201,7 +154,9 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         onSelectLine(lineId);
-                        onStartComment({ scriptLineId: lineId, quotedText: text });
+                        const sel = window.getSelection()?.toString().trim();
+                        const quote = sel && text.includes(sel) ? sel : text;
+                        onStartComment({ scriptLineId: lineId, quotedText: quote });
                       }}
                       title={t('scriptReview.manuscript.commentLineTitle')}
                       className='inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-2 py-0.5 text-xs font-semibold text-stone-700 transition-opacity duration-150 hover:border-orange-300 hover:text-orange-700 focus:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100'
@@ -213,12 +168,15 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
                 </div>
               </div>
               {composer && composer.scriptLineId === lineId && (
-                <Composer
-                  key={lineId}
-                  target={composer}
-                  onSave={onSaveComment}
-                  onCancel={onCancelComment}
-                />
+                <div className='my-2 ml-10 sm:ml-14 mr-4 flex justify-end'>
+                  <ScriptCommentComposer
+                    key={lineId}
+                    initialText={composer.initialText}
+                    quotedText={composer.quotedText}
+                    onSave={onSaveComment}
+                    onCancel={onCancelComment}
+                  />
+                </div>
               )}
             </div>
           );

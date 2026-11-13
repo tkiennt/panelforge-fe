@@ -210,4 +210,4 @@ export function diffStats(lines: DiffLine[]): { added: number; removed: number }
 }
 
 /** Mã băm rút gọn 7 ký tự như git (#a1b2c3d). */
-export const shortHash = (hash: string) => hash.slice(0, 7);
+export const shortHash = (hash?: string | null) => (hash ?? '').slice(0, 7);

@@ -5,14 +5,18 @@
  * Ctrl+S lưu. Kịch bản là chữ thuần, không liên kết Series Bible.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Extension } from '@tiptap/core';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { TextSelection } from '@tiptap/pm/state';
-import { Loader2, Save } from 'lucide-react';
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import { Loader2, MessageSquare, Save } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { SceneDetailDto } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
+import { ScriptCommentDto } from '@/services/chapter.service';
+import { ScriptCommentItemCard } from '@/shared/features/script-review/ScriptCommentCard';
 import { GN_ELEMENTS, GnElement } from './grammar/scriptGrammar';
 import {
   GnLabels,
@@ -43,12 +47,16 @@ export interface ScreenplayFlowEditorProps {
    * false khi lưu thất bại. Gọi lại với null khi bàn viết unmount.
    */
   registerSave?: (save: (() => Promise<boolean>) | null) => void;
+  comments?: ScriptCommentDto[];
+  canResolveComment?: boolean;
+  onResolveComment?: (commentId: string) => Promise<void>;
 }
 
 const SHEET_CSS = `
 .gn-sheet .ProseMirror { outline: none; font-family: 'Courier Prime', 'Courier New', ui-monospace, monospace;
   font-size: 15px; line-height: 1.75rem; color: #1c1917; caret-color: #c2410c; min-height: 900px; }
 .gn-sheet .gn-line { clear: both; min-height: 1.75rem; white-space: pre-wrap; word-break: break-word; }
+.gn-sheet .gn-comment-highlight { background-color: #FDE047; border-radius: 2px; padding: 1px 2px; color: #0c0a09; }
 .gn-sheet .gn-page { margin-top: 3.5rem; padding-top: 1rem; border-top: 2px solid #a8a29e;
   font-weight: 800; font-size: 18px; letter-spacing: .05em; color: #0c0a09; }
 .gn-sheet .gn-page:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
@@ -80,6 +88,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   dockLeading,
   manuscriptTitle,
   registerSave,
+  comments,
+  canResolveComment,
+  onResolveComment,
 }) => {
   const { t } = useTranslation('production');
   const isReadOnly = !canEditScript || isChapterLocked;
@@ -87,10 +98,62 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [active, setActive] = useState<GnElement | null>(null);
+  const [showCommentsPanel, setShowCommentsPanel] = useState(true);
   /** Menu chọn loại dòng (Enter trên dòng trống): vị trí neo theo con trỏ + mục đang chọn. */
   const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
   const dirtyRef = useRef(false);
   const loadingRef = useRef(false);
+
+  const commentsRef = useRef<ScriptCommentDto[]>([]);
+  commentsRef.current = comments || [];
+
+  const commentsPlugin = useMemo(() => {
+    return new Plugin({
+      key: new PluginKey('commentHighlights'),
+      props: {
+        decorations(state) {
+          const currentList = commentsRef.current;
+          if (!currentList || currentList.length === 0) return null;
+          const open = currentList.filter((c) => !c.resolvedAt && c.scriptLineId);
+          if (open.length === 0) return null;
+
+          const byLine = new Map<string, ScriptCommentDto[]>();
+          for (const c of open) {
+            if (!c.scriptLineId) continue;
+            const arr = byLine.get(c.scriptLineId) ?? [];
+            arr.push(c);
+            byLine.set(c.scriptLineId, arr);
+          }
+
+          const decos: Decoration[] = [];
+          state.doc.forEach((node, offset) => {
+            const refId = node.attrs.refId as string | null;
+            if (!refId) return;
+            const matches = byLine.get(refId);
+            if (!matches || matches.length === 0) return;
+
+            const text = node.textContent;
+            for (const c of matches) {
+              const quote = c.quotedText?.trim();
+              if (quote && text.includes(quote)) {
+                const startIdx = text.indexOf(quote);
+                const from = offset + 1 + startIdx;
+                const to = from + quote.length;
+                decos.push(Decoration.inline(from, to, { class: 'gn-comment-highlight' }));
+              } else if (node.content.size > 0) {
+                decos.push(
+                  Decoration.inline(offset + 1, offset + 1 + node.content.size, {
+                    class: 'gn-comment-highlight',
+                  }),
+                );
+              }
+            }
+          });
+          return DecorationSet.create(state.doc, decos);
+        },
+      },
+    });
+  }, []);
 
   // Một object cố định đưa vào extension; nội dung cập nhật theo ngôn ngữ hiện tại ở mỗi lần render,
   // nên nhãn PAGE/PANEL đổi theo ngôn ngữ mà không phải tạo lại editor.
@@ -143,6 +206,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         ScriptDocument,
         ScriptLineBlockNode,
         ScriptTypingBehavior.configure({ labels }),
+        Extension.create({
+          name: 'scriptCommentHighlights',
+          addProseMirrorPlugins() {
+            return [commentsPlugin];
+          },
+        }),
       ],
       content: scriptToDoc(scenes, pages, panels),
       editorProps: {
@@ -178,6 +247,34 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     if (editor && !editor.isDestroyed)
       editor.view.dispatch(editor.state.tr.setMeta('labels', true));
   }, [editor, t]);
+
+  // Cập nhật highlights khi danh sách comments thay đổi
+  useEffect(() => {
+    if (editor && !editor.isDestroyed) {
+      editor.view.dispatch(editor.state.tr.setMeta('commentsUpdated', true));
+    }
+  }, [editor, comments]);
+
+  const scrollToLine = (scriptLineId?: string | null) => {
+    if (!editor || !scriptLineId) return;
+    let targetPos: number | null = null;
+    editor.state.doc.forEach((node, pos) => {
+      if (node.attrs.refId === scriptLineId) {
+        targetPos = pos;
+      }
+    });
+    if (targetPos !== null) {
+      try {
+        editor.commands.setTextSelection(targetPos + 1);
+        const dom = editor.view.nodeDOM(targetPos);
+        if (dom instanceof HTMLElement) {
+          dom.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch {
+        // fallback
+      }
+    }
+  };
 
   // Màn cha có thể truyền mảng mới mỗi lần render: chỉ nạp lại khi nội dung máy chủ thực sự đổi.
   const serverDocJson = useMemo(
@@ -296,6 +393,22 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           })}
         </div>
 
+        {comments && comments.length > 0 && (
+          <button
+            type='button'
+            onClick={() => setShowCommentsPanel((v) => !v)}
+            className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
+              showCommentsPanel
+                ? 'bg-[#EA580C] text-white shadow-xs'
+                : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
+            }`}
+            title='Xem nhận xét của Editor'
+          >
+            <MessageSquare className='w-3.5 h-3.5' />
+            Nhận xét ({comments.length})
+          </button>
+        )}
+
         <span
           className='ml-auto shrink-0 text-xs text-stone-600 whitespace-nowrap'
           aria-live='polite'
@@ -324,22 +437,50 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       </div>
 
       <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-6 sm:py-10 pb-32'>
-        <div
-          data-testid='paper-editor-sheet'
-          className='gn-sheet paper-editor-sheet max-w-[760px] mx-auto bg-white rounded-md border border-[#C5BDAF] shadow-[0_8px_30px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)] px-6 sm:px-16 lg:px-20 pt-14 pb-48 my-2 sm:my-4 transition-all duration-150 min-h-[1100px] sm:min-h-[1200px] cursor-text'
-          onClick={() => {
-            if (editor && !editor.isFocused) editor.commands.focus();
-          }}
-        >
-          {manuscriptTitle && (
-            <header className='text-center mb-12 select-none'>
-              <h2 className='font-serif text-3xl text-stone-900'>{manuscriptTitle}</h2>
-              {!isReadOnly && (
-                <p className='mt-3 text-xs text-stone-500'>{t('scriptStudio.gn.help')}</p>
-              )}
-            </header>
+        <div className='max-w-[1240px] mx-auto flex items-start justify-center gap-6'>
+          <div
+            data-testid='paper-editor-sheet'
+            className='gn-sheet paper-editor-sheet w-full max-w-[760px] shrink-0 bg-white rounded-md border border-[#C5BDAF] shadow-[0_8px_30px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)] px-6 sm:px-16 lg:px-20 pt-14 pb-48 my-2 sm:my-4 transition-all duration-150 min-h-[1100px] sm:min-h-[1200px] cursor-text'
+            onClick={() => {
+              if (editor && !editor.isFocused) editor.commands.focus();
+            }}
+          >
+            {manuscriptTitle && (
+              <header className='text-center mb-12 select-none'>
+                <h2 className='font-serif text-3xl text-stone-900'>{manuscriptTitle}</h2>
+                {!isReadOnly && (
+                  <p className='mt-3 text-xs text-stone-500'>{t('scriptStudio.gn.help')}</p>
+                )}
+              </header>
+            )}
+            <EditorContent editor={editor} />
+          </div>
+
+          {/* Cột nhận xét nổi bên phải trang giấy theo đúng mẫu thiết kế */}
+          {showCommentsPanel && comments && comments.length > 0 && (
+            <aside
+              data-testid='editor-comments-sidebar'
+              className='hidden lg:flex flex-col gap-3 w-80 shrink-0 sticky top-4 my-2 sm:my-4'
+            >
+              <div className='flex items-center justify-between pb-1 text-xs font-bold text-stone-800'>
+                <span className='inline-flex items-center gap-1.5'>
+                  <MessageSquare className='w-4 h-4 text-[#EA580C]' />
+                  Nhận xét của Editor ({comments.length})
+                </span>
+              </div>
+              <div className='space-y-3 max-h-[80vh] overflow-y-auto custom-scrollbar pr-1'>
+                {comments.map((c) => (
+                  <ScriptCommentItemCard
+                    key={c.id}
+                    comment={c}
+                    canResolve={canResolveComment}
+                    onResolve={onResolveComment}
+                    onSelect={() => scrollToLine(c.scriptLineId)}
+                  />
+                ))}
+              </div>
+            </aside>
           )}
-          <EditorContent editor={editor} />
         </div>
       </div>
 

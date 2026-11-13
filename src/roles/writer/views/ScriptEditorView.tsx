@@ -77,6 +77,7 @@ import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
+import { ScriptCommentItemCard } from '@/shared/features/script-review/ScriptCommentCard';
 import type { ScriptDocSnapshot } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { ScriptVersionsDrawer } from '../components/script/versions/ScriptVersionsDrawer';
@@ -1730,6 +1731,19 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   };
 
+  const handleResolveComment = useCallback(
+    async (commentId: string) => {
+      if (!currentChapter?.id) return;
+      try {
+        const updated = await chapterService.resolveScriptComment(currentChapter.id, commentId);
+        setScriptComments((list) => list.map((x) => (x.id === updated.id ? updated : x)));
+      } catch (err: any) {
+        notify(t('scriptStudio.comments.resolveFailed'), err?.message ?? '');
+      }
+    },
+    [currentChapter?.id, notify, t],
+  );
+
   const aiReadingDirection =
     seriesDetail?.readingDirection === 1 || seriesDetail?.readingDirection === 'RightToLeft'
       ? 'RightToLeft'
@@ -2255,42 +2269,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               <summary className='cursor-pointer text-xs font-semibold text-stone-800'>
                 {t('scriptStudio.comments.title', { count: openScriptComments.length })}
               </summary>
-              <ul className='mt-2 space-y-2'>
+              <div className='mt-2 space-y-2'>
                 {openScriptComments.map((c) => (
-                  <li key={c.id} className='rounded-lg bg-white px-3 py-2 border border-stone-200'>
-                    {c.quotedText && (
-                      <p className='line-clamp-2 border-l-2 border-stone-200 pl-2 text-[11px] italic text-stone-500'>
-                        {c.quotedText}
-                      </p>
-                    )}
-                    <p className='mt-1 whitespace-pre-wrap text-xs text-stone-800'>{c.body}</p>
-                    <div className='mt-1 flex items-center justify-between gap-2'>
-                      <span className='text-[11px] text-stone-400'>{c.authorName ?? ''}</span>
-                      {isWriterRole && (
-                        <button
-                          type='button'
-                          onClick={() =>
-                            currentChapter?.id &&
-                            void chapterService
-                              .resolveScriptComment(currentChapter.id, c.id)
-                              .then((updated) =>
-                                setScriptComments((list) =>
-                                  list.map((x) => (x.id === updated.id ? updated : x)),
-                                ),
-                              )
-                              .catch((err) =>
-                                notify(t('scriptStudio.comments.resolveFailed'), err.message),
-                              )
-                          }
-                          className='text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 cursor-pointer'
-                        >
-                          {t('scriptStudio.comments.resolve')}
-                        </button>
-                      )}
-                    </div>
-                  </li>
+                  <ScriptCommentItemCard
+                    key={c.id}
+                    comment={c}
+                    canResolve={isWriterRole}
+                    onResolve={(commentId) => void handleResolveComment(commentId)}
+                  />
                 ))}
-              </ul>
+              </div>
             </details>
           )}
 
@@ -2397,6 +2385,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               panels={chapterPanels}
               canEditScript={canEditScript}
               isChapterLocked={isChapterLocked}
+              comments={openScriptComments}
+              canResolveComment={isWriterRole}
+              onResolveComment={handleResolveComment}
               onSave={handleSaveScript}
               registerSave={registerEditorSave}
               onShowToast={onShowToast}

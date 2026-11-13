@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ScriptReviewView } from './ScriptReviewView';
 import { chapterService } from '@/services/chapter.service';
-import { scriptLineService } from '@/services/scriptLine.service';
 import { assignmentService } from '@/services/assignment.service';
 
 const mockNavigate = vi.fn();
@@ -17,7 +16,6 @@ vi.mock('react-router-dom', async () => {
 });
 
 const EDITOR_ID = 'usr-editor';
-const WRITER_ID = 'usr-writer';
 
 const mockChapter = {
   id: 'chap-101',
@@ -25,49 +23,43 @@ const mockChapter = {
   chapterNumber: 5,
   title: 'Hồi Kết Ở Đỉnh Núi Tuyết',
   isScriptFrozen: false,
+  scriptStatus: 'InReview',
+  lastSubmittedVersionId: 'ver-submitted-1',
+  previousSubmittedVersionId: null,
   scriptContentHash: null,
   scriptReopenStatus: 'None',
 };
 
-const sceneBase = {
-  chapterId: 'chap-101',
-  scriptLinesCount: 0,
-  pagesCount: 0,
-  createdAt: '2026-11-10T00:00:00Z',
-};
-
-const sceneDetails: Record<string, any> = {
-  'sc-1': {
-    ...sceneBase,
-    id: 'sc-1',
-    sceneNumber: 1,
-    heading: 'EXT. ĐỈNH NÚI TUYẾT - HOÀNG HÔN',
-    summary: 'Nhân vật chính đối diện kẻ thù giữa cơn bão tuyết',
-    scriptLines: [
-      {
-        id: 'line-1',
-        lineOrder: 1,
-        stageDirection: 'Gió tuyết rít từng cơn lạnh buốt',
-        dialogueText: null,
-      },
-      {
-        id: 'line-2',
-        lineOrder: 2,
-        stageDirection: null,
-        dialogueText: 'Ngươi không thể thoát khỏi đây đâu!',
-        speakerCharacterId: 'b-1',
-      },
-    ],
+const mockScriptVersionDetail = {
+  version: {
+    id: 'ver-submitted-1',
+    chapterId: 'chap-101',
+    versionNumber: 1,
+    commitMessage: 'Bản nộp duyệt 1',
+    contentHash: 'abcdef123456',
+    isSubmitted: true,
+    createdAt: '2026-11-10T08:00:00Z',
+    authorName: 'Writer Name',
   },
-  'sc-2': {
-    ...sceneBase,
-    id: 'sc-2',
-    sceneNumber: 2,
-    heading: 'INT. HANG ĐÁ - ĐÊM',
-    scriptLines: [
-      { id: 'line-3', lineOrder: 1, stageDirection: 'Lửa trại bập bùng', dialogueText: null },
-    ],
-  },
+  rows: [
+    { key: 'page:1', type: 'page', page: 1, panel: 0, text: 'Trang 1' },
+    { key: 'panel:1:1', type: 'panel', page: 1, panel: 1, text: 'Panel 1' },
+    {
+      key: 'line:line-1',
+      type: 'Dialogue',
+      page: 1,
+      panel: 1,
+      character: 'Ren Kusanagi',
+      text: 'Ngươi không thể thoát khỏi đây đâu!',
+    },
+    {
+      key: 'line:line-2',
+      type: 'Action',
+      page: 1,
+      panel: 1,
+      text: 'Gió tuyết rít từng cơn lạnh buốt',
+    },
+  ],
 };
 
 const mockBibleGate = {
@@ -86,32 +78,6 @@ const mockBibleGate = {
       isLocked: true,
     },
   ],
-};
-
-const scriptAssignment = (overrides: Record<string, unknown> = {}) => ({
-  id: 'asg-script',
-  seriesId: 'series-001',
-  chapterId: 'chap-101',
-  entityType: 'Chapter',
-  targetEntityId: 'chap-101',
-  pipelineStageId: 'stg-script',
-  assigneeUserId: WRITER_ID,
-  assignedRole: 'Writer',
-  brief: '',
-  priority: 'Normal',
-  status: 'UnderReview',
-  createdAt: '2026-11-10T00:00:00Z',
-  ...overrides,
-});
-
-const submission = {
-  id: 'sub-2',
-  assignmentId: 'asg-script',
-  chapterId: 'chap-101',
-  submittedByUserId: WRITER_ID,
-  attemptNumber: 2,
-  status: 'Pending',
-  submittedAt: '2026-11-10T08:00:00Z',
 };
 
 const renderView = (
@@ -137,134 +103,95 @@ describe('ScriptReviewView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    localStorage.setItem('user', JSON.stringify({ fullName: 'Trung Kiên' }));
     vi.spyOn(chapterService, 'getChapterById').mockResolvedValue(mockChapter as any);
-    vi.spyOn(scriptLineService, 'getScenesByChapter').mockResolvedValue(
-      Object.values(sceneDetails) as any,
-    );
-    vi.spyOn(scriptLineService, 'getSceneById').mockImplementation(
-      async (id: string) => sceneDetails[id],
-    );
+    vi.spyOn(chapterService, 'getScriptVersion').mockResolvedValue(mockScriptVersionDetail as any);
+    vi.spyOn(chapterService, 'getScriptComments').mockResolvedValue([] as any);
     vi.spyOn(chapterService, 'checkBibleGate').mockResolvedValue(mockBibleGate as any);
     vi.spyOn(assignmentService, 'getConsistencyFindings').mockResolvedValue([] as any);
     vi.spyOn(assignmentService, 'runConsistencyCheck').mockResolvedValue({
       checkedAt: '2026-11-11T08:00:00Z',
       findings: [],
     } as any);
-    vi.spyOn(assignmentService, 'getAssignmentById').mockResolvedValue(scriptAssignment() as any);
-    vi.spyOn(assignmentService, 'getChangeRequests').mockResolvedValue([] as any);
-    vi.spyOn(assignmentService, 'getSubmissions').mockResolvedValue([submission] as any);
   });
 
-  it('renders the manuscript with speaker names resolved from the Bible', async () => {
+  it('renders the manuscript with pushed version rows and speaker names', async () => {
     renderView();
 
     expect(await screen.findByText(/Chương 5: Hồi Kết Ở Đỉnh Núi Tuyết/)).toBeInTheDocument();
-    expect(screen.getAllByText('EXT. ĐỈNH NÚI TUYẾT - HOÀNG HÔN').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Panel 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ngươi không thể thoát khỏi đây đâu!/)).toBeInTheDocument();
     expect(screen.getByText('Gió tuyết rít từng cơn lạnh buốt')).toBeInTheDocument();
-    expect(screen.getByText('Ngươi không thể thoát khỏi đây đâu!')).toBeInTheDocument();
-    expect(screen.getByText('Ren Kusanagi')).toBeInTheDocument();
   });
 
-  it('is read-only without a submission', async () => {
+  it('displays empty state when chapter has no submitted version', async () => {
+    vi.spyOn(chapterService, 'getChapterById').mockResolvedValue({
+      ...mockChapter,
+      scriptStatus: 'Draft',
+      lastSubmittedVersionId: null,
+    } as any);
+
     renderView();
 
-    expect(await screen.findByText(/không gắn với bài nộp nào/)).toBeInTheDocument();
-    expect(screen.queryByTitle(/Nhận xét dòng này/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Duyệt kịch bản/ })).not.toBeInTheDocument();
+    expect(
+      await screen.findAllByText(/Writer chưa gửi duyệt bản nào cho chương này/),
+    ).toHaveLength(2);
   });
 
-  it('blocks reviewing your own assignment (reviewer must differ from submitter)', async () => {
-    vi.spyOn(assignmentService, 'getAssignmentById').mockResolvedValue(
-      scriptAssignment({ assigneeUserId: EDITOR_ID }) as any,
-    );
-    renderView('?assignmentId=asg-script');
-
-    expect(await screen.findByText(/không thể tự duyệt/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Duyệt kịch bản/ })).not.toBeInTheDocument();
-  });
-
-  it('turns line notes into anchored change requests when returning to the writer', async () => {
-    const requestChanges = vi
-      .spyOn(assignmentService, 'requestChanges')
-      .mockResolvedValue(scriptAssignment({ status: 'ReworkRequired' }) as any);
-    renderView('?assignmentId=asg-script');
-
-    await screen.findByText('Ngươi không thể thoát khỏi đây đâu!');
-    expect(assignmentService.getAssignmentById).toHaveBeenCalledWith('asg-script', 'chap-101');
-    // Kiểm tra nhất quán bằng code tự chạy khi phiên duyệt đang mở
-    await waitFor(() =>
-      expect(assignmentService.runConsistencyCheck).toHaveBeenCalledWith('chap-101'),
-    );
-    const lineButtons = screen.getAllByTitle(/Nhận xét dòng này/);
-    fireEvent.click(lineButtons[1]);
-    fireEvent.change(screen.getByPlaceholderText(/Cần sửa gì ở đây/), {
-      target: { value: 'Câu thoại quá dài cho một bóng thoại' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Thêm nhận xét' }));
-
-    const notes = screen.getByText('Nhận xét lần duyệt này').closest('section') as HTMLElement;
-    expect(within(notes).getByText('Câu thoại quá dài cho một bóng thoại')).toBeInTheDocument();
-    expect(within(notes).getByText('Cảnh 1 · dòng 2')).toBeInTheDocument();
-
-    // Duyệt bị khoá khi còn nhận xét chưa gửi; trả bài cần nhận xét chung (BR-06)
-    expect(screen.getByRole('button', { name: /Duyệt kịch bản/ })).toBeDisabled();
-    const returnBtn = screen.getByRole('button', { name: /Trả bài · 1 yêu cầu sửa/ });
-    expect(returnBtn).toBeDisabled();
-
-    fireEvent.change(screen.getByPlaceholderText(/Đánh giá tổng quát/), {
-      target: { value: 'Rút gọn thoại cảnh 1' },
-    });
-    fireEvent.click(returnBtn);
-
-    await waitFor(() =>
-      expect(requestChanges).toHaveBeenCalledWith('chap-101', 'asg-script', {
-        comment: 'Rút gọn thoại cảnh 1',
-        changes: [
-          {
-            description: 'Câu thoại quá dài cho một bóng thoại',
-            sceneId: 'sc-1',
-            scriptLineId: 'line-2',
-            quotedText: 'Ngươi không thể thoát khỏi đây đâu!',
-          },
-        ],
-        expectedSubmissionId: 'sub-2',
-      }),
-    );
-  });
-
-  it('keeps approve locked until resolved change requests are verified', async () => {
-    vi.spyOn(assignmentService, 'getChangeRequests').mockResolvedValue([
-      {
-        id: 'cr-1',
-        assignmentId: 'asg-script',
+  it('can open comment composer and submit a comment using modern composer card', async () => {
+    const addCommentSpy = vi
+      .spyOn(chapterService, 'addScriptComment')
+      .mockResolvedValue({
+        id: 'cmt-1',
         chapterId: 'chap-101',
-        responsibleUserId: WRITER_ID,
-        createdByUserId: EDITOR_ID,
-        description: 'Ren không biết tên sư phụ ở chương này',
-        status: 'Resolved',
-        resolutionNote: 'Đã đổi thành "lão già"',
-        sceneId: 'sc-1',
-        scriptLineId: 'line-2',
-        quotedText: 'Sư phụ Kaito, ngươi không thể thoát!',
-        createdAt: '2026-11-09T00:00:00Z',
-      },
-    ] as any);
-    const verify = vi.spyOn(assignmentService, 'verifyChangeRequest').mockResolvedValue({
-      id: 'cr-1',
-      status: 'Verified',
-    } as any);
-    renderView('?assignmentId=asg-script');
+        authorUserId: EDITOR_ID,
+        authorName: 'Trung Kiên',
+        body: 'Sửa lại câu này ngắn gọn hơn',
+        quotedText: 'Ngươi không thể thoát khỏi đây đâu!',
+        scriptLineId: 'line-1',
+        createdAt: '2026-11-13T10:00:00Z',
+        resolvedAt: null,
+      } as any);
 
-    expect(await screen.findByText('Writer báo đã sửa')).toBeInTheDocument();
-    // Dòng đã đổi so với lúc nhận xét: hiện cả hai bản để đối chiếu
-    expect(screen.getByText('Sư phụ Kaito, ngươi không thể thoát!')).toBeInTheDocument();
-    expect(screen.getByText(/Còn 1 yêu cầu sửa chưa đóng/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Duyệt kịch bản/ })).toBeDisabled();
+    renderView();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Đạt' }));
-    await waitFor(() => expect(verify).toHaveBeenCalledWith('chap-101', 'cr-1'));
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Duyệt kịch bản/ })).not.toBeDisabled(),
-    );
+    await screen.findByText(/Ngươi không thể thoát khỏi đây đâu!/);
+
+    const commentBtns = screen.getAllByTitle('Góp ý dòng này');
+    expect(commentBtns.length).toBeGreaterThan(0);
+    fireEvent.click(commentBtns[0]);
+
+    // Composer card appears with user's name
+    expect(screen.getByText('Trung Kiên')).toBeInTheDocument();
+
+    const input = screen.getByPlaceholderText('Nhập nhận xét...');
+    fireEvent.change(input, { target: { value: 'Sửa lại câu này ngắn gọn hơn' } });
+
+    const submitBtn = screen.getByTestId('comment-submit-btn');
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(addCommentSpy).toHaveBeenCalledWith('chap-101', {
+        sceneId: null,
+        scriptLineId: 'line-1',
+        quotedText: expect.any(String),
+        body: 'Sửa lại câu này ngắn gọn hơn',
+      });
+    });
+
+    // The comment item card appears in the comments panel
+    expect(await screen.findByText('Sửa lại câu này ngắn gọn hơn')).toBeInTheDocument();
+  });
+
+  it('switches tabs between comments, changes, and checks', async () => {
+    renderView();
+
+    await screen.findByText(/Chương 5: Hồi Kết Ở Đỉnh Núi Tuyết/);
+
+    const checksTab = screen.getByRole('tab', { name: /Kiểm tra/i });
+    fireEvent.click(checksTab);
+
+    // Checks tab content is visible
+    expect(await screen.findByText(/Bible Gate của chương/i)).toBeInTheDocument();
   });
 });

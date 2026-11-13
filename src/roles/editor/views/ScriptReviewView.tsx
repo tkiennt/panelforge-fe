@@ -14,6 +14,7 @@ import {
 import { assignmentService } from '@/services/assignment.service';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { useConfirm } from '@/shared/context/ConfirmContext';
+import { ScriptCommentItemCard } from '@/shared/features/script-review/ScriptCommentCard';
 import {
   SubmittedScriptPane,
   type ComposerTarget,
@@ -395,6 +396,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               rows={rows}
               renderText={renderText}
               marks={marks}
+              comments={comments}
               canComment={canComment}
               activeLineId={activeLineId}
               onSelectLine={setActiveLineId}
@@ -435,52 +437,33 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               comments.length === 0 ? (
                 <p className='p-4 text-xs text-stone-500'>{t('scriptReview.comments.empty')}</p>
               ) : (
-                <ul className='divide-y divide-stone-100'>
+                <div className='p-3 space-y-3'>
                   {comments.map((c) => {
                     const stale = staleness(c);
+                    const isSelected = activeLineId === c.scriptLineId;
                     return (
-                      <li key={c.id}>
-                        <button
-                          type='button'
-                          onClick={() => c.scriptLineId && setActiveLineId(c.scriptLineId)}
-                          className='w-full px-4 py-3 text-left hover:bg-stone-50'
-                        >
-                          <div className='flex items-center justify-between gap-2 text-xs'>
-                            <span className='font-semibold text-stone-800'>
-                              {locateLabel(c.sceneId, c.scriptLineId)}
-                            </span>
-                            <span
-                              className={`inline-flex items-center gap-1 ${c.resolvedAt ? 'text-emerald-700' : 'text-amber-700'}`}
-                            >
-                              {c.resolvedAt && <CheckCircle2 className='h-3.5 w-3.5' />}
-                              {c.resolvedAt
-                                ? t('scriptReview.comments.resolved')
-                                : t('scriptReview.comments.open')}
-                            </span>
-                          </div>
+                      <div key={c.id} className='space-y-1'>
+                        <div className='flex items-center justify-between text-xs px-1 text-stone-500'>
+                          <span className='font-semibold text-stone-700'>
+                            {locateLabel(c.sceneId, c.scriptLineId)}
+                          </span>
                           {stale && (
-                            <span className='mt-1 inline-block rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800'>
+                            <span className='rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800'>
                               {stale === 'removed'
                                 ? t('scriptReview.comments.staleRemoved')
                                 : t('scriptReview.comments.staleChanged')}
                             </span>
                           )}
-                          {c.quotedText && (
-                            <p className='mt-1 line-clamp-2 border-l-2 border-stone-200 pl-2 text-xs italic text-stone-500'>
-                              {c.quotedText}
-                            </p>
-                          )}
-                          <p className='mt-1 whitespace-pre-wrap text-sm text-stone-800'>
-                            {c.body}
-                          </p>
-                          <p className='mt-1 text-[11px] text-stone-400'>
-                            {c.authorName ?? ''} · {dateFormat(c.createdAt)}
-                          </p>
-                        </button>
-                      </li>
+                        </div>
+                        <ScriptCommentItemCard
+                          comment={c}
+                          isSelected={isSelected}
+                          onSelect={() => c.scriptLineId && setActiveLineId(c.scriptLineId)}
+                        />
+                      </div>
                     );
                   })}
-                </ul>
+                </div>
               )
             ) : tab === 'changes' ? (
               pushed ? (
