@@ -104,6 +104,26 @@ const SeriesBibleView = lazy(() =>
 const MyWorkView = lazy(() =>
   import('@/shared/features/collaboration/MyWorkView').then((m) => ({ default: m.MyWorkView })),
 );
+const ProducerReaderStatsView = lazy(() =>
+  import('@/roles/producer/views/ProducerReaderStatsView').then((m) => ({
+    default: m.ProducerReaderStatsView,
+  })),
+);
+const PublisherRevenueView = lazy(() =>
+  import('@/roles/publisher/views/PublisherRevenueView').then((m) => ({
+    default: m.PublisherRevenueView,
+  })),
+);
+const PublisherSeriesInsightsView = lazy(() =>
+  import('@/roles/publisher/views/PublisherSeriesInsightsView').then((m) => ({
+    default: m.PublisherSeriesInsightsView,
+  })),
+);
+const PublisherChapterManageView = lazy(() =>
+  import('@/roles/publisher/views/PublisherChapterManageView').then((m) => ({
+    default: m.PublisherChapterManageView,
+  })),
+);
 const PublisherDeskView = lazy(() =>
   import('@/roles/publisher/views/PublisherDeskView').then((m) => ({
     default: m.PublisherDeskView,
@@ -432,7 +452,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               <Route index element={<StudioOverviewView />} />
               <Route path='overview' element={<StudioOverviewView />} />
               <Route path='series' element={<StudioOverviewView />} />
-              <Route path='payments' element={<ProducerPaymentsView onShowToast={showToast} />} />
+              <Route path='reader-stats' element={<ProducerReaderStatsView />} />
+              <Route path='payments' element={<Navigate to='../reader-stats' replace />} />
 
               <Route path='series/:seriesId'>
                 <Route index element={<Navigate to='dashboard' replace />} />
@@ -501,7 +522,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='letterer'
                   element={<LettererChapterSelectionView onShowToast={showToast} />}
                 />
-                <Route path='payments' element={<ProducerPaymentsView onShowToast={showToast} />} />
+                <Route path='reader-stats' element={<ProducerReaderStatsView />} />
+                <Route path='payments' element={<Navigate to='../reader-stats' replace />} />
               </Route>
             </Route>
 
@@ -545,6 +567,17 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 element={<PublisherSeriesDetailView onShowToast={showToast} />}
               />
               <Route path='desk' element={<PublisherDeskView onShowToast={showToast} />} />
+              {/* Doanh thu: chỉ Publisher quản lý (giao dịch, duyệt VietQR, ngân hàng Studio) */}
+              <Route path='revenue' element={<PublisherRevenueView />} />
+              <Route path='revenue/series/:seriesId' element={<PublisherSeriesInsightsView />} />
+              <Route
+                path='revenue/series/:seriesId/chapters/:chapterId'
+                element={<PublisherChapterManageView />}
+              />
+              <Route
+                path='revenue/workspaces/:workspaceId'
+                element={<ProducerPaymentsView onShowToast={showToast} />}
+              />
               {/* Publisher không dùng AI: route cũ của AI Publisher Copilot chuyển về danh sách bộ truyện */}
               <Route path='copilot' element={<Navigate to='/publisher/series' replace />} />
               <Route

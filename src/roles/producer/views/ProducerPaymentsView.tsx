@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import {
   CreditCard,
   CheckCircle2,
@@ -85,6 +85,8 @@ interface ProducerPaymentsViewProps {
 export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onShowToast }) => {
   const { t, lang } = useTranslation('payments');
   const { workspaceId: paramWorkspaceId } = useParams();
+  // Publisher mở từ màn Doanh thu theo bộ truyện: ?seriesId= lọc sẵn bộ truyện.
+  const [searchParams] = useSearchParams();
   const confirm = useConfirm();
   const toast = useToast();
   const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
@@ -138,7 +140,9 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
 
   // Filters
   const [selectedStatus, setSelectedStatus] = useState<PaymentStatusFilter>('All');
-  const [selectedSeriesId, setSelectedSeriesId] = useState('');
+  const [selectedSeriesId, setSelectedSeriesId] = useState(
+    () => searchParams.get('seriesId') ?? '',
+  );
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
