@@ -64,7 +64,7 @@ export interface ScriptDocSnapshot {
 
 // ───────────────────────── máy chủ → editor ─────────────────────────
 
-function toKind(kind: unknown): ScriptLineKind {
+function toKind(kind: unknown, dialogueText?: string | null, speakerLabel?: string | null): ScriptLineKind {
   if (typeof kind === 'number' && ScriptLineKind[kind] !== undefined) return kind as ScriptLineKind;
   if (typeof kind === 'string') {
     const byName = (ScriptLineKind as unknown as Record<string, number>)[kind];
@@ -72,6 +72,7 @@ function toKind(kind: unknown): ScriptLineKind {
     const n = Number(kind);
     if (!Number.isNaN(n) && ScriptLineKind[n] !== undefined) return n as ScriptLineKind;
   }
+  if (dialogueText || speakerLabel) return ScriptLineKind.Dialogue;
   return ScriptLineKind.Action;
 }
 
@@ -110,7 +111,7 @@ function collectLines(scenes: SceneDetailDto[]): ServerLine[] {
         .map((l) => ({
           id: l.id,
           lineOrder: l.lineOrder,
-          kind: toKind(l.kind),
+          kind: toKind(l.kind, l.dialogueText, l.speakerLabel),
           speakerLabel: l.speakerLabel ?? null,
           text: (l.text ?? l.dialogueText ?? l.stageDirection ?? '').trim(),
           panelId: l.panelId ?? null,

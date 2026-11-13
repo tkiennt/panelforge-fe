@@ -178,4 +178,23 @@ describe('scriptFlowAdapter', () => {
       direction: 'Toàn cảnh mái nhà',
     });
   });
+
+  it('nhận diện Dialogue và dựng Character khi dòng từ server thiếu kind nhưng có speakerLabel/dialogueText', () => {
+    const doc = scriptToDoc(
+      [
+        scene([
+          {
+            dialogueText: 'Xin chào',
+            speakerLabel: 'NARUTO',
+            panelId: PANEL_1,
+          } as any,
+        ]),
+      ],
+      [page],
+      [panels[0]],
+    );
+    const shape = (doc.content ?? []).map((n) => [n.attrs?.el, n.content?.[0]?.text ?? '']);
+    expect(shape).toContainEqual(['character', 'NARUTO']);
+    expect(shape).toContainEqual(['dialogue', 'Xin chào']);
+  });
 });
