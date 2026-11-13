@@ -79,16 +79,13 @@ describe('BibleEntityDetailModal UX/UI', () => {
     vi.clearAllMocks();
   });
 
-  it('renders in a portal inside document.body with z-[1000] and locks body scroll', () => {
-    const { unmount } = render(<BibleEntityDetailModal {...defaultProps} />);
+  it('renders inline inside the page (keeps AppShell sidebar), not as a fullscreen body overlay', () => {
+    const { container } = render(<BibleEntityDetailModal {...defaultProps} />);
 
-    const dialog = screen.getByRole('dialog');
-    expect(dialog).toBeInTheDocument();
-    expect(dialog.parentElement).toBe(document.body);
-    expect(dialog.className).toContain('z-[1000]');
-    expect(document.body.style.overflow).toBe('hidden');
-
-    unmount();
+    const workbench = screen.getByTestId('bible-entity-workbench');
+    expect(container.contains(workbench)).toBe(true);
+    expect(workbench.className).not.toContain('fixed');
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(document.body.style.overflow).not.toBe('hidden');
   });
 
@@ -136,7 +133,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
   it('allows Writer/Artist to create drafts via canCreateDraft prop', () => {
     render(<BibleEntityDetailModal {...defaultProps} isProducer={false} canCreateDraft={true} />);
 
-    const draftBtn = screen.getByRole('button', { name: /\+ Tạo bản nháp mới/i });
+    const draftBtn = screen.getByRole('button', { name: /Tạo bản nháp mới/i });
     expect(draftBtn).toBeInTheDocument();
     fireEvent.click(draftBtn);
 
@@ -280,7 +277,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     const endorseBtn = screen.getByTestId('detail-endorse-btn');
     expect(endorseBtn).toBeDisabled();
-    expect(screen.getByText('✓ Đã duyệt thiết kế')).toBeInTheDocument();
+    expect(screen.getByText('Đã duyệt thiết kế')).toBeInTheDocument();
   });
 
   it('renders correct category type badge in header for characters and locations (Bug 1)', () => {

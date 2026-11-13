@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
   X,
   Lock,
@@ -753,16 +752,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   // Focus trap, Escape key listener & Body scroll locking
   useEffect(() => {
     lastActiveElementRef.current = document.activeElement as HTMLElement | null;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    closeButtonRef.current?.focus();
+    modalContainerRef.current?.scrollIntoView?.({ block: 'start' });
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Do not close workbench if any child modal (e.g. Add Revision, Confirm, Zoom) is currently open on top
       const hasOpenChildModal =
         document.querySelector('[data-child-modal="true"]') ||
-        document.querySelectorAll('[role="dialog"]').length > 1;
+        document.querySelectorAll('[role="dialog"]').length > 0;
 
       if (e.key === 'Escape') {
         if (hasOpenChildModal) {
@@ -773,32 +769,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         onClose();
         return;
       }
-
-      if (e.key === 'Tab' && modalContainerRef.current) {
-        const focusableElements = modalContainerRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusableElements.length === 0) return;
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
-
-        if (e.shiftKey) {
-          if (document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement.focus();
-          }
-        } else {
-          if (document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
-        }
-      }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);
       lastActiveElementRef.current?.focus?.();
     };
@@ -860,72 +834,37 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   };
 
   const modalContent = (
-    <div
+    <section
       ref={modalContainerRef}
-      className='fixed inset-0 z-[1000] bg-[#FAF8F5] flex flex-col overflow-hidden animate-in fade-in duration-150'
-      onClick={(e) => e.stopPropagation()}
-      role='dialog'
-      aria-modal='true'
+      className='space-y-4 animate-in fade-in duration-150'
       aria-labelledby='bible-entity-title'
+      data-testid='bible-entity-workbench'
     >
-      {/* ================= WORKBENCH TOP BAR ================= */}
-      <header className='h-14 sm:h-16 bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-2xs z-30'>
-        {/* Left: Back button + Breadcrumb + Entity Name */}
-        <div className='flex items-center gap-2.5 sm:gap-3 min-w-0'>
+      {/* ================= HEADER (hero card như màn danh sách Series Bible) ================= */}
+      <header className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'>
+        <div className='flex items-center justify-between gap-3'>
           <button
             type='button'
             onClick={onClose}
-            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-xs font-semibold text-[#1C1917] transition-all cursor-pointer shadow-2xs'
-            title='Quay lại danh sách Series Bible'
+            className='inline-flex items-center gap-1.5 text-sm font-semibold text-stone-600 hover:text-[#C2410C] transition-colors cursor-pointer'
+            title='Quay lại danh sách Series Bible (Esc)'
           >
-            <ArrowLeft className='w-3.5 h-3.5 text-[#F97316]' />
-            <span className='hidden sm:inline'>Quay lại Series Bible</span>
+            <ArrowLeft className='w-4 h-4' />
+            <span>Series Bible</span>
           </button>
-
-          <span className='text-zinc-300 font-mono hidden sm:inline'>/</span>
-
-          <nav className='flex items-center gap-1.5 text-xs text-[#57534E] min-w-0'>
-            <span className='hover:text-[#1C1917] transition hidden md:inline'>Series Bible</span>
-            <span className='hidden md:inline'>›</span>
-            <span className='hover:text-[#1C1917] transition hidden md:inline'>Kho tri thức</span>
-            <span className='hidden md:inline'>›</span>
-            <div className='flex items-center gap-1.5 bg-[#FAF8F5] px-2.5 py-1 rounded-lg border border-[#D8D2C5]'>
-              <span className='w-2 h-2 rounded-full bg-[#F97316]'></span>
-              <h2
-                id='bible-entity-title'
-                className='text-xs sm:text-sm font-bold font-serif text-[#1C1917] truncate'
-              >
-                {entity.name}
-              </h2>
-            </div>
-          </nav>
-
-          <span className='font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 border border-zinc-300 shrink-0 hidden sm:inline'>
-            {entity.code}
-          </span>
-          <span
-            className={`px-2.5 py-0.5 rounded text-xs font-bold border shrink-0 ${getCategoryBadgeStyle(entity.category)}`}
-          >
-            {getCategoryLabel(entity.category)}
-          </span>
-        </div>
-
-        {/* Right: Concept Guide & Role Badge */}
-        <div className='flex items-center gap-2 shrink-0'>
-          <button
-            type='button'
-            onClick={() => setShowConceptGuide((v) => !v)}
-            className='text-xs font-semibold px-2.5 py-1 rounded-lg border border-[#D8D2C5] hover:bg-[#FAF8F5] text-[#57534E] hover:text-[#1C1917] transition flex items-center gap-1.5 cursor-pointer shadow-2xs'
-            title='Xem hướng dẫn phân biệt Giai đoạn cốt truyện và Phiên bản mỹ thuật'
-          >
-            <HelpCircle className='w-3.5 h-3.5 text-[#F97316]' />
-            <span className='hidden sm:inline'>Quy ước Giai đoạn</span>
-          </button>
-
-          {/* Role indicator badge */}
-          <div className='px-2.5 py-1 rounded-lg text-xs font-bold border shrink-0 flex items-center gap-1.5 shadow-2xs bg-stone-100 text-stone-800 border-stone-300'>
-            <User className='w-3 h-3 text-[#F97316]' />
-            <span>
+          <div className='flex items-center gap-2'>
+            <button
+              type='button'
+              onClick={() => setShowConceptGuide((v) => !v)}
+              aria-pressed={showConceptGuide}
+              className='px-3 py-1.5 rounded-full border border-[#E7E5E4] bg-white hover:bg-[#F5F5F4] text-xs font-semibold text-stone-700 transition-colors flex items-center gap-1.5 cursor-pointer'
+              title='Phân biệt Giai đoạn cốt truyện và Phiên bản mỹ thuật'
+            >
+              <HelpCircle className='w-3.5 h-3.5 text-stone-500' />
+              <span className='hidden sm:inline'>Quy ước Giai đoạn</span>
+            </button>
+            <span className='px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 bg-stone-100 text-stone-700 border-stone-200'>
+              <User className='w-3.5 h-3.5 text-stone-500' />
               {isProducerUser
                 ? 'Nhà sản xuất'
                 : isWriterUser
@@ -936,33 +875,80 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       ? 'Biên tập viên'
                       : 'Người xem'}
             </span>
+            <button
+              ref={closeButtonRef}
+              type='button'
+              onClick={onClose}
+              className='p-1.5 rounded-full hover:bg-stone-200 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer'
+              title='Đóng (Esc)'
+              aria-label='Đóng cửa sổ chi tiết'
+            >
+              <X className='w-4 h-4' />
+            </button>
+          </div>
+        </div>
+
+        <div className='flex flex-col xl:flex-row xl:items-end justify-between gap-4'>
+          <div className='min-w-0 space-y-1.5'>
+            <div className='flex items-center gap-2 flex-wrap'>
+              <span className='font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200'>
+                {entity.code}
+              </span>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getCategoryBadgeStyle(entity.category)}`}
+              >
+                {getCategoryLabel(entity.category)}
+              </span>
+            </div>
+            <h2
+              id='bible-entity-title'
+              className='text-2xl font-bold font-serif text-stone-900 tracking-tight truncate'
+            >
+              {entity.name}
+            </h2>
+            {entity.subtitle && <p className='text-sm text-stone-600'>{entity.subtitle}</p>}
           </div>
 
-          <button
-            ref={closeButtonRef}
-            type='button'
-            onClick={onClose}
-            className='p-1.5 rounded-lg hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800 transition-colors cursor-pointer shrink-0'
-            title='Đóng bàn làm việc (Phím Esc)'
-            aria-label='Đóng cửa sổ chi tiết'
-          >
-            <X className='w-4 h-4' />
-          </button>
+          <div className='flex items-center gap-2 flex-wrap shrink-0'>
+            <button
+              type='button'
+              onClick={() => onOpenHistory(entity)}
+              className='px-4 py-2 rounded-full bg-white hover:bg-[#F5F5F4] text-[#292524] border border-[#E7E5E4] text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
+            >
+              <History className='w-4 h-4 text-stone-500' />
+              <span>Lịch sử phiên bản</span>
+            </button>
+            {canCreateDraft ? (
+              <button
+                type='button'
+                onClick={() => onOpenAddRevision(entity)}
+                className='px-4 py-2 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
+              >
+                <GitCommit className='w-4 h-4' />
+                <span>{isProducer ? 'Tạo phiên bản mới' : 'Tạo bản nháp mới'}</span>
+              </button>
+            ) : (
+              <span className='px-3 py-1.5 rounded-full bg-stone-100 border border-stone-200 text-stone-600 text-xs font-medium flex items-center gap-1.5'>
+                <Lock className='w-3.5 h-3.5 text-stone-500' />
+                {isArtist ? 'Họa sĩ nộp Concept Art theo từng giai đoạn' : 'Chế độ chỉ xem'}
+              </span>
+            )}
+          </div>
         </div>
       </header>
 
       {/* ================= WORKSPACE BODY CONTAINER ================= */}
-      <main className='flex-1 overflow-y-auto max-w-7xl w-full mx-auto p-3 sm:p-5 md:p-6 space-y-4 custom-scrollbar'>
+      <div className='space-y-4'>
         {/* ================= COLLAPSIBLE CONCEPT NOTICE BANNER ================= */}
         {showConceptGuide && (
-          <div className='bg-gradient-to-r from-amber-50 via-white to-violet-50 border border-amber-200 rounded-xl p-3.5 sm:p-4 shadow-xs relative transition-all animate-in fade-in duration-200'>
+          <div className='bg-white border border-stone-200/80 rounded-xl p-4 shadow-xs relative transition-all animate-in fade-in duration-200'>
             <button
               type='button'
               onClick={() => setShowConceptGuide(false)}
-              className='absolute top-2.5 right-2.5 text-stone-400 hover:text-stone-700 text-xs'
+              className='absolute top-2.5 right-2.5 p-1 rounded-full text-stone-500 hover:text-stone-800 hover:bg-stone-100'
               aria-label='Đóng hướng dẫn'
             >
-              ✕
+              <X className='w-3.5 h-3.5' />
             </button>
             <div className='flex items-start gap-3'>
               <div className='w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0 mt-0.5'>
@@ -973,7 +959,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   Hiểu đúng cấu trúc: Narrative Era (Thời kỳ) vs. Asset Version (Phiên bản mỹ thuật)
                 </div>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1 text-stone-600 text-xs'>
-                  <div className='bg-white/90 p-2.5 rounded-lg border border-amber-200/60'>
+                  <div className='bg-stone-50 p-2.5 rounded-lg border border-stone-200'>
                     <span className='font-bold text-[#C2410C] uppercase tracking-wider text-xs block mb-0.5'>
                       Trục Cốt Truyện — ERA (Narrative Timeline)
                     </span>
@@ -981,8 +967,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     <strong>Mốc chương hiệu lực (Effective from Chapter)</strong> để Họa sĩ và ban
                     biên kịch đảm bảo tính nhất quán hình thái.
                   </div>
-                  <div className='bg-white/90 p-2.5 rounded-lg border border-violet-100'>
-                    <span className='font-bold text-violet-700 uppercase tracking-wider text-xs block mb-0.5'>
+                  <div className='bg-stone-50 p-2.5 rounded-lg border border-stone-200'>
+                    <span className='font-bold text-emerald-700 uppercase tracking-wider text-xs block mb-0.5'>
                       Tiến trình phiên bản thiết kế
                     </span>
                     Vòng đời phê duyệt: Bản thảo ➔ Kiểm duyệt ➔ Đã khóa chuẩn (Canon Locked). Theo
@@ -1016,14 +1002,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             dismissible={false}
           />
         ) : activeRevision?.isLocked || activeRevision?.reviewStatus === 'CanonLocked' ? (
-          <div className='p-3 sm:p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start gap-3 text-xs text-amber-950 shadow-2xs'>
-            <div className='w-7 h-7 rounded-lg bg-amber-100 border border-amber-300/70 flex items-center justify-center text-amber-700 shrink-0 mt-0.5'>
+          <div className='p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-start gap-3 text-sm text-emerald-950 shadow-2xs'>
+            <div className='w-8 h-8 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0'>
               <Lock className='w-4 h-4' />
             </div>
             <div className='space-y-1 flex-1 min-w-0'>
               <div className='flex items-center gap-2 flex-wrap'>
-                <span className='font-bold uppercase tracking-wider text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded'>
-                  🔒 Đã khóa chuẩn (Canon Locked)
+                <span className='font-bold uppercase tracking-wider text-xs bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full'>
+                  Đã khóa chuẩn (Canon Locked)
                 </span>
                 <span className='text-xs font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
                   {activeStage?.stageName ? `${activeStage.stageName} · ` : ''}
@@ -1032,7 +1018,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     ? `–${activeRevision.effectiveToChapterNumber}`
                     : ' → hết'}
                 </span>
-                <span className='font-mono font-bold text-xs bg-amber-200/70 text-amber-900 px-1.5 py-0.2 rounded'>
+                <span className='font-mono font-bold text-xs bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded'>
                   Lần sửa #{activeRevision.versionNumber}
                 </span>
                 {activeRevision.lockedAt && (
@@ -1053,32 +1039,16 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         <div className='grid grid-cols-1 lg:grid-cols-12 gap-4 items-start'>
           {/* ================= COLUMN 1: THỜI KỲ & GIAI ĐOẠN (COL-SPAN 3) ================= */}
           <section className='lg:col-span-3 space-y-3' data-testid='era-stages-selector'>
-            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+            <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
               <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                 <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
                   <Layers className='w-4 h-4 text-[#F97316]' />
                   <span>Thời kỳ &amp; Giai đoạn</span>
                 </div>
-                <span className='text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600'>
+                <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600'>
                   {stages.length} giai đoạn
                 </span>
               </div>
-
-              {/* Prominent Primary Create Stage Button */}
-              {canCreateDraft && (
-                <button
-                  type='button'
-                  onClick={() => {
-                    onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
-                  }}
-                  data-testid='add-new-era-btn'
-                  className='w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]'
-                  title='Tạo giai đoạn cốt truyện mới cho nhân vật'
-                >
-                  <Plus className='w-4 h-4' />
-                  <span>+ Tạo giai đoạn</span>
-                </button>
-              )}
 
               {/* Vertical list of era stages */}
               <div className='space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5'>
@@ -1110,24 +1080,24 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           <span className='truncate'>{stage.stageName}</span>
                         </div>
                         {stage.isLocked ? (
-                          <span className='text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0'>
-                            🔒 Chính thức
+                          <span className='text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0'>
+                            Chính thức
                           </span>
                         ) : (
-                          <span className='text-[10px] font-medium px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 shrink-0'>
+                          <span className='text-xs font-medium px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 shrink-0'>
                             Bản nháp
                           </span>
                         )}
                       </div>
 
                       <div className='flex items-center justify-between text-xs text-stone-500'>
-                        <span className='font-mono font-medium text-[11px] bg-stone-100 px-2 py-0.5 rounded-full'>
+                        <span className='font-mono font-medium text-xs bg-stone-100 px-2 py-0.5 rounded-full'>
                           Ch.{stage.effectiveFromChapterNumber}
                           {stage.effectiveToChapterNumber
                             ? `–${stage.effectiveToChapterNumber}`
                             : '+'}
                         </span>
-                        <span className='text-[11px] text-stone-400'>
+                        <span className='text-xs text-stone-400'>
                           {stage.revisions.length} phiên bản
                         </span>
                       </div>
@@ -1143,11 +1113,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   onClick={() => {
                     onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
                   }}
-                  className='w-full py-2 border-2 border-dashed border-stone-300 hover:border-[#F97316] text-stone-600 hover:text-[#EA580C] hover:bg-orange-50/50 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1'
+                  data-testid='add-new-era-btn'
+                  className='w-full py-2 border-2 border-dashed border-stone-300 hover:border-orange-400 text-stone-600 hover:text-[#C2410C] hover:bg-orange-50/60 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer'
                   title='Thêm giai đoạn cốt truyện mới'
                 >
-                  <Plus className='w-3.5 h-3.5' />
-                  <span>+ Tạo giai đoạn mới</span>
+                  <Plus className='w-4 h-4' />
+                  <span>Tạo giai đoạn mới</span>
                 </button>
               )}
             </div>
@@ -1155,7 +1126,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
           {/* ================= COLUMN 2: HERO ARTWORK & MODEL SHEET (COL-SPAN 6) ================= */}
           <section className='lg:col-span-6 space-y-3.5'>
-            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3'>
+            <div className='bg-white border border-stone-200/80 rounded-xl p-4 sm:p-5 shadow-xs space-y-3'>
               {/* Artwork Header: Tab Turnaround vs Action / Expressions + Zoom button */}
               <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                 <div className='flex items-center gap-2 min-w-0'>
@@ -1164,7 +1135,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     {visualCardInfo.title}
                   </span>
                   <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200`}
+                    className={`text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200`}
                   >
                     {visualCardInfo.badge}
                   </span>
@@ -1221,7 +1192,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     <span className='truncate max-w-[280px] text-xs font-bold text-[#1C1917]'>
                       {selectedImageTitle || `${entity.name} - Model Sheet`}
                     </span>
-                    <span className='text-[11px] text-stone-400 font-mono'>
+                    <span className='text-xs text-stone-400 font-mono'>
                       Turnaround / Model Sheet Canvas
                     </span>
                   </div>
@@ -1354,11 +1325,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         title='Tải lên bản vẽ tham chiếu Model Sheet mới'
                       >
                         <Upload className='w-4 h-4' />
-                        <span>+ Tải lên Model Sheet</span>
+                        <span>Tải lên Model Sheet</span>
                       </button>
-                      <div className='flex items-center gap-1.5 text-[11px] text-stone-400'>
+                      <div className='flex items-center gap-1.5 text-xs text-stone-400'>
                         <span>Kéo thả file ảnh vào đây hoặc nhấn</span>
-                        <kbd className='px-1.5 py-0.5 bg-stone-200/80 border border-stone-300 rounded font-mono text-[10px] text-stone-700 font-semibold'>
+                        <kbd className='px-1.5 py-0.5 bg-stone-200/80 border border-stone-300 rounded font-mono text-xs text-stone-700 font-semibold'>
                           Ctrl + V
                         </kbd>
                         <span>để dán</span>
@@ -1368,7 +1339,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         onClick={() => {
                           onOpenAddRevision(entity);
                         }}
-                        className='inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg text-[11px] font-medium text-stone-600 transition-colors cursor-pointer mt-0.5'
+                        className='inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg text-xs font-medium text-stone-600 transition-colors cursor-pointer mt-0.5'
                       >
                         <Edit3 className='w-3 h-3 text-stone-500' />
                         <span>
@@ -1401,7 +1372,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     </span>
                   ) : activeRevision?.reviewStatus === 'WriterEndorsed' ? (
                     <span className='inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200'>
-                      ✓ Writer đã duyệt (Chờ Producer khóa Canon)
+                      Writer/Editor đã xác nhận (chờ Producer khoá Canon)
                     </span>
                   ) : activeRevision?.reviewStatus === 'ReworkRequired' ? (
                     <span className='inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200'>
@@ -1477,8 +1448,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             {isEndorsing
                               ? 'Đang duyệt...'
                               : activeRevision.reviewStatus === 'WriterEndorsed'
-                                ? '✓ Đã duyệt thiết kế'
-                                : '✓ Duyệt thiết kế'}
+                                ? 'Đã duyệt thiết kế'
+                                : 'Duyệt thiết kế'}
                           </span>
                         </button>
                       )}
@@ -1524,7 +1495,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             activeRevision.reviewStatus !== 4)
                         }
                         onClick={() => void handleLock(activeRevision)}
-                        className='px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow transition-all cursor-pointer disabled:opacity-50'
+                        className='px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow transition-all cursor-pointer disabled:opacity-50'
                         data-testid='detail-lock-btn'
                         title={
                           activeRevision.reviewStatus !== 'WriterEndorsed' &&
@@ -1555,7 +1526,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           {/* ================= COLUMN 3: THÔNG TIN & PHIÊN BẢN (COL-SPAN 3) ================= */}
           <section className='lg:col-span-3 space-y-3.5'>
             {/* CARD 1: THÔNG TIN ĐẶC TẢ THU GỌN (METADATA SPECS) */}
-            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+            <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
               <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                 <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
                   <FileText className='w-4 h-4 text-[#F97316]' />
@@ -1777,7 +1748,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             </div>
 
             {/* CARD 2: PHIÊN BẢN & NHẬT KÝ SỬA ĐỔI (VERSION & AUDIT TRAIL GỘP CHUNG) */}
-            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+            <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
               <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                 <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
                   <History className='w-4 h-4 text-[#F97316]' />
@@ -1813,7 +1784,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             v{rev.versionNumber}
                           </span>
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
+                            className={`text-xs px-1.5 py-0.5 rounded-full border ${
                               isCanon
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold'
                                 : rev.reviewStatus === 'ConceptSubmitted'
@@ -1826,7 +1797,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             }`}
                           >
                             {isCanon
-                              ? 'Chính thức 🔒'
+                              ? 'Chính thức'
                               : rev.reviewStatus === 'ConceptSubmitted'
                                 ? 'Chờ thẩm định'
                                 : rev.reviewStatus === 'WriterEndorsed'
@@ -1836,7 +1807,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                     : 'Bản nháp'}
                           </span>
                         </div>
-                        <span className='text-[10px] text-stone-400 font-mono'>
+                        <span className='text-xs text-stone-400 font-mono'>
                           {new Date(rev.createdAt).toLocaleDateString('vi-VN')}
                         </span>
                       </div>
@@ -1870,7 +1841,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             : 'Bản nháp'}
                     )
                   </span>
-                  <span className='text-[10px] text-stone-500 font-medium'>
+                  <span className='text-xs text-stone-500 font-medium'>
                     {activeRevision?.isLocked ? 'Bất biến' : 'Có thể chỉnh sửa'}
                   </span>
                 </div>
@@ -1892,7 +1863,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               <div className='space-y-2 pt-2 border-t border-stone-200/80'>
                 <div className='font-bold text-xs uppercase tracking-wider text-stone-700 flex items-center justify-between'>
                   <span>Lịch sử thay đổi</span>
-                  <span className='text-[10px] font-normal text-stone-400'>
+                  <span className='text-xs font-normal text-stone-400'>
                     {auditLogs.length} sự kiện
                   </span>
                 </div>
@@ -1901,13 +1872,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   {auditLogs.map((log, i) => (
                     <div
                       key={i}
-                      className='p-1.5 rounded-lg bg-stone-50 border border-stone-100 flex items-center justify-between gap-1 text-[11px]'
+                      className='p-1.5 rounded-lg bg-stone-50 border border-stone-100 flex items-center justify-between gap-1 text-xs'
                     >
                       <div className='truncate min-w-0'>
                         <strong className='text-stone-900'>{log.actor}</strong>{' '}
                         <span className='text-stone-600'>{log.action}</span>
                       </div>
-                      <span className='text-[10px] text-stone-400 shrink-0 font-medium'>
+                      <span className='text-xs text-stone-400 shrink-0 font-medium'>
                         {log.time}
                       </span>
                     </div>
@@ -1917,65 +1888,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             </div>
           </section>
         </div>
-      </main>
-
-      {/* ================= WORKBENCH BOTTOM FOOTER ================= */}
-      <footer className='h-14 bg-[#FCFBF8] border-t border-[#D8D2C5] px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-2xs'>
-        <div className='flex items-center gap-2'>
-          <button
-            type='button'
-            onClick={() => {
-              onOpenHistory(entity);
-            }}
-            className='px-4 py-2 bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-[0.98]'
-          >
-            <History className='w-3.5 h-3.5 text-[#EA580C]' />
-            <span>Xem lịch sử phiên bản</span>
-          </button>
-
-          {canCreateDraft ? (
-            <div className='flex items-center gap-2'>
-              <button
-                type='button'
-                onClick={() => {
-                  onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
-                }}
-                className='px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]'
-                title='Tạo giai đoạn cốt truyện mới'
-              >
-                <Plus className='w-3.5 h-3.5' />
-                <span>+ Tạo giai đoạn</span>
-              </button>
-
-              <button
-                type='button'
-                onClick={() => {
-                  onOpenAddRevision(entity);
-                }}
-                className='px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]'
-              >
-                <GitCommit className='w-3.5 h-3.5' />
-                <span>{isProducer ? '+ Tạo phiên bản mới' : '+ Tạo bản nháp mới'}</span>
-              </button>
-            </div>
-          ) : isArtist ? (
-            <span className='text-xs text-zinc-500 italic'>
-              Họa sĩ (Artist) tải và nộp Concept Art theo từng giai đoạn.
-            </span>
-          ) : (
-            <span className='text-xs text-zinc-500 italic'>Chế độ chỉ xem.</span>
-          )}
-        </div>
-
-        <button
-          type='button'
-          onClick={onClose}
-          className='px-5 py-2 bg-stone-900 hover:bg-black text-white text-xs font-semibold rounded-xl transition-all cursor-pointer active:scale-95 shadow-sm'
-        >
-          Đóng
-        </button>
-      </footer>
-    </div>
+      </div>
+    </section>
   );
 
   const finalContent = (
@@ -2038,5 +1952,5 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     </>
   );
 
-  return typeof document !== 'undefined' ? createPortal(finalContent, document.body) : finalContent;
+  return finalContent;
 };

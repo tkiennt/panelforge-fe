@@ -955,1081 +955,1090 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         </div>
       )}
 
-      {/* Header: cùng mẫu hero card với Script Hub / Dashboard (breadcrumb đã có ở AppShell) */}
-      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-5'>
-        <div className='min-w-0 space-y-1.5'>
-          <div className='flex items-center gap-2 flex-wrap'>
-            <span className='px-2.5 py-0.5 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 text-[#C2410C] text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1'>
-              <BookOpen className='w-3.5 h-3.5' />
-              <span>Canon Hub</span>
-            </span>
-            {availableSeries.length > 1 ? (
-              <select
-                value={effectiveSeries?.id || ''}
-                onChange={(e) => {
-                  const found = availableSeries.find((x) => x.id === e.target.value);
-                  if (found) {
-                    setSelectedSeriesId(found.id);
-                    if (onSelectSeries) onSelectSeries(found);
-                  }
-                }}
-                aria-label='Chọn Series'
-                className='px-2.5 py-1 bg-white border border-[#D8D2C5] rounded-full font-semibold text-xs text-[#1C1917] focus:outline-none focus:border-[#C2410C] cursor-pointer'
-              >
-                {availableSeries.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.title}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span className='text-xs font-semibold text-[#57534E] truncate'>
-                {effectiveSeries?.title || 'PanelForge Series'}
-              </span>
-            )}
-          </div>
-          <div className='flex items-center gap-2.5 flex-wrap'>
-            <h1 className='text-2xl font-bold font-serif text-[#1C1917] tracking-tight'>
-              Series Bible
-            </h1>
-            <span className='px-2.5 py-0.5 rounded-full bg-[#F3F0E9] text-[#57534E] text-xs font-semibold font-mono border border-[#D8D2C5]'>
-              {localEntities.length} mục tri thức
-            </span>
-          </div>
-          <p className='text-sm text-[#57534E] leading-relaxed max-w-2xl'>
-            Kho tham chiếu chuẩn cho nhân vật, bối cảnh, đạo cụ, thuật ngữ và quy tắc mỹ thuật. Bản
-            đã khoá Canon là chuẩn duy nhất cho họa sĩ và kiểm tra nhất quán.
-          </p>
-        </div>
-
-        <div className='flex items-center gap-3 flex-wrap shrink-0'>
-          {bibleStats.map((stat) => (
-            <div
-              key={stat.key}
-              className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl border shadow-2xs ${stat.tone}`}
-              data-testid={`bible-stat-${stat.key}`}
-            >
-              <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center ${stat.iconTone}`}
-              >
-                <stat.icon className='w-4 h-4' />
-              </div>
-              <div>
-                <div className='text-xs font-semibold uppercase tracking-wide opacity-80'>
-                  {stat.label}
-                </div>
-                <div className='text-sm font-bold font-mono'>{stat.value}</div>
-              </div>
-            </div>
-          ))}
-          {canCreateDraft ? (
-            <button
-              type='button'
-              onClick={() => setAddEntityOpen(true)}
-              className='px-4 py-2 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
-              data-testid='add-bible-entry-btn'
-            >
-              <Plus className='w-4 h-4' />
-              <span>{isProducer ? 'Thêm mục mới' : 'Tạo mục nháp'}</span>
-            </button>
-          ) : (
-            <span
-              className='px-3 py-1.5 rounded-full bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E] text-xs font-medium flex items-center gap-1.5'
-              title='Chỉ Biên kịch (Writer) hoặc Producer mới có quyền tạo mục trong Series Bible'
-              data-testid='bible-readonly-badge'
-            >
-              <Lock className='w-3.5 h-3.5 text-[#78716C]' />
-              <span>Chế độ chỉ xem</span>
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className='grid grid-cols-1 gap-5 lg:grid-cols-[248px_minmax(0,1fr)] items-start'>
-        {/* Sidebar: danh mục + quy trình duyệt (DESIGN_RULES §3.4, cột trái) */}
-        <aside
-          className='lg:sticky lg:top-4 space-y-4'
-          aria-label='Danh mục Series Bible'
-          data-testid='bible-sidebar'
-        >
-          <nav className='bg-white border border-stone-200/80 rounded-xl shadow-xs p-2'>
-            <p className='px-2.5 pt-1.5 pb-2 text-xs font-semibold uppercase tracking-wider text-stone-500'>
-              Danh mục
-            </p>
-            <div className='flex lg:flex-col gap-1 overflow-x-auto'>
-              {CATEGORIES.map((cat) => {
-                const Icon = cat.icon;
-                const count = categoryCounts[cat.key] || 0;
-                const isActive = activeTab === cat.key;
-                return (
-                  <button
-                    key={cat.key}
-                    type='button'
-                    onClick={() => setActiveTab(cat.key)}
-                    aria-current={isActive ? 'true' : undefined}
-                    className={`lg:w-full shrink-0 px-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-2.5 border-l-4 ${
-                      isActive
-                        ? 'bg-orange-50 text-orange-800 border-orange-500 font-semibold'
-                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 border-transparent'
-                    }`}
-                    data-testid={`tab-category-${cat.key}`}
-                  >
-                    <Icon
-                      className={`w-4 h-4 ${isActive ? 'text-orange-600' : 'text-stone-500'}`}
-                    />
-                    <span className='flex-1 text-left'>{cat.label}</span>
-                    <span
-                      className={`text-xs font-mono px-2 py-0.5 rounded-full ${
-                        isActive ? 'bg-orange-100 text-orange-800' : 'bg-stone-100 text-stone-600'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-
-          {/* Spec V2.6 §5.2: vòng đời một phiên bản thiết kế */}
-          <div className='hidden lg:block bg-white border border-stone-200/80 rounded-xl shadow-xs p-4 space-y-3'>
-            <p className='text-xs font-semibold uppercase tracking-wider text-stone-500'>
-              Quy trình khoá Canon
-            </p>
-            <ol className='space-y-2.5'>
-              {[
-                { label: 'Bản nháp', who: 'Writer tạo mục', dot: 'bg-stone-400' },
-                { label: 'Đã nộp Concept', who: 'Artist tải Model Sheet', dot: 'bg-amber-500' },
-                { label: 'Đã xác nhận', who: 'Writer / Editor duyệt', dot: 'bg-blue-500' },
-                { label: 'Canon Locked', who: 'Producer khoá', dot: 'bg-emerald-600' },
-              ].map((step, i) => (
-                <li key={step.label} className='flex items-start gap-2.5'>
-                  <span className='mt-1.5 flex flex-col items-center'>
-                    <span className={`w-2 h-2 rounded-full ${step.dot}`} />
-                  </span>
-                  <span className='min-w-0'>
-                    <span className='block text-sm font-semibold text-stone-800'>
-                      {i + 1}. {step.label}
-                    </span>
-                    <span className='block text-xs text-stone-500'>{step.who}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-            <p className='text-xs text-stone-500 leading-normal border-t border-stone-100 pt-2.5'>
-              Bản đã khoá không sửa được; thay đổi ở chương sau tạo phiên bản mới (BR-01, BR-15).
-            </p>
-          </div>
-        </aside>
-
-        <div className='min-w-0 space-y-4'>
-          {/* V2.5: Bible Design Queue cho Artist & Writer */}
-          {designQueue.length > 0 && (
-            <div
-              className='bg-amber-50/60 border border-amber-200/90 rounded-xl p-4 shadow-xs'
-              data-testid='bible-design-queue-widget'
-            >
-              <div className='flex items-center justify-between gap-2 mb-2.5'>
-                <div className='flex items-center gap-2'>
-                  <div className='w-6 h-6 rounded-lg bg-orange-100 border border-orange-300 flex items-center justify-center text-orange-700'>
-                    <Palette className='w-3.5 h-3.5' />
-                  </div>
-                  <h2 className='text-xs sm:text-sm font-bold text-amber-950 font-serif'>
-                    Hàng đợi vẽ thiết kế Concept Art ({designQueue.length} mục chờ xử lý)
-                  </h2>
-                </div>
-                <span className='text-xs text-amber-800 font-medium hidden sm:inline'>
-                  Artist &amp; Writer phối hợp thiết kế trước khi đưa vào sản xuất chương
-                </span>
-              </div>
-
-              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5'>
-                {designQueue.map((item) => {
-                  const matchedEntity = localEntities.find((e) => e.id === item.entryId);
-                  return (
-                    <div
-                      key={item.entryId}
-                      className='bg-white/95 rounded-lg border border-amber-200 p-2.5 flex items-center justify-between gap-2 hover:border-orange-400 transition-colors shadow-2xs'
-                    >
-                      <div className='min-w-0 flex-1'>
-                        <div className='flex items-center gap-1.5 flex-wrap'>
-                          <span className='font-mono font-bold text-xs px-1.5 py-0.5 bg-stone-100 text-stone-800 rounded'>
-                            {item.code}
-                          </span>
-                          <span className='font-semibold text-xs text-stone-900 truncate'>
-                            {item.name}
-                          </span>
-                        </div>
-                        <div className='flex items-center gap-1 mt-1'>
-                          {item.reviewStatus === 'ReworkRequired' ||
-                          (item as any).status === 'ReworkRequired' ||
-                          item.reviewStatus === 3 ||
-                          (item as any).status === 3 ? (
-                            <span className='px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-xs font-semibold whitespace-nowrap'>
-                              Yêu cầu vẽ lại
-                            </span>
-                          ) : item.reviewStatus === 'ConceptSubmitted' ||
-                            (item as any).status === 'ConceptSubmitted' ||
-                            item.reviewStatus === 2 ||
-                            (item as any).status === 2 ? (
-                            <span className='px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold whitespace-nowrap'>
-                              Đã nộp (Chờ duyệt)
-                            </span>
-                          ) : (
-                            <span className='px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200 text-xs font-semibold whitespace-nowrap'>
-                              Chờ nộp Concept Art
-                            </span>
-                          )}
-                          <span className='text-xs text-stone-500 font-mono'>
-                            Ch.{item.effectiveFromChapterNumber}
-                          </span>
-                        </div>
-                        {item.reworkFeedback && (
-                          <p className='text-xs text-rose-800 truncate mt-0.5 italic'>
-                            &quot;{item.reworkFeedback}&quot;
-                          </p>
-                        )}
-                      </div>
-
-                      {isArtist ? (
-                        item.reviewStatus === 'ConceptSubmitted' ||
-                        (item as any).status === 'ConceptSubmitted' ||
-                        item.reviewStatus === 2 ||
-                        (item as any).status === 2 ? (
-                          <button
-                            type='button'
-                            onClick={() => {
-                              if (matchedEntity) {
-                                void handleOpenAddRevision(
-                                  matchedEntity,
-                                  null,
-                                  true,
-                                  item.effectiveFromChapterNumber,
-                                  undefined,
-                                  true,
-                                );
-                              }
-                            }}
-                            className='px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
-                            title='Nộp lại nếu bạn lỡ tải nhầm file ảnh trước khi duyệt'
-                            data-testid={`resubmit-concept-${item.entryId}`}
-                          >
-                            <RotateCcw className='w-3 h-3' />
-                            <span>Nộp lại</span>
-                          </button>
-                        ) : item.reviewStatus === 'ReworkRequired' ||
-                          (item as any).status === 'ReworkRequired' ||
-                          item.reviewStatus === 3 ||
-                          (item as any).status === 3 ? (
-                          <button
-                            type='button'
-                            onClick={() => {
-                              if (matchedEntity) {
-                                void handleOpenAddRevision(
-                                  matchedEntity,
-                                  null,
-                                  true,
-                                  item.effectiveFromChapterNumber,
-                                  item.reworkFeedback || undefined,
-                                  false,
-                                );
-                              }
-                            }}
-                            className='px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
-                            title='Nộp lại bản vẽ sau khi đã sửa theo góp ý'
-                            data-testid={`rework-concept-${item.entryId}`}
-                          >
-                            <Palette className='w-3 h-3' />
-                            <span>Sửa lại</span>
-                          </button>
-                        ) : (
-                          <button
-                            type='button'
-                            onClick={() => {
-                              if (matchedEntity) {
-                                void handleOpenAddRevision(
-                                  matchedEntity,
-                                  null,
-                                  true,
-                                  item.effectiveFromChapterNumber,
-                                );
-                              }
-                            }}
-                            className='px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
-                            data-testid={`upload-concept-${item.entryId}`}
-                          >
-                            <Upload className='w-3 h-3' />
-                            <span>Tải ảnh</span>
-                          </button>
-                        )
-                      ) : (
-                        <button
-                          type='button'
-                          onClick={() => {
-                            if (matchedEntity) {
-                              void handleOpenHistory(matchedEntity);
-                            }
-                          }}
-                          className='px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors border border-stone-300 flex items-center gap-1'
-                          title='Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Concept Art'
-                          data-testid={`view-concept-history-${item.entryId}`}
-                        >
-                          <Eye className='w-3 h-3' />
-                          <span>Xem chi tiết</span>
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Thanh công cụ tra cứu tích hợp (Category Tabs + Search + Chapter + Filters + View Mode) */}
-          <div className='bg-white border border-stone-200/80 rounded-xl p-3 shadow-xs space-y-3'>
-            {/* Unified Search, Chapter Selector, Status Filter & View Mode */}
-            <div className='flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-2.5'>
-              {/* Search Input */}
-              <div className='relative flex-1 min-w-[220px]'>
-                <Search className='w-4 h-4 text-[#78716C] absolute left-3 top-1/2 -translate-y-1/2' />
-                <input
-                  type='text'
-                  placeholder={getSearchPlaceholder()}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className='w-full pl-9 pr-8 py-2 bg-[#F8F6F0] focus:bg-[#FCFBF8] rounded-lg border border-[#D8D2C5] text-xs text-[#1C1917] placeholder-[#A8A29E] focus:outline-none focus:border-[#F97316] transition-colors'
-                  data-testid='bible-search-input'
-                />
-                {searchQuery && (
-                  <button
-                    type='button'
-                    onClick={() => setSearchQuery('')}
-                    aria-label='Xóa từ khóa tìm kiếm'
-                    className='w-5 h-5 rounded-full hover:bg-[#E7E2D6] text-[#78716C] hover:text-[#1C1917] flex items-center justify-center absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer'
-                  >
-                    <X className='w-3 h-3' />
-                  </button>
-                )}
-              </div>
-
-              {/* Controls: Mốc chương, Trạng thái & Chế độ xem */}
+      {/* Đang mở một mục: workbench chi tiết thay chỗ danh sách, vẫn trong AppShell */}
+      {!selectedEntity && (
+        <>
+          {/* Header: cùng mẫu hero card với Script Hub / Dashboard (breadcrumb đã có ở AppShell) */}
+          <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-5'>
+            <div className='min-w-0 space-y-1.5'>
               <div className='flex items-center gap-2 flex-wrap'>
-                {/* Bộ chọn mốc chương */}
-                <div className='flex items-center gap-1.5 bg-[#F8F6F0] border border-[#D8D2C5] rounded-lg px-2.5 py-1 text-xs'>
-                  <Layers className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
-                  <span className='text-[#57534E] font-medium text-xs whitespace-nowrap'>
-                    Hiệu lực tại:
-                  </span>
+                <span className='px-2.5 py-0.5 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 text-[#C2410C] text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1'>
+                  <BookOpen className='w-3.5 h-3.5' />
+                  <span>Canon Hub</span>
+                </span>
+                {availableSeries.length > 1 ? (
                   <select
-                    value={effectiveChapter}
+                    value={effectiveSeries?.id || ''}
                     onChange={(e) => {
-                      const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
-                      setEffectiveChapter(val);
+                      const found = availableSeries.find((x) => x.id === e.target.value);
+                      if (found) {
+                        setSelectedSeriesId(found.id);
+                        if (onSelectSeries) onSelectSeries(found);
+                      }
                     }}
-                    className='bg-transparent font-medium text-xs text-[#1C1917] focus:outline-none cursor-pointer pr-1'
-                    data-testid='bible-chapter-select'
-                    aria-label='Phiên bản hiệu lực theo chương'
-                    title='Chọn chương để xem phiên bản Bible có hiệu lực tại mốc chương đó'
+                    aria-label='Chọn Series'
+                    className='px-2.5 py-1 bg-white border border-[#D8D2C5] rounded-full font-semibold text-xs text-[#1C1917] focus:outline-none focus:border-[#C2410C] cursor-pointer'
                   >
-                    <option value='all'>Đang xem: Phiên bản mới nhất</option>
-                    {seriesChapters.map((ch) => (
-                      <option key={ch.id} value={ch.chapterNumber}>
-                        Chương {ch.chapterNumber}
-                        {ch.title ? ` - ${ch.title}` : ''}
+                    {availableSeries.map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {x.title}
                       </option>
                     ))}
                   </select>
-                </div>
-
-                {/* Bộ lọc trạng thái khóa Canon */}
-                <div className='flex items-center gap-1.5 bg-[#F8F6F0] border border-[#D8D2C5] rounded-lg px-2.5 py-1 text-xs'>
-                  <Lock className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className='bg-transparent font-medium text-xs text-[#1C1917] focus:outline-none cursor-pointer pr-1'
-                    data-testid='bible-status-filter'
-                    aria-label='Lọc trạng thái khóa Canon'
-                  >
-                    <option value='ALL'>Tất cả trạng thái</option>
-                    <option value='LOCKED'>Đã khoá Canon</option>
-                    <option value='UNLOCKED'>Chưa khoá / Bản thảo</option>
-                  </select>
-                </div>
-
-                {/* Chế độ xem Lưới / Danh sách */}
-                <div className='flex items-center bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5]'>
-                  <button
-                    type='button'
-                    onClick={() => handleToggleViewMode('grid')}
-                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                      viewMode === 'grid'
-                        ? 'bg-[#FCFBF8] text-[#1C1917] shadow-xs'
-                        : 'text-[#78716C] hover:text-[#1C1917]'
-                    }`}
-                    title='Chế độ xem dạng lưới'
-                    aria-label='Xem dạng lưới'
-                  >
-                    <LayoutGrid className='w-3.5 h-3.5' />
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => handleToggleViewMode('list')}
-                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                      viewMode === 'list'
-                        ? 'bg-[#FCFBF8] text-[#1C1917] shadow-xs'
-                        : 'text-[#78716C] hover:text-[#1C1917]'
-                    }`}
-                    title='Chế độ xem danh sách'
-                    aria-label='Xem dạng danh sách'
-                  >
-                    <List className='w-3.5 h-3.5' />
-                  </button>
-                </div>
+                ) : (
+                  <span className='text-xs font-semibold text-[#57534E] truncate'>
+                    {effectiveSeries?.title || 'PanelForge Series'}
+                  </span>
+                )}
               </div>
+              <div className='flex items-center gap-2.5 flex-wrap'>
+                <h1 className='text-2xl font-bold font-serif text-[#1C1917] tracking-tight'>
+                  Series Bible
+                </h1>
+                <span className='px-2.5 py-0.5 rounded-full bg-[#F3F0E9] text-[#57534E] text-xs font-semibold font-mono border border-[#D8D2C5]'>
+                  {localEntities.length} mục tri thức
+                </span>
+              </div>
+              <p className='text-sm text-[#57534E] leading-relaxed max-w-2xl'>
+                Kho tham chiếu chuẩn cho nhân vật, bối cảnh, đạo cụ, thuật ngữ và quy tắc mỹ thuật.
+                Bản đã khoá Canon là chuẩn duy nhất cho họa sĩ và kiểm tra nhất quán.
+              </p>
             </div>
 
-            {/* Thanh kết quả lọc & Xóa bộ lọc */}
-            {hasActiveFilters && (
-              <div className='pt-2 border-t border-[#D8D2C5]/60 flex items-center justify-between text-xs text-[#57534E]'>
-                <span>
-                  Tìm thấy <strong>{filteredEntities.length}</strong> / {localEntities.length} mục
-                  phù hợp
-                  {searchQuery && (
-                    <>
-                      {' '}
-                      với từ khóa &quot;<strong>{searchQuery}</strong>&quot;
-                    </>
-                  )}
-                </span>
-                <button
-                  type='button'
-                  onClick={handleResetFilters}
-                  className='text-[#C2410C] hover:underline font-semibold flex items-center gap-1 cursor-pointer'
-                >
-                  <RotateCcw className='w-3 h-3' />
-                  <span>Xóa bộ lọc</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Main Content: Loading, Error, Grid or List Cards */}
-          {isLoading ? (
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4'>
-              {[...Array(6)].map((_, i) => (
+            <div className='flex items-center gap-3 flex-wrap shrink-0'>
+              {bibleStats.map((stat) => (
                 <div
-                  key={i}
-                  className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-4 space-y-3 animate-pulse'
+                  key={stat.key}
+                  className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl border shadow-2xs ${stat.tone}`}
+                  data-testid={`bible-stat-${stat.key}`}
                 >
-                  <div className='h-28 bg-[#F3F0E9] rounded-lg'></div>
-                  <div className='h-4 bg-[#E7E2D6] rounded w-2/3'></div>
-                  <div className='h-3 bg-[#F3F0E9] rounded w-1/2'></div>
-                  <div className='h-12 bg-[#F8F6F0] rounded'></div>
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center ${stat.iconTone}`}
+                  >
+                    <stat.icon className='w-4 h-4' />
+                  </div>
+                  <div>
+                    <div className='text-xs font-semibold uppercase tracking-wide opacity-80'>
+                      {stat.label}
+                    </div>
+                    <div className='text-sm font-bold font-mono'>{stat.value}</div>
+                  </div>
                 </div>
               ))}
-            </div>
-          ) : loadError ? (
-            <div className='bg-red-50 border border-red-200 rounded-xl p-6 text-center space-y-3'>
-              <AlertCircle className='w-8 h-8 text-red-500 mx-auto' />
-              <div>
-                <h3 className='font-bold font-serif text-sm text-red-900'>
-                  Không thể tải dữ liệu Series Bible
-                </h3>
-                <p className='text-xs text-red-700 mt-0.5'>{loadError}</p>
-              </div>
-              <button
-                type='button'
-                onClick={() => void fetchBible()}
-                className='px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer'
-              >
-                Thử tải lại
-              </button>
-            </div>
-          ) : filteredEntities.length === 0 ? (
-            localEntities.length === 0 ? (
-              <EmptyFolderState
-                title='Series Bible chưa có mục nào'
-                subtitle='Thêm các nhân vật, địa điểm, đạo cụ hoặc quy tắc mỹ thuật để hỗ trợ họa sĩ và hệ thống kiểm tra nhất quán.'
-                actionText={
-                  canCreateDraft
-                    ? isProducer
-                      ? 'Tạo mục đầu tiên'
-                      : 'Tạo bản nháp đầu tiên'
-                    : undefined
-                }
-                onAction={canCreateDraft ? () => setAddEntityOpen(true) : undefined}
-              />
-            ) : (
-              <div className='bg-[#FCFBF8] border border-dashed border-[#D8D2C5] rounded-xl p-10 text-center space-y-3'>
-                <div className='w-12 h-12 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] mx-auto'>
-                  <BookOpen className='w-6 h-6' />
-                </div>
-                <h3 className='font-bold font-serif text-base text-[#1C1917]'>
-                  Không tìm thấy mục phù hợp
-                </h3>
-                <p className='text-xs text-[#57534E] max-w-md mx-auto'>
-                  Không có mục tri thức nào khớp với điều kiện lọc hiện tại. Thử đổi từ khóa hoặc
-                  xóa bộ lọc.
-                </p>
+              {canCreateDraft ? (
                 <button
                   type='button'
-                  onClick={handleResetFilters}
-                  className='px-3.5 py-1.5 bg-[#F3F0E9] hover:bg-[#E7E2D6] text-[#1C1917] text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer'
+                  onClick={() => setAddEntityOpen(true)}
+                  className='px-4 py-2 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
+                  data-testid='add-bible-entry-btn'
                 >
-                  <RotateCcw className='w-3.5 h-3.5' />
-                  <span>Xóa bộ lọc</span>
+                  <Plus className='w-4 h-4' />
+                  <span>{isProducer ? 'Thêm mục mới' : 'Tạo mục nháp'}</span>
                 </button>
-              </div>
-            )
-          ) : viewMode === 'grid' ? (
-            /* GRID VIEW */
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4'>
-              {filteredEntities.map((entity) => {
-                const raw = rawEntries[entity.id];
-                const effRev = raw?.effectiveRevision;
+              ) : (
+                <span
+                  className='px-3 py-1.5 rounded-full bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E] text-xs font-medium flex items-center gap-1.5'
+                  title='Chỉ Biên kịch (Writer) hoặc Producer mới có quyền tạo mục trong Series Bible'
+                  data-testid='bible-readonly-badge'
+                >
+                  <Lock className='w-3.5 h-3.5 text-[#78716C]' />
+                  <span>Chế độ chỉ xem</span>
+                </span>
+              )}
+            </div>
+          </div>
 
-                return (
-                  <div
-                    key={entity.id}
-                    onClick={() => setSelectedEntity(entity)}
-                    className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl overflow-hidden shadow-xs hover:border-[#F97316] hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer'
-                    data-testid={`bible-card-${entity.id}`}
-                  >
-                    <div>
-                      {/* Top Thumbnail / Visual Header: Không để khoảng đen khổng lồ khi không có ảnh */}
-                      {entity.imageUrl ? (
-                        <div className='relative w-full h-36 bg-stone-950 overflow-hidden flex items-center justify-center border-b border-[#D8D2C5]'>
-                          <AuthenticatedImage
-                            src={entity.imageUrl}
-                            alt={entity.name}
-                            className='w-full h-full object-cover group-hover:scale-103 transition-transform duration-300'
-                          />
-                          <div className='absolute top-2 left-2 flex items-center gap-1.5 flex-wrap'>
-                            <span className='px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-xs text-white text-xs font-mono font-bold'>
-                              {entity.code}
-                            </span>
-                            {entity.isLocked ? (
-                              <span
-                                className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1 shadow-2xs'
-                                title='Character Sheet đã khóa chuẩn (Canon Locked) theo BR-15'
-                              >
-                                <Lock className='w-3.5 h-3.5 text-emerald-600' />
-                                Đã khoá Canon
+          <div className='grid grid-cols-1 gap-5 lg:grid-cols-[248px_minmax(0,1fr)] items-start'>
+            {/* Sidebar: danh mục + quy trình duyệt (DESIGN_RULES §3.4, cột trái) */}
+            <aside
+              className='lg:sticky lg:top-4 space-y-4'
+              aria-label='Danh mục Series Bible'
+              data-testid='bible-sidebar'
+            >
+              <nav className='bg-white border border-stone-200/80 rounded-xl shadow-xs p-2'>
+                <p className='px-2.5 pt-1.5 pb-2 text-xs font-semibold uppercase tracking-wider text-stone-500'>
+                  Danh mục
+                </p>
+                <div className='flex lg:flex-col gap-1 overflow-x-auto'>
+                  {CATEGORIES.map((cat) => {
+                    const Icon = cat.icon;
+                    const count = categoryCounts[cat.key] || 0;
+                    const isActive = activeTab === cat.key;
+                    return (
+                      <button
+                        key={cat.key}
+                        type='button'
+                        onClick={() => setActiveTab(cat.key)}
+                        aria-current={isActive ? 'true' : undefined}
+                        className={`lg:w-full shrink-0 px-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-2.5 border-l-4 ${
+                          isActive
+                            ? 'bg-orange-50 text-orange-800 border-orange-500 font-semibold'
+                            : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 border-transparent'
+                        }`}
+                        data-testid={`tab-category-${cat.key}`}
+                      >
+                        <Icon
+                          className={`w-4 h-4 ${isActive ? 'text-orange-600' : 'text-stone-500'}`}
+                        />
+                        <span className='flex-1 text-left'>{cat.label}</span>
+                        <span
+                          className={`text-xs font-mono px-2 py-0.5 rounded-full ${
+                            isActive
+                              ? 'bg-orange-100 text-orange-800'
+                              : 'bg-stone-100 text-stone-600'
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </nav>
+
+              {/* Spec V2.6 §5.2: vòng đời một phiên bản thiết kế */}
+              <div className='hidden lg:block bg-white border border-stone-200/80 rounded-xl shadow-xs p-4 space-y-3'>
+                <p className='text-xs font-semibold uppercase tracking-wider text-stone-500'>
+                  Quy trình khoá Canon
+                </p>
+                <ol className='space-y-2.5'>
+                  {[
+                    { label: 'Bản nháp', who: 'Writer tạo mục', dot: 'bg-stone-400' },
+                    { label: 'Đã nộp Concept', who: 'Artist tải Model Sheet', dot: 'bg-amber-500' },
+                    { label: 'Đã xác nhận', who: 'Writer / Editor duyệt', dot: 'bg-blue-500' },
+                    { label: 'Canon Locked', who: 'Producer khoá', dot: 'bg-emerald-600' },
+                  ].map((step, i) => (
+                    <li key={step.label} className='flex items-start gap-2.5'>
+                      <span className='mt-1.5 flex flex-col items-center'>
+                        <span className={`w-2 h-2 rounded-full ${step.dot}`} />
+                      </span>
+                      <span className='min-w-0'>
+                        <span className='block text-sm font-semibold text-stone-800'>
+                          {i + 1}. {step.label}
+                        </span>
+                        <span className='block text-xs text-stone-500'>{step.who}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <p className='text-xs text-stone-500 leading-normal border-t border-stone-100 pt-2.5'>
+                  Bản đã khoá không sửa được; thay đổi ở chương sau tạo phiên bản mới (BR-01,
+                  BR-15).
+                </p>
+              </div>
+            </aside>
+
+            <div className='min-w-0 space-y-4'>
+              {/* V2.5: Bible Design Queue cho Artist & Writer */}
+              {designQueue.length > 0 && (
+                <div
+                  className='bg-amber-50/60 border border-amber-200/90 rounded-xl p-4 shadow-xs'
+                  data-testid='bible-design-queue-widget'
+                >
+                  <div className='flex items-center justify-between gap-2 mb-2.5'>
+                    <div className='flex items-center gap-2'>
+                      <div className='w-6 h-6 rounded-lg bg-orange-100 border border-orange-300 flex items-center justify-center text-orange-700'>
+                        <Palette className='w-3.5 h-3.5' />
+                      </div>
+                      <h2 className='text-xs sm:text-sm font-bold text-amber-950 font-serif'>
+                        Hàng đợi vẽ thiết kế Concept Art ({designQueue.length} mục chờ xử lý)
+                      </h2>
+                    </div>
+                    <span className='text-xs text-amber-800 font-medium hidden sm:inline'>
+                      Artist &amp; Writer phối hợp thiết kế trước khi đưa vào sản xuất chương
+                    </span>
+                  </div>
+
+                  <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5'>
+                    {designQueue.map((item) => {
+                      const matchedEntity = localEntities.find((e) => e.id === item.entryId);
+                      return (
+                        <div
+                          key={item.entryId}
+                          className='bg-white/95 rounded-lg border border-amber-200 p-2.5 flex items-center justify-between gap-2 hover:border-orange-400 transition-colors shadow-2xs'
+                        >
+                          <div className='min-w-0 flex-1'>
+                            <div className='flex items-center gap-1.5 flex-wrap'>
+                              <span className='font-mono font-bold text-xs px-1.5 py-0.5 bg-stone-100 text-stone-800 rounded'>
+                                {item.code}
                               </span>
-                            ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
-                              <span
-                                className='px-2 py-0.5 rounded bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1 shadow-2xs'
-                                title='Writer đã duyệt thiết kế (Chờ Producer duyệt & khóa)'
-                              >
-                                <Check className='w-2.5 h-2.5' />
-                                Writer duyệt
+                              <span className='font-semibold text-xs text-stone-900 truncate'>
+                                {item.name}
                               </span>
-                            ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
-                              <span
-                                className='px-2 py-0.5 rounded bg-blue-600 text-white text-xs font-semibold flex items-center gap-1 shadow-2xs'
-                                title='Artist đã nộp concept (Chờ kiểm duyệt)'
-                              >
-                                <Palette className='w-2.5 h-2.5' />
-                                Concept đã nộp
+                            </div>
+                            <div className='flex items-center gap-1 mt-1'>
+                              {item.reviewStatus === 'ReworkRequired' ||
+                              (item as any).status === 'ReworkRequired' ||
+                              item.reviewStatus === 3 ||
+                              (item as any).status === 3 ? (
+                                <span className='px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-xs font-semibold whitespace-nowrap'>
+                                  Yêu cầu vẽ lại
+                                </span>
+                              ) : item.reviewStatus === 'ConceptSubmitted' ||
+                                (item as any).status === 'ConceptSubmitted' ||
+                                item.reviewStatus === 2 ||
+                                (item as any).status === 2 ? (
+                                <span className='px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold whitespace-nowrap'>
+                                  Đã nộp (Chờ duyệt)
+                                </span>
+                              ) : (
+                                <span className='px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200 text-xs font-semibold whitespace-nowrap'>
+                                  Chờ nộp Concept Art
+                                </span>
+                              )}
+                              <span className='text-xs text-stone-500 font-mono'>
+                                Ch.{item.effectiveFromChapterNumber}
                               </span>
-                            ) : effRev?.reviewStatus === 'ReworkRequired' ? (
-                              <span
-                                className='px-2 py-0.5 rounded bg-rose-600 text-white text-xs font-semibold flex items-center gap-1 shadow-2xs'
-                                title='Yêu cầu Artist vẽ lại theo nhận xét'
-                              >
-                                <AlertTriangle className='w-2.5 h-2.5' />
-                                Cần vẽ lại
-                              </span>
-                            ) : null}
+                            </div>
+                            {item.reworkFeedback && (
+                              <p className='text-xs text-rose-800 truncate mt-0.5 italic'>
+                                &quot;{item.reworkFeedback}&quot;
+                              </p>
+                            )}
                           </div>
-                          <div className='absolute bottom-2 right-2'>
-                            <span className='px-1.5 py-0.5 rounded bg-[#FCFBF8]/95 backdrop-blur-xs text-[#57534E] text-xs font-semibold border border-[#D8D2C5] shadow-xs'>
-                              {getCategoryLabel(entity.category)}
-                            </span>
+
+                          {isArtist ? (
+                            item.reviewStatus === 'ConceptSubmitted' ||
+                            (item as any).status === 'ConceptSubmitted' ||
+                            item.reviewStatus === 2 ||
+                            (item as any).status === 2 ? (
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  if (matchedEntity) {
+                                    void handleOpenAddRevision(
+                                      matchedEntity,
+                                      null,
+                                      true,
+                                      item.effectiveFromChapterNumber,
+                                      undefined,
+                                      true,
+                                    );
+                                  }
+                                }}
+                                className='px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
+                                title='Nộp lại nếu bạn lỡ tải nhầm file ảnh trước khi duyệt'
+                                data-testid={`resubmit-concept-${item.entryId}`}
+                              >
+                                <RotateCcw className='w-3 h-3' />
+                                <span>Nộp lại</span>
+                              </button>
+                            ) : item.reviewStatus === 'ReworkRequired' ||
+                              (item as any).status === 'ReworkRequired' ||
+                              item.reviewStatus === 3 ||
+                              (item as any).status === 3 ? (
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  if (matchedEntity) {
+                                    void handleOpenAddRevision(
+                                      matchedEntity,
+                                      null,
+                                      true,
+                                      item.effectiveFromChapterNumber,
+                                      item.reworkFeedback || undefined,
+                                      false,
+                                    );
+                                  }
+                                }}
+                                className='px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
+                                title='Nộp lại bản vẽ sau khi đã sửa theo góp ý'
+                                data-testid={`rework-concept-${item.entryId}`}
+                              >
+                                <Palette className='w-3 h-3' />
+                                <span>Sửa lại</span>
+                              </button>
+                            ) : (
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  if (matchedEntity) {
+                                    void handleOpenAddRevision(
+                                      matchedEntity,
+                                      null,
+                                      true,
+                                      item.effectiveFromChapterNumber,
+                                    );
+                                  }
+                                }}
+                                className='px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
+                                data-testid={`upload-concept-${item.entryId}`}
+                              >
+                                <Upload className='w-3 h-3' />
+                                <span>Tải ảnh</span>
+                              </button>
+                            )
+                          ) : (
+                            <button
+                              type='button'
+                              onClick={() => {
+                                if (matchedEntity) {
+                                  void handleOpenHistory(matchedEntity);
+                                }
+                              }}
+                              className='px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors border border-stone-300 flex items-center gap-1'
+                              title='Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Concept Art'
+                              data-testid={`view-concept-history-${item.entryId}`}
+                            >
+                              <Eye className='w-3 h-3' />
+                              <span>Xem chi tiết</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Thanh công cụ tra cứu tích hợp (Category Tabs + Search + Chapter + Filters + View Mode) */}
+              <div className='bg-white border border-stone-200/80 rounded-xl p-3 shadow-xs space-y-3'>
+                {/* Unified Search, Chapter Selector, Status Filter & View Mode */}
+                <div className='flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-2.5'>
+                  {/* Search Input */}
+                  <div className='relative flex-1 min-w-[220px]'>
+                    <Search className='w-4 h-4 text-[#78716C] absolute left-3 top-1/2 -translate-y-1/2' />
+                    <input
+                      type='text'
+                      placeholder={getSearchPlaceholder()}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className='w-full pl-9 pr-8 py-2 bg-[#F8F6F0] focus:bg-[#FCFBF8] rounded-lg border border-[#D8D2C5] text-xs text-[#1C1917] placeholder-[#A8A29E] focus:outline-none focus:border-[#F97316] transition-colors'
+                      data-testid='bible-search-input'
+                    />
+                    {searchQuery && (
+                      <button
+                        type='button'
+                        onClick={() => setSearchQuery('')}
+                        aria-label='Xóa từ khóa tìm kiếm'
+                        className='w-5 h-5 rounded-full hover:bg-[#E7E2D6] text-[#78716C] hover:text-[#1C1917] flex items-center justify-center absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer'
+                      >
+                        <X className='w-3 h-3' />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Controls: Mốc chương, Trạng thái & Chế độ xem */}
+                  <div className='flex items-center gap-2 flex-wrap'>
+                    {/* Bộ chọn mốc chương */}
+                    <div className='flex items-center gap-1.5 bg-[#F8F6F0] border border-[#D8D2C5] rounded-lg px-2.5 py-1 text-xs'>
+                      <Layers className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
+                      <span className='text-[#57534E] font-medium text-xs whitespace-nowrap'>
+                        Hiệu lực tại:
+                      </span>
+                      <select
+                        value={effectiveChapter}
+                        onChange={(e) => {
+                          const val =
+                            e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+                          setEffectiveChapter(val);
+                        }}
+                        className='bg-transparent font-medium text-xs text-[#1C1917] focus:outline-none cursor-pointer pr-1'
+                        data-testid='bible-chapter-select'
+                        aria-label='Phiên bản hiệu lực theo chương'
+                        title='Chọn chương để xem phiên bản Bible có hiệu lực tại mốc chương đó'
+                      >
+                        <option value='all'>Đang xem: Phiên bản mới nhất</option>
+                        {seriesChapters.map((ch) => (
+                          <option key={ch.id} value={ch.chapterNumber}>
+                            Chương {ch.chapterNumber}
+                            {ch.title ? ` - ${ch.title}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Bộ lọc trạng thái khóa Canon */}
+                    <div className='flex items-center gap-1.5 bg-[#F8F6F0] border border-[#D8D2C5] rounded-lg px-2.5 py-1 text-xs'>
+                      <Lock className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className='bg-transparent font-medium text-xs text-[#1C1917] focus:outline-none cursor-pointer pr-1'
+                        data-testid='bible-status-filter'
+                        aria-label='Lọc trạng thái khóa Canon'
+                      >
+                        <option value='ALL'>Tất cả trạng thái</option>
+                        <option value='LOCKED'>Đã khoá Canon</option>
+                        <option value='UNLOCKED'>Chưa khoá / Bản thảo</option>
+                      </select>
+                    </div>
+
+                    {/* Chế độ xem Lưới / Danh sách */}
+                    <div className='flex items-center bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5]'>
+                      <button
+                        type='button'
+                        onClick={() => handleToggleViewMode('grid')}
+                        className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                          viewMode === 'grid'
+                            ? 'bg-[#FCFBF8] text-[#1C1917] shadow-xs'
+                            : 'text-[#78716C] hover:text-[#1C1917]'
+                        }`}
+                        title='Chế độ xem dạng lưới'
+                        aria-label='Xem dạng lưới'
+                      >
+                        <LayoutGrid className='w-3.5 h-3.5' />
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => handleToggleViewMode('list')}
+                        className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                          viewMode === 'list'
+                            ? 'bg-[#FCFBF8] text-[#1C1917] shadow-xs'
+                            : 'text-[#78716C] hover:text-[#1C1917]'
+                        }`}
+                        title='Chế độ xem danh sách'
+                        aria-label='Xem dạng danh sách'
+                      >
+                        <List className='w-3.5 h-3.5' />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Thanh kết quả lọc & Xóa bộ lọc */}
+                {hasActiveFilters && (
+                  <div className='pt-2 border-t border-[#D8D2C5]/60 flex items-center justify-between text-xs text-[#57534E]'>
+                    <span>
+                      Tìm thấy <strong>{filteredEntities.length}</strong> / {localEntities.length}{' '}
+                      mục phù hợp
+                      {searchQuery && (
+                        <>
+                          {' '}
+                          với từ khóa &quot;<strong>{searchQuery}</strong>&quot;
+                        </>
+                      )}
+                    </span>
+                    <button
+                      type='button'
+                      onClick={handleResetFilters}
+                      className='text-[#C2410C] hover:underline font-semibold flex items-center gap-1 cursor-pointer'
+                    >
+                      <RotateCcw className='w-3 h-3' />
+                      <span>Xóa bộ lọc</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Main Content: Loading, Error, Grid or List Cards */}
+              {isLoading ? (
+                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4'>
+                  {[...Array(6)].map((_, i) => (
+                    <div
+                      key={i}
+                      className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-4 space-y-3 animate-pulse'
+                    >
+                      <div className='h-28 bg-[#F3F0E9] rounded-lg'></div>
+                      <div className='h-4 bg-[#E7E2D6] rounded w-2/3'></div>
+                      <div className='h-3 bg-[#F3F0E9] rounded w-1/2'></div>
+                      <div className='h-12 bg-[#F8F6F0] rounded'></div>
+                    </div>
+                  ))}
+                </div>
+              ) : loadError ? (
+                <div className='bg-red-50 border border-red-200 rounded-xl p-6 text-center space-y-3'>
+                  <AlertCircle className='w-8 h-8 text-red-500 mx-auto' />
+                  <div>
+                    <h3 className='font-bold font-serif text-sm text-red-900'>
+                      Không thể tải dữ liệu Series Bible
+                    </h3>
+                    <p className='text-xs text-red-700 mt-0.5'>{loadError}</p>
+                  </div>
+                  <button
+                    type='button'
+                    onClick={() => void fetchBible()}
+                    className='px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer'
+                  >
+                    Thử tải lại
+                  </button>
+                </div>
+              ) : filteredEntities.length === 0 ? (
+                localEntities.length === 0 ? (
+                  <EmptyFolderState
+                    title='Series Bible chưa có mục nào'
+                    subtitle='Thêm các nhân vật, địa điểm, đạo cụ hoặc quy tắc mỹ thuật để hỗ trợ họa sĩ và hệ thống kiểm tra nhất quán.'
+                    actionText={
+                      canCreateDraft
+                        ? isProducer
+                          ? 'Tạo mục đầu tiên'
+                          : 'Tạo bản nháp đầu tiên'
+                        : undefined
+                    }
+                    onAction={canCreateDraft ? () => setAddEntityOpen(true) : undefined}
+                  />
+                ) : (
+                  <div className='bg-[#FCFBF8] border border-dashed border-[#D8D2C5] rounded-xl p-10 text-center space-y-3'>
+                    <div className='w-12 h-12 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] mx-auto'>
+                      <BookOpen className='w-6 h-6' />
+                    </div>
+                    <h3 className='font-bold font-serif text-base text-[#1C1917]'>
+                      Không tìm thấy mục phù hợp
+                    </h3>
+                    <p className='text-xs text-[#57534E] max-w-md mx-auto'>
+                      Không có mục tri thức nào khớp với điều kiện lọc hiện tại. Thử đổi từ khóa
+                      hoặc xóa bộ lọc.
+                    </p>
+                    <button
+                      type='button'
+                      onClick={handleResetFilters}
+                      className='px-3.5 py-1.5 bg-[#F3F0E9] hover:bg-[#E7E2D6] text-[#1C1917] text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer'
+                    >
+                      <RotateCcw className='w-3.5 h-3.5' />
+                      <span>Xóa bộ lọc</span>
+                    </button>
+                  </div>
+                )
+              ) : viewMode === 'grid' ? (
+                /* GRID VIEW */
+                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4'>
+                  {filteredEntities.map((entity) => {
+                    const raw = rawEntries[entity.id];
+                    const effRev = raw?.effectiveRevision;
+
+                    return (
+                      <div
+                        key={entity.id}
+                        onClick={() => setSelectedEntity(entity)}
+                        className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl overflow-hidden shadow-xs hover:border-[#F97316] hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer'
+                        data-testid={`bible-card-${entity.id}`}
+                      >
+                        <div>
+                          {/* Top Thumbnail / Visual Header: Không để khoảng đen khổng lồ khi không có ảnh */}
+                          {entity.imageUrl ? (
+                            <div className='relative w-full h-36 bg-stone-950 overflow-hidden flex items-center justify-center border-b border-[#D8D2C5]'>
+                              <AuthenticatedImage
+                                src={entity.imageUrl}
+                                alt={entity.name}
+                                className='w-full h-full object-cover group-hover:scale-103 transition-transform duration-300'
+                              />
+                              <div className='absolute top-2 left-2 flex items-center gap-1.5 flex-wrap'>
+                                <span className='px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-xs text-white text-xs font-mono font-bold'>
+                                  {entity.code}
+                                </span>
+                                {entity.isLocked ? (
+                                  <span
+                                    className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1 shadow-2xs'
+                                    title='Character Sheet đã khóa chuẩn (Canon Locked) theo BR-15'
+                                  >
+                                    <Lock className='w-3.5 h-3.5 text-emerald-600' />
+                                    Đã khoá Canon
+                                  </span>
+                                ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
+                                  <span
+                                    className='px-2 py-0.5 rounded bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1 shadow-2xs'
+                                    title='Writer đã duyệt thiết kế (Chờ Producer duyệt & khóa)'
+                                  >
+                                    <Check className='w-2.5 h-2.5' />
+                                    Writer duyệt
+                                  </span>
+                                ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
+                                  <span
+                                    className='px-2 py-0.5 rounded bg-blue-600 text-white text-xs font-semibold flex items-center gap-1 shadow-2xs'
+                                    title='Artist đã nộp concept (Chờ kiểm duyệt)'
+                                  >
+                                    <Palette className='w-2.5 h-2.5' />
+                                    Concept đã nộp
+                                  </span>
+                                ) : effRev?.reviewStatus === 'ReworkRequired' ? (
+                                  <span
+                                    className='px-2 py-0.5 rounded bg-rose-600 text-white text-xs font-semibold flex items-center gap-1 shadow-2xs'
+                                    title='Yêu cầu Artist vẽ lại theo nhận xét'
+                                  >
+                                    <AlertTriangle className='w-2.5 h-2.5' />
+                                    Cần vẽ lại
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className='absolute bottom-2 right-2'>
+                                <span className='px-1.5 py-0.5 rounded bg-[#FCFBF8]/95 backdrop-blur-xs text-[#57534E] text-xs font-semibold border border-[#D8D2C5] shadow-xs'>
+                                  {getCategoryLabel(entity.category)}
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className='p-3 bg-[#F8F6F0] border-b border-[#D8D2C5] flex items-center justify-between'>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-7 h-7 rounded-lg bg-[#FCFBF8] border border-[#D8D2C5] flex items-center justify-center text-[#F97316] shadow-xs'>
+                                  {getCategoryIcon(entity.category, 'w-3.5 h-3.5')}
+                                </div>
+                                <span className='font-mono text-xs font-bold text-[#1C1917] bg-[#FCFBF8] px-1.5 py-0.5 rounded border border-[#D8D2C5]'>
+                                  {entity.code}
+                                </span>
+                              </div>
+                              <div className='flex items-center gap-1.5'>
+                                {entity.isLocked ? (
+                                  <span
+                                    className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1'
+                                    title='Character Sheet đã khóa chuẩn (Canon Locked) theo BR-15'
+                                  >
+                                    <Lock className='w-3.5 h-3.5 text-emerald-600' />
+                                    Đã khoá Canon
+                                  </span>
+                                ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
+                                  <span className='px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-medium flex items-center gap-1'>
+                                    <Check className='w-2.5 h-2.5' /> Writer duyệt
+                                  </span>
+                                ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
+                                  <span className='px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium flex items-center gap-1'>
+                                    <Palette className='w-2.5 h-2.5' /> Concept đã nộp
+                                  </span>
+                                ) : effRev?.reviewStatus === 'ReworkRequired' ? (
+                                  <span className='px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-xs font-medium flex items-center gap-1'>
+                                    <AlertTriangle className='w-2.5 h-2.5' /> Cần vẽ lại
+                                  </span>
+                                ) : (
+                                  <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-xs font-medium'>
+                                    Bản thảo
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Card Content */}
+                          <div className='p-3.5 space-y-2'>
+                            <div>
+                              <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors line-clamp-1'>
+                                {entity.name}
+                                {effRev?.stageName ? (
+                                  <span className='font-sans font-medium text-[#57534E]'>
+                                    {' '}
+                                    · {effRev.stageName}
+                                  </span>
+                                ) : null}
+                              </h3>
+                              {entity.subtitle && (
+                                <p className='text-xs text-[#57534E] font-medium line-clamp-1 mt-0.5'>
+                                  {entity.subtitle}
+                                </p>
+                              )}
+                            </div>
+
+                            {effRev?.reviewStatus === 'ReworkRequired' && effRev.reworkFeedback && (
+                              <div className='p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-900 text-xs leading-tight flex items-start gap-1.5'>
+                                <AlertTriangle className='w-3 h-3 text-rose-500 shrink-0 mt-0.5' />
+                                <span className='line-clamp-2'>
+                                  <strong>Cần sửa:</strong> &quot;{effRev.reworkFeedback}&quot;
+                                </span>
+                              </div>
+                            )}
+
+                            <p
+                              className='text-xs text-[#57534E] leading-relaxed line-clamp-2'
+                              title={entity.description}
+                            >
+                              {entity.description || 'Chưa có mô tả chi tiết cho mục này.'}
+                            </p>
+
+                            {/* Stage & Chapter Range info */}
+                            <div className='pt-2 border-t border-[#D8D2C5]/60 flex items-center justify-between text-xs text-[#57534E]'>
+                              <span
+                                className='font-medium text-[#1C1917] truncate max-w-[150px]'
+                                title={effRev?.stageName || 'Giai đoạn chuẩn'}
+                              >
+                                {effRev?.stageName ? effRev.stageName : 'Giai đoạn chuẩn'}
+                              </span>
+                              <span className='text-[#C2410C] font-semibold font-mono'>
+                                {effRev
+                                  ? effRev.effectiveToChapterNumber
+                                    ? `Ch.${effRev.effectiveFromChapterNumber}–${effRev.effectiveToChapterNumber}`
+                                    : `Ch.${effRev.effectiveFromChapterNumber} → hết`
+                                  : 'Ch.1 → hết'}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      ) : (
-                        <div className='p-3 bg-[#F8F6F0] border-b border-[#D8D2C5] flex items-center justify-between'>
-                          <div className='flex items-center gap-2'>
-                            <div className='w-7 h-7 rounded-lg bg-[#FCFBF8] border border-[#D8D2C5] flex items-center justify-center text-[#F97316] shadow-xs'>
-                              {getCategoryIcon(entity.category, 'w-3.5 h-3.5')}
-                            </div>
-                            <span className='font-mono text-xs font-bold text-[#1C1917] bg-[#FCFBF8] px-1.5 py-0.5 rounded border border-[#D8D2C5]'>
-                              {entity.code}
-                            </span>
+
+                        {/* Card Action Footer */}
+                        <div className='p-2.5 bg-[#F8F6F0] border-t border-[#D8D2C5] flex items-center justify-between gap-1.5 flex-wrap'>
+                          <div className='flex items-center gap-1.5 flex-wrap'>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedEntity(entity);
+                              }}
+                              className='px-2.5 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-semibold text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
+                            >
+                              <Eye className='w-3 h-3 text-[#F97316]' />
+                              <span>Xem chi tiết</span>
+                            </button>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleOpenHistory(entity);
+                              }}
+                              className='px-2 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-medium text-[#57534E] hover:text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer'
+                              title='Xem lịch sử phiên bản'
+                            >
+                              <History className='w-3 h-3 text-[#78716C]' />
+                              <span>Lịch sử</span>
+                            </button>
+
+                            {/* Quick review actions for Writer/Editor when concept is submitted */}
+                            {canRequestRework &&
+                              !entity.isLocked &&
+                              effRev?.reviewStatus === 'ConceptSubmitted' && (
+                                <div className='flex items-center gap-1'>
+                                  {canEndorse && (
+                                    <button
+                                      type='button'
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleEndorseRevision(effRev, entity);
+                                      }}
+                                      className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                                      title='Writer/Editor duyệt concept art này'
+                                    >
+                                      <Check className='w-3 h-3' />
+                                      <span>Duyệt</span>
+                                    </button>
+                                  )}
+                                  <button
+                                    type='button'
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenReworkModal(effRev, entity);
+                                    }}
+                                    className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                                    title='Yêu cầu Artist vẽ lại concept'
+                                  >
+                                    <MessageSquare className='w-3 h-3' />
+                                    <span>Sửa lại</span>
+                                  </button>
+                                </div>
+                              )}
+
+                            {/* Artist actions: Resubmit if mistakenly submitted, or rework */}
+                            {isArtist &&
+                              !entity.isLocked &&
+                              effRev?.reviewStatus === 'ConceptSubmitted' && (
+                                <button
+                                  type='button'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleOpenAddRevision(
+                                      entity,
+                                      null,
+                                      true,
+                                      effRev.effectiveFromChapterNumber,
+                                      undefined,
+                                      true,
+                                    );
+                                  }}
+                                  className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                                  title='Nộp lại bản vẽ thay thế nếu nộp nhầm file'
+                                  data-testid={`artist-resubmit-btn-${entity.id}`}
+                                >
+                                  <RotateCcw className='w-3 h-3 text-amber-600' />
+                                  <span>Nộp lại</span>
+                                </button>
+                              )}
+                            {isArtist &&
+                              !entity.isLocked &&
+                              effRev?.reviewStatus === 'ReworkRequired' && (
+                                <button
+                                  type='button'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleOpenAddRevision(
+                                      entity,
+                                      effRev,
+                                      true,
+                                      effRev.effectiveFromChapterNumber,
+                                      effRev.reworkFeedback || undefined,
+                                      false,
+                                    );
+                                  }}
+                                  className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                                  title='Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor'
+                                  data-testid={`artist-rework-btn-${entity.id}`}
+                                >
+                                  <Palette className='w-3 h-3 text-rose-600' />
+                                  <span>Sửa lại</span>
+                                </button>
+                              )}
                           </div>
-                          <div className='flex items-center gap-1.5'>
-                            {entity.isLocked ? (
-                              <span
-                                className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1'
-                                title='Character Sheet đã khóa chuẩn (Canon Locked) theo BR-15'
+
+                          {canCreateDraft && (
+                            <div className='flex items-center gap-1'>
+                              <button
+                                type='button'
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void handleOpenAddRevision(entity);
+                                }}
+                                className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
+                                title={
+                                  isProducer
+                                    ? 'Tạo phiên bản mới có hiệu lực từ một chương'
+                                    : 'Tạo bản nháp mới – chờ Writer/Editor xác nhận'
+                                }
+                                data-testid={`add-revision-btn-${entity.id}`}
                               >
-                                <Lock className='w-3.5 h-3.5 text-emerald-600' />
-                                Đã khoá Canon
-                              </span>
-                            ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
-                              <span className='px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-medium flex items-center gap-1'>
-                                <Check className='w-2.5 h-2.5' /> Writer duyệt
-                              </span>
-                            ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
-                              <span className='px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium flex items-center gap-1'>
-                                <Palette className='w-2.5 h-2.5' /> Concept đã nộp
-                              </span>
-                            ) : effRev?.reviewStatus === 'ReworkRequired' ? (
-                              <span className='px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-xs font-medium flex items-center gap-1'>
-                                <AlertTriangle className='w-2.5 h-2.5' /> Cần vẽ lại
-                              </span>
+                                <GitCommit className='w-3 h-3' />
+                                <span>+ Bản</span>
+                              </button>
+                              {isProducer && onEditEntity && (
+                                <button
+                                  type='button'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEditEntity(entity);
+                                  }}
+                                  className='p-1 rounded-lg text-[#78716C] hover:text-[#1C1917] hover:bg-[#FCFBF8] border border-transparent hover:border-[#D8D2C5] transition-colors cursor-pointer'
+                                  title='Chỉnh sửa nhanh'
+                                  data-testid={`edit-entity-btn-${entity.id}`}
+                                >
+                                  <Edit3 className='w-3.5 h-3.5' />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* LIST VIEW */
+                <div className='space-y-2.5'>
+                  {filteredEntities.map((entity) => {
+                    const raw = rawEntries[entity.id];
+                    const effRev = raw?.effectiveRevision;
+
+                    return (
+                      <div
+                        key={entity.id}
+                        onClick={() => setSelectedEntity(entity)}
+                        className='bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] hover:border-[#F97316] p-3 sm:p-4 hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 cursor-pointer group'
+                        data-testid={`bible-list-item-${entity.id}`}
+                      >
+                        <div className='flex items-start sm:items-center gap-3.5 min-w-0 flex-1'>
+                          {/* Thumbnail / Category Icon */}
+                          <div className='w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#F8F6F0] overflow-hidden shrink-0 border border-[#D8D2C5] flex items-center justify-center'>
+                            {entity.imageUrl ? (
+                              <AuthenticatedImage
+                                src={entity.imageUrl}
+                                alt={entity.name}
+                                className='w-full h-full object-cover'
+                              />
                             ) : (
-                              <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-xs font-medium'>
-                                Bản thảo
+                              <div className='w-full h-full bg-[#F3F0E9] flex items-center justify-center text-[#F97316]'>
+                                {getCategoryIcon(entity.category, 'w-5 h-5')}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className='min-w-0 flex-1 space-y-1'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#1C1917] border border-[#D8D2C5]'>
+                                {entity.code}
                               </span>
+                              <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
+                                {entity.name}
+                                {effRev?.stageName ? (
+                                  <span className='font-sans font-medium text-[#57534E]'>
+                                    {' '}
+                                    · {effRev.stageName}
+                                  </span>
+                                ) : null}
+                              </h3>
+                              <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-xs font-medium'>
+                                {getCategoryLabel(entity.category)}
+                              </span>
+                              {entity.isLocked ? (
+                                <span
+                                  className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1'
+                                  title='Character Sheet đã khóa chuẩn (Canon Locked) theo BR-15'
+                                >
+                                  <Lock className='w-3.5 h-3.5 text-emerald-600' />
+                                  Đã khoá Canon
+                                </span>
+                              ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
+                                <span className='px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-medium flex items-center gap-1'>
+                                  <Check className='w-2.5 h-2.5' /> Writer duyệt
+                                </span>
+                              ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
+                                <span className='px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium flex items-center gap-1'>
+                                  <Palette className='w-2.5 h-2.5' /> Concept đã nộp
+                                </span>
+                              ) : effRev?.reviewStatus === 'ReworkRequired' ? (
+                                <span className='px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-xs font-medium flex items-center gap-1'>
+                                  <AlertTriangle className='w-2.5 h-2.5' /> Cần vẽ lại
+                                </span>
+                              ) : null}
+                            </div>
+                            {entity.subtitle && (
+                              <p className='text-xs text-[#C2410C] font-medium truncate'>
+                                {entity.subtitle}
+                              </p>
+                            )}
+                            {effRev?.reviewStatus === 'ReworkRequired' && effRev.reworkFeedback && (
+                              <p className='text-xs text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 line-clamp-1 italic'>
+                                Cần sửa: &quot;{effRev.reworkFeedback}&quot;
+                              </p>
+                            )}
+                            <p className='text-xs text-[#57534E] line-clamp-1'>
+                              {entity.description || 'Chưa có mô tả cho mục này.'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className='flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#D8D2C5]/60'>
+                          <div className='text-right text-xs text-[#57534E] hidden md:block'>
+                            <div className='font-semibold text-[#1C1917] truncate max-w-[140px]'>
+                              {effRev?.stageName || 'Giai đoạn chuẩn'}
+                            </div>
+                            <div className='text-[#C2410C] font-mono font-medium'>
+                              {effRev
+                                ? effRev.effectiveToChapterNumber
+                                  ? `Ch.${effRev.effectiveFromChapterNumber}–${effRev.effectiveToChapterNumber}`
+                                  : `Ch.${effRev.effectiveFromChapterNumber} → hết`
+                                : 'Ch.1 → hết'}
+                            </div>
+                          </div>
+
+                          <div className='flex items-center gap-1.5 flex-wrap'>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedEntity(entity);
+                              }}
+                              className='px-2.5 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-semibold text-[#1C1917] flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
+                            >
+                              <Eye className='w-3 h-3 text-[#F97316]' />
+                              <span>Xem</span>
+                            </button>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleOpenHistory(entity);
+                              }}
+                              className='px-2 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-medium text-[#57534E] hover:text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer'
+                              title='Lịch sử'
+                            >
+                              <History className='w-3 h-3 text-[#78716C]' />
+                            </button>
+
+                            {canRequestRework &&
+                              !entity.isLocked &&
+                              effRev?.reviewStatus === 'ConceptSubmitted' && (
+                                <>
+                                  {canEndorse && (
+                                    <button
+                                      type='button'
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleEndorseRevision(effRev, entity);
+                                      }}
+                                      className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                                      title='Writer/Editor duyệt concept art này'
+                                    >
+                                      <Check className='w-3 h-3' />
+                                      <span className='hidden sm:inline'>Duyệt</span>
+                                    </button>
+                                  )}
+                                  <button
+                                    type='button'
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenReworkModal(effRev, entity);
+                                    }}
+                                    className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                                    title='Yêu cầu Artist vẽ lại concept'
+                                  >
+                                    <MessageSquare className='w-3 h-3' />
+                                    <span className='hidden sm:inline'>Sửa lại</span>
+                                  </button>
+                                </>
+                              )}
+                            {isArtist &&
+                              !entity.isLocked &&
+                              effRev?.reviewStatus === 'ConceptSubmitted' && (
+                                <button
+                                  type='button'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleOpenAddRevision(
+                                      entity,
+                                      null,
+                                      true,
+                                      effRev.effectiveFromChapterNumber,
+                                      undefined,
+                                      true,
+                                    );
+                                  }}
+                                  className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                                  title='Nộp lại bản vẽ thay thế nếu nộp nhầm file'
+                                  data-testid={`artist-resubmit-btn-${entity.id}`}
+                                >
+                                  <RotateCcw className='w-3 h-3 text-amber-600' />
+                                  <span className='hidden sm:inline'>Nộp lại</span>
+                                </button>
+                              )}
+                            {isArtist &&
+                              !entity.isLocked &&
+                              effRev?.reviewStatus === 'ReworkRequired' && (
+                                <button
+                                  type='button'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleOpenAddRevision(
+                                      entity,
+                                      effRev,
+                                      true,
+                                      effRev.effectiveFromChapterNumber,
+                                      effRev.reworkFeedback || undefined,
+                                      false,
+                                    );
+                                  }}
+                                  className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                                  title='Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor'
+                                  data-testid={`artist-rework-btn-${entity.id}`}
+                                >
+                                  <Palette className='w-3 h-3 text-rose-600' />
+                                  <span className='hidden sm:inline'>Sửa lại</span>
+                                </button>
+                              )}
+                            {canCreateDraft && (
+                              <button
+                                type='button'
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void handleOpenAddRevision(entity);
+                                }}
+                                className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
+                                title={
+                                  isProducer
+                                    ? 'Tạo phiên bản mới'
+                                    : 'Tạo bản nháp mới – chờ Writer/Editor xác nhận'
+                                }
+                                data-testid={`add-revision-btn-${entity.id}`}
+                              >
+                                <GitCommit className='w-3 h-3' />
+                                <span className='hidden sm:inline'>
+                                  {isProducer ? '+ Bản' : '+ Nháp'}
+                                </span>
+                              </button>
                             )}
                           </div>
                         </div>
-                      )}
-
-                      {/* Card Content */}
-                      <div className='p-3.5 space-y-2'>
-                        <div>
-                          <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors line-clamp-1'>
-                            {entity.name}
-                            {effRev?.stageName ? (
-                              <span className='font-sans font-medium text-[#57534E]'>
-                                {' '}
-                                · {effRev.stageName}
-                              </span>
-                            ) : null}
-                          </h3>
-                          {entity.subtitle && (
-                            <p className='text-xs text-[#57534E] font-medium line-clamp-1 mt-0.5'>
-                              {entity.subtitle}
-                            </p>
-                          )}
-                        </div>
-
-                        {effRev?.reviewStatus === 'ReworkRequired' && effRev.reworkFeedback && (
-                          <div className='p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-900 text-xs leading-tight flex items-start gap-1.5'>
-                            <AlertTriangle className='w-3 h-3 text-rose-500 shrink-0 mt-0.5' />
-                            <span className='line-clamp-2'>
-                              <strong>Cần sửa:</strong> &quot;{effRev.reworkFeedback}&quot;
-                            </span>
-                          </div>
-                        )}
-
-                        <p
-                          className='text-xs text-[#57534E] leading-relaxed line-clamp-2'
-                          title={entity.description}
-                        >
-                          {entity.description || 'Chưa có mô tả chi tiết cho mục này.'}
-                        </p>
-
-                        {/* Stage & Chapter Range info */}
-                        <div className='pt-2 border-t border-[#D8D2C5]/60 flex items-center justify-between text-xs text-[#57534E]'>
-                          <span
-                            className='font-medium text-[#1C1917] truncate max-w-[150px]'
-                            title={effRev?.stageName || 'Giai đoạn chuẩn'}
-                          >
-                            {effRev?.stageName ? effRev.stageName : 'Giai đoạn chuẩn'}
-                          </span>
-                          <span className='text-[#C2410C] font-semibold font-mono'>
-                            {effRev
-                              ? effRev.effectiveToChapterNumber
-                                ? `Ch.${effRev.effectiveFromChapterNumber}–${effRev.effectiveToChapterNumber}`
-                                : `Ch.${effRev.effectiveFromChapterNumber} → hết`
-                              : 'Ch.1 → hết'}
-                          </span>
-                        </div>
                       </div>
-                    </div>
-
-                    {/* Card Action Footer */}
-                    <div className='p-2.5 bg-[#F8F6F0] border-t border-[#D8D2C5] flex items-center justify-between gap-1.5 flex-wrap'>
-                      <div className='flex items-center gap-1.5 flex-wrap'>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedEntity(entity);
-                          }}
-                          className='px-2.5 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-semibold text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
-                        >
-                          <Eye className='w-3 h-3 text-[#F97316]' />
-                          <span>Xem chi tiết</span>
-                        </button>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleOpenHistory(entity);
-                          }}
-                          className='px-2 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-medium text-[#57534E] hover:text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer'
-                          title='Xem lịch sử phiên bản'
-                        >
-                          <History className='w-3 h-3 text-[#78716C]' />
-                          <span>Lịch sử</span>
-                        </button>
-
-                        {/* Quick review actions for Writer/Editor when concept is submitted */}
-                        {canRequestRework &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ConceptSubmitted' && (
-                            <div className='flex items-center gap-1'>
-                              {canEndorse && (
-                                <button
-                                  type='button'
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    void handleEndorseRevision(effRev, entity);
-                                  }}
-                                  className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                                  title='Writer/Editor duyệt concept art này'
-                                >
-                                  <Check className='w-3 h-3' />
-                                  <span>Duyệt</span>
-                                </button>
-                              )}
-                              <button
-                                type='button'
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenReworkModal(effRev, entity);
-                                }}
-                                className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                                title='Yêu cầu Artist vẽ lại concept'
-                              >
-                                <MessageSquare className='w-3 h-3' />
-                                <span>Sửa lại</span>
-                              </button>
-                            </div>
-                          )}
-
-                        {/* Artist actions: Resubmit if mistakenly submitted, or rework */}
-                        {isArtist &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ConceptSubmitted' && (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleOpenAddRevision(
-                                  entity,
-                                  null,
-                                  true,
-                                  effRev.effectiveFromChapterNumber,
-                                  undefined,
-                                  true,
-                                );
-                              }}
-                              className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                              title='Nộp lại bản vẽ thay thế nếu nộp nhầm file'
-                              data-testid={`artist-resubmit-btn-${entity.id}`}
-                            >
-                              <RotateCcw className='w-3 h-3 text-amber-600' />
-                              <span>Nộp lại</span>
-                            </button>
-                          )}
-                        {isArtist &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ReworkRequired' && (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleOpenAddRevision(
-                                  entity,
-                                  effRev,
-                                  true,
-                                  effRev.effectiveFromChapterNumber,
-                                  effRev.reworkFeedback || undefined,
-                                  false,
-                                );
-                              }}
-                              className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                              title='Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor'
-                              data-testid={`artist-rework-btn-${entity.id}`}
-                            >
-                              <Palette className='w-3 h-3 text-rose-600' />
-                              <span>Sửa lại</span>
-                            </button>
-                          )}
-                      </div>
-
-                      {canCreateDraft && (
-                        <div className='flex items-center gap-1'>
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleOpenAddRevision(entity);
-                            }}
-                            className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
-                            title={
-                              isProducer
-                                ? 'Tạo phiên bản mới có hiệu lực từ một chương'
-                                : 'Tạo bản nháp mới – chờ Writer/Editor xác nhận'
-                            }
-                            data-testid={`add-revision-btn-${entity.id}`}
-                          >
-                            <GitCommit className='w-3 h-3' />
-                            <span>+ Bản</span>
-                          </button>
-                          {isProducer && onEditEntity && (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEditEntity(entity);
-                              }}
-                              className='p-1 rounded-lg text-[#78716C] hover:text-[#1C1917] hover:bg-[#FCFBF8] border border-transparent hover:border-[#D8D2C5] transition-colors cursor-pointer'
-                              title='Chỉnh sửa nhanh'
-                              data-testid={`edit-entity-btn-${entity.id}`}
-                            >
-                              <Edit3 className='w-3.5 h-3.5' />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ) : (
-            /* LIST VIEW */
-            <div className='space-y-2.5'>
-              {filteredEntities.map((entity) => {
-                const raw = rawEntries[entity.id];
-                const effRev = raw?.effectiveRevision;
+          </div>
+        </>
+      )}
 
-                return (
-                  <div
-                    key={entity.id}
-                    onClick={() => setSelectedEntity(entity)}
-                    className='bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] hover:border-[#F97316] p-3 sm:p-4 hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 cursor-pointer group'
-                    data-testid={`bible-list-item-${entity.id}`}
-                  >
-                    <div className='flex items-start sm:items-center gap-3.5 min-w-0 flex-1'>
-                      {/* Thumbnail / Category Icon */}
-                      <div className='w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#F8F6F0] overflow-hidden shrink-0 border border-[#D8D2C5] flex items-center justify-center'>
-                        {entity.imageUrl ? (
-                          <AuthenticatedImage
-                            src={entity.imageUrl}
-                            alt={entity.name}
-                            className='w-full h-full object-cover'
-                          />
-                        ) : (
-                          <div className='w-full h-full bg-[#F3F0E9] flex items-center justify-center text-[#F97316]'>
-                            {getCategoryIcon(entity.category, 'w-5 h-5')}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className='min-w-0 flex-1 space-y-1'>
-                        <div className='flex items-center gap-2 flex-wrap'>
-                          <span className='font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#1C1917] border border-[#D8D2C5]'>
-                            {entity.code}
-                          </span>
-                          <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
-                            {entity.name}
-                            {effRev?.stageName ? (
-                              <span className='font-sans font-medium text-[#57534E]'>
-                                {' '}
-                                · {effRev.stageName}
-                              </span>
-                            ) : null}
-                          </h3>
-                          <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-xs font-medium'>
-                            {getCategoryLabel(entity.category)}
-                          </span>
-                          {entity.isLocked ? (
-                            <span
-                              className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1'
-                              title='Character Sheet đã khóa chuẩn (Canon Locked) theo BR-15'
-                            >
-                              <Lock className='w-3.5 h-3.5 text-emerald-600' />
-                              Đã khoá Canon
-                            </span>
-                          ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
-                            <span className='px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-medium flex items-center gap-1'>
-                              <Check className='w-2.5 h-2.5' /> Writer duyệt
-                            </span>
-                          ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
-                            <span className='px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium flex items-center gap-1'>
-                              <Palette className='w-2.5 h-2.5' /> Concept đã nộp
-                            </span>
-                          ) : effRev?.reviewStatus === 'ReworkRequired' ? (
-                            <span className='px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-xs font-medium flex items-center gap-1'>
-                              <AlertTriangle className='w-2.5 h-2.5' /> Cần vẽ lại
-                            </span>
-                          ) : null}
-                        </div>
-                        {entity.subtitle && (
-                          <p className='text-xs text-[#C2410C] font-medium truncate'>
-                            {entity.subtitle}
-                          </p>
-                        )}
-                        {effRev?.reviewStatus === 'ReworkRequired' && effRev.reworkFeedback && (
-                          <p className='text-xs text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 line-clamp-1 italic'>
-                            Cần sửa: &quot;{effRev.reworkFeedback}&quot;
-                          </p>
-                        )}
-                        <p className='text-xs text-[#57534E] line-clamp-1'>
-                          {entity.description || 'Chưa có mô tả cho mục này.'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className='flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#D8D2C5]/60'>
-                      <div className='text-right text-xs text-[#57534E] hidden md:block'>
-                        <div className='font-semibold text-[#1C1917] truncate max-w-[140px]'>
-                          {effRev?.stageName || 'Giai đoạn chuẩn'}
-                        </div>
-                        <div className='text-[#C2410C] font-mono font-medium'>
-                          {effRev
-                            ? effRev.effectiveToChapterNumber
-                              ? `Ch.${effRev.effectiveFromChapterNumber}–${effRev.effectiveToChapterNumber}`
-                              : `Ch.${effRev.effectiveFromChapterNumber} → hết`
-                            : 'Ch.1 → hết'}
-                        </div>
-                      </div>
-
-                      <div className='flex items-center gap-1.5 flex-wrap'>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedEntity(entity);
-                          }}
-                          className='px-2.5 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-semibold text-[#1C1917] flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
-                        >
-                          <Eye className='w-3 h-3 text-[#F97316]' />
-                          <span>Xem</span>
-                        </button>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleOpenHistory(entity);
-                          }}
-                          className='px-2 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-medium text-[#57534E] hover:text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer'
-                          title='Lịch sử'
-                        >
-                          <History className='w-3 h-3 text-[#78716C]' />
-                        </button>
-
-                        {canRequestRework &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ConceptSubmitted' && (
-                            <>
-                              {canEndorse && (
-                                <button
-                                  type='button'
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    void handleEndorseRevision(effRev, entity);
-                                  }}
-                                  className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                                  title='Writer/Editor duyệt concept art này'
-                                >
-                                  <Check className='w-3 h-3' />
-                                  <span className='hidden sm:inline'>Duyệt</span>
-                                </button>
-                              )}
-                              <button
-                                type='button'
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenReworkModal(effRev, entity);
-                                }}
-                                className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                                title='Yêu cầu Artist vẽ lại concept'
-                              >
-                                <MessageSquare className='w-3 h-3' />
-                                <span className='hidden sm:inline'>Sửa lại</span>
-                              </button>
-                            </>
-                          )}
-                        {isArtist &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ConceptSubmitted' && (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleOpenAddRevision(
-                                  entity,
-                                  null,
-                                  true,
-                                  effRev.effectiveFromChapterNumber,
-                                  undefined,
-                                  true,
-                                );
-                              }}
-                              className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                              title='Nộp lại bản vẽ thay thế nếu nộp nhầm file'
-                              data-testid={`artist-resubmit-btn-${entity.id}`}
-                            >
-                              <RotateCcw className='w-3 h-3 text-amber-600' />
-                              <span className='hidden sm:inline'>Nộp lại</span>
-                            </button>
-                          )}
-                        {isArtist &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ReworkRequired' && (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleOpenAddRevision(
-                                  entity,
-                                  effRev,
-                                  true,
-                                  effRev.effectiveFromChapterNumber,
-                                  effRev.reworkFeedback || undefined,
-                                  false,
-                                );
-                              }}
-                              className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                              title='Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor'
-                              data-testid={`artist-rework-btn-${entity.id}`}
-                            >
-                              <Palette className='w-3 h-3 text-rose-600' />
-                              <span className='hidden sm:inline'>Sửa lại</span>
-                            </button>
-                          )}
-                        {canCreateDraft && (
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleOpenAddRevision(entity);
-                            }}
-                            className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
-                            title={
-                              isProducer
-                                ? 'Tạo phiên bản mới'
-                                : 'Tạo bản nháp mới – chờ Writer/Editor xác nhận'
-                            }
-                            data-testid={`add-revision-btn-${entity.id}`}
-                          >
-                            <GitCommit className='w-3 h-3' />
-                            <span className='hidden sm:inline'>
-                              {isProducer ? '+ Bản' : '+ Nháp'}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* DETAIL MODAL / DRAWER */}
+      {/* DETAIL WORKBENCH (inline) */}
       {selectedEntity && (
         <BibleEntityDetailModal
           entity={selectedEntity}
