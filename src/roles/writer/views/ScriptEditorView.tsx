@@ -85,6 +85,7 @@ import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawe
 import { WriterChangeRequestsDrawer } from '../components/script/WriterChangeRequestsDrawer';
 import { ScriptStudioRail, type ScriptRailItem } from '../components/script/ScriptStudioRail';
 import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
+import { ScriptChaptersDrawer } from '../components/script/ScriptChaptersDrawer';
 import { useFocusHeaderContext } from '@/app/FocusWorkspaceLayout';
 import { FileInput } from 'lucide-react';
 import { offlineQueueService } from '@/services/offlineQueue.service';
@@ -365,9 +366,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Mặc định mở side drawer phù hợp môi trường
   const [activeSideDrawer, setActiveSideDrawer] = useState<
-    'scenes' | 'narrative' | 'consistency' | 'characters' | 'changeRequests' | null
+    'chapters' | 'scenes' | 'narrative' | 'consistency' | 'characters' | 'changeRequests' | null
   >(null);
   const [importRequestKey, setImportRequestKey] = useState(0);
+
+  // Phím tắt bàn phím Alt+C: Mở nhanh side tab chuyển chương
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        setActiveSideDrawer((prev) => (prev === 'chapters' ? null : 'chapters'));
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Modals phụ trợ
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
@@ -1986,6 +1999,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   const railItems: ScriptRailItem[] = [
     {
+      id: 'chapters',
+      label: t('scriptStudio.rail.chapters', 'Chương'),
+      icon: BookOpen,
+      active: activeSideDrawer === 'chapters',
+      testId: 'rail-chapters-btn',
+      onClick: () => toggleDrawer('chapters'),
+    },
+    {
       id: 'outline',
       label: t('scriptStudio.rail.outline'),
       icon: Compass,
@@ -2368,6 +2389,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           items={railItems}
           footerItems={railFooterItems}
         />
+
+        {activeSideDrawer === 'chapters' && (
+          <ScriptChaptersDrawer
+            chapters={chapters}
+            selectedChapterId={currentChapter?.id}
+            onSelectChapter={(chapId) => {
+              handleSelectChapter(chapId);
+            }}
+            onBackToSelection={handleBackToChapterSelection}
+            onClose={() => setActiveSideDrawer(null)}
+          />
+        )}
 
         {activeSideDrawer === 'scenes' && (
           <ScriptScenesDrawer

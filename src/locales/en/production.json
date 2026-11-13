@@ -113,6 +113,7 @@
   },
   "scriptStudio": {
     "rail": {
+      "chapters": "Chapters",
       "scenes": "Scenes",
       "outline": "Outline",
       "characters": "Cast",

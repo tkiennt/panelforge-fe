@@ -113,6 +113,7 @@
   },
   "scriptStudio": {
     "rail": {
+      "chapters": "Chương",
       "scenes": "Phân cảnh",
       "outline": "Đề cương",
       "characters": "Nhân vật",
