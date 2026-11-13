@@ -77,7 +77,6 @@ import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
-import { ScriptCommentItemCard } from '@/shared/features/script-review/ScriptCommentCard';
 import type { ScriptDocSnapshot } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { ScriptVersionsDrawer } from '../components/script/versions/ScriptVersionsDrawer';
@@ -2129,8 +2128,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       {(concurrencyError ||
         isChapterLocked ||
         !canEditScript ||
-        loadError ||
-        openScriptComments.length > 0) && (
+        loadError) && (
         <div className='px-4 py-2.5 bg-white border-b border-[#E7E2D9] shrink-0 text-xs space-y-2'>
           {concurrencyError && (
             <div
@@ -2258,28 +2256,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 </button>
               )}
             </div>
-          )}
-
-          {openScriptComments.length > 0 && (
-            <details
-              data-testid='script-comments-panel'
-              open={isScriptInReview}
-              className='rounded-xl border border-stone-200 bg-stone-50 px-3 py-2'
-            >
-              <summary className='cursor-pointer text-xs font-semibold text-stone-800'>
-                {t('scriptStudio.comments.title', { count: openScriptComments.length })}
-              </summary>
-              <div className='mt-2 space-y-2'>
-                {openScriptComments.map((c) => (
-                  <ScriptCommentItemCard
-                    key={c.id}
-                    comment={c}
-                    canResolve={isWriterRole}
-                    onResolve={(commentId) => void handleResolveComment(commentId)}
-                  />
-                ))}
-              </div>
-            </details>
           )}
 
           {isChapterContentLocked && !isScriptFrozen && (
