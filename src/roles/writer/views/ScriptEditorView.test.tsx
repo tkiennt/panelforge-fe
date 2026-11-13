@@ -68,6 +68,7 @@ vi.mock('@/services/assignment.service', () => ({
     getConsistencyFindings: vi.fn(),
     triageConsistencyFinding: vi.fn(),
     getAssignments: vi.fn(),
+    getChangeRequests: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -216,6 +217,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     });
     vi.mocked(assignmentService.getConsistencyFindings).mockResolvedValue([]);
     vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
+    vi.mocked(assignmentService.getChangeRequests).mockResolvedValue([]);
     vi.mocked(workspaceService.getMembers).mockResolvedValue([]);
   });
 
