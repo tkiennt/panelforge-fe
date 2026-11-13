@@ -15,18 +15,29 @@ import {
   ScriptFocusLocation,
 } from '../grammar/scriptGrammar';
 
-/** Lấy danh sách các nhân vật gần nhất xuất hiện trước con trỏ */
-export function getRecentSpeakersFromDoc(doc: any, currentPos: number): string[] {
-  const speakers: string[] = [];
+export interface RecentSpeaker {
+  name: string;
+  characterId: string | null;
+}
+
+/** Lấy danh sách các nhân vật gần nhất xuất hiện trước con trỏ (kèm characterId) */
+export function getRecentSpeakersFromDoc(doc: any, currentPos: number): RecentSpeaker[] {
+  const speakers: RecentSpeaker[] = [];
   doc.descendants((node: any, pos: number) => {
     if (pos >= currentPos) return false;
     if (node.type?.name === 'scriptLineBlock') {
       const spk = node.attrs?.speakerName;
+      const charId = node.attrs?.speakerCharacterId || null;
       if (spk && typeof spk === 'string' && spk.trim()) {
         const trimmed = spk.trim();
-        const idx = speakers.findIndex((s) => s.toUpperCase() === trimmed.toUpperCase());
-        if (idx !== -1) speakers.splice(idx, 1);
-        speakers.push(trimmed);
+        const idx = speakers.findIndex((s) => s.name.toUpperCase() === trimmed.toUpperCase());
+        if (idx !== -1) {
+          const existingCharId = speakers[idx].characterId;
+          speakers.splice(idx, 1);
+          speakers.push({ name: trimmed, characterId: charId || existingCharId });
+        } else {
+          speakers.push({ name: trimmed, characterId: charId });
+        }
       }
     }
     return true;
@@ -34,18 +45,18 @@ export function getRecentSpeakersFromDoc(doc: any, currentPos: number): string[]
   return speakers;
 }
 
-/** Luân phiên người nói A -> B -> A */
+/** Luân phiên người nói A -> B -> A (bảo toàn speakerCharacterId cho Bible & Lettering) */
 export function getAlternatingSpeaker(
   doc: any,
   currentPos: number,
   currentSpeaker?: string | null,
-): string | null {
+): RecentSpeaker | null {
   const recent = getRecentSpeakersFromDoc(doc, currentPos);
   if (recent.length === 0) return null;
   if (recent.length === 1) return recent[0];
 
-  const lastSpeaker = currentSpeaker?.trim() || recent[recent.length - 1];
-  if (lastSpeaker && lastSpeaker.toUpperCase() === recent[recent.length - 1].toUpperCase()) {
+  const lastSpeaker = currentSpeaker?.trim() || recent[recent.length - 1].name;
+  if (lastSpeaker && lastSpeaker.toUpperCase() === recent[recent.length - 1].name.toUpperCase()) {
     return recent[recent.length - 2];
   }
   return recent[recent.length - 1];
@@ -104,8 +115,9 @@ function morphCurrentBlock(editor: any, targetType: MangaBlockType): boolean {
   let speakerName: string | null = null;
   let speakerCharacterId: string | null = null;
   if (targetType === 'dialogue' || targetType === 'thought') {
-    speakerName = block.attrs?.speakerName || getAlternatingSpeaker(state.doc, $from.before(), null);
-    speakerCharacterId = block.attrs?.speakerCharacterId || null;
+    const alt = getAlternatingSpeaker(state.doc, $from.before(), null);
+    speakerName = block.attrs?.speakerName || alt?.name || null;
+    speakerCharacterId = block.attrs?.speakerCharacterId || alt?.characterId || null;
   }
 
   view.dispatch(
@@ -118,9 +130,6 @@ function morphCurrentBlock(editor: any, targetType: MangaBlockType): boolean {
   );
   return true;
 }
-
-/** Tab / Shift+Tab xoay vòng loại dòng nội dung (tiêu đề Trang/Panel/Cảnh không nằm trong vòng) */
-const CYCLE_TYPES: MangaBlockType[] = ['stage_direction', 'dialogue', 'thought', 'caption', 'sfx'];
 
 /** Khối dòng nội dung mới khi nhấn Enter: luôn là hành động, giữ phân cảnh và vị trí Trang/Panel hiện tại */
 function nextActionAttrs(current: Record<string, unknown>) {
@@ -525,7 +534,8 @@ export const ScriptLineBlockNode = Node.create({
             state.tr.setNodeMarkup(from, undefined, {
               ...currentBlock.attrs,
               blockType: 'dialogue',
-              speakerName: alternatingSpeaker || currentBlock.attrs.speakerName || null,
+              speakerName: currentBlock.attrs?.speakerName || alternatingSpeaker?.name || null,
+              speakerCharacterId: currentBlock.attrs?.speakerCharacterId || alternatingSpeaker?.characterId || null,
             }),
           );
           return true;
@@ -542,7 +552,7 @@ export const ScriptLineBlockNode = Node.create({
         return true;
       },
 
-      // 4. Shift+Tab: Luân chuyển ngược theo hàm thuần nextKindOnTab
+      // 4. Shift+Tab: Luân chuyển ngược theo hàm thuần nextKindOnTab (Bảng H.1)
       'Shift-Tab': ({ editor }) => {
         const { state, view } = editor;
         const { selection } = state;
@@ -560,24 +570,45 @@ export const ScriptLineBlockNode = Node.create({
 
         const from = $from.before();
 
-        // Xoay vòng ngược khép kín: Stage Direction -> SFX -> Narration -> Dialogue -> Stage Direction
-        if (currentType === 'stage_direction') {
-          view.dispatch(
-            state.tr.setNodeMarkup(from, undefined, {
-              ...currentBlock.attrs,
-              blockType: 'sfx',
-              speakerName: null,
-              speakerCharacterId: null,
-            }),
-          );
-          return true;
-        }
-
+        // 4.1 Dialogue hoặc Thought -> Lùi về ô người nói (Bảng H.1: Dialogue -> Shift+Tab -> Ô người nói)
         if (currentType === 'dialogue' || currentType === 'thought') {
+          const domNode = view.nodeDOM(from) as HTMLElement | null;
+          const labelEl = domNode?.querySelector('.script-line-label') as HTMLElement | null;
+          const rect = labelEl ? labelEl.getBoundingClientRect() : null;
+          view.dom.dispatchEvent(
+            new CustomEvent('panelforge:open-speaker-picker', {
+              detail: {
+                nodePos: from,
+                rect,
+                currentName: currentBlock.attrs.speakerName || '',
+                currentCharacterId: currentBlock.attrs.speakerCharacterId || null,
+                blockType: currentType,
+              },
+            }),
+          );
+          return true;
+        }
+
+        // 4.2 Narration (caption) -> Shift+Tab -> Dialogue
+        if (currentType === 'caption') {
+          const alt = getAlternatingSpeaker(state.doc, from, null);
           view.dispatch(
             state.tr.setNodeMarkup(from, undefined, {
               ...currentBlock.attrs,
-              blockType: 'stage_direction',
+              blockType: 'dialogue',
+              speakerName: alt?.name || null,
+              speakerCharacterId: alt?.characterId || null,
+            }),
+          );
+          return true;
+        }
+
+        // 4.3 SFX -> Shift+Tab -> Narration (caption)
+        if (currentType === 'sfx') {
+          view.dispatch(
+            state.tr.setNodeMarkup(from, undefined, {
+              ...currentBlock.attrs,
+              blockType: 'caption',
               speakerName: null,
               speakerCharacterId: null,
             }),
@@ -585,24 +616,11 @@ export const ScriptLineBlockNode = Node.create({
           return true;
         }
 
-        const location = getFocusLocation(currentType);
-        const transition = nextKindOnTab(location, 'backward');
-        if (!transition) return false;
-
-        const targetType = getLocationBlockType(transition.target);
-
-        view.dispatch(
-          state.tr.setNodeMarkup(from, undefined, {
-            ...currentBlock.attrs,
-            blockType: targetType,
-            speakerName: targetType === 'dialogue' || targetType === 'thought' ? currentBlock.attrs.speakerName : null,
-            speakerCharacterId: targetType === 'dialogue' || targetType === 'thought' ? currentBlock.attrs.speakerCharacterId : null,
-          }),
-        );
-        return true;
+        // 4.4 Action -> Shift+Tab không làm gì (Bảng H.1)
+        return false;
       },
 
-      // 5. Backspace: Cho phép xóa Scene, Page, Panel mượt mà kèm tự động đánh số lại
+      // 5. Backspace: Lùi một bậc theo bảng H.1 kèm tự động đánh số lại
       Backspace: ({ editor }) => {
         const { state, view } = editor;
         const { selection } = state;
@@ -615,7 +633,7 @@ export const ScriptLineBlockNode = Node.create({
         if (currentBlock.type.name === this.name) {
           const currentType = currentBlock.attrs.blockType || 'stage_direction';
 
-          // Backspace ở đầu lời thoại có tên người nói: bỏ nhãn trước
+          // 5.1 Backspace ở đầu lời thoại có tên người nói: bỏ nhãn người nói trước
           if (
             (currentType === 'dialogue' || currentType === 'thought') &&
             currentBlock.attrs.speakerName &&
@@ -627,6 +645,61 @@ export const ScriptLineBlockNode = Node.create({
                 ...currentBlock.attrs,
                 speakerName: null,
                 speakerCharacterId: null,
+              }),
+            );
+            return true;
+          }
+
+          // 5.2 Backspace ở đầu lời thoại KHÔNG có tên người nói: lùi một bậc về Action
+          if (
+            (currentType === 'dialogue' || currentType === 'thought') &&
+            !currentBlock.attrs.speakerName &&
+            empty &&
+            $from.parentOffset === 0
+          ) {
+            view.dispatch(
+              state.tr.setNodeMarkup(from, undefined, {
+                ...currentBlock.attrs,
+                blockType: 'stage_direction',
+                speakerName: null,
+                speakerCharacterId: null,
+              }),
+            );
+            return true;
+          }
+
+          // 5.3 Backspace ở đầu dòng SFX trống: lùi một bậc về Narration (caption)
+          if (
+            currentType === 'sfx' &&
+            empty &&
+            $from.parentOffset === 0 &&
+            currentBlock.textContent.trim() === ''
+          ) {
+            view.dispatch(
+              state.tr.setNodeMarkup(from, undefined, {
+                ...currentBlock.attrs,
+                blockType: 'caption',
+                speakerName: null,
+                speakerCharacterId: null,
+              }),
+            );
+            return true;
+          }
+
+          // 5.4 Backspace ở đầu dòng Narration (caption) trống: lùi một bậc về Dialogue
+          if (
+            currentType === 'caption' &&
+            empty &&
+            $from.parentOffset === 0 &&
+            currentBlock.textContent.trim() === ''
+          ) {
+            const alt = getAlternatingSpeaker(state.doc, from, null);
+            view.dispatch(
+              state.tr.setNodeMarkup(from, undefined, {
+                ...currentBlock.attrs,
+                blockType: 'dialogue',
+                speakerName: alt?.name || null,
+                speakerCharacterId: alt?.characterId || null,
               }),
             );
             return true;
@@ -983,7 +1056,7 @@ export const ScriptLineBlockNode = Node.create({
         }
 
         // 7.5 Khi nhấn Enter trên Dialogue hoặc Thought có chữ:
-        // Tạo dòng thoại mới với người nói gợi ý luân phiên A -> B -> A!
+        // Tạo dòng thoại mới với người nói gợi ý luân phiên A -> B -> A kèm speakerCharacterId!
         if (currentType === 'dialogue' || currentType === 'thought') {
           const nextSpeaker = getAlternatingSpeaker(
             state.doc,
@@ -994,8 +1067,8 @@ export const ScriptLineBlockNode = Node.create({
             scriptLineId: generateGuid(),
             sceneId: currentBlock.attrs?.sceneId || null,
             blockType: currentType,
-            speakerName: nextSpeaker,
-            speakerCharacterId: null,
+            speakerName: nextSpeaker?.name || null,
+            speakerCharacterId: nextSpeaker?.characterId || null,
             narrationMode: currentBlock.attrs?.narrationMode || 'Present',
             pageNumber: currentBlock.attrs?.pageNumber ?? null,
             panelNumber: currentBlock.attrs?.panelNumber ?? null,
@@ -1030,20 +1103,3 @@ export const ScriptLineBlockNode = Node.create({
   },
 });
 
-function cycleBlockType(editor: any, step: 1 | -1): boolean {
-  const { state, view } = editor;
-  const { $from } = state.selection;
-  const block = $from.parent;
-  if (block.type.name !== 'scriptLineBlock') return false;
-  const index = CYCLE_TYPES.indexOf(block.attrs.blockType);
-  if (index === -1) return false; // tiêu đề Trang / Panel / Cảnh giữ nguyên
-  const nextType = CYCLE_TYPES[(index + step + CYCLE_TYPES.length) % CYCLE_TYPES.length];
-  view.dispatch(
-    state.tr.setNodeMarkup($from.before(), undefined, {
-      ...block.attrs,
-      blockType: nextType,
-      ...(nextType === 'dialogue' ? {} : { speakerName: null, speakerCharacterId: null }),
-    }),
-  );
-  return true;
-}

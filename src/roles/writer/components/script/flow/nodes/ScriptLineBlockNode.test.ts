@@ -72,8 +72,8 @@ describe('ScriptLineBlockNode - Zero-Syntax Keyboard Engine (WriteSolo Pure Flow
     expect((pageHeadings[1]?.content?.[0] as any)?.text).toContain('Trang 02');
   });
 
-  // 3. Tab và Shift-Tab xoay vòng theo hàm thuần nextKindOnTab
-  it('Tab / Shift+Tab xoay vòng Action → Dialogue → Caption → SFX → Action', () => {
+  // 3. Tab và Shift-Tab theo hàm thuần nextKindOnTab (Bảng H.1)
+  it('Tab xoay vòng Action → Dialogue → Caption → SFX → Action', () => {
     const editor = createTestFlowEditor('<div data-block-type="stage_direction">Bùm</div>');
     editor.commands.setTextSelection(4);
 
@@ -82,16 +82,19 @@ describe('ScriptLineBlockNode - Zero-Syntax Keyboard Engine (WriteSolo Pure Flow
       return typeOf(editor);
     });
     expect(seen).toEqual(['dialogue', 'caption', 'sfx', 'stage_direction']);
+  });
 
-    // Shift-Tab quay ngược lại
-    editor.commands.keyboardShortcut('Shift-Tab');
-    expect(typeOf(editor)).toBe('sfx');
+  it('Shift-Tab luân chuyển ngược chuẩn bảng H.1 (SFX → Narration → Dialogue)', () => {
+    const editor = createTestFlowEditor('<div data-block-type="sfx">Bùm</div>');
+    editor.commands.setTextSelection(4);
+
+    // SFX -> Shift+Tab -> Narration (caption)
     editor.commands.keyboardShortcut('Shift-Tab');
     expect(typeOf(editor)).toBe('caption');
+
+    // Caption -> Shift+Tab -> Dialogue
     editor.commands.keyboardShortcut('Shift-Tab');
     expect(typeOf(editor)).toBe('dialogue');
-    editor.commands.keyboardShortcut('Shift-Tab');
-    expect(typeOf(editor)).toBe('stage_direction');
   });
 
   it('Tab không đổi tiêu đề Trang / Panel', () => {
@@ -259,14 +262,48 @@ describe('ScriptLineBlockNode - Zero-Syntax Keyboard Engine (WriteSolo Pure Flow
     expect(json.content?.[0]?.attrs?.blockType).toBe('panel_heading');
   });
 
-  it('Backspace ở đầu lời thoại bỏ nhãn người nói, giữ lời thoại', () => {
+  it('Backspace ở đầu lời thoại bỏ nhãn người nói, lần nhấn tiếp theo lùi về Action', () => {
     const editor = createTestFlowEditor(
       '<div data-block-type="dialogue" data-speaker-name="Minh">Chạy đi</div>',
     );
     editor.commands.setTextSelection(1);
     editor.commands.keyboardShortcut('Backspace');
     expect(editor.getJSON().content?.[0]?.attrs?.speakerName).toBeNull();
-    expect((editor.getJSON().content?.[0] as any)?.content?.[0]?.text).toBe('Chạy đi');
+    expect(editor.getJSON().content?.[0]?.attrs?.blockType).toBe('dialogue');
+
+    // Lần Backspace tiếp theo ở đầu dòng khi không còn speaker: lùi về Action (stage_direction)
+    editor.commands.keyboardShortcut('Backspace');
+    expect(editor.getJSON().content?.[0]?.attrs?.blockType).toBe('stage_direction');
+  });
+
+  it('Backspace ở đầu dòng SFX trống lùi về Narration, dòng Narration trống lùi về Dialogue', () => {
+    const editor = createTestFlowEditor('<div data-block-type="sfx"></div>');
+    editor.commands.setTextSelection(1);
+
+    // SFX trống -> Backspace -> Narration (caption)
+    editor.commands.keyboardShortcut('Backspace');
+    expect(typeOf(editor)).toBe('caption');
+
+    // Narration trống -> Backspace -> Dialogue
+    editor.commands.keyboardShortcut('Backspace');
+    expect(typeOf(editor)).toBe('dialogue');
+  });
+
+  it('Enter trên dòng Dialogue bảo toàn speakerCharacterId của người nói luân phiên', () => {
+    const editor = createTestFlowEditor(
+      '<div data-block-type="dialogue" data-speaker-name="NARUTO" data-speaker-id="chr-naruto">Chào!</div>' +
+        '<div data-block-type="dialogue" data-speaker-name="SASUKE" data-speaker-id="chr-sasuke">Đi đâu đấy?</div>',
+    );
+    const pos = editor.state.doc.content.size - 1;
+    editor.commands.setTextSelection(pos);
+
+    editor.commands.keyboardShortcut('Enter');
+    const json = editor.getJSON();
+    const blocks = (json.content || []).filter((b) => b.type === 'scriptLineBlock');
+    expect(blocks.length).toBe(3);
+    // Luân phiên sang NARUTO và giữ nguyên speakerCharacterId = chr-naruto!
+    expect(blocks[2]?.attrs?.speakerName).toBe('NARUTO');
+    expect(blocks[2]?.attrs?.speakerCharacterId).toBe('chr-naruto');
   });
 
   // 6. Định dạng 2 cột Graphic Novel

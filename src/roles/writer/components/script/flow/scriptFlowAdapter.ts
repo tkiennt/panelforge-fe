@@ -693,46 +693,212 @@ export function extractScriptLinesFromDoc(
     const textTrimmed = text.trim();
     if (!textTrimmed) continue;
 
-    // Thoại có nhãn người nói
-    if (attrs.blockType === 'dialogue' && attrs.speakerName) {
-      results.push({
-        scriptLineId: attrs.scriptLineId || generateGuid(),
-        sceneId: currentSceneId,
-        kind: ScriptLineKind.Dialogue,
-        speakerLabel: attrs.speakerName,
-        text: textTrimmed,
-        dialogueText: textTrimmed,
-        stageDirection: null,
-        speakerCharacterId: attrs.speakerCharacterId || null,
-        narrationMode: attrs.narrationMode || 'Present',
-        lineOrder: order++,
-        panelId: currentPanelId || attrs.panelId || null,
-        pageNumber: currentPageNumber,
-        panelNumber: currentPanelNumber,
-      });
-      continue;
+    const declaredType = attrs.blockType as MangaBlockType | undefined;
+
+    // Khi blockType đã được xác định rõ ràng bởi Editor (SSOT), TUYỆT ĐỐI KHÔNG đoán lại bằng regex
+    // Tránh lỗi dòng Action có chữ "Panel 3..." hoặc "Trang 5..." bị chuyển nhầm thành tiêu đề
+    if (declaredType) {
+      if (declaredType === 'scene_heading') {
+        const sceneMatch = textTrimmed.match(/(?:CẢNH|SCENE)\s*(\d+)/i);
+        const parsedSceneNum = sceneMatch ? parseInt(sceneMatch[1], 10) : null;
+        if (parsedSceneNum !== null && attrs.sceneNumber && attrs.sceneNumber !== parsedSceneNum) {
+          currentSceneId = `scene_num_${parsedSceneNum}`;
+        } else if (attrs.sceneId) {
+          currentSceneId = attrs.sceneId;
+        } else if (parsedSceneNum !== null) {
+          currentSceneId = `scene_num_${parsedSceneNum}`;
+        } else {
+          currentSceneId = generateGuid();
+        }
+
+        results.push({
+          scriptLineId: attrs.scriptLineId || `scene_heading_${currentSceneId}`,
+          sceneId: currentSceneId,
+          dialogueText: null,
+          stageDirection: textTrimmed,
+          speakerCharacterId: null,
+          narrationMode: 'Present',
+          lineOrder: 0,
+          blockType: 'scene_heading',
+        });
+        continue;
+      }
+
+      if (declaredType === 'page_heading') {
+        currentPageNumber = attrs.pageNumber || currentPageNumber + 1;
+        currentPanelNumber = 0;
+        currentPanelId = null;
+        results.push({
+          scriptLineId: attrs.scriptLineId || generateGuid(),
+          sceneId: currentSceneId,
+          dialogueText: null,
+          stageDirection: textTrimmed,
+          speakerCharacterId: null,
+          narrationMode: attrs.narrationMode || 'Present',
+          lineOrder: order++,
+          panelId: null,
+          pageNumber: currentPageNumber,
+          panelNumber: 0,
+          blockType: 'page_heading',
+        });
+        continue;
+      }
+
+      if (declaredType === 'panel_heading') {
+        currentPanelNumber = attrs.panelNumber || currentPanelNumber + 1;
+        currentPanelId = attrs.panelId || null;
+        results.push({
+          scriptLineId: attrs.scriptLineId || generateGuid(),
+          sceneId: currentSceneId,
+          dialogueText: null,
+          stageDirection: textTrimmed,
+          speakerCharacterId: null,
+          narrationMode: attrs.narrationMode || 'Present',
+          lineOrder: order++,
+          panelId: currentPanelId,
+          pageNumber: currentPageNumber,
+          panelNumber: currentPanelNumber,
+          blockType: 'panel_heading',
+        });
+        continue;
+      }
+
+      if (declaredType === 'dialogue') {
+        // Bỏ qua bóng thoại rỗng chưa điền chữ (vd: '@Minh : ""' hoặc '""')
+        const emptyQuoteMatch = textTrimmed.match(/^@?[\w\p{L}_-]*\s*:\s*["“]\s*["”]$/u);
+        if (emptyQuoteMatch || textTrimmed === '""' || textTrimmed === '“”') {
+          continue;
+        }
+
+        results.push({
+          scriptLineId: attrs.scriptLineId || generateGuid(),
+          sceneId: currentSceneId,
+          kind: ScriptLineKind.Dialogue,
+          speakerLabel: attrs.speakerName || null,
+          text: textTrimmed,
+          dialogueText: textTrimmed,
+          stageDirection: null,
+          speakerCharacterId: attrs.speakerCharacterId || null,
+          narrationMode: attrs.narrationMode || 'Present',
+          lineOrder: order++,
+          panelId: currentPanelId || attrs.panelId || null,
+          pageNumber: currentPageNumber,
+          panelNumber: currentPanelNumber,
+          blockType: 'dialogue',
+        });
+        continue;
+      }
+
+      if (declaredType === 'thought') {
+        results.push({
+          scriptLineId: attrs.scriptLineId || generateGuid(),
+          sceneId: currentSceneId,
+          kind: ScriptLineKind.Thought,
+          speakerLabel: attrs.speakerName || null,
+          text: textTrimmed,
+          dialogueText: textTrimmed,
+          stageDirection: null,
+          speakerCharacterId: attrs.speakerCharacterId || null,
+          narrationMode: attrs.narrationMode || 'Present',
+          lineOrder: order++,
+          panelId: currentPanelId || attrs.panelId || null,
+          pageNumber: currentPageNumber,
+          panelNumber: currentPanelNumber,
+          blockType: 'thought',
+        });
+        continue;
+      }
+
+      if (declaredType === 'caption') {
+        results.push({
+          scriptLineId: attrs.scriptLineId || generateGuid(),
+          sceneId: currentSceneId,
+          kind: ScriptLineKind.Narration,
+          speakerLabel: null,
+          text: textTrimmed,
+          dialogueText: null,
+          stageDirection: textTrimmed,
+          speakerCharacterId: null,
+          narrationMode: attrs.narrationMode || 'Present',
+          lineOrder: order++,
+          panelId: currentPanelId || attrs.panelId || null,
+          pageNumber: currentPageNumber,
+          panelNumber: currentPanelNumber,
+          blockType: 'caption',
+        });
+        continue;
+      }
+
+      if (declaredType === 'sfx') {
+        results.push({
+          scriptLineId: attrs.scriptLineId || generateGuid(),
+          sceneId: currentSceneId,
+          kind: ScriptLineKind.Sfx,
+          speakerLabel: null,
+          text: textTrimmed,
+          dialogueText: null,
+          stageDirection: textTrimmed,
+          speakerCharacterId: null,
+          narrationMode: attrs.narrationMode || 'Present',
+          lineOrder: order++,
+          panelId: currentPanelId || attrs.panelId || null,
+          pageNumber: currentPageNumber,
+          panelNumber: currentPanelNumber,
+          blockType: 'sfx',
+        });
+        continue;
+      }
+
+      if (declaredType === 'stage_direction') {
+        const leadingMention =
+          block.content?.[0]?.type === 'bibleMention' ? block.content[0].attrs : null;
+        const mentionDialogueMatch =
+          leadingMention && (!leadingMention.category || leadingMention.category === 'Character')
+            ? textTrimmed.match(/^\([^)]+\)\s*:\s*["“](.*?)["”]$/u)
+            : null;
+        if (mentionDialogueMatch) {
+          if (!mentionDialogueMatch[1].trim()) continue;
+          results.push({
+            scriptLineId: attrs.scriptLineId || generateGuid(),
+            sceneId: currentSceneId,
+            kind: ScriptLineKind.Dialogue,
+            speakerLabel: leadingMention.label || leadingMention.name || null,
+            text: textTrimmed,
+            dialogueText: textTrimmed,
+            stageDirection: null,
+            speakerCharacterId: leadingMention.id || attrs.speakerCharacterId || null,
+            narrationMode: attrs.narrationMode || 'Present',
+            lineOrder: order++,
+            panelId: currentPanelId || attrs.panelId || null,
+            pageNumber: currentPageNumber,
+            panelNumber: currentPanelNumber,
+            blockType: 'dialogue',
+          });
+          continue;
+        }
+
+        results.push({
+          scriptLineId: attrs.scriptLineId || generateGuid(),
+          sceneId: currentSceneId,
+          kind: ScriptLineKind.Action,
+          speakerLabel: null,
+          text: textTrimmed,
+          dialogueText: null,
+          stageDirection: textTrimmed,
+          speakerCharacterId: null,
+          narrationMode: attrs.narrationMode || 'Present',
+          lineOrder: order++,
+          panelId: currentPanelId || attrs.panelId || null,
+          pageNumber: currentPageNumber,
+          panelNumber: currentPanelNumber,
+          blockType: 'stage_direction',
+        });
+        continue;
+      }
     }
 
-    if (attrs.blockType === 'thought') {
-      results.push({
-        scriptLineId: attrs.scriptLineId || generateGuid(),
-        sceneId: currentSceneId,
-        kind: ScriptLineKind.Thought,
-        speakerLabel: attrs.speakerName || null,
-        text: textTrimmed,
-        dialogueText: textTrimmed,
-        stageDirection: null,
-        speakerCharacterId: attrs.speakerCharacterId || null,
-        narrationMode: attrs.narrationMode || 'Present',
-        lineOrder: order++,
-        panelId: currentPanelId || attrs.panelId || null,
-        pageNumber: currentPageNumber,
-        panelNumber: currentPanelNumber,
-      });
-      continue;
-    }
-
-    let effectiveBlockType: MangaBlockType = attrs.blockType || 'stage_direction';
+    // Dự phòng cho dữ liệu cũ chưa có declared blockType
+    let effectiveBlockType: MangaBlockType = 'stage_direction';
 
     // Nhận diện cú pháp gõ tay thủ công
     if (
@@ -755,6 +921,8 @@ export function extractScriptLinesFromDoc(
       effectiveBlockType = 'sfx';
     } else if (/^(?:CUT TO:|FADE OUT:|CHUYỂN CẢNH:)/i.test(textTrimmed)) {
       effectiveBlockType = 'transition';
+    } else if (attrs.blockType) {
+      effectiveBlockType = attrs.blockType;
     }
 
     if (effectiveBlockType === 'scene_heading') {

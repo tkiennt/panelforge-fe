@@ -14,6 +14,7 @@ import {
   ScriptLineBlockNode,
   getRecentSpeakersFromDoc,
 } from './nodes/ScriptLineBlockNode';
+import { SpeakerPickerPopover, SpeakerPickerResult } from './SpeakerPickerPopover';
 import { BibleMention } from './extensions/BibleMention';
 import { createMentionSuggestion, PanelSuggestionData } from './extensions/mentionSuggestion';
 import { ConsistencyLinterExtension } from './plugins/consistencyLinterPlugin';
@@ -178,6 +179,30 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   useEffect(() => {
     if (importRequestKey > 0) setShowAiConvertModal(true);
   }, [importRequestKey]);
+
+  // Speaker Picker Popover State (SCR-27 WriteSolo Graphic Novel)
+  const [activeSpeakerPopover, setActiveSpeakerPopover] = useState<{
+    nodePos: number;
+    anchorRect: DOMRect | null;
+    currentName: string;
+    blockType: MangaBlockType;
+  } | null>(null);
+
+  // Lắng nghe sự kiện bàn phím Shift+Tab mở ô người nói từ ScriptLineBlockNode
+  useEffect(() => {
+    const handleOpenSpeakerPicker = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail) return;
+      setActiveSpeakerPopover({
+        nodePos: detail.nodePos,
+        anchorRect: detail.rect || null,
+        currentName: detail.currentName || '',
+        blockType: detail.blockType || 'dialogue',
+      });
+    };
+    window.addEventListener('panelforge:open-speaker-picker', handleOpenSpeakerPicker);
+    return () => window.removeEventListener('panelforge:open-speaker-picker', handleOpenSpeakerPicker);
+  }, []);
 
   // Quick View Card State
   const [quickViewCardData, setQuickViewCardData] = useState<QuickViewCardData | null>(null);
@@ -566,7 +591,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           return true;
         }
 
-        // 5. Nhấp vào nhãn Người nói (.script-line-label) để đổi nhân vật (Series Bible & Recent Speakers)
+        // 5. Nhấp vào nhãn Người nói (.script-line-label) để mở popover chọn/gõ nhân vật (WriteSolo Graphic Novel)
         const speakerSlot = target.closest('.script-line-label');
         if (speakerSlot && view.editable) {
           const blockEl = speakerSlot.closest('[data-block-type="dialogue"], [data-block-type="thought"]');
@@ -578,29 +603,14 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             if (d > 0) {
               const node = $pos.node(d);
               const from = $pos.before(d);
-              const currentName = node.attrs.speakerName;
-              const bibleNames = (allBibleEntries || [])
-                .filter((e) => e.category === 'Character' && e.name)
-                .map((e) => e.name);
-              const recentNames = getRecentSpeakersFromDoc(view.state.doc, from);
-              const candidates = Array.from(new Set([...recentNames, ...bibleNames]));
-              if (candidates.length > 0) {
-                const curIdx = candidates.findIndex(
-                  (c) => c.toUpperCase() === (currentName || '').toUpperCase(),
-                );
-                const nextName = candidates[(curIdx + 1) % candidates.length];
-                const matchedEntry = (allBibleEntries || []).find(
-                  (e) => e.name.toLowerCase() === nextName.toLowerCase(),
-                );
-                const tr = view.state.tr.setNodeMarkup(from, undefined, {
-                  ...node.attrs,
-                  speakerName: nextName,
-                  speakerCharacterId: matchedEntry?.id || null,
-                });
-                view.dispatch(tr);
-                setHasUnsavedChanges(true);
-                return true;
-              }
+              const rect = speakerSlot.getBoundingClientRect();
+              setActiveSpeakerPopover({
+                nodePos: from,
+                anchorRect: rect,
+                currentName: node.attrs.speakerName || '',
+                blockType: node.attrs.blockType || 'dialogue',
+              });
+              return true;
             }
           }
         }
@@ -842,6 +852,59 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       editor.view.dispatch(tr);
     }
   }, [editor, allBibleEntries]);
+
+  // Xử lý xác nhận chọn hoặc gõ người nói từ SpeakerPickerPopover (WriteSolo Graphic Novel)
+  const handleSelectSpeaker = useCallback(
+    (result: SpeakerPickerResult) => {
+      if (!activeSpeakerPopover || !editor) return;
+      const { nodePos } = activeSpeakerPopover;
+      const node = editor.state.doc.nodeAt(nodePos);
+      if (!node) {
+        setActiveSpeakerPopover(null);
+        return;
+      }
+
+      const tr = editor.state.tr.setNodeMarkup(nodePos, undefined, {
+        ...node.attrs,
+        blockType: result.blockType,
+        speakerName: result.name,
+        speakerCharacterId: result.characterId,
+      });
+
+      // Đưa con trỏ vào ô thoại (cột phải) để người viết tiếp tục gõ thoại liền mạch
+      try {
+        const textPos = Math.min(nodePos + node.nodeSize - 1, editor.state.doc.content.size);
+        tr.setSelection(TextSelection.create(tr.doc, textPos));
+      } catch {
+        // Giữ nguyên selection nếu resolve vị trí thất bại
+      }
+
+      editor.view.dispatch(tr);
+      editor.view.focus();
+      setActiveSpeakerPopover(null);
+      setHasUnsavedChanges(true);
+    },
+    [activeSpeakerPopover, editor],
+  );
+
+  // Xử lý Shift+Tab từ ô người nói: chuyển dòng về Action (Bảng H.1)
+  const handleMorphSpeakerToAction = useCallback(() => {
+    if (!activeSpeakerPopover || !editor) return;
+    const { nodePos } = activeSpeakerPopover;
+    const node = editor.state.doc.nodeAt(nodePos);
+    if (node) {
+      const tr = editor.state.tr.setNodeMarkup(nodePos, undefined, {
+        ...node.attrs,
+        blockType: 'stage_direction',
+        speakerName: null,
+        speakerCharacterId: null,
+      });
+      editor.view.dispatch(tr);
+      editor.view.focus();
+    }
+    setActiveSpeakerPopover(null);
+    setHasUnsavedChanges(true);
+  }, [activeSpeakerPopover, editor]);
 
   // Đồng bộ nội dung TipTap khi danh sách phân cảnh được nạp từ máy chủ
   useEffect(() => {
@@ -1246,6 +1309,22 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               position={quickViewPos}
               onMouseEnter={handleCardMouseEnter}
               onMouseLeave={handleCardMouseLeave}
+            />
+          )}
+
+          {activeSpeakerPopover && (
+            <SpeakerPickerPopover
+              initialName={activeSpeakerPopover.currentName}
+              initialBlockType={activeSpeakerPopover.blockType}
+              anchorRect={activeSpeakerPopover.anchorRect}
+              allBibleEntries={allBibleEntries}
+              recentSpeakers={getRecentSpeakersFromDoc(editor?.state.doc, activeSpeakerPopover.nodePos)}
+              onSelect={handleSelectSpeaker}
+              onClose={() => {
+                setActiveSpeakerPopover(null);
+                editor?.view.focus();
+              }}
+              onMorphToAction={handleMorphSpeakerToAction}
             />
           )}
         </div>
