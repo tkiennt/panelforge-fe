@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { WorkspaceListView } from './WorkspaceListView';
 import { workspaceService } from '@/services/workspace.service';
+import { assignmentService } from '@/services/assignment.service';
 import { WorkspaceDto } from '@/types';
 
 const ws = (over: Partial<WorkspaceDto> = {}): WorkspaceDto => ({
@@ -32,6 +33,8 @@ const renderView = (props: Partial<React.ComponentProps<typeof WorkspaceListView
 describe('WorkspaceListView Component', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(workspaceService, 'getPendingInvitations').mockResolvedValue([]);
+    vi.spyOn(assignmentService, 'getMyAssignments').mockResolvedValue([]);
   });
 
   it('renders loading state initially and then displays real workspace cards', async () => {
@@ -47,7 +50,11 @@ describe('WorkspaceListView Component', () => {
       expect(screen.getByText('Alpha Studio')).toBeInTheDocument();
     });
     expect(screen.getByText(/^(Producer|Nhà sản xuất)$/i)).toBeInTheDocument();
-    expect(screen.getByText(/2 (tasks waiting|việc đang chờ)/i)).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('article', { name: 'Alpha Studio' })).getByText(
+        /2 (tasks waiting|việc đang chờ)/i,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/5\s+(Members|Thành viên)/i)).toBeInTheDocument();
     // Không còn nhãn "Hoàn tất" gây hiểu nhầm
     expect(screen.queryByText(/Hoàn tất|Completed/i)).not.toBeInTheDocument();
@@ -67,7 +74,7 @@ describe('WorkspaceListView Component', () => {
     const onSelectMock = vi.fn();
     const { unmount } = renderView({ onSelectWorkspace: onSelectMock, recentWorkspaceId: 'ws-2' });
 
-    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('2'));
+    await waitFor(() => expect(screen.getByTestId('ws-summary')).toHaveTextContent('2'));
     fireEvent.click(screen.getByRole('button', { name: /Tiếp tục|Continue/i }));
     expect(onSelectMock).toHaveBeenCalledWith(expect.objectContaining({ id: 'ws-2' }));
     unmount();
@@ -295,12 +302,218 @@ describe('WorkspaceListView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Mappa Japan Studio')).toBeInTheDocument();
     });
-    expect(screen.getByText('4 bài chờ duyệt')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('article', { name: 'Mappa Japan Studio' })).getByText(
+        '4 bài chờ duyệt',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText('Chọn bộ truyện để duyệt')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Mappa Japan Studio/ }));
     expect(onSelectMock).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'ws-editor', currentUserRole: 'EDITOR' }),
     );
+  });
+
+  it('hero header shows real KPI totals and filters owned vs invited studios', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([
+      ws({
+        id: 'ws-own',
+        name: 'Own Studio',
+        isOwner: true,
+        pendingTasks: 2,
+        pendingEditorReviews: 1,
+      }),
+      ws({
+        id: 'ws-inv',
+        name: 'Invited Studio',
+        isOwner: false,
+        currentUserRole: 'ARTIST',
+        pendingTasks: 3,
+      }),
+    ] as any);
+    renderView();
+
+    await waitFor(() => expect(screen.getByText('Invited Studio')).toBeInTheDocument());
+    expect(screen.getByTestId('ws-summary').textContent).toMatch(
+      /2 studio.*1 studio|2 studios and own 1/,
+    );
+    expect(screen.getByTestId('ws-chip-pending').textContent).toMatch(/5/);
+    expect(screen.getByTestId('ws-chip-reviews').textContent).toMatch(/1/);
+
+    fireEvent.click(screen.getByRole('button', { name: /^(Được mời tham gia|Invited) *[0-9]/ }));
+    expect(screen.queryByText('Own Studio')).not.toBeInTheDocument();
+    expect(screen.getByText('Invited Studio')).toBeInTheDocument();
+  });
+
+  it('hides the filter when every studio is owned', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([ws()] as any);
+    renderView();
+
+    await waitFor(() => expect(screen.getByText('Alpha Studio')).toBeInTheDocument());
+    expect(
+      screen.queryByRole('group', { name: /Lọc studio|Filter studios/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('lists pending invitations and accepting one adds the studio', async () => {
+    vi.spyOn(workspaceService, 'getPendingInvitations').mockResolvedValue([
+      {
+        workspaceId: 'ws-new',
+        workspaceName: 'Nova Studio',
+        ownerName: 'Minh',
+        ownerEmail: 'm@x.com',
+        role: 'Artist',
+        invitedAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    const getMine = vi
+      .spyOn(workspaceService, 'getMyWorkspaces')
+      .mockResolvedValueOnce([ws()] as any)
+      .mockResolvedValueOnce([
+        ws(),
+        ws({ id: 'ws-new', name: 'Nova Studio', isOwner: false, currentUserRole: 'ARTIST' }),
+      ] as any);
+    const accept = vi.spyOn(workspaceService, 'acceptInvitation').mockResolvedValue({} as any);
+    renderView();
+
+    expect(
+      await screen.findByText(/Minh mời bạn làm Họa sĩ|Minh invited you as Artist/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^(Chấp nhận|Accept): Nova Studio/ }));
+
+    await waitFor(() => expect(accept).toHaveBeenCalledWith('ws-new'));
+    await waitFor(() => expect(getMine).toHaveBeenCalledTimes(2));
+    expect(
+      await screen.findByRole('button', { name: /(Vào studio|Enter studio): Nova Studio/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('ws-invitations')).not.toBeInTheDocument();
+  });
+
+  it('declining an invitation asks for confirmation first', async () => {
+    vi.spyOn(workspaceService, 'getPendingInvitations').mockResolvedValue([
+      {
+        workspaceId: 'ws-x',
+        workspaceName: 'X Studio',
+        ownerName: 'Lan',
+        ownerEmail: 'l@x.com',
+        role: 'Writer',
+        invitedAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([ws()] as any);
+    const reject = vi.spyOn(workspaceService, 'rejectInvitation').mockResolvedValue();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderView();
+
+    fireEvent.click(await screen.findByRole('button', { name: /^(Từ chối|Decline): X Studio/ }));
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
+    expect(reject).not.toHaveBeenCalled();
+    expect(screen.getByTestId('ws-invitations')).toBeInTheDocument();
+  });
+
+  it('shows unfinished tasks across studios, nearest deadline first, only for studios with work', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([
+      ws({ id: 'ws-a', name: 'Alpha Studio', pendingTasks: 2 }),
+      ws({ id: 'ws-b', name: 'Idle Studio', pendingTasks: 0 }),
+    ] as any);
+    const base = { seriesTitle: 'Mưa', chapterNumber: 3, brief: '', stageOrder: 1 } as any;
+    const mine = vi.spyOn(assignmentService, 'getMyAssignments').mockResolvedValue([
+      {
+        ...base,
+        id: 'a1',
+        stageName: 'Ink',
+        status: 'InProgress',
+        dueDate: '2099-01-01T00:00:00Z',
+      },
+      {
+        ...base,
+        id: 'a2',
+        stageName: 'Pencil',
+        status: 'Assigned',
+        dueDate: '2000-01-01T00:00:00Z',
+      },
+      { ...base, id: 'a3', stageName: 'Letter', status: 'Approved', dueDate: null },
+    ]);
+    renderView();
+
+    const today = await screen.findByTestId('ws-today');
+    expect(mine).toHaveBeenCalledTimes(1);
+    expect(mine).toHaveBeenCalledWith('ws-a');
+    const rows = today.querySelectorAll('li');
+    expect(rows).toHaveLength(2); // việc đã duyệt bị loại
+    expect(rows[0].textContent).toContain('Pencil');
+    expect(rows[0].textContent).toMatch(/Quá hạn|Overdue/);
+  });
+
+  it('shows series, storage (owner only) and latest activity on the card', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([
+      ws({
+        id: 'ws-own',
+        name: 'Own Studio',
+        seriesCount: 4,
+        seriesPreviews: [{ id: 's1', title: 'Mưa', coverUrl: null }],
+        lastActivityAt: new Date().toISOString(),
+        storageQuotaBytes: 1000,
+        usedStorageBytes: 500,
+      }),
+      ws({
+        id: 'ws-art',
+        name: 'Art Studio',
+        isOwner: false,
+        currentUserRole: 'ARTIST',
+        seriesCount: 0,
+      }),
+    ] as any);
+    renderView();
+
+    await waitFor(() => expect(screen.getByText('Art Studio')).toBeInTheDocument());
+    expect(screen.getByText('4 series')).toBeInTheDocument();
+    expect(screen.getByTitle('Mưa')).toBeInTheDocument();
+    expect(screen.getByText(/Chưa có series|No series yet/)).toBeInTheDocument();
+    expect(screen.getAllByTestId('ws-card-storage')).toHaveLength(1);
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('50');
+    expect(screen.getByText(/Cập nhật hôm nay|Updated today/)).toBeInTheDocument();
+  });
+
+  it('search and sort appear only from 6 studios and filter by name or owner', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue(
+      ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta'].map((n, i) =>
+        ws({ id: 'ws-' + i, name: n + ' Studio', ownerName: i === 5 ? 'Khoa' : 'Alice' }),
+      ) as any,
+    );
+    renderView();
+
+    const search = await screen.findByRole('searchbox');
+    fireEvent.change(search, { target: { value: 'khoa' } });
+    expect(screen.getByText('Zeta Studio')).toBeInTheDocument();
+    expect(screen.queryByText('Alpha Studio')).not.toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'không có' } });
+    expect(screen.getByText(/Không có studio khớp|No studio matches/)).toBeInTheDocument();
+  });
+
+  it('shows series as volumes on a shelf when the studio has no own cover, and hides empty work chips', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([
+      ws({
+        id: 'ws-shelf',
+        name: 'Shelf Studio',
+        coverUrl: null,
+        seriesCount: 5,
+        seriesPreviews: [
+          { id: 's1', title: 'Mưa', coverUrl: null },
+          { id: 's2', title: 'Nắng', coverUrl: null },
+        ],
+        pendingTasks: 0,
+      }),
+    ] as any);
+    renderView();
+
+    const shelf = await screen.findByTestId('ws-series-shelf');
+    expect(shelf.textContent).toContain('Mưa');
+    expect(shelf.textContent).toContain('+3');
+    expect(screen.getByTestId('ws-summary').textContent).toMatch(/cả 1 studio|all 1 studios/);
+    expect(screen.queryByTestId('ws-chip-pending')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ws-chip-reviews')).not.toBeInTheDocument();
   });
 });

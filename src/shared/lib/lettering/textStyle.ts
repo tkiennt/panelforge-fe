@@ -1,7 +1,11 @@
 // Kiểu chữ của element chữ (thanh định dạng Letterer). Khớp TextStyle.cs ở Backend: cùng danh sách font và giới hạn.
 import type { CSSProperties } from 'react';
 import type { TextStyleDto } from '@/services/element.service';
-import { LETTERING_FONT_PX, LETTERING_LINE_HEIGHT_EM, MIN_LETTERING_FONT_PX } from './lettererView';
+import {
+  LETTERING_FONT_PX,
+  LETTERING_LINE_HEIGHT_EM,
+  MIN_LETTERING_FONT_PX,
+} from './letteringPrimitives';
 
 export const TEXT_FONTS = [
   { family: 'Mali', label: 'Mali (thoại)' },

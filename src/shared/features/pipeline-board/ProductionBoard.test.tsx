@@ -79,7 +79,7 @@ const mockAssignments = [
 
 const renderBoard = (
   props: Partial<Parameters<typeof ProductionBoard>[0]> = {},
-  url = '/workspaces/ws-1/series/series-1/workspace?chapterId=chap-1',
+  url = '/workspaces/ws-1/series/series-1/workspace?chapterId=chap-1&view=grid',
 ) =>
   render(
     <MemoryRouter initialEntries={[url]}>
@@ -166,7 +166,7 @@ describe('ProductionBoard (Quy trình sản xuất: lưới + bộ lọc)', () =
     ] as any);
   });
 
-  it('Producer mặc định xem toàn chương ở dạng lưới, chỉ số tính trên toàn chương', async () => {
+  it('Producer xem toàn chương ở dạng lưới, chỉ số tính trên toàn chương', async () => {
     renderBoard({ isProducer: true, currentUserRole: 'PRODUCER', currentUserId: 'producer-1' });
 
     await waitFor(() => expect(screen.getAllByTestId('production-task-card')).toHaveLength(3));
@@ -195,7 +195,7 @@ describe('ProductionBoard (Quy trình sản xuất: lưới + bộ lọc)', () =
 
     renderBoard(
       { currentUserRole: 'WRITER', currentUserId: 'user-1' },
-      '/workspaces/ws-1/series/series-1/workspace?chapterId=chap-1&filter=done',
+      '/workspaces/ws-1/series/series-1/workspace?chapterId=chap-1&filter=done&view=grid',
     );
     await waitFor(() => expect(screen.getAllByTestId('production-task-card')).toHaveLength(1));
     expect(quick(/Hoàn tất/)).toHaveAttribute('aria-pressed', 'true');
@@ -315,5 +315,49 @@ describe('ProductionBoard (Quy trình sản xuất: lưới + bộ lọc)', () =
     await waitFor(() => expect(screen.getAllByTestId('production-task-card')).toHaveLength(1));
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục: Viết kịch bản cho Trang 1' }));
     await waitFor(() => expect(screen.getByText('MY WORK')).toBeInTheDocument());
+  });
+
+  it('mặc định là Bảng trang: mỗi trang một dòng, mỗi công đoạn một cột, ô trống khi chưa giao', async () => {
+    renderBoard(
+      { isProducer: true, currentUserRole: 'PRODUCER', currentUserId: 'producer-1' },
+      '/workspaces/ws-1/series/series-1/workspace?chapterId=chap-1',
+    );
+
+    const matrix = await screen.findByTestId('page-stage-matrix');
+    expect(screen.getByRole('button', { name: 'Bảng trang' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const rowHeaders = within(matrix)
+      .getAllByRole('rowheader')
+      .map((h) => h.textContent);
+    expect(rowHeaders[0]).toContain('Toàn chương');
+    expect(rowHeaders[1]).toContain('Trang 1');
+    expect(rowHeaders[2]).toContain('Trang 2');
+    expect(
+      within(matrix).getByRole('columnheader', { name: /Vẽ nét \(Pencil\)/ }),
+    ).toBeInTheDocument();
+
+    expect(
+      within(matrix).getByRole('button', {
+        name: /^Trang 2, Vẽ nét \(Pencil\): Đã nộp, Trần Thị Artist/,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(matrix).getByLabelText('Trang 2, Kịch bản (Script): chưa giao'),
+    ).toBeInTheDocument();
+    expect(screen.queryAllByTestId('production-task-card')).toHaveLength(0);
+  });
+
+  it('Bảng trang chỉ giữ các trang có việc khớp bộ lọc', async () => {
+    renderBoard(
+      { isProducer: true, currentUserRole: 'PRODUCER', currentUserId: 'producer-1' },
+      '/workspaces/ws-1/series/series-1/workspace?chapterId=chap-1&filter=done',
+    );
+
+    const matrix = await screen.findByTestId('page-stage-matrix');
+    const rowHeaders = within(matrix).getAllByRole('rowheader');
+    expect(rowHeaders).toHaveLength(1);
+    expect(rowHeaders[0].textContent).toContain('Toàn chương');
   });
 });

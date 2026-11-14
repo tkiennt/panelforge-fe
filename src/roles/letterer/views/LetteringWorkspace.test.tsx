@@ -21,8 +21,8 @@ import { panelService } from '@/services/panel.service';
 import { artworkService } from '@/services/artwork.service';
 import { pipelineService } from '@/services/pipeline.service';
 import { buildPageComposite } from '@/shared/utils/compositePageRenderer';
-import { fitBoxHeight } from '../lib/balloonRender';
-import { resolveTextStyle } from '../lib/textStyle';
+import { fitBoxHeight } from '@/shared/lib/lettering/balloonRender';
+import { resolveTextStyle } from '@/shared/lib/lettering/textStyle';
 
 vi.mock('@/services/element.service', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/element.service')>();

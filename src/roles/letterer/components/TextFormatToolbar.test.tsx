@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TextFormatToolbar } from './TextFormatToolbar';
-import { resolveTextStyle } from '../lib/textStyle';
+import { resolveTextStyle } from '@/shared/lib/lettering/textStyle';
 
 const base = resolveTextStyle({ elementType: 'SPEECH_BALLOON' });
 

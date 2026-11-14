@@ -1,10 +1,6 @@
 import type { TextStyleDto } from '@/services/element.service';
-import {
-  createShoutBalloonPath,
-  createSpeechBalloonPath,
-  createThoughtBalloonPath,
-  LETTERING_PADDING_PX,
-} from './lettererView';
+import { createShoutBalloonPath, LETTERING_PADDING_PX } from './letteringPrimitives';
+import { createSpeechBalloonPath, createThoughtBalloonPath } from '@/shared/utils/balloonPaths';
 import { canvasFont, clampFontSize, MAX_TEXT_FONT_PX } from './textStyle';
 
 /**

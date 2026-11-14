@@ -17,7 +17,7 @@ import {
   TEXT_PRESETS,
   clampFontSize,
   patchTextStyle,
-} from '../lib/textStyle';
+} from '@/shared/lib/lettering/textStyle';
 import { MIN_LETTERING_FONT_PX } from '../lib/lettererView';
 
 interface TextFormatToolbarProps {
