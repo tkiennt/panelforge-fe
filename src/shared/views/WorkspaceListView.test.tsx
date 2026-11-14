@@ -296,11 +296,51 @@ describe('WorkspaceListView Component', () => {
       expect(screen.getByText('Mappa Japan Studio')).toBeInTheDocument();
     });
     expect(screen.getByText('4 bài chờ duyệt')).toBeInTheDocument();
-    expect(screen.getByText('Vào Bàn Duyệt')).toBeInTheDocument();
+    expect(screen.getByText('Chọn bộ truyện để duyệt')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Mappa Japan Studio/ }));
     expect(onSelectMock).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'ws-editor', currentUserRole: 'EDITOR' }),
     );
+  });
+
+  it('hero header shows real KPI totals and filters owned vs invited studios', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([
+      ws({
+        id: 'ws-own',
+        name: 'Own Studio',
+        isOwner: true,
+        pendingTasks: 2,
+        pendingEditorReviews: 1,
+      }),
+      ws({
+        id: 'ws-inv',
+        name: 'Invited Studio',
+        isOwner: false,
+        currentUserRole: 'ARTIST',
+        pendingTasks: 3,
+      }),
+    ] as any);
+    renderView();
+
+    await waitFor(() => expect(screen.getByText('Invited Studio')).toBeInTheDocument());
+    expect(screen.getByTestId('ws-stat-total').textContent).toContain('2');
+    expect(screen.getByTestId('ws-stat-owned').textContent).toContain('1');
+    expect(screen.getByTestId('ws-stat-pending').textContent).toContain('5');
+    expect(screen.getByTestId('ws-stat-reviews').textContent).toContain('1');
+
+    fireEvent.click(screen.getByRole('button', { name: /^(Được mời tham gia|Invited) *[0-9]/ }));
+    expect(screen.queryByText('Own Studio')).not.toBeInTheDocument();
+    expect(screen.getByText('Invited Studio')).toBeInTheDocument();
+  });
+
+  it('hides the filter when every studio is owned', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([ws()] as any);
+    renderView();
+
+    await waitFor(() => expect(screen.getByText('Alpha Studio')).toBeInTheDocument());
+    expect(
+      screen.queryByRole('group', { name: /Lọc studio|Filter studios/ }),
+    ).not.toBeInTheDocument();
   });
 });

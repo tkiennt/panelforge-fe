@@ -41,7 +41,22 @@
     },
     "pendingReviews": "{count} bài chờ duyệt",
     "noPendingReviews": "Chưa có bài chờ duyệt",
-    "enterReview": "Chọn bộ truyện để duyệt"
+    "enterReview": "Chọn bộ truyện để duyệt",
+    "hubBadge": "Studio Hub",
+    "count": "{count} studio",
+    "hint": "Mỗi studio là một Workspace độc lập: series, thành viên và vai trò của bạn được tách riêng.",
+    "stats": {
+      "total": "Tổng studio",
+      "owned": "Bạn sở hữu",
+      "pending": "Việc chờ bạn",
+      "reviews": "Bài chờ duyệt"
+    },
+    "filter": {
+      "label": "Lọc studio",
+      "all": "Tất cả",
+      "owned": "Bạn sở hữu",
+      "joined": "Được mời tham gia"
+    }
   },
   "hub": "Studio Hub",
   "loading": "Đang tải danh sách Workspace...",

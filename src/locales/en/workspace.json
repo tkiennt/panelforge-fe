@@ -41,7 +41,22 @@
     },
     "pendingReviews": "{count} awaiting review",
     "noPendingReviews": "Nothing to review",
-    "enterReview": "Choose a series to review"
+    "enterReview": "Choose a series to review",
+    "hubBadge": "Studio Hub",
+    "count": "{count} studios",
+    "hint": "Each studio is a separate Workspace: its series, members and your role stay isolated.",
+    "stats": {
+      "total": "Studios",
+      "owned": "You own",
+      "pending": "Tasks for you",
+      "reviews": "Pending reviews"
+    },
+    "filter": {
+      "label": "Filter studios",
+      "all": "All",
+      "owned": "You own",
+      "joined": "Invited"
+    }
   },
   "hub": "Studio Hub",
   "loading": "Loading Workspaces...",

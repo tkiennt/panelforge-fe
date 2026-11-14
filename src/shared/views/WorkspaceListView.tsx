@@ -10,6 +10,9 @@ import {
   Camera,
   Clock,
   ShieldCheck,
+  Building2,
+  KeyRound,
+  ListTodo,
 } from 'lucide-react';
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
@@ -151,6 +154,47 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const recent = recentWorkspaceId ? workspaces.find((w) => w.id === recentWorkspaceId) : null;
   const avatarUrl = currentUser?.avatarUrl?.trim();
 
+  // KPI chỉ từ dữ liệu thật của API (không có số liệu giả, DESIGN_RULES §8)
+  const ownedCount = workspaces.filter((w) => w.isOwner).length;
+  const stats = [
+    {
+      key: 'total',
+      icon: Building2,
+      value: workspaces.length,
+      tone: 'bg-white border-[#E5E0D8] text-[#1C1917]',
+      iconTone: 'bg-[#FAF8F5] border border-[#EBE7DF] text-[#C2410C]',
+    },
+    {
+      key: 'owned',
+      icon: KeyRound,
+      value: ownedCount,
+      tone: 'bg-white border-[#E5E0D8] text-[#1C1917]',
+      iconTone: 'bg-[#FAF8F5] border border-[#EBE7DF] text-[#C2410C]',
+    },
+    {
+      key: 'pending',
+      icon: ListTodo,
+      value: workspaces.reduce((n, w) => n + (w.pendingTasks ?? 0), 0),
+      tone: 'bg-blue-50/70 border-blue-200/80 text-blue-900',
+      iconTone: 'bg-blue-100/80 text-blue-800',
+    },
+    {
+      key: 'reviews',
+      icon: ShieldCheck,
+      value: workspaces.reduce((n, w) => n + (w.pendingEditorReviews ?? 0), 0),
+      tone: 'bg-amber-50/70 border-amber-200/80 text-amber-900',
+      iconTone: 'bg-amber-100/80 text-amber-800',
+    },
+  ] as const;
+
+  // Lọc chỉ có nghĩa khi vừa có studio sở hữu vừa có studio được mời
+  const [filter, setFilter] = useState<'all' | 'owned' | 'joined'>('all');
+  const showFilter = ownedCount > 0 && ownedCount < workspaces.length;
+  const visibleWorkspaces =
+    !showFilter || filter === 'all'
+      ? workspaces
+      : workspaces.filter((w) => (filter === 'owned' ? w.isOwner : !w.isOwner));
+
   const createButton = (
     <button
       type='button'
@@ -165,7 +209,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   return (
     <div className='ws-shelf min-h-screen flex flex-col font-sans'>
       {/* Top Navigation Bar */}
-      <header className='sticky top-0 z-30 bg-[#FCFBF8]/95 backdrop-blur-md border-b border-[#D8D2C5] px-4 md:px-6 lg:px-8 py-3'>
+      <header className='sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-stone-200 shadow-xs px-4 md:px-6 lg:px-8 py-3'>
         <div className='w-full flex items-center justify-between gap-3'>
           <div className='flex items-center gap-3 min-w-0'>
             <BrandMark size={32} className='shrink-0' />
@@ -253,7 +297,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                         </div>
                       </div>
                       <div className='h-3 w-4/5 rounded ws-skel mb-4 mt-auto' />
-                      <div className='pt-3 border-t border-[#ECE7DD] flex items-center justify-between'>
+                      <div className='pt-3 border-t border-stone-100 flex items-center justify-between'>
                         <div className='h-3 w-20 rounded ws-skel' />
                         <div className='h-7 w-24 rounded-lg ws-skel' />
                       </div>
@@ -265,7 +309,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
           ) : loadError ? (
             <div
               role='alert'
-              className='max-w-md mx-auto mt-10 p-6 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-center shadow-xs'
+              className='max-w-md mx-auto mt-10 p-6 bg-white border border-stone-200/80 rounded-xl text-center shadow-xs'
             >
               <AlertCircle className='w-6 h-6 text-rose-600 mx-auto mb-3' aria-hidden='true' />
               <p className='text-sm text-[#44403C] mb-4'>{t('workspace.shelf.loadError')}</p>
@@ -280,7 +324,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </div>
           ) : workspaces.length === 0 ? (
             /* Empty State */
-            <div className='mt-6 border-2 border-dashed border-[#D8D2C5] rounded-xl p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left'>
+            <div className='mt-6 bg-white border-2 border-dashed border-stone-300 rounded-xl p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left'>
               <BlankPageSketch />
               <div className='flex-1'>
                 <h1 className='text-2xl font-serif font-bold text-[#1C1917] mb-2 tracking-tight'>
@@ -294,21 +338,51 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </div>
           ) : (
             <>
-              {/* Shelf Heading */}
-              <div className='flex flex-wrap items-end justify-between gap-4 mb-6'>
-                <div>
-                  <h1 className='text-[28px] leading-tight font-serif font-bold text-[#1C1917] tracking-tight'>
+              {/* Hero header: cùng mẫu Script Hub / Series Bible (pill, tiêu đề serif, KPI thật) */}
+              <section className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-5 mb-5'>
+                <div className='min-w-0 space-y-1.5'>
+                  <span className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 text-[#C2410C] text-xs font-bold uppercase tracking-wider'>
+                    <Building2 className='w-3.5 h-3.5' aria-hidden='true' />
+                    {t('workspace.shelf.hubBadge')}
+                  </span>
+                  <h1 className='text-2xl font-serif font-bold text-[#1C1917] tracking-tight flex items-center gap-2.5 flex-wrap'>
                     {t('workspace.shelf.title')}
-                    <span className='text-[#716B65] font-normal'> · {workspaces.length}</span>
+                    <span className='px-2.5 py-0.5 rounded-full bg-[#F3F0E9] text-[#57534E] text-xs font-semibold font-mono border border-[#D8D2C5]'>
+                      {t('workspace.shelf.count', { count: workspaces.length })}
+                    </span>
                   </h1>
-                  <p className='text-sm text-[#57534E] mt-1'>{t('workspace.shelf.subtitle')}</p>
+                  <p className='text-sm text-[#57534E] leading-relaxed max-w-2xl'>
+                    {t('workspace.shelf.subtitle')} {t('workspace.shelf.hint')}
+                  </p>
                 </div>
-                {canCreate && createButton}
-              </div>
+
+                <div className='grid grid-cols-2 gap-3 sm:flex sm:items-center sm:flex-wrap shrink-0'>
+                  {stats.map((stat) => (
+                    <div
+                      key={stat.key}
+                      className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl border shadow-2xs ${stat.tone}`}
+                      data-testid={`ws-stat-${stat.key}`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${stat.iconTone}`}
+                      >
+                        <stat.icon className='w-4 h-4' aria-hidden='true' />
+                      </div>
+                      <div>
+                        <div className='text-xs font-semibold uppercase tracking-wide opacity-80'>
+                          {t(`workspace.shelf.stats.${stat.key}`)}
+                        </div>
+                        <div className='text-sm font-bold font-mono'>{stat.value}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {canCreate && <div className='col-span-2 sm:col-span-1'>{createButton}</div>}
+                </div>
+              </section>
 
               {/* Recently Visited Bar (BR / UX Section 7) */}
               {recent && (
-                <div className='ws-recent flex flex-wrap items-center justify-between gap-3 mb-6 px-4 py-2.5'>
+                <div className='ws-recent flex flex-wrap items-center justify-between gap-3 mb-5 px-4 py-2.5'>
                   <div className='flex items-center gap-2 min-w-0'>
                     <Clock className='w-4 h-4 text-[#C2410C] shrink-0' aria-hidden='true' />
                     <p className='text-sm text-[#57534E] truncate'>
@@ -327,9 +401,47 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 </div>
               )}
 
+              {showFilter && (
+                <div
+                  className='flex items-center gap-2 flex-wrap mb-5'
+                  role='group'
+                  aria-label={t('workspace.shelf.filter.label')}
+                >
+                  {(
+                    [
+                      ['all', workspaces.length],
+                      ['owned', ownedCount],
+                      ['joined', workspaces.length - ownedCount],
+                    ] as const
+                  ).map(([key, count]) => {
+                    const active = filter === key;
+                    return (
+                      <button
+                        key={key}
+                        type='button'
+                        onClick={() => setFilter(key)}
+                        aria-pressed={active}
+                        className={`ws-focus inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium border transition-all duration-150 ${
+                          active
+                            ? 'bg-orange-50 text-orange-800 border-orange-200'
+                            : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-100 hover:text-stone-900'
+                        }`}
+                      >
+                        {t(`workspace.shelf.filter.${key}`)}
+                        <span
+                          className={`text-xs font-mono px-1.5 rounded-full ${active ? 'bg-orange-100' : 'bg-stone-100'}`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Studios Shelf Grid */}
               <ul className='ws-grid' role='list'>
-                {workspaces.map((ws) => {
+                {visibleWorkspaces.map((ws) => {
                   const tone = toneFor(ws.id);
                   const mayManageCover = canManageCover(ws);
 
@@ -343,7 +455,6 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                         {/* 1. Cover Image Section (2:1 aspect ratio) */}
                         <div className='ws-card-cover'>
                           <span className='ws-card-tab' aria-hidden='true' />
-                          <span className='ws-card-fold' aria-hidden='true' />
 
                           {ws.coverUrl ? (
                             <AuthenticatedImage
@@ -367,7 +478,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                                 onClick={() => setCoverModalWorkspace(ws)}
                                 title={t('workspace.shelf.changeCover')}
                                 aria-label={t('workspace.shelf.changeCover')}
-                                className='ws-cover-btn ws-focus inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#FCFBF8]/95 hover:bg-[#FCFBF8] text-[#1C1917] border border-[#D8D2C5] shadow-xs backdrop-blur-xs'
+                                className='ws-cover-btn ws-focus inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/95 hover:bg-white text-stone-800 border border-stone-200 shadow-xs backdrop-blur-xs'
                               >
                                 <Camera className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
                                 <span className='hidden sm:inline'>
@@ -387,12 +498,10 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                             </span>
                             <div className='min-w-0 flex-1'>
                               <div className='flex items-center gap-2 flex-wrap mb-0.5'>
-                                <h2 className='text-base font-serif font-bold text-[#1C1917] leading-snug line-clamp-1'>
+                                <h2 className='text-xl font-serif font-bold text-stone-900 leading-snug line-clamp-1'>
                                   {ws.name}
                                 </h2>
-                                <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${'bg-[#E7E1D5]/60 text-[#57534E]'}`}
-                                >
+                                <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap bg-stone-100 text-stone-600 border border-stone-200'>
                                   {roleLabel(ws.currentUserRole)}
                                 </span>
                               </div>
@@ -491,14 +600,15 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                           </div>
 
                           {/* Footer: Date & Enter Button */}
-                          <div className='pt-3 border-t border-[#ECE7DD] flex items-center justify-between gap-2'>
-                            <span className='text-xs text-[#78716C]'>
+                          <div className='pt-3 border-t border-stone-100 flex items-center justify-between gap-2'>
+                            <span className='text-xs text-stone-500 inline-flex items-center gap-1'>
+                              <Clock className='w-3.5 h-3.5' aria-hidden='true' />
                               {t('workspace.shelf.created', { days: timeAgo(ws.createdAt) })}
                             </span>
                             <button
                               type='button'
                               onClick={() => onSelectWorkspace(ws)}
-                              className='ws-btn-enter ws-focus inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#C2410C] bg-[#FFF7ED] border border-[#FDBA74] hover:bg-[#FFEDD5]'
+                              className='ws-btn-enter ws-focus inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold text-orange-800 bg-orange-50 border border-orange-200 hover:bg-orange-100 active:scale-[0.98]'
                               aria-label={`${t('workspace.shelf.enter')}: ${ws.name}`}
                             >
                               <span>
