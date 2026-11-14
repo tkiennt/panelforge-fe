@@ -9,8 +9,8 @@ import { seriesService } from '@/services/series.service';
 import { pipelineService } from '@/services/pipeline.service';
 import { assignmentService, AssignmentDto } from '@/services/assignment.service';
 import { frameTemplateService, FrameTemplateDto } from '@/services/frameTemplate.service';
-import { artworkService } from '@/services/artwork.service';
-import { PanelDto, ChangeRequestDto } from '@/types/pipeline';
+import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
+import { PanelDto, ChangeRequestDto, AssetReferenceDto } from '@/types/pipeline';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
 import { useToast } from '@/shared/context/ToastContext';
 import { detectPanelsFromSketchImage, cropImageByBoundingBox } from '../lib/panelDetection';
@@ -298,57 +298,217 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     };
   }, [currentChapterId, assignmentIdFromUrl, artistStages]);
 
-  // Tải danh sách trang từ API backend nếu có chapterId + ánh xạ panel -> trang để đồng bộ kịch bản
-  const loadPages = useCallback(async (chapId: string) => {
-    try {
-      const fetched = await pageService.getPagesByChapter(chapId);
-      if (Array.isArray(fetched) && fetched.length > 0) {
-        const sortedPages = [...fetched].sort((a, b) => a.pageNumber - b.pageNumber);
-        setPages(sortedPages);
-        setSelectedPageId((prev) =>
-          sortedPages.some((p) => p.id === prev) ? prev : sortedPages[0].id,
+  const isFallbackStageId = (id?: string | null): boolean =>
+    !id || id === 'stage-pencil' || id === 'stage-ink' || id === 'stage-letter';
+
+  // Tải danh sách tranh đã lưu trên R2 cho từng trang: nhóm theo panelId, lấy version mới nhất và xin link xem ảnh
+  const loadPageArtworks = useCallback(
+    async (
+      chapId: string,
+      pageList: PageDto[],
+      stageId?: string,
+      currentPanelsByPage?: Record<string, PanelDto[]>,
+    ) => {
+      if (
+        !chapId ||
+        !pageList.length ||
+        !artworkService?.getArtworks ||
+        !artworkService?.getArtworkAccessLink
+      ) {
+        return;
+      }
+
+      try {
+        const pageArtworkResults = await Promise.all(
+          pageList.map(async (pg) => {
+            if (!pg.id || pg.id.startsWith('default-page-') || pg.id.startsWith('page-default-')) {
+              return { pageId: pg.id, artworks: [] };
+            }
+            try {
+              let artworks = await artworkService.getArtworks(chapId, pg.id, stageId);
+              // Công đoạn đang xem chưa có tranh -> dùng tranh mới nhất của các công đoạn trước
+              // (vd tranh nạp ở Thumbnail khi đang xem Pencil), để Artist vẽ tiếp trên bản cũ.
+              if (stageId && (!Array.isArray(artworks) || artworks.length === 0)) {
+                artworks = await artworkService.getArtworks(chapId, pg.id);
+              }
+              return { pageId: pg.id, artworks: Array.isArray(artworks) ? artworks : [] };
+            } catch {
+              return { pageId: pg.id, artworks: [] };
+            }
+          }),
         );
 
-        // Tải danh sách khung của từng trang để đồng bộ chính xác dòng kịch bản thuộc về trang & khung nào
-        if (panelService?.getPanelsByPage) {
-          const panelResults = await Promise.all(
-            sortedPages.map((pg) =>
-              panelService
-                .getPanelsByPage(pg.id)
-                .then((panels) => ({
-                  pageId: pg.id,
-                  pageNumber: pg.pageNumber,
-                  panels: (panels || []).sort(
-                    (a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
-                  ),
-                }))
-                .catch(() => ({ pageId: pg.id, pageNumber: pg.pageNumber, panels: [] })),
-            ),
-          );
-          const nextMap: Record<string, { pageNumber: number; panelNumber: number }> = {};
-          const nextPanelsByPage: Record<string, PanelDto[]> = {};
-          const backendLockedMap: Record<string, boolean> = {};
-          panelResults.forEach(({ pageId, pageNumber, panels }) => {
-            if (panels && panels.length > 0) {
-              nextPanelsByPage[pageId] = panels;
-              backendLockedMap[pageId] = true;
-              panels.forEach((pnl) => {
-                nextMap[pnl.id] = {
-                  pageNumber,
-                  panelNumber: pnl.panelNumber || pnl.readingOrder || 1,
-                };
-              });
+        const nextArtworksByPageId: Record<string, Record<string, PanelArtworkData>> = {};
+        const nextFullPageSketches: Record<
+          string,
+          {
+            id?: string;
+            versionNumber?: number;
+            imageUrl: string;
+            fileName: string;
+            isVisible: boolean;
+          }
+        > = {};
+
+        await Promise.all(
+          pageArtworkResults.map(async ({ pageId, artworks }) => {
+            if (!artworks.length) return;
+
+            // Nhóm theo panelId (hoặc '__PAGE__' cho tranh cả trang null/undefined)
+            // Lấy phiên bản versionNumber lớn nhất của từng khung/trang
+            const latestByGroup = new Map<string, AssetReferenceDto>();
+            artworks.forEach((art) => {
+              const key = art.panelId || '__PAGE__';
+              const existing = latestByGroup.get(key);
+              // versionNumber chỉ tăng trong cùng công đoạn, nên khác công đoạn thì so theo thời điểm tạo
+              const isNewer = !existing
+                ? true
+                : art.pipelineStageId === existing.pipelineStageId
+                  ? art.versionNumber > existing.versionNumber
+                  : Date.parse(art.createdAt) > Date.parse(existing.createdAt);
+              if (isNewer) {
+                latestByGroup.set(key, art);
+              }
+            });
+
+            const pagePanels = currentPanelsByPage?.[pageId] || [];
+            const panelMap = new Map<string, PanelDto>();
+            pagePanels.forEach((p) => panelMap.set(p.id, p));
+
+            const pageArtMap: Record<string, PanelArtworkData> = {};
+
+            await Promise.all(
+              Array.from(latestByGroup.values()).map(async (art) => {
+                try {
+                  const link = await artworkService.getArtworkAccessLink(chapId, art.id);
+                  if (!link?.url) return;
+                  const imageUrl = resolveArtworkUrl(link.url);
+
+                  if (!art.panelId || art.panelId === '__PAGE__') {
+                    nextFullPageSketches[pageId] = {
+                      id: art.id,
+                      versionNumber: art.versionNumber,
+                      imageUrl,
+                      fileName: art.fileName || 'sketch.png',
+                      isVisible: true,
+                    };
+                  } else {
+                    const pnl = panelMap.get(art.panelId);
+                    const panelNum = pnl?.panelNumber || pnl?.readingOrder || 1;
+                    pageArtMap[art.panelId] = {
+                      id: art.id,
+                      panelId: art.panelId,
+                      panelNumber: panelNum,
+                      imageUrl,
+                      fileName: art.fileName || `Khung #${panelNum}`,
+                      uploadedAt: art.createdAt || new Date().toISOString(),
+                    };
+                  }
+                } catch {
+                  // Bỏ qua lỗi nạp link của từng ảnh để không ảnh hưởng các ảnh khác
+                }
+              }),
+            );
+
+            if (Object.keys(pageArtMap).length > 0) {
+              nextArtworksByPageId[pageId] = pageArtMap;
+            }
+          }),
+        );
+
+        setPanelArtworksByPageId((prev) => {
+          const next = { ...prev };
+          pageList.forEach((pg) => {
+            next[pg.id] = nextArtworksByPageId[pg.id] || {};
+          });
+          return next;
+        });
+
+        setFullPageSketchesByPageId((prev) => {
+          const next = { ...prev };
+          pageList.forEach((pg) => {
+            if (nextFullPageSketches[pg.id]) {
+              next[pg.id] = nextFullPageSketches[pg.id];
+            } else {
+              delete next[pg.id];
             }
           });
-          setPanelsByPageId((prev) => ({ ...prev, ...nextPanelsByPage }));
-          setPanelPageMap((prev) => ({ ...prev, ...nextMap }));
-          setLockedTemplateByPageId((prev) => ({ ...prev, ...backendLockedMap }));
-        }
+          return next;
+        });
+      } catch {
+        // Giữ trạng thái hiện tại nếu có lỗi
       }
-    } catch {
-      // Giữ trang mặc định nếu chưa kết nối hoặc có lỗi
-    }
-  }, []);
+    },
+    [],
+  );
+
+  // Tải danh sách trang từ API backend nếu có chapterId + ánh xạ panel -> trang để đồng bộ kịch bản
+  const loadPages = useCallback(
+    async (chapId: string, targetStageId?: string) => {
+      try {
+        const fetched = await pageService.getPagesByChapter(chapId);
+        if (Array.isArray(fetched) && fetched.length > 0) {
+          const sortedPages = [...fetched].sort((a, b) => a.pageNumber - b.pageNumber);
+          setPages(sortedPages);
+          setSelectedPageId((prev) =>
+            sortedPages.some((p) => p.id === prev) ? prev : sortedPages[0].id,
+          );
+
+          // Tải danh sách khung của từng trang để đồng bộ chính xác dòng kịch bản thuộc về trang & khung nào
+          let resolvedPanelsByPage: Record<string, PanelDto[]> = {};
+          if (panelService?.getPanelsByPage) {
+            const panelResults = await Promise.all(
+              sortedPages.map((pg) =>
+                panelService
+                  .getPanelsByPage(pg.id)
+                  .then((panels) => ({
+                    pageId: pg.id,
+                    pageNumber: pg.pageNumber,
+                    panels: (panels || []).sort(
+                      (a, b) =>
+                        (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
+                    ),
+                  }))
+                  .catch(() => ({ pageId: pg.id, pageNumber: pg.pageNumber, panels: [] })),
+              ),
+            );
+            const nextMap: Record<string, { pageNumber: number; panelNumber: number }> = {};
+            const nextPanelsByPage: Record<string, PanelDto[]> = {};
+            const backendLockedMap: Record<string, boolean> = {};
+            panelResults.forEach(({ pageId, pageNumber, panels }) => {
+              if (panels && panels.length > 0) {
+                nextPanelsByPage[pageId] = panels;
+                backendLockedMap[pageId] = true;
+                panels.forEach((pnl) => {
+                  nextMap[pnl.id] = {
+                    pageNumber,
+                    panelNumber: pnl.panelNumber || pnl.readingOrder || 1,
+                  };
+                });
+              }
+            });
+            resolvedPanelsByPage = nextPanelsByPage;
+            setPanelsByPageId((prev) => ({ ...prev, ...nextPanelsByPage }));
+            setPanelPageMap((prev) => ({ ...prev, ...nextMap }));
+            setLockedTemplateByPageId((prev) => ({ ...prev, ...backendLockedMap }));
+          }
+
+          // Tải danh sách tranh đã lưu trên R2 cho các trang
+          const currentStage = artistStages[currentStageIndex];
+          const effectiveStageId =
+            targetStageId !== undefined
+              ? targetStageId
+              : currentStage?.id && !isFallbackStageId(currentStage.id)
+                ? currentStage.id
+                : undefined;
+          await loadPageArtworks(chapId, sortedPages, effectiveStageId, resolvedPanelsByPage);
+        }
+      } catch {
+        // Giữ trang mặc định nếu chưa kết nối hoặc có lỗi
+      }
+    },
+    [artistStages, currentStageIndex, loadPageArtworks],
+  );
 
   // Tải dữ liệu kịch bản thực tế của chương qua danh sách phân cảnh (sắp xếp theo thứ tự cảnh & dòng)
   const loadScriptLines = useCallback(async (chapId: string) => {
@@ -582,6 +742,33 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   }, [currentChapterId, loadPages, loadScriptLines, loadChangeRequests]);
 
+  const currentStage = artistStages[currentStageIndex];
+  const currentStageId =
+    currentStage?.id && !isFallbackStageId(currentStage.id) ? currentStage.id : undefined;
+
+  const pagesRef = useRef(pages);
+  pagesRef.current = pages;
+  const panelsByPageIdRef = useRef(panelsByPageId);
+  panelsByPageIdRef.current = panelsByPageId;
+
+  const lastStageKeyRef = useRef<string | undefined>(`${currentStageIndex}:${currentStageId}`);
+  useEffect(() => {
+    const key = `${currentStageIndex}:${currentStageId}`;
+    if (currentChapterId && pagesRef.current.length > 0) {
+      if (lastStageKeyRef.current !== key) {
+        lastStageKeyRef.current = key;
+        loadPageArtworks(
+          currentChapterId,
+          pagesRef.current,
+          currentStageId,
+          panelsByPageIdRef.current,
+        );
+      }
+    } else {
+      lastStageKeyRef.current = key;
+    }
+  }, [currentChapterId, currentStageIndex, currentStageId, loadPageArtworks]);
+
   useEffect(() => {
     if (selectedPageId) {
       loadPageHistory(selectedPageId);
@@ -756,6 +943,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       isStageFlowCompleted,
       isSubmittingStage,
       onSubmitStage: handleSubmitStage,
+      onSelectStage: (idx: number) => {
+        if (idx >= 0 && idx < artistStages.length) {
+          setCurrentStageIndex(idx);
+        }
+      },
       submitButtonLabel: 'Nộp bản thảo',
     });
   }, [
@@ -1168,8 +1360,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             undefined,
             panelId,
           );
-        } catch {
-          // Tranh vẫn được lưu trong phiên vẽ hiện tại
+        } catch (err: any) {
+          const errorMsg =
+            err?.response?.data?.message ||
+            err?.response?.data?.error ||
+            err?.message ||
+            'Không thể tải tranh lên máy chủ lưu trữ R2.';
+          toast.error('Lỗi lưu tranh lên máy chủ', `Khung #${panelNum}: ${errorMsg}`);
         }
       }
     },
@@ -1437,6 +1634,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             isStageFlowCompleted,
             isSubmittingStage,
             onSubmitStage: handleSubmitStage,
+            onSelectStage: (idx: number) => {
+              if (idx >= 0 && idx < artistStages.length) {
+                setCurrentStageIndex(idx);
+              }
+            },
             submitButtonLabel: 'Nộp bản thảo',
           }}
           showFocusControls={false}
