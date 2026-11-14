@@ -39,7 +39,11 @@ import {
   AlertCircle,
   Send,
   ClipboardList,
+  Users,
 } from 'lucide-react';
+import { ChapterCastDto, chapterCastService } from '@/services/chapterCast.service';
+import { ChapterCastDrawer } from '../components/script/ChapterCastDrawer';
+import { SetPanelStageModal } from '../components/script/SetPanelStageModal';
 import {
   scriptLineService,
   SceneDto,
@@ -269,10 +273,20 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
   const [submittingToEditor, setSubmittingToEditor] = useState(false);
 
-  // SCR-12: kịch bản không còn đi qua Assignment; studio có một Writer viết, Producer sửa được.
-  // Các vai trò khác (Artist, Editor, Viewer...) chỉ đọc.
-  const canEditScript =
-    !effectiveRole || effectiveRole === 'PRODUCER' || effectiveRole === 'WRITER';
+  // SCR-11 & BIB-16: canEditScript must not fail open when role is unknown; only Writer edits.
+  const canEditScript = effectiveRole === 'WRITER';
+
+  // BIB-16: Thực thể chương (Chapter Cast) & Giai đoạn Panel
+  const [chapterCast, setChapterCast] = useState<ChapterCastDto | null>(null);
+  const [loadingCast, setLoadingCast] = useState(false);
+  const [isPanelStageModalOpen, setIsPanelStageModalOpen] = useState(false);
+  const [activePanelJump, setActivePanelJump] = useState<{
+    pageNumber?: number | null;
+    panelNumber?: number | null;
+  } | null>(null);
+  const setPanelStageRef = useRef<
+    ((pageNumber: number, panelNumber: number, castRevisions: any) => void) | null
+  >(null);
 
   const [scenes, setScenes] = useState<SceneDto[]>([]);
   const [selectedScene, setSelectedScene] = useState<SceneDetailDto | null>(null);
@@ -360,9 +374,35 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Mặc định mở side drawer phù hợp môi trường
   const [activeSideDrawer, setActiveSideDrawer] = useState<
-    'chapters' | 'scenes' | 'narrative' | 'consistency' | 'characters' | 'versions' | null
+    'chapters' | 'scenes' | 'narrative' | 'consistency' | 'characters' | 'versions' | 'cast' | null
   >(null);
   const [importRequestKey, setImportRequestKey] = useState(0);
+
+  // BIB-16: Nạp danh sách thực thể chương (Chapter Cast)
+  const loadChapterCast = useCallback(
+    async (chapId?: string) => {
+      const id = chapId || currentChapter?.id;
+      if (!id) return;
+      setLoadingCast(true);
+      try {
+        const cast = await chapterCastService.getChapterCast(id);
+        setChapterCast(cast);
+      } catch (err) {
+        console.warn('Lỗi nạp thực thể chương (cast):', err);
+      } finally {
+        setLoadingCast(false);
+      }
+    },
+    [currentChapter?.id],
+  );
+
+  useEffect(() => {
+    if (currentChapter?.id) {
+      void loadChapterCast(currentChapter.id);
+    } else {
+      setChapterCast(null);
+    }
+  }, [currentChapter?.id, loadChapterCast]);
 
   // Phím tắt bàn phím Alt+C: Mở nhanh side tab chuyển chương
   useEffect(() => {
@@ -686,6 +726,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             narrationMode: line.narrationMode,
             clientLineId: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
             panelId: isValidGuid(line.panelId) ? line.panelId : null,
+            refs: line.refs ?? null,
           })),
           expectedChapterVersion: currentVersion,
           summary: 'Lưu kịch bản từ trình soạn thảo',
@@ -698,6 +739,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       }
       if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
         currentVersion = res.chapterVersion;
+      }
+      if (res?.warnings && res.warnings.length > 0) {
+        notify(
+          t('scriptStudio.save.lostRefsWarning', 'Cảnh báo tham chiếu Series Bible'),
+          res.warnings.join('\n'),
+        );
       }
       const savedIds = snapshot.lines.map(
         (line, idx) => res?.lines?.[idx]?.id ?? line.scriptLineId,
@@ -719,6 +766,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             panels: page.panels.map((panel) => ({
               panelNumber: panel.panelNumber,
               scriptLineIds: idsByPanel.get(`${page.pageNumber}:${panel.panelNumber}`) ?? [],
+              castRevisions: panel.castRevisions ?? undefined,
             })),
           })),
         );
@@ -776,6 +824,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         details.sort((a, b) => a.sceneNumber - b.sceneNumber);
         setChapterScenesDetail(details);
         setSelectedScene(details.find((d) => d.id === scene!.id) ?? details[0] ?? null);
+        void loadChapterCast(chapterId);
       } catch (refreshErr) {
         console.error('Lỗi làm mới kịch bản sau khi lưu:', refreshErr);
       }
@@ -788,6 +837,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       loadPagesAndPanels,
       notify,
       refreshChapterDetail,
+      loadChapterCast,
       t,
     ],
   );
@@ -1670,6 +1720,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   /** D12 / Gate 1: Producer bấm Start Production khi kịch bản đang InReview. */
   const handleFreezeScript = async () => {
     if (!currentChapter?.id) return;
+
+    // BIB-16 item 6: kiểm tra blockers của Gate 1 trước khi bắt đầu sản xuất
+    if (chapterCast?.gate && !chapterCast.gate.canStart) {
+      notify(
+        t('scriptStudio.cast.startBlockedTitle', 'Chặn Bắt đầu sản xuất do vướng mắc Gate 1'),
+        chapterCast.gate.blockers
+          .map(
+            (b) =>
+              `${b.entryName}: ${b.reason}${b.sourceExplanation ? ` (${b.sourceExplanation})` : ''}`,
+          )
+          .join('\n'),
+      );
+      setActiveSideDrawer('cast');
+      return;
+    }
+
     const n = currentChapter.chapterNumber;
     const confirmed = await confirm({
       title: t('scriptStudio.lifecycle.startConfirmTitle', { n }),
@@ -1718,6 +1784,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const handleSubmitScript = async () => {
     if (!currentChapter?.id) return;
     if (editorSaveRef.current && !(await editorSaveRef.current())) return;
+
+    // BIB-16 item 6: kiểm tra blockers của Gửi duyệt (mục nháp IsStub chưa định nghĩa)
+    if (chapterCast?.submitGate && !chapterCast.submitGate.canSubmit) {
+      notify(
+        t('scriptStudio.cast.submitBlockedTitle', 'Chặn Gửi duyệt do vướng mắc Bible'),
+        chapterCast.submitGate.blockers.map((b) => `${b.entryName}: ${b.reason}`).join('\n'),
+      );
+      setActiveSideDrawer('cast');
+      return;
+    }
+
     const n = currentChapter.chapterNumber;
     const confirmed = await confirm({
       title: isScriptInReview
@@ -1841,9 +1918,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           : isProducer && isScriptInReview
             ? 'start'
             : null;
-  // Gửi lại chỉ khi đã lưu thay đổi sau lần gửi duyệt gần nhất
+  // BIB-16 item 6: kiểm tra blockers của submitGate và gate
+  const isSubmitBlocked =
+    (scriptAction === 'submit' || scriptAction === 'resubmit') &&
+    chapterCast?.submitGate?.canSubmit === false;
+  const isStartBlocked = scriptAction === 'start' && chapterCast?.gate?.canStart === false;
+
+  // Gửi lại chỉ khi đã lưu thay đổi sau lần gửi duyệt gần nhất; và không bị chặn bởi gate blockers
   const canSubmitScript =
-    scriptAction !== null && (scriptAction !== 'resubmit' || hasUnpushedChanges);
+    scriptAction !== null &&
+    (scriptAction !== 'resubmit' || hasUnpushedChanges) &&
+    !isSubmitBlocked &&
+    !isStartBlocked;
   const scriptStageIndex = isScriptFrozen ? 2 : isScriptInReview ? 1 : 0;
 
   const submitScriptRef = React.useRef<() => void>(() => {});
@@ -1966,6 +2052,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       active: activeSideDrawer === 'characters',
       testId: 'rail-characters-btn',
       onClick: () => toggleDrawer('characters'),
+    },
+    {
+      id: 'cast',
+      label: t('scriptStudio.rail.chapterCast', 'Thực thể'),
+      icon: Users,
+      active: activeSideDrawer === 'cast',
+      badge: chapterCast?.entities?.length,
+      tone: isSubmitBlocked || isStartBlocked ? 'warn' : 'default',
+      testId: 'rail-cast-btn',
+      onClick: () => toggleDrawer('cast'),
     },
     {
       id: 'consistency',
@@ -2169,10 +2265,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       })}
 
       {/* 2. Thanh thông báo ngắn gọn gom thông báo chỉ đọc & xung đột */}
-      {(concurrencyError ||
-        isChapterLocked ||
-        !canEditScript ||
-        loadError) && (
+      {(concurrencyError || isChapterLocked || !canEditScript || loadError) && (
         <div className='px-4 py-2.5 bg-white border-b border-[#E7E2D9] shrink-0 text-xs space-y-2'>
           {concurrencyError && (
             <div
@@ -2302,6 +2395,55 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           )}
 
+          {/* BIB-16 & 6: Blocker banners cho Writer (submitGate) và Producer (gate) */}
+          {isSubmitBlocked && chapterCast?.submitGate?.blockers && (
+            <div
+              data-testid='submit-blocked-banner'
+              className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
+            >
+              <div className='flex items-center gap-2 min-w-0'>
+                <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0' />
+                <span className='text-xs font-medium truncate'>
+                  <strong>
+                    {t('scriptStudio.cast.submitBlockedBanner', 'Chưa thể gửi duyệt')}:
+                  </strong>{' '}
+                  Còn {chapterCast.submitGate.blockers.length} mục nháp Bible chưa được định nghĩa.
+                </span>
+              </div>
+              <button
+                type='button'
+                onClick={() => setActiveSideDrawer('cast')}
+                className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer transition-colors'
+              >
+                {t('scriptStudio.cast.viewCast', 'Xem thực thể')}
+              </button>
+            </div>
+          )}
+
+          {isStartBlocked && chapterCast?.gate?.blockers && (
+            <div
+              data-testid='start-blocked-banner'
+              className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between gap-2 text-rose-900'
+            >
+              <div className='flex items-center gap-2 min-w-0'>
+                <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
+                <span className='text-xs font-medium truncate'>
+                  <strong>
+                    {t('scriptStudio.cast.startBlockedBanner', 'Chưa thể bắt đầu sản xuất')}:
+                  </strong>{' '}
+                  Còn {chapterCast.gate.blockers.length} biến thể chưa khoá Canon.
+                </span>
+              </div>
+              <button
+                type='button'
+                onClick={() => setActiveSideDrawer('cast')}
+                className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shrink-0 cursor-pointer transition-colors'
+              >
+                {t('scriptStudio.cast.viewCast', 'Xem thực thể')}
+              </button>
+            </div>
+          )}
+
           {isChapterContentLocked && !isScriptFrozen && (
             <div
               data-testid='chapter-locked-banner'
@@ -2411,6 +2553,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               isCommentsSidePanelOpen={showCommentsSidePanel}
               onToggleCommentsSidePanel={() => setShowCommentsSidePanel((v) => !v)}
               activeLineId={activeCommentLineId}
+              activePanel={activePanelJump}
+              allBibleEntries={allBibleEntries}
+              registerSetPanelStage={(fn) => {
+                setPanelStageRef.current = fn;
+              }}
               onSave={handleSaveScript}
               registerSave={registerEditorSave}
               onShowToast={onShowToast}
@@ -2578,6 +2725,29 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             pushedVersionId={currentChapter.lastSubmittedVersionId}
             refreshKey={versionsTick}
             onClose={() => setActiveSideDrawer(null)}
+          />
+        )}
+
+        {/* 5. Danh sách thực thể chương (Chapter Cast) (BIB-16) */}
+        {currentChapter?.id && (
+          <ChapterCastDrawer
+            isOpen={activeSideDrawer === 'cast'}
+            onClose={() => setActiveSideDrawer(null)}
+            chapterId={currentChapter.id}
+            seriesId={seriesId || currentChapter.seriesId}
+            canEditScript={canEditScript}
+            chapterNumber={currentChapter.chapterNumber}
+            chapterTitle={currentChapter.title}
+            chapterCast={chapterCast}
+            isLoading={loadingCast}
+            onRefreshCast={() => loadChapterCast(currentChapter.id)}
+            onJumpToLine={(lineId) => setActiveCommentLineId(lineId)}
+            onJumpToPanel={(pageNo, panNo) =>
+              setActivePanelJump({ pageNumber: pageNo, panelNumber: panNo })
+            }
+            onOpenPanelStageModal={() => setIsPanelStageModalOpen(true)}
+            onShowToast={notify}
+            t={t}
           />
         )}
       </div>
@@ -3131,6 +3301,24 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </div>
         </div>
       )}
+      {/* Modal Đặt giai đoạn theo Panel (BIB-16 & 5, Q24) */}
+      <SetPanelStageModal
+        isOpen={isPanelStageModalOpen}
+        onClose={() => setIsPanelStageModalOpen(false)}
+        pages={chapterPages.map((p) => ({
+          pageNumber: p.pageNumber,
+          panels: chapterPanels
+            .filter((pan) => pan.pageId === p.id)
+            .map((pan) => ({ panelNumber: pan.panelNumber })),
+        }))}
+        entities={chapterCast?.entities || []}
+        onApply={(pNo, panNo, castRevs) => {
+          if (setPanelStageRef.current) {
+            setPanelStageRef.current(pNo, panNo, castRevs);
+          }
+        }}
+        t={t}
+      />
     </div>
   );
 };

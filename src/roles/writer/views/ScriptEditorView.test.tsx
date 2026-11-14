@@ -63,6 +63,21 @@ vi.mock('@/services/series.service', () => ({
   },
 }));
 
+vi.mock('@/services/chapterCast.service', () => ({
+  chapterCastService: {
+    getChapterCast: vi.fn().mockResolvedValue({
+      chapterId: 'chap-1',
+      entries: [],
+      submitGate: { isPassed: true, blockers: [] },
+      gate: { isPassed: true, blockers: [] },
+    }),
+    setChapterCastRevision: vi.fn(),
+    setBibleEntryCrowd: vi.fn(),
+    defineBibleEntry: vi.fn(),
+    cancelReplacementRevision: vi.fn(),
+  },
+}));
+
 vi.mock('@/services/assignment.service', () => ({
   assignmentService: {
     runConsistencyCheck: vi.fn(),
@@ -437,7 +452,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
   });
 
-  it('Producer luôn có toàn quyền sửa kịch bản dù chương đã giao cho Writer khác', async () => {
+  it('Producer chỉ xem kịch bản theo SCR-11, không có quyền sửa kịch bản', async () => {
     vi.mocked(assignmentService.getAssignments).mockResolvedValue([
       {
         id: 'as-1',
@@ -457,9 +472,8 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     renderView({ workspaceRole: 'PRODUCER', currentUserId: 'producer-id' });
 
-    expect(await screen.findByTestId('open-add-line-btn')).toBeInTheDocument();
-    expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('role-view-only-banner')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('role-view-only-banner')).toBeInTheDocument();
+    expect(screen.queryByTestId('open-add-line-btn')).not.toBeInTheDocument();
   });
 
   it('bắt lỗi 403 Forbidden khi tạo dòng kịch bản và hiển thị thông báo lỗi', async () => {

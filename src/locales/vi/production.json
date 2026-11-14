@@ -121,6 +121,7 @@
       "import": "Nhập",
       "ai": "Trợ lý AI",
       "history": "Lịch sử",
+      "chapterCast": "Thực thể",
       "bibleGate": "Bible Gate",
       "label": "Công cụ biên kịch"
     },
@@ -208,7 +209,31 @@
     "save": {
       "unlistedTitle": "Có trang không còn trong kịch bản",
       "unlistedDesc": "Trang {pages} vẫn còn trên Bàn vẽ nhưng kịch bản không nhắc tới. Trang không bị xoá; báo Producer hoặc Artist nếu cần bỏ.",
-      "structureFailed": "Đã lưu lời thoại, chưa lưu được khung Trang / Panel"
+      "structureFailed": "Đã lưu lời thoại, chưa lưu được khung Trang / Panel",
+      "lostRefsWarning": "Cảnh báo tham chiếu Series Bible"
+    },
+    "cast": {
+      "referenceTitle": "Tham chiếu Series Bible",
+      "searchPlaceholder": "Tìm tên hoặc bí danh...",
+      "noMatchingEntry": "Không tìm thấy mục trùng khớp",
+      "createDraftType": "Loại bản nháp:",
+      "createDraftBtn": "Tạo bản nháp cho",
+      "removeRef": "Gỡ",
+      "drawerTitle": "Thực thể chương",
+      "submitBlockedTitle": "Chặn Gửi duyệt do vướng mắc Bible",
+      "startBlockedTitle": "Chặn Bắt đầu sản xuất do vướng mắc Gate 1",
+      "submitBlockedBanner": "Chưa thể gửi duyệt",
+      "startBlockedBanner": "Chưa thể bắt đầu sản xuất",
+      "viewCast": "Xem thực thể",
+      "search": "Tìm thực thể trong chương...",
+      "willCreateDraft": "Sẽ tạo bản nháp",
+      "panelStageTitle": "Đặt giai đoạn riêng cho Panel",
+      "panelStageDesc": "Dùng tạo hình khác (hồi tưởng, biến thân) riêng cho Panel này",
+      "selectPanel": "Chọn Trang & Panel",
+      "selectEntity": "Thực thể Series Bible",
+      "selectRevision": "Bản tạo hình / Biến thể",
+      "clearPanelStage": "Gỡ giai đoạn riêng",
+      "setPanelStageBtn": "Đặt giai đoạn theo Panel"
     },
     "paper": {
       "hint": "Cứ viết. Enter xuống dòng · gõ \"Tên:\" để viết lời thoại · Tab đổi loại dòng"

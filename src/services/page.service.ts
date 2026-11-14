@@ -107,10 +107,16 @@ export const toValidPageGuid = (id?: string): string => {
 // Fallback mock pages (empty)
 export const MOCK_PAGES: PageDto[] = [];
 
+export interface ScriptStructurePanel {
+  panelNumber: number;
+  scriptLineIds: string[];
+  castRevisions?: { bibleEntryId: string; revisionId: string }[];
+}
+
 /** Body/kết quả của PUT /chapters/{id}/script-structure (SyncScriptStructureCommand) */
 export interface ScriptStructurePage {
   pageNumber: number;
-  panels: { panelNumber: number; scriptLineIds: string[] }[];
+  panels: ScriptStructurePanel[];
 }
 
 export interface SyncScriptStructureResult {

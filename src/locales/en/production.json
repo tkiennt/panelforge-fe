@@ -121,6 +121,7 @@
       "import": "Import",
       "ai": "AI assist",
       "history": "History",
+      "chapterCast": "Cast",
       "bibleGate": "Bible Gate",
       "label": "Writer tools"
     },
@@ -208,7 +209,31 @@
     "save": {
       "unlistedTitle": "Some pages are no longer in the script",
       "unlistedDesc": "Page {pages} still exists on the Artist desk but the script no longer mentions it. It was not deleted; ask the Producer or Artist to remove it if needed.",
-      "structureFailed": "Lines saved, but the Page / Panel structure was not"
+      "structureFailed": "Lines saved, but the Page / Panel structure was not",
+      "lostRefsWarning": "Series Bible reference warning"
+    },
+    "cast": {
+      "referenceTitle": "Reference Series Bible",
+      "searchPlaceholder": "Search name or alias...",
+      "noMatchingEntry": "No matching entry found",
+      "createDraftType": "Draft type:",
+      "createDraftBtn": "Create draft for",
+      "removeRef": "Remove",
+      "drawerTitle": "Chapter Cast",
+      "submitBlockedTitle": "Submit blocked by Bible issues",
+      "startBlockedTitle": "Start production blocked by Gate 1",
+      "submitBlockedBanner": "Cannot submit for review yet",
+      "startBlockedBanner": "Cannot start production yet",
+      "viewCast": "View cast",
+      "search": "Search chapter entities...",
+      "willCreateDraft": "Will create draft",
+      "panelStageTitle": "Set panel stage",
+      "panelStageDesc": "Use a different variant (flashback, alternate form) for this panel",
+      "selectPanel": "Select Page & Panel",
+      "selectEntity": "Series Bible entity",
+      "selectRevision": "Visual revision / variant",
+      "clearPanelStage": "Clear panel stage",
+      "setPanelStageBtn": "Set panel stage"
     },
     "paper": {
       "hint": "Just write. Enter for a new line · type \"Name:\" for dialogue · Tab changes the line type"

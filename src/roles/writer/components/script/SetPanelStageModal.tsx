@@ -1,0 +1,229 @@
+// src/roles/writer/components/script/SetPanelStageModal.tsx
+import React, { useState } from 'react';
+import { X, Layers, User, Check, Trash2 } from 'lucide-react';
+import { ChapterCastItemDto } from '@/services/chapterCast.service';
+
+interface SetPanelStageModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  pages: { pageNumber: number; panels: { panelNumber: number }[] }[];
+  entities: ChapterCastItemDto[];
+  onApply: (
+    pageNumber: number,
+    panelNumber: number,
+    castRevisions:
+      | {
+          bibleEntryId: string;
+          revisionId: string;
+          entryName: string;
+          variantLabel?: string;
+          versionNumber: number;
+        }[]
+      | null,
+  ) => void;
+  t: (key: string, defaultVal?: string) => string;
+}
+
+export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
+  isOpen,
+  onClose,
+  pages,
+  entities,
+  onApply,
+  t,
+}) => {
+  const [selectedPageNo, setSelectedPageNo] = useState<number>(pages[0]?.pageNumber || 1);
+  const [selectedPanelNo, setSelectedPanelNo] = useState<number>(1);
+  const [selectedEntryId, setSelectedEntryId] = useState<string>(entities[0]?.bibleEntryId || '');
+  const [selectedRevId, setSelectedRevId] = useState<string>('');
+
+  if (!isOpen) return null;
+
+  const currentEntity = entities.find((e) => e.bibleEntryId === selectedEntryId);
+  const availableRevisions = currentEntity?.availableRevisions || [];
+
+  const handleApply = () => {
+    if (!currentEntity || !selectedRevId) return;
+    const rev = availableRevisions.find((r) => r.revisionId === selectedRevId);
+    if (!rev) return;
+
+    onApply(selectedPageNo, selectedPanelNo, [
+      {
+        bibleEntryId: currentEntity.bibleEntryId,
+        revisionId: rev.revisionId,
+        entryName: currentEntity.name,
+        variantLabel: rev.variantLabel || `v${rev.versionNumber}`,
+        versionNumber: rev.versionNumber,
+      },
+    ]);
+    onClose();
+  };
+
+  const handleClear = () => {
+    onApply(selectedPageNo, selectedPanelNo, null);
+    onClose();
+  };
+
+  return (
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150'>
+      <div className='w-full max-w-md bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col text-stone-900'>
+        {/* Header */}
+        <div className='p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/60'>
+          <div className='flex items-center gap-2'>
+            <div className='p-2 rounded-xl bg-orange-100/70 text-orange-600 border border-orange-200/50'>
+              <Layers className='w-4 h-4' />
+            </div>
+            <div>
+              <h3 className='text-sm font-bold font-serif text-stone-900'>
+                {t('scriptStudio.cast.panelStageTitle', 'Đặt giai đoạn riêng cho Panel')}
+              </h3>
+              <p className='text-[11px] text-stone-500'>
+                {t(
+                  'scriptStudio.cast.panelStageDesc',
+                  'Dùng tạo hình khác (hồi tưởng, biến thân) riêng cho Panel này',
+                )}
+              </p>
+            </div>
+          </div>
+          <button
+            type='button'
+            onClick={onClose}
+            className='p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer transition-colors'
+          >
+            <X className='w-4 h-4' />
+          </button>
+        </div>
+
+        {/* Form Body */}
+        <div className='p-5 space-y-4 text-xs'>
+          {/* 1. Chọn Trang & Panel */}
+          <div>
+            <label className='font-semibold text-stone-700 block mb-1.5'>
+              {t('scriptStudio.cast.selectPanel', 'Chọn Trang & Panel')}
+            </label>
+            <div className='grid grid-cols-2 gap-2'>
+              <div>
+                <span className='text-[10px] text-stone-400 block mb-0.5'>Trang:</span>
+                <select
+                  value={selectedPageNo}
+                  onChange={(e) => {
+                    const pNo = Number(e.target.value);
+                    setSelectedPageNo(pNo);
+                    setSelectedPanelNo(1);
+                  }}
+                  className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
+                >
+                  {pages.map((p) => (
+                    <option key={p.pageNumber} value={p.pageNumber}>
+                      Trang {p.pageNumber}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <span className='text-[10px] text-stone-400 block mb-0.5'>Panel:</span>
+                <select
+                  value={selectedPanelNo}
+                  onChange={(e) => setSelectedPanelNo(Number(e.target.value))}
+                  className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
+                >
+                  {Array.from(
+                    {
+                      length:
+                        pages.find((p) => p.pageNumber === selectedPageNo)?.panels.length || 1,
+                    },
+                    (_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        Panel {i + 1}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Chọn Thực thể */}
+          <div>
+            <label className='font-semibold text-stone-700 block mb-1.5'>
+              {t('scriptStudio.cast.selectEntity', 'Thực thể Series Bible')}
+            </label>
+            <select
+              value={selectedEntryId}
+              onChange={(e) => {
+                setSelectedEntryId(e.target.value);
+                setSelectedRevId('');
+              }}
+              className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
+            >
+              <option value=''>-- Chọn thực thể --</option>
+              {entities.map((e) => (
+                <option key={e.bibleEntryId} value={e.bibleEntryId}>
+                  {e.name} ({e.code || 'BIBLE'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Chọn Bản / Biến thể */}
+          {selectedEntryId && (
+            <div>
+              <label className='font-semibold text-stone-700 block mb-1.5'>
+                {t('scriptStudio.cast.selectRevision', 'Bản tạo hình / Biến thể')}
+              </label>
+              {availableRevisions.length === 0 ? (
+                <p className='text-stone-400 italic py-1'>Mục này chưa có bản tạo hình nào.</p>
+              ) : (
+                <select
+                  value={selectedRevId}
+                  onChange={(e) => setSelectedRevId(e.target.value)}
+                  className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
+                >
+                  <option value=''>-- Chọn bản --</option>
+                  {availableRevisions.map((r) => (
+                    <option key={r.revisionId} value={r.revisionId}>
+                      v{r.versionNumber} · {r.variantLabel || 'Mặc định'} (
+                      {r.isCanonLocked ? 'CanonLocked' : r.status})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className='p-4 border-t border-stone-100 bg-stone-50/40 flex items-center justify-between gap-2'>
+          <button
+            type='button'
+            onClick={handleClear}
+            className='px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors'
+          >
+            <Trash2 className='w-3.5 h-3.5' />
+            {t('scriptStudio.cast.clearPanelStage', 'Gỡ giai đoạn riêng')}
+          </button>
+
+          <div className='flex items-center gap-2'>
+            <button
+              type='button'
+              onClick={onClose}
+              className='px-3 py-2 rounded-xl border border-stone-200 hover:bg-stone-100 text-stone-600 text-xs font-semibold cursor-pointer transition-colors'
+            >
+              {t('common.cancel', 'Huỷ')}
+            </button>
+            <button
+              type='button'
+              disabled={!selectedEntryId || !selectedRevId}
+              onClick={handleApply}
+              className='px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+            >
+              <Check className='w-3.5 h-3.5' />
+              {t('common.apply', 'Áp dụng')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
