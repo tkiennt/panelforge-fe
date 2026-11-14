@@ -197,23 +197,6 @@ export const bibleService = {
     }
   },
 
-  async deleteEra(
-    seriesId: string,
-    entryId: string,
-    chapterNumber: number,
-    stageName?: string | null,
-  ): Promise<void> {
-    try {
-      const query = new URLSearchParams({ chapterNumber: chapterNumber.toString() });
-      if (stageName) query.append('stageName', stageName);
-      await axiosClient.delete(
-        `/series/${seriesId}/bible/entries/${entryId}/eras?${query.toString()}`,
-      );
-    } catch (error) {
-      throw extractError(error, 'Không thể xóa thời kỳ.');
-    }
-  },
-
   async getBibleEntriesAtChapter(
     seriesId: string,
     chapterNumber: number,
@@ -316,17 +299,6 @@ export const bibleService = {
   },
 
   /**
-   * V2.6 (Q20): Forward to confirmRevision (Editor xác nhận = khoá Canon).
-   */
-  async lockRevision(
-    seriesId: string,
-    entryId: string,
-    revisionId: string,
-  ): Promise<BibleEntryRevisionDto> {
-    return this.confirmRevision(seriesId, entryId, revisionId);
-  },
-
-  /**
    * Producer thay thế một bản đã khoá (POST .../revisions/{revisionId}/supersede): tạo bản mới cùng chương, khoá luôn.
    * Bản cũ giữ nguyên trong lịch sử, không có thao tác mở khoá (V1.2).
    */
@@ -376,18 +348,6 @@ export const bibleService = {
     } catch (error) {
       throw extractError(error, 'Không thể nộp bản vẽ Concept Art.');
     }
-  },
-
-  /**
-   * V2.6 (Q20): Forward to confirmRevision (Editor xác nhận = khoá Canon).
-   */
-  async endorseRevision(
-    seriesId: string,
-    entryId: string,
-    revisionId: string,
-    data?: EndorseBibleRevisionRequest,
-  ): Promise<BibleEntryRevisionDto> {
-    return this.confirmRevision(seriesId, entryId, revisionId);
   },
 
   /**
@@ -598,11 +558,6 @@ export interface SubmitConceptArtRequest {
   effectiveToChapterNumber?: number;
   expectedVersionNumber?: number;
   revisionId?: string;
-}
-
-export interface EndorseBibleRevisionRequest {
-  note?: string;
-  endorsementNote?: string;
 }
 
 export interface RequestReworkBibleRevisionRequest {

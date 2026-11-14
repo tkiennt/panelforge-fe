@@ -8,7 +8,8 @@ import {
   Unlock,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import type { ChapterBibleGateResultDto, ChapterDto } from '@/services/chapter.service';
+import type { ChapterDto } from '@/services/chapter.service';
+import type { ChapterCastDto } from '@/services/chapterCast.service';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { anchorKey } from '@/shared/features/script-review/scriptReviewModel';
 import { OPEN_FINDING_STATUSES, isAiFinding } from '@/shared/features/script-review/reviewModel';
@@ -18,7 +19,7 @@ export type FindingDecision = 'Confirmed' | 'Rejected' | 'Ignored' | 'NeedsClari
 
 interface ChecksTabProps {
   chapter: ChapterDto;
-  bibleGate: ChapterBibleGateResultDto | null;
+  cast: ChapterCastDto | null;
   findings: ConsistencyFindingDto[];
   locateLabel: (sceneId: string | null | undefined, lineId: string | null | undefined) => string;
   onSelectAnchor: (key: string) => void;
@@ -46,7 +47,7 @@ const SEVERITY_BADGE: Record<string, string> = {
 
 export const ChecksTab: React.FC<ChecksTabProps> = ({
   chapter,
-  bibleGate,
+  cast,
   findings,
   locateLabel,
   onSelectAnchor,
@@ -68,14 +69,13 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
 
   const openFindings = findings.filter((f) => OPEN_FINDING.has(String(f.status)));
   const blockingOpen = openFindings.filter((f) => String(f.severity) === 'Blocking').length;
-  // Một mục Bible có thể vừa là người nói vừa được liên kết: gộp theo id để không lặp
-  const pendingEntities = [
-    ...new Map(
-      (bibleGate?.items ?? []).filter((i) => !i.isLocked).map((i) => [i.bibleEntryId, i]),
-    ).values(),
-  ];
+
   const isFrozen = chapter.isScriptFrozen === true;
-  const freezeBlocked = bibleGate && !bibleGate.isPassed;
+  const isGatePassed = cast?.gate?.canStart ?? false;
+  const blockers = cast?.gate?.blockers ?? [];
+  const freezeBlocked = Boolean(cast && !isGatePassed);
+  const totalEntities = cast?.entities?.length ?? 0;
+  const passedEntitiesCount = Math.max(0, totalEntities - blockers.length);
 
   return (
     <div className='space-y-6 p-4'>
@@ -84,31 +84,31 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
         <h3 className='text-sm font-semibold text-stone-800'>
           {t('scriptReview.checks.bibleTitle')}
         </h3>
-        {!bibleGate ? (
+        {!cast ? (
           <p className='mt-1 text-xs text-stone-500'>{t('scriptReview.checks.bibleUnavailable')}</p>
         ) : (
           <>
             <p
               className={`mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium ${
-                bibleGate.isPassed ? 'text-emerald-800' : 'text-rose-800'
+                isGatePassed ? 'text-emerald-800' : 'text-rose-800'
               }`}
             >
-              {bibleGate.isPassed ? (
+              {isGatePassed ? (
                 <CheckCircle2 className='h-3.5 w-3.5' aria-hidden='true' />
               ) : (
                 <AlertTriangle className='h-3.5 w-3.5' aria-hidden='true' />
               )}
-              {bibleGate.isPassed
-                ? t('scriptReview.checks.biblePassed', { count: bibleGate.lockedCount })
-                : t('scriptReview.checks.bibleFailed', { count: bibleGate.pendingCount })}
+              {isGatePassed
+                ? t('scriptReview.checks.biblePassed', { count: passedEntitiesCount })
+                : t('scriptReview.checks.bibleFailed', { count: blockers.length })}
             </p>
-            {pendingEntities.length > 0 && (
+            {blockers.length > 0 && (
               <ul className='mt-2 divide-y divide-stone-100 rounded-lg border border-stone-200/80 bg-white'>
-                {pendingEntities.map((e) => (
-                  <li key={e.bibleEntryId} className='px-3 py-2'>
-                    <p className='text-sm font-medium text-stone-900'>{e.name}</p>
+                {blockers.map((b) => (
+                  <li key={`${b.bibleEntryId}-${b.revisionId ?? ''}`} className='px-3 py-2'>
+                    <p className='text-sm font-medium text-stone-900'>{b.entryName}</p>
                     <p className='text-xs text-stone-500'>
-                      {e.warningMessage ?? t('scriptReview.checks.notLocked')}
+                      {b.reason || b.sourceExplanation || t('scriptReview.checks.notLocked')}
                     </p>
                   </li>
                 ))}

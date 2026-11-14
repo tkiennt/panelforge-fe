@@ -247,12 +247,11 @@ Tiếng còi cảnh sát vang lên từ xa.
     expect(blocks.filter((b) => b.type === 'dialogue')).toHaveLength(0);
   });
 
-  it('gán speakerCharacterId theo tên Bible, không phân biệt hoa thường và dấu', () => {
+  it('gán speakerName theo tên Bible, không phân biệt hoa thường và dấu', () => {
     const nodes = convertScriptTextToScreenplayBlocks('Trang 1\nPanel 1\nMINH: Chạy mau!', {
       characters: [{ id: 'chr-minh', name: 'Minh', code: 'CHR-01' }],
     });
     const dialogue = nodes.find((n) => n.attrs.blockType === 'dialogue');
-    expect(dialogue.attrs.speakerCharacterId).toBe('chr-minh');
     expect(dialogue.attrs.speakerName).toBe('Minh');
     expect(dialogue.attrs.pageNumber).toBe(1);
     expect(dialogue.attrs.panelNumber).toBe(1);
@@ -271,19 +270,19 @@ Tiếng còi cảnh sát vang lên từ xa.
           ...base,
           scriptLineId: 'a',
           dialogueText: 'NARUTO: "Tớ sẽ thành Hokage!"',
-          speakerCharacterId: null,
+          speakerLabel: null,
         },
         {
           ...base,
           scriptLineId: 'b',
           dialogueText: '@Sasuke : "..."',
-          speakerCharacterId: 'chr-picked',
+          speakerLabel: 'Sasuke',
         },
         {
           ...base,
           scriptLineId: 'c',
           dialogueText: 'Ai đó: "Không có trong Bible"',
-          speakerCharacterId: null,
+          speakerLabel: null,
         },
       ],
       [
@@ -291,6 +290,6 @@ Tiếng còi cảnh sát vang lên từ xa.
         { id: 'chr-sasuke', name: 'Sasuke' },
       ],
     );
-    expect(lines.map((l) => l.speakerCharacterId)).toEqual(['chr-naruto', 'chr-picked', null]);
+    expect(lines.map((l) => l.speakerLabel)).toEqual(['Naruto', 'Sasuke', null]);
   });
 });

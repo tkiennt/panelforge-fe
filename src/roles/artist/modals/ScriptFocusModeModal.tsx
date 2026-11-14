@@ -365,9 +365,7 @@ export const ScriptFocusModeModal: React.FC<ScriptFocusModeModalProps> = ({
                 const filteredLines = rawLines.filter((l) => {
                   if (!searchQuery.trim()) return true;
                   const q = searchQuery.toLowerCase().trim();
-                  const charName = l.speakerCharacterId
-                    ? bibleEntryById[l.speakerCharacterId]?.name || ''
-                    : '';
+                  const charName = l.speakerLabel || '';
                   return (
                     (l.dialogueText && l.dialogueText.toLowerCase().includes(q)) ||
                     (l.stageDirection && l.stageDirection.toLowerCase().includes(q)) ||
@@ -441,15 +439,17 @@ export const ScriptFocusModeModal: React.FC<ScriptFocusModeModalProps> = ({
                       ) : (
                         filteredLines.map((line) => {
                           const hasDialogue = Boolean(
-                            line.speakerCharacterId || line.dialogueText?.trim(),
+                            line.speakerLabel || line.dialogueText?.trim(),
                           );
                           const hasDirection = Boolean(line.stageDirection?.trim());
-                          const bibleEntry = line.speakerCharacterId
-                            ? bibleEntryById[line.speakerCharacterId]
+                          const characterName = line.speakerLabel || 'Lời thoại';
+                          const bibleEntry = line.speakerLabel
+                            ? bibleEntries.find(
+                                (e) => e.name === line.speakerLabel || e.id === line.speakerLabel,
+                              ) ||
+                              bibleEntryById[line.speakerLabel] ||
+                              null
                             : null;
-                          const characterName =
-                            bibleEntry?.name ||
-                            (line.speakerCharacterId ? 'Nhân vật' : 'Lời thoại');
 
                           // Tìm panel và page được gán
                           const assignedPanel = line.panelId ? panelById[line.panelId] : null;

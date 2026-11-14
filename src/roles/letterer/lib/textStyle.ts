@@ -161,15 +161,17 @@ export function classifyScriptLine(
   line: {
     dialogueText?: string | null;
     stageDirection?: string | null;
-    speakerCharacterId?: string | null;
     speakerName?: string | null;
+    speakerLabel?: string | null;
     narrationMode?: string | null;
   },
   toolMode: string = 'bubble',
 ): ScriptLineClassification {
   const rawDialogue = (line.dialogueText ?? '').trim();
-  const speakerName = (line as { speakerName?: string | null }).speakerName;
-  const hasSpeaker = Boolean(line.speakerCharacterId || speakerName);
+  const speakerName =
+    (line as { speakerName?: string | null; speakerLabel?: string | null }).speakerName ||
+    (line as any).speakerLabel;
+  const hasSpeaker = Boolean(speakerName);
 
   // SFX: dialogueText bắt đầu bằng 'SFX:' (case-insensitive)
   if (/^sfx\s*:/i.test(rawDialogue)) {

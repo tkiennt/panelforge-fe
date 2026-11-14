@@ -40,9 +40,7 @@ export interface SceneScriptLineSummaryDto {
   text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
-  speakerCharacterId?: string | null;
   panelId?: string | null;
-  bibleEntryIds?: string[];
   narrationMode?: NarrationMode;
 }
 
@@ -72,13 +70,11 @@ export interface ScriptLineDto {
   kind?: ScriptLineKind | number | string;
   speakerLabel?: string | null;
   text?: string | null;
-  speakerCharacterId?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
   panelId?: string | null;
   chapterVersion: number;
   revisionId: string;
-  bibleEntryIds?: string[];
   replayed?: boolean;
   narrationMode?: NarrationMode;
 }
@@ -109,10 +105,8 @@ export interface CreateScriptLineRequest {
   text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
-  speakerCharacterId?: string | null;
   lineOrder?: number | null;
   expectedChapterVersion?: number | null;
-  bibleEntryIds?: string[] | null;
   clientLineId?: string | null;
   narrationMode?: NarrationMode | null;
 }
@@ -123,9 +117,7 @@ export interface UpdateScriptLineRequest {
   text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
-  speakerCharacterId?: string | null;
   expectedChapterVersion?: number | null;
-  bibleEntryIds?: string[] | null;
   narrationMode?: NarrationMode | null;
 }
 
@@ -151,8 +143,6 @@ export interface BatchScriptLineItem {
   text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
-  speakerCharacterId?: string | null;
-  bibleEntryIds?: string[] | null;
   narrationMode?: NarrationMode | null;
   clientLineId?: string | null;
   panelId?: string | null;
@@ -177,7 +167,7 @@ export interface BatchSaveScriptLinesResult {
 export interface ScriptRevisionLineDto {
   lineId: string;
   lineOrder: number;
-  speakerCharacterId?: string | null;
+  speakerLabel?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
 }
@@ -429,33 +419,7 @@ export const scriptLineService = {
       throw extractError(error, 'Không thể khôi phục phiên bản kịch bản.');
     }
   },
-
-  /**
-   * V2.5: Gắn liên kết @-mentions từ kịch bản vào Series Bible (POST /api/chapters/{chapterId}/script-lines/{lineId}/bible-links)
-   */
-  async linkBibleEntries(
-    chapterId: string,
-    lineId: string,
-    mentions: ScriptMentionItemDto[],
-  ): Promise<ScriptLineBibleLinkDto[]> {
-    try {
-      const response = await axiosClient.post(
-        `/chapters/${chapterId}/script-lines/${lineId}/bible-links`,
-        { mentions },
-      );
-      return response.data;
-    } catch (error) {
-      throw extractError(error, 'Không thể liên kết thực thể Bible với dòng kịch bản.');
-    }
-  },
 };
-
-export interface ScriptMentionItemDto {
-  bibleEntryId?: string | null;
-  rawText?: string | null;
-  categoryHint?: string | null;
-  resolvedRevisionId?: string | null;
-}
 
 export interface ScriptLineBibleLinkDto {
   id: string;

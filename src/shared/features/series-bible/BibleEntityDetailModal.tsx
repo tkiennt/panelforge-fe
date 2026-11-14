@@ -207,13 +207,11 @@ interface BibleEntityDetailModalProps {
     isResubmit?: boolean,
     isNewEra?: boolean,
   ) => void;
-  onEndorseRevision?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => Promise<void>;
   onRequestRework?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => void;
-  onLockRevision?: (rev: BibleEntryRevisionDto) => Promise<void>;
+  onConfirmCanon?: (rev: BibleEntryRevisionDto) => Promise<void>;
   onShowToast: (title: string, desc: string) => void;
   onZoomImage: (image: { url: string; title: string }) => void;
   onDeleteRevision?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => Promise<void>;
-  onDeleteEra?: (entity: BibleEntity, stage: CharacterEraStage) => Promise<void>;
   /** Danh sách mục của Bible để chuyển nhanh sang mục cùng danh mục ở sidebar. */
   entities?: BibleEntity[];
   onSelectEntity?: (entity: BibleEntity) => void;
@@ -232,13 +230,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   onClose,
   onOpenHistory,
   onOpenAddRevision,
-  onEndorseRevision,
   onRequestRework,
-  onLockRevision,
+  onConfirmCanon,
   onShowToast,
   onZoomImage,
   onDeleteRevision,
-  onDeleteEra,
   entities = [],
   onSelectEntity,
 }) => {
@@ -260,7 +256,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       ? [latestSavedRevision]
       : [];
   });
-  const [isEndorsing, setIsEndorsing] = useState(false);
   const [isLocking, setIsLocking] = useState(false);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(() => {
     return latestSavedRevision && latestSavedRevision.bibleEntryId === entity.id
@@ -915,21 +910,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     return () => window.removeEventListener('paste', handlePaste);
   }, [canCreateDraft, entity, activeRevision, onOpenAddRevision, onShowToast]);
 
-  const handleEndorse = async (rev: BibleEntryRevisionDto) => {
-    if (!onEndorseRevision) return;
-    setIsEndorsing(true);
-    try {
-      await onEndorseRevision(entity, rev);
-      setAllRevisions((prev) =>
-        prev.map((r) =>
-          r.id === rev.id ? { ...r, isLocked: true, reviewStatus: 'CanonLocked' } : r,
-        ),
-      );
-    } finally {
-      setIsEndorsing(false);
-    }
-  };
-
   const handleRequestRework = (rev: BibleEntryRevisionDto) => {
     if (!onRequestRework) return;
     onRequestRework(entity, rev);
@@ -939,10 +919,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   };
 
   const handleLock = async (rev: BibleEntryRevisionDto) => {
-    if (!onLockRevision) return;
+    if (!onConfirmCanon) return;
     setIsLocking(true);
     try {
-      await onLockRevision(rev);
+      await onConfirmCanon(rev);
       setAllRevisions((prev) =>
         prev.map((r) =>
           r.id === rev.id ? { ...r, isLocked: true, reviewStatus: 'CanonLocked' } : r,
@@ -1800,9 +1780,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             <button
                               type='button'
                               disabled={
-                                isEndorsing || activeRevision.reviewStatus === 'ReworkRequired'
+                                isLocking || activeRevision.reviewStatus === 'ReworkRequired'
                               }
-                              onClick={() => void handleEndorse(activeRevision)}
+                              onClick={() => void handleLock(activeRevision)}
                               className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-xs transition-all ${
                                 activeRevision.reviewStatus === 'ReworkRequired'
                                   ? 'bg-stone-200 text-stone-500 cursor-not-allowed opacity-60'
@@ -1818,7 +1798,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               <span className='inline-flex items-center gap-1.5'>
                                 <CheckCircle2 className='w-3.5 h-3.5' />
                                 <span>
-                                  {isEndorsing ? 'Đang xác nhận...' : 'Xác nhận & khoá Canon'}
+                                  {isLocking ? 'Đang xác nhận...' : 'Xác nhận & khoá Canon'}
                                 </span>
                               </span>
                             </button>
@@ -1831,7 +1811,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             disabled={
                               activeRevision.isLocked ||
                               activeRevision.reviewStatus === 'CanonLocked' ||
-                              isEndorsing
+                              isLocking
                             }
                             onClick={() => handleRequestRework(activeRevision)}
                             className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all ${

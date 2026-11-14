@@ -763,7 +763,7 @@ describe('LetteringWorkspace', () => {
         sceneNumber: 1,
         createdAt: '2026-10-08T00:00:00Z',
         scriptLines: [
-          { id: 'line-9', lineOrder: 1, dialogueText: 'Tôi đây!', speakerCharacterId: 'char-1' },
+          { id: 'line-9', lineOrder: 1, dialogueText: 'Tôi đây!', speakerLabel: 'Ren' },
         ],
       });
       vi.mocked(elementService.addElement).mockResolvedValueOnce({
@@ -1327,7 +1327,7 @@ describe('LetteringWorkspace', () => {
             id: 'line-speech-1',
             lineOrder: 2,
             dialogueText: 'Tìm thấy rồi!',
-            speakerCharacterId: 'char-1',
+            speakerLabel: 'Ren',
           },
         ],
       });
@@ -1370,7 +1370,7 @@ describe('LetteringWorkspace', () => {
             id: 'line-spk-1',
             lineOrder: 2,
             dialogueText: 'Ai đó?!',
-            speakerCharacterId: 'char-1',
+            speakerLabel: 'Ren',
             panelId: 'panel-1',
           },
           {

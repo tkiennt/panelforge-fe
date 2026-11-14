@@ -60,10 +60,6 @@ export interface ArtistDeskViewProps {
   initialSidebarTab?: CanvaSidebarTab;
 }
 
-interface RawLoadedScriptLine extends ScriptLineItem {
-  speakerCharacterId?: string | null;
-}
-
 /**
  * Artist desk: script and bible reference on the left, a B5 manga sheet in the centre,
  * the page filmstrip along the bottom. Stage submission lives in the focus header.
@@ -106,7 +102,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [chapterAssignments, setChapterAssignments] = useState<AssignmentDto[]>([]);
 
   // Dữ liệu thực tế từ Backend cho Kịch bản & Hồ sơ truyện
-  const [rawScriptLines, setRawScriptLines] = useState<RawLoadedScriptLine[] | undefined>(
+  const [rawScriptLines, setRawScriptLines] = useState<ScriptLineItem[] | undefined>(
     initialScriptLines,
   );
   const [hasLoadedRealScript, setHasLoadedRealScript] = useState(false);
@@ -369,7 +365,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               : Promise.resolve(null),
           ),
         );
-        const combined: RawLoadedScriptLine[] = [];
+        const combined: ScriptLineItem[] = [];
         sceneDetails.forEach((detail, idx) => {
           const sc = sortedScenes[idx];
           const rawLines = detail?.scriptLines || [];
@@ -388,8 +384,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 sc.sceneName ||
                 `Phân cảnh ${sc.sceneNumber}`,
               sceneSlugline: detail?.slugline || sc.slugline || undefined,
-              speakerCharacterId: l.speakerCharacterId,
-              characterName: l.characterName,
+              characterName: l.characterName || (l as any).speakerLabel,
               characterColor: l.characterColor,
               dialogueText: l.dialogueText ?? l.content ?? undefined,
               stageDirection: l.stageDirection ?? l.actionDescription ?? undefined,
@@ -846,7 +841,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // Đồng bộ các dòng kịch bản với Trang, Khung và Tên/Màu nhân vật từ Hồ sơ truyện
   const resolvedScriptLines = useMemo(() => {
     if (!hasLoadedRealScript && !initialScriptLines) return undefined;
-    const source: RawLoadedScriptLine[] | undefined = rawScriptLines || initialScriptLines;
+    const source: ScriptLineItem[] | undefined = rawScriptLines || initialScriptLines;
     if (!source) return undefined;
 
     const sceneToPageMap = new Map<string, number>();
@@ -861,27 +856,24 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       const resolvedPageNum =
         fromPanel?.pageNumber ??
         line.pageNumber ??
-        (line.sceneId ? sceneToPageMap.get(line.sceneId) : undefined) ??
-        1;
-      const resolvedPanelNum = fromPanel?.panelNumber ?? line.panelNumber ?? 1;
+        (line.sceneId ? sceneToPageMap.get(line.sceneId) : undefined);
+      const resolvedPanelNum = fromPanel?.panelNumber ?? line.panelNumber;
 
       // Phân tích người nói và nội dung hội thoại
       const rawText = (line.dialogueText || line.stageDirection || '').trim();
       let speaker = (line.characterName || '').trim();
+      if (speaker && characterById.has(speaker)) {
+        speaker = characterById.get(speaker)!.name;
+      }
       let cleanText = rawText;
 
-      // 1. Tra cứu theo speakerCharacterId trong bản đồ nhân vật
-      if (!speaker && line.speakerCharacterId && characterById.has(line.speakerCharacterId)) {
-        speaker = characterById.get(line.speakerCharacterId)!.name;
-      }
-
-      // 2. Tách cú pháp @TênNhânVật: "Lời thoại" hoặc @Tên: Lời thoại
+      // 1. Tách cú pháp @TênNhânVật: "Lời thoại" hoặc @Tên: Lời thoại
       const atMatch = rawText.match(/^@([a-zA-ZÀ-ỹ0-9_\s]{2,30})\s*:\s*["“]?(.*?)["”]?$/);
       if (atMatch) {
         if (!speaker) speaker = atMatch[1].trim();
         cleanText = atMatch[2].trim();
       } else {
-        // 3. Tách cú pháp Tên: "Lời thoại" hoặc Tên: Lời thoại
+        // 2. Tách cú pháp Tên: "Lời thoại" hoặc Tên: Lời thoại
         const colonMatch = rawText.match(
           /^([A-ZÀ-Ỹ][a-zA-ZÀ-ỹ0-9_\s]{1,25})\s*:\s*["“]?(.*?)["”]?$/,
         );
@@ -898,13 +890,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             cleanText = colonMatch[2].trim();
           }
         } else {
-          // 4. Tách cú pháp [Tên] Lời thoại
+          // 3. Tách cú pháp [Tên] Lời thoại
           const bracketMatch = rawText.match(/^\[([a-zA-ZÀ-ỹ0-9_\s]{2,25})\]\s*["“]?(.*?)["”]?$/);
           if (bracketMatch) {
             if (!speaker) speaker = bracketMatch[1].trim();
             cleanText = bracketMatch[2].trim();
           } else {
-            // 5. Nếu có ngoặc kép "..." mà chưa rõ người nói
+            // 4. Nếu có ngoặc kép "..." mà chưa rõ người nói
             const quotedMatch = rawText.match(/^["“](.*?)["”]$/);
             if (quotedMatch) {
               if (!speaker) speaker = 'Nhân vật';
@@ -917,10 +909,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       }
 
       const resolvedCharName = speaker || 'Người dẫn';
-      const resolvedCharColor =
-        line.characterColor ||
-        (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.color) ||
-        getDeterministicColor(resolvedCharName);
+      const resolvedCharColor = line.characterColor || getDeterministicColor(resolvedCharName);
 
       return {
         ...line,

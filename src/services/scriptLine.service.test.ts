@@ -92,7 +92,7 @@ describe('scriptLineService', () => {
     it('createScriptLine calls POST /chapters/{cId}/scenes/{sId}/script-lines', async () => {
       const req = {
         dialogueText: 'Hello world',
-        speakerCharacterId: 'char-1',
+        speakerLabel: 'Ren',
         lineOrder: 1,
         expectedChapterVersion: 5,
       };
@@ -101,7 +101,7 @@ describe('scriptLineService', () => {
         sceneId: 's1',
         lineOrder: 1,
         dialogueText: 'Hello world',
-        speakerCharacterId: 'char-1',
+        speakerLabel: 'Ren',
         chapterVersion: 6,
         revisionId: 'rev-1',
       };
@@ -116,7 +116,7 @@ describe('scriptLineService', () => {
       const req = {
         dialogueText: 'Modified line',
         stageDirection: 'Looking surprised',
-        speakerCharacterId: 'char-1',
+        speakerLabel: 'Ren',
         expectedChapterVersion: 6,
       };
       const updated = {
@@ -168,12 +168,11 @@ describe('scriptLineService', () => {
         expect(err.status).toBe(409);
       }
     });
-    it('tạo ScriptLine với bibleEntryIds (UC-06) và clientLineId an toàn khi mất mạng (NFR-09)', async () => {
+
+    it('tạo ScriptLine với clientLineId an toàn khi mất mạng (NFR-09)', async () => {
       const clientLineId = '11111111-2222-3333-4444-555555555555';
       const req = {
-        dialogueText: 'Đây là bảo kiếm gia truyền!',
-        speakerCharacterId: 'char-1',
-        bibleEntryIds: ['entry-sword-prop', 'entry-castle-location'],
+        dialogueText: 'Đây là lời thoại!',
         clientLineId,
       };
       const created = {
@@ -181,8 +180,6 @@ describe('scriptLineService', () => {
         sceneId: 's1',
         lineOrder: 2,
         dialogueText: req.dialogueText,
-        speakerCharacterId: req.speakerCharacterId,
-        bibleEntryIds: req.bibleEntryIds,
         chapterVersion: 10,
         revisionId: 'rev-4',
         replayed: false,
@@ -193,36 +190,10 @@ describe('scriptLineService', () => {
       expect(axiosClient.post).toHaveBeenCalledWith(
         '/chapters/c1/scenes/s1/script-lines',
         expect.objectContaining({
-          bibleEntryIds: ['entry-sword-prop', 'entry-castle-location'],
           clientLineId,
         }),
       );
-      expect(res.bibleEntryIds).toEqual(['entry-sword-prop', 'entry-castle-location']);
       expect(res.replayed).toBe(false);
-    });
-
-    it('updateScriptLine hỗ trợ cập nhật bibleEntryIds', async () => {
-      const req = {
-        dialogueText: 'Sửa thoại có đổi mục Bible liên kết',
-        bibleEntryIds: ['entry-new-loc'],
-      };
-      const updated = {
-        id: 'l1',
-        sceneId: 's1',
-        lineOrder: 1,
-        dialogueText: req.dialogueText,
-        bibleEntryIds: ['entry-new-loc'],
-        chapterVersion: 11,
-        revisionId: 'rev-5',
-      };
-      vi.mocked(axiosClient.put).mockResolvedValueOnce({ data: updated });
-
-      const res = await scriptLineService.updateScriptLine('c1', 'l1', req);
-      expect(axiosClient.put).toHaveBeenCalledWith(
-        '/chapters/c1/script-lines/l1',
-        expect.objectContaining({ bibleEntryIds: ['entry-new-loc'] }),
-      );
-      expect(res.bibleEntryIds).toEqual(['entry-new-loc']);
     });
   });
 

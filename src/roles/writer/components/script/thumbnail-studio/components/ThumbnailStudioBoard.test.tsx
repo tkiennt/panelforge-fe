@@ -102,7 +102,7 @@ describe('ThumbnailStudioBoard Component', () => {
           {
             id: 'line-1',
             lineOrder: 1,
-            speakerCharacterId: 'char-1',
+            speakerLabel: 'Minh',
             dialogueText: 'Hệ thống đã hoạt động ổn định.',
             stageDirection: 'Gõ phím liên hồi',
             narrationMode: 'Present',

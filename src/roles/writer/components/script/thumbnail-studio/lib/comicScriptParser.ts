@@ -509,7 +509,8 @@ export function scenesToComicScriptText(
       lineOrder: number;
       dialogueText?: string | null;
       stageDirection?: string | null;
-      speakerCharacterId?: string | null;
+      speakerLabel?: string | null;
+      speakerName?: string | null;
       narrationMode?: string;
     }>;
   }>,
@@ -549,7 +550,10 @@ export function scenesToComicScriptText(
 
         if (l.dialogueText) {
           const speaker =
-            (getSpeakerName ? getSpeakerName(l.speakerCharacterId) : null) || 'Nhân vật';
+            l.speakerName ||
+            l.speakerLabel ||
+            (getSpeakerName ? getSpeakerName(l.speakerLabel) : null) ||
+            'Nhân vật';
           result.push(`@${speaker}: ${l.dialogueText}`);
         }
 

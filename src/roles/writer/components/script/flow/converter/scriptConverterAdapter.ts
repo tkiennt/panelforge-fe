@@ -8,7 +8,7 @@ export interface ConverterAdapterOptions {
   sceneId?: string;
   defaultNarrationMode?: 'Present' | 'VoiceOver' | 'Flashback';
   targetPanelsPerPage?: number;
-  /** Nhân vật trong Series Bible để gán speakerCharacterId theo tên/mã khi import */
+  /** Nhân vật trong Series Bible để chuẩn hóa speakerName theo tên/mã khi import */
   characters?: { id: string; name: string; code?: string | null }[];
 }
 
@@ -43,8 +43,7 @@ export function extractSpeakerName(rawSpeaker: string): string | null {
 }
 
 /**
- * Dòng thoại gõ tay "MINH: ..." / "@Minh : ..." chưa có SpeakerCharacterId → gán theo tên trong Series Bible.
- * Dòng đã có speaker (chọn qua @mention) giữ nguyên.
+ * Dòng thoại gõ tay "MINH: ..." / "@Minh : ..." chưa có speakerLabel → gán theo tên trong Series Bible.
  */
 export function linkTypedSpeakers(
   lines: ExtractedScriptLinePayload[],
@@ -52,12 +51,12 @@ export function linkTypedSpeakers(
 ): ExtractedScriptLinePayload[] {
   if (!characters?.length) return lines;
   return lines.map((line) => {
-    if (line.speakerCharacterId || !line.dialogueText) return line;
+    if (line.speakerLabel || !line.dialogueText) return line;
     const colon = line.dialogueText.indexOf(':');
     if (colon <= 0) return line;
     const name = extractSpeakerName(line.dialogueText.slice(0, colon));
     const match = name ? matchBibleCharacter(name, characters) : null;
-    return match ? { ...line, speakerCharacterId: match.id } : line;
+    return match ? { ...line, speakerLabel: match.name } : line;
   });
 }
 
@@ -500,7 +499,6 @@ export function convertScriptTextToScreenplayBlocks(
     let blockType: MangaBlockType = 'stage_direction';
     let textToDisplay = block.content;
     let speakerName: string | null = null;
-    let speakerCharacterId: string | null = null;
 
     const pageNum = block.pageNumber ? parseInt(block.pageNumber, 10) : undefined;
     const panelNum = block.panelNumber
@@ -526,7 +524,6 @@ export function convertScriptTextToScreenplayBlocks(
           ? matchBibleCharacter(block.character, options?.characters)
           : null;
         speakerName = matched?.name || block.character || null;
-        speakerCharacterId = matched?.id || null;
         textToDisplay = `@${speakerName || 'Nhân vật'} : "${block.content}"`;
         break;
       }
@@ -555,7 +552,6 @@ export function convertScriptTextToScreenplayBlocks(
         sceneId: defaultSceneId,
         blockType,
         speakerName,
-        speakerCharacterId,
         narrationMode,
         lineOrder: order++,
         pageNumber: pageNum,
