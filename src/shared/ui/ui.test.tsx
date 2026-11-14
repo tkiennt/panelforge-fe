@@ -163,6 +163,40 @@ describe('Alert', () => {
 });
 
 describe('Toast', () => {
+  it('preserves legacy logout and error test ids', () => {
+    const { rerender } = render(
+      <Toast
+        toast={{
+          id: 'logout',
+          title: 'Signed out',
+          description: 'Session ended',
+          tone: 'neutral',
+          type: 'logout',
+        }}
+        closeLabel='Close'
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('toast-item-logout')).toBeInTheDocument();
+    expect(screen.getByTestId('toast-icon-logout')).toBeInTheDocument();
+
+    rerender(
+      <Toast
+        toast={{
+          id: 'error',
+          title: 'Failed',
+          description: 'Try again',
+          tone: 'danger',
+          type: 'error',
+        }}
+        closeLabel='Close'
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('toast-item-error')).toBeInTheDocument();
+    expect(screen.getByTestId('toast-icon-error')).toBeInTheDocument();
+  });
+
   it('auto-dismisses, keeps danger sticky, and renders newest first in a stack', () => {
     vi.useFakeTimers();
     const onClose = vi.fn();

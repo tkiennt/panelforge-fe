@@ -1,7 +1,13 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { ToastStack, type ToastAction, type ToastData, type AlertTone } from '@/shared/ui';
+import {
+  ToastStack,
+  type ToastAction,
+  type ToastData,
+  type ToastType,
+  type AlertTone,
+} from '@/shared/ui';
 
 export interface ToastOptions {
   id?: string;
@@ -29,8 +35,17 @@ export interface ToastContextType {
 }
 
 const ToastContext = createContext<ToastContextType | null>(null);
-const normalizeTone = (tone?: ToastOptions['type'] | AlertTone): AlertTone =>
-  tone === 'error' ? 'danger' : tone === 'logout' ? 'neutral' : (tone ?? 'success');
+const normalizeTone = (type?: ToastType): AlertTone =>
+  type === 'error' ? 'danger' : type === 'logout' ? 'neutral' : (type ?? 'success');
+
+const inferType = (title: string, description: string): ToastType => {
+  const content = `${title} ${description}`.toLowerCase();
+  if (/lỗi|error|thất bại|failed/.test(content)) return 'error';
+  if (/cảnh báo|warning|hết hạn/.test(content)) return 'warning';
+  if (/đăng xuất|logout/.test(content)) return 'logout';
+  if (/thông tin|info/.test(content)) return 'info';
+  return 'success';
+};
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
@@ -43,7 +58,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const showToast = useCallback(
     (title: string, description: string, options: ToastOptions = {}) => {
-      const tone = normalizeTone(options.tone ?? options.type);
+      const type = options.tone ?? options.type ?? inferType(title, description);
+      const tone = normalizeTone(type);
       const key = options.id ?? `${tone}:${title}:${description}`;
       const now = Date.now();
       if (now - (timestamps.current.get(key) ?? 0) < 2500) return;
@@ -53,6 +69,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         title,
         description,
         tone,
+        type,
         duration: options.duration ?? 5000,
         action: options.action,
       };

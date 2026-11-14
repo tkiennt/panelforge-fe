@@ -38,6 +38,7 @@ const adapt = (toast: ToastItemData): ToastData => ({
   title: toast.title,
   description: toast.desc,
   tone: tone(toast.type),
+  type: toast.type,
   action: toast.action,
   duration: toast.duration,
   iconTestId: `toast-icon-${toast.type ?? 'success'}`,

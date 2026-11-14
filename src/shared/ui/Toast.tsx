@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Info, LogOut, X } from 'lucide-react';
 import type { AlertTone } from './Alert';
+
+export type ToastType = AlertTone | 'error' | 'logout';
 
 export interface ToastAction {
   label: string;
@@ -11,6 +13,7 @@ export interface ToastData {
   title: string;
   description: string;
   tone: AlertTone;
+  type?: ToastType;
   duration?: number;
   action?: ToastAction;
   iconTestId?: string;
@@ -28,6 +31,8 @@ const icons = {
   warning: AlertTriangle,
   danger: AlertCircle,
   neutral: Info,
+  error: AlertCircle,
+  logout: LogOut,
 };
 const colors = {
   info: 'var(--studio-status-info)',
@@ -40,16 +45,16 @@ const colors = {
 export function Toast({ toast, closeLabel, onClose }: ToastProps) {
   const [paused, setPaused] = useState(false);
   const remaining = useRef(toast.duration ?? 5000);
-  const started = useRef(Date.now());
-  const Icon = icons[toast.tone];
+  const toastType = toast.type ?? toast.tone;
+  const Icon = icons[toastType];
 
   useEffect(() => {
     if (toast.tone === 'danger' || paused) return;
-    started.current = Date.now();
+    const startedAt = Date.now();
     const timer = window.setTimeout(() => onClose(toast.id), remaining.current);
     return () => {
       window.clearTimeout(timer);
-      remaining.current = Math.max(0, remaining.current - (Date.now() - started.current));
+      remaining.current = Math.max(0, remaining.current - (Date.now() - startedAt));
     };
   }, [onClose, paused, toast.id, toast.tone]);
 
@@ -62,7 +67,7 @@ export function Toast({ toast, closeLabel, onClose }: ToastProps) {
       role='status'
       aria-live={toast.tone === 'danger' ? 'assertive' : 'polite'}
       aria-atomic='true'
-      data-testid={`toast-item-${toast.tone}`}
+      data-testid={`toast-item-${toastType}`}
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -73,7 +78,7 @@ export function Toast({ toast, closeLabel, onClose }: ToastProps) {
       <span
         className='u070-ic'
         aria-hidden='true'
-        data-testid={toast.iconTestId ?? `toast-icon-${toast.tone}`}
+        data-testid={toast.iconTestId ?? `toast-icon-${toastType}`}
       >
         <Icon className='size-4' />
       </span>
