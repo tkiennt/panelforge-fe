@@ -254,6 +254,7 @@
       "started": "Production started",
       "startedBody": "The script of chapter {n} is finalized and the chapter is in production.",
       "startFailed": "Could not start production",
+      "openCommentsWarning": "{count} open comments on the script",
       "cancel": "Cancel",
       "inReviewDirty": "You saved changes after the last submission. The Producer can start production only after you submit again.",
       "resubmitConfirmTitle": "Submit the Chapter {n} script again?"

@@ -254,6 +254,7 @@
       "started": "Đã bắt đầu sản xuất",
       "startedBody": "Kịch bản Chương {n} đã được chốt; chương chuyển sang sản xuất.",
       "startFailed": "Không bắt đầu sản xuất được",
+      "openCommentsWarning": "Còn {count} góp ý trên kịch bản",
       "cancel": "Huỷ",
       "inReviewDirty": "Bạn đã lưu thay đổi sau lần gửi duyệt gần nhất. Producer chỉ bắt đầu sản xuất được khi bạn gửi duyệt lại.",
       "resubmitConfirmTitle": "Gửi duyệt lại kịch bản Chương {n}?"

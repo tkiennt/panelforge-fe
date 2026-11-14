@@ -32,6 +32,7 @@ interface ChecksTabProps {
   checkedAt: string | null;
   onTriage: (finding: ConsistencyFindingDto, decision: FindingDecision, note?: string) => void;
   onFindingToComment: (finding: ConsistencyFindingDto) => void;
+  openComments?: number;
   onFreeze: () => void;
   onUnfreeze: (reason: string) => void;
   onDecideReopen: (approve: boolean) => void;
@@ -59,6 +60,7 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
   checkedAt,
   onTriage,
   onFindingToComment,
+  openComments,
   onFreeze,
   onUnfreeze,
   onDecideReopen,
@@ -324,15 +326,26 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
 
         {isProducer && !isFrozen && (
           <div className='mt-2'>
-            <button
-              type='button'
-              disabled={!!freezeBlocked || busy === 'freeze'}
-              onClick={onFreeze}
-              className='inline-flex items-center gap-1 rounded-full bg-[#EA580C] px-3 py-1 text-xs font-semibold text-white hover:bg-[#C2410C] disabled:cursor-not-allowed disabled:opacity-50'
-            >
-              <Lock className='h-3.5 w-3.5' aria-hidden='true' />
-              {t('scriptReview.checks.freeze')}
-            </button>
+            {openComments !== undefined && openComments > 0 && (
+              <p
+                data-testid='checks-open-comments-warning'
+                className='mb-1.5 inline-flex items-center gap-1 text-xs text-amber-700'
+              >
+                <AlertTriangle className='h-3.5 w-3.5 text-amber-600' aria-hidden='true' />
+                {t('scriptReview.lifecycle.openCommentsWarning', { count: openComments })}
+              </p>
+            )}
+            <div>
+              <button
+                type='button'
+                disabled={!!freezeBlocked || busy === 'freeze'}
+                onClick={onFreeze}
+                className='inline-flex items-center gap-1 rounded-full bg-[#EA580C] px-3 py-1 text-xs font-semibold text-white hover:bg-[#C2410C] disabled:cursor-not-allowed disabled:opacity-50'
+              >
+                <Lock className='h-3.5 w-3.5' aria-hidden='true' />
+                {t('scriptReview.checks.freeze')}
+              </button>
+            </div>
             {freezeBlocked && (
               <p className='mt-1 text-xs text-rose-800'>{t('scriptReview.checks.freezeBlocked')}</p>
             )}

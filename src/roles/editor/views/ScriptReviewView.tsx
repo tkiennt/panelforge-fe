@@ -373,15 +373,26 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
             {t(`scriptReview.lifecycle.status.${scriptStatus}`)}
           </span>
           {isProducer && isInReview && (
-            <button
-              type='button'
-              onClick={() => void handleStartProduction()}
-              disabled={busy === 'start'}
-              className='inline-flex items-center gap-1.5 rounded-full bg-[#EA580C] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C] disabled:opacity-50'
-            >
-              <Play className='h-3.5 w-3.5' aria-hidden='true' />
-              {t('scriptReview.lifecycle.startProduction')}
-            </button>
+            <div className='flex items-center gap-2'>
+              {openComments > 0 && (
+                <span
+                  data-testid='open-comments-warning'
+                  className='inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800'
+                >
+                  <AlertTriangle className='h-3.5 w-3.5 text-amber-600' aria-hidden='true' />
+                  {t('scriptReview.lifecycle.openCommentsWarning', { count: openComments })}
+                </span>
+              )}
+              <button
+                type='button'
+                onClick={() => void handleStartProduction()}
+                disabled={busy === 'start'}
+                className='inline-flex items-center gap-1.5 rounded-full bg-[#EA580C] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C] disabled:opacity-50'
+              >
+                <Play className='h-3.5 w-3.5' aria-hidden='true' />
+                {t('scriptReview.lifecycle.startProduction')}
+              </button>
+            </div>
           )}
         </div>
       </header>
@@ -498,6 +509,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 checkedAt={checkedAt}
                 onTriage={handleTriage}
                 onFindingToComment={handleFindingToComment}
+                openComments={openComments}
                 onFreeze={() =>
                   chapterAction('freeze', () => chapterService.freezeScript(chapterId))
                 }

@@ -205,4 +205,51 @@ describe('ScriptReviewView', () => {
     // Checks tab content is visible
     expect(await screen.findByText(/Bible Gate của chương/i)).toBeInTheDocument();
   });
+
+  it('shows warning with 2 unresolved comments and button stays enabled; hidden when 0', async () => {
+    const unresolvedComments = [
+      {
+        id: 'c-1',
+        chapterId: 'chap-101',
+        authorUserId: 'usr-editor',
+        authorName: 'Editor 1',
+        body: 'Góp ý 1',
+        createdAt: '2026-11-13T10:00:00Z',
+        resolvedAt: null,
+      },
+      {
+        id: 'c-2',
+        chapterId: 'chap-101',
+        authorUserId: 'usr-editor',
+        authorName: 'Editor 2',
+        body: 'Góp ý 2',
+        createdAt: '2026-11-13T10:05:00Z',
+        resolvedAt: null,
+      },
+    ];
+
+    vi.spyOn(chapterService, 'getScriptComments').mockResolvedValue(unresolvedComments as any);
+
+    const { unmount } = renderView('', { workspaceRole: 'Producer' });
+
+    // Warning shows with 2 unresolved comments
+    expect(await screen.findByTestId('open-comments-warning')).toHaveTextContent(
+      'Còn 2 góp ý trên kịch bản',
+    );
+
+    // Button stays enabled
+    const startBtn = screen.getByRole('button', { name: /Bắt đầu sản xuất/i });
+    expect(startBtn).toBeInTheDocument();
+    expect(startBtn).toBeEnabled();
+
+    unmount();
+
+    // Hidden when 0 unresolved comments
+    vi.spyOn(chapterService, 'getScriptComments').mockResolvedValue([]);
+    renderView('', { workspaceRole: 'Producer' });
+
+    await screen.findByRole('button', { name: /Bắt đầu sản xuất/i });
+    expect(screen.queryByTestId('open-comments-warning')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Bắt đầu sản xuất/i })).toBeEnabled();
+  });
 });

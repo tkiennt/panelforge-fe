@@ -260,7 +260,8 @@
       "startProduction": "Bắt đầu sản xuất",
       "startConfirm": "Bắt đầu sản xuất Chương {n}? Kịch bản sẽ được chốt (chỉ đọc).",
       "started": "Đã bắt đầu sản xuất",
-      "startFailed": "Không bắt đầu sản xuất được"
+      "startFailed": "Không bắt đầu sản xuất được",
+      "openCommentsWarning": "Còn {count} góp ý trên kịch bản"
     },
     "comments": {
       "tab": "Góp ý ({count})",

@@ -484,11 +484,6 @@ export interface CreatePanelRequest {
   direction?: string | null;
 }
 
-export interface UpdatePanelDirectionRequest {
-  direction?: string | null;
-  expectedVersion?: number;
-}
-
 export interface UpdatePanelCoordinatesRequest {
   boundingBox: string;
   readingOrder?: number;

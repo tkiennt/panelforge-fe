@@ -260,7 +260,8 @@
       "startProduction": "Start production",
       "startConfirm": "Start production of chapter {n}? The script will be finalized (read-only).",
       "started": "Production started",
-      "startFailed": "Could not start production"
+      "startFailed": "Could not start production",
+      "openCommentsWarning": "{count} open comments on the script"
     },
     "comments": {
       "tab": "Comments ({count})",
