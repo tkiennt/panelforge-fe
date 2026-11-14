@@ -93,7 +93,7 @@ describe('bibleService', () => {
     });
   });
 
-  describe('lockRevision (Việc 5 - Producer khoá Character Sheet)', () => {
+  describe('confirmRevision (V2.6 Q20 - Editor xác nhận & khoá Canon)', () => {
     it('gọi POST /series/{seriesId}/bible/entries/{entryId}/revisions/{revisionId}/confirm và trả về revision đã khoá', async () => {
       const mockLockedRev = {
         id: revisionId,
@@ -111,7 +111,7 @@ describe('bibleService', () => {
       };
       post.mockResolvedValueOnce({ data: mockLockedRev });
 
-      const result = await bibleService.lockRevision(seriesId, entryId, revisionId);
+      const result = await bibleService.confirmRevision(seriesId, entryId, revisionId);
 
       expect(post).toHaveBeenCalledWith(
         `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/confirm`,
@@ -130,7 +130,7 @@ describe('bibleService', () => {
         },
       });
 
-      await expect(bibleService.lockRevision(seriesId, entryId, revisionId)).rejects.toThrow(
+      await expect(bibleService.confirmRevision(seriesId, entryId, revisionId)).rejects.toThrow(
         'Phiên bản này đã được khoá trước đó.',
       );
     });

@@ -146,7 +146,6 @@ describe('scriptFlowAdapter', () => {
       [ScriptLineKind.Narration, null, 'Nửa đêm', 2, 1],
       [ScriptLineKind.Sfx, null, 'BÙM', 2, 1],
     ]);
-    expect(snapshot.lines.every((l) => l.speakerCharacterId === null)).toBe(true);
     expect(snapshot.lines[1].dialogueText).toBe('Đi thôi');
     expect(snapshot.lines[0].stageDirection).toBe('Panel 3 cho thấy cả thành phố');
   });

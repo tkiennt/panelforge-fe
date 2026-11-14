@@ -70,7 +70,7 @@ describe('kiểu chữ Letterer', () => {
     it('dòng có dialogueText và không có người nói -> kind: NARRATION, loại NARRATION_BOX', () => {
       const res = classifyScriptLine({
         dialogueText: 'Đêm đó trời đổ mưa lớn...',
-        speakerCharacterId: null,
+        speakerName: null,
       });
       expect(res.kind).toBe('NARRATION');
       expect(res.isLetterable).toBe(true);
@@ -82,7 +82,7 @@ describe('kiểu chữ Letterer', () => {
     it('dòng có dialogueText và có người nói -> kind: SPEECH, nhãn Thoại', () => {
       const res = classifyScriptLine({
         dialogueText: 'Cậu phát hiện ra điều gì rồi?',
-        speakerCharacterId: 'char-1',
+        speakerName: 'Ren',
       });
       expect(res.kind).toBe('SPEECH');
       expect(res.isLetterable).toBe(true);

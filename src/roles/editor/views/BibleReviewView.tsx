@@ -148,7 +148,7 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
     selected &&
     rev &&
     decide(
-      () => bibleService.endorseRevision(seriesId, selected.id, rev.id),
+      () => bibleService.confirmRevision(seriesId, selected.id, rev.id),
       t('bibleReview.toast.endorsed'),
     );
 

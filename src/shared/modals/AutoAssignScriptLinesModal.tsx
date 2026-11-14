@@ -242,11 +242,12 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                           const line = linesById.get(lid);
                           if (!line) return null;
                           const isDialogue = Boolean(
-                            line.speakerCharacterId || line.dialogueText?.trim(),
+                            line.speakerLabel || line.dialogueText?.trim(),
                           );
-                          const characterName = line.speakerCharacterId
-                            ? bibleNameById[line.speakerCharacterId] || 'Nhân vật'
-                            : 'Lời thoại';
+                          const characterName =
+                            (line.speakerLabel && bibleNameById[line.speakerLabel]) ||
+                            line.speakerLabel ||
+                            'Lời thoại';
                           return (
                             <div
                               key={lid}

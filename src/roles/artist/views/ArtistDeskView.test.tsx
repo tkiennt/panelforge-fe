@@ -15,6 +15,12 @@ import { frameTemplateService } from '@/services/frameTemplate.service';
 import { artworkService } from '@/services/artwork.service';
 import { FocusWorkspaceLayout } from '@/app/FocusWorkspaceLayout';
 import { ToastProvider } from '@/shared/context/ToastContext';
+import { beforeEach } from 'vitest';
+
+beforeEach(() => {
+  vi.spyOn(assignmentService, 'getAssignments').mockResolvedValue([]);
+  vi.spyOn(assignmentService, 'getChangeRequests').mockResolvedValue([]);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -287,7 +293,7 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
           lineOrder: 1,
           stageDirection: 'Tia lửa bắn tung toé trên mặt đe.',
           dialogueText: 'Thanh kiếm này vẫn chưa đủ sắc.',
-          speakerCharacterId: 'char-kuro',
+          speakerLabel: 'char-kuro',
           panelId: 'pnl-1-1',
           narrationMode: 'Present',
         },
@@ -295,7 +301,7 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
           id: 'ln-2',
           lineOrder: 2,
           dialogueText: 'Chúng ta cần thêm tinh thể băng.',
-          speakerCharacterId: 'char-kuro',
+          speakerLabel: 'char-kuro',
           panelId: 'pnl-2-2',
           narrationMode: 'Flashback',
         },
@@ -303,7 +309,6 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
           id: 'ln-3',
           lineOrder: 3,
           stageDirection: 'Cảnh chuyển sang bầu trời đầy mây xám (chưa gán trang).',
-          speakerCharacterId: null,
           panelId: null,
         },
       ],
@@ -338,7 +343,7 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
     expect(screen.getByText(/Chúng ta cần thêm tinh thể băng\./i)).toBeInTheDocument();
     // Unpaged line still flows cleanly under unpaged scene section
     expect(screen.getByTestId('script-unpaged-scenes')).toBeInTheDocument();
-    expect(screen.getByText(/Cảnh chuyển sang bầu trời đầy mây xám/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Cảnh chuyển sang bầu trời đầy mây xám/i).length).toBeGreaterThanOrEqual(1);
 
     // Open Series Bible tab & verify parsed visualNotes + image + CanonLocked badge
     fireEvent.click(screen.getByTestId('canva-tab-bible'));

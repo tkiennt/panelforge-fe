@@ -269,12 +269,14 @@ export function scenesToStoryboardPages(
             : l.stageDirection;
         } else if (l.dialogueText) {
           const speaker =
-            (getSpeakerName ? getSpeakerName(l.speakerCharacterId) : null) || 'Nhân vật';
+            l.speakerLabel ||
+            (getSpeakerName ? getSpeakerName(l.speakerLabel) : null) ||
+            'Nhân vật';
           dialogues.push({
             id: l.id,
             speaker,
             text: l.dialogueText,
-            speakerCharacterId: l.speakerCharacterId,
+            speakerLabel: l.speakerLabel,
             narrationMode: l.narrationMode,
           });
         }

@@ -41,7 +41,6 @@ export interface ExtractedScriptLinePayload {
   text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
-  speakerCharacterId?: string | null;
   narrationMode: NarrationMode;
   lineOrder: number;
   blockType?: MangaBlockType;
@@ -335,7 +334,6 @@ export function docToScript(doc: PMNode, sceneId: string): ScriptDocSnapshot {
       text,
       dialogueText: isSpeech ? text : null,
       stageDirection: isSpeech ? null : text,
-      speakerCharacterId: null,
       narrationMode: 'Present',
       lineOrder: lines.length + 1,
       blockType,

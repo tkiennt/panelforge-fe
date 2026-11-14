@@ -13,7 +13,7 @@ Chuyên viên chèn thoại (Letterer) chịu trách nhiệm chèn bóng thoại
 Hàm phân loại duy nhất `classifyScriptLine` (`src/roles/letterer/lib/textStyle.ts`) áp dụng thống nhất toàn bộ bàn làm việc:
 | Điều kiện dữ liệu | Loại phần tử (`kind`) | Nhãn UI | Hành vi thao tác |
 |---|---|---|---|
-| `dialogueText` có nội dung, có người nói (`speakerCharacterId` hoặc `speakerName`) | `SPEECH` (`SPEECH_BALLOON` / `THOUGHT_BALLOON`) | **Thoại** | Kéo thả được, đếm vào tiến độ |
+| `dialogueText` có nội dung, có người nói (`speakerName`) | `SPEECH` (`SPEECH_BALLOON` / `THOUGHT_BALLOON`) | **Thoại** | Kéo thả được, đếm vào tiến độ |
 | `dialogueText` có nội dung, **không** có người nói | `NARRATION` (`NARRATION_BOX`) | **Dẫn truyện** | Kéo thả được, đếm vào tiến độ |
 | `dialogueText` bắt đầu bằng `SFX:` (không phân biệt hoa/thường) | `SFX` (`SOUND_EFFECT`) | **SFX** | Kéo thả được, tự động loại bỏ tiền tố `SFX:` khi đặt chữ |
 | `dialogueText` rỗng (chỉ có `stageDirection`) | `DIRECTION` | **Chỉ dẫn** | **Không** phải chữ của Letterer; ẩn mặc định, không kéo thả được, không tính vào bộ đếm |

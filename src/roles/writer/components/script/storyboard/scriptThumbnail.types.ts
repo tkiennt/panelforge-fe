@@ -14,7 +14,7 @@ export interface StoryboardDialogue {
   id: string;
   speaker: string;
   text: string;
-  speakerCharacterId?: string | null;
+  speakerLabel?: string | null;
   narrationMode?: string;
 }
 

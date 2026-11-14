@@ -786,23 +786,6 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     loadElements();
   }, [loadElements]);
 
-  // Tên người nói: API dòng kịch bản chỉ trả speakerCharacterId, tên lấy từ Series Bible
-  const [speakerNames, setSpeakerNames] = useState<Record<string, string>>({});
-  useEffect(() => {
-    if (!seriesId) return;
-    let cancelled = false;
-    bibleService
-      .getSeriesBible(seriesId)
-      .then((res) => {
-        if (cancelled || !res?.entries) return;
-        setSpeakerNames(Object.fromEntries(res.entries.map((e) => [e.id, e.name])));
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [seriesId]);
-
   // Nạp Scenes và ScriptLines
   useEffect(() => {
     if (!activeChapterId) return;
@@ -2827,9 +2810,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                               const narrator = classification.kind === 'NARRATION';
                               const speaker =
                                 (line as { speakerName?: string | null }).speakerName ||
-                                (line.speakerCharacterId
-                                  ? (speakerNames[line.speakerCharacterId] ?? 'Nhân vật')
-                                  : null);
+                                (line as { speakerLabel?: string | null }).speakerLabel ||
+                                null;
                               const canDrag =
                                 !isReadOnly && !isPlaced && classification.isLetterable;
 

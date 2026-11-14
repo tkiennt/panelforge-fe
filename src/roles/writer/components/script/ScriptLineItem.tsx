@@ -254,32 +254,6 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
           </div>
         </div>
       )}
-
-      {/* Linked Series Bible Entries (UC-06) */}
-      {line.bibleEntryIds && line.bibleEntryIds.length > 0 && (
-        <div className='mt-3 flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-zinc-100'>
-          <span className='text-xs font-semibold text-zinc-500 flex items-center gap-1 mr-1'>
-            <BookOpen className='w-3.5 h-3.5 text-purple-600' />
-            <span>Bible:</span>
-          </span>
-          {line.bibleEntryIds.map((bId) => {
-            const entry = getBibleEntry(bId);
-            return (
-              <span
-                key={bId}
-                className='inline-flex items-center gap-1 text-xs font-medium text-purple-800 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full'
-                title={entry?.description || entry?.name || 'Mục Series Bible'}
-              >
-                <span>
-                  {entry
-                    ? `${entry.name}${entry.effectiveRevision?.stageName ? ` (${entry.effectiveRevision.stageName})` : entry.subtitle ? ` (${entry.subtitle})` : ''}`
-                    : bId.slice(0, 8)}
-                </span>
-              </span>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 };

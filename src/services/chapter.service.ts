@@ -440,15 +440,6 @@ export const chapterService = {
     }
   },
 
-  checkBibleGate: async (chapterId: string): Promise<ChapterBibleGateResultDto> => {
-    try {
-      const response = await axiosClient.get(`/chapters/${chapterId}/bible-gate`);
-      return response.data;
-    } catch (error) {
-      throw new Error(extractError(error, 'Không thể kiểm tra Chapter Bible Gate.'));
-    }
-  },
-
   /** D12: góp ý theo dòng của chương. */
   getScriptComments: async (chapterId: string): Promise<ScriptCommentDto[]> => {
     try {
@@ -614,28 +605,3 @@ export const chapterService = {
   },
 };
 
-export interface ChapterBibleGateItemDto {
-  bibleEntryId: string;
-  code: string;
-  name: string;
-  category: string;
-  isReferencedAsSpeaker: boolean;
-  isReferencedInScriptLink: boolean;
-  hasEffectiveRevision: boolean;
-  isLocked: boolean;
-  effectiveRevisionVersion?: number | null;
-  effectiveFromChapterNumber?: number | null;
-  warningCode?: string | null;
-  warningMessage?: string | null;
-}
-
-export interface ChapterBibleGateResultDto {
-  chapterId?: string;
-  chapterNumber?: number;
-  isPassed: boolean;
-  totalReferenced?: number;
-  totalReferencedEntries?: number;
-  lockedCount: number;
-  pendingCount: number;
-  items: ChapterBibleGateItemDto[];
-}

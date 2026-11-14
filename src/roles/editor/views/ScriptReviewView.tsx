@@ -5,12 +5,12 @@ import { useTranslation } from '@/lib/i18n';
 import {
   chapterService,
   type ChapterDto,
-  type ChapterBibleGateResultDto,
   type ScriptCommentDto,
   type ScriptStatus,
   type ScriptVersionDetailDto,
   type ScriptVersionRow,
 } from '@/services/chapter.service';
+import { chapterCastService, type ChapterCastDto } from '@/services/chapterCast.service';
 import { assignmentService } from '@/services/assignment.service';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { useConfirm } from '@/shared/context/ConfirmContext';
@@ -70,7 +70,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [chapter, setChapter] = useState<ChapterDto | null>(null);
   const [pushed, setPushed] = useState<ScriptVersionDetailDto | null>(null);
-  const [bibleGate, setBibleGate] = useState<ChapterBibleGateResultDto | null>(null);
+  const [cast, setCast] = useState<ChapterCastDto | null>(null);
   const [findings, setFindings] = useState<ConsistencyFindingDto[]>([]);
   const [comments, setComments] = useState<ScriptCommentDto[]>([]);
   const [checkedAt, setCheckedAt] = useState<string | null>(null);
@@ -89,9 +89,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     setLoading(true);
     setLoadError(null);
     try {
-      const [chapterData, gate, findingList, commentList] = await Promise.all([
+      const [chapterData, castData, findingList, commentList] = await Promise.all([
         chapterService.getChapterById(chapterId),
-        chapterService.checkBibleGate(chapterId).catch(() => null),
+        chapterCastService.getChapterCast(chapterId).catch(() => null),
         assignmentService.getConsistencyFindings(chapterId).catch(() => []),
         chapterService.getScriptComments(chapterId).catch(() => []),
       ]);
@@ -100,7 +100,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         : null;
       setChapter(chapterData);
       setPushed(pushedVersion);
-      setBibleGate(gate);
+      setCast(castData);
       setFindings(findingList);
       setComments(commentList);
     } catch (err) {
@@ -486,7 +486,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
             ) : (
               <ChecksTab
                 chapter={chapter}
-                bibleGate={bibleGate}
+                cast={cast}
                 findings={findings}
                 locateLabel={locateLabel}
                 onSelectAnchor={selectAnchor}

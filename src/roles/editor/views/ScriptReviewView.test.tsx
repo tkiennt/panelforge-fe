@@ -4,6 +4,7 @@ import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ScriptReviewView } from './ScriptReviewView';
 import { chapterService } from '@/services/chapter.service';
+import { chapterCastService } from '@/services/chapterCast.service';
 import { assignmentService } from '@/services/assignment.service';
 
 const mockNavigate = vi.fn();
@@ -62,22 +63,34 @@ const mockScriptVersionDetail = {
   ],
 };
 
-const mockBibleGate = {
-  isPassed: true,
-  lockedCount: 1,
-  pendingCount: 0,
-  items: [
+const mockChapterCast = {
+  chapterId: 'chap-101',
+  chapterNumber: 5,
+  chapterTitle: 'Hồi Kết Ở Đỉnh Núi Tuyết',
+  entities: [
     {
       bibleEntryId: 'b-1',
       code: 'HERO_REN',
       name: 'Ren Kusanagi',
       category: 'Character',
-      isReferencedAsSpeaker: true,
-      isReferencedInScriptLink: false,
-      hasEffectiveRevision: true,
-      isLocked: true,
+      isStub: false,
+      isCrowd: false,
+      source: 'Speaker' as const,
+      bibleStatus: 'Active',
+      chosenByWriter: false,
+      panelRevisions: [],
+      availableRevisions: [],
+      mentions: [],
     },
   ],
+  submitGate: {
+    canSubmit: true,
+    blockers: [],
+  },
+  gate: {
+    canStart: true,
+    blockers: [],
+  },
 };
 
 const renderView = (
@@ -107,7 +120,7 @@ describe('ScriptReviewView', () => {
     vi.spyOn(chapterService, 'getChapterById').mockResolvedValue(mockChapter as any);
     vi.spyOn(chapterService, 'getScriptVersion').mockResolvedValue(mockScriptVersionDetail as any);
     vi.spyOn(chapterService, 'getScriptComments').mockResolvedValue([] as any);
-    vi.spyOn(chapterService, 'checkBibleGate').mockResolvedValue(mockBibleGate as any);
+    vi.spyOn(chapterCastService, 'getChapterCast').mockResolvedValue(mockChapterCast as any);
     vi.spyOn(assignmentService, 'getConsistencyFindings').mockResolvedValue([] as any);
     vi.spyOn(assignmentService, 'runConsistencyCheck').mockResolvedValue({
       checkedAt: '2026-11-11T08:00:00Z',

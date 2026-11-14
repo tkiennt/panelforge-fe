@@ -269,7 +269,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const canEndorse = isEditor;
   const canRequestRework = isWriter || isEditor || isProducer;
 
-  const handleLockRevision = async (rev: BibleEntryRevisionDto, entity?: BibleEntity) => {
+  const handleConfirmCanon = async (rev: BibleEntryRevisionDto, entity?: BibleEntity) => {
     const targetEntity = entity || historyEntity || selectedEntity || null;
     if (!effectiveSeries?.id || !targetEntity) return;
 
@@ -334,11 +334,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [reworkTargetRev, setReworkTargetRev] = useState<BibleEntryRevisionDto | null>(null);
   const [reworkReason, setReworkReason] = useState('');
   const [submittingRework, setSubmittingRework] = useState(false);
-  const [endorsingRevId, setEndorsingRevId] = useState<string | null>(null);
-
-  const handleEndorseRevision = async (rev: BibleEntryRevisionDto, entity?: BibleEntity) => {
-    return handleLockRevision(rev, entity);
-  };
 
   const handleOpenReworkModal = (rev: BibleEntryRevisionDto, entity?: BibleEntity) => {
     if (entity) {
@@ -789,26 +784,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
       onShowToast('Lỗi xóa phiên bản', err.message || 'Không thể xóa phiên bản này.');
-      throw err;
-    }
-  };
-
-  const handleDeleteEra = async (entity: BibleEntity, stage: CharacterEraStage) => {
-    if (!effectiveSeries?.id) return;
-    try {
-      await bibleService.deleteEra(
-        effectiveSeries.id,
-        entity.id,
-        stage.effectiveFromChapterNumber,
-        stage.stageName,
-      );
-      onShowToast(
-        'Thành công',
-        `Đã xóa thời kỳ "${stage.stageName}" (Chương ${stage.effectiveFromChapterNumber}) của ${entity.name}.`,
-      );
-      setRefreshTrigger((prev) => prev + 1);
-    } catch (err: any) {
-      onShowToast('Lỗi xóa thời kỳ', err.message || 'Không thể xóa thời kỳ này.');
       throw err;
     }
   };
@@ -1669,7 +1644,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   type='button'
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    void handleEndorseRevision(effRev, entity);
+                                    void handleConfirmCanon(effRev, entity);
                                   }}
                                   className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
                                   title='Writer/Editor duyệt concept art này'
@@ -1912,7 +1887,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   type='button'
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    void handleEndorseRevision(effRev, entity);
+                                    void handleConfirmCanon(effRev, entity);
                                   }}
                                   className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
                                   title='Writer/Editor duyệt concept art này'
@@ -2050,13 +2025,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               isNewEra,
             );
           }}
-          onEndorseRevision={(ent, rev) => handleEndorseRevision(rev, ent)}
           onRequestRework={(ent, rev) => handleOpenReworkModal(rev, ent)}
-          onLockRevision={(rev) => handleLockRevision(rev, selectedEntity)}
+          onConfirmCanon={(rev) => handleConfirmCanon(rev, selectedEntity)}
           onShowToast={onShowToast}
           onZoomImage={(img) => setSelectedImageZoom(img)}
           onDeleteRevision={(ent, rev) => handleDeleteRevision(ent, rev)}
-          onDeleteEra={(ent, stg) => handleDeleteEra(ent, stg)}
         />
       )}
 
@@ -2372,33 +2345,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
                               <div className='flex items-center gap-1.5 flex-wrap'>
                                 {canRequestRework && !rev.isLocked && (
-                                  <>
-                                    {canEndorse && (
-                                      <button
-                                        type='button'
-                                        disabled={endorsingRevId === rev.id}
-                                        onClick={() => void handleEndorseRevision(rev)}
-                                        className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
-                                        title='Writer / Editor xác nhận thiết kế đạt chuẩn'
-                                      >
-                                        <CheckCircle2 className='w-3 h-3' />
-                                        <span>
-                                          {endorsingRevId === rev.id
-                                            ? 'Đang duyệt...'
-                                            : 'Duyệt thiết kế'}
-                                        </span>
-                                      </button>
-                                    )}
-                                    <button
-                                      type='button'
-                                      onClick={() => handleOpenReworkModal(rev)}
-                                      className='px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
-                                      title='Yêu cầu Artist vẽ lại theo nhận xét'
-                                    >
-                                      <MessageSquare className='w-3 h-3' />
-                                      <span>Yêu cầu sửa</span>
-                                    </button>
-                                  </>
+                                  <button
+                                    type='button'
+                                    onClick={() => handleOpenReworkModal(rev)}
+                                    className='px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
+                                    title='Yêu cầu Artist vẽ lại theo nhận xét'
+                                  >
+                                    <MessageSquare className='w-3 h-3' />
+                                    <span>Yêu cầu sửa</span>
+                                  </button>
                                 )}
 
                                 {!rev.isLocked && historyEntity?.isVisualDesign && isEditor && (
@@ -2408,7 +2363,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                       lockingRevisionId === rev.id ||
                                       rev.reviewStatus !== 'ConceptSubmitted'
                                     }
-                                    onClick={() => void handleLockRevision(rev)}
+                                    onClick={() => void handleConfirmCanon(rev)}
                                     className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
                                     title={
                                       rev.reviewStatus !== 'ConceptSubmitted'

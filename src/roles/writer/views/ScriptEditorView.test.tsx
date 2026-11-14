@@ -132,9 +132,9 @@ const mockSceneDetail = {
     {
       id: 'line-1',
       lineOrder: 1,
+      speakerLabel: 'Akira',
       dialogueText: 'Họ đang di chuyển. Chuẩn bị đi!',
       stageDirection: 'Akira nhìn xuống đoàn xe',
-      speakerCharacterId: 'char-1',
       panelId: null,
     },
   ],
@@ -278,9 +278,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       id: 'line-2',
       sceneId: 'sc-1',
       lineOrder: 2,
+      speakerLabel: 'Akira',
       dialogueText: 'Tôi đã sẵn sàng.',
       stageDirection: null,
-      speakerCharacterId: 'char-1',
       panelId: null,
       chapterVersion: 6,
       revisionId: 'rev-2',
@@ -519,50 +519,6 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
         'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
       );
     });
-  });
-
-  it('hiển thị chip mục Series Bible liên kết trên dòng kịch bản (UC-06)', async () => {
-    vi.mocked(bibleService.getSeriesBible).mockResolvedValue({
-      ...mockBible,
-      entries: [
-        ...mockBible.entries,
-        {
-          id: 'entry-sword-prop',
-          seriesBibleId: 'b-1',
-          category: 2,
-          code: 'SWORD',
-          name: 'Bảo Kiếm Gia Truyền',
-          description: 'Thanh bảo kiếm phát sáng ánh xanh',
-          priority: 1,
-          strictCheck: true,
-          isActive: true,
-          createdAt: '2026-10-01',
-        },
-      ],
-    } as any);
-
-    vi.mocked(scriptLineService.getSceneById).mockResolvedValue({
-      ...mockSceneDetail,
-      scriptLines: [
-        {
-          id: 'line-bible-1',
-          lineOrder: 1,
-          dialogueText: 'Thanh gươm này thuộc về thành cổ!',
-          stageDirection: 'Akira rút gươm',
-          speakerCharacterId: 'char-1',
-          panelId: null,
-          bibleEntryIds: ['entry-sword-prop'],
-        },
-      ],
-    });
-
-    renderView();
-
-    const headings = await screen.findAllByText('Cảnh 1: Neo Tokyo - Đêm');
-    expect(headings.length).toBeGreaterThanOrEqual(1);
-    expect(await screen.findByText(/Thanh gươm này thuộc về thành cổ!/)).toBeInTheDocument();
-    expect(await screen.findByText(/Bible:/i)).toBeInTheDocument();
-    expect(screen.getByText('Bảo Kiếm Gia Truyền')).toBeInTheDocument();
   });
 
   it('cho phép Writer sửa và lưu Story Arc của Series qua PUT /api/series/{seriesId}/story-arc', async () => {

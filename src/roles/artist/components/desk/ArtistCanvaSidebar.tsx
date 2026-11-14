@@ -53,7 +53,6 @@ export interface ScriptLineItem {
   sceneNumber?: number;
   sceneTitle?: string;
   sceneSlugline?: string;
-  speakerCharacterId?: string | null;
   characterName?: string;
   characterColor?: string;
   dialogueText?: string;

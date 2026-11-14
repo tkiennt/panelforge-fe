@@ -14,8 +14,6 @@ import {
 } from './nodes';
 import {
   ComicKeymapExtension,
-  SeriesBibleMentionNode,
-  createComicMentionSuggestion,
 } from './extensions';
 import { ComicScriptEditor } from './ComicScriptEditor';
 
@@ -28,9 +26,6 @@ function createTestEditor(initialContent: any = '<p></p>') {
       DialogueBlockNode,
       SfxBlockNode,
       CaptionBlockNode,
-      SeriesBibleMentionNode.configure({
-        suggestion: createComicMentionSuggestion(),
-      }),
       ComicKeymapExtension,
     ],
     content: initialContent,
@@ -262,7 +257,6 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     // Kiểm tra các nút chèn nhanh
     expect(screen.getByText('+ Trang')).toBeInTheDocument();
     expect(screen.getByText('+ Panel')).toBeInTheDocument();
-    expect(screen.getByText('@ Nhân vật')).toBeInTheDocument();
     expect(screen.getByText('⚡ Chuyển đổi / Gen AI')).toBeInTheDocument();
     expect(screen.getByText('Phím tắt')).toBeInTheDocument();
     expect(screen.getByText('Sao chép')).toBeInTheDocument();

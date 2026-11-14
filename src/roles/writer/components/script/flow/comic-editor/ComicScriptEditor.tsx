@@ -5,7 +5,6 @@ import StarterKit from '@tiptap/starter-kit';
 import {
   FileText,
   Film,
-  User,
   Volume2,
   Scroll,
   HelpCircle,
@@ -39,8 +38,6 @@ import {
 } from './nodes';
 import {
   ComicKeymapExtension,
-  SeriesBibleMentionNode,
-  createComicMentionSuggestion,
 } from './extensions';
 import { getNextPageNumber } from './comicCounting';
 import { AiScriptConvertModal, convertScriptTextToComicBlocks } from '../converter';
@@ -175,9 +172,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
       DialogueBlockNode,
       SfxBlockNode,
       CaptionBlockNode,
-      SeriesBibleMentionNode.configure({
-        suggestion: createComicMentionSuggestion(),
-      }),
       ComicKeymapExtension.configure({
         onBlockTransformed: (type, detail) => {
           setLastAction(`${type} (${detail || ''})`);
@@ -290,11 +284,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
         content: [{ type: 'text', text: 'BÙM! (Tiếng va chạm mạnh)' }],
       })
       .run();
-  };
-
-  const triggerMention = () => {
-    if (!editor || isLockedOrReadOnly) return;
-    editor.chain().focus().insertContent('@').run();
   };
 
   const handleCopyMarkdown = () => {
@@ -622,22 +611,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
               <kbd className='hidden sm:inline text-[9px] font-mono bg-white/70 px-1 py-0.5 rounded text-indigo-700 border border-indigo-200'>
                 - Tab
               </kbd>
-            </button>
-
-            {/* Nút Nhân vật (@) */}
-            <button
-              type='button'
-              disabled={isLockedOrReadOnly}
-              onClick={triggerMention}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-all shadow-2xs ${
-                isLockedOrReadOnly
-                  ? 'opacity-50 cursor-not-allowed bg-stone-100 text-stone-400'
-                  : 'text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 cursor-pointer'
-              }`}
-              title="Chèn thực thể Bible (Phím tắt: gõ '@')"
-            >
-              <User className='w-3.5 h-3.5 text-indigo-600' />
-              <span>@ Nhân vật</span>
             </button>
 
             {/* Nút SFX */}

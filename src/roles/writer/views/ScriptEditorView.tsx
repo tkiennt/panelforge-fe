@@ -58,7 +58,6 @@ import {
 import {
   chapterService,
   ChapterDto,
-  ChapterBibleGateResultDto,
   CreateChapterRequest,
   ScriptStatus,
   ScriptCommentDto,
@@ -324,7 +323,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [lineDialogue, setLineDialogue] = useState<string>('');
   const [lineStageDirection, setLineStageDirection] = useState<string>('');
   const [lineOrderInput, setLineOrderInput] = useState<number>(1);
-  const [lineBibleEntryIds, setLineBibleEntryIds] = useState<string[]>([]);
   const [lineNarrationMode, setLineNarrationMode] = useState<NarrationMode>('Present');
 
   // Story Arc (Series) & Outline (Chapter)
@@ -420,12 +418,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [storyboardPanelOpen, setStoryboardPanelOpen] = useState(false);
 
-  // V2.5: Chapter-Scoped Bible Gate & Script Freeze Gate
-  const [bibleGateResult, setBibleGateResult] = useState<ChapterBibleGateResultDto | null>(null);
-  const [loadingBibleGate, setLoadingBibleGate] = useState(false);
+  // V2.5: Script Freeze Gate
   const [freezingScript, setFreezingScript] = useState(false);
   const [unfreezeReasonOpen, setUnfreezeReasonOpen] = useState(false);
-  const [bibleGateModalOpen, setBibleGateModalOpen] = useState(false);
 
   // V2.5: Chế độ soạn thảo kịch bản kép (Dual-Mode: Screenplay Flow làm mặc định + Card Mode làm tùy chọn xem cấu trúc)
   const [editorMode, setEditorMode] = useState<'flow' | 'cards'>(
@@ -440,18 +435,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     },
     [onShowToast],
   );
-
-  const checkChapterBibleGate = useCallback(async (chapId: string) => {
-    setLoadingBibleGate(true);
-    try {
-      const res = await chapterService.checkBibleGate(chapId);
-      setBibleGateResult(res);
-    } catch {
-      setBibleGateResult(null);
-    } finally {
-      setLoadingBibleGate(false);
-    }
-  }, []);
 
   // Theo dõi trạng thái chưa lưu (dirty checking)
   const isStoryArcDirty = useMemo(
@@ -613,9 +596,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       .catch(() => {
         setFindings([]);
       });
-
-    void checkChapterBibleGate(currentChapter.id);
-  }, [currentChapter?.id, currentChapter?.outline, checkChapterBibleGate]);
+  }, [currentChapter?.id, currentChapter?.outline]);
 
   // 2. Nạp chi tiết Chapter (cập nhật versionVector)
   const refreshChapterDetail = useCallback(async (chapId: string) => {
@@ -722,7 +703,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             text: line.text ?? null,
             dialogueText: line.dialogueText ?? null,
             stageDirection: line.stageDirection ?? null,
-            speakerCharacterId: null,
             narrationMode: line.narrationMode,
             clientLineId: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
             panelId: isValidGuid(line.panelId) ? line.panelId : null,
@@ -1360,7 +1340,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setLineSpeakerId('');
     setLineDialogue('');
     setLineStageDirection('');
-    setLineBibleEntryIds([]);
     setLineNarrationMode(selectedScene?.defaultNarrationMode || 'Present');
     const nextOrder =
       selectedScene && selectedScene.scriptLines && selectedScene.scriptLines.length > 0
@@ -1372,10 +1351,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   const handleOpenEditLine = (line: SceneScriptLineSummaryDto) => {
     setEditingLine(line);
-    setLineSpeakerId(line.speakerCharacterId || '');
+    setLineSpeakerId(line.speakerLabel || '');
     setLineDialogue(line.dialogueText || '');
     setLineStageDirection(line.stageDirection || '');
-    setLineBibleEntryIds(line.bibleEntryIds || []);
     setLineNarrationMode(line.narrationMode || selectedScene?.defaultNarrationMode || 'Present');
     setLineOrderInput(line.lineOrder);
     setLineModalOpen(true);
@@ -1400,9 +1378,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         const req: UpdateScriptLineRequest = {
           dialogueText: lineDialogue.trim() || null,
           stageDirection: lineStageDirection.trim() || null,
-          speakerCharacterId: lineSpeakerId || null,
           expectedChapterVersion: expectedVersion,
-          bibleEntryIds: lineBibleEntryIds,
           narrationMode: lineNarrationMode,
         };
 
@@ -1424,8 +1400,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       ...l,
                       dialogueText: lineDialogue.trim() || null,
                       stageDirection: lineStageDirection.trim() || null,
-                      speakerCharacterId: lineSpeakerId || null,
-                      bibleEntryIds: lineBibleEntryIds,
                       narrationMode: lineNarrationMode || undefined,
                     }
                   : l,
@@ -1457,10 +1431,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         const req: CreateScriptLineRequest = {
           dialogueText: lineDialogue.trim() || null,
           stageDirection: lineStageDirection.trim() || null,
-          speakerCharacterId: lineSpeakerId || null,
           lineOrder: lineOrderInput,
           expectedChapterVersion: expectedVersion,
-          bibleEntryIds: lineBibleEntryIds.length > 0 ? lineBibleEntryIds : null,
           clientLineId,
           narrationMode: lineNarrationMode,
         };
@@ -1480,8 +1452,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               lineOrder: lineOrderInput,
               dialogueText: lineDialogue.trim() || null,
               stageDirection: lineStageDirection.trim() || null,
-              speakerCharacterId: lineSpeakerId || null,
-              bibleEntryIds: lineBibleEntryIds,
               narrationMode: lineNarrationMode || undefined,
             };
             return {
@@ -1703,12 +1673,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     void applyReorder(items);
   };
 
-  // Helper tìm tên nhân vật từ ID có kèm giai đoạn
-  const getSpeakerName = (speakerId?: string | null) => {
-    if (!speakerId) return null;
+  // Helper tìm tên nhân vật từ nhãn/tên có kèm giai đoạn
+  const getSpeakerName = (speakerLabel?: string | null) => {
+    if (!speakerLabel) return null;
     const found =
-      characters.find((c) => c.id === speakerId) || allBibleEntries.find((c) => c.id === speakerId);
-    return found ? getBibleEntryNameWithStage(found) : 'Nhân vật (Chưa rõ)';
+      characters.find((c) => c.name === speakerLabel || c.id === speakerLabel) ||
+      allBibleEntries.find((c) => c.name === speakerLabel || c.id === speakerLabel);
+    return found ? getBibleEntryNameWithStage(found) : speakerLabel;
   };
 
   // D12 — áp trạng thái chương máy chủ trả về rồi nạp lại chi tiết
@@ -2149,15 +2120,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       active: activeSideDrawer === 'scenes',
       testId: 'rail-scenes-btn',
       onClick: () => toggleDrawer('scenes'),
-    },
-    {
-      id: 'bible-gate',
-      label: t('scriptStudio.rail.bibleGate'),
-      icon: ShieldCheck,
-      tone: bibleGateResult ? (bibleGateResult.isPassed ? 'ok' : 'warn') : 'default',
-      busy: loadingBibleGate,
-      testId: 'chapter-bible-gate-btn',
-      onClick: () => setBibleGateModalOpen(true),
     },
   ];
 
@@ -2622,8 +2584,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                             key={line.id}
                             line={line}
                             index={index}
-                            speakerName={getSpeakerName(line.speakerCharacterId)}
-                            character={characters.find((c) => c.id === line.speakerCharacterId)}
+                            speakerName={getSpeakerName(line.speakerLabel) || line.speakerLabel || ''}
+                            character={characters.find((c) => c.name === line.speakerLabel || c.id === line.speakerLabel)}
                             allBibleEntries={allBibleEntries}
                             isFirst={index === 0}
                             isLast={index === (selectedScene.scriptLines?.length || 0) - 1}
@@ -3028,59 +2990,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   />
                 </div>
 
-                {/* Liên kết Series Bible (UC-06) */}
-                <div>
-                  <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center justify-between'>
-                    <div className='flex items-center gap-1.5'>
-                      <BookOpen className='w-3.5 h-3.5 text-purple-600' />
-                      <span>Liên kết Series Bible (Địa điểm, Đạo cụ, Nhân vật, Thuật ngữ...)</span>
-                    </div>
-                    <span className='text-xs text-[#57534E] font-normal'>
-                      Đã chọn {lineBibleEntryIds.length}/20 mục
-                    </span>
-                  </label>
-                  <div className='max-h-28 overflow-y-auto border border-[#D8D2C5] rounded-xl p-2.5 bg-[#F8F6F0] custom-scrollbar'>
-                    {allBibleEntries.length === 0 ? (
-                      <p className='text-xs text-[#57534E] italic'>
-                        Series Bible chưa có mục nào hoặc đang tải.
-                      </p>
-                    ) : (
-                      <div className='flex flex-wrap gap-1.5'>
-                        {allBibleEntries.map((entry) => {
-                          const isChecked = lineBibleEntryIds.includes(entry.id);
-                          return (
-                            <button
-                              key={entry.id}
-                              type='button'
-                              onClick={() => {
-                                setLineBibleEntryIds((prev) =>
-                                  isChecked
-                                    ? prev.filter((id) => id !== entry.id)
-                                    : prev.length < 20
-                                      ? [...prev, entry.id]
-                                      : prev,
-                                );
-                              }}
-                              className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
-                                isChecked
-                                  ? 'bg-purple-100 border-purple-300 text-purple-800 font-semibold shadow-2xs'
-                                  : 'bg-white border-zinc-200 text-zinc-600 hover:border-purple-200 hover:bg-purple-50/30'
-                              }`}
-                            >
-                              <span>{getBibleEntryNameWithStage(entry)}</span>
-                              {isChecked ? (
-                                <CheckCircle2 className='w-3.5 h-3.5 text-purple-700' />
-                              ) : (
-                                <Plus className='w-3.5 h-3.5 text-zinc-400' />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
                 {/* Vị trí chèn nếu tạo mới */}
                 {!editingLine && (
                   <div>
@@ -3170,137 +3079,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         />
       )}
 
-      {/* Chapter-Scoped Bible Gate Modal */}
-      {bibleGateModalOpen && (
-        <div
-          role='dialog'
-          aria-modal='true'
-          className='fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4'
-        >
-          <div className='bg-white rounded-2xl max-w-lg w-full border border-zinc-200 shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150'>
-            <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
-              <div className='flex items-center gap-2'>
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                    bibleGateResult?.isPassed
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-rose-100 text-rose-700'
-                  }`}
-                >
-                  <ShieldCheck className='w-4 h-4' />
-                </div>
-                <div>
-                  <h3 className='font-bold text-sm text-zinc-900'>
-                    Rào chắn Series Bible — Chương {currentChapter?.chapterNumber}
-                  </h3>
-                  <p className='text-[11px] text-zinc-500'>
-                    Kiểm tra các mục Bible xuất hiện trong kịch bản chương này
-                  </p>
-                </div>
-              </div>
-              <button
-                type='button'
-                onClick={() => setBibleGateModalOpen(false)}
-                className='p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700'
-              >
-                <X className='w-4 h-4' />
-              </button>
-            </div>
-
-            {loadingBibleGate ? (
-              <div className='py-8 text-center text-xs text-zinc-500 flex flex-col items-center gap-2'>
-                <RefreshCw className='w-5 h-5 animate-spin text-[#F97316]' />
-                <span>Đang quét các thực thể xuất hiện trong chương...</span>
-              </div>
-            ) : bibleGateResult ? (
-              <div className='space-y-3'>
-                <div
-                  className={`p-3 rounded-xl border flex items-center justify-between ${
-                    bibleGateResult.isPassed
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                      : 'bg-rose-50 border-rose-200 text-rose-900'
-                  }`}
-                >
-                  <div>
-                    <span className='font-bold text-xs block'>
-                      {bibleGateResult.isPassed
-                        ? '✓ Đủ điều kiện đưa vào sản xuất'
-                        : `⚠️ Chưa đạt: Còn ${bibleGateResult.pendingCount} mục chưa khóa`}
-                    </span>
-                    <span className='text-[11px] opacity-80'>
-                      Đã khóa {bibleGateResult.lockedCount} /{' '}
-                      {bibleGateResult.totalReferencedEntries} mục được thoại/gắn thẻ.
-                    </span>
-                  </div>
-                  <span
-                    className={`font-mono font-bold text-xs px-2 py-0.5 rounded ${
-                      bibleGateResult.isPassed
-                        ? 'bg-emerald-200 text-emerald-900'
-                        : 'bg-rose-200 text-rose-900'
-                    }`}
-                  >
-                    {bibleGateResult.isPassed ? 'PASSED' : 'BLOCKED'}
-                  </span>
-                </div>
-
-                <div className='max-h-60 overflow-y-auto space-y-1.5 custom-scrollbar'>
-                  {bibleGateResult.items.map((item) => (
-                    <div
-                      key={item.bibleEntryId}
-                      className='p-2.5 rounded-lg border border-zinc-100 bg-[#FAF8F5] flex items-center justify-between gap-2 text-xs'
-                    >
-                      <div className='min-w-0'>
-                        <div className='flex items-center gap-1.5 flex-wrap'>
-                          <span className='font-mono font-bold text-[10px] px-1.5 py-0.2 bg-zinc-200 rounded'>
-                            {item.code}
-                          </span>
-                          <span className='font-semibold text-zinc-900 truncate'>{item.name}</span>
-                        </div>
-                        {item.warningMessage && (
-                          <p className='text-[10px] text-rose-700 mt-0.5'>{item.warningMessage}</p>
-                        )}
-                      </div>
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 ${
-                          item.isLocked
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {item.isLocked ? '🔒 Canon Locked' : 'Chờ khóa'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <p className='text-xs text-zinc-500 py-4 text-center'>
-                Chưa có dữ liệu kiểm tra Bible Gate cho chương này.
-              </p>
-            )}
-
-            <div className='flex items-center justify-between pt-2 border-t border-zinc-100'>
-              <button
-                type='button'
-                onClick={() => {
-                  if (currentChapter?.id) void checkChapterBibleGate(currentChapter.id);
-                }}
-                className='text-xs font-semibold text-zinc-600 hover:text-zinc-900 flex items-center gap-1'
-              >
-                <RefreshCw className='w-3 h-3' />
-                <span>Quét lại</span>
-              </button>
-              <button
-                type='button'
-                onClick={() => setBibleGateModalOpen(false)}
-                className='px-4 py-1.5 bg-zinc-900 hover:bg-black text-white rounded-lg text-xs font-semibold'
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Modal Đặt giai đoạn theo Panel (BIB-16 & 5, Q24) */}
       <SetPanelStageModal
         isOpen={isPanelStageModalOpen}
