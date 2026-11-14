@@ -29,10 +29,14 @@ describe('RegisterModal Component', () => {
   it('render đầy đủ các trường nhập liệu của form đăng ký', () => {
     render(<RegisterModal onClose={vi.fn()} onSuccess={vi.fn()} onSwitchToLogin={vi.fn()} />);
 
-    expect(screen.getByRole('heading', { name: /Create Account|Tạo tài khoản/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Create Account|Tạo tài khoản/i }),
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Eiichiro Oda/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/creator@studio.com/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Register & Receive PIN|Đăng ký tài khoản/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Register & Receive PIN|Đăng ký tài khoản/i }),
+    ).toBeInTheDocument();
   });
 
   it('chuyển sang bước nhập mã PIN khi đăng ký thành công', async () => {
@@ -41,21 +45,25 @@ describe('RegisterModal Component', () => {
       message: 'Mã PIN đã gửi về email!',
     });
 
-    const { container } = render(
-      <RegisterModal onClose={vi.fn()} onSuccess={vi.fn()} onSwitchToLogin={vi.fn()} />,
-    );
+    render(<RegisterModal onClose={vi.fn()} onSuccess={vi.fn()} onSwitchToLogin={vi.fn()} />);
 
     await user.type(screen.getByPlaceholderText(/Eiichiro Oda/i), 'Oda Eiichiro');
     await user.type(screen.getByPlaceholderText(/creator@studio.com/i), 'oda@onepiece.jp');
-    const passwordInput = container.querySelector('input[type="password"]') as HTMLInputElement;
+    const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
     await user.type(passwordInput, 'Luffy@1997');
 
-    await user.click(screen.getByRole('button', { name: /Register & Receive PIN|Đăng ký tài khoản/i }));
+    await user.click(
+      screen.getByRole('button', { name: /Register & Receive PIN|Đăng ký tài khoản/i }),
+    );
 
     // Xác nhận đã chuyển sang bước Verify PIN
-    expect(await screen.findByRole('heading', { name: /Verify PIN|Xác thực mã PIN/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /Verify PIN|Xác thực mã PIN/i }),
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('••••••')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Verify PIN & Enter Studio|Xác thực & Vào Studio/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Verify PIN & Enter Studio|Xác thực & Vào Studio/i }),
+    ).toBeInTheDocument();
   });
 
   it('gọi callback onSwitchToLogin khi bấm Log In', async () => {

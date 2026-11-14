@@ -17,8 +17,10 @@ import {
 import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
 import { useTranslation } from '@/lib/i18n';
+import { Modal } from '@/shared/ui';
 
 interface LoginModalProps {
+  isOpen?: boolean;
   onClose: () => void;
   onLogin: (email: string, pass: string) => void;
   onGoogleLogin?: (backendAuthResponse: any) => void;
@@ -27,6 +29,7 @@ interface LoginModalProps {
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
+  isOpen = true,
   onClose,
   onLogin,
   onGoogleLogin,
@@ -92,7 +95,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       if (!lowerEmail.includes('@') && mockAccounts.includes(lowerEmail)) {
         onLogin(email, password);
       } else {
-        setError(err.message || t('common.auth.errLoginFailed', 'Đăng nhập thất bại. Vui lòng thử lại.'));
+        setError(
+          err.message || t('common.auth.errLoginFailed', 'Đăng nhập thất bại. Vui lòng thử lại.'),
+        );
       }
     } finally {
       setIsLoading(false);
@@ -102,7 +107,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const handleTwoFactorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (twoFactorCode.trim().length !== 6) {
-      setError(t('common.auth.errTwoFactorCodeLength', 'Vui lòng nhập đầy đủ 6 chữ số từ ứng dụng Authenticator.'));
+      setError(
+        t(
+          'common.auth.errTwoFactorCodeLength',
+          'Vui lòng nhập đầy đủ 6 chữ số từ ứng dụng Authenticator.',
+        ),
+      );
       return;
     }
 
@@ -130,7 +140,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
     } catch (err: any) {
       console.error('2FA Challenge Error:', err);
-      setError(err.message || t('common.auth.errTwoFactorInvalid', 'Mã xác thực 2FA không chính xác hoặc đã hết hạn.'));
+      setError(
+        err.message ||
+          t('common.auth.errTwoFactorInvalid', 'Mã xác thực 2FA không chính xác hoặc đã hết hạn.'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -150,11 +163,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       await authService.forgotPassword(forgotEmail.trim());
       setStep('reset');
       setSuccessNotice(
-        t('common.auth.otpSentNotice', { email: forgotEmail.trim() }, `Mã OTP 6 chữ số đã được gửi đến email ${forgotEmail.trim()}. Vui lòng kiểm tra hộp thư.`),
+        t(
+          'common.auth.otpSentNotice',
+          { email: forgotEmail.trim() },
+          `Mã OTP 6 chữ số đã được gửi đến email ${forgotEmail.trim()}. Vui lòng kiểm tra hộp thư.`,
+        ),
       );
     } catch (err: any) {
       console.error('Forgot Password Error:', err);
-      setError(err.message || t('common.auth.errForgotFailed', 'Không thể gửi yêu cầu đặt lại mật khẩu.'));
+      setError(
+        err.message || t('common.auth.errForgotFailed', 'Không thể gửi yêu cầu đặt lại mật khẩu.'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +198,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
     const pwdRegex = /^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{6,}$/;
     if (!pwdRegex.test(newPassword)) {
-      setError(t('common.auth.errPasswordComplexity', 'Mật khẩu mới phải có ít nhất 6 ký tự, chứa ít nhất 1 chữ hoa và 1 ký tự đặc biệt.'));
+      setError(
+        t(
+          'common.auth.errPasswordComplexity',
+          'Mật khẩu mới phải có ít nhất 6 ký tự, chứa ít nhất 1 chữ hoa và 1 ký tự đặc biệt.',
+        ),
+      );
       return;
     }
 
@@ -198,11 +222,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setPassword('');
       setStep('login');
       setSuccessNotice(
-        t('common.auth.resetSuccessNotice', 'Kích hoạt tài khoản / Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.'),
+        t(
+          'common.auth.resetSuccessNotice',
+          'Kích hoạt tài khoản / Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.',
+        ),
       );
     } catch (err: any) {
       console.error('Reset Password Error:', err);
-      setError(err.message || t('common.auth.errLoginFailed', 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.'));
+      setError(
+        err.message ||
+          t(
+            'common.auth.errLoginFailed',
+            'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.',
+          ),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -263,16 +296,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   ];
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-[#171717]/40 backdrop-blur-md'>
-      <div className='w-[900px] max-w-[95vw] min-h-[550px] bg-[#FFFFFF] rounded-2xl shadow-2xl border border-[#E7E7E7] flex overflow-hidden relative animate-in fade-in zoom-in-95 duration-300'>
-        <button
-          onClick={onClose}
-          className='absolute top-4 right-4 z-50 text-[#555555] hover:text-[#171717] cursor-pointer bg-white/80 rounded-full p-1 backdrop-blur-sm transition-colors'
-          disabled={isLoading}
-        >
-          <X className='w-5 h-5' />
-        </button>
-
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='xl'
+      title='PanelForge OS'
+      description='The operating system for modern manga studios.'
+      closeLabel='Close'
+    >
+      <div className='flex overflow-hidden relative'>
         {/* Left Panel */}
         <div className='w-1/2 hidden md:flex flex-col relative border-r border-[#E7E7E7] p-8 overflow-y-auto custom-scrollbar'>
           <div
@@ -384,7 +416,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                             setStep('reset');
                           }}
                           className='text-xs font-medium text-emerald-600 hover:text-emerald-700 cursor-pointer'
-                          title={t('common.auth.activate', 'Kích hoạt tài khoản mời bằng mã OTP 6 số')}
+                          title={t(
+                            'common.auth.activate',
+                            'Kích hoạt tài khoản mời bằng mã OTP 6 số',
+                          )}
                         >
                           {t('common.auth.activate', 'Kích hoạt tài khoản mời?')}
                         </button>
@@ -423,7 +458,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     disabled={isLoading}
                     className='w-full bg-[#292524] hover:bg-[#0c0a09] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 rounded-full shadow-soft-sm transition-all mt-6 cursor-pointer flex justify-center items-center gap-2 text-xs sm:text-sm'
                   >
-                    {isLoading ? t('common.actions.saving', 'Đang xử lý...') : t('common.auth.submit', 'Log In')}
+                    {isLoading
+                      ? t('common.actions.saving', 'Đang xử lý...')
+                      : t('common.auth.submit', 'Log In')}
                   </button>
                 </form>
 
@@ -694,7 +731,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       required
                     />
                     <p className='text-[10px] text-gray-500 mt-0.5'>
-                      {t('common.auth.newPasswordHint', 'Tối thiểu 6 ký tự, có chữ in hoa và ký tự đặc biệt.')}
+                      {t(
+                        'common.auth.newPasswordHint',
+                        'Tối thiểu 6 ký tự, có chữ in hoa và ký tự đặc biệt.',
+                      )}
                     </p>
                   </div>
 
@@ -732,6 +772,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

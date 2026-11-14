@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { HeroMangaPage } from '../components/HeroMangaPage';
 import { LanguageSwitcher } from '@/lib/i18n';
+import { Drawer } from '@/shared/ui';
 
 interface LandingPageViewProps {
   onOpenLogin?: () => void;
@@ -434,19 +435,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
     window.history.pushState(null, '', `#${targetId}`);
   };
 
-  // Close mobile drawer on Escape key and restore focus
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isMobileMenuOpen) {
-        setIsMobileMenuOpen(false);
-        document.getElementById('mobile-nav-toggle')?.focus();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isMobileMenuOpen]);
-
-  // Reset mobile menu and scroll lock when resized to desktop breakpoint
+  // Reset mobile menu when resized to desktop breakpoint
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768 && isMobileMenuOpen) {
@@ -455,18 +444,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [isMobileMenuOpen]);
-
-  // Lock body scroll when mobile menu modal drawer is open
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
   }, [isMobileMenuOpen]);
 
   // Manage page title and description for landing page
@@ -1263,75 +1240,79 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </div>
 
         {/* Mobile Navigation Drawer */}
-        {isMobileMenuOpen && (
-          <div
-            id='mobile-nav-drawer'
-            role='dialog'
-            aria-modal='true'
-            aria-label='Menu điều hướng trên điện thoại'
-            className='md:hidden fixed inset-x-0 top-16 bottom-0 z-40 bg-[#F3F0E9]/98 backdrop-blur-md border-b border-[#D8D2C5] flex flex-col justify-between p-6 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200'
-          >
-            <nav className='flex flex-col gap-3 text-base font-medium text-stone-800 pt-2'>
-              <a
-                href='#block-features'
-                onClick={(e) => handleNavScroll(e, 'block-features')}
-                className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
-              >
-                <span>Tính năng</span>
-                <span className='text-stone-400'>→</span>
-              </a>
-              <a
-                href='#block-workflow'
-                onClick={(e) => handleNavScroll(e, 'block-workflow')}
-                className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
-              >
-                <span>Quy trình sản xuất</span>
-                <span className='text-stone-400'>→</span>
-              </a>
-              <a
-                href='#block-showcase'
-                onClick={(e) => handleNavScroll(e, 'block-showcase')}
-                className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
-              >
-                <span>Trưng bày không gian làm việc</span>
-                <span className='text-stone-400'>→</span>
-              </a>
-              <a
-                href='#block-faq'
-                onClick={(e) => handleNavScroll(e, 'block-faq')}
-                className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
-              >
-                <span>Hỏi đáp thường gặp</span>
-                <span className='text-stone-400'>→</span>
-              </a>
-            </nav>
+        <Drawer
+          id='mobile-nav-drawer'
+          isOpen={isMobileMenuOpen}
+          placement='left'
+          onClose={() => {
+            setIsMobileMenuOpen(false);
+            document.getElementById('mobile-nav-toggle')?.focus();
+          }}
+          title='Menu điều hướng trên điện thoại'
+          closeLabel='Đóng menu điều hướng'
+          size='sm'
+          className='flex flex-col justify-between'
+        >
+          <nav className='flex flex-col gap-3 text-base font-medium text-stone-800 pt-2'>
+            <a
+              href='#block-features'
+              onClick={(e) => handleNavScroll(e, 'block-features')}
+              className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
+            >
+              <span>Tính năng</span>
+              <span className='text-stone-400'>→</span>
+            </a>
+            <a
+              href='#block-workflow'
+              onClick={(e) => handleNavScroll(e, 'block-workflow')}
+              className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
+            >
+              <span>Quy trình sản xuất</span>
+              <span className='text-stone-400'>→</span>
+            </a>
+            <a
+              href='#block-showcase'
+              onClick={(e) => handleNavScroll(e, 'block-showcase')}
+              className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
+            >
+              <span>Trưng bày không gian làm việc</span>
+              <span className='text-stone-400'>→</span>
+            </a>
+            <a
+              href='#block-faq'
+              onClick={(e) => handleNavScroll(e, 'block-faq')}
+              className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
+            >
+              <span>Hỏi đáp thường gặp</span>
+              <span className='text-stone-400'>→</span>
+            </a>
+          </nav>
 
-            <div className='flex flex-col gap-3 pb-8 pt-4 border-t border-[#D8D2C5]'>
-              <div className='flex items-center justify-between pb-1'>
-                <span className='text-xs font-mono text-[#57534E]'>Ngôn ngữ / Language:</span>
-                <LanguageSwitcher />
-              </div>
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  handleLoginClick();
-                }}
-                className='w-full py-3 rounded-full border border-[#D8D2C5] text-[#1C1917] font-medium hover:bg-[#EAE5DC] transition-colors active:scale-[0.98] motion-reduce:transform-none'
-              >
-                Đăng nhập
-              </button>
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  handleRegisterClick();
-                }}
-                className='w-full py-3 rounded-full bg-[#1C1917] text-white font-medium hover:bg-black transition-colors active:scale-[0.98] motion-reduce:transform-none'
-              >
-                Tạo tài khoản
-              </button>
+          <div className='flex flex-col gap-3 pb-8 pt-4 border-t border-[#D8D2C5]'>
+            <div className='flex items-center justify-between pb-1'>
+              <span className='text-xs font-mono text-[#57534E]'>Ngôn ngữ / Language:</span>
+              <LanguageSwitcher />
             </div>
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                handleLoginClick();
+              }}
+              className='w-full py-3 rounded-full border border-[#D8D2C5] text-[#1C1917] font-medium hover:bg-[#EAE5DC] transition-colors active:scale-[0.98] motion-reduce:transform-none'
+            >
+              Đăng nhập
+            </button>
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                handleRegisterClick();
+              }}
+              className='w-full py-3 rounded-full bg-[#1C1917] text-white font-medium hover:bg-black transition-colors active:scale-[0.98] motion-reduce:transform-none'
+            >
+              Tạo tài khoản
+            </button>
           </div>
-        )}
+        </Drawer>
       </header>
 
       {/* ===== HERO SECTION ===== */}

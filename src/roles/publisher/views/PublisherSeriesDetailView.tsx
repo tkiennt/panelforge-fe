@@ -38,6 +38,7 @@ import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
 import { ChapterPriceBadge } from '@/shared/components/ChapterPriceBadge';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { useTranslation } from '@/lib/i18n';
+import { Modal } from '@/shared/ui';
 
 interface PublisherSeriesDetailViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -579,106 +580,86 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
       </div>
 
       {/* MODAL 2: Series Bible Modal */}
-      {isBibleOpen && (
-        <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200'>
-          <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-3xl p-6 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto space-y-4 custom-scrollbar'>
-            {/* Header */}
-            <div className='flex items-center justify-between border-b border-[#E7E2D7] pb-3'>
-              <div className='flex items-center gap-2.5'>
-                <div className='w-9 h-9 rounded-xl bg-orange-100 border border-orange-300 text-orange-700 flex items-center justify-center'>
-                  <BookMarked className='w-5 h-5' />
-                </div>
-                <div>
-                  <h3 className='font-serif font-bold text-base text-[#1C1917]'>
-                    Series Bible // Thiết Lập Thế Giới &amp; Nhân Vật
-                  </h3>
-                  <p className='text-xs text-stone-500'>
-                    Tra cứu toàn bộ thiết lập nhân vật, bối cảnh, đạo cụ của{' '}
-                    <strong>{detail.title}</strong>
-                  </p>
-                </div>
-              </div>
-              <button
-                type='button'
-                onClick={() => setIsBibleOpen(false)}
-                className='w-8 h-8 rounded-full hover:bg-stone-200 flex items-center justify-center text-stone-500 hover:text-stone-800 transition-colors'
-              >
-                <X className='w-4 h-4' />
-              </button>
-            </div>
-
-            {/* Filter by Category */}
-            <div className='flex items-center gap-1.5 overflow-x-auto pb-2 custom-scrollbar'>
-              {['all', 'Character', 'Location', 'Prop', 'Terminology', 'StyleRule', 'PlotFact'].map(
-                (cat) => (
-                  <button
-                    key={cat}
-                    type='button'
-                    onClick={() => setBibleCategoryFilter(cat)}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                      bibleCategoryFilter === cat
-                        ? 'bg-stone-900 text-white shadow-2xs'
-                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                    }`}
-                  >
-                    {cat === 'all'
-                      ? 'Tất cả'
-                      : cat === 'Character'
-                        ? 'Nhân vật'
-                        : cat === 'Location'
-                          ? 'Địa điểm'
-                          : cat === 'Prop'
-                            ? 'Đạo cụ'
-                            : cat === 'Terminology'
-                              ? 'Thuật ngữ'
-                              : cat === 'StyleRule'
-                                ? 'Quy chuẩn vẽ'
-                                : 'Tình tiết cốt truyện'}
-                  </button>
-                ),
-              )}
-            </div>
-
-            {/* Content List */}
-            {bibleLoading ? (
-              <div className='py-16 text-center text-stone-500 flex flex-col items-center justify-center space-y-2'>
-                <RefreshCw className='w-6 h-6 animate-spin text-orange-600' />
-                <p className='text-xs font-semibold'>Đang tải dữ liệu Series Bible...</p>
-              </div>
-            ) : filteredBibleEntries.length === 0 ? (
-              <div className='py-12 text-center text-stone-500 space-y-2'>
-                <BookOpen className='w-8 h-8 text-stone-300 mx-auto' />
-                <p className='text-xs'>Không tìm thấy mục thiết lập nào trong phân loại này.</p>
-              </div>
-            ) : (
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-3.5'>
-                {filteredBibleEntries.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className='bg-white border border-[#E7E2D7] rounded-xl p-3.5 shadow-2xs space-y-2'
-                  >
-                    <div className='flex items-center justify-between gap-2'>
-                      <span className='font-mono font-bold text-xs text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded'>
-                        {entry.code}
-                      </span>
-                      <span className='text-[10.5px] font-medium text-stone-500 bg-stone-100 px-2 py-0.5 rounded'>
-                        {String(entry.category)}
-                      </span>
-                    </div>
-                    <div className='font-bold text-sm text-stone-900'>{entry.name}</div>
-                    {entry.subtitle && (
-                      <div className='text-xs text-stone-500 italic'>{entry.subtitle}</div>
-                    )}
-                    <p className='text-xs text-stone-700 line-clamp-3 leading-relaxed'>
-                      {entry.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
+      <Modal
+        isOpen={isBibleOpen}
+        onClose={() => setIsBibleOpen(false)}
+        size='xl'
+        title='Series Bible // Thiết Lập Thế Giới & Nhân Vật'
+        description={`Tra cứu toàn bộ thiết lập nhân vật, bối cảnh, đạo cụ của ${detail.title}`}
+        closeLabel={t('common.actions.close', 'Đóng')}
+      >
+        <div className='space-y-4'>
+          {/* Filter by Category */}
+          <div className='flex items-center gap-1.5 overflow-x-auto pb-2 custom-scrollbar'>
+            {['all', 'Character', 'Location', 'Prop', 'Terminology', 'StyleRule', 'PlotFact'].map(
+              (cat) => (
+                <button
+                  key={cat}
+                  type='button'
+                  onClick={() => setBibleCategoryFilter(cat)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                    bibleCategoryFilter === cat
+                      ? 'bg-stone-900 text-white shadow-2xs'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  }`}
+                >
+                  {cat === 'all'
+                    ? 'Tất cả'
+                    : cat === 'Character'
+                      ? 'Nhân vật'
+                      : cat === 'Location'
+                        ? 'Địa điểm'
+                        : cat === 'Prop'
+                          ? 'Đạo cụ'
+                          : cat === 'Terminology'
+                            ? 'Thuật ngữ'
+                            : cat === 'StyleRule'
+                              ? 'Quy chuẩn vẽ'
+                              : 'Tình tiết cốt truyện'}
+                </button>
+              ),
             )}
           </div>
+
+          {/* Content List */}
+          {bibleLoading ? (
+            <div className='py-16 text-center text-stone-500 flex flex-col items-center justify-center space-y-2'>
+              <RefreshCw className='w-6 h-6 animate-spin text-orange-600' />
+              <p className='text-xs font-semibold'>Đang tải dữ liệu Series Bible...</p>
+            </div>
+          ) : filteredBibleEntries.length === 0 ? (
+            <div className='py-12 text-center text-stone-500 space-y-2'>
+              <BookOpen className='w-8 h-8 text-stone-300 mx-auto' />
+              <p className='text-xs'>Không tìm thấy mục thiết lập nào trong phân loại này.</p>
+            </div>
+          ) : (
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-3.5'>
+              {filteredBibleEntries.map((entry) => (
+                <div
+                  key={entry.id}
+                  className='bg-white border border-[#E7E2D7] rounded-xl p-3.5 shadow-2xs space-y-2'
+                >
+                  <div className='flex items-center justify-between gap-2'>
+                    <span className='font-mono font-bold text-xs text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded'>
+                      {entry.code}
+                    </span>
+                    <span className='text-[10.5px] font-medium text-stone-500 bg-stone-100 px-2 py-0.5 rounded'>
+                      {String(entry.category)}
+                    </span>
+                  </div>
+                  <div className='font-bold text-sm text-stone-900'>{entry.name}</div>
+                  {entry.subtitle && (
+                    <div className='text-xs text-stone-500 italic'>{entry.subtitle}</div>
+                  )}
+                  <p className='text-xs text-stone-700 line-clamp-3 leading-relaxed'>
+                    {entry.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </Modal>
 
       {/* MODAL 3: Publish & Schedule Modal */}
       {publishingChapter && (

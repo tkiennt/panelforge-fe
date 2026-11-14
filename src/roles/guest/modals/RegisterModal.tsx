@@ -16,8 +16,10 @@ import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
 import { PasswordStrengthMeter } from '@/shared/components/lucian';
 import { useTranslation } from '@/lib/i18n';
+import { Modal } from '@/shared/ui';
 
 interface RegisterModalProps {
+  isOpen?: boolean;
   onClose: () => void;
   onSuccess: (authResponse: any) => void;
   onSwitchToLogin?: () => void;
@@ -25,6 +27,7 @@ interface RegisterModalProps {
 }
 
 export const RegisterModal: React.FC<RegisterModalProps> = ({
+  isOpen = true,
   onClose,
   onSuccess,
   onSwitchToLogin,
@@ -89,7 +92,9 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
       setStep('verify_pin');
       setResendCooldown(60); // Đặt 60s trước khi cho phép gửi lại
     } catch (err: any) {
-      setError(err.message || t('common.auth.errLoginFailed', 'Đăng ký thất bại. Vui lòng thử lại.'));
+      setError(
+        err.message || t('common.auth.errLoginFailed', 'Đăng ký thất bại. Vui lòng thử lại.'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -103,20 +108,27 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
 
     const cleanPin = pinCode.trim();
     if (cleanPin.length !== 6) {
-      setError(t('common.auth.errTwoFactorCodeLength', 'Vui lòng nhập đầy đủ mã PIN gồm 6 chữ số.'));
+      setError(
+        t('common.auth.errTwoFactorCodeLength', 'Vui lòng nhập đầy đủ mã PIN gồm 6 chữ số.'),
+      );
       return;
     }
 
     try {
       setIsLoading(true);
       const authResponse = await authService.verifyEmail(email.trim(), cleanPin);
-      setSuccessMsg(t('common.auth.pinVerified', 'Xác thực tài khoản thành công! Đang chuyển hướng...'));
+      setSuccessMsg(
+        t('common.auth.pinVerified', 'Xác thực tài khoản thành công! Đang chuyển hướng...'),
+      );
 
       setTimeout(() => {
         onSuccess(authResponse);
       }, 800);
     } catch (err: any) {
-      setError(err.message || t('common.auth.errTwoFactorInvalid', 'Mã PIN không chính xác hoặc đã hết hạn.'));
+      setError(
+        err.message ||
+          t('common.auth.errTwoFactorInvalid', 'Mã PIN không chính xác hoặc đã hết hạn.'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -131,10 +143,15 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
     try {
       setIsLoading(true);
       const res = await authService.resendVerification(email.trim());
-      setSuccessMsg(res.message || t('common.auth.pinResent', 'Mã PIN mới đã được gửi tới email của bạn!'));
+      setSuccessMsg(
+        res.message || t('common.auth.pinResent', 'Mã PIN mới đã được gửi tới email của bạn!'),
+      );
       setResendCooldown(60);
     } catch (err: any) {
-      setError(err.message || t('common.auth.errForgotFailed', 'Không thể gửi lại mã PIN. Vui lòng thử lại sau.'));
+      setError(
+        err.message ||
+          t('common.auth.errForgotFailed', 'Không thể gửi lại mã PIN. Vui lòng thử lại sau.'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -192,18 +209,15 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
   ];
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-[#171717]/40 backdrop-blur-md animate-in fade-in duration-200'>
-      <div className='w-[900px] max-w-[95vw] min-h-[580px] bg-[#FFFFFF] rounded-2xl shadow-2xl border border-[#E7E7E7] flex overflow-hidden relative animate-in zoom-in-95 duration-300'>
-        {/* Nút đóng modal */}
-        <button
-          onClick={onClose}
-          className='absolute top-4 right-4 z-50 text-[#555555] hover:text-[#171717] cursor-pointer bg-white/80 rounded-full p-1 backdrop-blur-sm transition-colors'
-          disabled={isLoading}
-          aria-label='Close'
-        >
-          <X className='w-5 h-5' />
-        </button>
-
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='xl'
+      title='PanelForge OS'
+      description='The operating system for modern manga studios.'
+      closeLabel='Close'
+    >
+      <div className='flex overflow-hidden relative'>
         {/* LEFT PANEL: Concept Manga Studio OS */}
         <div className='w-1/2 hidden md:flex flex-col relative border-r border-[#E7E7E7] p-8 overflow-y-auto custom-scrollbar'>
           <div
@@ -268,7 +282,10 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                   {t('common.auth.createAccount', 'Create Account')}
                 </h2>
                 <p className='text-[#777169] text-xs mt-1.5'>
-                  {t('common.auth.registerSubtitle', 'Join PanelForge studio to start serializing.')}
+                  {t(
+                    'common.auth.registerSubtitle',
+                    'Join PanelForge studio to start serializing.',
+                  )}
                 </p>
               </>
             ) : (
@@ -286,7 +303,11 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                   </h2>
                 </div>
                 <p className='text-[#777169] text-xs mt-1 leading-relaxed'>
-                  {t('common.auth.checkEmailDesc', { email }, `Nhập mã PIN 6 số đã gửi tới ${email}`)}
+                  {t(
+                    'common.auth.checkEmailDesc',
+                    { email },
+                    `Nhập mã PIN 6 số đã gửi tới ${email}`,
+                  )}
                 </p>
               </>
             )}
@@ -448,7 +469,10 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                     required
                   />
                   <p className='text-[11px] text-[#888888] text-center mt-2'>
-                    {t('common.auth.checkSpamHint', 'Kiểm tra hộp thư đến (Inbox) hoặc thư rác (Spam)')}
+                    {t(
+                      'common.auth.checkSpamHint',
+                      'Kiểm tra hộp thư đến (Inbox) hoặc thư rác (Spam)',
+                    )}
                   </p>
                 </div>
 
@@ -476,7 +500,11 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                       className={`w-3.5 h-3.5 ${resendCooldown > 0 ? 'animate-spin' : ''}`}
                     />
                     {resendCooldown > 0
-                      ? t('common.auth.resendPinCountdown', { seconds: resendCooldown }, `Gửi lại sau ${resendCooldown}s`)
+                      ? t(
+                          'common.auth.resendPinCountdown',
+                          { seconds: resendCooldown },
+                          `Gửi lại sau ${resendCooldown}s`,
+                        )
                       : t('common.auth.resendPin', 'Gửi lại mã PIN')}
                   </button>
                 </div>
@@ -498,6 +526,6 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
