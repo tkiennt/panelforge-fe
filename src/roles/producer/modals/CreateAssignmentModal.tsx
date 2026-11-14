@@ -1,6 +1,5 @@
 // src/roles/producer/modals/CreateAssignmentModal.tsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import {
   X,
   History,
@@ -41,6 +40,7 @@ import { panelService } from '@/services/panel.service';
 import { PanelDto } from '@/types/pipeline';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { DependencySelector } from '../components/DependencySelector';
+import { Modal } from '@/shared/ui';
 
 interface CreateAssignmentModalProps {
   isOpen: boolean;
@@ -544,18 +544,6 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     }
   }, [entityType, panels, assignedPanelIdsAtStage, selectedPanelId]);
 
-  // Đóng modal khi nhấn phím Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   // Kiểm tra xung đột trước khi giao việc hàng loạt (POST /assignments/bulk kèm dryRun = true)
@@ -923,44 +911,15 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     }
   };
 
-  const modalContent = (
-    <div
-      role='dialog'
-      aria-modal='true'
-      className='fixed inset-0 bg-stone-900/50 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4'
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='lg'
+      title={`Giao Việc Mới${chapterNumber ? ` – Chương ${chapterNumber}` : ''}`}
+      closeLabel='Đóng cửa sổ giao việc'
     >
       <div className='bg-[#FCFBF8] border border-stone-200/90 rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden'>
-        {/* Header */}
-        <div className='p-4 sm:p-5 border-b border-stone-200 flex items-center justify-between bg-[#FAF8F5] rounded-t-2xl shrink-0'>
-          <div className='flex items-center gap-3.5'>
-            <div className='w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 shadow-xs shrink-0'>
-              <UserCheck className='w-5 h-5' />
-            </div>
-            <div>
-              <div className='flex items-center gap-2'>
-                <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 font-semibold text-xs uppercase tracking-wider'>
-                  Giao việc mới
-                </span>
-                {chapterNumber && (
-                  <span className='px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200 font-medium text-xs'>
-                    Chương {chapterNumber}
-                  </span>
-                )}
-              </div>
-              <h2 className='text-lg font-serif font-bold text-stone-900 mt-0.5'>
-                Giao Việc Mới {chapterNumber ? `– Chương ${chapterNumber}` : ''}
-              </h2>
-            </div>
-          </div>
-          <button
-            type='button'
-            onClick={onClose}
-            aria-label='Đóng cửa sổ giao việc'
-            className='w-8 h-8 rounded-xl hover:bg-stone-200/60 border border-transparent hover:border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-studio cursor-pointer'
-          >
-            <X className='w-4 h-4' />
-          </button>
-        </div>
         {/* Mode Switcher Tabs */}
         <div className='px-4 sm:px-5 py-2.5 bg-[#FAF8F5] border-b border-stone-200 flex items-center justify-between gap-3 shrink-0'>
           <div className='flex items-center gap-1 p-1 bg-stone-200/60 rounded-xl border border-stone-200/80'>
@@ -2215,8 +2174,6 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
-
-  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
