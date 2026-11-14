@@ -34,6 +34,8 @@ export interface PanelBlockData {
   height: number;
   artwork?: PanelArtwork;
   scriptLines: ScriptLineData[];
+  stageName?: string;
+  hasCustomStage?: boolean;
 }
 
 export interface PageLayoutState {

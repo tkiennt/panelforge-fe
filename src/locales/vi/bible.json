@@ -37,5 +37,18 @@
     "selectToView": "Chọn một khung để xem tài liệu nhân vật và bối cảnh xuất hiện trong phân cảnh.",
     "copyPrompt": "Sao chép prompt",
     "promptCopied": "Đã sao chép prompt tham chiếu."
+  },
+  "panelModelSheet": {
+    "title": "Model Sheet tham chiếu",
+    "loading": "Đang tải Model Sheet...",
+    "empty": "Khung này chưa có Model Sheet tham chiếu.",
+    "error": "Không thể tải Model Sheet cho khung này.",
+    "retry": "Thử lại",
+    "defaultVariant": "Mặc định",
+    "stageLabel": "Hồi tưởng · {variant} v{version}",
+    "normalLabel": "{variant} v{version}",
+    "variant": "Biến thể",
+    "revision": "Bản",
+    "noImage": "Chưa có ảnh"
   }
 }

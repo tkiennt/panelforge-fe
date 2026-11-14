@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { ArtistPageItem, PageStage } from './ArtistPageSidebar';
 import { SidebarTheme } from '@/app/sidebarTheme';
+import { PanelModelSheetBlock } from '../../workspace/PanelModelSheetBlock';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { FrameTemplateDto } from '@/services/frameTemplate.service';
 import { ChangeRequestDto } from '@/types/pipeline';
@@ -105,6 +106,8 @@ export interface ArtistCanvaSidebarProps {
   bibleEntities?: BibleEntityItem[];
   seriesTitle?: string;
   isLoadingBible?: boolean;
+  selectedPanelId?: string | null;
+  selectedPanelNumber?: number | null;
   // Panel Template props (Áp dụng tức thì vào trang hiện tại)
   templates?: FrameTemplateDto[];
   activeTemplateId?: string | null;
@@ -800,6 +803,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   bibleEntities = DEFAULT_BIBLE_ENTITIES,
   seriesTitle = 'Huyết Thống Viễn Cổ',
   isLoadingBible = false,
+  selectedPanelId = null,
+  selectedPanelNumber = null,
   templates = DEFAULT_FRAME_TEMPLATES,
   activeTemplateId = null,
   onSelectTemplate,
@@ -1918,6 +1923,16 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               </h2>
             </div>
 
+            {/* Khối Model Sheet theo Khung đang chọn */}
+            {selectedPanelId && (
+              <div
+                className='p-3 border-b border-[var(--sb-border)] bg-[var(--sb-surface-hover)]'
+                data-testid='canva-drawer-selected-panel-model-sheet'
+              >
+                <PanelModelSheetBlock panelId={selectedPanelId} panelNumber={selectedPanelNumber} />
+              </div>
+            )}
+
             {/* Thanh lọc phân loại Bible */}
             <div className='p-3 border-b border-[var(--sb-border)] flex flex-col gap-2 shrink-0'>
               <div className='relative'>
@@ -2508,7 +2523,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       )}
 
                       <div className='flex items-center justify-end gap-1.5 pt-1'>
-                          {onNavigateToChangeRequestTarget && hasChangeRequestLocation(cr) && (
+                        {onNavigateToChangeRequestTarget && hasChangeRequestLocation(cr) && (
                           <button
                             type='button'
                             onClick={() => onNavigateToChangeRequestTarget(cr)}
