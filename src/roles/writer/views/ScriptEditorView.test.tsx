@@ -47,6 +47,16 @@ vi.mock('@/services/chapter.service', () => ({
     getChaptersBySeries: vi.fn(),
     getChapterById: vi.fn(),
     updateOutline: vi.fn(),
+    getScriptVersions: vi.fn(),
+    saveChapterScript: vi.fn(),
+    submitChapterScript: vi.fn(),
+    getScriptComments: vi.fn(),
+    resolveScriptComment: vi.fn(),
+    freezeScript: vi.fn(),
+    unfreezeScript: vi.fn(),
+    recallScript: vi.fn(),
+    createChapter: vi.fn(),
+    deleteChapter: vi.fn(),
   },
 }));
 
@@ -163,7 +173,13 @@ const mockBible = {
   ],
 };
 
-const renderView = (props: { workspaceRole?: string; currentUserId?: string } = {}) =>
+const renderView = (
+  props: {
+    workspaceRole?: string;
+    currentUserId?: string;
+    onShowToast?: (title: string, desc: string) => void;
+  } = {},
+) =>
   render(
     <MemoryRouter
       initialEntries={['/workspaces/ws-1/series/se-1/script?chapterId=chap-1&sceneId=sc-1']}
@@ -231,6 +247,21 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     vi.mocked(chapterService.updateOutline).mockResolvedValue({
       value: 'Outline mới của chương 1.',
     });
+    vi.mocked(chapterService.getScriptVersions).mockResolvedValue([]);
+    vi.mocked(chapterService.saveChapterScript).mockResolvedValue({
+      revisionId: 'rev-1',
+      versionNumber: 1,
+      created: true,
+      warnings: [],
+    });
+    vi.mocked(chapterService.submitChapterScript).mockResolvedValue({
+      revisionId: 'rev-1',
+      versionNumber: 1,
+      created: true,
+      warnings: [],
+      chapter: mockChapters[0] as any,
+    });
+    vi.mocked(chapterService.getScriptComments).mockResolvedValue([]);
     vi.mocked(assignmentService.getConsistencyFindings).mockResolvedValue([]);
     vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
     vi.mocked(assignmentService.getChangeRequests).mockResolvedValue([]);
@@ -883,5 +914,72 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(sheet).toBeInTheDocument();
 
     expect(screen.queryByTestId('flow-script-content-hash')).not.toBeInTheDocument();
+  });
+
+  it('SCR-14: xử lý 409 CONFLICT trên saveChapterScript hiển thị toast xung đột và không ghi đè expectedRevisionId', async () => {
+    const onShowToast = vi.fn();
+    vi.mocked(chapterService.getScriptVersions).mockResolvedValue([
+      {
+        id: 'rev-10',
+        versionNumber: 10,
+        message: 'v10',
+        authorUserId: 'u-1',
+        createdAt: '2026-10-01',
+        lineCount: 1,
+        contentHash: 'hash-10',
+      },
+    ]);
+
+    const conflictErr = new Error('Xung đột phiên bản kịch bản');
+    (conflictErr as any).status = 409;
+    (conflictErr as any).code = 'CONFLICT';
+    vi.mocked(chapterService.saveChapterScript).mockRejectedValueOnce(conflictErr);
+
+    renderView({ onShowToast });
+
+    await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
+
+    // Kích hoạt phím tắt lưu Ctrl+S
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(chapterService.saveChapterScript).toHaveBeenCalledTimes(1);
+    });
+
+    expect(chapterService.saveChapterScript).toHaveBeenCalledWith(
+      'chap-1',
+      expect.objectContaining({
+        expectedRevisionId: 'rev-10',
+      }),
+    );
+
+    expect(onShowToast).toHaveBeenCalledWith(
+      'Kịch bản đã được người khác thay đổi — vui lòng tải lại',
+      '',
+    );
+  });
+
+  it('SCR-14: hiển thị toast cảnh báo khi lưu kịch bản trả về warnings (lost refs / kept panels)', async () => {
+    const onShowToast = vi.fn();
+    vi.mocked(chapterService.saveChapterScript).mockResolvedValueOnce({
+      revisionId: 'rev-11',
+      versionNumber: 11,
+      created: true,
+      warnings: ['Trang 2 đã có artwork nên được giữ lại dù không còn trong kịch bản.'],
+    });
+
+    renderView({ onShowToast });
+    await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
+
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(chapterService.saveChapterScript).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onShowToast).toHaveBeenCalledWith(
+      'Cảnh báo tham chiếu Series Bible',
+      'Trang 2 đã có artwork nên được giữ lại dù không còn trong kịch bản.',
+    );
   });
 });

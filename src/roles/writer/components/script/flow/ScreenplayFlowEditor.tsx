@@ -30,7 +30,13 @@ import {
   getElementMenu,
   setLineElement,
 } from './nodes/ScriptLineBlockNode';
-import { ScriptDocSnapshot, docToScript, scriptToDoc } from './scriptFlowAdapter';
+import {
+  ScriptDocSnapshot,
+  docToScript,
+  scriptToDoc,
+  docToScriptTree,
+  ChapterScriptBody,
+} from './scriptFlowAdapter';
 import { BibleRefFloatingMenu } from './BibleRefFloatingMenu';
 
 export interface ScreenplayFlowEditorProps {
@@ -50,6 +56,7 @@ export interface ScreenplayFlowEditorProps {
    * false khi lưu thất bại. Gọi lại với null khi bàn viết unmount.
    */
   registerSave?: (save: (() => Promise<boolean>) | null) => void;
+  registerGetPayload?: (getPayload: (() => ChapterScriptBody) | null) => void;
   comments?: ScriptCommentDto[];
   canResolveComment?: boolean;
   onResolveComment?: (commentId: string) => Promise<void>;
@@ -113,6 +120,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   dockLeading,
   manuscriptTitle,
   registerSave,
+  registerGetPayload,
   comments,
   canResolveComment,
   onResolveComment,
@@ -450,6 +458,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     registerSave(handleSave);
     return () => registerSave(null);
   }, [registerSave, handleSave]);
+
+  useEffect(() => {
+    if (!registerGetPayload || !editor) return;
+    registerGetPayload(() => docToScriptTree(editor.state.doc));
+    return () => registerGetPayload(null);
+  }, [registerGetPayload, editor]);
 
   // Ctrl+S / Cmd+S
   useEffect(() => {

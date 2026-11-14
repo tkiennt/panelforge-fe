@@ -1,5 +1,53 @@
 // src/services/chapter.service.ts
 import axiosClient from '../api/axiosClient';
+import type { ScriptLineKind, ScriptLineRefInput } from './scriptLine.service';
+
+export interface ScriptTreeCast {
+  entryId: string;
+  revisionId: string;
+}
+
+export interface ScriptTreeLine {
+  id?: string | null;
+  kind: ScriptLineKind;
+  speakerLabel?: string | null;
+  text?: string | null;
+  refs?: ScriptLineRefInput[] | null;
+}
+
+export interface ScriptTreePanel {
+  id?: string | null;
+  number: number;
+  direction?: string | null;
+  castRevisions?: ScriptTreeCast[] | null;
+  lines?: ScriptTreeLine[] | null;
+}
+
+export interface ScriptTreePage {
+  id?: string | null;
+  number: number;
+  panels?: ScriptTreePanel[] | null;
+}
+
+export interface ChapterScriptBody {
+  expectedRevisionId?: string | null;
+  pages?: ScriptTreePage[] | null;
+}
+
+export interface SaveChapterScriptResult {
+  revisionId: string;
+  versionNumber: number;
+  created: boolean;
+  warnings: string[];
+}
+
+export interface SubmitChapterScriptResult {
+  revisionId: string;
+  versionNumber: number;
+  created: boolean;
+  warnings: string[];
+  chapter: ChapterDto;
+}
 
 export type ChapterStatus = 'PreProduction' | 'InProduction' | 'Approved' | 'Locked' | 'Published';
 
@@ -505,30 +553,49 @@ export const chapterService = {
     }
   },
 
-  /** Lưu = commit; trùng nội dung bản gần nhất thì máy chủ trả lại bản đó. */
-  commitScriptVersion: async (
+  /**
+   * SCR-14: PUT /api/chapters/{chapterId}/script — lưu cả cây Trang → Panel → dòng của chương trong một request
+   */
+  saveChapterScript: async (
     chapterId: string,
+    body: ChapterScriptBody,
     message?: string,
-  ): Promise<ScriptVersionSummaryDto> => {
+  ): Promise<SaveChapterScriptResult> => {
     try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/script-versions`, {
-        message: message ?? null,
+      const response = await axiosClient.put(`/chapters/${chapterId}/script`, body, {
+        params: message ? { message } : undefined,
       });
       return response.data;
-    } catch (error) {
-      throw new Error(extractError(error, 'Không lưu được phiên bản kịch bản.'));
+    } catch (error: any) {
+      const err: any = new Error(extractError(error, 'Không thể lưu kịch bản.'));
+      err.status = error.response?.status;
+      err.code =
+        error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+      err.response = error.response;
+      throw err;
     }
   },
 
-  /** D12: Writer gửi duyệt (Draft → InReview) = push; kịch bản khoá sửa. */
-  submitScript: async (chapterId: string, message?: string): Promise<ChapterDto> => {
+  /**
+   * SCR-14: POST /api/chapters/{chapterId}/script/submit — lưu cả kịch bản rồi gửi duyệt trong cùng một transaction
+   */
+  submitChapterScript: async (
+    chapterId: string,
+    body: ChapterScriptBody,
+    message?: string,
+  ): Promise<SubmitChapterScriptResult> => {
     try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/submit-script`, {
-        message: message ?? null,
+      const response = await axiosClient.post(`/chapters/${chapterId}/script/submit`, body, {
+        params: message ? { message } : undefined,
       });
       return response.data;
-    } catch (error) {
-      throw new Error(extractError(error, 'Không thể nộp kịch bản.'));
+    } catch (error: any) {
+      const err: any = new Error(extractError(error, 'Không thể gửi duyệt kịch bản.'));
+      err.status = error.response?.status;
+      err.code =
+        error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+      err.response = error.response;
+      throw err;
     }
   },
 
