@@ -24,9 +24,18 @@ import {
   Edit3,
   Trash2,
   ShieldCheck,
+  Send,
+  CornerDownRight,
+  Check,
+  CheckSquare,
 } from 'lucide-react';
 import { BibleEntity, normalizeWorkspaceRole } from '@/types';
-import { BibleEntryDto, BibleEntryRevisionDto, bibleService } from '@/services/bible.service';
+import {
+  BibleEntryDto,
+  BibleEntryRevisionDto,
+  BibleConceptCommentDto,
+  bibleService,
+} from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { LucianInlineAlert } from '@/shared/components/lucian/LucianInlineAlert';
 import { LucianConfirmModal } from '@/shared/components/lucian/LucianConfirmModal';
@@ -233,9 +242,17 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   entities = [],
   onSelectEntity,
 }) => {
-  const [showConceptGuide, setShowConceptGuide] = useState(false);
   const [activeArtTab, setActiveArtTab] = useState<'turnaround' | 'action'>('turnaround');
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  // Concept Review: Versions & Comments State (BIB-10 FE)
+  const [selectedConceptEventId, setSelectedConceptEventId] = useState<string | null>(null);
+  const [conceptComments, setConceptComments] = useState<BibleConceptCommentDto[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   // Revisions & Era Stages State
   const [allRevisions, setAllRevisions] = useState<BibleEntryRevisionDto[]>(() => {
@@ -274,7 +291,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     }
   }, [latestSavedRevision, entity.id]);
   const [revisionToDelete, setRevisionToDelete] = useState<BibleEntryRevisionDto | null>(null);
-  const [eraToDelete, setEraToDelete] = useState<CharacterEraStage | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // User workspace role detection
@@ -290,9 +306,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
   const isProducerUser = isProducer || currentRole === 'PRODUCER';
   const isArtistUser = isArtist || currentRole === 'ARTIST';
+  const isEditorUser = currentRole === 'EDITOR' || (!isProducerUser && canEndorse);
   const isWriterUser =
-    currentRole === 'WRITER' || (!isProducerUser && canCreateDraft && !isArtistUser);
-  const isEditorUser = currentRole === 'EDITOR' || (!isProducerUser && !isWriterUser && canEndorse);
+    currentRole === 'WRITER' ||
+    (!isProducerUser && canCreateDraft && !isArtistUser && !isEditorUser);
 
   useEffect(() => {
     if (!seriesId || !entity.id) return;
@@ -403,6 +420,97 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       );
     }
   }, [activeRevision, activeStage?.stageName, entity.imageUrl, entity.gallery, entity.name]);
+
+  // Concept versions list from revision events (BIB-10 FE)
+  const conceptVersions = useMemo(() => {
+    return (activeRevision?.events || []).filter((e) => e.type === 'ConceptSubmitted');
+  }, [activeRevision?.events]);
+
+  const fetchComments = async () => {
+    if (!seriesId || !entity.id || !activeRevision?.id) {
+      setConceptComments([]);
+      return;
+    }
+    setLoadingComments(true);
+    try {
+      const comments = await bibleService.getConceptComments(
+        seriesId,
+        entity.id,
+        activeRevision.id,
+      );
+      setConceptComments(comments || []);
+    } catch {
+      setConceptComments([]);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchComments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seriesId, entity.id, activeRevision?.id]);
+
+  const handleCreateComment = async () => {
+    if (!seriesId || !entity.id || !activeRevision?.id || !newCommentText.trim()) return;
+    setSubmittingComment(true);
+    try {
+      await bibleService.createConceptComment(seriesId, entity.id, activeRevision.id, {
+        body: newCommentText.trim(),
+        conceptEventId: selectedConceptEventId || activeRevision.currentConceptEventId || undefined,
+      });
+      setNewCommentText('');
+      await fetchComments();
+      onShowToast('Đã gửi nhận xét', 'Nhận xét về bản vẽ Concept Art đã được ghi nhận.');
+    } catch (err: any) {
+      onShowToast('Lỗi gửi nhận xét', err.message || 'Không thể gửi nhận xét.');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleReplyComment = async (parentCommentId: string) => {
+    const text = replyTextMap[parentCommentId]?.trim();
+    if (!seriesId || !entity.id || !activeRevision?.id || !text) return;
+    setSubmittingComment(true);
+    try {
+      await bibleService.replyConceptComment(
+        seriesId,
+        entity.id,
+        activeRevision.id,
+        parentCommentId,
+        { body: text },
+      );
+      setReplyTextMap((prev) => ({ ...prev, [parentCommentId]: '' }));
+      setActiveReplyId(null);
+      await fetchComments();
+      onShowToast('Đã gửi phản hồi', 'Phản hồi của bạn đã được gửi thành công.');
+    } catch (err: any) {
+      onShowToast('Lỗi gửi phản hồi', err.message || 'Không thể gửi phản hồi.');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleResolveComment = async (commentId: string, currentResolved: boolean) => {
+    if (!seriesId || !entity.id || !activeRevision?.id) return;
+    try {
+      await bibleService.resolveConceptComment(
+        seriesId,
+        entity.id,
+        activeRevision.id,
+        commentId,
+        !currentResolved,
+      );
+      await fetchComments();
+      onShowToast(!currentResolved ? 'Đã giải quyết nhận xét' : 'Đã mở lại nhận xét', '');
+    } catch (err: any) {
+      onShowToast(
+        'Lỗi cập nhật nhận xét',
+        err.message || 'Không thể cập nhật trạng thái nhận xét.',
+      );
+    }
+  };
 
   // Visual Diff: Previous Revision & Before/After Image Resolution
   const previousRevision = useMemo(() => {
@@ -695,15 +803,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             actionDesc = `Yêu cầu sửa${evt.comment ? `: "${evt.comment}"` : ''}`;
             break;
           case 'Endorsed':
-            actorDesc = 'Biên kịch / Biên tập';
-            actionDesc = 'Đã duyệt thiết kế sáng tác';
+            actorDesc = 'Biên tập viên';
+            actionDesc = 'Đã xác nhận & khoá Canon thiết kế sáng tác';
             break;
           case 'Locked':
-            actorDesc = 'Nhà sản xuất';
-            actionDesc = `Ban hành quy chuẩn chính thức cho Ch.${activeRevision.effectiveFromChapterNumber}+`;
+            actorDesc = 'Biên tập viên';
+            actionDesc = `Ban hành quy chuẩn chính thức cho ${activeRevision.stageName || entity.name}`;
             break;
           case 'Superseded':
-            actorDesc = 'Nhà sản xuất';
+            actorDesc = 'Hệ thống';
             actionDesc = `Thay thế bởi phiên bản mới${evt.comment ? `: "${evt.comment}"` : ''}`;
             break;
           default:
@@ -725,16 +833,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         if (rev.isLocked || rev.reviewStatus === 'CanonLocked') {
           list.push({
             time: rev.lockedAt ? new Date(rev.lockedAt).toLocaleDateString('vi-VN') : 'Đã duyệt',
-            actor: 'Nhà sản xuất',
-            action: `Ban hành quy chuẩn chính thức cho Ch.${rev.effectiveFromChapterNumber}+ (v${rev.versionNumber})`,
-            hash: '',
-          });
-        }
-        if (rev.reviewStatus === 'WriterEndorsed') {
-          list.push({
-            time: rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
-            actor: 'Biên kịch',
-            action: `Đã duyệt thiết kế sáng tác cho phiên bản v${rev.versionNumber}`,
+            actor: 'Biên tập viên',
+            action: `Ban hành quy chuẩn chính thức cho ${rev.stageName || entity.name} (v${rev.versionNumber})`,
             hash: '',
           });
         }
@@ -821,7 +921,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     try {
       await onEndorseRevision(entity, rev);
       setAllRevisions((prev) =>
-        prev.map((r) => (r.id === rev.id ? { ...r, reviewStatus: 'WriterEndorsed' } : r)),
+        prev.map((r) =>
+          r.id === rev.id ? { ...r, isLocked: true, reviewStatus: 'CanonLocked' } : r,
+        ),
       );
     } finally {
       setIsEndorsing(false);
@@ -853,29 +955,16 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
   // Spec V2.6 §5.2: vòng đời của giai đoạn đang chọn và "bóng đang ở chân ai"
   const isVisualDesign = ['character', 'location', 'prop'].includes(normalizedCategory);
-  const lifecycleStatus = (():
-    'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'WriterEndorsed' | 'CanonLocked' => {
+  const lifecycleStatus = ((): 'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'CanonLocked' => {
     if (!activeRevision) return 'Draft';
     if (activeRevision.isLocked) return 'CanonLocked';
-    const st = activeRevision.reviewStatus as string | number | undefined;
-    const byNumber = [
-      '',
-      'Draft',
-      'ConceptSubmitted',
-      'ReworkRequired',
-      'WriterEndorsed',
-      'CanonLocked',
-    ];
-    const name = typeof st === 'number' ? byNumber[st] : st;
-    return (name as 'Draft') || 'Draft';
+    return (activeRevision.reviewStatus as 'Draft' | undefined) || 'Draft';
   })();
   const lifecycleSteps = isVisualDesign
-    ? ['Bản nháp', 'Đã nộp Concept', 'Đã xác nhận', 'Canon Locked']
+    ? ['Bản nháp', 'Đã nộp Concept', 'Canon Locked']
     : ['Bản nháp', 'Đã xác nhận'];
   const lifecycleIndex = isVisualDesign
-    ? { Draft: 0, ConceptSubmitted: 1, ReworkRequired: 1, WriterEndorsed: 2, CanonLocked: 3 }[
-        lifecycleStatus
-      ]
+    ? { Draft: 0, ConceptSubmitted: 1, ReworkRequired: 1, CanonLocked: 2 }[lifecycleStatus]
     : lifecycleStatus === 'Draft'
       ? 0
       : 1;
@@ -886,16 +975,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     Draft: isVisualDesign
       ? 'Artist tải Model Sheet theo đặc tả'
       : 'Writer / Editor xác nhận nội dung',
-    ConceptSubmitted: 'Writer / Editor đối chiếu bản vẽ với đặc tả',
+    ConceptSubmitted: 'Editor xác nhận (khoá Canon) hoặc yêu cầu vẽ lại',
     ReworkRequired: 'Artist vẽ lại theo nhận xét',
-    WriterEndorsed: isVisualDesign ? 'Producer khoá Canon' : 'Đã có hiệu lực',
     CanonLocked: 'Đã khoá. Muốn thay đổi hãy tạo giai đoạn mới',
   }[lifecycleStatus];
   const isMyTurn =
     (lifecycleStatus === 'Draft' && (isVisualDesign ? isArtistUser : canEndorse)) ||
     (lifecycleStatus === 'ConceptSubmitted' && canEndorse) ||
-    (lifecycleStatus === 'ReworkRequired' && isArtistUser) ||
-    (lifecycleStatus === 'WriterEndorsed' && isVisualDesign && isProducerUser);
+    (lifecycleStatus === 'ReworkRequired' && isArtistUser);
   const specDescription = (() => {
     try {
       const snap = JSON.parse(activeRevision?.snapshotJson || '{}');
@@ -926,16 +1013,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             <span>Series Bible</span>
           </button>
           <div className='flex items-center gap-2'>
-            <button
-              type='button'
-              onClick={() => setShowConceptGuide((v) => !v)}
-              aria-pressed={showConceptGuide}
-              className='px-3 py-1.5 rounded-full border border-[#E7E5E4] bg-white hover:bg-[#F5F5F4] text-xs font-semibold text-stone-700 transition-colors flex items-center gap-1.5 cursor-pointer'
-              title='Phân biệt Giai đoạn cốt truyện và Phiên bản mỹ thuật'
-            >
-              <HelpCircle className='w-3.5 h-3.5 text-stone-500' />
-              <span className='hidden sm:inline'>Quy ước Giai đoạn</span>
-            </button>
             <span className='px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 bg-stone-100 text-stone-700 border-stone-200'>
               <User className='w-3.5 h-3.5 text-stone-500' />
               {isProducerUser
@@ -1012,48 +1089,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
       {/* ================= WORKSPACE BODY CONTAINER ================= */}
       <div className='space-y-4'>
-        {/* ================= COLLAPSIBLE CONCEPT NOTICE BANNER ================= */}
-        {showConceptGuide && (
-          <div className='bg-white border border-stone-200/80 rounded-xl p-4 shadow-xs relative transition-all animate-in fade-in duration-200'>
-            <button
-              type='button'
-              onClick={() => setShowConceptGuide(false)}
-              className='absolute top-2.5 right-2.5 p-1 rounded-full text-stone-500 hover:text-stone-800 hover:bg-stone-100'
-              aria-label='Đóng hướng dẫn'
-            >
-              <X className='w-3.5 h-3.5' />
-            </button>
-            <div className='flex items-start gap-3'>
-              <div className='w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0 mt-0.5'>
-                <Info className='w-4 h-4' />
-              </div>
-              <div className='text-xs space-y-1.5 pr-4'>
-                <div className='font-bold text-stone-900 text-xs sm:text-sm'>
-                  Hiểu đúng cấu trúc: Narrative Era (Thời kỳ) vs. Asset Version (Phiên bản mỹ thuật)
-                </div>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1 text-stone-600 text-xs'>
-                  <div className='bg-stone-50 p-2.5 rounded-lg border border-stone-200'>
-                    <span className='font-bold text-[#C2410C] uppercase tracking-wider text-xs block mb-0.5'>
-                      Trục Cốt Truyện — ERA (Narrative Timeline)
-                    </span>
-                    Nhân vật thay đổi theo cốt truyện (Tuổi, Timeskip, Sẹo, Dạng quỷ). Gắn với{' '}
-                    <strong>Mốc chương hiệu lực (Effective from Chapter)</strong> để Họa sĩ và ban
-                    biên kịch đảm bảo tính nhất quán hình thái.
-                  </div>
-                  <div className='bg-stone-50 p-2.5 rounded-lg border border-stone-200'>
-                    <span className='font-bold text-emerald-700 uppercase tracking-wider text-xs block mb-0.5'>
-                      Tiến trình phiên bản thiết kế
-                    </span>
-                    Vòng đời phê duyệt: Bản thảo ➔ Kiểm duyệt ➔ Đã khóa chuẩn (Canon Locked). Theo
-                    quy tắc bảo toàn nguồn gốc: Bản đã khóa chuẩn không thể sửa đè, chỉ có thể tạo
-                    bản kế thừa tiếp theo (Supersede).
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className='grid grid-cols-1 xl:grid-cols-[272px_minmax(0,1fr)] gap-5 items-start'>
           {/* ================= SIDEBAR: mục cùng danh mục · giai đoạn · xuất hiện trong kịch bản ================= */}
           <aside
@@ -1110,17 +1145,18 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     <span>Thời kỳ &amp; Giai đoạn</span>
                   </div>
                   <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600'>
-                    {stages.length} giai đoạn
+                    {stages.length} biến thể
                   </span>
                 </div>
 
-                {/* Vertical list of era stages */}
+                {/* Vertical list of variant stages */}
                 <div className='space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5'>
                   {stages.map((stage) => {
                     const isActive = selectedStageKey === stage.stageKey;
                     const isStandardStage =
                       stage.stageName === 'Giai đoạn chuẩn' ||
-                      stage.stageName.toLowerCase().includes('chuẩn');
+                      stage.stageName.toLowerCase().includes('chuẩn') ||
+                      stage.stageName.toLowerCase().includes('mặc định');
                     const stageIcon = isStandardStage
                       ? null
                       : getStageIcon(stage.stageName, entity.category);
@@ -1141,7 +1177,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         <div className='flex items-center justify-between gap-1.5'>
                           <div className='flex items-center gap-1.5 min-w-0 font-semibold text-xs sm:text-sm'>
                             {stageIcon && <span>{stageIcon}</span>}
-                            <span className='truncate'>{stage.stageName}</span>
+                            <span className='truncate'>{stage.stageName || 'Mặc định'}</span>
                           </div>
                           {stage.isLocked ? (
                             <span className='text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0'>
@@ -1155,11 +1191,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         </div>
 
                         <div className='flex items-center justify-between text-xs text-stone-500'>
-                          <span className='font-mono font-medium text-xs bg-stone-100 px-2 py-0.5 rounded-full'>
-                            Ch.{stage.effectiveFromChapterNumber}
-                            {stage.effectiveToChapterNumber
-                              ? `–${stage.effectiveToChapterNumber}`
-                              : '+'}
+                          <span className='font-medium text-xs bg-stone-100 px-2 py-0.5 rounded-full text-stone-600'>
+                            {stage.stageName || 'Mặc định'}
                           </span>
                           <span className='text-xs text-stone-400'>
                             {stage.revisions.length} phiên bản
@@ -1179,10 +1212,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     }}
                     data-testid='add-new-era-btn'
                     className='w-full py-2 border-2 border-dashed border-stone-300 hover:border-orange-400 text-stone-600 hover:text-[#C2410C] hover:bg-orange-50/60 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer'
-                    title='Thêm giai đoạn cốt truyện mới'
+                    title='Thêm biến thể thiết kế mới'
                   >
                     <Plus className='w-4 h-4' />
-                    <span>Tạo giai đoạn mới</span>
+                    <span>Tạo biến thể mới</span>
                   </button>
                 )}
               </div>
@@ -1389,21 +1422,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           <span>Sửa</span>
                         </button>
                       )}
-                      {canCreateDraft &&
-                        activeStage &&
-                        !activeStage.isLocked &&
-                        !activeStage.revisions.some((r) => r.isInitialVersion) &&
-                        onDeleteEra && (
-                          <button
-                            type='button'
-                            onClick={() => setEraToDelete(activeStage)}
-                            className='p-1 bg-white hover:bg-rose-50 border border-stone-200 hover:border-rose-300 text-stone-600 hover:text-rose-600 rounded-lg transition-all cursor-pointer shadow-2xs'
-                            title='Xóa toàn bộ thời kỳ này'
-                            data-testid='delete-era-btn'
-                          >
-                            <Trash2 className='w-3 h-3' />
-                          </button>
-                        )}
                     </div>
                   </div>
 
@@ -1704,17 +1722,19 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             <Clock className='w-3 h-3 text-amber-600' />
                             Chờ Họa sĩ tải lên bản vẽ
                           </span>
+                        ) : activeRevision?.isLocked ||
+                          activeRevision?.reviewStatus === 'CanonLocked' ? (
+                          <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200'>
+                            <CheckCircle2 className='w-3 h-3 text-emerald-600' />
+                            Đã khoá Canon chính thức
+                          </span>
                         ) : activeRevision?.reviewStatus === 'Draft' ? (
                           <span className='inline-flex items-center gap-1 text-xs font-medium text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200'>
                             Bản thảo (Chưa nộp duyệt)
                           </span>
                         ) : activeRevision?.reviewStatus === 'ConceptSubmitted' ? (
                           <span className='inline-flex items-center gap-1 text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 animate-pulse'>
-                            ● Chờ Writer / Editor duyệt thiết kế
-                          </span>
-                        ) : activeRevision?.reviewStatus === 'WriterEndorsed' ? (
-                          <span className='inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200'>
-                            Writer/Editor đã xác nhận (chờ Producer khoá Canon)
+                            ● Chờ Editor xác nhận &amp; khoá Canon
                           </span>
                         ) : activeRevision?.reviewStatus === 'ReworkRequired' ? (
                           <span className='inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200'>
@@ -1770,88 +1790,68 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           </>
                         )}
 
-                        {/* Review Actions (Writer/Editor Endorse & Request Rework) */}
-                        {canRequestRework && activeRevision && (
-                          <div className='flex items-center gap-2'>
-                            {canEndorse && (
-                              <button
-                                type='button'
-                                disabled={
-                                  isEndorsing || activeRevision.reviewStatus === 'WriterEndorsed'
-                                }
-                                onClick={() => void handleEndorse(activeRevision)}
-                                className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-xs transition-all ${
-                                  activeRevision.reviewStatus === 'WriterEndorsed'
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-default'
-                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-[0.98]'
-                                } disabled:opacity-60`}
-                                data-testid='detail-endorse-btn'
-                              >
-                                <CheckCircle2 className='w-3.5 h-3.5' />
-                                <span>
-                                  {isEndorsing
-                                    ? 'Đang duyệt...'
-                                    : activeRevision.reviewStatus === 'WriterEndorsed'
-                                      ? 'Đã duyệt thiết kế'
-                                      : 'Duyệt thiết kế'}
-                                </span>
-                              </button>
-                            )}
-                            <button
-                              type='button'
-                              disabled={
-                                activeRevision.reviewStatus === 'WriterEndorsed' ||
-                                activeRevision.isLocked ||
-                                isEndorsing
-                              }
-                              onClick={() => handleRequestRework(activeRevision)}
-                              className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all ${
-                                activeRevision.reviewStatus === 'WriterEndorsed' ||
-                                activeRevision.isLocked
-                                  ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed opacity-50'
-                                  : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer active:scale-[0.98]'
-                              }`}
-                              title={
-                                activeRevision.reviewStatus === 'WriterEndorsed' ||
-                                activeRevision.isLocked
-                                  ? 'Phiên bản này đã được duyệt/khoá, không thể yêu cầu vẽ lại.'
-                                  : 'Yêu cầu Artist chỉnh sửa lại bản vẽ'
-                              }
-                              data-testid='detail-rework-btn'
-                            >
-                              <MessageSquare className='w-3.5 h-3.5' />
-                              <span>Yêu cầu sửa</span>
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Producer Canon Lock Action */}
-                        {isProducerUser &&
-                          (entity.isVisualDesign ?? isCharacter) &&
+                        {/* Editor Confirm (= Lock Canon) Action per Q20/Q22 */}
+                        {isEditorUser &&
+                          !isProducerUser &&
+                          (entity.isVisualDesign ?? (isCharacter || isLocation || isProp)) &&
                           activeRevision &&
                           !activeRevision.isLocked &&
                           activeRevision.reviewStatus !== 'CanonLocked' && (
                             <button
                               type='button'
                               disabled={
-                                isLocking ||
-                                (activeRevision.reviewStatus !== 'WriterEndorsed' &&
-                                  activeRevision.reviewStatus !== 4)
+                                isEndorsing || activeRevision.reviewStatus === 'ReworkRequired'
                               }
-                              onClick={() => void handleLock(activeRevision)}
-                              className='px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow transition-all cursor-pointer disabled:opacity-50'
-                              data-testid='detail-lock-btn'
+                              onClick={() => void handleEndorse(activeRevision)}
+                              className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-xs transition-all ${
+                                activeRevision.reviewStatus === 'ReworkRequired'
+                                  ? 'bg-stone-200 text-stone-500 cursor-not-allowed opacity-60'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-[0.98]'
+                              }`}
                               title={
-                                activeRevision.reviewStatus !== 'WriterEndorsed' &&
-                                activeRevision.reviewStatus !== 4
-                                  ? 'Chỉ có thể khoá Canon phiên bản đã được Writer/Editor xác nhận (WriterEndorsed) (BR-01)'
-                                  : 'Khóa phiên bản này làm quy chuẩn chính thức cho toàn bộ dự án'
+                                activeRevision.reviewStatus === 'ReworkRequired'
+                                  ? 'Bản vẽ đang bị yêu cầu vẽ lại; cần Artist nộp lại concept trước khi duyệt'
+                                  : 'Xác nhận thiết kế và khoá Canon'
                               }
+                              data-testid='detail-confirm-btn'
                             >
-                              <Lock className='w-3.5 h-3.5' />
-                              <span>{isLocking ? 'Đang khóa...' : 'Khóa Canon chính thức'}</span>
+                              <span className='inline-flex items-center gap-1.5'>
+                                <CheckCircle2 className='w-3.5 h-3.5' />
+                                <span>
+                                  {isEndorsing ? 'Đang xác nhận...' : 'Xác nhận & khoá Canon'}
+                                </span>
+                              </span>
                             </button>
                           )}
+
+                        {/* Request Rework Action (Writer + Editor + Producer per Q22) */}
+                        {canRequestRework && activeRevision && (
+                          <button
+                            type='button'
+                            disabled={
+                              activeRevision.isLocked ||
+                              activeRevision.reviewStatus === 'CanonLocked' ||
+                              isEndorsing
+                            }
+                            onClick={() => handleRequestRework(activeRevision)}
+                            className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all ${
+                              activeRevision.isLocked ||
+                              activeRevision.reviewStatus === 'CanonLocked'
+                                ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed opacity-50'
+                                : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer active:scale-[0.98]'
+                            }`}
+                            title={
+                              activeRevision.isLocked ||
+                              activeRevision.reviewStatus === 'CanonLocked'
+                                ? 'Phiên bản này đã khoá Canon, không thể yêu cầu vẽ lại.'
+                                : 'Yêu cầu Artist chỉnh sửa lại bản vẽ'
+                            }
+                            data-testid='detail-rework-btn'
+                          >
+                            <MessageSquare className='w-3.5 h-3.5' />
+                            <span>Yêu cầu sửa</span>
+                          </button>
+                        )}
 
                         {/* Canon locked status badge */}
                         {(activeRevision?.isLocked ||
@@ -1862,6 +1862,236 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             <span>Tham chiếu {getCategoryLabel(entity.category)}</span>
                           </div>
                         )}
+                      </div>
+                    </div>
+
+                    {/* CONCEPT REVIEW: VERSIONS LIST (BIB-10 FE) */}
+                    {conceptVersions.length > 0 && (
+                      <div
+                        className='mt-4 pt-3 border-t border-stone-200/80 space-y-2'
+                        data-testid='concept-versions-list'
+                      >
+                        <div className='flex items-center justify-between text-xs font-bold text-stone-700'>
+                          <div className='flex items-center gap-1.5'>
+                            <History className='w-3.5 h-3.5 text-orange-600' />
+                            <span>Các bản nộp Concept Art ({conceptVersions.length})</span>
+                          </div>
+                          <span className='text-stone-400 font-normal'>
+                            Nhấn để xem lại từng bản nộp
+                          </span>
+                        </div>
+                        <div className='flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar'>
+                          {conceptVersions.map((evt, idx) => {
+                            const verNum = evt.conceptVersionNumber ?? idx + 1;
+                            const isSelected =
+                              selectedConceptEventId === evt.id ||
+                              (!selectedConceptEventId && idx === conceptVersions.length - 1);
+                            return (
+                              <button
+                                key={evt.id || idx}
+                                type='button'
+                                title={evt.comment || undefined}
+                                onClick={() => {
+                                  setSelectedConceptEventId(evt.id || null);
+                                }}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-medium border shrink-0 transition-all cursor-pointer flex items-center gap-2 ${
+                                  isSelected
+                                    ? 'bg-orange-50 border-orange-500 text-orange-800 shadow-2xs font-bold ring-1 ring-orange-500/30'
+                                    : 'bg-white border-stone-200 text-stone-700 hover:border-stone-300'
+                                }`}
+                                data-testid={`concept-version-item-${verNum}`}
+                              >
+                                <span className='w-2 h-2 rounded-full bg-orange-500' />
+                                <span>Concept v{verNum}</span>
+                                <span className='text-stone-400 font-mono text-xs'>
+                                  {evt.createdAt
+                                    ? new Date(evt.createdAt).toLocaleDateString('vi-VN')
+                                    : ''}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CONCEPT REVIEW: COMMENTS SECTION (BIB-10 FE) */}
+                    <div
+                      className='mt-4 pt-4 border-t border-stone-200/80 space-y-3'
+                      data-testid='concept-comments-section'
+                    >
+                      <div className='flex items-center justify-between'>
+                        <div className='flex items-center gap-2 text-xs sm:text-sm font-bold text-stone-900'>
+                          <MessageSquare className='w-4 h-4 text-[#F97316]' />
+                          <span>Nhận xét Concept Art</span>
+                          <span className='px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold'>
+                            {conceptComments.length}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Comments List */}
+                      {loadingComments ? (
+                        <div className='py-4 text-center text-xs text-stone-500'>
+                          Đang tải nhận xét...
+                        </div>
+                      ) : conceptComments.length === 0 ? (
+                        <div className='p-3 text-center text-xs text-stone-400 italic bg-stone-50/60 rounded-xl border border-stone-200/60'>
+                          Chưa có nhận xét nào cho bản vẽ này.
+                        </div>
+                      ) : (
+                        <div className='space-y-2.5 max-h-80 overflow-y-auto custom-scrollbar pr-1'>
+                          {conceptComments.map((c) => {
+                            const isResolved = Boolean(c.resolvedAt);
+                            return (
+                              <div
+                                key={c.id}
+                                className={`p-3 rounded-xl border text-xs space-y-2 transition-all ${
+                                  isResolved
+                                    ? 'bg-stone-50/70 border-stone-200 text-stone-500 opacity-80'
+                                    : 'bg-white border-stone-200 shadow-2xs text-stone-800'
+                                }`}
+                                data-testid={`concept-comment-${c.id}`}
+                              >
+                                <div className='flex items-center justify-between gap-2'>
+                                  <div className='flex items-center gap-2 min-w-0'>
+                                    <span className='font-bold text-stone-900 truncate'>
+                                      {c.authorId
+                                        ? `Thành viên (${c.authorId.slice(0, 8)})`
+                                        : 'Thành viên'}
+                                    </span>
+                                    <span className='text-stone-400 font-mono text-xs'>
+                                      {new Date(c.createdAt).toLocaleDateString('vi-VN')}
+                                    </span>
+                                  </div>
+                                  <div className='flex items-center gap-1.5 shrink-0'>
+                                    {isResolved && (
+                                      <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200'>
+                                        <Check className='w-3 h-3 text-emerald-600' />
+                                        Đã giải quyết
+                                      </span>
+                                    )}
+                                    {(isWriterUser || isEditorUser) && (
+                                      <button
+                                        type='button'
+                                        onClick={() => void handleResolveComment(c.id, isResolved)}
+                                        className='px-2 py-0.5 text-xs font-medium text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded border border-stone-200 transition cursor-pointer'
+                                        data-testid={`resolve-comment-btn-${c.id}`}
+                                        title={
+                                          isResolved ? 'Mở lại nhận xét' : 'Đánh dấu đã giải quyết'
+                                        }
+                                      >
+                                        {isResolved ? 'Mở lại' : 'Giải quyết'}
+                                      </button>
+                                    )}
+                                    <button
+                                      type='button'
+                                      onClick={() =>
+                                        setActiveReplyId(activeReplyId === c.id ? null : c.id)
+                                      }
+                                      className='px-2 py-0.5 text-xs font-medium text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 rounded border border-orange-200 transition cursor-pointer flex items-center gap-1'
+                                      data-testid={`reply-comment-btn-${c.id}`}
+                                    >
+                                      <CornerDownRight className='w-3 h-3' />
+                                      <span>Trả lời</span>
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <p className='text-xs leading-relaxed text-stone-800 whitespace-pre-wrap'>
+                                  {c.body}
+                                </p>
+
+                                {/* Nested Replies */}
+                                {c.replies && c.replies.length > 0 && (
+                                  <div className='pl-3 border-l-2 border-stone-200 space-y-1.5 pt-1 mt-1'>
+                                    {c.replies.map((r) => (
+                                      <div
+                                        key={r.id}
+                                        className='bg-stone-50 p-2 rounded-lg text-xs space-y-1'
+                                      >
+                                        <div className='flex items-center gap-2 text-xs text-stone-500'>
+                                          <span className='font-bold text-stone-800'>
+                                            {r.authorId
+                                              ? `Thành viên (${r.authorId.slice(0, 8)})`
+                                              : 'Thành viên'}
+                                          </span>
+                                          <span className='font-mono'>
+                                            {new Date(r.createdAt).toLocaleDateString('vi-VN')}
+                                          </span>
+                                        </div>
+                                        <p className='text-stone-700'>{r.body}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Inline Reply Box */}
+                                {activeReplyId === c.id && (
+                                  <div className='pt-2 flex items-center gap-2'>
+                                    <input
+                                      type='text'
+                                      value={replyTextMap[c.id] || ''}
+                                      onChange={(e) =>
+                                        setReplyTextMap((prev) => ({
+                                          ...prev,
+                                          [c.id]: e.target.value,
+                                        }))
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                          e.preventDefault();
+                                          void handleReplyComment(c.id);
+                                        }
+                                      }}
+                                      placeholder='Viết câu trả lời...'
+                                      className='flex-1 px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F97316]'
+                                      data-testid={`reply-input-${c.id}`}
+                                    />
+                                    <button
+                                      type='button'
+                                      disabled={submittingComment || !replyTextMap[c.id]?.trim()}
+                                      onClick={() => void handleReplyComment(c.id)}
+                                      className='px-3 py-1.5 bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition cursor-pointer flex items-center gap-1'
+                                      data-testid={`submit-reply-btn-${c.id}`}
+                                    >
+                                      <Send className='w-3 h-3' />
+                                      <span>Gửi</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Add Comment Input */}
+                      <div className='pt-2 flex items-center gap-2'>
+                        <input
+                          type='text'
+                          value={newCommentText}
+                          onChange={(e) => setNewCommentText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              void handleCreateComment();
+                            }
+                          }}
+                          placeholder='Thêm nhận xét về bản vẽ Concept Art...'
+                          className='flex-1 px-3.5 py-2 text-xs bg-stone-50 hover:bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#F97316] transition'
+                          data-testid='create-concept-comment-input'
+                        />
+                        <button
+                          type='button'
+                          disabled={submittingComment || !newCommentText.trim()}
+                          onClick={() => void handleCreateComment()}
+                          className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-[0.98]'
+                          data-testid='create-concept-comment-btn'
+                        >
+                          <Send className='w-3.5 h-3.5' />
+                          <span>Gửi nhận xét</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1911,22 +2141,18 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold'
                                 : rev.reviewStatus === 'ConceptSubmitted'
                                   ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : rev.reviewStatus === 'WriterEndorsed'
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                    : rev.reviewStatus === 'ReworkRequired'
-                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                      : 'bg-stone-100 text-stone-600 border-stone-200'
+                                  : rev.reviewStatus === 'ReworkRequired'
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : 'bg-stone-100 text-stone-600 border-stone-200'
                             }`}
                           >
                             {isCanon
                               ? 'Chính thức'
                               : rev.reviewStatus === 'ConceptSubmitted'
                                 ? 'Chờ thẩm định'
-                                : rev.reviewStatus === 'WriterEndorsed'
-                                  ? 'Biên kịch đã duyệt'
-                                  : rev.reviewStatus === 'ReworkRequired'
-                                    ? 'Yêu cầu sửa'
-                                    : 'Bản nháp'}
+                                : rev.reviewStatus === 'ReworkRequired'
+                                  ? 'Yêu cầu sửa'
+                                  : 'Bản nháp'}
                           </span>
                         </div>
                         <span className='text-xs text-stone-400 font-mono'>
@@ -1956,11 +2182,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       ? 'Chính thức'
                       : activeRevision?.reviewStatus === 'ConceptSubmitted'
                         ? 'Chờ thẩm định'
-                        : activeRevision?.reviewStatus === 'WriterEndorsed'
-                          ? 'Biên kịch đã duyệt'
-                          : activeRevision?.reviewStatus === 'ReworkRequired'
-                            ? 'Yêu cầu sửa'
-                            : 'Bản nháp'}
+                        : activeRevision?.reviewStatus === 'ReworkRequired'
+                          ? 'Yêu cầu sửa'
+                          : 'Bản nháp'}
                     )
                   </span>
                   <span className='text-xs text-stone-500 font-medium'>
@@ -2047,33 +2271,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             }
           } catch (err: any) {
             onShowToast('Lỗi', err.message || 'Không thể xóa phiên bản.');
-          } finally {
-            setIsDeleting(false);
-          }
-        }}
-      />
-
-      {/* Confirm Delete Era Modal */}
-      <LucianConfirmModal
-        isOpen={!!eraToDelete}
-        title='Xóa giai đoạn nhân vật'
-        description={`Bạn có chắc chắn muốn xóa thời kỳ "${eraToDelete?.stageName || ''}" (Chương ${eraToDelete?.effectiveFromChapterNumber || 1}) và tất cả các phiên bản liên quan chưa khóa? Thao tác này không thể hoàn tác.`}
-        confirmText={isDeleting ? 'Đang xóa...' : 'Xóa thời kỳ'}
-        cancelText='Hủy'
-        variant='danger'
-        onCancel={() => setEraToDelete(null)}
-        onConfirm={async () => {
-          if (!eraToDelete || !onDeleteEra) return;
-          try {
-            setIsDeleting(true);
-            await onDeleteEra(entity, eraToDelete);
-            const eraRevIds = new Set(eraToDelete.revisions.map((r) => r.id));
-            setEraToDelete(null);
-            setAllRevisions((prev) => prev.filter((r) => !eraRevIds.has(r.id)));
-            setSelectedStageKey('');
-            setSelectedVersionId(null);
-          } catch (err: any) {
-            onShowToast('Lỗi', err.message || 'Không thể xóa thời kỳ.');
           } finally {
             setIsDeleting(false);
           }

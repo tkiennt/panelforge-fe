@@ -82,7 +82,7 @@ describe('AddEntityModal UX/UI improvements', () => {
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  it('handles stageName and chapter range inputs and submits them', async () => {
+  it('handles variant label, aliases, and crowd flag and submits them', async () => {
     render(<AddEntityModal {...defaultProps} isProducer={true} />);
 
     fireEvent.change(screen.getByLabelText(/Tên mục/i), {
@@ -91,15 +91,16 @@ describe('AddEntityModal UX/UI improvements', () => {
     fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
       target: { value: 'Chiến binh Saiyan' },
     });
-    fireEvent.change(screen.getByLabelText(/Tên giai đoạn \(Tùy chọn\)/i), {
+    fireEvent.change(screen.getByLabelText(/Nhãn biến thể tạo hình/i), {
       target: { value: 'Lúc nhỏ' },
     });
-    fireEvent.change(screen.getByLabelText(/Hiệu lực từ Chương số \*/i), {
-      target: { value: '1' },
-    });
-    fireEvent.change(screen.getByLabelText(/Đến Chương \(Để trống = tới hết truyện\)/i), {
-      target: { value: '19' },
-    });
+
+    const aliasInput = screen.getByPlaceholderText(/Nhập bí danh rồi bấm Thêm hoặc Enter/i);
+    fireEvent.change(aliasInput, { target: { value: 'Kakarot' } });
+    fireEvent.keyDown(aliasInput, { key: 'Enter', code: 'Enter' });
+
+    const crowdCheckbox = screen.getByLabelText(/Cờ Quần chúng/i);
+    fireEvent.click(crowdCheckbox);
 
     const submitBtn = screen.getByRole('button', {
       name: /Lưu vào Series Bible/i,
@@ -111,8 +112,8 @@ describe('AddEntityModal UX/UI improvements', () => {
       expect.objectContaining({
         name: 'Goku',
         stageName: 'Lúc nhỏ',
-        effectiveFromChapterNumber: 1,
-        effectiveToChapterNumber: 19,
+        aliases: ['Kakarot'],
+        isCrowd: true,
       }),
     );
   });
@@ -124,29 +125,19 @@ describe('AddEntityModal UX/UI improvements', () => {
     expect(screen.getByRole('button', { name: /Tạo bản nháp mới/i })).toBeInTheDocument();
   });
 
-  it('validates chapter range: disables submit when to < from', async () => {
+  it('allows adding and removing aliases chips', async () => {
     render(<AddEntityModal {...defaultProps} isProducer={true} />);
 
-    fireEvent.change(screen.getByLabelText(/Tên mục/i), {
-      target: { value: 'Goku' },
-    });
-    fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
-      target: { value: 'Chiến binh Saiyan' },
-    });
-    fireEvent.change(screen.getByLabelText(/Hiệu lực từ Chương số \*/i), {
-      target: { value: '20' },
-    });
-    fireEvent.change(screen.getByLabelText(/Đến Chương \(Để trống = tới hết truyện\)/i), {
-      target: { value: '10' },
-    });
+    const aliasInput = screen.getByPlaceholderText(/Nhập bí danh rồi bấm Thêm hoặc Enter/i);
+    fireEvent.change(aliasInput, { target: { value: 'Khỉ con' } });
+    fireEvent.keyDown(aliasInput, { key: 'Enter', code: 'Enter' });
 
-    expect(
-      screen.getByText(/Chương kết thúc \(10\) phải lớn hơn hoặc bằng chương bắt đầu \(20\)/i),
-    ).toBeInTheDocument();
-    const submitBtn = screen.getByRole('button', {
-      name: /Lưu vào Series Bible/i,
-    }) as HTMLButtonElement;
-    expect(submitBtn.disabled).toBe(true);
+    expect(screen.getByText('Khỉ con')).toBeInTheDocument();
+
+    const removeBtn = screen.getByRole('button', { name: /Xóa bí danh Khỉ con/i });
+    fireEvent.click(removeBtn);
+
+    expect(screen.queryByText('Khỉ con')).not.toBeInTheDocument();
   });
 
   it('renders character sheet gallery section and adds turnaround sketches (Step 3)', async () => {

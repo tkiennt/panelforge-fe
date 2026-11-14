@@ -94,7 +94,7 @@ describe('bibleService', () => {
   });
 
   describe('lockRevision (Việc 5 - Producer khoá Character Sheet)', () => {
-    it('gọi POST /series/{seriesId}/bible/entries/{entryId}/revisions/{revisionId}/lock và trả về revision đã khoá', async () => {
+    it('gọi POST /series/{seriesId}/bible/entries/{entryId}/revisions/{revisionId}/confirm và trả về revision đã khoá', async () => {
       const mockLockedRev = {
         id: revisionId,
         bibleEntryId: entryId,
@@ -114,7 +114,8 @@ describe('bibleService', () => {
       const result = await bibleService.lockRevision(seriesId, entryId, revisionId);
 
       expect(post).toHaveBeenCalledWith(
-        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/lock`,
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/confirm`,
+        {},
       );
       expect(result.isLocked).toBe(true);
       expect(result.lockedAt).toBe('2026-10-06T10:05:00Z');
