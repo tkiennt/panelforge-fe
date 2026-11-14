@@ -27,6 +27,7 @@ import { assignmentService } from '@/services/assignment.service';
 import type { AssignmentDto } from '@/types/pipeline';
 import { WorkspaceRole } from '@/types';
 import { useConfirm } from '@/shared/context/ConfirmContext';
+import { Modal } from '@/shared/ui';
 
 export interface PreviewLinksModalProps {
   isOpen: boolean;
@@ -249,8 +250,12 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
 
   return (
-    <div
-      className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150'
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='xl'
+      title='Chia sẻ bản xem trước'
       data-testid='preview-links-modal'
     >
       <div className='bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl border border-[#E7E7E7] overflow-hidden text-xs text-[#171717]'>
@@ -822,7 +827,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 export default PreviewLinksModal;

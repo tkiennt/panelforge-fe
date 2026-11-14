@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, History, Sparkles, User, FileDiff, Cpu, Lock } from 'lucide-react';
+import { Modal } from '@/shared/ui';
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,7 +11,7 @@ export const VersionHistoryModal: React.FC<ModalProps> = ({ isOpen, onClose }) =
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 z-[100] flex items-center justify-center bg-[#171717]/80 backdrop-blur-sm p-4 animate-in fade-in duration-200'>
+    <Modal isOpen={isOpen} onClose={onClose} closeLabel='Close' size='lg' title='Version History'>
       <div className='w-full max-w-2xl bg-[#FAF8F4] rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300'>
         <div className='flex items-center justify-between p-5 border-b border-[#E7E7E7] bg-white'>
           <div className='flex items-center gap-3 text-[#171717]'>
@@ -78,7 +79,7 @@ export const VersionHistoryModal: React.FC<ModalProps> = ({ isOpen, onClose }) =
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -86,7 +87,13 @@ export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => 
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 z-[100] flex items-center justify-center bg-[#171717]/80 backdrop-blur-sm p-4 animate-in fade-in duration-200'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Close'
+      size='lg'
+      title='AI Provenance & Accountability'
+    >
       <div className='w-full max-w-2xl bg-[#FAF8F4] rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300'>
         <div className='flex items-center justify-between p-5 border-b border-[#E7E7E7] bg-white'>
           <div className='flex items-center gap-3 text-[#171717]'>
@@ -173,6 +180,6 @@ export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => 
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

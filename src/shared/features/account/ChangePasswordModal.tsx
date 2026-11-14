@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  X,
-  KeyRound,
-  AlertCircle,
-  CheckCircle2,
-  ShieldAlert,
-  Mail,
-  Send,
-  RefreshCw,
-} from 'lucide-react';
+import { KeyRound, CheckCircle2, ShieldAlert, Mail, Send, RefreshCw } from 'lucide-react';
 import { authService } from '@/services/auth.service';
+import { Alert, Modal } from '@/shared/ui';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -148,18 +140,15 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-[#171717]/60 backdrop-blur-md p-4 animate-in fade-in duration-200'>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleResetForm}
+      closeLabel='Close'
+      size='md'
+      title='Change Password'
+    >
       <div className='w-[480px] max-w-[95vw] max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-[#E7E7E7] relative animate-in zoom-in-95 duration-200 custom-scrollbar'>
         <div className='h-1.5 w-full bg-gradient-to-r from-[#F97316] via-[#EA580C] to-[#C2410C]'></div>
-
-        <button
-          onClick={handleResetForm}
-          disabled={isLoading}
-          className='absolute top-4 right-4 z-20 text-[#555555] hover:text-[#171717] bg-[#FAF8F5] hover:bg-[#E7E7E7] rounded-full p-1.5 transition-colors cursor-pointer disabled:opacity-50'
-          title='Close'
-        >
-          <X className='w-4 h-4' />
-        </button>
 
         <div className='p-6 md:p-8'>
           <div className='flex items-center gap-3 mb-5'>
@@ -167,9 +156,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               <KeyRound className='w-5 h-5' />
             </div>
             <div>
-              <h3 className='font-serif text-xl font-bold text-[#171717] leading-tight'>
-                Change Password
-              </h3>
               <p className='text-xs text-[#555555] mt-0.5'>
                 Protect your account credentials and studio assets.
               </p>
@@ -177,17 +163,15 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           </div>
 
           {isSuccess && (
-            <div className='mb-4 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl flex items-center gap-2.5 text-xs font-medium animate-in fade-in'>
-              <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' />
+            <Alert tone='success' className='mb-4 text-xs font-medium'>
               Password changed successfully! Closing...
-            </div>
+            </Alert>
           )}
 
           {error && (
-            <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl flex items-start gap-2 text-xs leading-relaxed animate-in fade-in'>
-              <AlertCircle className='w-4 h-4 text-red-500 shrink-0 mt-0.5' />
-              <span>{error}</span>
-            </div>
+            <Alert tone='danger' className='mb-4 text-xs leading-relaxed'>
+              {error}
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit} className='space-y-4'>
@@ -341,6 +325,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           </form>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

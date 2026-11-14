@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Alert } from '@/shared/ui';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -86,13 +87,9 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
       </div>
 
       {error && (
-        <div
-          role='alert'
-          className='p-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[11px] flex items-center gap-1.5'
-        >
-          <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
-          <span>{error}</span>
-        </div>
+        <Alert tone='danger' className='text-xs'>
+          {error}
+        </Alert>
       )}
 
       {actions.canOpenReview && (

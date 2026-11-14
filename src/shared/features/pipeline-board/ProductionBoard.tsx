@@ -23,6 +23,7 @@ import { SideDrawer } from './SideDrawer';
 import { ProductionTaskCard } from './ProductionTaskCard';
 import { ProductionTaskList } from './ProductionTaskList';
 import { BOARD_COLUMNS, type BoardCard } from './pipelineBoard.types';
+import { Alert } from '@/shared/ui';
 import {
   type ChapterMetrics,
   type DetailFilters,
@@ -271,15 +272,6 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
     });
   }, []);
 
-  useEffect(() => {
-    if (!isDrawerOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeDrawer();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isDrawerOpen, closeDrawer]);
-
   const openMyWork = (card: BoardCard) => {
     if (workspaceId && seriesId) {
       navigate(
@@ -525,10 +517,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
 
       {/* Lỗi làm mới khi vẫn còn dữ liệu cũ */}
       {error && cards !== null && (
-        <div
-          role='alert'
-          className='flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-300 bg-rose-50 px-4 py-2 text-sm text-rose-900'
-        >
+        <Alert tone='danger' className='text-sm'>
           <span>{error} Đang hiển thị dữ liệu lần tải trước.</span>
           <button
             type='button'
@@ -537,7 +526,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
           >
             <RefreshCw className='h-4 w-4' aria-hidden='true' /> Thử lại
           </button>
-        </div>
+        </Alert>
       )}
 
       {/* D. Vùng công việc chính */}

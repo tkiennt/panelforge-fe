@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { authService } from '@/services/auth.service';
+import { Modal } from '@/shared/ui';
 
 interface TwoFactorSetupModalProps {
   isOpen: boolean;
@@ -216,7 +217,13 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-[#171717]/60 backdrop-blur-md p-4'>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      closeLabel='Đóng'
+      size='md'
+      title='Xác thực hai bước'
+    >
       <div className='w-[540px] max-w-[95vw] bg-white rounded-2xl shadow-2xl border border-[#E7E7E7] overflow-hidden relative animate-in zoom-in-95 duration-200'>
         {/* Top Accent Stripe */}
         <div className='h-1.5 w-full bg-gradient-to-r from-[#F97316] to-[#E11D48]'></div>
@@ -605,6 +612,6 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

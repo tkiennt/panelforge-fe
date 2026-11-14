@@ -3,6 +3,7 @@ import { ArrowRight, Check, ListTodo, Mail, X, AlertCircle } from 'lucide-react'
 import type { WorkspaceDto, WorkspaceSeriesPreviewDto } from '@/types';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { dueTone, type TodayTask } from './workspaceShelfTasks';
+import { Alert } from '@/shared/ui';
 
 type T = (key: string, params?: Record<string, string | number>) => string;
 
@@ -44,10 +45,9 @@ export const PendingInvitations: React.FC<{
       </div>
     </div>
     {error && (
-      <p role='alert' className='text-sm text-rose-700 flex items-center gap-1.5'>
-        <AlertCircle className='w-4 h-4' aria-hidden='true' />
+      <Alert tone='danger' className='text-sm'>
         {error}
-      </p>
+      </Alert>
     )}
     <ul className='divide-y divide-stone-100' role='list'>
       {invitations.map((inv) => {

@@ -23,6 +23,7 @@ import {
   TodayTasks,
   type PendingInvitation,
 } from './WorkspaceShelfSections';
+import { Alert } from '@/shared/ui';
 import { sortByDue, type TodayTask } from './workspaceShelfTasks';
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
@@ -396,10 +397,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
               </div>
             </div>
           ) : loadError ? (
-            <div
-              role='alert'
-              className='max-w-md mx-auto mt-10 p-6 bg-white border border-stone-200/80 rounded-xl text-center shadow-xs'
-            >
+            <Alert tone='danger' className='max-w-md mx-auto mt-10 text-center'>
               <AlertCircle className='w-6 h-6 text-rose-600 mx-auto mb-3' aria-hidden='true' />
               <p className='text-sm text-[#44403C] mb-4'>{t('workspace.shelf.loadError')}</p>
               <button
@@ -410,7 +408,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 <RotateCw className='w-4 h-4' aria-hidden='true' />
                 {t('workspace.shelf.retry')}
               </button>
-            </div>
+            </Alert>
           ) : workspaces.length === 0 ? (
             /* Empty State */
             <div className='mt-6 bg-white border-2 border-dashed border-stone-300 rounded-xl p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left'>
