@@ -16,8 +16,11 @@ import { SceneDetailDto } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
 import { ScriptCommentDto } from '@/services/chapter.service';
+import { BibleEntryDto } from '@/services/bible.service';
 import { GN_ELEMENTS, GnElement } from './grammar/scriptGrammar';
 import {
+  BibleRefMark,
+  BibleSpeakerRef,
   GnLabels,
   ScriptDocument,
   ScriptLineBlockNode,
@@ -28,6 +31,7 @@ import {
   setLineElement,
 } from './nodes/ScriptLineBlockNode';
 import { ScriptDocSnapshot, docToScript, scriptToDoc } from './scriptFlowAdapter';
+import { BibleRefFloatingMenu } from './BibleRefFloatingMenu';
 
 export interface ScreenplayFlowEditorProps {
   chapterId?: string;
@@ -52,6 +56,25 @@ export interface ScreenplayFlowEditorProps {
   onToggleCommentsSidePanel?: () => void;
   isCommentsSidePanelOpen?: boolean;
   activeLineId?: string | null;
+  activePanel?: { pageNumber?: number | null; panelNumber?: number | null } | null;
+  allBibleEntries?: BibleEntryDto[];
+  registerSetPanelStage?: (
+    fn:
+      | ((
+          pageNumber: number,
+          panelNumber: number,
+          castRevisions:
+            | {
+                bibleEntryId: string;
+                revisionId: string;
+                entryName?: string;
+                variantLabel?: string;
+                versionNumber?: number;
+              }[]
+            | null,
+        ) => void)
+      | null,
+  ) => void;
 }
 
 const SHEET_CSS = `
@@ -96,6 +119,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   onToggleCommentsSidePanel,
   isCommentsSidePanelOpen,
   activeLineId,
+  activePanel,
+  allBibleEntries,
+  registerSetPanelStage,
 }) => {
   const { t } = useTranslation('production');
   const isReadOnly = !canEditScript || isChapterLocked;
@@ -107,6 +133,15 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
   const dirtyRef = useRef(false);
   const loadingRef = useRef(false);
+
+  const bibleSpeakers = useMemo<BibleSpeakerRef[]>(() => {
+    return (allBibleEntries || [])
+      .filter((e) => String(e.category) === '0' || String(e.category).toLowerCase() === 'character')
+      .map((e) => ({
+        name: e.name,
+        aliases: (e as any).aliases || [],
+      }));
+  }, [allBibleEntries]);
 
   const commentsRef = useRef<ScriptCommentDto[]>([]);
   commentsRef.current = comments || [];
@@ -167,6 +202,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     caption: '',
     sfx: '',
     acceptHint: '',
+    willCreateDraft: '',
   });
   Object.assign(labelsRef.current, {
     page: (n: number, k: number) => t('scriptStudio.gn.page', { n, k }),
@@ -174,6 +210,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     caption: t('scriptStudio.gn.caption'),
     sfx: t('scriptStudio.gn.sfx'),
     acceptHint: t('scriptStudio.gn.accept'),
+    willCreateDraft: t('scriptStudio.cast.willCreateDraft', 'Sẽ tạo bản nháp'),
   });
   const labels = labelsRef.current;
 
@@ -208,8 +245,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           trailingNode: false,
         }),
         ScriptDocument,
+        BibleRefMark,
         ScriptLineBlockNode,
-        ScriptTypingBehavior.configure({ labels }),
+        ScriptTypingBehavior.configure({ labels, bibleSpeakers }),
         Extension.create({
           name: 'scriptCommentHighlights',
           addProseMirrorPlugins() {
@@ -285,6 +323,82 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       scrollToLine(activeLineId);
     }
   }, [activeLineId]);
+
+  useEffect(() => {
+    if (activePanel?.pageNumber && activePanel?.panelNumber && editor) {
+      let targetPos: number | null = null;
+      let curPage = 0;
+      let curPanel = 0;
+      editor.state.doc.forEach((node, pos) => {
+        if (node.attrs.el === 'page') {
+          curPage += 1;
+          curPanel = 0;
+        } else if (node.attrs.el === 'panel') {
+          curPanel += 1;
+          if (curPage === activePanel.pageNumber && curPanel === activePanel.panelNumber) {
+            targetPos = pos;
+          }
+        }
+      });
+      if (targetPos !== null) {
+        try {
+          editor.commands.setTextSelection(targetPos + 1);
+          const dom = editor.view.nodeDOM(targetPos);
+          if (dom instanceof HTMLElement) {
+            dom.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [activePanel, editor]);
+
+  useEffect(() => {
+    if (!registerSetPanelStage) return;
+    const fn = (
+      pageNumber: number,
+      panelNumber: number,
+      castRevisions:
+        | {
+            bibleEntryId: string;
+            revisionId: string;
+            entryName?: string;
+            variantLabel?: string;
+            versionNumber?: number;
+          }[]
+        | null,
+    ) => {
+      if (!editor) return;
+      let targetPos: number | null = null;
+      let targetNode: any = null;
+      let curPage = 0;
+      let curPanel = 0;
+      editor.state.doc.forEach((node, pos) => {
+        if (node.attrs.el === 'page') {
+          curPage += 1;
+          curPanel = 0;
+        } else if (node.attrs.el === 'panel') {
+          curPanel += 1;
+          if (curPage === pageNumber && curPanel === panelNumber) {
+            targetPos = pos;
+            targetNode = node;
+          }
+        }
+      });
+
+      if (targetPos !== null && targetNode) {
+        const tr = editor.state.tr.setNodeMarkup(targetPos, undefined, {
+          ...targetNode.attrs,
+          castRevisions: castRevisions && castRevisions.length > 0 ? castRevisions : null,
+        });
+        editor.view.dispatch(tr);
+        markDirty(true);
+      }
+    };
+    registerSetPanelStage(fn);
+    return () => registerSetPanelStage(null);
+  }, [editor, registerSetPanelStage]);
 
   // Màn cha có thể truyền mảng mới mỗi lần render: chỉ nạp lại khi nội dung máy chủ thực sự đổi.
   const serverDocJson = useMemo(
@@ -464,6 +578,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               </header>
             )}
             <EditorContent editor={editor} />
+            <BibleRefFloatingMenu
+              editor={editor}
+              allBibleEntries={allBibleEntries || []}
+              canEditScript={!isReadOnly}
+              t={t}
+            />
           </div>
         </div>
       </div>

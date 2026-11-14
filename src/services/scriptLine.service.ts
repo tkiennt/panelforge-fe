@@ -134,6 +134,15 @@ export interface DeleteScriptLineResult {
   revisionId: string;
 }
 
+export interface ScriptLineRefInput {
+  surfaceText: string;
+  bibleEntryId?: string | null;
+  newDraft?: {
+    name: string;
+    category?: number;
+  } | null;
+}
+
 export interface BatchScriptLineItem {
   id?: string | null;
   lineOrder: number;
@@ -147,6 +156,7 @@ export interface BatchScriptLineItem {
   narrationMode?: NarrationMode | null;
   clientLineId?: string | null;
   panelId?: string | null;
+  refs?: ScriptLineRefInput[] | null;
 }
 
 export interface BatchSaveScriptLinesRequest {
@@ -160,6 +170,7 @@ export interface BatchSaveScriptLinesResult {
   chapterVersion: number;
   revisionId: string;
   lines: ScriptLineDto[];
+  warnings?: string[] | null;
 }
 
 /** Một dòng trong nội dung revision script (GET .../script-revisions/{revisionId}), đã sắp theo lineOrder. */

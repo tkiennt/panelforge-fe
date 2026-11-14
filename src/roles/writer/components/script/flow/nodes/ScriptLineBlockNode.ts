@@ -3,7 +3,7 @@
  * Editor kịch bản Graphic Novel kiểu WriterSolo: mỗi dòng là một node `scriptLine` mang loại phần tử `el`.
  * Nhãn PAGE/PANEL/CAPTION/SFX không nằm trong dữ liệu mà vẽ bằng decoration, nên chữ người viết luôn sạch.
  */
-import { Extension, Node, mergeAttributes } from '@tiptap/core';
+import { Extension, Mark, Node, mergeAttributes } from '@tiptap/core';
 import type { Editor } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { EditorState, Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
@@ -20,13 +20,69 @@ import {
 
 export const GN_LINE = 'scriptLine';
 
+export interface BibleSpeakerRef {
+  name: string;
+  aliases?: string[];
+}
+
 export interface GnLabels {
   page: (pageNumber: number, panelCount: number) => string;
   panel: (panelNumber: number) => string;
   caption: string;
   sfx: string;
   acceptHint: string;
+  willCreateDraft?: string;
 }
+
+/** Mark tham chiếu Series Bible trên dòng action / caption / sfx (BIB-16, 1A, 2A, 5A). */
+export const BibleRefMark = Mark.create({
+  name: 'bibleRef',
+  inclusive: false,
+
+  addAttributes() {
+    return {
+      entryId: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-entry-id'),
+        renderHTML: (attrs) => (attrs.entryId ? { 'data-entry-id': attrs.entryId } : {}),
+      },
+      surfaceText: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-surface-text'),
+        renderHTML: (attrs) =>
+          attrs.surfaceText ? { 'data-surface-text': attrs.surfaceText } : {},
+      },
+      newDraft: {
+        default: null,
+        parseHTML: (el) => {
+          const raw = el.getAttribute('data-new-draft');
+          try {
+            return raw ? JSON.parse(raw) : null;
+          } catch {
+            return null;
+          }
+        },
+        renderHTML: (attrs) =>
+          attrs.newDraft ? { 'data-new-draft': JSON.stringify(attrs.newDraft) } : {},
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'span[data-bible-ref]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'span',
+      mergeAttributes({ 'data-bible-ref': '' }, HTMLAttributes, {
+        class:
+          'gn-bible-ref underline decoration-orange-500 decoration-2 font-medium bg-orange-100/60 text-stone-900 rounded-xs px-0.5 cursor-pointer hover:bg-orange-200/80 transition-colors',
+      }),
+      0,
+    ];
+  },
+});
 
 /** Tài liệu chỉ gồm các dòng scriptLine. */
 export const ScriptDocument = Node.create({
@@ -39,7 +95,7 @@ export const ScriptLineBlockNode = Node.create({
   name: GN_LINE,
   group: 'block',
   content: 'text*',
-  marks: '',
+  marks: '_',
   defining: true,
 
   addAttributes() {
@@ -54,6 +110,20 @@ export const ScriptLineBlockNode = Node.create({
         default: null,
         parseHTML: (e) => e.getAttribute('data-ref-id'),
         renderHTML: (a) => (a.refId ? { 'data-ref-id': a.refId } : {}),
+      },
+      /** Giai đoạn theo Panel: [{ bibleEntryId, revisionId, variantLabel, entryName, versionNumber }] (BIB-11, BIB-16, Q23, Q24) */
+      castRevisions: {
+        default: null,
+        parseHTML: (e) => {
+          const raw = e.getAttribute('data-cast-revisions');
+          try {
+            return raw ? JSON.parse(raw) : null;
+          } catch {
+            return null;
+          }
+        },
+        renderHTML: (a) =>
+          a.castRevisions ? { 'data-cast-revisions': JSON.stringify(a.castRevisions) } : {},
       },
     };
   },
@@ -335,6 +405,85 @@ const ghostKey = new PluginKey('scriptCharacterGhost');
 
 export interface ScriptTypingOptions {
   labels: GnLabels;
+  bibleSpeakers?: BibleSpeakerRef[];
+}
+
+/**
+ * Gắn mark bibleRef lên tất cả các vị trí trùng surfaceText trong dòng hiện tại (5A, BIB-16).
+ */
+export function applyBibleRefToLine(
+  editor: Editor,
+  surfaceText: string,
+  attrs: { entryId?: string | null; newDraft?: { name: string; category?: number } | null },
+): boolean {
+  const { state, view } = editor;
+  const line = currentLine(state);
+  if (!line) return false;
+  if (line.el !== 'action' && line.el !== 'caption' && line.el !== 'sfx') return false;
+
+  const markType = state.schema.marks.bibleRef;
+  if (!markType) return false;
+
+  const lineStart = line.pos + 1;
+  const text = line.node.textContent;
+  const lowerText = text.toLowerCase();
+  const lowerTarget = surfaceText.toLowerCase().trim();
+  if (!lowerTarget) return false;
+
+  let tr = state.tr;
+  let idx = 0;
+  while ((idx = lowerText.indexOf(lowerTarget, idx)) !== -1) {
+    const from = lineStart + idx;
+    const to = from + lowerTarget.length;
+    tr = tr.addMark(
+      from,
+      to,
+      markType.create({
+        entryId: attrs.entryId ?? null,
+        surfaceText: text.substring(idx, idx + lowerTarget.length),
+        newDraft: attrs.newDraft ?? null,
+      }),
+    );
+    idx += lowerTarget.length;
+  }
+
+  view.dispatch(tr);
+  return true;
+}
+
+/**
+ * Gỡ mark bibleRef khỏi dòng hiện tại (BIB-16).
+ */
+export function removeBibleRefFromLine(
+  editor: Editor,
+  surfaceText?: string,
+  entryId?: string | null,
+): boolean {
+  const { state, view } = editor;
+  const line = currentLine(state);
+  if (!line) return false;
+
+  const markType = state.schema.marks.bibleRef;
+  if (!markType) return false;
+
+  const lineStart = line.pos + 1;
+  let tr = state.tr;
+
+  line.node.descendants((child, childPos) => {
+    if (child.isText && child.marks.some((m) => m.type.name === 'bibleRef')) {
+      const mark = child.marks.find((m) => m.type.name === 'bibleRef');
+      if (
+        mark &&
+        (!entryId || mark.attrs.entryId === entryId) &&
+        (!surfaceText || mark.attrs.surfaceText?.toLowerCase() === surfaceText.toLowerCase())
+      ) {
+        tr = tr.removeMark(lineStart + childPos, lineStart + childPos + child.nodeSize, markType);
+      }
+    }
+  });
+
+  view.dispatch(tr);
+  return true;
 }
 
 export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
@@ -348,7 +497,9 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
         caption: 'CAPTION:',
         sfx: 'SFX:',
         acceptHint: '(Enter)',
+        willCreateDraft: '(Sẽ tạo bản nháp)',
       },
+      bibleSpeakers: [],
     };
   },
 
@@ -409,6 +560,7 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
   addProseMirrorPlugins() {
     const labels = this.options.labels;
     const editor = this.editor;
+    const options = this.options;
     return [
       ElementMenuPlugin,
       // Gõ ":" sau tên nhân vật: không tự sinh dấu hai chấm trước đó,
@@ -484,7 +636,19 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
               } else if (el === 'panel') {
                 panelNo += 1;
                 if (pages.length) pages[pages.length - 1].panels += 1;
-                decos.push(range(labels.panel(panelNo)));
+                let panelLabel = labels.panel(panelNo);
+                const castRevs = node.attrs.castRevisions as
+                  { variantLabel?: string; entryName?: string; versionNumber?: number }[] | null;
+                if (castRevs && castRevs.length > 0) {
+                  const names = castRevs
+                    .map(
+                      (r) =>
+                        `${r.entryName || 'Thực thể'} · ${r.variantLabel || `v${r.versionNumber || 1}`}`,
+                    )
+                    .join(', ');
+                  panelLabel = `${panelLabel} [${names}]`;
+                }
+                decos.push(range(panelLabel));
               } else if (el === 'caption') {
                 decos.push(range(labels.caption));
               } else if (el === 'sfx') {
@@ -510,6 +674,7 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
         },
       }),
       // Gợi ý tên nhân vật: chữ mờ phần còn lại của tên + "(Enter)"; Enter/Tab để nhận.
+      // BIB-16 & 3: Tên mới hiện chip "Sẽ tạo bản nháp".
       new Plugin({
         key: ghostKey,
         props: {
@@ -518,16 +683,71 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
             const line = currentLine(state);
             if (!line || line.el !== 'character' || !line.atEnd || line.isEmpty) return null;
             const typed = line.node.textContent.replace(/:+$/, '').trim();
-            const full = completeCharacterName(typed, characterNames(state.doc, line.pos));
-            if (!full) return null;
-            const widget = document.createElement('span');
-            widget.className = 'gn-ghost';
-            widget.setAttribute('contenteditable', 'false');
-            widget.textContent = `${full.slice(typed.trim().length)}: ${labels.acceptHint}`;
-            return DecorationSet.create(state.doc, [
-              Decoration.widget(line.pos + 1 + line.node.content.size, widget, { side: 1 }),
-            ]);
+            if (!typed) return null;
+
+            const bibleSpeakers = options.bibleSpeakers || [];
+            const allKnownNames = [
+              ...characterNames(state.doc, line.pos),
+              ...bibleSpeakers.flatMap((s) => [s.name, ...(s.aliases || [])]),
+            ];
+
+            const full = completeCharacterName(typed, allKnownNames);
+            const widgets: Decoration[] = [];
+            const endPos = line.pos + 1 + line.node.content.size;
+
+            if (full && full.toUpperCase() !== typed.toUpperCase()) {
+              const widget = document.createElement('span');
+              widget.className = 'gn-ghost';
+              widget.setAttribute('contenteditable', 'false');
+              widget.textContent = `${full.slice(typed.trim().length)}: ${labels.acceptHint}`;
+              widgets.push(Decoration.widget(endPos, widget, { side: 1 }));
+            } else if (isValidCharacterNameInput(typed)) {
+              const normTyped = typed.toUpperCase();
+              const isBibleKnown = bibleSpeakers.some(
+                (s) =>
+                  s.name.toUpperCase() === normTyped ||
+                  s.aliases?.some((a) => a.toUpperCase() === normTyped),
+              );
+
+              if (!isBibleKnown) {
+                const chip = document.createElement('span');
+                chip.className =
+                  'gn-draft-chip ml-2 inline-flex items-center text-[10px] font-sans font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 pointer-events-none select-none';
+                chip.setAttribute('contenteditable', 'false');
+                chip.textContent = labels.willCreateDraft || 'Sẽ tạo bản nháp';
+                widgets.push(Decoration.widget(endPos, chip, { side: 1 }));
+              }
+            }
+
+            return widgets.length > 0 ? DecorationSet.create(state.doc, widgets) : null;
           },
+        },
+      }),
+      // Plugin chặn mark bibleRef trên các dòng không phải action / caption / sfx (BIB-16 & 1A)
+      new Plugin({
+        key: new PluginKey('bibleRefGatekeeper'),
+        appendTransaction(transactions, _oldState, newState) {
+          if (!transactions.some((tr) => tr.docChanged)) return null;
+          let tr: any = null;
+          const bibleRefType = newState.schema.marks.bibleRef;
+          if (!bibleRefType) return null;
+
+          newState.doc.descendants((node, pos) => {
+            if (node.type.name === GN_LINE) {
+              const el = node.attrs.el;
+              if (el !== 'action' && el !== 'caption' && el !== 'sfx') {
+                node.descendants((child, childPos) => {
+                  if (child.isText && child.marks.some((m) => m.type.name === 'bibleRef')) {
+                    if (!tr) tr = newState.tr;
+                    const from = pos + 1 + childPos;
+                    const to = from + child.nodeSize;
+                    tr.removeMark(from, to, bibleRefType);
+                  }
+                });
+              }
+            }
+          });
+          return tr;
         },
       }),
     ];
