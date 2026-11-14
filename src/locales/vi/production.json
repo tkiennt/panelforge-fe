@@ -215,7 +215,7 @@
     },
     "cast": {
       "referenceTitle": "Tham chiếu Series Bible",
-      "searchPlaceholder": "Tìm tên hoặc bí danh...",
+      "searchPlaceholder": "Tìm theo tên...",
       "noMatchingEntry": "Không tìm thấy mục trùng khớp",
       "createDraftType": "Loại bản nháp:",
       "createDraftBtn": "Tạo bản nháp cho",
@@ -290,8 +290,6 @@
       "entityNameRequired": "Tên thực thể *",
       "visualDescriptionRequired": "Mô tả & Đặc điểm nhận diện *",
       "visualDescriptionPlaceholder": "Ngoại hình, trang phục, vũ khí hoặc đặc điểm nhận diện chính...",
-      "aliasesLabel": "Bí danh (cách nhau bởi dấu phẩy)",
-      "aliasesPlaceholder": "Ví dụ: Hắc Long, Long Thần, Đại ca...",
       "subtitleLabel": "Tiêu đề phụ / Vai trò",
       "subtitlePlaceholder": "Ví dụ: Kiếm sĩ lang thang",
       "saveDefinition": "Lưu định nghĩa",

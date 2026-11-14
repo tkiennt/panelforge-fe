@@ -100,7 +100,6 @@ export interface SetChapterCastRevisionResultDto {
 export interface DefineBibleEntryRequest {
   name: string;
   description: string;
-  aliases?: string[];
   subtitle?: string | null;
   detailsJson?: string | null;
   referenceImageUrl?: string | null;

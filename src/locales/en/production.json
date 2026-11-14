@@ -215,7 +215,7 @@
     },
     "cast": {
       "referenceTitle": "Reference Series Bible",
-      "searchPlaceholder": "Search name or alias...",
+      "searchPlaceholder": "Search by name...",
       "noMatchingEntry": "No matching entry found",
       "createDraftType": "Draft type:",
       "createDraftBtn": "Create draft for",
@@ -290,8 +290,6 @@
       "entityNameRequired": "Entity Name *",
       "visualDescriptionRequired": "Description & Visual Traits *",
       "visualDescriptionPlaceholder": "Appearance, clothing, weapons, or key identifying traits...",
-      "aliasesLabel": "Aliases (comma-separated)",
-      "aliasesPlaceholder": "e.g. Black Dragon, Dragon God, Boss...",
       "subtitleLabel": "Subtitle / Role",
       "subtitlePlaceholder": "e.g. Wandering Swordsman",
       "saveDefinition": "Save Definition",

@@ -145,10 +145,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const bibleSpeakers = useMemo<BibleSpeakerRef[]>(() => {
     return (allBibleEntries || [])
       .filter((e) => String(e.category) === '0' || String(e.category).toLowerCase() === 'character')
-      .map((e) => ({
-        name: e.name,
-        aliases: (e as any).aliases || [],
-      }));
+      .map((e) => ({ name: e.name }));
   }, [allBibleEntries]);
 
   const commentsRef = useRef<ScriptCommentDto[]>([]);

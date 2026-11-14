@@ -154,8 +154,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
     if (!q) return true;
     const nameMatch = entry.name.toLowerCase().includes(q);
     const codeMatch = entry.code?.toLowerCase().includes(q);
-    const aliasMatch = (entry as any).aliases?.some((a: string) => a.toLowerCase().includes(q));
-    return nameMatch || codeMatch || aliasMatch;
+    return nameMatch || codeMatch;
   });
 
   const handleSelectEntry = (entry: BibleEntryDto) => {
@@ -228,7 +227,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
                 type='text'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('production.cast.searchPlaceholder', 'Tìm tên hoặc bí danh...')}
+                placeholder={t('production.cast.searchPlaceholder', 'Tìm theo tên...')}
                 className='w-full pl-8 pr-2 py-1 text-xs bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 text-stone-800'
                 autoFocus
               />
@@ -248,11 +247,6 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
                   <span className='text-xs font-semibold text-stone-800 truncate'>
                     {entry.name}
                   </span>
-                  {(entry as any).aliases?.length > 0 && (
-                    <span className='text-[10px] text-stone-400 truncate'>
-                      ({(entry as any).aliases[0]})
-                    </span>
-                  )}
                 </div>
                 <span className='text-[10px] font-mono text-stone-400 shrink-0'>
                   {entry.code || 'BIBLE'}

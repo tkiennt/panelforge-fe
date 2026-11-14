@@ -132,6 +132,20 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.queryByText(/Ch\.1–19/i)).not.toBeInTheDocument();
   });
 
+  it('shows a pending draft badge without replacing canon entry data', () => {
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        entity={{ ...mockEntityWithImage, latestDraftVersionNumber: 4 }}
+        rawEntry={{ ...mockRawEntry, latestDraftVersionNumber: 4 }}
+      />,
+    );
+
+    expect(screen.getByTestId('pending-draft-badge-detail')).toHaveTextContent('Có bản nháp v4');
+    expect(screen.getByText(mockEntityWithImage.description)).toBeInTheDocument();
+    expect(screen.getByTestId('auth-image')).toBeInTheDocument();
+  });
+
   it('allows Writer/Artist to create drafts via canCreateDraft prop', () => {
     render(<BibleEntityDetailModal {...defaultProps} isProducer={false} canCreateDraft={true} />);
 

@@ -22,7 +22,6 @@ export const GN_LINE = 'scriptLine';
 
 export interface BibleSpeakerRef {
   name: string;
-  aliases?: string[];
 }
 
 export interface GnLabels {
@@ -688,7 +687,7 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
             const bibleSpeakers = options.bibleSpeakers || [];
             const allKnownNames = [
               ...characterNames(state.doc, line.pos),
-              ...bibleSpeakers.flatMap((s) => [s.name, ...(s.aliases || [])]),
+              ...bibleSpeakers.map((s) => s.name),
             ];
 
             const full = completeCharacterName(typed, allKnownNames);
@@ -703,11 +702,7 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
               widgets.push(Decoration.widget(endPos, widget, { side: 1 }));
             } else if (isValidCharacterNameInput(typed)) {
               const normTyped = typed.toUpperCase();
-              const isBibleKnown = bibleSpeakers.some(
-                (s) =>
-                  s.name.toUpperCase() === normTyped ||
-                  s.aliases?.some((a) => a.toUpperCase() === normTyped),
-              );
+              const isBibleKnown = bibleSpeakers.some((s) => s.name.toUpperCase() === normTyped);
 
               if (!isBibleKnown) {
                 const chip = document.createElement('span');
