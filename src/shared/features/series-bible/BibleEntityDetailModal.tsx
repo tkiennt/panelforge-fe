@@ -30,8 +30,7 @@ import {
   bibleService,
 } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
-import { LucianInlineAlert } from '@/shared/components/lucian/LucianInlineAlert';
-import { LucianConfirmModal } from '@/shared/components/lucian/LucianConfirmModal';
+import { Alert, CollapsibleSidebar, SidebarSection } from '@/shared/ui';
 import { useTranslation, translate } from '@/lib/i18n';
 import { getCategoryLabel, getCategoryBadgeStyle } from './bibleCategory';
 import { SPEC_DELIVERABLES, SPEC_SCHEMA, specCategoryOf, specCompleteness } from './bibleSpec';
@@ -192,7 +191,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   onConfirmCanon,
   onShowToast,
   onZoomImage,
-  onDeleteRevision,
   entities = [],
   onSelectEntity,
 }) => {
@@ -246,8 +244,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       );
     }
   }, [latestSavedRevision, entity.id]);
-  const [revisionToDelete, setRevisionToDelete] = useState<BibleEntryRevisionDto | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // User workspace role detection
   const currentRole = useMemo(() => {
@@ -1205,9 +1201,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       <div className='space-y-4'>
         <div className='grid grid-cols-1 xl:grid-cols-[272px_minmax(0,1fr)] gap-5 items-start'>
           {/* ================= SIDEBAR: mục cùng danh mục · giai đoạn · xuất hiện trong kịch bản ================= */}
-          <aside
+          <CollapsibleSidebar
+            collapsed={false}
+            label={t('bible.detailModal.navSidebarAria', 'Điều hướng mục Series Bible')}
             className='space-y-4 xl:sticky xl:top-5'
-            aria-label={t('bible.detailModal.navSidebarAria', 'Điều hướng mục Series Bible')}
             data-testid='bible-workbench-sidebar'
           >
             {siblings.length > 1 && onSelectEntity && (
@@ -1222,36 +1219,38 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     `Cùng danh mục · ${siblings.length}`,
                   )}
                 </p>
-                <ul className='max-h-64 overflow-y-auto space-y-0.5'>
-                  {siblings.map((e) => {
-                    const isActive = e.id === entity.id;
-                    return (
-                      <li key={e.id}>
-                        <button
-                          type='button'
-                          onClick={() => !isActive && onSelectEntity(e)}
-                          aria-current={isActive ? 'true' : undefined}
-                          className={`w-full px-2.5 py-2 rounded-lg text-left flex items-center gap-2 border-l-4 transition-all duration-150 cursor-pointer ${
-                            isActive
-                              ? 'bg-orange-50 border-orange-500 text-orange-800'
-                              : 'border-transparent text-stone-700 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className='font-mono text-xs text-stone-500 shrink-0'>
-                            {e.code}
-                          </span>
-                          <span className='text-sm font-medium truncate flex-1'>{e.name}</span>
-                          {e.isLocked && (
-                            <Lock
-                              className='w-3.5 h-3.5 text-emerald-600 shrink-0'
-                              aria-label={t('bible.detailModal.canonLockedAria', 'Đã khoá Canon')}
-                            />
-                          )}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <SidebarSection className='max-h-64 overflow-y-auto space-y-0.5'>
+                  <ul>
+                    {siblings.map((e) => {
+                      const isActive = e.id === entity.id;
+                      return (
+                        <li key={e.id}>
+                          <button
+                            type='button'
+                            onClick={() => !isActive && onSelectEntity(e)}
+                            aria-current={isActive ? 'true' : undefined}
+                            className={`w-full px-2.5 py-2 rounded-lg text-left flex items-center gap-2 border-l-4 transition-all duration-150 cursor-pointer ${
+                              isActive
+                                ? 'bg-orange-50 border-orange-500 text-orange-800'
+                                : 'border-transparent text-stone-700 hover:bg-stone-100'
+                            }`}
+                          >
+                            <span className='font-mono text-xs text-stone-500 shrink-0'>
+                              {e.code}
+                            </span>
+                            <span className='text-sm font-medium truncate flex-1'>{e.name}</span>
+                            {e.isLocked && (
+                              <Lock
+                                className='w-3.5 h-3.5 text-emerald-600 shrink-0'
+                                aria-label={t('bible.detailModal.canonLockedAria', 'Đã khoá Canon')}
+                              />
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </SidebarSection>
               </nav>
             )}
 
@@ -1422,7 +1421,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   )}
               </section>
             )}
-          </aside>
+          </CollapsibleSidebar>
 
           {/* ================= MAIN: trạng thái · Đặc tả | Bản vẽ · Phiên bản ================= */}
           <div className='min-w-0 space-y-4'>
@@ -1484,20 +1483,19 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
             {/* ================= SINGLE CONTEXTUAL STATUS ALERT (LUCIAN INLINE ALERT) ================= */}
             {activeRevision?.reviewStatus === 'ReworkRequired' ? (
-              <LucianInlineAlert
-                type='warning'
+              <Alert
+                tone='warning'
                 title={t(
                   'bible.detailModal.reworkAlertTitle',
                   'Yêu cầu chỉnh sửa bản vẽ từ Writer / Editor',
                 )}
-                description={
-                  activeRevision.reworkFeedback ||
+              >
+                {activeRevision.reworkFeedback ||
                   t(
                     'bible.detailModal.reworkAlertDefault',
                     'Writer yêu cầu chỉnh sửa lại thiết kế cho giai đoạn này.',
-                  )
-                }
-                details={t(
+                  )}{' '}
+                {t(
                   'bible.detailModal.reworkAlertDetails',
                   {
                     variant:
@@ -1506,20 +1504,20 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   },
                   `Biến thể: "${activeVariant?.variantLabel || t('bible.detailModal.defaultVariant', 'Mặc định')}". Vui lòng chỉnh sửa nét vẽ theo yêu cầu trên và nộp lại.`,
                 )}
-                dismissible={false}
-              />
+              </Alert>
             ) : activeRevision?.reviewStatus === 'ConceptSubmitted' && !activeRevision.isLocked ? (
-              <LucianInlineAlert
-                type='info'
+              <Alert
+                tone='info'
                 title={t(
                   'bible.detailModal.submittedAlertTitle',
                   'Bản vẽ Model Sheet đã nộp – Đang chờ kiểm duyệt',
                 )}
-                description={t(
+              >
+                {t(
                   'bible.detailModal.submittedAlertDesc',
                   'Bản thiết kế đang chờ Writer/Editor xác nhận. Nếu bạn phát hiện đã tải nhầm ảnh hoặc muốn cập nhật nét vẽ tốt hơn trước khi được duyệt, bạn có thể nộp lại ngay.',
-                )}
-                details={t(
+                )}{' '}
+                {t(
                   'bible.detailModal.submittedAlertDetails',
                   {
                     variant: activeVariant?.variantLabel || 'Mặc định',
@@ -1527,18 +1525,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   },
                   `Biến thể: "${activeVariant?.variantLabel || 'Mặc định'}" · Lần sửa #${activeRevision.versionNumber}.`,
                 )}
-                dismissible={false}
-              />
+              </Alert>
             ) : activeRevision?.isLocked || activeRevision?.reviewStatus === 'CanonLocked' ? (
-              <div className='p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-start gap-3 text-sm text-emerald-950 shadow-2xs'>
-                <div className='w-8 h-8 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0'>
-                  <Lock className='w-4 h-4' />
-                </div>
+              <Alert
+                tone='success'
+                title={t('bible.detailModal.canonLockedBadge', 'Đã khóa chuẩn (Canon Locked)')}
+              >
                 <div className='space-y-1 flex-1 min-w-0'>
                   <div className='flex items-center gap-2 flex-wrap'>
-                    <span className='font-bold uppercase tracking-wider text-xs bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full'>
-                      {t('bible.detailModal.canonLockedBadge', 'Đã khóa chuẩn (Canon Locked)')}
-                    </span>
                     {activeVariant?.variantLabel && (
                       <span className='text-xs font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
                         {activeVariant.variantLabel}
@@ -1568,7 +1562,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     )}
                   </p>
                 </div>
-              </div>
+              </Alert>
             ) : null}
 
             <div
@@ -2546,45 +2540,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       >
         <div className='max-w-[1600px] mx-auto px-4 py-5 sm:px-6 lg:px-8'>{modalContent}</div>
       </div>
-
-      {/* Confirm Delete Revision Modal */}
-      <LucianConfirmModal
-        isOpen={!!revisionToDelete}
-        title={t('bible.detailModal.deleteRevisionModalTitle', 'Xóa phiên bản')}
-        description={t(
-          'bible.detailModal.deleteRevisionConfirmDesc',
-          { version: revisionToDelete?.versionNumber || '' },
-          `Bạn có chắc chắn muốn xóa phiên bản v${revisionToDelete?.versionNumber || ''} này không? Thao tác này không thể hoàn tác.`,
-        )}
-        confirmText={
-          isDeleting
-            ? t('bible.detailModal.deleting', 'Đang xóa...')
-            : t('bible.detailModal.deleteRevisionBtn', 'Xóa phiên bản')
-        }
-        cancelText={t('bible.detailModal.cancel', 'Hủy')}
-        variant='danger'
-        onCancel={() => setRevisionToDelete(null)}
-        onConfirm={async () => {
-          if (!revisionToDelete || !onDeleteRevision) return;
-          try {
-            setIsDeleting(true);
-            await onDeleteRevision(entity, revisionToDelete);
-            setRevisionToDelete(null);
-            setAllRevisions((prev) => prev.filter((r) => r.id !== revisionToDelete.id));
-            if (selectedVersionId === revisionToDelete.id) {
-              setSelectedVersionId(null);
-            }
-          } catch (err: any) {
-            onShowToast(
-              t('bible.detailModal.errorTitle', 'Lỗi'),
-              err.message ||
-                t('bible.detailModal.deleteRevisionErrorDesc', 'Không thể xóa phiên bản.'),
-            );
-          } finally {
-            setIsDeleting(false);
-          }
-        }}
-      />
     </>
   );
 

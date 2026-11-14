@@ -21,6 +21,7 @@ import {
   Unlock,
   SlidersHorizontal,
 } from 'lucide-react';
+import { CollapsibleSidebar, SidebarSection } from '@/shared/ui';
 
 export type PageStage = 'pencil' | 'ink' | 'lettering' | 'completed';
 
@@ -129,9 +130,11 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
   // Render trạng thái thu gọn kiểu Photoshop Docked Strip
   if (isCollapsed) {
     return (
-      <aside
+      <CollapsibleSidebar
+        collapsed
+        label='Quản lý trang'
         data-testid='artist-page-sidebar-collapsed'
-        className='w-12 bg-[#252526] border-r border-[#383838] flex flex-col items-center py-2 select-none z-20 shrink-0 transition-all duration-200'
+        className='bg-[#252526] border-r border-[#383838] flex flex-col items-center py-2 select-none z-20 transition-all duration-200'
       >
         {/* Nút mở rộng Sidebar (Photoshop flyout toggle >>) */}
         <button
@@ -155,7 +158,11 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
         </div>
 
         {/* Danh sách trang dạng mini strip */}
-        <div className='flex-1 w-full overflow-y-auto overflow-x-hidden flex flex-col items-center gap-1.5 px-1 py-1 scrollbar-thin scrollbar-thumb-[#3E3E42]'>
+        <SidebarSection
+          collapsed
+          label='Trang'
+          className='flex-1 w-full overflow-y-auto overflow-x-hidden flex flex-col items-center gap-1.5 px-1 py-1 scrollbar-thin scrollbar-thumb-[#3E3E42]'
+        >
           {pages.map((p) => {
             const isSelected = p.id === selectedPageId;
             return (
@@ -177,7 +184,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
               </button>
             );
           })}
-        </div>
+        </SidebarSection>
 
         <div className='w-8 h-[1px] bg-[#383838] my-2' />
 
@@ -191,15 +198,17 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
         >
           <Plus className='w-4 h-4' />
         </button>
-      </aside>
+      </CollapsibleSidebar>
     );
   }
 
   // Render trạng thái mở rộng đầy đủ (Photoshop Expanded Panel)
   return (
-    <aside
+    <CollapsibleSidebar
+      collapsed={false}
+      label='Quản lý trang'
       data-testid='artist-page-sidebar'
-      className='w-68 sm:w-72 bg-[#252526] text-[#CCCCCC] border-r border-[#383838] flex flex-col h-full select-none z-20 shrink-0 font-sans shadow-lg'
+      className='bg-[#252526] text-[#CCCCCC] border-r border-[#383838] flex flex-col h-full select-none z-20 font-sans shadow-lg'
     >
       {/* 1. Header bảng điều khiển kiểu Photoshop Tab */}
       <div className='h-9 bg-[#2D2D30] border-b border-[#383838] px-2.5 flex items-center justify-between shrink-0'>
@@ -636,7 +645,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
           <Plus className='w-4 h-4' />
         </button>
       </div>
-    </aside>
+    </CollapsibleSidebar>
   );
 };
 

@@ -40,10 +40,10 @@ import {
 } from './BibleEntityDetailModal';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
-import { createPortal } from 'react-dom';
-import { EmptyFolderState, LucianConfirmModal } from '@/shared/components/lucian';
+import { EmptyFolderState } from '@/shared/components/lucian';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useTranslation } from '@/lib/i18n';
+import { CollapsibleSidebar, Modal, SidebarSection } from '@/shared/ui';
 
 interface SeriesBibleViewProps {
   activeProject?: MangaProject;
@@ -413,8 +413,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [revisionReferenceImageUrl, setRevisionReferenceImageUrl] = useState('');
   const [revisionReworkFeedback, setRevisionReworkFeedback] = useState<string | null>(null);
   const [isArtistResubmit, setIsArtistResubmit] = useState(false);
-  const [confirmSubmitModalOpen, setConfirmSubmitModalOpen] = useState(false);
-  const [pendingSubmissionContent, setPendingSubmissionContent] = useState<any>(null);
   const [uploadingRevImage, setUploadingRevImage] = useState(false);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -586,7 +584,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       );
       setRefreshTrigger((prev) => prev + 1);
       setAddRevModalOpen(false);
-      setConfirmSubmitModalOpen(false);
       // Giữ người dùng ở lại không gian làm việc (Workbench) của thực thể, cập nhật dữ liệu mới
       if (revisionTarget) {
         setSelectedEntity({
@@ -634,7 +631,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         );
         if (isLockedConflict) {
           setAddRevModalOpen(false);
-          setConfirmSubmitModalOpen(false);
           setHistoryEntity(revisionTarget);
           setHistoryEntityName(revisionTarget.name);
           setHistoryModalOpen(true);
@@ -1061,16 +1057,17 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
       <div className='grid grid-cols-1 gap-5 lg:grid-cols-[248px_minmax(0,1fr)] items-start'>
         {/* Sidebar: danh mục + quy trình duyệt (DESIGN_RULES §3.4, cột trái) */}
-        <aside
+        <CollapsibleSidebar
+          collapsed={false}
+          label={t('bible.view.sidebarCategoryTitle', 'Danh mục Series Bible')}
           className='lg:sticky lg:top-4 space-y-4'
-          aria-label={t('bible.view.sidebarCategoryTitle', 'Danh mục Series Bible')}
           data-testid='bible-sidebar'
         >
           <nav className='bg-white border border-stone-200/80 rounded-xl shadow-xs p-2'>
             <p className='px-2.5 pt-1.5 pb-2 text-xs font-semibold uppercase tracking-wider text-stone-500'>
               {t('bible.view.sidebarCategoryTitle', 'Danh mục')}
             </p>
-            <div className='flex lg:flex-col gap-1 overflow-x-auto'>
+            <SidebarSection className='flex lg:flex-col gap-1 overflow-x-auto'>
               {CATEGORIES.map((cat) => {
                 const Icon = cat.icon;
                 const count = categoryCounts[cat.key] || 0;
@@ -1102,7 +1099,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   </button>
                 );
               })}
-            </div>
+            </SidebarSection>
           </nav>
 
           {/* Spec V2.6 §5.2: vòng đời một phiên bản thiết kế */}
@@ -1148,7 +1145,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               )}
             </p>
           </div>
-        </aside>
+        </CollapsibleSidebar>
 
         <div className='min-w-0 space-y-4'>
           {/* V2.5: Bible Design Queue cho Artist & Writer */}
@@ -2137,442 +2134,382 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       )}
 
       {/* ZOOM IMAGE LIGHTBOX MODAL */}
-      {selectedImageZoom &&
-        createPortal(
-          <div
-            className='fixed inset-0 z-[1100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150'
-            onClick={() => setSelectedImageZoom(null)}
-            role='dialog'
-            aria-modal='true'
-          >
-            <div
-              className='relative max-w-4xl max-h-[90vh] flex flex-col items-center'
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className='w-full flex items-center justify-between pb-2.5 text-white text-xs'>
-                <span className='font-bold font-mono'>
-                  {t(
-                    'bible.view.referenceSheetTitle',
-                    { title: selectedImageZoom.title },
-                    '{title} — Reference Sheet',
-                  )}
-                </span>
-                <button
-                  type='button'
-                  onClick={() => setSelectedImageZoom(null)}
-                  aria-label={t('bible.view.closeLightboxAria', 'Đóng xem ảnh')}
-                  className='p-1 rounded hover:bg-white/20 text-white transition-colors cursor-pointer'
-                >
-                  <X className='w-5 h-5' />
-                </button>
-              </div>
-              <div className='max-h-[82vh] overflow-hidden rounded-xl border border-white/20 bg-stone-950 flex items-center justify-center'>
-                <AuthenticatedImage
-                  src={selectedImageZoom.url}
-                  alt={selectedImageZoom.title}
-                  className='max-h-[80vh] w-auto object-contain'
-                />
-              </div>
-            </div>
-          </div>,
-          document.body,
+      <Modal
+        isOpen={!!selectedImageZoom}
+        onClose={() => setSelectedImageZoom(null)}
+        size='xl'
+        closeLabel={t('bible.view.closeLightboxAria', 'Đóng xem ảnh')}
+        title={t(
+          'bible.view.referenceSheetTitle',
+          { title: selectedImageZoom?.title ?? '' },
+          '{title} — Reference Sheet',
         )}
+      >
+        {selectedImageZoom && (
+          <div className='flex max-h-[75vh] items-center justify-center overflow-hidden rounded-xl bg-stone-950'>
+            <AuthenticatedImage
+              src={selectedImageZoom.url}
+              alt={selectedImageZoom.title}
+              className='max-h-[75vh] w-auto object-contain'
+            />
+          </div>
+        )}
+      </Modal>
 
       {/* REVISION HISTORY MODAL */}
-      {historyModalOpen &&
-        createPortal(
-          <div
-            className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1050] flex items-center justify-center p-4'
-            role='dialog'
-            aria-modal='true'
-            data-child-modal='true'
-            aria-labelledby='bible-history-modal-title'
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setHistoryModalOpen(false);
-              }
-            }}
-          >
-            <div
-              className='bg-white border border-[#E7E7E7] rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className='p-4 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5]'>
-                <div className='flex items-center gap-2'>
-                  <History className='w-4 h-4 text-[#F97316]' />
-                  <h3
-                    id='bible-history-modal-title'
-                    className='text-sm font-bold font-sans text-stone-900'
-                  >
+      <Modal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        size='md'
+        closeLabel={t('bible.view.closeHistoryAria', 'Đóng')}
+        data-child-modal='true'
+        title={
+          <span className='flex items-center gap-2'>
+            <History className='size-4 text-[#F97316]' aria-hidden='true' />
+            {t(
+              'bible.view.historyModalTitle',
+              { name: historyEntityName },
+              'Lịch sử phiên bản: {name}',
+            )}
+          </span>
+        }
+      >
+        <div className='p-5 overflow-y-auto space-y-4 flex-1 custom-scrollbar'>
+          <div className='text-xs text-stone-500 bg-stone-50 p-2.5 rounded-lg border border-stone-200 leading-relaxed'>
+            {t(
+              'bible.view.historyNotice',
+              'Toàn bộ lịch sử chỉnh sửa thiết kế được lưu giữ đầy đủ, đảm bảo tính nhất quán và bảo toàn tiến trình sáng tác.',
+            )}
+          </div>
+
+          {loadingHistory ? (
+            <div className='py-8 text-center text-xs text-stone-500 flex flex-col items-center gap-2'>
+              <Loader2 className='w-5 h-5 animate-spin text-[#F97316]' />
+              <span>{t('bible.view.loadingHistory', 'Đang tải lịch sử phiên bản...')}</span>
+            </div>
+          ) : historyRevisions.length === 0 ? (
+            <div className='py-8 text-center text-xs text-stone-500'>
+              {t('bible.view.noHistory', 'Chưa có phiên bản nào được ghi nhận.')}
+            </div>
+          ) : (
+            <div className='space-y-4'>
+              {/* Visual variant progression timeline */}
+              <div className='bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl p-3 space-y-1.5'>
+                <div className='flex items-center gap-1.5 text-xs font-semibold text-stone-700'>
+                  <Layers className='w-3.5 h-3.5 text-[#F97316]' />
+                  <span>
                     {t(
-                      'bible.view.historyModalTitle',
+                      'bible.view.variantProgressTitle',
                       { name: historyEntityName },
-                      'Lịch sử phiên bản: {name}',
+                      'Tiến trình các biến thể ({name}):',
                     )}
-                  </h3>
+                  </span>
                 </div>
-                <button
-                  type='button'
-                  onClick={() => setHistoryModalOpen(false)}
-                  aria-label={t('bible.view.closeHistoryAria', 'Đóng')}
-                  className='w-7 h-7 rounded-lg hover:bg-white flex items-center justify-center text-stone-400 hover:text-stone-700'
-                >
-                  <X className='w-4 h-4' />
-                </button>
+                <div className='flex items-center gap-1.5 overflow-x-auto pb-1 text-xs custom-scrollbar flex-wrap'>
+                  {(() => {
+                    const variants = groupRevisionsIntoVariants(historyRevisions);
+                    return variants.map((variant, idx) => (
+                      <React.Fragment key={variant.variantKey}>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border font-medium ${
+                            variant.isLocked
+                              ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold'
+                              : 'bg-white border-stone-200 text-stone-700'
+                          }`}
+                        >
+                          {variant.isLocked && <Lock className='w-2.5 h-2.5 text-amber-600' />}
+                          <span>{variant.variantLabel}</span>
+                        </span>
+                        {idx < variants.length - 1 && (
+                          <span className='text-stone-400 font-bold'>→</span>
+                        )}
+                      </React.Fragment>
+                    ));
+                  })()}
+                </div>
               </div>
 
-              <div className='p-5 overflow-y-auto space-y-4 flex-1 custom-scrollbar'>
-                <div className='text-xs text-stone-500 bg-stone-50 p-2.5 rounded-lg border border-stone-200 leading-relaxed'>
-                  {t(
-                    'bible.view.historyNotice',
-                    'Toàn bộ lịch sử chỉnh sửa thiết kế được lưu giữ đầy đủ, đảm bảo tính nhất quán và bảo toàn tiến trình sáng tác.',
-                  )}
-                </div>
-
-                {loadingHistory ? (
-                  <div className='py-8 text-center text-xs text-stone-500 flex flex-col items-center gap-2'>
-                    <Loader2 className='w-5 h-5 animate-spin text-[#F97316]' />
-                    <span>{t('bible.view.loadingHistory', 'Đang tải lịch sử phiên bản...')}</span>
-                  </div>
-                ) : historyRevisions.length === 0 ? (
-                  <div className='py-8 text-center text-xs text-stone-500'>
-                    {t('bible.view.noHistory', 'Chưa có phiên bản nào được ghi nhận.')}
-                  </div>
-                ) : (
-                  <div className='space-y-4'>
-                    {/* Visual variant progression timeline */}
-                    <div className='bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl p-3 space-y-1.5'>
-                      <div className='flex items-center gap-1.5 text-xs font-semibold text-stone-700'>
-                        <Layers className='w-3.5 h-3.5 text-[#F97316]' />
-                        <span>
-                          {t(
-                            'bible.view.variantProgressTitle',
-                            { name: historyEntityName },
-                            'Tiến trình các biến thể ({name}):',
+              <div className='relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200'>
+                {historyRevisions.map((rev) => (
+                  <div key={rev.id} className='relative group'>
+                    <div className='absolute -left-6 top-1.5 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#F97316]'></div>
+                    <div className='bg-[#FAF8F5] p-3.5 rounded-xl border border-[#E7E7E7] space-y-2'>
+                      <div className='flex flex-wrap items-center justify-between gap-2'>
+                        <div className='flex items-center gap-2 flex-wrap'>
+                          <span className='px-2 py-0.5 rounded bg-stone-900 text-white font-mono text-xs font-bold'>
+                            {rev.variantLabel || `VERSION ${rev.versionNumber}`}
+                            {rev.isInitialVersion
+                              ? t('bible.view.versionInitial', ' (Khởi tạo)')
+                              : ''}
+                          </span>
+                          {rev.isLocked || rev.reviewStatus === 'CanonLocked' ? (
+                            <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-xs font-mono font-bold flex items-center gap-1 shadow-2xs'>
+                              <Lock className='w-2.5 h-2.5 text-amber-600' />
+                              {t('bible.view.canonLockedBadgeUpper', 'ĐÃ KHOÁ CANON')}
+                            </span>
+                          ) : rev.reviewStatus === 'ConceptSubmitted' ? (
+                            <span className='px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300 text-xs font-semibold'>
+                              Concept Submitted
+                            </span>
+                          ) : rev.reviewStatus === 'ReworkRequired' ? (
+                            <span className='px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 text-xs font-semibold'>
+                              {t('bible.view.cardReworkRequired', 'Cần vẽ lại')}
+                            </span>
+                          ) : (
+                            <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 border border-stone-200 text-xs font-medium'>
+                              {t('bible.view.cardDraft', 'Bản nháp')}
+                            </span>
                           )}
+                        </div>
+                        <span className='text-xs font-mono text-stone-500 flex items-center gap-1'>
+                          <Clock className='w-3 h-3' />
+                          {new Date(rev.createdAt).toLocaleString('vi-VN')}
                         </span>
                       </div>
-                      <div className='flex items-center gap-1.5 overflow-x-auto pb-1 text-xs custom-scrollbar flex-wrap'>
-                        {(() => {
-                          const variants = groupRevisionsIntoVariants(historyRevisions);
-                          return variants.map((variant, idx) => (
-                            <React.Fragment key={variant.variantKey}>
-                              <span
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border font-medium ${
-                                  variant.isLocked
-                                    ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold'
-                                    : 'bg-white border-stone-200 text-stone-700'
-                                }`}
-                              >
-                                {variant.isLocked && (
-                                  <Lock className='w-2.5 h-2.5 text-amber-600' />
-                                )}
-                                <span>{variant.variantLabel}</span>
-                              </span>
-                              {idx < variants.length - 1 && (
-                                <span className='text-stone-400 font-bold'>→</span>
-                              )}
-                            </React.Fragment>
-                          ));
-                        })()}
+
+                      <div className='flex items-start gap-3'>
+                        {(rev.conceptImageUrl || rev.referenceImageUrl) && (
+                          <AuthenticatedImage
+                            src={rev.conceptImageUrl || rev.referenceImageUrl!}
+                            alt={rev.summary || `v${rev.versionNumber}`}
+                            className='w-14 h-14 object-cover rounded-lg border border-stone-200 shrink-0 shadow-2xs cursor-pointer hover:scale-105 transition'
+                            onClick={() =>
+                              setSelectedImageZoom({
+                                url: rev.conceptImageUrl || rev.referenceImageUrl!,
+                                title:
+                                  rev.summary ||
+                                  t(
+                                    'bible.view.versionLabel',
+                                    { version: rev.versionNumber },
+                                    'Phiên bản v{version}',
+                                  ),
+                              })
+                            }
+                          />
+                        )}
+                        <div className='min-w-0 flex-1 space-y-1.5'>
+                          <div className='text-xs font-semibold text-stone-900'>{rev.summary}</div>
+                          {rev.reworkFeedback && (
+                            <div className='p-2 bg-rose-50 border border-rose-200 rounded text-rose-900 text-xs'>
+                              <strong>
+                                {t('bible.view.reworkFeedbackLabel', 'Nhận xét yêu cầu sửa:')}
+                              </strong>{' '}
+                              {rev.reworkFeedback}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className='relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200'>
-                      {historyRevisions.map((rev) => (
-                        <div key={rev.id} className='relative group'>
-                          <div className='absolute -left-6 top-1.5 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#F97316]'></div>
-                          <div className='bg-[#FAF8F5] p-3.5 rounded-xl border border-[#E7E7E7] space-y-2'>
-                            <div className='flex flex-wrap items-center justify-between gap-2'>
-                              <div className='flex items-center gap-2 flex-wrap'>
-                                <span className='px-2 py-0.5 rounded bg-stone-900 text-white font-mono text-xs font-bold'>
-                                  {rev.variantLabel || `VERSION ${rev.versionNumber}`}
-                                  {rev.isInitialVersion
-                                    ? t('bible.view.versionInitial', ' (Khởi tạo)')
-                                    : ''}
-                                </span>
-                                {rev.isLocked || rev.reviewStatus === 'CanonLocked' ? (
-                                  <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-xs font-mono font-bold flex items-center gap-1 shadow-2xs'>
-                                    <Lock className='w-2.5 h-2.5 text-amber-600' />
-                                    {t('bible.view.canonLockedBadgeUpper', 'ĐÃ KHOÁ CANON')}
-                                  </span>
-                                ) : rev.reviewStatus === 'ConceptSubmitted' ? (
-                                  <span className='px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300 text-xs font-semibold'>
-                                    Concept Submitted
-                                  </span>
-                                ) : rev.reviewStatus === 'ReworkRequired' ? (
-                                  <span className='px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 text-xs font-semibold'>
-                                    {t('bible.view.cardReworkRequired', 'Cần vẽ lại')}
-                                  </span>
-                                ) : (
-                                  <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 border border-stone-200 text-xs font-medium'>
-                                    {t('bible.view.cardDraft', 'Bản nháp')}
-                                  </span>
-                                )}
-                              </div>
-                              <span className='text-xs font-mono text-stone-500 flex items-center gap-1'>
-                                <Clock className='w-3 h-3' />
-                                {new Date(rev.createdAt).toLocaleString('vi-VN')}
-                              </span>
-                            </div>
-
-                            <div className='flex items-start gap-3'>
-                              {(rev.conceptImageUrl || rev.referenceImageUrl) && (
-                                <AuthenticatedImage
-                                  src={rev.conceptImageUrl || rev.referenceImageUrl!}
-                                  alt={rev.summary || `v${rev.versionNumber}`}
-                                  className='w-14 h-14 object-cover rounded-lg border border-stone-200 shrink-0 shadow-2xs cursor-pointer hover:scale-105 transition'
-                                  onClick={() =>
-                                    setSelectedImageZoom({
-                                      url: rev.conceptImageUrl || rev.referenceImageUrl!,
-                                      title:
-                                        rev.summary ||
-                                        t(
-                                          'bible.view.versionLabel',
-                                          { version: rev.versionNumber },
-                                          'Phiên bản v{version}',
-                                        ),
-                                    })
-                                  }
-                                />
+                      {/* Chronological Event Timeline for Revision */}
+                      {rev.events && rev.events.length > 0 && (
+                        <div className='mt-2 pt-2 border-t border-stone-200/60 space-y-1.5'>
+                          <div className='text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1.5'>
+                            <Clock className='w-3 h-3 text-[#F97316]' />
+                            <span>
+                              {t(
+                                'bible.view.eventTimelineTitle',
+                                { count: rev.events.length },
+                                `Dòng thời gian sự kiện duyệt (${rev.events.length})`,
                               )}
-                              <div className='min-w-0 flex-1 space-y-1.5'>
-                                <div className='text-xs font-semibold text-stone-900'>
-                                  {rev.summary}
-                                </div>
-                                {rev.reworkFeedback && (
-                                  <div className='p-2 bg-rose-50 border border-rose-200 rounded text-rose-900 text-xs'>
-                                    <strong>
-                                      {t('bible.view.reworkFeedbackLabel', 'Nhận xét yêu cầu sửa:')}
-                                    </strong>{' '}
-                                    {rev.reworkFeedback}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                            </span>
+                          </div>
+                          <div className='space-y-1.5 pl-2 border-l-2 border-orange-200'>
+                            {rev.events.map((evt) => {
+                              let badgeColor = 'bg-stone-100 text-stone-700 border-stone-200';
+                              let label: string = evt.type;
+                              if (evt.type === 'Created') {
+                                badgeColor = 'bg-stone-100 text-stone-800 border-stone-200';
+                                label = t('bible.view.eventCreated', 'Khởi tạo');
+                              } else if (evt.type === 'ConceptSubmitted') {
+                                badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
+                                label = t('bible.view.eventConceptSubmitted', 'Nộp Concept');
+                              } else if (evt.type === 'ReworkRequested') {
+                                badgeColor = 'bg-rose-50 text-rose-800 border-rose-200';
+                                label = t('bible.view.eventReworkRequested', 'Yêu cầu sửa');
+                              } else if (evt.type === 'Endorsed') {
+                                badgeColor = 'bg-blue-50 text-blue-800 border-blue-200';
+                                label = t('bible.view.eventEndorsed', 'Đã xác nhận');
+                              } else if (evt.type === 'Locked') {
+                                badgeColor = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                                label = t('bible.view.eventLocked', 'Khoá Canon');
+                              } else if (evt.type === 'Superseded') {
+                                badgeColor = 'bg-stone-100 text-stone-700 border-stone-200';
+                                label = t('bible.view.eventSuperseded', 'Bị thay thế');
+                              }
 
-                            {/* Chronological Event Timeline for Revision */}
-                            {rev.events && rev.events.length > 0 && (
-                              <div className='mt-2 pt-2 border-t border-stone-200/60 space-y-1.5'>
-                                <div className='text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1.5'>
-                                  <Clock className='w-3 h-3 text-[#F97316]' />
-                                  <span>
-                                    {t(
-                                      'bible.view.eventTimelineTitle',
-                                      { count: rev.events.length },
-                                      `Dòng thời gian sự kiện duyệt (${rev.events.length})`,
-                                    )}
-                                  </span>
-                                </div>
-                                <div className='space-y-1.5 pl-2 border-l-2 border-orange-200'>
-                                  {rev.events.map((evt) => {
-                                    let badgeColor = 'bg-stone-100 text-stone-700 border-stone-200';
-                                    let label: string = evt.type;
-                                    if (evt.type === 'Created') {
-                                      badgeColor = 'bg-stone-100 text-stone-800 border-stone-200';
-                                      label = t('bible.view.eventCreated', 'Khởi tạo');
-                                    } else if (evt.type === 'ConceptSubmitted') {
-                                      badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
-                                      label = t('bible.view.eventConceptSubmitted', 'Nộp Concept');
-                                    } else if (evt.type === 'ReworkRequested') {
-                                      badgeColor = 'bg-rose-50 text-rose-800 border-rose-200';
-                                      label = t('bible.view.eventReworkRequested', 'Yêu cầu sửa');
-                                    } else if (evt.type === 'Endorsed') {
-                                      badgeColor = 'bg-blue-50 text-blue-800 border-blue-200';
-                                      label = t('bible.view.eventEndorsed', 'Đã xác nhận');
-                                    } else if (evt.type === 'Locked') {
-                                      badgeColor =
-                                        'bg-emerald-50 text-emerald-800 border-emerald-200';
-                                      label = t('bible.view.eventLocked', 'Khoá Canon');
-                                    } else if (evt.type === 'Superseded') {
-                                      badgeColor = 'bg-stone-100 text-stone-700 border-stone-200';
-                                      label = t('bible.view.eventSuperseded', 'Bị thay thế');
-                                    }
-
-                                    return (
-                                      <div
-                                        key={evt.id}
-                                        className='text-xs space-y-1 bg-white/70 p-2 rounded-lg border border-stone-100'
-                                      >
-                                        <div className='flex items-center gap-2 flex-wrap text-xs'>
-                                          <span
-                                            className={`px-1.5 py-0.5 rounded text-xs font-semibold border ${badgeColor}`}
-                                          >
-                                            {label}
-                                          </span>
-                                          <span className='text-xs text-stone-400 font-mono'>
-                                            {new Date(evt.createdAt).toLocaleString('vi-VN')}
-                                          </span>
-                                          {evt.eventHash && (
-                                            <span
-                                              className='text-xs text-emerald-600 font-medium flex items-center gap-0.5'
-                                              title={t(
-                                                'bible.view.verifiedTooltip',
-                                                'Phiên bản đã được lưu vết an toàn',
-                                              )}
-                                            >
-                                              <ShieldCheck className='w-3 h-3' />
-                                              {t('bible.view.eventVerified', 'Đã chứng thực')}
-                                            </span>
-                                          )}
-                                        </div>
-                                        {evt.comment && (
-                                          <p className='text-xs text-stone-600 italic bg-stone-50 p-1.5 rounded border border-stone-200/60'>
-                                            "{evt.comment}"
-                                          </p>
-                                        )}
-                                        {evt.imageUrl && (
-                                          <div className='mt-1 flex items-center gap-2'>
-                                            <AuthenticatedImage
-                                              src={evt.imageUrl}
-                                              alt={label}
-                                              className='w-12 h-12 object-cover rounded border border-stone-200 shadow-2xs hover:scale-105 transition cursor-pointer'
-                                              onClick={() =>
-                                                setSelectedImageZoom({
-                                                  url: evt.imageUrl!,
-                                                  title: `${label} - ${rev.summary || ''}`,
-                                                })
-                                              }
-                                              title={t(
-                                                'bible.view.clickToEnlarge',
-                                                'Nhấp để mở ảnh cỡ lớn',
-                                              )}
-                                            />
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-
-                            <div className='flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-stone-200/70'>
-                              <div className='flex items-center gap-2'>
-                                <span
-                                  className='text-xs font-mono text-stone-400 truncate max-w-[120px]'
-                                  title={rev.contentHash}
+                              return (
+                                <div
+                                  key={evt.id}
+                                  className='text-xs space-y-1 bg-white/70 p-2 rounded-lg border border-stone-100'
                                 >
-                                  Hash: {rev.contentHash.substring(0, 8)}...
-                                </span>
-                              </div>
-
-                              <div className='flex items-center gap-1.5 flex-wrap'>
-                                {canRequestRework && !rev.isLocked && (
-                                  <button
-                                    type='button'
-                                    onClick={() => handleOpenReworkModal(rev)}
-                                    className='px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
-                                    title={t(
-                                      'bible.view.reworkBtnTitle',
-                                      'Yêu cầu Artist vẽ lại theo nhận xét',
-                                    )}
-                                  >
-                                    <MessageSquare className='w-3 h-3' />
-                                    <span>
-                                      {t('bible.view.eventReworkRequested', 'Yêu cầu sửa')}
-                                    </span>
-                                  </button>
-                                )}
-
-                                {!rev.isLocked && historyEntity?.isVisualDesign && isEditor && (
-                                  <button
-                                    type='button'
-                                    disabled={
-                                      lockingRevisionId === rev.id ||
-                                      rev.reviewStatus !== 'ConceptSubmitted'
-                                    }
-                                    onClick={() => void handleConfirmCanon(rev)}
-                                    className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
-                                    title={
-                                      rev.reviewStatus !== 'ConceptSubmitted'
-                                        ? t(
-                                            'bible.view.lockCanonConceptSubmittedOnlyDesc',
-                                            'Chỉ có thể xác nhận & khoá Canon phiên bản đang nộp concept (ConceptSubmitted)',
-                                          )
-                                        : t(
-                                            'bible.view.confirmAndLockHistoryTitle',
-                                            'Editor xác nhận và khoá phiên bản này làm tham chiếu chuẩn Canon',
-                                          )
-                                    }
-                                    data-testid={`btn-lock-canon-${rev.id}`}
-                                  >
-                                    <Lock className='w-3 h-3' />
-                                    <span>
-                                      {lockingRevisionId === rev.id
-                                        ? t('bible.view.confirmingLock', 'Đang khoá...')
-                                        : t(
-                                            'bible.view.confirmLockCanonSubmit',
-                                            'Xác nhận & Khoá Canon',
-                                          )}
-                                    </span>
-                                  </button>
-                                )}
-                                {rev.isLocked &&
-                                  historyEntity?.isVisualDesign &&
-                                  (isWriter || isProducer) && (
-                                    <button
-                                      type='button'
-                                      onClick={() => {
-                                        if (!historyEntity) return;
-                                        setHistoryModalOpen(false);
-                                        void handleOpenAddRevision(historyEntity, rev);
-                                      }}
-                                      className='px-2.5 py-1 rounded-lg bg-stone-600 hover:bg-stone-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
-                                      title={t(
-                                        'bible.view.supersedeLockedHistoryTitle',
-                                        'Tạo bản mới thay cho bản khoá này',
-                                      )}
+                                  <div className='flex items-center gap-2 flex-wrap text-xs'>
+                                    <span
+                                      className={`px-1.5 py-0.5 rounded text-xs font-semibold border ${badgeColor}`}
                                     >
-                                      <Lock className='w-3 h-3' />
-                                      <span>
-                                        {t(
-                                          'bible.view.supersedeLockedHistoryBtn',
-                                          'Thay thế bản khoá',
+                                      {label}
+                                    </span>
+                                    <span className='text-xs text-stone-400 font-mono'>
+                                      {new Date(evt.createdAt).toLocaleString('vi-VN')}
+                                    </span>
+                                    {evt.eventHash && (
+                                      <span
+                                        className='text-xs text-emerald-600 font-medium flex items-center gap-0.5'
+                                        title={t(
+                                          'bible.view.verifiedTooltip',
+                                          'Phiên bản đã được lưu vết an toàn',
                                         )}
+                                      >
+                                        <ShieldCheck className='w-3 h-3' />
+                                        {t('bible.view.eventVerified', 'Đã chứng thực')}
                                       </span>
-                                    </button>
+                                    )}
+                                  </div>
+                                  {evt.comment && (
+                                    <p className='text-xs text-stone-600 italic bg-stone-50 p-1.5 rounded border border-stone-200/60'>
+                                      "{evt.comment}"
+                                    </p>
                                   )}
-                              </div>
-                            </div>
+                                  {evt.imageUrl && (
+                                    <div className='mt-1 flex items-center gap-2'>
+                                      <AuthenticatedImage
+                                        src={evt.imageUrl}
+                                        alt={label}
+                                        className='w-12 h-12 object-cover rounded border border-stone-200 shadow-2xs hover:scale-105 transition cursor-pointer'
+                                        onClick={() =>
+                                          setSelectedImageZoom({
+                                            url: evt.imageUrl!,
+                                            title: `${label} - ${rev.summary || ''}`,
+                                          })
+                                        }
+                                        title={t(
+                                          'bible.view.clickToEnlarge',
+                                          'Nhấp để mở ảnh cỡ lớn',
+                                        )}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
-                      ))}
+                      )}
+
+                      <div className='flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-stone-200/70'>
+                        <div className='flex items-center gap-2'>
+                          <span
+                            className='text-xs font-mono text-stone-400 truncate max-w-[120px]'
+                            title={rev.contentHash}
+                          >
+                            Hash: {rev.contentHash.substring(0, 8)}...
+                          </span>
+                        </div>
+
+                        <div className='flex items-center gap-1.5 flex-wrap'>
+                          {canRequestRework && !rev.isLocked && (
+                            <button
+                              type='button'
+                              onClick={() => handleOpenReworkModal(rev)}
+                              className='px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
+                              title={t(
+                                'bible.view.reworkBtnTitle',
+                                'Yêu cầu Artist vẽ lại theo nhận xét',
+                              )}
+                            >
+                              <MessageSquare className='w-3 h-3' />
+                              <span>{t('bible.view.eventReworkRequested', 'Yêu cầu sửa')}</span>
+                            </button>
+                          )}
+
+                          {!rev.isLocked && historyEntity?.isVisualDesign && isEditor && (
+                            <button
+                              type='button'
+                              disabled={
+                                lockingRevisionId === rev.id ||
+                                rev.reviewStatus !== 'ConceptSubmitted'
+                              }
+                              onClick={() => void handleConfirmCanon(rev)}
+                              className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
+                              title={
+                                rev.reviewStatus !== 'ConceptSubmitted'
+                                  ? t(
+                                      'bible.view.lockCanonConceptSubmittedOnlyDesc',
+                                      'Chỉ có thể xác nhận & khoá Canon phiên bản đang nộp concept (ConceptSubmitted)',
+                                    )
+                                  : t(
+                                      'bible.view.confirmAndLockHistoryTitle',
+                                      'Editor xác nhận và khoá phiên bản này làm tham chiếu chuẩn Canon',
+                                    )
+                              }
+                              data-testid={`btn-lock-canon-${rev.id}`}
+                            >
+                              <Lock className='w-3 h-3' />
+                              <span>
+                                {lockingRevisionId === rev.id
+                                  ? t('bible.view.confirmingLock', 'Đang khoá...')
+                                  : t('bible.view.confirmLockCanonSubmit', 'Xác nhận & Khoá Canon')}
+                              </span>
+                            </button>
+                          )}
+                          {rev.isLocked &&
+                            historyEntity?.isVisualDesign &&
+                            (isWriter || isProducer) && (
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  if (!historyEntity) return;
+                                  setHistoryModalOpen(false);
+                                  void handleOpenAddRevision(historyEntity, rev);
+                                }}
+                                className='px-2.5 py-1 rounded-lg bg-stone-600 hover:bg-stone-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
+                                title={t(
+                                  'bible.view.supersedeLockedHistoryTitle',
+                                  'Tạo bản mới thay cho bản khoá này',
+                                )}
+                              >
+                                <Lock className='w-3 h-3' />
+                                <span>
+                                  {t('bible.view.supersedeLockedHistoryBtn', 'Thay thế bản khoá')}
+                                </span>
+                              </button>
+                            )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
-
-              <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] flex items-center justify-between'>
-                {canCreateDraft && historyEntity && (
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setHistoryModalOpen(false);
-                      void handleOpenAddRevision(historyEntity);
-                    }}
-                    className='px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
-                  >
-                    <GitCommit className='w-3.5 h-3.5' />
-                    <span>
-                      {isProducer
-                        ? t('bible.view.addNewRevisionBtn', '+ Tạo phiên bản mới')
-                        : t('bible.view.addNewDraftBtn', '+ Tạo bản nháp mới')}
-                    </span>
-                  </button>
-                )}
-                <button
-                  type='button'
-                  onClick={() => setHistoryModalOpen(false)}
-                  className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-lg ml-auto'
-                >
-                  {t('bible.view.closeBtn', 'Đóng')}
-                </button>
+                ))}
               </div>
             </div>
-          </div>,
-          document.body,
-        )}
+          )}
+        </div>
+
+        <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] flex items-center justify-between'>
+          {canCreateDraft && historyEntity && (
+            <button
+              type='button'
+              onClick={() => {
+                setHistoryModalOpen(false);
+                void handleOpenAddRevision(historyEntity);
+              }}
+              className='px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
+            >
+              <GitCommit className='w-3.5 h-3.5' />
+              <span>
+                {isProducer
+                  ? t('bible.view.addNewRevisionBtn', '+ Tạo phiên bản mới')
+                  : t('bible.view.addNewDraftBtn', '+ Tạo bản nháp mới')}
+              </span>
+            </button>
+          )}
+          <button
+            type='button'
+            onClick={() => setHistoryModalOpen(false)}
+            className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-lg ml-auto'
+          >
+            {t('bible.view.closeBtn', 'Đóng')}
+          </button>
+        </div>
+      </Modal>
 
       {/* ADD REVISION MODAL */}
       <AddRevisionModal
@@ -2636,9 +2573,29 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         }}
         onClose={() => setAddRevModalOpen(false)}
         onSubmit={executeSaveRevision}
-        onConfirmArtistSubmit={(content) => {
-          setPendingSubmissionContent(content);
-          setConfirmSubmitModalOpen(true);
+        onConfirmArtistSubmit={async (content) => {
+          const confirmed = await confirm({
+            variant: 'default',
+            title: isArtistResubmit
+              ? t('bible.view.confirmResubmitConceptArtistTitle', 'Nộp lại Concept Art')
+              : t('bible.view.confirmSubmitConceptArtistTitle', 'Nộp duyệt Concept Art'),
+            description: isArtistResubmit
+              ? t(
+                  'bible.view.confirmResubmitConceptArtistDesc',
+                  { name: revisionName || revisionTarget?.name || '' },
+                  'Bạn có chắc chắn muốn nộp lại bản vẽ thay thế cho "{name}" không? Bản nộp mới này sẽ thay thế bản vẽ đang chờ duyệt.',
+                )
+              : t(
+                  'bible.view.confirmSubmitConceptArtistDesc',
+                  { name: revisionName || revisionTarget?.name || '' },
+                  'Bạn có chắc chắn muốn nộp bản vẽ Concept Art cho "{name}" không? Writer hoặc Editor sẽ duyệt bản vẽ, sau đó Producer khoá canon.',
+                ),
+            confirmLabel: isArtistResubmit
+              ? t('bible.view.confirmResubmitConceptArtistBtn', 'Nộp lại bản')
+              : t('bible.view.confirmSubmitConceptArtistBtn', 'Nộp duyệt'),
+            cancelLabel: t('bible.view.confirmSubmitConceptArtistCancel', 'Kiểm tra lại'),
+          });
+          if (confirmed) void executeSaveRevision(content);
         }}
       />
 
@@ -2650,46 +2607,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         isSubmitting={submittingRework}
         onClose={() => setReworkModalOpen(false)}
         onSubmit={handleSubmitRework}
-      />
-
-      {/* CONFIRM CONCEPT SUBMISSION MODAL (ARTIST) */}
-      <LucianConfirmModal
-        isOpen={confirmSubmitModalOpen}
-        onCancel={() => {
-          setConfirmSubmitModalOpen(false);
-          setPendingSubmissionContent(null);
-        }}
-        onConfirm={() => {
-          const contentToSubmit = pendingSubmissionContent;
-          setConfirmSubmitModalOpen(false);
-          setPendingSubmissionContent(null);
-          void executeSaveRevision(contentToSubmit);
-        }}
-        title={
-          isArtistResubmit
-            ? t('bible.view.confirmResubmitConceptArtistTitle', 'Nộp lại Concept Art')
-            : t('bible.view.confirmSubmitConceptArtistTitle', 'Nộp duyệt Concept Art')
-        }
-        confirmText={
-          isArtistResubmit
-            ? t('bible.view.confirmResubmitConceptArtistBtn', 'Nộp lại bản')
-            : t('bible.view.confirmSubmitConceptArtistBtn', 'Nộp duyệt')
-        }
-        cancelText={t('bible.view.confirmSubmitConceptArtistCancel', 'Kiểm tra lại')}
-        variant='info'
-        description={
-          isArtistResubmit
-            ? t(
-                'bible.view.confirmResubmitConceptArtistDesc',
-                { name: revisionName || revisionTarget?.name || '' },
-                'Bạn có chắc chắn muốn nộp lại bản vẽ thay thế cho "{name}" không? Bản nộp mới này sẽ thay thế bản vẽ đang chờ duyệt.',
-              )
-            : t(
-                'bible.view.confirmSubmitConceptArtistDesc',
-                { name: revisionName || revisionTarget?.name || '' },
-                'Bạn có chắc chắn muốn nộp bản vẽ Concept Art cho "{name}" không? Writer hoặc Editor sẽ duyệt bản vẽ, sau đó Producer khoá canon.',
-              )
-        }
       />
 
       {/* Add Entity Modal */}

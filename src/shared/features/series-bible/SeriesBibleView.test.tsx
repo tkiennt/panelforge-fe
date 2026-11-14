@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SeriesBibleView } from './SeriesBibleView';
 import { bibleService } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
+import { ConfirmProvider } from '@/shared/context/ConfirmContext';
 
 vi.mock('@/services/bible.service', () => ({
   bibleService: {
@@ -376,7 +377,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     });
   });
 
-  it('opens LucianConfirmModal when Artist clicks submit concept art', async () => {
+  it('opens the shared confirm dialog when Artist clicks submit concept art', async () => {
     localStorage.setItem(
       'activeWorkspace',
       JSON.stringify({ id: 'ws-1', currentUserRole: 'ARTIST', isOwner: false }),
@@ -402,7 +403,11 @@ describe('SeriesBibleView UX/UI improvements', () => {
       entries: entriesWithConcept,
     });
 
-    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+    render(
+      <ConfirmProvider>
+        <SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />
+      </ConfirmProvider>,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('artist-resubmit-btn-entry-chr-1')).toBeDefined();
@@ -417,7 +422,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     // Click submit button in AddRevisionModal
     fireEvent.click(screen.getByTestId('save-revision-submit-btn'));
 
-    // Should display LucianConfirmModal
+    // Shared ConfirmDialog keeps the existing copy and action labels.
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Nộp lại Concept Art' })).toBeDefined();
       expect(screen.getByText('Nộp lại bản')).toBeDefined();

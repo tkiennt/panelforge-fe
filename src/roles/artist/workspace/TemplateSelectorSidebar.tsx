@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, LayoutTemplate, Check, Sparkles, HelpCircle } from 'lucide-react';
 import { FramePresetTemplate } from './workspace.types';
-import { Drawer } from '@/shared/ui';
+import { Drawer, SidebarSection } from '@/shared/ui';
 
 export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
   // ── NHÓM 1: TỰ SỰ TIÊU CHUẨN (STANDARD & NARRATIVE) ─────────────────────────
@@ -287,7 +287,11 @@ export const TemplateSelectorSidebar: React.FC<TemplateSelectorSidebarProps> = (
         </div>
 
         {/* Danh sách Presets */}
-        <div className='flex-1 overflow-y-auto p-3 space-y-2.5 custom-scrollbar'>
+        <SidebarSection
+          label='Mẫu khung trang'
+          collapsed
+          className='flex-1 overflow-y-auto p-3 space-y-2.5 custom-scrollbar'
+        >
           {MANGA_FRAME_PRESETS.map((preset) => {
             const isSelected = activeTemplateId === preset.id;
             return (
@@ -375,7 +379,7 @@ export const TemplateSelectorSidebar: React.FC<TemplateSelectorSidebarProps> = (
               </div>
             );
           })}
-        </div>
+        </SidebarSection>
       </div>
     </Drawer>
   );
