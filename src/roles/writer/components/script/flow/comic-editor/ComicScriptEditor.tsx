@@ -47,6 +47,7 @@ import {
   VersionHistoryDrawer,
   VersionPreviewModal,
 } from './versioning';
+import { Modal } from '@/shared/ui';
 
 export interface ComicScriptEditorProps {
   initialContent?: any;
@@ -881,53 +882,46 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
       )}
 
       {/* 9. PRODUCER REQUEST CHANGES MODAL */}
-      {showFeedbackModal && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4 animate-in fade-in'>
-          <div className='bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 w-full max-w-lg flex flex-col gap-4'>
-            <div className='flex items-center gap-3'>
-              <div className='w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700'>
-                <MessageSquare className='w-5 h-5' />
-              </div>
-              <div>
-                <h3 className='font-bold text-slate-900 text-base'>
-                  Yêu cầu Biên kịch sửa đổi kịch bản
-                </h3>
-                <p className='text-xs text-slate-500'>
-                  Hệ thống sẽ tạo bản nháp mới (v1.1) kế thừa nội dung kèm ghi chú phản hồi của bạn.
-                </p>
-              </div>
-            </div>
-
-            <textarea
-              value={feedbackNotes}
-              onChange={(e) => setFeedbackNotes(e.target.value)}
-              placeholder='Nhập chi tiết các phân cảnh cần sửa (ví dụ: Tăng nhịp độ căng thẳng ở trang 1, sửa lại lời thoại của Minh)...'
-              rows={4}
-              className='w-full text-xs p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500'
-            />
-
-            <div className='flex items-center justify-end gap-2'>
-              <button
-                type='button'
-                onClick={() => {
-                  setShowFeedbackModal(false);
-                  setFeedbackNotes('');
-                }}
-                className='px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer'
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type='button'
-                onClick={handleConfirmRequestChanges}
-                className='px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg cursor-pointer shadow-xs'
-              >
-                Gửi yêu cầu (Tạo v1.1)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showFeedbackModal}
+        onClose={() => {
+          setShowFeedbackModal(false);
+          setFeedbackNotes('');
+        }}
+        size='md'
+        closeLabel='Đóng'
+        title='Yêu cầu Biên kịch sửa đổi kịch bản'
+        description='Hệ thống sẽ tạo bản nháp mới (v1.1) kế thừa nội dung kèm ghi chú phản hồi của bạn.'
+        footer={
+          <>
+            <button
+              type='button'
+              onClick={() => {
+                setShowFeedbackModal(false);
+                setFeedbackNotes('');
+              }}
+              className='px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer'
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type='button'
+              onClick={handleConfirmRequestChanges}
+              className='px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg cursor-pointer shadow-xs'
+            >
+              Gửi yêu cầu (Tạo v1.1)
+            </button>
+          </>
+        }
+      >
+        <textarea
+          value={feedbackNotes}
+          onChange={(e) => setFeedbackNotes(e.target.value)}
+          placeholder='Nhập chi tiết các phân cảnh cần sửa (ví dụ: Tăng nhịp độ căng thẳng ở trang 1, sửa lại lời thoại của Minh)...'
+          rows={4}
+          className='w-full text-xs p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500'
+        />
+      </Modal>
     </div>
   );
 };

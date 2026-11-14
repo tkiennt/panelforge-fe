@@ -109,6 +109,7 @@ import {
 import { useTranslation } from '@/lib/i18n';
 import { ReasonForm } from '@/shared/components/ReasonForm';
 import { useConfirm } from '@/shared/context/ConfirmContext';
+import { Modal } from '@/shared/ui';
 import { useComicStudioStore } from '../components/script/thumbnail-studio/store/useComicStudioStore';
 import { scenesToComicScriptText } from '../components/script/thumbnail-studio/lib/comicScriptParser';
 
@@ -1061,7 +1062,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   };
 
   // Chọn Chapter từ dropdown hoặc danh sách chọn chương (bảo vệ thay đổi chưa lưu)
-  const handleSelectChapter = (chapId: string) => {
+  const handleSelectChapter = async (chapId: string) => {
     if (chapId === '__all__' || !chapId) {
       handleBackToChapterSelection();
       return;
@@ -1070,9 +1071,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (hasUnsavedChanges) {
       setBarWarn(true);
       setTimeout(() => setBarWarn(false), 800);
-      const confirmSwitch = window.confirm(
-        'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để chuyển chương không?',
-      );
+      const confirmSwitch = await confirm({
+        title: 'Bỏ qua thay đổi chưa lưu?',
+        description:
+          'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để chuyển chương không?',
+        confirmLabel: 'Bỏ qua và chuyển chương',
+        cancelLabel: 'Ở lại',
+      });
       if (!confirmSwitch) return;
     }
 
@@ -1094,13 +1099,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   };
 
   // Quay lại màn hình chọn chương
-  const handleBackToChapterSelection = () => {
+  const handleBackToChapterSelection = async () => {
     if (hasUnsavedChanges) {
       setBarWarn(true);
       setTimeout(() => setBarWarn(false), 800);
-      const confirmSwitch = window.confirm(
-        'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để quay lại danh sách chọn chương không?',
-      );
+      const confirmSwitch = await confirm({
+        title: 'Bỏ qua thay đổi chưa lưu?',
+        description:
+          'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để quay lại danh sách chọn chương không?',
+        confirmLabel: 'Bỏ qua và quay lại',
+        cancelLabel: 'Ở lại',
+      });
       if (!confirmSwitch) return;
     }
 
@@ -2869,280 +2878,256 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       )}
 
       {/* MODAL: Tạo / Sửa Phân cảnh */}
-      {sceneModalOpen && (
-        <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in'>
-          <div className='bg-[#FCFBF8] rounded-2xl max-w-md w-full border border-[#D8D2C5] shadow-2xl p-6'>
-            <div className='flex items-center justify-between pb-3 border-b border-[#D8D2C5] mb-4'>
-              <h3 className='text-sm md:text-base font-bold font-serif text-[#1C1917]'>
-                {isEditingScene ? 'Sửa Phân Cảnh' : 'Tạo Phân Cảnh Mới'}
-              </h3>
-              <button
-                type='button'
-                onClick={() => setSceneModalOpen(false)}
-                className='text-[#57534E] hover:text-[#1C1917] cursor-pointer'
-              >
-                <X className='w-5 h-5' />
-              </button>
+      <Modal
+        isOpen={sceneModalOpen}
+        onClose={() => setSceneModalOpen(false)}
+        size='sm'
+        closeLabel='Đóng'
+        title={isEditingScene ? 'Sửa Phân Cảnh' : 'Tạo Phân Cảnh Mới'}
+      >
+        <form onSubmit={handleSubmitScene} className='space-y-4'>
+          {!isEditingScene && (
+            <div>
+              <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
+                Số thứ tự cảnh (Scene Number)
+              </label>
+              <input
+                type='number'
+                min={1}
+                value={sceneNumberInput}
+                onChange={(e) => setSceneNumberInput(parseInt(e.target.value, 10) || 1)}
+                className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
+                required
+              />
             </div>
+          )}
 
-            <form onSubmit={handleSubmitScene} className='space-y-4'>
-              {!isEditingScene && (
-                <div>
-                  <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-                    Số thứ tự cảnh (Scene Number)
-                  </label>
-                  <input
-                    type='number'
-                    min={1}
-                    value={sceneNumberInput}
-                    onChange={(e) => setSceneNumberInput(parseInt(e.target.value, 10) || 1)}
-                    className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
-                    required
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-                  Tiêu đề phân cảnh (Heading)
-                </label>
-                <input
-                  type='text'
-                  placeholder='Ví dụ: Cảnh 1: Neo Tokyo - Đêm tuyết rơi'
-                  value={sceneHeadingInput}
-                  onChange={(e) => setSceneHeadingInput(e.target.value)}
-                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
-                />
-              </div>
-
-              <div>
-                <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-                  Tóm tắt phân cảnh (Summary)
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder='Mô tả ngắn gọn bối cảnh và diễn biến trong cảnh này...'
-                  value={sceneSummaryInput}
-                  onChange={(e) => setSceneSummaryInput(e.target.value)}
-                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] resize-none'
-                />
-              </div>
-
-              <div>
-                <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
-                  <Compass className='w-3.5 h-3.5 text-[#C2410C]' />
-                  <span>Chế độ kể chuyện mặc định (Default Narration Mode)</span>
-                </label>
-                <select
-                  data-testid='scene-default-narration-mode-select'
-                  value={sceneDefaultNarrationMode}
-                  onChange={(e) => setSceneDefaultNarrationMode(e.target.value as NarrationMode)}
-                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
-                >
-                  <option value='Present'>Hiện tại / Mặc định (Present)</option>
-                  <option value='Flashback'>Hồi tưởng (Flashback)</option>
-                  <option value='Dream'>Giấc mơ (Dream)</option>
-                  <option value='Imagination'>Tưởng tượng (Imagination)</option>
-                  <option value='Lie'>Lời nói dối (Lie)</option>
-                  <option value='Rumor'>Tin đồn (Rumor)</option>
-                  <option value='UnreliableNarrator'>
-                    Người kể không đáng tin (Unreliable Narrator)
-                  </option>
-                </select>
-                <p className='text-xs text-[#57534E] mt-1'>
-                  Các dòng kịch bản mới thêm vào phân cảnh này sẽ tự động kế thừa chế độ kể chuyện
-                  tương ứng.
-                </p>
-              </div>
-
-              <div className='flex justify-end gap-2 pt-2 border-t border-[#D8D2C5]'>
-                <button
-                  type='button'
-                  onClick={() => setSceneModalOpen(false)}
-                  className='px-4 py-2 text-xs font-semibold text-[#57534E] hover:bg-[#F3F0E9] rounded-xl cursor-pointer'
-                >
-                  Huỷ
-                </button>
-                <button
-                  type='submit'
-                  disabled={submitting}
-                  className='px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer'
-                >
-                  {submitting ? 'Đang lưu...' : isEditingScene ? 'Cập Nhật Cảnh' : 'Tạo Cảnh'}
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
+              Tiêu đề phân cảnh (Heading)
+            </label>
+            <input
+              type='text'
+              placeholder='Ví dụ: Cảnh 1: Neo Tokyo - Đêm tuyết rơi'
+              value={sceneHeadingInput}
+              onChange={(e) => setSceneHeadingInput(e.target.value)}
+              className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
+              Tóm tắt phân cảnh (Summary)
+            </label>
+            <textarea
+              rows={3}
+              placeholder='Mô tả ngắn gọn bối cảnh và diễn biến trong cảnh này...'
+              value={sceneSummaryInput}
+              onChange={(e) => setSceneSummaryInput(e.target.value)}
+              className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] resize-none'
+            />
+          </div>
+
+          <div>
+            <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
+              <Compass className='w-3.5 h-3.5 text-[#C2410C]' />
+              <span>Chế độ kể chuyện mặc định (Default Narration Mode)</span>
+            </label>
+            <select
+              data-testid='scene-default-narration-mode-select'
+              value={sceneDefaultNarrationMode}
+              onChange={(e) => setSceneDefaultNarrationMode(e.target.value as NarrationMode)}
+              className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
+            >
+              <option value='Present'>Hiện tại / Mặc định (Present)</option>
+              <option value='Flashback'>Hồi tưởng (Flashback)</option>
+              <option value='Dream'>Giấc mơ (Dream)</option>
+              <option value='Imagination'>Tưởng tượng (Imagination)</option>
+              <option value='Lie'>Lời nói dối (Lie)</option>
+              <option value='Rumor'>Tin đồn (Rumor)</option>
+              <option value='UnreliableNarrator'>
+                Người kể không đáng tin (Unreliable Narrator)
+              </option>
+            </select>
+            <p className='text-xs text-[#57534E] mt-1'>
+              Các dòng kịch bản mới thêm vào phân cảnh này sẽ tự động kế thừa chế độ kể chuyện tương
+              ứng.
+            </p>
+          </div>
+
+          <div className='flex justify-end gap-2 pt-2 border-t border-[#D8D2C5]'>
+            <button
+              type='button'
+              onClick={() => setSceneModalOpen(false)}
+              className='px-4 py-2 text-xs font-semibold text-[#57534E] hover:bg-[#F3F0E9] rounded-xl cursor-pointer'
+            >
+              Huỷ
+            </button>
+            <button
+              type='submit'
+              disabled={submitting}
+              className='px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer'
+            >
+              {submitting ? 'Đang lưu...' : isEditingScene ? 'Cập Nhật Cảnh' : 'Tạo Cảnh'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* MODAL: Thêm / Sửa Dòng Kịch Bản (UC-06) */}
-      {lineModalOpen && (
-        <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in'>
-          <div
-            data-testid='line-modal'
-            className='bg-[#FCFBF8] rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border border-[#D8D2C5] shadow-2xl overflow-hidden'
-          >
-            <div className='flex items-center justify-between px-5 py-3 border-b border-[#D8D2C5] shrink-0'>
+      <Modal
+        isOpen={lineModalOpen}
+        onClose={() => setLineModalOpen(false)}
+        size='lg'
+        closeLabel='Đóng'
+        data-testid='line-modal'
+        title={
+          editingLine
+            ? `Sửa Dòng Kịch Bản #${editingLine.lineOrder}`
+            : 'Thêm Dòng Kịch Bản Mới (UC-06)'
+        }
+        description={
+          <>
+            Mốc kịch bản hiện tại: <strong>v{currentChapter?.versionVector}</strong>
+          </>
+        }
+      >
+        <form onSubmit={handleSubmitLine} className='flex flex-col min-h-0 flex-1'>
+          <div className='px-5 py-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 min-h-0'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+              {/* Chọn Người nói (Speaker) - Không ép buộc người nói */}
               <div>
-                <h3 className='text-sm md:text-base font-bold font-serif text-[#1C1917]'>
-                  {editingLine
-                    ? `Sửa Dòng Kịch Bản #${editingLine.lineOrder}`
-                    : 'Thêm Dòng Kịch Bản Mới (UC-06)'}
-                </h3>
-                <p className='text-xs text-[#57534E]'>
-                  Mốc kịch bản hiện tại: <strong>v{currentChapter?.versionVector}</strong>
+                <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
+                  <User className='w-3.5 h-3.5 text-[#C2410C]' />
+                  <span>Nhân vật nói (Speaker Character)</span>
+                </label>
+                <select
+                  value={lineSpeakerId}
+                  onChange={(e) => setLineSpeakerId(e.target.value)}
+                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
+                >
+                  <option value=''>-- Không có người nói (Lời dẫn ngoài / Hành động) --</option>
+                  {characters.map((char) => (
+                    <option key={char.id} value={char.id}>
+                      {getBibleEntryNameWithStage(char)}
+                    </option>
+                  ))}
+                </select>
+                <p className='text-[11px] text-[#57534E] mt-1'>
+                  Lấy từ Series Bible, giúp Letterer đặt đúng bóng thoại.
                 </p>
               </div>
-              <button
-                type='button'
-                onClick={() => setLineModalOpen(false)}
-                className='text-[#57534E] hover:text-[#1C1917] cursor-pointer'
-              >
-                <X className='w-5 h-5' />
-              </button>
+
+              {/* Ngoại lệ trần thuật (Narration Mode) */}
+              <div>
+                <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
+                  <Compass className='w-3.5 h-3.5 text-purple-600' />
+                  <span>Ngoại lệ trần thuật (Narration Mode)</span>
+                </label>
+                <select
+                  data-testid='line-narration-mode-select'
+                  value={lineNarrationMode}
+                  onChange={(e) => setLineNarrationMode(e.target.value as NarrationMode)}
+                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-purple-500 bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
+                >
+                  <option value='Present'>Hiện tại / Mặc định (Present - Kiểm tra toàn bộ)</option>
+                  <option value='Flashback'>
+                    Hồi tưởng (Flashback - Cho phép nhân vật đã mất phát biểu)
+                  </option>
+                  <option value='Dream'>
+                    Giấc mơ (Dream - Cho phép phi thực tế, bỏ qua đạo cụ/bí mật)
+                  </option>
+                  <option value='Imagination'>
+                    Tưởng tượng (Imagination - Bỏ qua ràng buộc canon)
+                  </option>
+                  <option value='Lie'>
+                    Lời nói dối (Lie - Cho phép nói sai lệch bí mật chưa tiết lộ)
+                  </option>
+                  <option value='Rumor'>
+                    Tin đồn (Rumor - Cho phép thông tin truyền miệng chưa xác nhận)
+                  </option>
+                  <option value='UnreliableNarrator'>
+                    Người kể không đáng tin (Hạ cảnh báo xuống Warning)
+                  </option>
+                </select>
+                <p className='text-[11px] text-[#57534E] mt-1'>
+                  Ngoại lệ có chủ ý để Kiểm tra nhất quán không báo lỗi sai.
+                </p>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmitLine} className='flex flex-col min-h-0 flex-1'>
-              <div className='px-5 py-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 min-h-0'>
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                  {/* Chọn Người nói (Speaker) - Không ép buộc người nói */}
-                  <div>
-                    <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
-                      <User className='w-3.5 h-3.5 text-[#C2410C]' />
-                      <span>Nhân vật nói (Speaker Character)</span>
-                    </label>
-                    <select
-                      value={lineSpeakerId}
-                      onChange={(e) => setLineSpeakerId(e.target.value)}
-                      className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
-                    >
-                      <option value=''>-- Không có người nói (Lời dẫn ngoài / Hành động) --</option>
-                      {characters.map((char) => (
-                        <option key={char.id} value={char.id}>
-                          {getBibleEntryNameWithStage(char)}
-                        </option>
-                      ))}
-                    </select>
-                    <p className='text-[11px] text-[#57534E] mt-1'>
-                      Lấy từ Series Bible, giúp Letterer đặt đúng bóng thoại.
-                    </p>
-                  </div>
+            {/* Lời thoại (Dialogue) */}
+            <div>
+              <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
+                <MessageSquare className='w-3.5 h-3.5 text-[#C2410C]' />
+                <span>Lời thoại (Dialogue Text)</span>
+              </label>
+              <textarea
+                rows={3}
+                placeholder='Nhập lời thoại của nhân vật...'
+                value={lineDialogue}
+                onChange={(e) => setLineDialogue(e.target.value)}
+                maxLength={4000}
+                className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] resize-none font-serif leading-relaxed'
+              />
+            </div>
 
-                  {/* Ngoại lệ trần thuật (Narration Mode) */}
-                  <div>
-                    <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
-                      <Compass className='w-3.5 h-3.5 text-purple-600' />
-                      <span>Ngoại lệ trần thuật (Narration Mode)</span>
-                    </label>
-                    <select
-                      data-testid='line-narration-mode-select'
-                      value={lineNarrationMode}
-                      onChange={(e) => setLineNarrationMode(e.target.value as NarrationMode)}
-                      className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-purple-500 bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
-                    >
-                      <option value='Present'>
-                        Hiện tại / Mặc định (Present - Kiểm tra toàn bộ)
-                      </option>
-                      <option value='Flashback'>
-                        Hồi tưởng (Flashback - Cho phép nhân vật đã mất phát biểu)
-                      </option>
-                      <option value='Dream'>
-                        Giấc mơ (Dream - Cho phép phi thực tế, bỏ qua đạo cụ/bí mật)
-                      </option>
-                      <option value='Imagination'>
-                        Tưởng tượng (Imagination - Bỏ qua ràng buộc canon)
-                      </option>
-                      <option value='Lie'>
-                        Lời nói dối (Lie - Cho phép nói sai lệch bí mật chưa tiết lộ)
-                      </option>
-                      <option value='Rumor'>
-                        Tin đồn (Rumor - Cho phép thông tin truyền miệng chưa xác nhận)
-                      </option>
-                      <option value='UnreliableNarrator'>
-                        Người kể không đáng tin (Hạ cảnh báo xuống Warning)
-                      </option>
-                    </select>
-                    <p className='text-[11px] text-[#57534E] mt-1'>
-                      Ngoại lệ có chủ ý để Kiểm tra nhất quán không báo lỗi sai.
-                    </p>
-                  </div>
-                </div>
+            {/* Chỉ dẫn cảnh (Stage Direction) */}
+            <div>
+              <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
+                <Clapperboard className='w-3.5 h-3.5 text-[#57534E]' />
+                <span>Chỉ dẫn cảnh / Hành động (Stage Direction)</span>
+              </label>
+              <textarea
+                rows={2}
+                placeholder='Ví dụ: (Akira quay đầu lại nhìn với vẻ kinh ngạc, tay nắm chặt thanh kiếm...)'
+                value={lineStageDirection}
+                onChange={(e) => setLineStageDirection(e.target.value)}
+                maxLength={4000}
+                className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] resize-none italic'
+              />
+            </div>
 
-                {/* Lời thoại (Dialogue) */}
-                <div>
-                  <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
-                    <MessageSquare className='w-3.5 h-3.5 text-[#C2410C]' />
-                    <span>Lời thoại (Dialogue Text)</span>
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder='Nhập lời thoại của nhân vật...'
-                    value={lineDialogue}
-                    onChange={(e) => setLineDialogue(e.target.value)}
-                    maxLength={4000}
-                    className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] resize-none font-serif leading-relaxed'
-                  />
-                </div>
-
-                {/* Chỉ dẫn cảnh (Stage Direction) */}
-                <div>
-                  <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
-                    <Clapperboard className='w-3.5 h-3.5 text-[#57534E]' />
-                    <span>Chỉ dẫn cảnh / Hành động (Stage Direction)</span>
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder='Ví dụ: (Akira quay đầu lại nhìn với vẻ kinh ngạc, tay nắm chặt thanh kiếm...)'
-                    value={lineStageDirection}
-                    onChange={(e) => setLineStageDirection(e.target.value)}
-                    maxLength={4000}
-                    className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] resize-none italic'
-                  />
-                </div>
-
-                {/* Vị trí chèn nếu tạo mới */}
-                {!editingLine && (
-                  <div>
-                    <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-                      Thứ tự dòng (Line Order)
-                    </label>
-                    <input
-                      type='number'
-                      min={1}
-                      value={lineOrderInput}
-                      onChange={(e) => setLineOrderInput(parseInt(e.target.value, 10) || 1)}
-                      className='w-32 px-3 py-1.5 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
-                    />
-                    <span className='text-xs text-[#57534E] ml-2'>
-                      Trùng số sẽ tự động chèn và dịch các dòng sau xuống.
-                    </span>
-                  </div>
-                )}
+            {/* Vị trí chèn nếu tạo mới */}
+            {!editingLine && (
+              <div>
+                <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
+                  Thứ tự dòng (Line Order)
+                </label>
+                <input
+                  type='number'
+                  min={1}
+                  value={lineOrderInput}
+                  onChange={(e) => setLineOrderInput(parseInt(e.target.value, 10) || 1)}
+                  className='w-32 px-3 py-1.5 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
+                />
+                <span className='text-xs text-[#57534E] ml-2'>
+                  Trùng số sẽ tự động chèn và dịch các dòng sau xuống.
+                </span>
               </div>
-
-              {/* Nút luôn hiện ở đáy modal, không cuộn theo nội dung */}
-              <div className='flex justify-end gap-2 px-5 py-3 border-t border-[#D8D2C5] bg-[#FCFBF8] shrink-0'>
-                <button
-                  type='button'
-                  onClick={() => setLineModalOpen(false)}
-                  className='px-4 py-2 text-xs font-semibold text-[#57534E] hover:bg-[#F3F0E9] rounded-xl cursor-pointer'
-                >
-                  Huỷ
-                </button>
-                <button
-                  data-testid='submit-line-btn'
-                  type='submit'
-                  disabled={submitting}
-                  className='px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer'
-                >
-                  {submitting ? 'Đang lưu...' : editingLine ? 'Lưu Thay Đổi' : 'Thêm Dòng Kịch Bản'}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
-        </div>
-      )}
+
+          {/* Nút luôn hiện ở đáy modal, không cuộn theo nội dung */}
+          <div className='flex justify-end gap-2 px-5 py-3 border-t border-[#D8D2C5] bg-[#FCFBF8] shrink-0'>
+            <button
+              type='button'
+              onClick={() => setLineModalOpen(false)}
+              className='px-4 py-2 text-xs font-semibold text-[#57534E] hover:bg-[#F3F0E9] rounded-xl cursor-pointer'
+            >
+              Huỷ
+            </button>
+            <button
+              data-testid='submit-line-btn'
+              type='submit'
+              disabled={submitting}
+              className='px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer'
+            >
+              {submitting ? 'Đang lưu...' : editingLine ? 'Lưu Thay Đổi' : 'Thêm Dòng Kịch Bản'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Concurrency Conflict Modal (BR-11 / NFR-09) */}
       <ElementConflictModal

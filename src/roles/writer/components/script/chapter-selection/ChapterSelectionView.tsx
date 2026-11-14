@@ -23,6 +23,7 @@ import {
 import { ChapterDto, CreateChapterRequest } from '@/services/chapter.service';
 import { SeriesDetailDto } from '@/services/series.service';
 import { formatChapterOption } from '@/roles/writer/utils/chapterFormat';
+import { Modal } from '@/shared/ui';
 
 interface ChapterSelectionViewProps {
   chapters: ChapterDto[];
@@ -679,99 +680,83 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
       )}
 
       {/* 4. MODAL KHỞI TẠO CHƯƠNG MỚI (Chỉ Producer) */}
-      {modalOpen && canCreateChapter && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] animate-in fade-in'>
-          <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col'>
-            <div className='px-6 py-4 bg-[#F7F5EE] border-b border-[#D8D2C5] flex items-center justify-between'>
-              <div className='flex items-center gap-2'>
-                <div className='w-7 h-7 rounded-lg bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#C2410C]'>
-                  <Plus className='w-4 h-4' />
-                </div>
-                <h3 className='text-sm font-bold font-serif text-[#1C1917]'>
-                  Khởi Tạo Chương Mới (Producer)
-                </h3>
-              </div>
+      {canCreateChapter && (
+        <Modal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          size='md'
+          closeLabel='Đóng'
+          title='Khởi Tạo Chương Mới (Producer)'
+        >
+          <form onSubmit={handleSubmitCreate} className='space-y-4'>
+            <div>
+              <label className='block text-xs font-bold text-[#1C1917] mb-1'>
+                Số thứ tự chương <span className='text-rose-500'>*</span>
+              </label>
+              <input
+                type='number'
+                min={1}
+                required
+                value={chapterNumber}
+                onChange={(e) => setChapterNumber(parseInt(e.target.value, 10) || 1)}
+                className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C] font-mono'
+              />
+            </div>
+
+            <div>
+              <label className='block text-xs font-bold text-[#1C1917] mb-1'>Tiêu đề chương</label>
+              <input
+                type='text'
+                placeholder='Ví dụ: Khởi Đầu Mới, Đêm Tại Quận Shibuya...'
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C]'
+              />
+            </div>
+
+            <div>
+              <label className='block text-xs font-bold text-[#1C1917] mb-1'>
+                Đề cương kịch bản tóm tắt (Outline)
+              </label>
+              <textarea
+                rows={3}
+                placeholder='Tóm tắt nội dung chính hoặc diễn biến quan trọng của chương...'
+                value={outline}
+                onChange={(e) => setOutline(e.target.value)}
+                className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C] resize-none'
+              />
+            </div>
+
+            <div>
+              <label className='block text-xs font-bold text-[#1C1917] mb-1'>
+                Ngày phát hành mục tiêu (Target Date)
+              </label>
+              <input
+                type='date'
+                value={targetReleaseDate}
+                onChange={(e) => setTargetReleaseDate(e.target.value)}
+                className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C] font-mono'
+              />
+            </div>
+
+            <div className='pt-3 border-t border-[#EBE7DF] flex items-center justify-end gap-2'>
               <button
                 type='button'
                 onClick={() => setModalOpen(false)}
-                className='p-1 rounded-lg text-[#57534E] hover:text-[#1C1917] hover:bg-[#EBE7DF] transition-colors cursor-pointer'
+                className='px-4 py-2 text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#EBE7DF] rounded-xl transition-colors cursor-pointer'
               >
-                <X className='w-4 h-4' />
+                Hủy
+              </button>
+              <button
+                type='submit'
+                disabled={submitting}
+                className='px-4 py-2 text-xs font-bold text-white bg-[#C2410C] hover:bg-[#9A3412] rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50'
+              >
+                {submitting ? 'Đang tạo...' : 'Khởi tạo chương'}
               </button>
             </div>
-
-            <form onSubmit={handleSubmitCreate} className='p-6 space-y-4'>
-              <div>
-                <label className='block text-xs font-bold text-[#1C1917] mb-1'>
-                  Số thứ tự chương <span className='text-rose-500'>*</span>
-                </label>
-                <input
-                  type='number'
-                  min={1}
-                  required
-                  value={chapterNumber}
-                  onChange={(e) => setChapterNumber(parseInt(e.target.value, 10) || 1)}
-                  className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C] font-mono'
-                />
-              </div>
-
-              <div>
-                <label className='block text-xs font-bold text-[#1C1917] mb-1'>
-                  Tiêu đề chương
-                </label>
-                <input
-                  type='text'
-                  placeholder='Ví dụ: Khởi Đầu Mới, Đêm Tại Quận Shibuya...'
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C]'
-                />
-              </div>
-
-              <div>
-                <label className='block text-xs font-bold text-[#1C1917] mb-1'>
-                  Đề cương kịch bản tóm tắt (Outline)
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder='Tóm tắt nội dung chính hoặc diễn biến quan trọng của chương...'
-                  value={outline}
-                  onChange={(e) => setOutline(e.target.value)}
-                  className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C] resize-none'
-                />
-              </div>
-
-              <div>
-                <label className='block text-xs font-bold text-[#1C1917] mb-1'>
-                  Ngày phát hành mục tiêu (Target Date)
-                </label>
-                <input
-                  type='date'
-                  value={targetReleaseDate}
-                  onChange={(e) => setTargetReleaseDate(e.target.value)}
-                  className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C] font-mono'
-                />
-              </div>
-
-              <div className='pt-3 border-t border-[#EBE7DF] flex items-center justify-end gap-2'>
-                <button
-                  type='button'
-                  onClick={() => setModalOpen(false)}
-                  className='px-4 py-2 text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#EBE7DF] rounded-xl transition-colors cursor-pointer'
-                >
-                  Hủy
-                </button>
-                <button
-                  type='submit'
-                  disabled={submitting}
-                  className='px-4 py-2 text-xs font-bold text-white bg-[#C2410C] hover:bg-[#9A3412] rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50'
-                >
-                  {submitting ? 'Đang tạo...' : 'Khởi tạo chương'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </Modal>
       )}
     </PageContainer>
   );

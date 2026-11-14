@@ -21,6 +21,8 @@ import {
   Undo2,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { Modal } from '@/shared/ui';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 import {
   ChapterCastDto,
   ChapterCastItemDto,
@@ -63,6 +65,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
   t: propT,
 }) => {
   const { t: i18nT } = useTranslation();
+  const confirm = useConfirm();
   const t = (key: string, fallbackOrParams?: any, explicitFallback?: string) => {
     return i18nT(key, fallbackOrParams, explicitFallback);
   };
@@ -216,12 +219,15 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
   // 5. Huỷ bản thay thế
   const handleCancelReplacement = async (entryId: string, revisionId: string) => {
     if (
-      !window.confirm(
-        t(
+      !(await confirm({
+        title: t('common.confirm.title', 'Xác nhận'),
+        description: t(
           'production.cast.cancelReplacementConfirm',
           'Bạn có chắc muốn huỷ bản thay thế này không?',
         ),
-      )
+        confirmLabel: t('common.actions.confirm', 'Xác nhận'),
+        cancelLabel: t('common.cancel', 'Huỷ'),
+      }))
     )
       return;
     setActingEntryId(entryId);
@@ -646,39 +652,20 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
       </div>
 
       {/* Modal Định nghĩa mục nháp (BIB-13 & 4A) */}
-      {stubToDefine && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150'>
-          <form
-            onSubmit={handleSubmitDefine}
-            className='w-full max-w-md bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col text-stone-900'
-          >
-            <div className='p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/60'>
-              <div className='flex items-center gap-2'>
-                <div className='p-2 rounded-xl bg-orange-100/70 text-orange-600 border border-orange-200/50'>
-                  <Edit3 className='w-4 h-4' />
-                </div>
-                <div>
-                  <h3 className='text-sm font-bold font-serif text-stone-900'>
-                    {t('production.cast.defineTitle', 'Định nghĩa thực thể Bible')}
-                  </h3>
-                  <p className='text-[11px] text-stone-500'>
-                    {t(
-                      'production.cast.defineDesc',
-                      'Mục tự động tạo từ kịch bản cần mô tả trước khi Artist vẽ concept',
-                    )}
-                  </p>
-                </div>
-              </div>
-              <button
-                type='button'
-                onClick={() => setStubToDefine(null)}
-                className='p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer'
-              >
-                <X className='w-4 h-4' />
-              </button>
-            </div>
-
-            <div className='p-5 space-y-3.5 text-xs'>
+      <Modal
+        isOpen={Boolean(stubToDefine)}
+        onClose={() => setStubToDefine(null)}
+        size='sm'
+        closeLabel={t('common.close', 'Đóng')}
+        title={t('production.cast.defineTitle', 'Định nghĩa thực thể Bible')}
+        description={t(
+          'production.cast.defineDesc',
+          'Mục tự động tạo từ kịch bản cần mô tả trước khi Artist vẽ concept',
+        )}
+      >
+        {stubToDefine && (
+          <form onSubmit={handleSubmitDefine} className='flex flex-col text-stone-900'>
+            <div className='space-y-3.5 text-xs'>
               <div>
                 <label className='font-semibold text-stone-700 block mb-1'>
                   {t('production.cast.entityNameRequired', 'Tên thực thể *')}
@@ -748,8 +735,8 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
               </button>
             </div>
           </form>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

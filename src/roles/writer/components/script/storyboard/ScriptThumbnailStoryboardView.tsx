@@ -19,6 +19,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { StoryboardPage, StoryboardPanel } from './scriptThumbnail.types';
+import { Modal } from '@/shared/ui';
 import {
   SAMPLE_SCRIPT_TEXT,
   parseScriptToStoryboard,
@@ -546,35 +547,23 @@ export const ScriptThumbnailStoryboardView: React.FC<ScriptThumbnailStoryboardVi
       </div>
 
       {/* 4. Lightbox Phóng to xem ảnh Thumbnail */}
-      {lightboxImage && (
-        <div
-          className='fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4'
-          onClick={() => setLightboxImage(null)}
-        >
-          <div
-            className='relative max-w-4xl max-h-[90vh] bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col'
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className='flex items-center justify-between px-4 py-3 bg-neutral-900 text-white border-b border-neutral-800'>
-              <span className='text-xs font-mono font-bold'>{lightboxImage.title}</span>
-              <button
-                type='button'
-                onClick={() => setLightboxImage(null)}
-                className='p-1 text-gray-400 hover:text-white rounded-lg cursor-pointer'
-              >
-                <X className='w-5 h-5' />
-              </button>
-            </div>
-            <div className='flex-1 overflow-auto flex items-center justify-center p-2 bg-neutral-950'>
-              <img
-                src={lightboxImage.url}
-                alt={lightboxImage.title}
-                className='max-h-[80vh] w-auto object-contain rounded-lg shadow-lg'
-              />
-            </div>
+      <Modal
+        isOpen={Boolean(lightboxImage)}
+        onClose={() => setLightboxImage(null)}
+        size='xl'
+        closeLabel='Đóng'
+        title={lightboxImage?.title ?? ''}
+      >
+        {lightboxImage && (
+          <div className='flex items-center justify-center bg-neutral-950 p-2'>
+            <img
+              src={lightboxImage.url}
+              alt={lightboxImage.title}
+              className='max-h-[80vh] w-auto object-contain rounded-lg shadow-lg'
+            />
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };
