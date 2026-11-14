@@ -312,6 +312,27 @@ describe('SeriesBibleView UX/UI improvements', () => {
     expect(screen.queryByText(/Ch\.1–19/i)).toBeNull();
   });
 
+  it('shows the pending draft version badge on the card and detail', async () => {
+    (bibleService.getSeriesBible as any).mockResolvedValue({
+      id: 'bible-1',
+      seriesId: 'series-123',
+      workspaceId: 'ws-1',
+      name: 'Series Bible',
+      version: 1,
+      entries: [{ ...mockEntries[0], latestDraftVersionNumber: 3 }],
+    });
+
+    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+
+    const cardBadge = await screen.findByTestId('pending-draft-badge-entry-chr-1');
+    expect(cardBadge).toHaveTextContent('Có bản nháp v3');
+
+    fireEvent.click(screen.getByText('Tần Mục'));
+    expect(await screen.findByTestId('pending-draft-badge-detail')).toHaveTextContent(
+      'Có bản nháp v3',
+    );
+  });
+
   it('renders "Nộp lại" button for Artist when entry has ConceptSubmitted revision', async () => {
     localStorage.setItem(
       'activeWorkspace',
@@ -453,6 +474,9 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(screen.getByTestId('variant-config-block')).toBeDefined();
       expect(screen.getByTestId('revision-variant-label-input')).toBeDefined();
     });
+
+    expect(screen.getByTestId('revision-name-readonly')).toHaveTextContent('Tần Mục');
+    expect(screen.queryByDisplayValue('Tần Mục')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByTestId('revision-variant-label-input'), {
       target: { value: 'Thiếu niên' },

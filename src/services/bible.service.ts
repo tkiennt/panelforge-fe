@@ -66,8 +66,8 @@ export interface BibleEntryDto {
   createdAt: string;
   updatedAt?: string | null;
   isStub?: boolean;
-  aliases?: string[] | null;
   isCrowd?: boolean;
+  latestDraftVersionNumber?: number | null;
 }
 
 export interface SeriesBibleDto {
@@ -91,14 +91,12 @@ export interface CreateBibleEntryRequest {
   priority?: BiblePriority;
   strictCheck?: boolean;
   variantLabel: string;
-  aliases?: string[];
   isCrowd?: boolean;
 }
 
 export interface DefineBibleEntryRequest {
   name: string;
   description: string;
-  aliases?: string[];
   subtitle?: string;
   detailsJson?: string;
   referenceImageUrl?: string;

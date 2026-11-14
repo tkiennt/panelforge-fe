@@ -93,7 +93,7 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
     isVisualDesign: isVisualDesignCategory(entry.category),
     isLocked: entry.effectiveRevision?.isLocked ?? false,
     lockedAt: entry.effectiveRevision?.lockedAt ?? null,
-    aliases: entry.aliases ?? undefined,
+    latestDraftVersionNumber: entry.latestDraftVersionNumber ?? null,
     isCrowd: entry.isCrowd ?? false,
     isStub: entry.isStub ?? false,
     gallery,
@@ -451,7 +451,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               ? t('bible.view.revisionSummaryVariant', 'Tạo biến thể thiết kế mới')
               : '',
     );
-    setRevisionName(snapshot.Name ?? entity.name);
+    setRevisionName(entity.name);
     setRevisionSubtitle(snapshot.Subtitle ?? entity.subtitle ?? '');
     setRevisionDescription(snapshot.Description ?? entity.description ?? '');
     setRevisionReferenceImageUrl(snapshot.ReferenceImageUrl ?? entity.imageUrl ?? '');
@@ -507,7 +507,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       if (effectiveSeries?.id) {
         const content = submittedContent || {
           expectedVersionNumber: expectedVersionNumber ?? undefined,
-          name: revisionName.trim() || revisionTarget.name,
+          name: revisionTarget.name,
           subtitle: revisionSubtitle.trim() || revisionTarget.subtitle,
           description: revisionDescription.trim() || revisionTarget.description,
           referenceImageUrl: revisionReferenceImageUrl || undefined,
@@ -546,7 +546,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           });
         }
       }
-      const displayName = submittedContent?.name || revisionName || revisionTarget.name;
+      const displayName = revisionTarget.name;
       onShowToast(
         supersedeTarget
           ? t('bible.view.saveRevisionSuccessSupersede', 'Đã thay thế bản khoá')
@@ -591,7 +591,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       if (revisionTarget) {
         setSelectedEntity({
           ...revisionTarget,
-          name: submittedContent?.name || revisionName.trim() || revisionTarget.name,
+          name: revisionTarget.name,
           subtitle:
             submittedContent?.subtitle || revisionSubtitle.trim() || revisionTarget.subtitle,
           description:
@@ -761,7 +761,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         priority: 'Standard',
         strictCheck: true,
         variantLabel: newEntity.variantLabel.trim(),
-        aliases: newEntity.aliases,
         isCrowd: newEntity.isCrowd,
       });
 
@@ -1630,6 +1629,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               </span>
                             ) : null}
                           </h3>
+                          {entity.latestDraftVersionNumber != null && (
+                            <span
+                              className='inline-flex mt-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium'
+                              data-testid={`pending-draft-badge-${entity.id}`}
+                            >
+                              {t('bible.view.pendingDraftBadge', {
+                                n: entity.latestDraftVersionNumber,
+                              })}
+                            </span>
+                          )}
                           {entity.subtitle && (
                             <p className='text-xs text-[#57534E] font-medium line-clamp-1 mt-0.5'>
                               {entity.subtitle}
@@ -1875,6 +1884,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               </span>
                             ) : null}
                           </h3>
+                          {entity.latestDraftVersionNumber != null && (
+                            <span
+                              className='px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium whitespace-nowrap'
+                              data-testid={`pending-draft-badge-${entity.id}`}
+                            >
+                              {t('bible.view.pendingDraftBadge', {
+                                n: entity.latestDraftVersionNumber,
+                              })}
+                            </span>
+                          )}
                           <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-xs font-medium'>
                             {getCategoryLabel(entity.category)}
                           </span>

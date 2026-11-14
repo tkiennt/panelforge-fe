@@ -74,7 +74,6 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
   const [stubToDefine, setStubToDefine] = useState<ChapterCastItemDto | null>(null);
   const [defineName, setDefineName] = useState('');
   const [defineDesc, setDefineDesc] = useState('');
-  const [defineAliases, setDefineAliases] = useState('');
   const [defineSubtitle, setDefineSubtitle] = useState('');
   const [isDefining, setIsDefining] = useState(false);
 
@@ -175,7 +174,6 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
     setStubToDefine(entry);
     setDefineName(entry.name);
     setDefineDesc('');
-    setDefineAliases('');
     setDefineSubtitle('');
   };
 
@@ -186,15 +184,9 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
 
     setIsDefining(true);
     try {
-      const aliasesList = defineAliases
-        .split(',')
-        .map((a) => a.trim())
-        .filter(Boolean);
-
       await chapterCastService.defineBibleEntry(seriesId, stubToDefine.bibleEntryId, {
         name: defineName.trim() || stubToDefine.name,
         description: defineDesc.trim(),
-        aliases: aliasesList.length > 0 ? aliasesList : undefined,
         subtitle: defineSubtitle.trim() || undefined,
       });
 
@@ -714,22 +706,6 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                   )}
                   className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-normal custom-scrollbar'
                   required
-                />
-              </div>
-
-              <div>
-                <label className='font-semibold text-stone-700 block mb-1'>
-                  {t('production.cast.aliasesLabel', 'Bí danh (cách nhau bởi dấu phẩy)')}
-                </label>
-                <input
-                  type='text'
-                  value={defineAliases}
-                  onChange={(e) => setDefineAliases(e.target.value)}
-                  placeholder={t(
-                    'production.cast.aliasesPlaceholder',
-                    'Ví dụ: Hắc Long, Long Thần, Đại ca...',
-                  )}
-                  className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-normal'
                 />
               </div>
 

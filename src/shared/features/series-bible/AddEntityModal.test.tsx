@@ -85,7 +85,7 @@ describe('AddEntityModal UX/UI improvements', () => {
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  it('handles variant label, aliases, and crowd flag and submits them', async () => {
+  it('handles variant label and crowd flag and submits them', async () => {
     render(<AddEntityModal {...defaultProps} isProducer={true} />);
 
     fireEvent.change(screen.getByLabelText(/Tên mục/i), {
@@ -97,10 +97,6 @@ describe('AddEntityModal UX/UI improvements', () => {
     fireEvent.change(screen.getByLabelText(/Nhãn biến thể tạo hình/i), {
       target: { value: 'Lúc nhỏ' },
     });
-
-    const aliasInput = screen.getByPlaceholderText(/Nhập bí danh rồi bấm Thêm hoặc Enter/i);
-    fireEvent.change(aliasInput, { target: { value: 'Kakarot' } });
-    fireEvent.keyDown(aliasInput, { key: 'Enter', code: 'Enter' });
 
     const crowdCheckbox = screen.getByLabelText(/Cờ Quần chúng/i);
     fireEvent.click(crowdCheckbox);
@@ -115,7 +111,6 @@ describe('AddEntityModal UX/UI improvements', () => {
       expect.objectContaining({
         name: 'Goku',
         variantLabel: 'Lúc nhỏ',
-        aliases: ['Kakarot'],
         isCrowd: true,
       }),
     );
@@ -126,21 +121,6 @@ describe('AddEntityModal UX/UI improvements', () => {
 
     expect(screen.getByText(/Bản nháp \(Hướng B\)/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Tạo bản nháp mới/i })).toBeInTheDocument();
-  });
-
-  it('allows adding and removing aliases chips', async () => {
-    render(<AddEntityModal {...defaultProps} isProducer={true} />);
-
-    const aliasInput = screen.getByPlaceholderText(/Nhập bí danh rồi bấm Thêm hoặc Enter/i);
-    fireEvent.change(aliasInput, { target: { value: 'Khỉ con' } });
-    fireEvent.keyDown(aliasInput, { key: 'Enter', code: 'Enter' });
-
-    expect(screen.getByText('Khỉ con')).toBeInTheDocument();
-
-    const removeBtn = screen.getByRole('button', { name: /Xóa bí danh Khỉ con/i });
-    fireEvent.click(removeBtn);
-
-    expect(screen.queryByText('Khỉ con')).not.toBeInTheDocument();
   });
 
   it('renders character sheet gallery section and adds turnaround sketches (Step 3)', async () => {

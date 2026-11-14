@@ -340,7 +340,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       const found = activeVariant.revisions.find((r) => r.id === selectedVersionId);
       if (found) return found;
     }
-    return activeVariant?.latestRevision || rawEntry?.effectiveRevision || null;
+    const effective = rawEntry?.effectiveRevision;
+    if (effective && activeVariant?.revisions.some((revision) => revision.id === effective.id)) {
+      return effective;
+    }
+    return activeVariant?.latestRevision || effective || null;
   }, [selectedVersionId, activeVariant, rawEntry?.effectiveRevision]);
 
   // Turnaround / Character Sheet Gallery Active View State
@@ -354,8 +358,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const [selectedImageTitle, setSelectedImageTitle] = useState<string>(initialTitle);
 
   useEffect(() => {
-    let img = activeRevision?.conceptImageUrl || activeRevision?.referenceImageUrl;
-    if (!img && activeRevision?.snapshotJson) {
+    const showCanonDto =
+      !selectedVersionId && activeRevision?.id === rawEntry?.effectiveRevision?.id;
+    let img = showCanonDto
+      ? entity.imageUrl
+      : activeRevision?.conceptImageUrl || activeRevision?.referenceImageUrl;
+    if (!img && !showCanonDto && activeRevision?.snapshotJson) {
       try {
         const snap = JSON.parse(activeRevision.snapshotJson);
         img =
@@ -369,7 +377,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     }
     if (img) {
       setSelectedImageUrl(img);
-      setSelectedImageTitle(`${entity.name} - ${activeVariant?.variantLabel || 'Model Sheet'}`);
+      setSelectedImageTitle(
+        showCanonDto
+          ? entity.name
+          : `${entity.name} - ${activeVariant?.variantLabel || 'Model Sheet'}`,
+      );
     } else {
       setSelectedImageUrl(entity.imageUrl || (entity.gallery?.[0]?.url ?? ''));
       setSelectedImageTitle(
@@ -380,7 +392,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             : entity.name,
       );
     }
-  }, [activeRevision, activeVariant?.variantLabel, entity.imageUrl, entity.gallery, entity.name]);
+  }, [
+    activeRevision,
+    activeVariant?.variantLabel,
+    entity.imageUrl,
+    entity.gallery,
+    entity.name,
+    rawEntry?.effectiveRevision?.id,
+    selectedVersionId,
+  ]);
 
   // Concept versions list from revision events (BIB-10 FE)
   const conceptVersions = useMemo(() => {
@@ -1058,6 +1078,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     (lifecycleStatus === 'ConceptSubmitted' && canEndorse) ||
     (lifecycleStatus === 'ReworkRequired' && isArtistUser);
   const specDescription = (() => {
+    if (!selectedVersionId && activeRevision?.id === rawEntry?.effectiveRevision?.id) {
+      return entity.description ?? '';
+    }
     try {
       const snap = JSON.parse(activeRevision?.snapshotJson || '{}');
       return (snap.Description ?? snap.description ?? entity.description ?? '') as string;
@@ -1130,6 +1153,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             >
               {entity.name}
             </h2>
+            {entity.latestDraftVersionNumber != null && (
+              <span
+                className='inline-flex px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium'
+                data-testid='pending-draft-badge-detail'
+              >
+                {t('bible.view.pendingDraftBadge', { n: entity.latestDraftVersionNumber })}
+              </span>
+            )}
             {entity.subtitle && <p className='text-sm text-stone-600'>{entity.subtitle}</p>}
           </div>
 

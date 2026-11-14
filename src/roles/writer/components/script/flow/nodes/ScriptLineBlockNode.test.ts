@@ -20,10 +20,7 @@ const line = (el: GnElement, text = ''): JSONContent => ({
   ...(text ? { content: [{ type: 'text', text }] } : {}),
 });
 
-function createEditor(
-  lines: JSONContent[],
-  options?: { bibleSpeakers?: { name: string; aliases?: string[] }[] },
-) {
+function createEditor(lines: JSONContent[], options?: { bibleSpeakers?: { name: string }[] }) {
   return new Editor({
     extensions: [
       StarterKit.configure({

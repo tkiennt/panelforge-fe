@@ -23,7 +23,6 @@ import {
 
 export type NewBibleEntityPayload = BibleEntity & {
   variantLabel: string;
-  aliases?: string[];
   isCrowd?: boolean;
 };
 
@@ -51,8 +50,6 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   const [name, setName] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [category, setCategory] = useState<BibleCategory>('characters');
-  const [aliases, setAliases] = useState<string[]>([]);
-  const [aliasInput, setAliasInput] = useState('');
   const [isCrowd, setIsCrowd] = useState(false);
   const [variantLabel, setVariantLabel] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -207,26 +204,6 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     }
   };
 
-  const handleAddAlias = (e?: React.MouseEvent | React.KeyboardEvent) => {
-    if (e) e.preventDefault();
-    const trimmed = aliasInput.trim();
-    if (!trimmed) return;
-    if (aliases.includes(trimmed)) {
-      onShowToast('Bí danh đã tồn tại', `Bí danh "${trimmed}" đã có trong danh sách.`);
-      return;
-    }
-    if (aliases.length >= 20) {
-      onShowToast('Đã đạt giới hạn', 'Tối đa 20 bí danh cho một mục.');
-      return;
-    }
-    setAliases((prev) => [...prev, trimmed]);
-    setAliasInput('');
-  };
-
-  const handleRemoveAlias = (aliasToRemove: string) => {
-    setAliases((prev) => prev.filter((a) => a !== aliasToRemove));
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !description.trim() || !variantLabel.trim()) return;
@@ -263,7 +240,6 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       imageUrl: imageUrl.trim() || '',
       status: 'Draft',
       variantLabel: variantLabel.trim(),
-      aliases: aliases.length > 0 ? aliases : undefined,
       isCrowd,
       gallery: gallery.length > 0 ? gallery : undefined,
       attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
@@ -275,8 +251,6 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     setCode('');
     setSubtitle('');
     setVariantLabel('');
-    setAliases([]);
-    setAliasInput('');
     setIsCrowd(false);
     setDescription('');
     setImageUrl('');
@@ -462,67 +436,6 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
               />
             </div>
-          </div>
-
-          {/* Bí danh (Aliases chips) */}
-          <div>
-            <label
-              htmlFor='bible-entity-aliases'
-              className='block text-xs font-semibold text-stone-800 mb-1'
-            >
-              {t('bible.addEntityModal.aliasesLabel', 'Bí danh / Tên gọi khác (Aliases)')}
-            </label>
-            <div className='flex items-center gap-2'>
-              <input
-                id='bible-entity-aliases'
-                type='text'
-                placeholder={t(
-                  'bible.addEntityModal.aliasesPlaceholder',
-                  'Nhập bí danh rồi bấm Thêm hoặc Enter...',
-                )}
-                value={aliasInput}
-                onChange={(e) => setAliasInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddAlias();
-                  }
-                }}
-                className='flex-1 px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
-                data-testid='bible-alias-input'
-              />
-              <button
-                type='button'
-                onClick={handleAddAlias}
-                className='px-3 py-2 bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer'
-                data-testid='bible-add-alias-btn'
-              >
-                {t('common.add', 'Thêm')}
-              </button>
-            </div>
-            {aliases.length > 0 && (
-              <div
-                className='flex items-center gap-1.5 flex-wrap mt-2'
-                data-testid='bible-alias-chips'
-              >
-                {aliases.map((alias) => (
-                  <span
-                    key={alias}
-                    className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-300 text-xs text-stone-800'
-                  >
-                    <span>{alias}</span>
-                    <button
-                      type='button'
-                      onClick={() => handleRemoveAlias(alias)}
-                      className='hover:text-red-600 transition-colors cursor-pointer'
-                      aria-label={`Xóa bí danh ${alias}`}
-                    >
-                      <X className='w-3 h-3' />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Contextual Attributes Inputs per Category */}

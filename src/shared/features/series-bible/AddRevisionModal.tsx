@@ -112,7 +112,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     });
     const [selectedExistingVariantKey, setSelectedExistingVariantKey] = useState<string>('');
     const [variantLabel, setVariantLabel] = useState(initialVariantLabel);
-    const [name, setName] = useState(initialName);
+    const name = revisionTarget?.name || initialName;
     const [subtitle, setSubtitle] = useState(initialSubtitle);
     const [summary, setSummary] = useState(initialSummary);
     const [description, setDescription] = useState(initialDescription);
@@ -154,7 +154,6 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         isInitRef.current = true;
         const mode = isNewVariantInitial || existingVariants.length === 0 ? 'new' : 'existing';
         setVariantMode(mode);
-        setName(initialName);
         setSubtitle(initialSubtitle);
         setSummary(initialSummary);
         setDescription(initialDescription);
@@ -229,7 +228,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
 
       const submissionPayload = {
         expectedVersionNumber: expectedVersionNumber ?? undefined,
-        name: name.trim() || revisionTarget.name,
+        name: revisionTarget.name,
         subtitle: subtitle.trim() || revisionTarget.subtitle || '',
         description: description.trim() || revisionTarget.description || '',
         referenceImageUrl: referenceImageUrl || undefined,
@@ -653,12 +652,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     <label className='block text-xs font-semibold text-stone-800 mb-1'>
                       Tên mục *
                     </label>
-                    <input
-                      type='text'
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
-                    />
+                    <div
+                      className='w-full px-3 py-2 bg-stone-100 border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-700'
+                      data-testid='revision-name-readonly'
+                    >
+                      {revisionTarget.name}
+                    </div>
                   </div>
                   <div>
                     <label className='block text-xs font-semibold text-stone-800 mb-1'>
