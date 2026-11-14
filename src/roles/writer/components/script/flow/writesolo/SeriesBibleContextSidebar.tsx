@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { BibleEntryDto } from '@/services/bible.service';
 import { DetectedEntityInfo } from './writeSoloExtensions';
+import { CollapsibleSidebar, SidebarSection } from '@/shared/ui';
 
 interface SeriesBibleContextSidebarProps {
   isOpen: boolean;
@@ -53,7 +54,11 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
   const unregisteredEntities = filteredEntities.filter((e) => !e.isRegistered);
 
   return (
-    <aside className='w-[340px] shrink-0 border-l border-[#E7E7E7] bg-white flex flex-col h-full shadow-lg z-20 animate-in slide-in-from-right duration-200 select-none'>
+    <CollapsibleSidebar
+      collapsed={false}
+      label='Series Bible'
+      className='border-l border-[#E7E7E7] bg-white flex flex-col h-full shadow-lg z-20 animate-in slide-in-from-right duration-200 select-none'
+    >
       {/* 1. Header */}
       <div className='p-3.5 border-b border-[#E7E7E7] bg-[#FAF8F5] flex items-center justify-between gap-2'>
         <div className='flex items-center gap-2'>
@@ -122,7 +127,7 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
       <div className='flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar bg-[#FAF8F5]/30'>
         {/* Section 4A: Chưa đăng ký (Unregistered - Write First, Bible Later) */}
         {unregisteredEntities.length > 0 && (
-          <div className='space-y-2'>
+          <SidebarSection className='space-y-2'>
             <div className='flex items-center justify-between text-xs font-bold text-amber-800 uppercase tracking-wider px-1'>
               <span className='flex items-center gap-1.5'>
                 <Sparkles className='w-3.5 h-3.5 text-amber-600' />
@@ -156,11 +161,11 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
                 </div>
               ))}
             </div>
-          </div>
+          </SidebarSection>
         )}
 
         {/* Section 4B: Thực thể đã đăng ký Canon */}
-        <div className='space-y-2'>
+        <SidebarSection className='space-y-2'>
           <div className='flex items-center justify-between text-xs font-bold text-stone-500 uppercase tracking-wider px-1'>
             <span>Thực thể Canon đã khớp ({registeredEntities.length})</span>
           </div>
@@ -222,8 +227,8 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
               );
             })
           )}
-        </div>
+        </SidebarSection>
       </div>
-    </aside>
+    </CollapsibleSidebar>
   );
 };

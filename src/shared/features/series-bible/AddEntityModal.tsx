@@ -1,7 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import {
-  X,
   Plus,
   BookOpen,
   Upload,
@@ -15,6 +13,7 @@ import { BibleEntity, BibleCategory } from '@/types';
 import { bibleService } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { useTranslation } from '@/lib/i18n';
+import { Modal } from '@/shared/ui';
 import {
   getTempBibleCodes,
   removeTempBibleCode,
@@ -77,22 +76,6 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       setTempCodes(getTempBibleCodes());
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
 
   const handleFileUpload = async (file: File) => {
     if (!file) return;
@@ -260,642 +243,612 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     onClose();
   };
 
-  const modalContent = (
-    <div
-      className='fixed inset-0 bg-black/60 z-[1000] flex items-center justify-center p-3 sm:p-4 font-sans'
-      role='dialog'
-      aria-modal='true'
-      aria-labelledby='add-bible-entity-title'
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='md'
+      closeLabel={t('common.close', 'Đóng')}
+      className='font-sans'
+      title={
+        <span className='flex items-center gap-2.5'>
+          <span className='flex size-8 items-center justify-center rounded-lg border border-orange-200 bg-orange-50 text-[#F97316]'>
+            <BookOpen className='size-4' aria-hidden='true' />
+          </span>
+          {t('bible.addEntityModal.title', 'Thêm mục mới vào Series Bible')}
+        </span>
+      }
+      description={t(
+        'bible.addEntityModal.subtitle',
+        'Tạo thiết kế nhân vật, địa điểm, thuật ngữ hoặc quy tắc mỹ thuật',
+      )}
     >
-      <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]'>
-        {/* Header */}
-        <div className='p-4 bg-[#FAF8F5] border-b border-[#E7E7E7] flex items-center justify-between'>
-          <div className='flex items-center gap-2.5'>
-            <div className='w-8 h-8 rounded-lg bg-orange-50 border border-orange-200 flex items-center justify-center text-[#F97316]'>
-              <BookOpen className='w-4 h-4' />
-            </div>
-            <div>
-              <h3
-                id='add-bible-entity-title'
-                className='font-bold font-sans text-sm text-[#171717]'
-              >
-                {t('bible.addEntityModal.title', 'Thêm mục mới vào Series Bible')}
-              </h3>
-              <p className='text-xs text-stone-500'>
-                {t(
-                  'bible.addEntityModal.subtitle',
-                  'Tạo thiết kế nhân vật, địa điểm, thuật ngữ hoặc quy tắc mỹ thuật',
-                )}
-              </p>
-            </div>
+      <form onSubmit={handleSubmit} className='space-y-4 custom-scrollbar'>
+        {/* Tên & Mã */}
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+          <div className='sm:col-span-2'>
+            <label
+              htmlFor='bible-entity-name'
+              className='block text-xs font-semibold text-stone-800 mb-1'
+            >
+              {t('bible.addEntityModal.nameLabel', 'Tên mục')}{' '}
+              <span className='text-red-500'>*</span>
+            </label>
+            <input
+              id='bible-entity-name'
+              type='text'
+              required
+              autoFocus
+              placeholder={t(
+                'bible.addEntityModal.namePlaceholder',
+                'Ví dụ: Kaito Shion, Thành phố Neo-Tokyo',
+              )}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
+            />
           </div>
-          <button
-            type='button'
-            onClick={onClose}
-            aria-label={t('common.close', 'Đóng')}
-            className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors'
-          >
-            <X className='w-4 h-4' />
-          </button>
+
+          <div>
+            <label
+              htmlFor='bible-entity-code'
+              className='block text-xs font-semibold text-stone-800 mb-1'
+            >
+              {t('bible.addEntityModal.codeLabel', 'Mã định danh')}
+            </label>
+            <input
+              id='bible-entity-code'
+              type='text'
+              placeholder={t('bible.addEntityModal.codePlaceholder', 'Tự động')}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] font-mono text-xs text-stone-900 placeholder-stone-400 uppercase focus:outline-none focus:border-[#F97316] transition-colors'
+            />
+            {tempCodes.length > 0 && (
+              <div className='mt-1.5' data-testid='temp-bible-code-suggestions'>
+                <span className='text-xs text-stone-500 font-medium block mb-1'>
+                  {t('bible.addEntityModal.codeHelp', 'Gợi ý mã tạm từ kịch bản:')}
+                </span>
+                <div className='flex flex-wrap gap-1'>
+                  {tempCodes.map((item) => (
+                    <button
+                      key={item.code}
+                      type='button'
+                      onClick={() => {
+                        setCode(item.code);
+                        if (!name.trim()) setName(item.name);
+                        const cat = item.category?.toLowerCase() || '';
+                        if (cat.includes('loc') || cat.includes('địa danh')) {
+                          setCategory('locations');
+                        } else if (
+                          cat.includes('prop') ||
+                          cat.includes('term') ||
+                          cat.includes('thuật ngữ')
+                        ) {
+                          setCategory('terminology');
+                        } else {
+                          setCategory('characters');
+                        }
+                      }}
+                      className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-dashed border-amber-300 transition-colors cursor-pointer'
+                      title={`Dùng ${item.count} lần${item.chapterNumber ? ` ở Chương ${item.chapterNumber}` : ''}`}
+                    >
+                      <span>@{item.code}</span>
+                      <span className='text-xs text-amber-700 font-normal'>
+                        ({item.count}x{item.chapterNumber ? ` Ch.${item.chapterNumber}` : ''})
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className='p-5 overflow-y-auto space-y-4 custom-scrollbar'>
-          {/* Tên & Mã */}
-          <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
-            <div className='sm:col-span-2'>
-              <label
-                htmlFor='bible-entity-name'
-                className='block text-xs font-semibold text-stone-800 mb-1'
-              >
-                {t('bible.addEntityModal.nameLabel', 'Tên mục')}{' '}
-                <span className='text-red-500'>*</span>
+        {/* Danh mục & Phụ đề */}
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+          <div>
+            <label
+              htmlFor='bible-entity-category'
+              className='block text-xs font-semibold text-stone-800 mb-1'
+            >
+              {t('bible.addEntityModal.categoryLabel', 'Danh mục tri thức')}{' '}
+              <span className='text-red-500'>*</span>
+            </label>
+            <select
+              id='bible-entity-category'
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value as BibleCategory);
+                setAttrField1('');
+                setAttrField2('');
+              }}
+              className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 font-medium focus:outline-none focus:border-[#F97316] cursor-pointer'
+            >
+              <option value='characters'>
+                {t('bible.categories.characters', 'Nhân vật (Character)')}
+              </option>
+              <option value='locations'>
+                {t('bible.categories.locations', 'Bối cảnh & Địa điểm (Location)')}
+              </option>
+              <option value='terminology'>
+                {t('bible.categories.terminology', 'Thuật ngữ & Đạo cụ (Terminology & Prop)')}
+              </option>
+              <option value='style'>
+                {t('bible.categories.style', 'Quy tắc mỹ thuật (Style Rule)')}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor='bible-entity-subtitle'
+              className='block text-xs font-semibold text-stone-800 mb-1'
+            >
+              {t('bible.addEntityModal.subtitleLabel', 'Phụ đề / Vai trò')}
+            </label>
+            <input
+              id='bible-entity-subtitle'
+              type='text'
+              placeholder={t(
+                'bible.addEntityModal.subtitlePlaceholder',
+                'Ví dụ: Nhân vật chính, Căn cứ kháng chiến',
+              )}
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+              className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
+            />
+          </div>
+        </div>
+
+        {/* Contextual Attributes Inputs per Category */}
+        <div className='p-3 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-2.5'>
+          <span className='text-xs font-bold text-stone-800 block'>
+            {category === 'characters'
+              ? 'Thông số nhân vật (Tùy chọn)'
+              : category === 'locations'
+                ? 'Thông số không gian & Bối cảnh (Tùy chọn)'
+                : category === 'terminology'
+                  ? 'Đặc tả thuật ngữ / Đạo cụ (Tùy chọn)'
+                  : 'Quy chuẩn mỹ thuật (Tùy chọn)'}
+          </span>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+            <div>
+              <label className='block text-xs font-medium text-stone-700 mb-1'>
+                {category === 'characters'
+                  ? 'Độ tuổi'
+                  : category === 'locations'
+                    ? 'Loại địa hình / Phân khu'
+                    : category === 'terminology'
+                      ? 'Phân loại lĩnh vực'
+                      : 'Bảng màu chủ đạo'}
               </label>
               <input
-                id='bible-entity-name'
                 type='text'
-                required
-                autoFocus
-                placeholder={t(
-                  'bible.addEntityModal.namePlaceholder',
-                  'Ví dụ: Kaito Shion, Thành phố Neo-Tokyo',
-                )}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
+                placeholder={
+                  category === 'characters'
+                    ? 'Ví dụ: 17 tuổi, 25 tuổi...'
+                    : category === 'locations'
+                      ? 'Ví dụ: Hang động ngầm, Đô thị...'
+                      : category === 'terminology'
+                        ? 'Ví dụ: Bí thuật, Cấp bậc tu vi...'
+                        : 'Ví dụ: Warm Sepia, Cam đất...'
+                }
+                value={attrField1}
+                onChange={(e) => setAttrField1(e.target.value)}
+                className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316]'
               />
             </div>
 
             <div>
-              <label
-                htmlFor='bible-entity-code'
-                className='block text-xs font-semibold text-stone-800 mb-1'
-              >
-                {t('bible.addEntityModal.codeLabel', 'Mã định danh')}
+              <label className='block text-xs font-medium text-stone-700 mb-1'>
+                {category === 'characters'
+                  ? 'Chiều cao / Vóc dáng'
+                  : category === 'locations'
+                    ? 'Quy mô / Khí hậu'
+                    : category === 'terminology'
+                      ? 'Nguồn gốc / Khởi nguyên'
+                      : 'Quy chuẩn nét vẽ'}
               </label>
               <input
-                id='bible-entity-code'
                 type='text'
-                placeholder={t('bible.addEntityModal.codePlaceholder', 'Tự động')}
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] font-mono text-xs text-stone-900 placeholder-stone-400 uppercase focus:outline-none focus:border-[#F97316] transition-colors'
+                placeholder={
+                  category === 'characters'
+                    ? 'Ví dụ: 178 cm, Cao gầy...'
+                    : category === 'locations'
+                      ? 'Ví dụ: Rộng lớn, U tối ẩm ướt...'
+                      : category === 'terminology'
+                        ? 'Ví dụ: Thời Thượng Cổ, Dị giới...'
+                        : 'Ví dụ: Nét line thanh đậm rõ ràng...'
+                }
+                value={attrField2}
+                onChange={(e) => setAttrField2(e.target.value)}
+                className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316]'
               />
-              {tempCodes.length > 0 && (
-                <div className='mt-1.5' data-testid='temp-bible-code-suggestions'>
-                  <span className='text-xs text-stone-500 font-medium block mb-1'>
-                    {t('bible.addEntityModal.codeHelp', 'Gợi ý mã tạm từ kịch bản:')}
-                  </span>
-                  <div className='flex flex-wrap gap-1'>
-                    {tempCodes.map((item) => (
-                      <button
-                        key={item.code}
-                        type='button'
-                        onClick={() => {
-                          setCode(item.code);
-                          if (!name.trim()) setName(item.name);
-                          const cat = item.category?.toLowerCase() || '';
-                          if (cat.includes('loc') || cat.includes('địa danh')) {
-                            setCategory('locations');
-                          } else if (
-                            cat.includes('prop') ||
-                            cat.includes('term') ||
-                            cat.includes('thuật ngữ')
-                          ) {
-                            setCategory('terminology');
-                          } else {
-                            setCategory('characters');
-                          }
-                        }}
-                        className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-dashed border-amber-300 transition-colors cursor-pointer'
-                        title={`Dùng ${item.count} lần${item.chapterNumber ? ` ở Chương ${item.chapterNumber}` : ''}`}
+            </div>
+          </div>
+        </div>
+
+        {/* Biến thể tạo hình (Variant Label) & Cờ Quần chúng */}
+        <div className='p-3.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-3'>
+          <div>
+            <label
+              htmlFor='bible-entity-variant-label'
+              className='block text-xs font-semibold text-stone-800 mb-1'
+            >
+              Nhãn biến thể tạo hình (Variant Label) <span className='text-red-500'>*</span>
+            </label>
+            <input
+              id='bible-entity-variant-label'
+              type='text'
+              maxLength={100}
+              placeholder='Ví dụ: Mặc định, Lúc nhỏ, Trưởng thành...'
+              value={variantLabel}
+              onChange={(e) => setVariantLabel(e.target.value)}
+              required
+              className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
+              data-testid='bible-variant-label-input'
+            />
+            <p className='text-xs text-stone-500 mt-1'>
+              Bắt buộc và không được trùng với biến thể đang hoạt động khác của mục.
+            </p>
+          </div>
+
+          <div className='pt-1'>
+            <label
+              htmlFor='bible-entity-is-crowd'
+              className='flex items-start gap-2.5 cursor-pointer p-2.5 bg-white border border-stone-200 rounded-lg hover:border-stone-300 transition-colors'
+            >
+              <input
+                id='bible-entity-is-crowd'
+                type='checkbox'
+                checked={isCrowd}
+                onChange={(e) => setIsCrowd(e.target.checked)}
+                className='mt-0.5 rounded text-[#F97316] focus:ring-[#F97316] w-4 h-4 cursor-pointer'
+                data-testid='bible-crowd-checkbox'
+              />
+              <div>
+                <span className='text-xs font-semibold text-stone-900 block'>
+                  Cờ Quần chúng (Crowd Entity)
+                </span>
+                <p className='text-xs text-stone-500'>
+                  Mục quần chúng xuất hiện trong kịch bản nhưng không bắt buộc Model Sheet và không
+                  chặn kịch bản khi kiểm tra sản xuất.
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {!isProducer && (
+          <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs flex items-start gap-1.5'>
+            <HelpCircle className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
+            <span>
+              <strong>Bản nháp (Hướng B):</strong> Mục bạn tạo sẽ được lưu dưới dạng Bản nháp và cần
+              Producer xét duyệt &amp; khoá để trở thành Canon.
+            </span>
+          </div>
+        )}
+
+        {!isArtist ? (
+          <div
+            className='p-4 rounded-xl border border-dashed border-[#D8D2C5] bg-[#F7F5F0] text-center space-y-2'
+            data-testid='artist-role-separation-banner'
+          >
+            <div className='w-8 h-8 rounded-full bg-[#E5DFD3] text-[#78716C] flex items-center justify-center mx-auto'>
+              <HelpCircle className='w-4 h-4' />
+            </div>
+            <p className='text-xs font-semibold text-[#44403C]'>
+              Phân vai chuyên trách: Chỉ Họa sĩ (Artist) mới tải ảnh lên
+            </p>
+            <p className='text-xs text-[#78716C] max-w-md mx-auto leading-relaxed'>
+              Biên kịch và Nhà sản xuất thiết lập thông tin kịch bản và quy chuẩn thiết kế bằng văn
+              bản. Sau khi lưu, mục này sẽ tự động chuyển vào{' '}
+              <b>Hàng đợi thiết kế (Bible Design Queue)</b> để Họa sĩ vẽ và tải Model Sheet /
+              Concept Art lên.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Reference Sheet Image Upload Dropzone */}
+            <div>
+              <div className='flex items-center justify-between mb-1'>
+                <label className='text-xs font-semibold text-stone-800 flex items-center gap-1.5'>
+                  <span>Ảnh Reference Sheet / Model Sheet</span>
+                  <span className='text-xs text-stone-400 font-normal'>(Khuyên dùng)</span>
+                </label>
+                <button
+                  type='button'
+                  onClick={() => setShowUrlInput((v) => !v)}
+                  className='text-xs text-[#F97316] hover:underline font-medium flex items-center gap-1 cursor-pointer'
+                >
+                  <LinkIcon className='w-3 h-3' />
+                  <span>{showUrlInput ? 'Ẩn nhập URL' : 'Dán URL trực tiếp'}</span>
+                </button>
+              </div>
+
+              <input
+                type='file'
+                ref={fileInputRef}
+                accept='image/png,image/jpeg,image/webp'
+                className='hidden'
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    void handleFileUpload(e.target.files[0]);
+                  }
+                }}
+              />
+
+              {imageUrl ? (
+                <div className='p-3 bg-stone-50 border border-stone-200 rounded-xl flex items-center justify-between gap-3'>
+                  <div className='flex items-center gap-3 min-w-0'>
+                    <div className='w-14 h-14 rounded-lg overflow-hidden border border-stone-200 bg-stone-900 shrink-0 relative'>
+                      <AuthenticatedImage
+                        src={imageUrl}
+                        alt={name || 'Reference Sheet Preview'}
+                        className='w-full h-full object-cover'
+                      />
+                    </div>
+                    <div className='min-w-0'>
+                      <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200'>
+                        <CheckCircle2 className='w-3 h-3' />
+                        Đã nạp ảnh hợp lệ
+                      </span>
+                      <p
+                        className='text-xs text-stone-500 truncate font-mono mt-0.5 max-w-[220px]'
+                        title={imageUrl}
                       >
-                        <span>@{item.code}</span>
-                        <span className='text-xs text-amber-700 font-normal'>
-                          ({item.count}x{item.chapterNumber ? ` Ch.${item.chapterNumber}` : ''})
-                        </span>
-                      </button>
-                    ))}
+                        {imageUrl}
+                      </p>
+                    </div>
                   </div>
+
+                  <div className='flex items-center gap-1.5 shrink-0'>
+                    <button
+                      type='button'
+                      onClick={() => fileInputRef.current?.click()}
+                      className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-[#E7E7E7] hover:bg-stone-50 text-stone-700 transition-colors'
+                    >
+                      Đổi ảnh
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setImageUrl('')}
+                      className='p-1.5 text-xs rounded-lg text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors'
+                      title='Xóa ảnh này'
+                    >
+                      <Trash2 className='w-3.5 h-3.5' />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragActive(true);
+                  }}
+                  onDragLeave={() => setIsDragActive(false)}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`p-5 rounded-xl border-2 border-dashed transition-all text-center cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
+                    isDragActive
+                      ? 'border-[#F97316] bg-[#FFF7ED]'
+                      : 'border-stone-300 hover:border-[#F97316] bg-[#FAF8F5] hover:bg-[#FFFDF9]'
+                  }`}
+                >
+                  {uploadingImage ? (
+                    <div className='flex items-center gap-2 text-xs font-semibold text-[#F97316] py-2'>
+                      <Loader2 className='w-4 h-4 animate-spin' />
+                      <span>
+                        {t('bible.addEntityModal.dropzoneTitle', 'Đang tải ảnh lên kho an toàn...')}
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className='w-9 h-9 rounded-full bg-white border border-stone-200 flex items-center justify-center text-[#F97316] shadow-2xs mb-0.5'>
+                        <Upload className='w-4 h-4' />
+                      </div>
+                      <p className='text-xs font-semibold text-stone-800'>
+                        {t(
+                          'bible.addEntityModal.dropzoneTitle',
+                          'Kéo thả ảnh reference sheet vào đây, hoặc ',
+                        )}{' '}
+                        <span className='text-[#F97316] underline'>
+                          {t('bible.addEntityModal.dropzoneBrowse', 'chọn file')}
+                        </span>
+                      </p>
+                      <p className='text-xs text-stone-500'>
+                        {t(
+                          'bible.addEntityModal.dropzoneFormats',
+                          'Định dạng PNG, JPEG, WebP dung lượng tối đa 10 MB',
+                        )}
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {showUrlInput && (
+                <div className='mt-2'>
+                  <input
+                    type='url'
+                    placeholder={t(
+                      'bible.addEntityModal.dropzoneUrlPlaceholder',
+                      'Hoặc dán URL ảnh trực tiếp (https://...)',
+                    )}
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    className='w-full px-3 py-1.5 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
+                  />
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Danh mục & Phụ đề */}
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-            <div>
-              <label
-                htmlFor='bible-entity-category'
-                className='block text-xs font-semibold text-stone-800 mb-1'
-              >
-                {t('bible.addEntityModal.categoryLabel', 'Danh mục tri thức')}{' '}
-                <span className='text-red-500'>*</span>
-              </label>
-              <select
-                id='bible-entity-category'
-                value={category}
-                onChange={(e) => {
-                  setCategory(e.target.value as BibleCategory);
-                  setAttrField1('');
-                  setAttrField2('');
-                }}
-                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 font-medium focus:outline-none focus:border-[#F97316] cursor-pointer'
-              >
-                <option value='characters'>
-                  {t('bible.categories.characters', 'Nhân vật (Character)')}
-                </option>
-                <option value='locations'>
-                  {t('bible.categories.locations', 'Bối cảnh & Địa điểm (Location)')}
-                </option>
-                <option value='terminology'>
-                  {t('bible.categories.terminology', 'Thuật ngữ & Đạo cụ (Terminology & Prop)')}
-                </option>
-                <option value='style'>
-                  {t('bible.categories.style', 'Quy tắc mỹ thuật (Style Rule)')}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor='bible-entity-subtitle'
-                className='block text-xs font-semibold text-stone-800 mb-1'
-              >
-                {t('bible.addEntityModal.subtitleLabel', 'Phụ đề / Vai trò')}
-              </label>
-              <input
-                id='bible-entity-subtitle'
-                type='text'
-                placeholder={t(
-                  'bible.addEntityModal.subtitlePlaceholder',
-                  'Ví dụ: Nhân vật chính, Căn cứ kháng chiến',
-                )}
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
-              />
-            </div>
-          </div>
-
-          {/* Contextual Attributes Inputs per Category */}
-          <div className='p-3 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-2.5'>
-            <span className='text-xs font-bold text-stone-800 block'>
-              {category === 'characters'
-                ? 'Thông số nhân vật (Tùy chọn)'
-                : category === 'locations'
-                  ? 'Thông số không gian & Bối cảnh (Tùy chọn)'
-                  : category === 'terminology'
-                    ? 'Đặc tả thuật ngữ / Đạo cụ (Tùy chọn)'
-                    : 'Quy chuẩn mỹ thuật (Tùy chọn)'}
-            </span>
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-              <div>
-                <label className='block text-xs font-medium text-stone-700 mb-1'>
-                  {category === 'characters'
-                    ? 'Độ tuổi'
-                    : category === 'locations'
-                      ? 'Loại địa hình / Phân khu'
-                      : category === 'terminology'
-                        ? 'Phân loại lĩnh vực'
-                        : 'Bảng màu chủ đạo'}
-                </label>
-                <input
-                  type='text'
-                  placeholder={
-                    category === 'characters'
-                      ? 'Ví dụ: 17 tuổi, 25 tuổi...'
-                      : category === 'locations'
-                        ? 'Ví dụ: Hang động ngầm, Đô thị...'
-                        : category === 'terminology'
-                          ? 'Ví dụ: Bí thuật, Cấp bậc tu vi...'
-                          : 'Ví dụ: Warm Sepia, Cam đất...'
-                  }
-                  value={attrField1}
-                  onChange={(e) => setAttrField1(e.target.value)}
-                  className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316]'
-                />
-              </div>
-
-              <div>
-                <label className='block text-xs font-medium text-stone-700 mb-1'>
-                  {category === 'characters'
-                    ? 'Chiều cao / Vóc dáng'
-                    : category === 'locations'
-                      ? 'Quy mô / Khí hậu'
-                      : category === 'terminology'
-                        ? 'Nguồn gốc / Khởi nguyên'
-                        : 'Quy chuẩn nét vẽ'}
-                </label>
-                <input
-                  type='text'
-                  placeholder={
-                    category === 'characters'
-                      ? 'Ví dụ: 178 cm, Cao gầy...'
-                      : category === 'locations'
-                        ? 'Ví dụ: Rộng lớn, U tối ẩm ướt...'
-                        : category === 'terminology'
-                          ? 'Ví dụ: Thời Thượng Cổ, Dị giới...'
-                          : 'Ví dụ: Nét line thanh đậm rõ ràng...'
-                  }
-                  value={attrField2}
-                  onChange={(e) => setAttrField2(e.target.value)}
-                  className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316]'
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Biến thể tạo hình (Variant Label) & Cờ Quần chúng */}
-          <div className='p-3.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-3'>
-            <div>
-              <label
-                htmlFor='bible-entity-variant-label'
-                className='block text-xs font-semibold text-stone-800 mb-1'
-              >
-                Nhãn biến thể tạo hình (Variant Label) <span className='text-red-500'>*</span>
-              </label>
-              <input
-                id='bible-entity-variant-label'
-                type='text'
-                maxLength={100}
-                placeholder='Ví dụ: Mặc định, Lúc nhỏ, Trưởng thành...'
-                value={variantLabel}
-                onChange={(e) => setVariantLabel(e.target.value)}
-                required
-                className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
-                data-testid='bible-variant-label-input'
-              />
-              <p className='text-xs text-stone-500 mt-1'>
-                Bắt buộc và không được trùng với biến thể đang hoạt động khác của mục.
-              </p>
-            </div>
-
-            <div className='pt-1'>
-              <label
-                htmlFor='bible-entity-is-crowd'
-                className='flex items-start gap-2.5 cursor-pointer p-2.5 bg-white border border-stone-200 rounded-lg hover:border-stone-300 transition-colors'
-              >
-                <input
-                  id='bible-entity-is-crowd'
-                  type='checkbox'
-                  checked={isCrowd}
-                  onChange={(e) => setIsCrowd(e.target.checked)}
-                  className='mt-0.5 rounded text-[#F97316] focus:ring-[#F97316] w-4 h-4 cursor-pointer'
-                  data-testid='bible-crowd-checkbox'
-                />
-                <div>
-                  <span className='text-xs font-semibold text-stone-900 block'>
-                    Cờ Quần chúng (Crowd Entity)
+            {/* Step 3: Turnaround / Expression Sketch Gallery */}
+            <div className='space-y-2.5 pt-3 border-t border-[#E7E7E7]'>
+              <div className='flex items-center justify-between'>
+                <label className='font-semibold text-[#171717] flex items-center gap-1.5'>
+                  <span>
+                    {t(
+                      'bible.addEntityModal.galleryTitle',
+                      'Bộ Sưu Tập Phác Thảo Góc Nhìn & Biểu Cảm (Character Sheet Gallery)',
+                    )}
                   </span>
-                  <p className='text-xs text-stone-500'>
-                    Mục quần chúng xuất hiện trong kịch bản nhưng không bắt buộc Model Sheet và
-                    không chặn kịch bản khi kiểm tra sản xuất.
-                  </p>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          {!isProducer && (
-            <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs flex items-start gap-1.5'>
-              <HelpCircle className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
-              <span>
-                <strong>Bản nháp (Hướng B):</strong> Mục bạn tạo sẽ được lưu dưới dạng Bản nháp và
-                cần Producer xét duyệt &amp; khoá để trở thành Canon.
-              </span>
-            </div>
-          )}
-
-          {!isArtist ? (
-            <div
-              className='p-4 rounded-xl border border-dashed border-[#D8D2C5] bg-[#F7F5F0] text-center space-y-2'
-              data-testid='artist-role-separation-banner'
-            >
-              <div className='w-8 h-8 rounded-full bg-[#E5DFD3] text-[#78716C] flex items-center justify-center mx-auto'>
-                <HelpCircle className='w-4 h-4' />
+                </label>
+                <span className='text-xs font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded'>
+                  {t(
+                    'bible.addEntityModal.galleryCount',
+                    { count: gallery.length },
+                    `${gallery.length} góc phác thảo`,
+                  )}
+                </span>
               </div>
-              <p className='text-xs font-semibold text-[#44403C]'>
-                Phân vai chuyên trách: Chỉ Họa sĩ (Artist) mới tải ảnh lên
+              <p className='text-xs text-[#737373]'>
+                {t(
+                  'bible.addEntityModal.gallerySubtitle',
+                  'Tải lên nhiều góc nhìn (Turnaround 360°, Góc 3/4, Biểu cảm, Trang phục) để hoạ sĩ đối chiếu đa chiều.',
+                )}
               </p>
-              <p className='text-xs text-[#78716C] max-w-md mx-auto leading-relaxed'>
-                Biên kịch và Nhà sản xuất thiết lập thông tin kịch bản và quy chuẩn thiết kế bằng
-                văn bản. Sau khi lưu, mục này sẽ tự động chuyển vào{' '}
-                <b>Hàng đợi thiết kế (Bible Design Queue)</b> để Họa sĩ vẽ và tải Model Sheet /
-                Concept Art lên.
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Reference Sheet Image Upload Dropzone */}
-              <div>
-                <div className='flex items-center justify-between mb-1'>
-                  <label className='text-xs font-semibold text-stone-800 flex items-center gap-1.5'>
-                    <span>Ảnh Reference Sheet / Model Sheet</span>
-                    <span className='text-xs text-stone-400 font-normal'>(Khuyên dùng)</span>
-                  </label>
-                  <button
-                    type='button'
-                    onClick={() => setShowUrlInput((v) => !v)}
-                    className='text-xs text-[#F97316] hover:underline font-medium flex items-center gap-1 cursor-pointer'
-                  >
-                    <LinkIcon className='w-3 h-3' />
-                    <span>{showUrlInput ? 'Ẩn nhập URL' : 'Dán URL trực tiếp'}</span>
-                  </button>
-                </div>
+
+              {/* Upload controls */}
+              <div className='flex items-center gap-2'>
+                <select
+                  value={galleryLabel}
+                  onChange={(e) => setGalleryLabel(e.target.value)}
+                  className='h-8 px-2.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-semibold text-stone-800 cursor-pointer focus:outline-none focus:border-[#F97316]'
+                >
+                  <option value='Chính diện (Front)'>Chính diện (Front)</option>
+                  <option value='Góc nghiêng 3/4'>Góc nghiêng 3/4</option>
+                  <option value='Góc nghiêng (Profile / Side)'>Góc nghiêng (Profile / Side)</option>
+                  <option value='Phía sau (Back)'>Phía sau (Back)</option>
+                  <option value='Biểu cảm (Expressions)'>Biểu cảm (Expressions)</option>
+                  <option value='Trang phục (Costume)'>Trang phục (Costume)</option>
+                </select>
 
                 <input
                   type='file'
-                  ref={fileInputRef}
+                  ref={galleryInputRef}
                   accept='image/png,image/jpeg,image/webp'
                   className='hidden'
                   onChange={(e) => {
                     if (e.target.files && e.target.files[0]) {
-                      void handleFileUpload(e.target.files[0]);
+                      void handleGalleryUpload(e.target.files[0]);
+                      e.target.value = '';
                     }
                   }}
                 />
 
-                {imageUrl ? (
-                  <div className='p-3 bg-stone-50 border border-stone-200 rounded-xl flex items-center justify-between gap-3'>
-                    <div className='flex items-center gap-3 min-w-0'>
-                      <div className='w-14 h-14 rounded-lg overflow-hidden border border-stone-200 bg-stone-900 shrink-0 relative'>
+                <button
+                  type='button'
+                  onClick={() => galleryInputRef.current?.click()}
+                  disabled={uploadingGallery}
+                  className='h-8 px-3 rounded-lg bg-[#FAF8F5] hover:bg-[#F3F1EB] border border-[#E7E7E7] text-stone-800 font-semibold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
+                >
+                  {uploadingGallery ? (
+                    <>
+                      <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
+                      <span>{t('bible.addEntityModal.galleryAdding', 'Đang tải...')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className='w-3.5 h-3.5 text-[#F97316]' />
+                      <span>{t('bible.addEntityModal.galleryAddBtn', 'Thêm góc vẽ này')}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Thumbnails grid */}
+              {gallery.length > 0 && (
+                <div className='grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1'>
+                  {gallery.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className='p-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl flex items-center gap-2 relative group hover:border-[#F97316]/50 transition-colors'
+                    >
+                      <div className='w-11 h-11 rounded-lg overflow-hidden bg-stone-900 shrink-0 border border-stone-200'>
                         <AuthenticatedImage
-                          src={imageUrl}
-                          alt={name || 'Reference Sheet Preview'}
+                          src={item.url}
+                          alt={item.label}
                           className='w-full h-full object-cover'
                         />
                       </div>
-                      <div className='min-w-0'>
-                        <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200'>
-                          <CheckCircle2 className='w-3 h-3' />
-                          Đã nạp ảnh hợp lệ
-                        </span>
-                        <p
-                          className='text-xs text-stone-500 truncate font-mono mt-0.5 max-w-[220px]'
-                          title={imageUrl}
+                      <div className='min-w-0 flex-1'>
+                        <div
+                          className='text-xs font-bold text-stone-900 truncate'
+                          title={item.label}
                         >
-                          {imageUrl}
-                        </p>
+                          {item.label}
+                        </div>
+                        <div className='text-xs text-[#737373] font-mono'>
+                          {t(
+                            'bible.addEntityModal.galleryThumbLabel',
+                            { number: idx + 1 },
+                            `Góc #${idx + 1}`,
+                          )}
+                        </div>
                       </div>
-                    </div>
-
-                    <div className='flex items-center gap-1.5 shrink-0'>
                       <button
                         type='button'
-                        onClick={() => fileInputRef.current?.click()}
-                        className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-[#E7E7E7] hover:bg-stone-50 text-stone-700 transition-colors'
+                        onClick={() => setGallery((prev) => prev.filter((_, i) => i !== idx))}
+                        className='p-1 rounded-md text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors'
+                        title={t('bible.addEntityModal.galleryDeleteTitle', 'Xóa góc này')}
                       >
-                        Đổi ảnh
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => setImageUrl('')}
-                        className='p-1.5 text-xs rounded-lg text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors'
-                        title='Xóa ảnh này'
-                      >
-                        <Trash2 className='w-3.5 h-3.5' />
+                        <Trash2 className='w-3 h-3' />
                       </button>
                     </div>
-                  </div>
-                ) : (
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setIsDragActive(true);
-                    }}
-                    onDragLeave={() => setIsDragActive(false)}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`p-5 rounded-xl border-2 border-dashed transition-all text-center cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
-                      isDragActive
-                        ? 'border-[#F97316] bg-[#FFF7ED]'
-                        : 'border-stone-300 hover:border-[#F97316] bg-[#FAF8F5] hover:bg-[#FFFDF9]'
-                    }`}
-                  >
-                    {uploadingImage ? (
-                      <div className='flex items-center gap-2 text-xs font-semibold text-[#F97316] py-2'>
-                        <Loader2 className='w-4 h-4 animate-spin' />
-                        <span>
-                          {t(
-                            'bible.addEntityModal.dropzoneTitle',
-                            'Đang tải ảnh lên kho an toàn...',
-                          )}
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className='w-9 h-9 rounded-full bg-white border border-stone-200 flex items-center justify-center text-[#F97316] shadow-2xs mb-0.5'>
-                          <Upload className='w-4 h-4' />
-                        </div>
-                        <p className='text-xs font-semibold text-stone-800'>
-                          {t(
-                            'bible.addEntityModal.dropzoneTitle',
-                            'Kéo thả ảnh reference sheet vào đây, hoặc ',
-                          )}{' '}
-                          <span className='text-[#F97316] underline'>
-                            {t('bible.addEntityModal.dropzoneBrowse', 'chọn file')}
-                          </span>
-                        </p>
-                        <p className='text-xs text-stone-500'>
-                          {t(
-                            'bible.addEntityModal.dropzoneFormats',
-                            'Định dạng PNG, JPEG, WebP dung lượng tối đa 10 MB',
-                          )}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {showUrlInput && (
-                  <div className='mt-2'>
-                    <input
-                      type='url'
-                      placeholder={t(
-                        'bible.addEntityModal.dropzoneUrlPlaceholder',
-                        'Hoặc dán URL ảnh trực tiếp (https://...)',
-                      )}
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      className='w-full px-3 py-1.5 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Step 3: Turnaround / Expression Sketch Gallery */}
-              <div className='space-y-2.5 pt-3 border-t border-[#E7E7E7]'>
-                <div className='flex items-center justify-between'>
-                  <label className='font-semibold text-[#171717] flex items-center gap-1.5'>
-                    <span>
-                      {t(
-                        'bible.addEntityModal.galleryTitle',
-                        'Bộ Sưu Tập Phác Thảo Góc Nhìn & Biểu Cảm (Character Sheet Gallery)',
-                      )}
-                    </span>
-                  </label>
-                  <span className='text-xs font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded'>
-                    {t(
-                      'bible.addEntityModal.galleryCount',
-                      { count: gallery.length },
-                      `${gallery.length} góc phác thảo`,
-                    )}
-                  </span>
+                  ))}
                 </div>
-                <p className='text-xs text-[#737373]'>
-                  {t(
-                    'bible.addEntityModal.gallerySubtitle',
-                    'Tải lên nhiều góc nhìn (Turnaround 360°, Góc 3/4, Biểu cảm, Trang phục) để hoạ sĩ đối chiếu đa chiều.',
-                  )}
-                </p>
-
-                {/* Upload controls */}
-                <div className='flex items-center gap-2'>
-                  <select
-                    value={galleryLabel}
-                    onChange={(e) => setGalleryLabel(e.target.value)}
-                    className='h-8 px-2.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-semibold text-stone-800 cursor-pointer focus:outline-none focus:border-[#F97316]'
-                  >
-                    <option value='Chính diện (Front)'>Chính diện (Front)</option>
-                    <option value='Góc nghiêng 3/4'>Góc nghiêng 3/4</option>
-                    <option value='Góc nghiêng (Profile / Side)'>
-                      Góc nghiêng (Profile / Side)
-                    </option>
-                    <option value='Phía sau (Back)'>Phía sau (Back)</option>
-                    <option value='Biểu cảm (Expressions)'>Biểu cảm (Expressions)</option>
-                    <option value='Trang phục (Costume)'>Trang phục (Costume)</option>
-                  </select>
-
-                  <input
-                    type='file'
-                    ref={galleryInputRef}
-                    accept='image/png,image/jpeg,image/webp'
-                    className='hidden'
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        void handleGalleryUpload(e.target.files[0]);
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-
-                  <button
-                    type='button'
-                    onClick={() => galleryInputRef.current?.click()}
-                    disabled={uploadingGallery}
-                    className='h-8 px-3 rounded-lg bg-[#FAF8F5] hover:bg-[#F3F1EB] border border-[#E7E7E7] text-stone-800 font-semibold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
-                  >
-                    {uploadingGallery ? (
-                      <>
-                        <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
-                        <span>{t('bible.addEntityModal.galleryAdding', 'Đang tải...')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className='w-3.5 h-3.5 text-[#F97316]' />
-                        <span>{t('bible.addEntityModal.galleryAddBtn', 'Thêm góc vẽ này')}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Thumbnails grid */}
-                {gallery.length > 0 && (
-                  <div className='grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1'>
-                    {gallery.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className='p-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl flex items-center gap-2 relative group hover:border-[#F97316]/50 transition-colors'
-                      >
-                        <div className='w-11 h-11 rounded-lg overflow-hidden bg-stone-900 shrink-0 border border-stone-200'>
-                          <AuthenticatedImage
-                            src={item.url}
-                            alt={item.label}
-                            className='w-full h-full object-cover'
-                          />
-                        </div>
-                        <div className='min-w-0 flex-1'>
-                          <div
-                            className='text-xs font-bold text-stone-900 truncate'
-                            title={item.label}
-                          >
-                            {item.label}
-                          </div>
-                          <div className='text-xs text-[#737373] font-mono'>
-                            {t(
-                              'bible.addEntityModal.galleryThumbLabel',
-                              { number: idx + 1 },
-                              `Góc #${idx + 1}`,
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          type='button'
-                          onClick={() => setGallery((prev) => prev.filter((_, i) => i !== idx))}
-                          className='p-1 rounded-md text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors'
-                          title={t('bible.addEntityModal.galleryDeleteTitle', 'Xóa góc này')}
-                        >
-                          <Trash2 className='w-3 h-3' />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Mô tả thiết kế */}
-          <div>
-            <label
-              htmlFor='bible-entity-desc'
-              className='block text-xs font-semibold text-stone-800 mb-1'
-            >
-              {t('bible.addEntityModal.descLabel', 'Mô tả quy chuẩn thiết kế & Nhận dạng')}{' '}
-              <span className='text-red-500'>*</span>
-            </label>
-            <textarea
-              id='bible-entity-desc'
-              required
-              rows={3}
-              placeholder={t(
-                'bible.addEntityModal.descPlaceholder',
-                'Mô tả chi tiết ngoại hình, màu sắc trang phục, tính cách, đặc điểm nhận diện bắt buộc...',
               )}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors resize-none'
-            ></textarea>
-          </div>
+            </div>
+          </>
+        )}
 
-          <div className='pt-3 border-t border-stone-100 flex items-center justify-end gap-2.5'>
-            <button
-              type='button'
-              onClick={onClose}
-              className='px-4 py-2 bg-white hover:bg-stone-50 border border-stone-200 text-stone-600 text-xs font-semibold rounded-full transition-colors cursor-pointer'
-            >
-              {t('common.cancel', 'Hủy')}
-            </button>
-            <button
-              type='submit'
-              disabled={
-                uploadingImage || !name.trim() || !description.trim() || !variantLabel.trim()
-              }
-              className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-white text-xs font-semibold rounded-full shadow-soft-sm transition-all cursor-pointer flex items-center gap-1.5'
-            >
-              <Plus className='w-3.5 h-3.5' />
-              <span>
-                {isProducer
-                  ? t('bible.addEntityModal.saveProducer', 'Lưu vào Series Bible')
-                  : t('bible.addEntityModal.saveDraft', 'Tạo bản nháp mới')}
-              </span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {/* Mô tả thiết kế */}
+        <div>
+          <label
+            htmlFor='bible-entity-desc'
+            className='block text-xs font-semibold text-stone-800 mb-1'
+          >
+            {t('bible.addEntityModal.descLabel', 'Mô tả quy chuẩn thiết kế & Nhận dạng')}{' '}
+            <span className='text-red-500'>*</span>
+          </label>
+          <textarea
+            id='bible-entity-desc'
+            required
+            rows={3}
+            placeholder={t(
+              'bible.addEntityModal.descPlaceholder',
+              'Mô tả chi tiết ngoại hình, màu sắc trang phục, tính cách, đặc điểm nhận diện bắt buộc...',
+            )}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors resize-none'
+          ></textarea>
+        </div>
+
+        <div className='pt-3 border-t border-stone-100 flex items-center justify-end gap-2.5'>
+          <button
+            type='button'
+            onClick={onClose}
+            className='px-4 py-2 bg-white hover:bg-stone-50 border border-stone-200 text-stone-600 text-xs font-semibold rounded-full transition-colors cursor-pointer'
+          >
+            {t('common.cancel', 'Hủy')}
+          </button>
+          <button
+            type='submit'
+            disabled={uploadingImage || !name.trim() || !description.trim() || !variantLabel.trim()}
+            className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-white text-xs font-semibold rounded-full shadow-soft-sm transition-all cursor-pointer flex items-center gap-1.5'
+          >
+            <Plus className='w-3.5 h-3.5' />
+            <span>
+              {isProducer
+                ? t('bible.addEntityModal.saveProducer', 'Lưu vào Series Bible')
+                : t('bible.addEntityModal.saveDraft', 'Tạo bản nháp mới')}
+            </span>
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
-
-  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

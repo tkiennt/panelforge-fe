@@ -40,6 +40,7 @@ import { ChangeRequestDto } from '@/types/pipeline';
 import { hasChangeRequestLocation } from '../../utils/changeRequestLocation';
 import { PageHistoryDto } from '@/services/page.service';
 import { ElementSnapshotDto } from '@/services/element.service';
+import { CollapsibleSidebar, SidebarSection } from '@/shared/ui';
 import '@/styles/modules/sidebar-theme.css';
 
 export type CanvaSidebarTab =
@@ -1153,11 +1154,17 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
           1. CANVA PRIMARY DOCK (Thanh biểu tượng chính 72px)
           - Sử dụng các biến CSS chuẩn hệ thống: var(--sb-bg), var(--sb-border), var(--sb-accent)...
           ========================================================================= */}
-      <nav
+      <CollapsibleSidebar
+        collapsed
+        label='Công cụ bàn vẽ'
         data-testid='canva-primary-dock'
-        className='w-[72px] bg-[var(--sb-bg)] text-[var(--sb-muted)] flex flex-col items-center py-3 border-r border-[var(--sb-border)] shrink-0 justify-between transition-colors'
+        className='bg-[var(--sb-bg)] text-[var(--sb-muted)] flex flex-col items-center py-3 border-r border-[var(--sb-border)] justify-between transition-colors'
       >
-        <div className='w-full flex flex-col items-center gap-2'>
+        <SidebarSection
+          collapsed
+          label='Công cụ'
+          className='w-full flex flex-col items-center gap-2'
+        >
           {/* Nút Tab 1: Pages (Trang) - Có thể ẩn nếu đã có quản lý trang ở đáy */}
           {!hidePagesTab && (
             <button
@@ -1313,7 +1320,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             />
             <span className='text-[10px] tracking-tight'>Lịch sử</span>
           </button>
-        </div>
+        </SidebarSection>
 
         {/* Nút thu gọn / mở rộng Drawer nhanh ở đáy dock */}
         <button
@@ -1329,7 +1336,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             <ChevronRight className='w-5 h-5' />
           )}
         </button>
-      </nav>
+      </CollapsibleSidebar>
 
       {/* =========================================================================
           2. CANVA SECONDARY DRAWER (Ngăn nội dung chi tiết: History là drawer nhỏ 280-290px, các tab khác 330-350px)
