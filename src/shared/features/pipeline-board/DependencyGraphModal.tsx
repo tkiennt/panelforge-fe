@@ -1,8 +1,6 @@
 // src/shared/features/pipeline-board/DependencyGraphModal.tsx
-import React, { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useRef } from 'react';
 import {
-  X,
   Network,
   CheckCircle2,
   Clock,
@@ -12,6 +10,7 @@ import {
   ShieldCheck,
   AlertTriangle,
 } from 'lucide-react';
+import { Modal } from '@/shared/ui';
 
 export interface GraphNodeItem {
   id: string;
@@ -44,18 +43,6 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   const isApproved = (status: string | number) => String(status).toLowerCase() === 'approved';
@@ -64,11 +51,12 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
   const pendingCount = dependencies.length - approvedCount;
 
   const modalContent = (
-    <div
-      className='fixed inset-0 bg-black/60 backdrop-blur-xs z-60 flex items-center justify-center p-4'
-      role='dialog'
-      aria-modal='true'
-      aria-labelledby='dependency-graph-title'
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Đóng sơ đồ phụ thuộc'
+      size='lg'
+      title='Sơ Đồ Quan Hệ Phụ Thuộc'
     >
       <div
         ref={modalRef}
@@ -89,19 +77,8 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                   Đồ thị phụ thuộc công việc
                 </span>
               </div>
-              <h3 id='dependency-graph-title' className='text-base font-bold text-[#1C1917] mt-0.5'>
-                Sơ Đồ Quan Hệ Phụ Thuộc
-              </h3>
             </div>
           </div>
-          <button
-            type='button'
-            onClick={onClose}
-            aria-label='Đóng sơ đồ phụ thuộc'
-            className='w-8 h-8 rounded-lg hover:bg-white border border-transparent hover:border-[#D8D2C5] flex items-center justify-center text-stone-500 hover:text-[#1C1917] transition-all cursor-pointer'
-          >
-            <X className='w-4 h-4' />
-          </button>
         </div>
 
         {/* Legend & Stats Banner */}
@@ -328,8 +305,8 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 
-  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
+  return modalContent;
 };

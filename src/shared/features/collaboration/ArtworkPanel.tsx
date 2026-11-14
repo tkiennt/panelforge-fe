@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Alert } from '@/shared/ui';
 import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
@@ -917,12 +918,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       )}
 
       {error && (
-        <div
-          role='alert'
-          className='p-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs'
-        >
+        <Alert tone='danger' className='text-xs'>
           {error}
-        </div>
+        </Alert>
       )}
 
       {panels.length > 0 && (

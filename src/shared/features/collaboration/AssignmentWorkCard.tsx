@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Alert } from '@/shared/ui';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -411,13 +412,9 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
       </div>
 
       {error && (
-        <div
-          role='alert'
-          className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2'
-        >
-          <AlertTriangle className='w-4 h-4 shrink-0 text-red-500' />
-          <span>{error}</span>
-        </div>
+        <Alert tone='danger' className='text-xs'>
+          {error}
+        </Alert>
       )}
 
       {(actions.canStart || actions.isAssignee) && status !== 'Approved' && (

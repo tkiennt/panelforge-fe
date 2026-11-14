@@ -31,6 +31,7 @@ import { StudioGovernanceBar } from './studio-overview/StudioGovernanceBar';
 import { SeriesFilterBar } from './studio-overview/SeriesFilterBar';
 import { SeriesShelf } from './studio-overview/SeriesShelf';
 import { MembersTabContent } from './studio-overview/MembersTabContent';
+import { Alert } from '@/shared/ui';
 import {
   CoverPickerModal,
   CreateSeriesModal,
@@ -810,10 +811,7 @@ export const StudioOverviewView: React.FC = () => {
           >
             {/* Error Message with Retry */}
             {loadError && (
-              <div
-                role='alert'
-                className='p-4 bg-rose-50 border border-rose-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-800 text-xs sm:text-sm'
-              >
+              <Alert tone='danger' className='text-xs sm:text-sm'>
                 <div className='flex items-center gap-2.5'>
                   <AlertTriangle className='w-5 h-5 text-rose-600 shrink-0' aria-hidden='true' />
                   <span>{loadError}</span>
@@ -825,7 +823,7 @@ export const StudioOverviewView: React.FC = () => {
                 >
                   Thử lại
                 </button>
-              </div>
+              </Alert>
             )}
 
             {/* Search, Filter & Sort Toolbar */}

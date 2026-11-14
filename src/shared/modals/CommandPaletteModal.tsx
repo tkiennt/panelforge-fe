@@ -21,6 +21,7 @@ import {
 import { ViewMode, KanbanCard, BibleEntity } from '@/types';
 import { seriesService, SeriesDto } from '@/services/series.service';
 import { workspaceService, WorkspaceDto } from '@/services/workspace.service';
+import { Modal } from '@/shared/ui';
 
 export interface CommandPaletteModalProps {
   isOpen: boolean;
@@ -109,13 +110,11 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-      } else if (e.key === 'Escape' && isOpen) {
-        onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, []);
 
   const navItems: NavItem[] = useMemo(
     () => [
@@ -255,7 +254,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-start justify-center pt-20 p-4'>
+    <Modal isOpen={isOpen} onClose={onClose} closeLabel='Đóng' size='lg' title='Bảng lệnh'>
       <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col'>
         {/* Search Input Bar */}
         <div className='p-3.5 border-b border-[#D8D2C5] bg-[#F8F6F0] flex items-center gap-3'>
@@ -431,6 +430,6 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           <span className='text-[#C2410C] font-bold'>PanelForge Studio Global</span>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

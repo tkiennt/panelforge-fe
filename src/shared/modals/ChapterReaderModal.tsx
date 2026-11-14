@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import {
   X,
@@ -20,6 +19,7 @@ import {
   PublicChapterReadDto,
   resolveCatalogImageUrl,
 } from '@/services/catalog.service';
+import { Modal } from '@/shared/ui';
 
 interface ChapterReaderModalProps {
   isOpen: boolean;
@@ -78,16 +78,6 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
     };
   }, [isOpen, chapterId]);
 
-  // Khoá cuộn trang nền khi đang đọc
-  useEffect(() => {
-    if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [isOpen]);
-
   const totalPages = data?.pages.length || 0;
   const isRTL = data?.readingDirection === 'RightToLeft';
 
@@ -104,9 +94,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      } else if (e.key === 'ArrowRight') {
+      if (e.key === 'ArrowRight') {
         if (isRTL) handlePrev();
         else handleNext();
       } else if (e.key === 'ArrowLeft') {
@@ -117,7 +105,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, handleNext, handlePrev, isRTL]);
+  }, [isOpen, handleNext, handlePrev, isRTL]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -136,13 +124,14 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
   const toolBtn =
     'h-8 px-2.5 rounded-lg border border-[#27272A] transition-colors cursor-pointer text-xs flex items-center gap-1.5';
 
-  // Portal ra body: không bị header/sidebar của app đè hay bị cắt bởi layout cha
-  return createPortal(
-    <div
-      role='dialog'
-      aria-modal='true'
-      aria-label='Trình đọc chương'
-      className='fixed inset-0 z-[100] bg-[#0F0F11] text-white flex flex-col animate-in fade-in duration-200 select-none'
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Đóng trình đọc'
+      size='full'
+      title='Trình đọc chương'
+      className='bg-[#0F0F11] text-white select-none'
     >
       {/* Top Bar */}
       <header className='h-14 bg-[#18181B] border-b border-[#27272A] px-3 sm:px-4 flex items-center justify-between gap-3 shrink-0'>
@@ -423,7 +412,6 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
           </span>
         </footer>
       )}
-    </div>,
-    document.body,
+    </Modal>
   );
 };

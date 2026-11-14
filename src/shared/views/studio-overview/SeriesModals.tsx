@@ -3,6 +3,7 @@ import { X, Sparkles, Edit2 } from 'lucide-react';
 import { PipelineTemplateDto } from '@/services/pipeline.service';
 import { SeriesDto } from '@/services/series.service';
 import { SYSTEM_COVERS, type SystemImage } from '@/shared/utils/systemImages';
+import { Modal } from '@/shared/ui';
 
 export interface CoverPickerModalProps {
   series: { id: string; title: string } | null;
@@ -20,14 +21,14 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
   if (!series) return null;
 
   return (
-    <div
-      role='dialog'
-      aria-modal='true'
-      aria-labelledby='cover-picker-title'
+    <Modal
+      isOpen={Boolean(series)}
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='lg'
+      title='Chọn ảnh bìa'
       data-testid='system-cover-picker'
-      className='fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4'
-      onClick={() => !savingCoverId && onClose()}
-      onKeyDown={(e) => e.key === 'Escape' && !savingCoverId && onClose()}
+      dismissible={!savingCoverId}
     >
       <div
         className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-2xl max-w-xl w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto'
@@ -73,7 +74,7 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
           ))}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -123,7 +124,7 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
+    <Modal isOpen={isOpen} onClose={onClose} closeLabel='Đóng' size='lg' title='Tạo Series mới'>
       <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
         <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
           <h3 className='text-sm font-bold text-[#171717]'>Tạo Dự Án Bộ Truyện Mới</h3>
@@ -267,7 +268,7 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -319,7 +320,13 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
   if (!series) return null;
 
   return (
-    <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
+    <Modal
+      isOpen={Boolean(series)}
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='lg'
+      title='Chỉnh sửa Series'
+    >
       <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
         <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
           <div className='flex items-center gap-2'>
@@ -464,6 +471,6 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 };

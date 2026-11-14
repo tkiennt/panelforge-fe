@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
+import { Drawer } from '@/shared/ui';
 
 export interface BibleReferenceDrawerProps {
   isOpen: boolean;
@@ -126,17 +127,6 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
     };
   }, [isOpen, activeMode, seriesId]);
 
-  // Close on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   const currentEntries = activeMode === 'panel' ? panelEntries : chapterEntries;
@@ -144,22 +134,17 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
   const displayPanelNumber = panelNumber ?? activePanelObj?.panelNumber ?? null;
 
   return (
-    <div
-      className='fixed inset-0 z-50 overflow-hidden'
-      aria-labelledby='bible-reference-drawer-title'
-      role='dialog'
-      aria-modal='true'
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Đóng'
+      title='Tham Chiếu Thiết Kế & Nhân Vật'
+      size='lg'
       data-testid='bible-reference-drawer'
     >
-      {/* Backdrop with subtle overlay for seamless side-by-side art review */}
-      <div
-        className='fixed inset-0 bg-black/30 md:bg-black/15 backdrop-blur-[1px] transition-opacity animate-in fade-in duration-200'
-        onClick={onClose}
-      />
-
       {/* Drawer Container */}
-      <div className='fixed inset-y-0 right-0 max-w-full flex pl-6 md:pl-10 pointer-events-none'>
-        <div className='w-screen max-w-md md:max-w-lg lg:max-w-xl bg-white border-l border-stone-200 shadow-2xl flex flex-col text-xs text-[#0c0a09] animate-in slide-in-from-right duration-200 pointer-events-auto'>
+      <div className='h-full'>
+        <div className='flex h-full w-full flex-col bg-white text-xs text-[#0c0a09]'>
           {/* Header */}
           <div className='p-4 border-b border-stone-200 bg-[#FAF8F5] flex items-center justify-between'>
             <div className='flex items-center gap-2.5 min-w-0'>
@@ -460,6 +445,6 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </Drawer>
   );
 };

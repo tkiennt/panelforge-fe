@@ -7,6 +7,8 @@ import {
   type PageVersionCompareDto,
 } from '@/services/page.service';
 import { canRestorePage, formatDateTime } from './provenanceRules';
+import { useConfirm } from '@/shared/context/ConfirmContext';
+import { Alert } from '@/shared/ui';
 
 interface PageHistoryPanelProps {
   chapterId: string;
@@ -26,6 +28,7 @@ const CHANGE_LABEL: Record<string, string> = { Added: 'Thêm', Removed: 'Xoá', 
  * elementId, và khôi phục (Producer/Artist) bằng event mới — không xoá lịch sử. Gửi expectedPageVersion; 409 thì nạp lại.
  */
 export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, viewerRole }) => {
+  const confirm = useConfirm();
   const canRestore = canRestorePage(viewerRole);
   const [pages, setPages] = useState<PageDto[] | null>(null);
   const [pageId, setPageId] = useState('');
@@ -78,7 +81,14 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
 
   const handleRestore = async (version: number) => {
     if (!history) return;
-    if (!window.confirm(`Khôi phục trang về phiên bản v${version}? Lịch sử cũ vẫn được giữ.`))
+    if (
+      !(await confirm({
+        title: `Khôi phục phiên bản v${version}?`,
+        description: 'Lịch sử cũ vẫn được giữ.',
+        confirmLabel: 'Khôi phục',
+        cancelLabel: 'Hủy',
+      }))
+    )
       return;
     setBusy(true);
     setError(null);
@@ -142,17 +152,14 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
       </div>
 
       {error && (
-        <div
-          role='alert'
-          className='p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl'
-        >
+        <Alert tone='danger' className='text-xs'>
           {error}
-        </div>
+        </Alert>
       )}
       {notice && (
-        <div className='p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl'>
+        <Alert tone='success' className='text-xs'>
           {notice}
-        </div>
+        </Alert>
       )}
 
       {compare && (

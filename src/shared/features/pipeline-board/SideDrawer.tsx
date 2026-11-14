@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   X,
@@ -28,6 +27,7 @@ import {
 import { StatusBadge, StageLabel } from './ProductionTaskCard';
 import { useTaskThumbnail } from './useTaskThumbnail';
 import { DependencyGraphModal } from './DependencyGraphModal';
+import { Modal } from '@/shared/ui';
 
 export interface SideDrawerProps {
   isOpen: boolean;
@@ -52,7 +52,6 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 }) => {
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams();
-  const modalRef = useRef<HTMLDivElement>(null);
 
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
@@ -68,16 +67,6 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
   // Artwork thumbnail
   const thumbnail = useTaskThumbnail(card);
-
-  // Khóa cuộn nền khi Modal mở (giữ layout nền ổn định)
-  useEffect(() => {
-    if (!isOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [isOpen]);
 
   useEffect(() => {
     setConfirmDelete(false);
@@ -114,13 +103,6 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
       isMounted = false;
     };
   }, [isOpen, card]);
-
-  // Trap focus bên trong modal khi mở
-  useEffect(() => {
-    if (isOpen && modalRef.current) {
-      modalRef.current.focus();
-    }
-  }, [isOpen]);
 
   if (!isOpen || !card || typeof document === 'undefined') return null;
 
@@ -195,26 +177,15 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
   };
 
   const modalContent = (
-    <div
-      className='fixed inset-0 z-[999] flex items-center justify-center p-3 sm:p-4'
-      role='presentation'
+    <Modal
+      isOpen={Boolean(card)}
+      onClose={onClose}
+      closeLabel='Đóng hộp thoại'
+      size='lg'
+      title={`Chi tiết công việc: ${card.brief}`}
     >
-      {/* 1. Lớp phủ Overlay Backdrop */}
-      <div
-        className='fixed inset-0 bg-[#1C1917]/55 backdrop-blur-[3px] transition-opacity duration-200'
-        onClick={onClose}
-        aria-hidden='true'
-      />
-
       {/* 2. Hộp Modal chi tiết căn giữa viewport, an toàn trước overflow của mọi container cha */}
-      <div
-        ref={modalRef}
-        tabIndex={-1}
-        role='dialog'
-        aria-modal='true'
-        aria-label={`Chi tiết công việc: ${card.brief}`}
-        className='relative z-10 w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[88vh] bg-[#FCFBF8] border border-landing-border rounded-2xl shadow-2xl flex flex-col font-sans text-landing-ink overflow-hidden outline-none animate-in fade-in zoom-in-95 duration-150'
-      >
+      <div className='relative z-10 w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[88vh] bg-[#FCFBF8] border border-landing-border rounded-2xl shadow-2xl flex flex-col font-sans text-landing-ink overflow-hidden outline-none animate-in fade-in zoom-in-95 duration-150'>
         {/* Header cố định: Phân định đối tượng, công đoạn, trạng thái và nút X */}
         <div className='flex items-start justify-between p-4 sm:p-5 border-b border-landing-border bg-[#F3F0E9]/80 shrink-0'>
           <div className='space-y-2 pr-3 min-w-0'>
@@ -773,8 +744,8 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
           })}
         />
       )}
-    </div>
+    </Modal>
   );
 
-  return createPortal(modalContent, document.body);
+  return modalContent;
 };

@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState } from 'react';
 import { AlertCircle, Check, ImageOff, Loader2, X } from 'lucide-react';
 import {
   DEFAULT_PROFILE_COVER,
   PROFILE_COVER_PRESETS,
   type ProfileCoverPreset,
 } from '@/shared/utils/profileCovers';
+import { Alert, Modal } from '@/shared/ui';
 
 interface Props {
   /** Lựa chọn đã lưu (null = bìa mặc định). */
@@ -30,17 +30,6 @@ export const ProfileCoverPickerDialog: React.FC<Props> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [brokenThumbs, setBrokenThumbs] = useState<Record<string, boolean>>({});
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const returnFocusRef = useRef<Element | null>(null);
-
-  useEffect(() => {
-    returnFocusRef.current = document.activeElement;
-    dialogRef.current?.querySelector<HTMLInputElement>('input[type=radio]:checked')?.focus();
-    return () => {
-      (returnFocusRef.current as HTMLElement | null)?.focus?.();
-    };
-  }, []);
-
   const choose = (id: string | null) => {
     setSelected(id);
     setError(null);
@@ -68,31 +57,6 @@ export const ProfileCoverPickerDialog: React.FC<Props> = ({
       setError(err instanceof Error ? err.message : 'Không thể lưu ảnh bìa hồ sơ.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  // Escape = Hủy; Tab xoay vòng trong dialog
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      cancel();
-      return;
-    }
-    if (e.key !== 'Tab' || !dialogRef.current) return;
-    const focusables = [
-      ...dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled])',
-      ),
-    ].filter((el) => !(el instanceof HTMLInputElement && el.type === 'radio' && !el.checked));
-    if (focusables.length === 0) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
     }
   };
 
@@ -157,21 +121,17 @@ export const ProfileCoverPickerDialog: React.FC<Props> = ({
     );
   };
 
-  return createPortal(
-    <div
-      className='fixed inset-0 z-[70] bg-[#1C1917]/50 flex items-center justify-center p-4'
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) cancel();
-      }}
+  return (
+    <Modal
+      isOpen
+      onClose={cancel}
+      closeLabel='Đóng, không lưu'
+      size='lg'
+      title='Đổi ảnh bìa hồ sơ'
+      dismissible={!saving}
     >
       <div
-        ref={dialogRef}
-        role='dialog'
-        aria-modal='true'
-        aria-labelledby='profile-cover-dialog-title'
-        aria-describedby='profile-cover-dialog-desc'
         data-testid='profile-cover-dialog'
-        onKeyDown={onKeyDown}
         className='w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xl p-5 space-y-4'
       >
         <div className='flex items-start justify-between gap-3'>
@@ -207,14 +167,9 @@ export const ProfileCoverPickerDialog: React.FC<Props> = ({
         </fieldset>
 
         {error && (
-          <p
-            role='alert'
-            className='flex items-start gap-2 p-2.5 rounded-lg border border-rose-200 bg-rose-50 text-xs text-rose-800'
-            data-testid='profile-cover-error'
-          >
-            <AlertCircle className='w-4 h-4 shrink-0' aria-hidden='true' />
+          <Alert tone='danger' className='text-xs' data-testid='profile-cover-error'>
             <span>{error} Bìa trên banner vẫn đang xem trước, chưa được lưu.</span>
-          </p>
+          </Alert>
         )}
 
         <div className='flex justify-end gap-2 pt-1'>
@@ -238,7 +193,6 @@ export const ProfileCoverPickerDialog: React.FC<Props> = ({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
+    </Modal>
   );
 };

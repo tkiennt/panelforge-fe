@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert } from '@/shared/ui';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   ChevronDown,
@@ -646,12 +647,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       )}
 
       {error && (
-        <div
-          role='alert'
-          className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs'
-        >
+        <Alert tone='danger' className='text-xs'>
           {error}
-        </div>
+        </Alert>
       )}
 
       {isStudioTab ? (
