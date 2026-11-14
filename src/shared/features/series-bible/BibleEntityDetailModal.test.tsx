@@ -106,18 +106,18 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(allHeadings.length).toBe(1);
   });
 
-  it('displays Canon locked banner with chapter and approval date, without BR-18 code', () => {
+  it('displays Canon locked banner with approval date and no chapter range', () => {
     render(<BibleEntityDetailModal {...defaultProps} />);
 
     expect(screen.getByText(/Đã khóa chuẩn/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Ch\.\s*5\s*→\s*hết/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/Ch\.\s*5\s*→\s*hết/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Đã duyệt/i)).toBeInTheDocument();
 
     // Must NOT contain internal code BR-18
     expect(screen.queryByText(/BR-18/i)).not.toBeInTheDocument();
   });
 
-  it('displays stageName alongside chapter range if provided in revision', () => {
+  it('displays stageName without the obsolete chapter range', () => {
     const rawWithStage: BibleEntryDto = {
       ...mockRawEntry,
       effectiveRevision: {
@@ -130,7 +130,8 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     render(<BibleEntityDetailModal {...defaultProps} rawEntry={rawWithStage} />);
 
-    expect(screen.getAllByText(/Lúc nhỏ\s*·\s*Ch\.1–19/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Lúc nhỏ').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/Ch\.1–19/i)).not.toBeInTheDocument();
   });
 
   it('allows Writer/Artist to create drafts via canCreateDraft prop', () => {
@@ -454,7 +455,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     // Column 1: Era stages selector
     expect(screen.getByTestId('era-stages-selector')).toBeInTheDocument();
-    expect(screen.getByText('Thời kỳ & Giai đoạn')).toBeInTheDocument();
+    expect(screen.getByText('Biến thể thiết kế')).toBeInTheDocument();
 
     // Column 2: Hero Artwork Canvas
     expect(screen.getByTestId('auth-image')).toBeInTheDocument();

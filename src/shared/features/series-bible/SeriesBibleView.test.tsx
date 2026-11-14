@@ -322,7 +322,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     expect(screen.queryByTestId(/add-revision-btn-/i)).toBeNull();
   });
 
-  it('displays stageName and chapter range Ch.from-to instead of raw v1/v2', async () => {
+  it('displays stageName without the obsolete chapter range', async () => {
     const entriesWithStage = [
       {
         ...mockEntries[0],
@@ -352,8 +352,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
 
     // Header has name with stage: "Tần Mục · Lúc nhỏ"
     expect(screen.getByText(/· Lúc nhỏ/i)).toBeDefined();
-    // Range format: "Ch.1–19"
-    expect(screen.getByText(/Ch\.1–19/i)).toBeDefined();
+    expect(screen.queryByText(/Ch\.1–19/i)).toBeNull();
   });
 
   it('renders "Nộp lại" button for Artist when entry has ConceptSubmitted revision', async () => {
