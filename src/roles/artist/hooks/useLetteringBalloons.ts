@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PageDto } from '@/services/page.service';
-import type { ElementSnapshotDto } from '@/services/element.service';
+import {
+  elementService,
+  IMAGE_LAYER_TYPES,
+  type ElementSnapshotDto,
+  type MoveElementRequest,
+} from '@/services/element.service';
 import type { PanelDto } from '@/types/pipeline';
 import type { ScriptLineItem } from '../components/desk/ArtistCanvaSidebar';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
@@ -81,6 +86,30 @@ export function useLetteringBalloons(
     [selectedPage, elementsByPageId],
   );
 
+  // Nạp danh sách phần tử bóng thoại từ Backend khi chọn / đổi trang
+  useEffect(() => {
+    if (!selectedPage?.id) return;
+    const pageId = selectedPage.id;
+    let cancelled = false;
+
+    elementService
+      .getPageSnapshot(pageId)
+      .then((snapshot) => {
+        if (cancelled) return;
+        const letterElements = (snapshot.elements || []).filter(
+          (el) => !el.isRemoved && !IMAGE_LAYER_TYPES.includes(el.elementType as any),
+        );
+        setElementsByPageId((prev) => ({ ...prev, [pageId]: letterElements }));
+      })
+      .catch((err) => {
+        console.warn('Không thể nạp bóng thoại từ server:', err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPage?.id]);
+
   // Balloons must sit fully inside the panel under their centre (or the nearest panel when dropped in a gutter).
   const clampToPanel = useCallback(
     (targetX: number, targetY: number, w: number, h: number) => {
@@ -138,7 +167,8 @@ export function useLetteringBalloons(
   );
 
   const scaleElement = useCallback(
-    (elementId: string, factor: number) =>
+    async (elementId: string, factor: number) => {
+      let updated: ElementSnapshotDto | null = null;
       updateElement(elementId, (el) => {
         const width = Math.max(80, Math.min(800, Math.round(el.width * factor)));
         const height = Math.max(45, Math.min(600, Math.round(el.height * factor)));
@@ -149,13 +179,36 @@ export function useLetteringBalloons(
           width,
           height,
         );
-        return { ...el, ...pos, width, height };
-      }),
-    [updateElement, clampToPanel],
+        updated = { ...el, ...pos, width, height };
+        return updated;
+      });
+
+      if (updated && selectedPage?.id) {
+        const target = updated as ElementSnapshotDto;
+        try {
+          const payload: MoveElementRequest = {
+            newX: target.x,
+            newY: target.y,
+            newWidth: target.width,
+            newHeight: target.height,
+            newZIndex: target.zIndex,
+            expectedElementVersion: target.version,
+          };
+          const res = await elementService.moveElement(selectedPage.id, elementId, payload);
+          if (res?.elementVersion) {
+            updateElement(elementId, (item) => ({ ...item, version: res.elementVersion }));
+          }
+        } catch (err) {
+          console.warn('Cập nhật kích thước bóng thoại lên server thất bại:', err);
+        }
+      }
+    },
+    [updateElement, clampToPanel, selectedPage?.id],
   );
 
   const appendCopy = useCallback(
-    (source: ElementSnapshotDto, successTitle: string) => {
+    async (source: ElementSnapshotDto, successTitle: string) => {
+      if (!selectedPage?.id) return;
       const id = newElementId();
       const pos = clampToPanel(
         source.x + PASTE_OFFSET,
@@ -163,20 +216,39 @@ export function useLetteringBalloons(
         source.width,
         source.height,
       );
-      updatePageElements((list) => [
-        ...list,
-        {
-          ...source,
-          elementId: id,
-          ...pos,
-          readingOrder: list.length + 1,
-          zIndex: list.length + 1,
-        },
-      ]);
+      const newEl: ElementSnapshotDto = {
+        ...source,
+        elementId: id,
+        ...pos,
+        readingOrder: pageElements.length + 1,
+        zIndex: pageElements.length + 1,
+        version: 1,
+      };
+      updatePageElements((list) => [...list, newEl]);
       setSelectedElementId(id);
       toast.success(successTitle, '');
+
+      try {
+        const res = await elementService.addElement(selectedPage.id, {
+          elementType: source.elementType,
+          x: pos.x,
+          y: pos.y,
+          width: source.width,
+          height: source.height,
+          zIndex: newEl.zIndex,
+          content: source.content || '',
+          scriptLineId: source.scriptLineId || undefined,
+          clientElementId: id,
+        });
+        if (res?.elementId && res.elementId !== id) {
+          updateElement(id, (el) => ({ ...el, elementId: res.elementId, version: 1 }));
+          setSelectedElementId((cur) => (cur === id ? res.elementId : cur));
+        }
+      } catch (err) {
+        console.warn('Nhân bản bóng thoại lên server thất bại:', err);
+      }
     },
-    [clampToPanel, updatePageElements, toast],
+    [selectedPage?.id, pageElements.length, clampToPanel, updatePageElements, updateElement, toast],
   );
 
   const copyElement = useCallback(
@@ -187,8 +259,9 @@ export function useLetteringBalloons(
     [toast],
   );
 
-  const addElement = (type: BalloonType, scriptLine?: ScriptLineItem) => {
+  const addElement = async (type: BalloonType, scriptLine?: ScriptLineItem) => {
     if (!selectedPage) return;
+    const pageId = selectedPage.id;
     const w = type === 'NARRATION_BOX' ? 320 : 260;
     const h = type === 'NARRATION_BOX' ? 120 : 160;
     const panelIndex = scriptLine?.panelNumber ? Math.max(0, scriptLine.panelNumber - 1) : 0;
@@ -208,35 +281,67 @@ export function useLetteringBalloons(
 
     const id = newElementId();
     const pos = clampToPanel(x, y, w, h);
-    updatePageElements((list) => [
-      ...list,
-      {
-        elementId: id,
-        elementType: type,
-        ...pos,
-        width: w,
-        height: h,
-        zIndex: list.length + 1,
-        content: scriptLine
-          ? scriptLine.dialogueText || scriptLine.stageDirection || ''
-          : 'Lời thoại mới...',
-        scriptLineId: scriptLine ? scriptLine.id : null,
-        readingOrder: list.length + 1,
-        version: 1,
-        isRemoved: false,
-      },
-    ]);
+    const content = scriptLine
+      ? scriptLine.dialogueText || scriptLine.stageDirection || ''
+      : 'Lời thoại mới...';
+
+    const newElement: ElementSnapshotDto = {
+      elementId: id,
+      elementType: type,
+      ...pos,
+      width: w,
+      height: h,
+      zIndex: pageElements.length + 1,
+      content,
+      scriptLineId: scriptLine ? scriptLine.id : null,
+      readingOrder: pageElements.length + 1,
+      version: 1,
+      isRemoved: false,
+    };
+
+    updatePageElements((list) => [...list, newElement]);
     setSelectedElementId(id);
     toast.success('Đã thêm bóng thoại', '');
+
+    try {
+      const res = await elementService.addElement(pageId, {
+        elementType: type,
+        x: pos.x,
+        y: pos.y,
+        width: w,
+        height: h,
+        zIndex: newElement.zIndex,
+        content,
+        scriptLineId: scriptLine?.id,
+        clientElementId: id,
+        panelId: panel?.id,
+      });
+
+      if (res?.elementId && res.elementId !== id) {
+        updateElement(id, (el) => ({ ...el, elementId: res.elementId, version: 1 }));
+        setSelectedElementId((cur) => (cur === id ? res.elementId : cur));
+      }
+    } catch (err) {
+      console.warn('Lưu bóng thoại lên server thất bại (vẫn giữ cục bộ):', err);
+    }
   };
 
   const deleteElement = useCallback(
-    (elementId: string) => {
-      updatePageElements((list) => list.filter((el) => el.elementId !== elementId));
+    async (elementId: string) => {
+      const el = pageElements.find((item) => item.elementId === elementId);
+      updatePageElements((list) => list.filter((item) => item.elementId !== elementId));
       setSelectedElementId((cur) => (cur === elementId ? null : cur));
       toast.info('Đã xóa bóng thoại', '');
+
+      if (selectedPage?.id) {
+        try {
+          await elementService.removeElement(selectedPage.id, elementId, el?.version);
+        } catch (err) {
+          console.warn('Xóa bóng thoại trên server thất bại:', err);
+        }
+      }
     },
-    [updatePageElements, toast],
+    [selectedPage?.id, pageElements, updatePageElements, toast],
   );
 
   const onDragStart = (e: React.PointerEvent, elementId: string) => {
@@ -265,11 +370,36 @@ export function useLetteringBalloons(
     }));
   };
 
-  const onDragEnd = (e: React.PointerEvent) => {
-    if (!dragging) return;
-    releaseCapture(e);
-    setDragging(null);
-  };
+  const onDragEnd = useCallback(
+    async (e: React.PointerEvent) => {
+      if (!dragging) return;
+      const elementId = dragging.elementId;
+      releaseCapture(e);
+      setDragging(null);
+
+      if (!selectedPage?.id) return;
+      const el = pageElements.find((item) => item.elementId === elementId);
+      if (!el) return;
+
+      try {
+        const payload: MoveElementRequest = {
+          newX: el.x,
+          newY: el.y,
+          newWidth: el.width,
+          newHeight: el.height,
+          newZIndex: el.zIndex,
+          expectedElementVersion: el.version,
+        };
+        const res = await elementService.moveElement(selectedPage.id, elementId, payload);
+        if (res?.elementVersion) {
+          updateElement(elementId, (item) => ({ ...item, version: res.elementVersion }));
+        }
+      } catch (err) {
+        console.warn('Di chuyển bóng thoại lên server thất bại:', err);
+      }
+    },
+    [dragging, selectedPage?.id, pageElements, updateElement],
+  );
 
   const onResizeStart = (e: React.PointerEvent, elementId: string, handle: ResizeHandle) => {
     e.stopPropagation();
@@ -304,11 +434,36 @@ export function useLetteringBalloons(
     }));
   };
 
-  const onResizeEnd = (e: React.PointerEvent) => {
-    if (!resizing) return;
-    releaseCapture(e);
-    setResizing(null);
-  };
+  const onResizeEnd = useCallback(
+    async (e: React.PointerEvent) => {
+      if (!resizing) return;
+      const elementId = resizing.elementId;
+      releaseCapture(e);
+      setResizing(null);
+
+      if (!selectedPage?.id) return;
+      const el = pageElements.find((item) => item.elementId === elementId);
+      if (!el) return;
+
+      try {
+        const payload: MoveElementRequest = {
+          newX: el.x,
+          newY: el.y,
+          newWidth: el.width,
+          newHeight: el.height,
+          newZIndex: el.zIndex,
+          expectedElementVersion: el.version,
+        };
+        const res = await elementService.moveElement(selectedPage.id, elementId, payload);
+        if (res?.elementVersion) {
+          updateElement(elementId, (item) => ({ ...item, version: res.elementVersion }));
+        }
+      } catch (err) {
+        console.warn('Thay đổi kích thước bóng thoại lên server thất bại:', err);
+      }
+    },
+    [resizing, selectedPage?.id, pageElements, updateElement],
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
