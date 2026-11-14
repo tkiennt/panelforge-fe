@@ -10,8 +10,6 @@ import {
   Camera,
   Clock,
   ShieldCheck,
-  Building2,
-  KeyRound,
   ListTodo,
   BookOpen,
   Search,
@@ -19,7 +17,12 @@ import {
 } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
 import { formatBytes } from './studio-overview/formatters';
-import { PendingInvitations, TodayTasks, type PendingInvitation } from './WorkspaceShelfSections';
+import {
+  PendingInvitations,
+  SeriesShelf,
+  TodayTasks,
+  type PendingInvitation,
+} from './WorkspaceShelfSections';
 import { sortByDue, type TodayTask } from './workspaceShelfTasks';
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
@@ -243,38 +246,16 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const recent = recentWorkspaceId ? workspaces.find((w) => w.id === recentWorkspaceId) : null;
   const avatarUrl = currentUser?.avatarUrl?.trim();
 
-  // KPI chỉ từ dữ liệu thật của API (không có số liệu giả, DESIGN_RULES §8)
+  // Tóm tắt từ dữ liệu thật của API (không có số liệu giả, DESIGN_RULES §8)
   const ownedCount = workspaces.filter((w) => w.isOwner).length;
-  const stats = [
-    {
-      key: 'total',
-      icon: Building2,
-      value: workspaces.length,
-      tone: 'bg-white border-[#E5E0D8] text-[#1C1917]',
-      iconTone: 'bg-[#FAF8F5] border border-[#EBE7DF] text-[#C2410C]',
-    },
-    {
-      key: 'owned',
-      icon: KeyRound,
-      value: ownedCount,
-      tone: 'bg-white border-[#E5E0D8] text-[#1C1917]',
-      iconTone: 'bg-[#FAF8F5] border border-[#EBE7DF] text-[#C2410C]',
-    },
-    {
-      key: 'pending',
-      icon: ListTodo,
-      value: workspaces.reduce((n, w) => n + (w.pendingTasks ?? 0), 0),
-      tone: 'bg-blue-50/70 border-blue-200/80 text-blue-900',
-      iconTone: 'bg-blue-100/80 text-blue-800',
-    },
-    {
-      key: 'reviews',
-      icon: ShieldCheck,
-      value: workspaces.reduce((n, w) => n + (w.pendingEditorReviews ?? 0), 0),
-      tone: 'bg-amber-50/70 border-amber-200/80 text-amber-900',
-      iconTone: 'bg-amber-100/80 text-amber-800',
-    },
-  ] as const;
+  const pendingTotal = workspaces.reduce((n, w) => n + (w.pendingTasks ?? 0), 0);
+  const reviewTotal = workspaces.reduce((n, w) => n + (w.pendingEditorReviews ?? 0), 0);
+  const summary =
+    ownedCount === workspaces.length
+      ? t('workspace.shelf.summary.allOwned', { count: workspaces.length })
+      : ownedCount === 0
+        ? t('workspace.shelf.summary.noneOwned', { count: workspaces.length })
+        : t('workspace.shelf.summary.mixed', { count: workspaces.length, owned: ownedCount });
 
   // Lọc chỉ có nghĩa khi vừa có studio sở hữu vừa có studio được mời
   const [filter, setFilter] = useState<'all' | 'owned' | 'joined'>('all');
@@ -446,47 +427,44 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </div>
           ) : (
             <>
-              {/* Hero header: cùng mẫu Script Hub / Series Bible (pill, tiêu đề serif, KPI thật) */}
-              <section className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-5 mb-5'>
-                <div className='min-w-0 space-y-1.5'>
-                  <span className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 text-[#C2410C] text-xs font-bold uppercase tracking-wider'>
-                    <Building2 className='w-3.5 h-3.5' aria-hidden='true' />
-                    {t('workspace.shelf.hubBadge')}
-                  </span>
-                  <h1 className='text-2xl font-serif font-bold text-[#1C1917] tracking-tight flex items-center gap-2.5 flex-wrap'>
+              {/* Header nằm thẳng trên nền giấy: tiêu đề + một câu tóm tắt; chỉ báo việc khi có việc */}
+              <header className='flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6'>
+                <div className='min-w-0'>
+                  <h1 className='text-3xl font-serif font-bold text-stone-900 tracking-tight'>
                     {t('workspace.shelf.title')}
-                    <span className='px-2.5 py-0.5 rounded-full bg-[#F3F0E9] text-[#57534E] text-xs font-semibold font-mono border border-[#D8D2C5]'>
-                      {t('workspace.shelf.count', { count: workspaces.length })}
-                    </span>
                   </h1>
-                  <p className='text-sm text-[#57534E] leading-relaxed max-w-2xl'>
-                    {t('workspace.shelf.subtitle')} {t('workspace.shelf.hint')}
+                  <p
+                    className='mt-1.5 text-sm text-stone-600 leading-relaxed max-w-prose'
+                    data-testid='ws-summary'
+                  >
+                    {summary}
                   </p>
-                </div>
-
-                <div className='grid grid-cols-2 gap-3 sm:flex sm:items-center sm:flex-wrap shrink-0'>
-                  {stats.map((stat) => (
-                    <div
-                      key={stat.key}
-                      className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl border shadow-2xs ${stat.tone}`}
-                      data-testid={`ws-stat-${stat.key}`}
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${stat.iconTone}`}
-                      >
-                        <stat.icon className='w-4 h-4' aria-hidden='true' />
-                      </div>
-                      <div>
-                        <div className='text-xs font-semibold uppercase tracking-wide opacity-80'>
-                          {t(`workspace.shelf.stats.${stat.key}`)}
-                        </div>
-                        <div className='text-sm font-bold font-mono'>{stat.value}</div>
-                      </div>
+                  {(pendingTotal > 0 || reviewTotal > 0) && (
+                    <div className='mt-3 flex flex-wrap items-center gap-2'>
+                      {pendingTotal > 0 && (
+                        <a
+                          href='#ws-today-title'
+                          className='ws-focus inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 text-sm font-medium hover:bg-blue-100'
+                          data-testid='ws-chip-pending'
+                        >
+                          <ListTodo className='w-4 h-4' aria-hidden='true' />
+                          {t('workspace.shelf.pendingForYou', { count: pendingTotal })}
+                        </a>
+                      )}
+                      {reviewTotal > 0 && (
+                        <span
+                          className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-sm font-medium'
+                          data-testid='ws-chip-reviews'
+                        >
+                          <ShieldCheck className='w-4 h-4' aria-hidden='true' />
+                          {t('workspace.shelf.pendingReviews', { count: reviewTotal })}
+                        </span>
+                      )}
                     </div>
-                  ))}
-                  {canCreate && <div className='col-span-2 sm:col-span-1'>{createButton}</div>}
+                  )}
                 </div>
-              </section>
+                {canCreate && <div className='shrink-0'>{createButton}</div>}
+              </header>
 
               {invitations.length > 0 && (
                 <PendingInvitations
@@ -637,6 +615,13 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                                 <StudioCoverFallback name={ws.name} tone={tone} id={ws.id} />
                               }
                             />
+                          ) : (ws.seriesPreviews?.length ?? 0) > 0 ? (
+                            // Chưa có ảnh bìa riêng: series của studio đứng như các tập truyện trên kệ
+                            <SeriesShelf
+                              series={ws.seriesPreviews!}
+                              more={Math.max(0, (ws.seriesCount ?? 0) - ws.seriesPreviews!.length)}
+                              tone={tone}
+                            />
                           ) : (
                             <StudioCoverFallback name={ws.name} tone={tone} id={ws.id} />
                           )}
@@ -697,7 +682,8 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                               className='flex items-center gap-2.5 mb-3'
                               data-testid='ws-card-series'
                             >
-                              {(ws.seriesPreviews?.length ?? 0) > 0 && (
+                              {/* Bìa nhỏ chỉ cần khi kệ không hiện (studio đã có ảnh bìa riêng) */}
+                              {ws.coverUrl && (ws.seriesPreviews?.length ?? 0) > 0 && (
                                 <div className='flex items-center -space-x-1.5 shrink-0'>
                                   {ws.seriesPreviews!.map((s) => (
                                     <span

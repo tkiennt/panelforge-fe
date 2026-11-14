@@ -90,6 +90,11 @@
       "name": "Tên A–Z",
       "created": "Mới tạo",
       "empty": "Không có studio khớp \"{query}\"."
+    },
+    "summary": {
+      "allOwned": "Bạn sở hữu cả {count} studio bên dưới.",
+      "noneOwned": "Bạn là thành viên của {count} studio bên dưới.",
+      "mixed": "Bạn tham gia {count} studio, trong đó {owned} studio do bạn sở hữu."
     }
   },
   "hub": "Studio Hub",

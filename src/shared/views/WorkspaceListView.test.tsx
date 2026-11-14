@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { WorkspaceListView } from './WorkspaceListView';
@@ -50,7 +50,11 @@ describe('WorkspaceListView Component', () => {
       expect(screen.getByText('Alpha Studio')).toBeInTheDocument();
     });
     expect(screen.getByText(/^(Producer|Nhà sản xuất)$/i)).toBeInTheDocument();
-    expect(screen.getByText(/2 (tasks waiting|việc đang chờ)/i)).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('article', { name: 'Alpha Studio' })).getByText(
+        /2 (tasks waiting|việc đang chờ)/i,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/5\s+(Members|Thành viên)/i)).toBeInTheDocument();
     // Không còn nhãn "Hoàn tất" gây hiểu nhầm
     expect(screen.queryByText(/Hoàn tất|Completed/i)).not.toBeInTheDocument();
@@ -70,7 +74,7 @@ describe('WorkspaceListView Component', () => {
     const onSelectMock = vi.fn();
     const { unmount } = renderView({ onSelectWorkspace: onSelectMock, recentWorkspaceId: 'ws-2' });
 
-    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('2'));
+    await waitFor(() => expect(screen.getByTestId('ws-summary')).toHaveTextContent('2'));
     fireEvent.click(screen.getByRole('button', { name: /Tiếp tục|Continue/i }));
     expect(onSelectMock).toHaveBeenCalledWith(expect.objectContaining({ id: 'ws-2' }));
     unmount();
@@ -298,7 +302,11 @@ describe('WorkspaceListView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Mappa Japan Studio')).toBeInTheDocument();
     });
-    expect(screen.getByText('4 bài chờ duyệt')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('article', { name: 'Mappa Japan Studio' })).getByText(
+        '4 bài chờ duyệt',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText('Chọn bộ truyện để duyệt')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Mappa Japan Studio/ }));
@@ -327,10 +335,11 @@ describe('WorkspaceListView Component', () => {
     renderView();
 
     await waitFor(() => expect(screen.getByText('Invited Studio')).toBeInTheDocument());
-    expect(screen.getByTestId('ws-stat-total').textContent).toContain('2');
-    expect(screen.getByTestId('ws-stat-owned').textContent).toContain('1');
-    expect(screen.getByTestId('ws-stat-pending').textContent).toContain('5');
-    expect(screen.getByTestId('ws-stat-reviews').textContent).toContain('1');
+    expect(screen.getByTestId('ws-summary').textContent).toMatch(
+      /2 studio.*1 studio|2 studios and own 1/,
+    );
+    expect(screen.getByTestId('ws-chip-pending').textContent).toMatch(/5/);
+    expect(screen.getByTestId('ws-chip-reviews').textContent).toMatch(/1/);
 
     fireEvent.click(screen.getByRole('button', { name: /^(Được mời tham gia|Invited) *[0-9]/ }));
     expect(screen.queryByText('Own Studio')).not.toBeInTheDocument();
@@ -482,5 +491,29 @@ describe('WorkspaceListView Component', () => {
 
     fireEvent.change(search, { target: { value: 'không có' } });
     expect(screen.getByText(/Không có studio khớp|No studio matches/)).toBeInTheDocument();
+  });
+
+  it('shows series as volumes on a shelf when the studio has no own cover, and hides empty work chips', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([
+      ws({
+        id: 'ws-shelf',
+        name: 'Shelf Studio',
+        coverUrl: null,
+        seriesCount: 5,
+        seriesPreviews: [
+          { id: 's1', title: 'Mưa', coverUrl: null },
+          { id: 's2', title: 'Nắng', coverUrl: null },
+        ],
+        pendingTasks: 0,
+      }),
+    ] as any);
+    renderView();
+
+    const shelf = await screen.findByTestId('ws-series-shelf');
+    expect(shelf.textContent).toContain('Mưa');
+    expect(shelf.textContent).toContain('+3');
+    expect(screen.getByTestId('ws-summary').textContent).toMatch(/cả 1 studio|all 1 studios/);
+    expect(screen.queryByTestId('ws-chip-pending')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ws-chip-reviews')).not.toBeInTheDocument();
   });
 });

@@ -22,7 +22,7 @@ export type StatusKey =
 
 export type QuickFilter =
   'needs-me' | 'all' | 'in-progress' | 'review' | 'rework' | 'blocked' | 'done';
-export type ViewMode = 'grid' | 'list' | 'kanban';
+export type ViewMode = 'matrix' | 'grid' | 'list' | 'kanban';
 export type GroupBy = 'none' | 'status' | 'page' | 'assignee';
 
 export const QUICK_FILTERS: QuickFilter[] = [
@@ -34,7 +34,8 @@ export const QUICK_FILTERS: QuickFilter[] = [
   'blocked',
   'done',
 ];
-export const VIEW_MODES: ViewMode[] = ['grid', 'list', 'kanban'];
+/** 'matrix' (Bảng trang) là cách xem mặc định: tiến độ từng trang qua các công đoạn. */
+export const VIEW_MODES: ViewMode[] = ['matrix', 'grid', 'list', 'kanban'];
 
 export const QUICK_FILTER_LABELS: Record<QuickFilter, string> = {
   'needs-me': 'Cần tôi xử lý',
@@ -483,7 +484,7 @@ export const resolveQuickFilter = (
 };
 
 export const resolveViewMode = (raw: string | null): ViewMode =>
-  VIEW_MODES.find((v) => v === raw) ?? 'grid';
+  VIEW_MODES.find((v) => v === raw) ?? 'matrix';
 
 export const resolveGroupBy = (raw: string | null): GroupBy =>
   GROUP_BYS.find((g) => g === raw) ?? 'none';

@@ -90,6 +90,11 @@
       "name": "Name A–Z",
       "created": "Newest",
       "empty": "No studio matches \"{query}\"."
+    },
+    "summary": {
+      "allOwned": "You own all {count} studios below.",
+      "noneOwned": "You are a member of the {count} studios below.",
+      "mixed": "You are in {count} studios and own {owned} of them."
     }
   },
   "hub": "Studio Hub",

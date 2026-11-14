@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, Check, ListTodo, Mail, X, AlertCircle } from 'lucide-react';
-import type { WorkspaceDto } from '@/types';
+import type { WorkspaceDto, WorkspaceSeriesPreviewDto } from '@/types';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { dueTone, type TodayTask } from './workspaceShelfTasks';
 
 type T = (key: string, params?: Record<string, string | number>) => string;
@@ -181,4 +182,67 @@ export const TodayTasks: React.FC<{
       </p>
     )}
   </section>
+);
+
+/**
+ * Bìa card khi studio chưa có ảnh bìa riêng: series của studio đứng như các tập truyện trên kệ.
+ * Có ảnh bìa series thì dùng ảnh, chưa có thì là gáy sách in tên series theo chiều dọc.
+ */
+// Chiều cao so le nhẹ như sách thật trên kệ (theo vị trí, không ngẫu nhiên để không nhảy khi render lại)
+const SPINE_HEIGHTS = ['h-full', 'h-[90%]', 'h-[95%]'];
+
+export const SeriesShelf: React.FC<{
+  series: WorkspaceSeriesPreviewDto[];
+  more: number;
+  tone: string;
+}> = ({ series, more, tone }) => (
+  <div className='absolute inset-0 bg-[#F5F2EC]' data-testid='ws-series-shelf'>
+    <div className='absolute left-8 right-8 bottom-3 top-7 flex items-end gap-2'>
+      {series.map((s, i) =>
+        s.coverUrl ? (
+          // Có ảnh bìa: tập truyện quay mặt bìa ra ngoài
+          <div
+            key={s.id}
+            title={s.title}
+            className='relative h-full aspect-[2/3] rounded-sm overflow-hidden border border-black/10 shadow-sm bg-stone-200'
+          >
+            <AuthenticatedImage
+              src={s.coverUrl}
+              alt={s.title}
+              loading='lazy'
+              className='absolute inset-0 w-full h-full object-cover !bg-transparent'
+              fallback={
+                <span className='absolute inset-0 flex items-center justify-center p-2 text-center font-serif text-sm font-bold text-stone-700'>
+                  {s.title}
+                </span>
+              }
+            />
+          </div>
+        ) : (
+          // Chưa có ảnh bìa: gáy sách in tên series theo chiều dọc
+          <div
+            key={s.id}
+            title={s.title}
+            className={`relative ${SPINE_HEIGHTS[i % SPINE_HEIGHTS.length]} w-12 rounded-[3px] overflow-hidden border border-black/15 shadow-sm`}
+            style={{ backgroundColor: tone, filter: i % 2 ? 'brightness(0.88)' : undefined }}
+          >
+            <span className='absolute inset-x-0 top-2 h-1 bg-white/35' aria-hidden='true' />
+            <span className='absolute inset-x-0 bottom-2 h-1 bg-white/35' aria-hidden='true' />
+            <span className='absolute inset-0 flex items-start justify-center py-5 font-serif text-sm font-bold text-white [writing-mode:vertical-rl] overflow-hidden whitespace-nowrap text-ellipsis'>
+              {s.title}
+            </span>
+          </div>
+        ),
+      )}
+      {more > 0 && (
+        <div className='h-[70%] w-10 rounded-[3px] border border-stone-300 bg-white flex items-center justify-center text-xs font-mono font-semibold text-stone-600'>
+          +{more}
+        </div>
+      )}
+    </div>
+    <div
+      className='absolute inset-x-0 bottom-0 h-3 bg-[#D9CFBF] border-t border-[#C4B8A5]'
+      aria-hidden='true'
+    />
+  </div>
 );
