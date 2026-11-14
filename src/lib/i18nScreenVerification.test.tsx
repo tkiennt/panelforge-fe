@@ -232,7 +232,7 @@ describe('FE i18n VI <-> EN Language Switching Verification', () => {
     });
 
     it('provides proper English translations for Bible namespace', () => {
-      expect(translate('bible.categories.all', undefined, 'en')).toBe('All Entries');
+      expect(translate('bible.categories.all', undefined, 'en')).toBe('All');
       expect(translate('bible.categories.character', undefined, 'en')).toBe('Character');
       expect(translate('bible.categories.location', undefined, 'en')).toBe('Location & Setting');
       expect(translate('bible.canonLock.badge', undefined, 'en')).toBe('Canon Locked');

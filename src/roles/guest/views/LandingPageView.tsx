@@ -20,7 +20,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { HeroMangaPage } from '../components/HeroMangaPage';
-import { LanguageSwitcher } from '@/lib/i18n';
+import { LanguageSwitcher, useTranslation } from '@/lib/i18n';
 import { Drawer } from '@/shared/ui';
 
 interface LandingPageViewProps {
@@ -319,6 +319,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation('landing');
   const [heroHighlight, setHeroHighlight] = useState<'editor' | 'artist' | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -1155,7 +1156,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             href='#hero-section'
             onClick={(e) => handleNavScroll(e, 'hero-section')}
             className='flex items-center gap-2 group shrink-0'
-            aria-label='PanelForge - Về đầu trang'
+            aria-label={t('nav.homeAria')}
           >
             <BrandMark
               size={30}
@@ -1168,7 +1169,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
           {/* Desktop Nav Links */}
           <nav
-            aria-label='Điều hướng chính'
+            aria-label={t('nav.mainNavAria')}
             className='hidden md:flex items-center gap-8 text-xs font-medium text-[#57534E]'
           >
             <a
@@ -1176,28 +1177,28 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               onClick={(e) => handleNavScroll(e, 'block-features')}
               className='hover:text-[#1C1917] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 rounded-xs py-1'
             >
-              Tính năng
+              {t('nav.features')}
             </a>
             <a
               href='#block-workflow'
               onClick={(e) => handleNavScroll(e, 'block-workflow')}
               className='hover:text-[#1C1917] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 rounded-xs py-1'
             >
-              Quy trình
+              {t('nav.workflow')}
             </a>
             <a
               href='#block-showcase'
               onClick={(e) => handleNavScroll(e, 'block-showcase')}
               className='hover:text-[#1C1917] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 rounded-xs py-1'
             >
-              Trưng bày
+              {t('nav.showcase')}
             </a>
             <a
               href='#block-faq'
               onClick={(e) => handleNavScroll(e, 'block-faq')}
               className='hover:text-[#1C1917] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 rounded-xs py-1'
             >
-              Hỏi đáp
+              {t('nav.faq')}
             </a>
           </nav>
 
@@ -1206,17 +1207,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <LanguageSwitcher className='hidden sm:inline-flex mr-0.5' />
             <button
               onClick={handleLoginClick}
-              aria-label='Đăng nhập'
+              aria-label={t('nav.login')}
               className='text-xs sm:text-sm text-[#1C1917] font-medium hover:bg-[#EAE5DC] border border-[#D8D2C5] hover:border-[#1C1917] active:scale-[0.98] motion-reduce:transform-none px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-200 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900'
             >
-              Đăng nhập
+              {t('nav.login')}
             </button>
             <button
               onClick={handleRegisterClick}
-              aria-label='Tạo tài khoản'
+              aria-label={t('nav.register')}
               className='inline-flex items-center gap-1.5 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full bg-[#1C1917] text-white text-xs sm:text-sm font-medium hover:bg-black active:scale-[0.98] motion-reduce:transform-none shadow-soft-sm transition-all duration-200 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900'
             >
-              <span>Tạo tài khoản</span>
+              <span>{t('nav.register')}</span>
               <ArrowRight className='w-3.5 h-3.5' aria-hidden='true' />
             </button>
 
@@ -1227,7 +1228,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
               aria-expanded={isMobileMenuOpen}
               aria-controls='mobile-nav-drawer'
-              aria-label={isMobileMenuOpen ? 'Đóng menu điều hướng' : 'Mở menu điều hướng'}
+              aria-label={isMobileMenuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
               className='md:hidden p-2 rounded-lg text-stone-700 hover:text-stone-900 hover:bg-stone-200/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900'
             >
               {isMobileMenuOpen ? (
@@ -1331,7 +1332,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           className='hidden 2xl:flex absolute left-4 sm:left-7 top-1/2 -translate-y-1/2 [writing-mode:vertical-rl] rotate-180 text-xs font-mono tracking-[0.2em] text-[#0284C7]/75 select-none pointer-events-none items-center gap-2 z-10'
           aria-hidden='true'
         >
-          <span>01 / Bắt đầu một câu chuyện</span>
+          <span>{t('hero.marginGuideline')}</span>
         </div>
 
         {/* ============================================================== */}
@@ -1386,7 +1387,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   ·
                 </span>
                 <span className='font-sans uppercase tracking-[0.16em] text-[#57534E] font-semibold'>
-                  XƯỞNG SÁNG TÁC TRUYỆN TRANH
+                  {t('hero.docket').replace(/^PF \/ 01 [·—] /, '')}
                 </span>
               </div>
 
@@ -1399,11 +1400,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 className='hero-stagger-2 hero-ink-bleed font-black text-[#1C1917] tracking-normal leading-[1.16] py-1 text-[clamp(2.9rem,5.6vw+0.2rem,5.65rem)] mb-[clamp(16px,2.2vh,26px)] select-text overflow-visible uppercase'
               >
                 <span className='block whitespace-nowrap transform -skew-x-[3.5deg]'>
-                  TỪ Ý TƯỞNG ĐẾN
+                  {t('hero.titleLine1')}
                 </span>
                 <span className='block whitespace-nowrap transform -skew-x-[3.5deg] mt-1'>
                   <span className='relative inline-block'>
-                    <span className='relative z-10'>TỪNG KHUNG TRUYỆN.</span>
+                    <span className='relative z-10'>{t('hero.titleLine2')}</span>
                     {/* Natural organic calligraphic brush wipe in signature orange — positioned clear of diacritic dot under Ệ */}
                     <svg
                       className='hero-brush-svg absolute -bottom-2 sm:-bottom-2.5 lg:-bottom-3 left-0 w-[98%] max-w-[580px] h-[12px] sm:h-[15px] lg:h-[17px] pointer-events-none z-0 overflow-visible'
@@ -1435,13 +1436,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               {/* Description (Warm Gray with mild emphasis on first sentence) */}
               <p className='hero-stagger-3 text-[#57534E] font-sans text-[clamp(1.02rem,0.35vw+0.92rem,1.22rem)] max-w-[50ch] font-normal tracking-normal leading-[1.62] mb-7 [text-wrap:pretty]'>
-                <strong className='font-semibold text-[#1C1917]'>
-                  Cùng viết, vẽ và duyệt truyện trong một không gian.
-                </strong>{' '}
-                <span>
-                  Gắn phản hồi vào đúng khung truyện, theo dõi từng phiên bản và kiểm tra tính nhất
-                  quán với AI.
-                </span>
+                <strong className='font-semibold text-[#1C1917]'>{t('hero.subtitleLead')}</strong>{' '}
+                <span>{t('hero.subtitleTail')}</span>
               </p>
 
               {/* Speech-Balloon Styled Primary CTA with clear hierarchy */}
@@ -1452,10 +1448,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 {/* Sole Dominant Primary CTA: Black Ink Speech Balloon */}
                 <button
                   onClick={handleRegisterClick}
-                  aria-label='Tạo tài khoản'
+                  aria-label={t('hero.ctaPrimary')}
                   className='relative group inline-flex items-center justify-center gap-2.5 min-h-[52px] px-8 sm:px-10 text-[15px] sm:text-[16px] font-semibold bg-[#1C1917] text-white rounded-[20px] shadow-[4px_4px_0px_#1C1917] hover:shadow-[5px_5px_0px_#1C1917] hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_#1C1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 transition-all duration-150 cursor-pointer motion-reduce:transform-none select-none'
                 >
-                  <span className='font-sans'>Tạo tài khoản</span>
+                  <span className='font-sans'>{t('hero.ctaPrimary')}</span>
                   <ArrowRight
                     className='w-4 h-4 transition-transform group-hover:translate-x-1'
                     aria-hidden='true'
@@ -1469,13 +1465,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
                 {/* Returning Member Login Prompt */}
                 <div className='flex items-center gap-1.5 text-xs sm:text-[13.5px] text-[#57534E]'>
-                  <span>Đã có tài khoản?</span>
+                  <span>{t('hero.haveAccount')}</span>
                   <button
                     onClick={handleLoginClick}
-                    aria-label='Đăng nhập'
+                    aria-label={t('hero.login')}
                     className='font-semibold text-[#1C1917] underline underline-offset-4 hover:text-[#EA580C] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 rounded-xs'
                   >
-                    Đăng nhập
+                    {t('hero.login')}
                   </button>
                 </div>
               </div>
@@ -1488,7 +1484,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   onClick={handleScrollToWorkflow}
                   className='inline-flex items-center gap-1.5 text-xs sm:text-[13.5px] font-sans text-[#57534E] hover:text-[#1C1917] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 rounded-xs'
                 >
-                  <span>Khám phá quy trình hoạt động</span>
+                  <span>{t('hero.discoverWorkflow')}</span>
                   <span aria-hidden='true'>↓</span>
                 </a>
               </div>
@@ -1497,7 +1493,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className='hero-stagger-5 flex flex-wrap items-center gap-y-2 gap-x-5 sm:gap-x-6 text-[13px] sm:text-[14px] font-medium text-stone-700 select-none'>
                 <div className='flex items-center gap-2'>
                   <FileText className='w-4 h-4 text-[#1C1917] shrink-0' />
-                  <span>Kịch bản có cấu trúc</span>
+                  <span>{t('hero.badgeScript')}</span>
                 </div>
                 <span
                   className='hidden sm:inline-block w-px h-3.5 bg-stone-300'
@@ -1510,7 +1506,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   className='flex items-center gap-2 cursor-default hover:text-[#C2410C] transition-colors'
                 >
                   <Users className='w-4 h-4 text-[#1C1917] shrink-0' />
-                  <span>Cộng tác</span>
+                  <span>{t('hero.badgeCollab')}</span>
                 </div>
                 <span
                   className='hidden sm:inline-block w-px h-3.5 bg-stone-300'
@@ -1523,7 +1519,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   className='flex items-center gap-2 cursor-default hover:text-[#C2410C] transition-colors'
                 >
                   <History className='w-4 h-4 text-[#1C1917] shrink-0' />
-                  <span>Truy vết phiên bản</span>
+                  <span>{t('hero.badgeVersion')}</span>
                 </div>
               </div>
             </div>
@@ -1935,7 +1931,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   01 / Phân cấp
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
-                  Nội dung có cấu trúc
+                  {t('pillars.hierarchy.title')}
                 </h3>
                 <p className='mt-3 text-sm text-[#57534E] leading-relaxed [text-wrap:pretty]'>
                   Tổ chức bộ truyện theo từng cấp độ rõ ràng: bộ truyện, tập, chương, phân cảnh và
@@ -1958,7 +1954,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   02 / Minh bạch
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
-                  Lịch sử phiên bản
+                  {t('pillars.provenance.title')}
                 </h3>
                 <p className='mt-3 text-sm text-[#57534E] leading-relaxed [text-wrap:pretty]'>
                   Ghi nhận mọi chỉnh sửa kèm người thực hiện và mốc thời gian, tránh ghi đè nhầm bản
@@ -1981,7 +1977,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   03 / Nhất quán
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
-                  Hồ sơ bộ truyện
+                  {t('pillars.bible.title')}
                 </h3>
                 <p className='mt-3 text-sm text-[#57534E] leading-relaxed [text-wrap:pretty]'>
                   Quản lý nhân vật, đạo cụ và bối cảnh tập trung; hỗ trợ rà soát tính nhất quán khi
