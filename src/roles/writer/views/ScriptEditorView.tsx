@@ -2486,6 +2486,29 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           )}
 
+          {scriptAction === 'start' && openScriptComments.length > 0 && (
+            <div
+              data-testid='open-comments-warning-banner'
+              className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
+            >
+              <div className='flex items-center gap-2 min-w-0'>
+                <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0' />
+                <span className='text-xs font-medium truncate'>
+                  {t('scriptStudio.lifecycle.openCommentsWarning', {
+                    count: openScriptComments.length,
+                  })}
+                </span>
+              </div>
+              <button
+                type='button'
+                onClick={() => setShowCommentsSidePanel(true)}
+                className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer transition-colors'
+              >
+                {t('scriptStudio.comments.viewComments', 'Xem góp ý')}
+              </button>
+            </div>
+          )}
+
           {isChapterContentLocked && !isScriptFrozen && (
             <div
               data-testid='chapter-locked-banner'
