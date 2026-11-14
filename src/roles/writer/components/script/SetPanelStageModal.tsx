@@ -1,6 +1,7 @@
 // src/roles/writer/components/script/SetPanelStageModal.tsx
 import React, { useState } from 'react';
-import { X, Layers, User, Check, Trash2 } from 'lucide-react';
+import { X, Layers, Check, Trash2 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import { ChapterCastItemDto } from '@/services/chapterCast.service';
 
 interface SetPanelStageModalProps {
@@ -21,7 +22,7 @@ interface SetPanelStageModalProps {
         }[]
       | null,
   ) => void;
-  t: (key: string, defaultVal?: string) => string;
+  t?: (key: string, defaultVal?: string) => string;
 }
 
 export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
@@ -30,8 +31,13 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
   pages,
   entities,
   onApply,
-  t,
+  t: propT,
 }) => {
+  const { t: i18nT } = useTranslation();
+  const t = (key: string, fallbackOrParams?: any, explicitFallback?: string) => {
+    return i18nT(key, fallbackOrParams, explicitFallback);
+  };
+
   const [selectedPageNo, setSelectedPageNo] = useState<number>(pages[0]?.pageNumber || 1);
   const [selectedPanelNo, setSelectedPanelNo] = useState<number>(1);
   const [selectedEntryId, setSelectedEntryId] = useState<string>(entities[0]?.bibleEntryId || '');
@@ -75,11 +81,11 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
             </div>
             <div>
               <h3 className='text-sm font-bold font-serif text-stone-900'>
-                {t('scriptStudio.cast.panelStageTitle', 'Đặt giai đoạn riêng cho Panel')}
+                {t('production.cast.panelStageTitle', 'Đặt giai đoạn riêng cho Panel')}
               </h3>
               <p className='text-[11px] text-stone-500'>
                 {t(
-                  'scriptStudio.cast.panelStageDesc',
+                  'production.cast.panelStageDesc',
                   'Dùng tạo hình khác (hồi tưởng, biến thân) riêng cho Panel này',
                 )}
               </p>
@@ -99,11 +105,13 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
           {/* 1. Chọn Trang & Panel */}
           <div>
             <label className='font-semibold text-stone-700 block mb-1.5'>
-              {t('scriptStudio.cast.selectPanel', 'Chọn Trang & Panel')}
+              {t('production.cast.selectPanel', 'Chọn Trang & Panel')}
             </label>
             <div className='grid grid-cols-2 gap-2'>
               <div>
-                <span className='text-[10px] text-stone-400 block mb-0.5'>Trang:</span>
+                <span className='text-[10px] text-stone-400 block mb-0.5'>
+                  {t('production.cast.pageLabel', 'Trang:')}
+                </span>
                 <select
                   value={selectedPageNo}
                   onChange={(e) => {
@@ -115,14 +123,20 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
                 >
                   {pages.map((p) => (
                     <option key={p.pageNumber} value={p.pageNumber}>
-                      Trang {p.pageNumber}
+                      {t(
+                        'production.cast.pageOption',
+                        { number: p.pageNumber },
+                        `Trang ${p.pageNumber}`,
+                      )}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <span className='text-[10px] text-stone-400 block mb-0.5'>Panel:</span>
+                <span className='text-[10px] text-stone-400 block mb-0.5'>
+                  {t('production.cast.panelLabel', 'Panel:')}
+                </span>
                 <select
                   value={selectedPanelNo}
                   onChange={(e) => setSelectedPanelNo(Number(e.target.value))}
@@ -135,7 +149,7 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
                     },
                     (_, i) => (
                       <option key={i + 1} value={i + 1}>
-                        Panel {i + 1}
+                        {t('production.cast.panelOption', { number: i + 1 }, `Panel ${i + 1}`)}
                       </option>
                     ),
                   )}
@@ -147,7 +161,7 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
           {/* 2. Chọn Thực thể */}
           <div>
             <label className='font-semibold text-stone-700 block mb-1.5'>
-              {t('scriptStudio.cast.selectEntity', 'Thực thể Series Bible')}
+              {t('production.cast.selectEntity', 'Thực thể Series Bible')}
             </label>
             <select
               value={selectedEntryId}
@@ -157,7 +171,9 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
               }}
               className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
             >
-              <option value=''>-- Chọn thực thể --</option>
+              <option value=''>
+                {t('production.cast.selectEntityPlaceholder', '-- Chọn thực thể --')}
+              </option>
               {entities.map((e) => (
                 <option key={e.bibleEntryId} value={e.bibleEntryId}>
                   {e.name} ({e.code || 'BIBLE'})
@@ -170,20 +186,25 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
           {selectedEntryId && (
             <div>
               <label className='font-semibold text-stone-700 block mb-1.5'>
-                {t('scriptStudio.cast.selectRevision', 'Bản tạo hình / Biến thể')}
+                {t('production.cast.selectRevision', 'Bản tạo hình / Biến thể')}
               </label>
               {availableRevisions.length === 0 ? (
-                <p className='text-stone-400 italic py-1'>Mục này chưa có bản tạo hình nào.</p>
+                <p className='text-stone-400 italic py-1'>
+                  {t('production.cast.noRevisionsForEntity', 'Mục này chưa có bản tạo hình nào.')}
+                </p>
               ) : (
                 <select
                   value={selectedRevId}
                   onChange={(e) => setSelectedRevId(e.target.value)}
                   className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
                 >
-                  <option value=''>-- Chọn bản --</option>
+                  <option value=''>
+                    {t('production.cast.selectRevisionPlaceholder', '-- Chọn bản --')}
+                  </option>
                   {availableRevisions.map((r) => (
                     <option key={r.revisionId} value={r.revisionId}>
-                      v{r.versionNumber} · {r.variantLabel || 'Mặc định'} (
+                      v{r.versionNumber} ·{' '}
+                      {r.variantLabel || t('production.cast.defaultVariant', 'Mặc định')} (
                       {r.isCanonLocked ? 'CanonLocked' : r.status})
                     </option>
                   ))}
@@ -201,7 +222,7 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
             className='px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors'
           >
             <Trash2 className='w-3.5 h-3.5' />
-            {t('scriptStudio.cast.clearPanelStage', 'Gỡ giai đoạn riêng')}
+            {t('production.cast.clearPanelStage', 'Gỡ giai đoạn riêng')}
           </button>
 
           <div className='flex items-center gap-2'>

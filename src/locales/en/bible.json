@@ -2,11 +2,18 @@
   "title": "Series Bible",
   "subtitle": "Canonical world-building and character repository",
   "categories": {
-    "all": "All Entries",
+    "all": "All",
+    "allEntries": "All Entries",
     "character": "Character",
+    "characters": "Characters",
     "location": "Location & Setting",
+    "locations": "Locations & Settings",
     "item": "Item & Equipment",
-    "lore": "World Rule & Lore"
+    "prop": "Terminology & Props",
+    "terminology": "Terminology & Props",
+    "lore": "World Rule & Lore",
+    "style": "Art Style Rules",
+    "knowledgeItem": "Knowledge Entry"
   },
   "fields": {
     "name": "Name",
@@ -50,5 +57,336 @@
     "variant": "Variant",
     "revision": "Revision",
     "noImage": "No image"
+  },
+  "reworkModal": {
+    "title": "Request Concept Art Rework",
+    "targetInfo": "Revision v{version} of \"{name}\"",
+    "reasonLabel": "Detailed feedback for Artist (Rework / Continuity issues) *",
+    "reasonPlaceholder": "e.g. Hairstyle does not match canon, outfit color should be dark blue, missing angry expression...",
+    "reasonHelp": "This feedback will be sent immediately to the Artist's drawing queue for the next update.",
+    "cancel": "Cancel",
+    "submitting": "Submitting...",
+    "submit": "Send Rework Request"
+  },
+  "spec": {
+    "groups": {
+      "body": "Body & Physique",
+      "face": "Face & Identification",
+      "costume": "Costume & Attire",
+      "art": "Art & Shading",
+      "space": "Spatial Setting",
+      "fixedDetails": "Fixed Architecture & Details",
+      "prop": "Props & Items",
+      "terminology": "Terminology",
+      "style": "Art Style Rules"
+    },
+    "fields": {
+      "age": {
+        "label": "Age",
+        "placeholder": "e.g. 17"
+      },
+      "height": {
+        "label": "Height",
+        "placeholder": "e.g. 168 cm"
+      },
+      "build": {
+        "label": "Build / Physique",
+        "placeholder": "e.g. slender, narrow shoulders"
+      },
+      "hair": {
+        "label": "Hairstyle",
+        "placeholder": "e.g. messy short hair, side-parted"
+      },
+      "eyes": {
+        "label": "Eyes",
+        "placeholder": "e.g. monolids, upturned corners"
+      },
+      "marks": {
+        "label": "Identifying Marks",
+        "placeholder": "Scars, moles, glasses..."
+      },
+      "appearance": {
+        "label": "General Appearance"
+      },
+      "outfit": {
+        "label": "Default Outfit"
+      },
+      "accessories": {
+        "label": "Essential Accessories"
+      },
+      "inkTone": {
+        "label": "Ink & Screentone Tone",
+        "placeholder": "e.g. solid black hair, 30% screentone shirt"
+      },
+      "expressions": {
+        "label": "Key Expressions & Poses"
+      },
+      "forbidden": {
+        "label": "Forbidden Elements",
+        "placeholder": "Things Artist must avoid: e.g. no facial hair, no glasses"
+      },
+      "environmentType": {
+        "label": "Environment Type",
+        "placeholder": "e.g. clock repair shop, interior"
+      },
+      "scale": {
+        "label": "Scale",
+        "placeholder": "e.g. 20 sq meters, low ceiling"
+      },
+      "atmosphere": {
+        "label": "Time & Lighting",
+        "placeholder": "e.g. rainy afternoon, warm incandescent"
+      },
+      "architecture": {
+        "label": "Architecture & Fixtures"
+      },
+      "layout": {
+        "label": "Layout & Floorplan",
+        "placeholder": "Door placement, counter position"
+      },
+      "cameraAngles": {
+        "label": "Standard Camera Angles",
+        "placeholder": "e.g. wide view from entrance, close-up counter"
+      },
+      "propType": {
+        "label": "Prop Type",
+        "placeholder": "e.g. key, weapon"
+      },
+      "sizeWeight": {
+        "label": "Relative Scale",
+        "placeholder": "e.g. palm-sized"
+      },
+      "material": {
+        "label": "Material",
+        "placeholder": "e.g. silver, rusted teeth"
+      },
+      "owner": {
+        "label": "Owner",
+        "placeholder": "Character code, e.g. AN"
+      },
+      "stateByChapter": {
+        "label": "State by Chapter",
+        "placeholder": "e.g. broken starting Ch.12"
+      },
+      "termType": {
+        "label": "Classification",
+        "placeholder": "e.g. place name, technique"
+      },
+      "origin": {
+        "label": "Origin & Lore"
+      },
+      "usage": {
+        "label": "Dialogue Usage"
+      },
+      "colorPalette": {
+        "label": "Palette & Screentones"
+      },
+      "lineArtRules": {
+        "label": "Line Art Rules"
+      }
+    },
+    "deliverables": {
+      "charTurnaround": "Front / 3-quarter / Back Turnaround",
+      "charExpressions": "Key Expressions Sheet",
+      "locWide": "Wide Shot Establishing View",
+      "locClose": "Close-up Fixture Details",
+      "propMain": "Main Orthographic View",
+      "propDetail": "Close-up Material Details"
+    }
+  },
+  "addEntityModal": {
+    "title": "Add New Entry to Series Bible",
+    "subtitle": "Create character design, location, prop or world lore for the series.",
+    "categoryLabel": "Knowledge Category",
+    "codeLabel": "Entity Code",
+    "codePlaceholder": "e.g. CHAR-01, LOC-01",
+    "codeHelp": "Unique code used for cross-referencing in script and storyboard.",
+    "nameLabel": "Entry Name",
+    "namePlaceholder": "Character name, place name or term...",
+    "subtitleLabel": "Subtitle / Role",
+    "subtitlePlaceholder": "e.g. Main protagonist, Leaf village, etc.",
+    "aliasesLabel": "Aliases / Alternative Names",
+    "aliasesPlaceholder": "Type alias and click Add or press Enter...",
+    "isCrowdLabel": "Mark as Crowd Entity",
+    "isCrowdHelp": "Crowd entities do not require a Model Sheet before starting production.",
+    "dropzoneTitle": "Drag and drop reference sheet image here",
+    "dropzoneBrowse": "or click to browse",
+    "dropzoneFormats": "PNG, JPEG, WebP format up to 10 MB",
+    "dropzoneUrlPlaceholder": "Or paste direct image URL (https://...)",
+    "galleryTitle": "Perspective & Expression Sketch Gallery (Character Sheet Gallery)",
+    "galleryCount": "{count} sketch angles",
+    "gallerySubtitle": "Upload multiple views (360° Turnaround, 3/4 view, Expressions, Costume) for multi-angle reference.",
+    "galleryAddBtn": "Add this angle",
+    "galleryAdding": "Uploading...",
+    "galleryThumbLabel": "Angle #{number}",
+    "galleryDeleteTitle": "Delete this angle",
+    "descLabel": "Design Standard & Identification Description",
+    "descPlaceholder": "Detailed description of appearance, outfit colors, personality, mandatory identifying traits...",
+    "cancel": "Cancel",
+    "saveProducer": "Save to Series Bible",
+    "saveDraft": "Create New Draft",
+    "invalidFormatTitle": "Invalid Image Format",
+    "invalidFormatDesc": "Only PNG, JPEG, or WebP images are supported.",
+    "sizeExceededTitle": "File Size Limit Exceeded",
+    "sizeExceededDesc": "Reference sheet image cannot exceed 10 MB.",
+    "gallerySizeExceededDesc": "Sketch image cannot exceed 10 MB.",
+    "localSelectedTitle": "Local Image Selected",
+    "uploadSuccessTitle": "Uploaded to Secure Storage",
+    "uploadErrorTitle": "Failed to Upload Reference Image",
+    "uploadErrorDesc": "Could not upload reference sheet image.",
+    "galleryLocalTitle": "Local Sketch Added",
+    "galleryUploadedTitle": "Sketch Angle Added",
+    "galleryUploadError": "Could not upload sketch angle image.",
+    "draftEraTitle": "Configure Era for this Draft",
+    "draftEraDesc": "Select script chapter range for this design",
+    "draftEraNameLabel": "Stage / Era Name",
+    "draftEraNamePlaceholder": "e.g. Youth, Adult, Flashback...",
+    "draftEraFromChapterLabel": "Effective from Chapter",
+    "draftEraToChapterLabel": "To Chapter (leave blank for end of series)",
+    "draftEraHelp": "Helps Artist draw concept matching script timeline."
+  },
+  "addRevisionModal": {
+    "headerSupersede": "Supersede Canon lock v{{version}}: {{name}}",
+    "headerNewEra": "Create New Era: {{name}}",
+    "headerResubmit": "Resubmit Concept Art: {{name}}",
+    "headerArtistSubmit": "Submit Concept Art: {{name}}",
+    "headerProducerNewVer": "Create new version: {{name}}",
+    "headerDraftNewVer": "Create new draft: {{name}}",
+    "titleSubmit": "Submit Concept Art (Model Sheet)",
+    "titleResubmit": "Resubmit Concept Art",
+    "titleSupersede": "Create Supersede Revision",
+    "titleNewEra": "Create Design for New Era",
+    "titleDefault": "Create New Revision",
+    "targetInfo": "New revision for \"{name}\"",
+    "artistBanner": "Artist is submitting Concept Art for stage \"{stageName}\"",
+    "reworkBanner": "Feedback to revise from Writer / Editor:",
+    "eraStageLabel": "Era / Stage:",
+    "stageStandard": "Standard Stage",
+    "stageFlashback": "Flashback",
+    "stageAdult": "Adult",
+    "stageFuture": "Future",
+    "stageTransform": "Transformation",
+    "fromChapterLabel": "Effective from Chapter:",
+    "toChapterLabel": "To Chapter (leave blank for end of series):",
+    "summaryLabel": "Revision Summary *",
+    "summaryPlaceholder": "e.g. Updated winter outfit, adjusted eye shapes...",
+    "conceptImageLabel": "Model Sheet / Concept Art Image *",
+    "dropzoneTitle": "Drag and drop image here",
+    "dropzoneBrowse": "or click to select file",
+    "dropzoneFormats": "Supports PNG, JPEG, WebP up to 10 MB",
+    "removeImage": "Remove image",
+    "specAttributesTitle": "Specification Attributes",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "saveRevision": "Save Revision",
+    "submitConcept": "Submit Concept Art",
+    "supersedeAlert": "This entry is Canon Locked. The new revision will be submitted for review before superseding the locked entry."
+  },
+  "detailModal": {
+    "backToBible": "Series Bible",
+    "roleProducer": "Producer",
+    "roleWriter": "Writer",
+    "roleArtist": "Artist",
+    "roleEditor": "Editor",
+    "roleViewer": "Viewer",
+    "historyBtn": "Revision History",
+    "createRevisionBtn": "Create New Revision",
+    "createDraftBtn": "Create New Draft",
+    "artistStagesNotice": "Artist submits Concept Art by stage",
+    "readOnlyNotice": "Read-only mode",
+    "sameCategoryTitle": "Same Category · {count}",
+    "eraStagesTitle": "Eras & Stages",
+    "variantCount": "{count} variants",
+    "scriptAppearancesTitle": "In Script · {count} scenes",
+    "gate1Warning": "Unsatisfied chapters will be blocked at Gate 1 upon script signoff (BR-21).",
+    "stepWriterSpec": "Spec (Writer)",
+    "stepArtistConcept": "Concept Art (Artist)",
+    "stepWriterEndorse": "Endorse (Writer)",
+    "stepProducerLock": "Lock Canon (Producer)",
+    "stepRework": "Rework Required",
+    "waitingFor": "Waiting for:",
+    "yourTurn": "Your turn",
+    "canonLockedBadge": "Canon Locked",
+    "canonLockedPeriod": "Ch.{from}–{to}",
+    "canonLockedToSeriesEnd": " → end",
+    "revisionNumber": "Revision #{number}",
+    "approvedAt": "• Approved {date}",
+    "canonLockedDesc": "The design for this stage has been formally approved by the Producer (Canon Locked). The entire production crew references this single source of truth.",
+    "reworkAlertTitle": "Drawing Revision Requested by Writer / Editor",
+    "reworkAlertDefault": "Writer requested revisions for this stage's design.",
+    "reworkAlertDetails": "Stage: \"{stage}\" · Effective from Chapter {from} to {to}. Please adjust the artwork according to requirements and resubmit.",
+    "submittedAlertTitle": "Model Sheet Submitted – Pending Review",
+    "submittedAlertDesc": "Design is awaiting Writer/Editor verification. If you uploaded the wrong file or wish to submit an improvement, you may resubmit now.",
+    "submittedAlertDetails": "Stage: \"{stage}\" · Revision #{version}.",
+    "closeTitle": "Close (Esc)",
+    "closeAria": "Close detail window",
+    "specTab": "Specs & Attributes",
+    "modelSheetTab": "Model Sheet Art",
+    "commentsTab": "Feedback & Discussion ({count})",
+    "scenesTab": "Scene Appearances",
+    "endorseBtn": "Confirm Endorsement (Writer Endorsed)",
+    "reworkBtn": "Request Rework",
+    "lockBtn": "Approve & Lock Canon (Canon Locked)",
+    "unlockBtn": "Unlock Canon",
+    "supersedeBtn": "Create Supersede Revision",
+    "removeCrowdBtn": "Remove Crowd Flag",
+    "setCrowdBtn": "Set as Crowd",
+    "deleteBtn": "Delete This Entry",
+    "commentSuccess": "Comment submitted",
+    "commentSuccessDesc": "Concept Art feedback has been recorded.",
+    "commentError": "Failed to submit comment",
+    "replySuccess": "Reply submitted",
+    "replySuccessDesc": "Your reply was submitted successfully.",
+    "replyError": "Failed to submit reply",
+    "resolveComment": "Comment resolved",
+    "reopenComment": "Comment reopened",
+    "imagePastedTitle": "Pasted Image Detected",
+    "imagePastedDesc": "Opening new Model Sheet submission window...",
+    "deleteError": "Failed to delete revision."
+  },
+  "view": {
+    "canonHub": "Canon Hub",
+    "seriesBible": "Series Bible",
+    "knowledgeEntries": "{count} knowledge entries",
+    "heroDesc": "Canonical reference repository for characters, locations, props, terminology, and art rules. Canon Locked entries serve as the single source of truth for artists and consistency verification.",
+    "kpiTotal": "Total Entries",
+    "kpiCanonLocked": "Canon Locked",
+    "kpiConceptSubmitted": "Concept Pending",
+    "kpiReworkRequired": "Rework Required",
+    "kpiDraft": "Drafts",
+    "addEntityBtn": "Add New Entry",
+    "createDraftBtn": "Create Draft Entry",
+    "readOnlyBadge": "Read-only Mode",
+    "readOnlyTitle": "Only Writers or Producers have permission to create Series Bible entries",
+    "sidebarCategoryTitle": "Categories",
+    "artistQueueTitle": "Artist Drawing Queue",
+    "artistQueueSubtitle": "Entries Needing Visual Design",
+    "artistQueueEmpty": "No entries in drawing queue",
+    "waitingChapters": "Waiting chapters: Ch.{chapters}",
+    "reworkBtn": "Rework",
+    "resubmitBtn": "Resubmit",
+    "uploadBtn": "Upload Art",
+    "artistOnlyNotice": "Only Artists have permission to upload Concept Art",
+    "searchPlaceholderDefault": "Search by name, code, or description in Series Bible...",
+    "searchPlaceholderCharacters": "Search character name, code, or description...",
+    "searchPlaceholderLocations": "Search location name, code, or description...",
+    "searchPlaceholderTerminology": "Search terminology, props, lore...",
+    "searchPlaceholderStyle": "Search art style rules, guidelines...",
+    "statusFilterAll": "All Statuses",
+    "statusFilterCanonLocked": "Canon Locked",
+    "statusFilterSubmitted": "Concept Submitted",
+    "statusFilterRework": "Rework Required",
+    "statusFilterDraft": "Draft",
+    "resetFilters": "Clear Filters",
+    "emptyTitle": "No knowledge entries found",
+    "emptySubtitle": "Try changing your search terms or clearing status filters.",
+    "cardCanonLocked": "Canon Locked",
+    "cardConceptSubmitted": "Concept Submitted",
+    "cardReworkRequired": "Rework Required",
+    "cardDraft": "Draft",
+    "cardViewDetail": "View Details",
+    "cardHistory": "History",
+    "eraConfigTitle": "Configure New Era Creation",
+    "eraConfigDesc": "Configure era name and chapter range for new visual design"
   }
 }

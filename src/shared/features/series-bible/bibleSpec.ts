@@ -1,3 +1,5 @@
+import { translate } from '@/lib/i18n';
+
 /**
  * Trường đặc tả theo danh mục Series Bible. Mỗi trường phải kiểm tra được bằng mắt trên bản vẽ
  * (Writer/Editor đối chiếu khi xác nhận WriterEndorsed, spec V2.6 §5.2). Lưu ở `detailsJson.attributes`;
@@ -205,4 +207,54 @@ export const specCategoryOf = (
   if (rawCategory !== undefined && rawCategory !== null) return toSpecCategory(rawCategory);
   const tab = toSpecCategory(entity.category);
   return tab === 'terminology' && entity.isVisualDesign ? 'prop' : tab;
+};
+
+export const getFieldLabel = (field: SpecField, t?: (k: string, fb?: string) => string): string => {
+  if (t) return t(`bible.spec.fields.${field.key}.label`, field.label);
+  return translate(`bible.spec.fields.${field.key}.label`, field.label);
+};
+
+export const getFieldPlaceholder = (
+  field: SpecField,
+  t?: (k: string, fb?: string) => string,
+): string | undefined => {
+  if (!field.placeholder) return undefined;
+  if (t) return t(`bible.spec.fields.${field.key}.placeholder`, field.placeholder);
+  return translate(`bible.spec.fields.${field.key}.placeholder`, field.placeholder);
+};
+
+export const getGroupTitle = (title: string, t?: (k: string, fb?: string) => string): string => {
+  const groupMap: Record<string, string> = {
+    'Hình thể': 'body',
+    'Khuôn mặt & nhận dạng': 'face',
+    'Trang phục': 'costume',
+    'Mỹ thuật': 'art',
+    'Không gian': 'space',
+    'Chi tiết cố định': 'fixedDetails',
+    'Đạo cụ': 'prop',
+    'Thuật ngữ': 'terminology',
+    'Quy tắc mỹ thuật': 'style',
+  };
+  const key = groupMap[title];
+  if (!key) return title;
+  if (t) return t(`bible.spec.groups.${key}`, title);
+  return translate(`bible.spec.groups.${key}`, title);
+};
+
+export const getDeliverableLabel = (
+  deliverable: string,
+  t?: (k: string, fb?: string) => string,
+): string => {
+  const delMap: Record<string, string> = {
+    'Turnaround trước / nghiêng / sau': 'charTurnaround',
+    'Bảng biểu cảm chính': 'charExpressions',
+    'Toàn cảnh (wide shot)': 'locWide',
+    'Cận cảnh chi tiết cố định': 'locClose',
+    'Hình chính': 'propMain',
+    'Cận chi tiết / chất liệu': 'propDetail',
+  };
+  const key = delMap[deliverable];
+  if (!key) return deliverable;
+  if (t) return t(`bible.spec.deliverables.${key}`, deliverable);
+  return translate(`bible.spec.deliverables.${key}`, deliverable);
 };
