@@ -26,6 +26,18 @@
     "selectAll": "Select all",
     "deselectAll": "Deselect all"
   },
+  "confirm": {
+    "title": "Confirm request"
+  },
+  "toast": {
+    "close": "Close notification",
+    "region": "System notifications"
+  },
+  "alert": {
+    "dismiss": "Dismiss alert",
+    "details": "Details",
+    "hideDetails": "Hide details"
+  },
   "status": {
     "all": "All",
     "active": "Active",

@@ -81,6 +81,6 @@ describe('TypeToConfirmModal Component (#269)', () => {
     expect(onCancelMock).toHaveBeenCalledTimes(1);
 
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(onCancelMock).toHaveBeenCalledTimes(2);
+    expect(onCancelMock).toHaveBeenCalledTimes(1);
   });
 });

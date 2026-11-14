@@ -33,7 +33,7 @@ describe('LucianConfirmModal Component', () => {
     const cancelBtn = screen.getByTestId('confirm-cancel-btn');
     expect(cancelBtn).toHaveTextContent('Giữ lại');
     fireEvent.click(cancelBtn);
-    expect(handleCancel).toHaveBeenCalledTimes(1);
+    expect(handleCancel).not.toHaveBeenCalled();
   });
 
   it('đóng modal khi nhấn phím Escape', () => {

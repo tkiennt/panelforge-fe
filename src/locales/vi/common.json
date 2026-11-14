@@ -26,6 +26,18 @@
     "selectAll": "Chọn tất cả",
     "deselectAll": "Bỏ chọn"
   },
+  "confirm": {
+    "title": "Xác nhận yêu cầu"
+  },
+  "toast": {
+    "close": "Đóng thông báo",
+    "region": "Thông báo hệ thống"
+  },
+  "alert": {
+    "dismiss": "Đóng thông báo",
+    "details": "Chi tiết",
+    "hideDetails": "Ẩn chi tiết"
+  },
   "status": {
     "all": "Tất cả",
     "active": "Đang hoạt động",

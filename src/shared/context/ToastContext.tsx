@@ -1,138 +1,129 @@
-/* Lucian UX/UI Prompt #070 Context Provider · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#070 */
-/* Adapted for PanelForge Editorial AI Studio */
-
-import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
-  ToastItemData,
-  ToastOptions,
-  ToastType,
   ToastStack,
-} from '@/shared/components/ToastNotification';
+  type ToastAction,
+  type ToastData,
+  type ToastType,
+  type AlertTone,
+} from '@/shared/ui';
 
+export interface ToastOptions {
+  id?: string;
+  type?: AlertTone | 'error' | 'logout';
+  tone?: AlertTone;
+  duration?: number;
+  action?: ToastAction;
+}
+
+type ToastMethod = (
+  title: string,
+  description: string,
+  options?: Omit<ToastOptions, 'type' | 'tone'>,
+) => void;
 export interface ToastContextType {
-  showToast: (title: string, desc: string, options?: ToastOptions) => void;
-  success: (title: string, desc: string, options?: Omit<ToastOptions, 'type'>) => void;
-  error: (title: string, desc: string, options?: Omit<ToastOptions, 'type'>) => void;
-  warning: (title: string, desc: string, options?: Omit<ToastOptions, 'type'>) => void;
-  info: (title: string, desc: string, options?: Omit<ToastOptions, 'type'>) => void;
+  toast: (title: string, description: string, options: ToastOptions & { tone: AlertTone }) => void;
+  showToast: (title: string, description: string, options?: ToastOptions) => void;
+  success: ToastMethod;
+  warning: ToastMethod;
+  danger: ToastMethod;
+  info: ToastMethod;
+  neutral: ToastMethod;
+  error: ToastMethod;
   closeToast: (id: string) => void;
 }
 
 const ToastContext = createContext<ToastContextType | null>(null);
+const normalizeTone = (type?: ToastType): AlertTone =>
+  type === 'error' ? 'danger' : type === 'logout' ? 'neutral' : (type ?? 'success');
 
-export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [toasts, setToasts] = useState<ToastItemData[]>([]);
-  const lastToastTimestamps = useRef<Map<string, number>>(new Map());
+const inferType = (title: string, description: string): ToastType => {
+  const content = `${title} ${description}`.toLowerCase();
+  if (/lỗi|error|thất bại|failed/.test(content)) return 'error';
+  if (/cảnh báo|warning|hết hạn/.test(content)) return 'warning';
+  if (/đăng xuất|logout/.test(content)) return 'logout';
+  if (/thông tin|info/.test(content)) return 'info';
+  return 'success';
+};
 
-  const closeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
-  const showToast = useCallback((title: string, desc: string, options?: ToastOptions) => {
-    const toastId =
-      options?.id || `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const dedupeKey = options?.id || `${title}:${desc}`;
-    const now = Date.now();
-    const lastTime = lastToastTimestamps.current.get(dedupeKey) || 0;
-
-    // Prevent duplicate toast spam within 2.5 seconds
-    if (now - lastTime < 2500) {
-      return;
-    }
-    lastToastTimestamps.current.set(dedupeKey, now);
-
-    let resolvedType: ToastType = options?.type || 'success';
-    if (!options?.type) {
-      const lower = `${title} ${desc}`.toLowerCase();
-      if (
-        lower.includes('lỗi') ||
-        lower.includes('error') ||
-        lower.includes('thất bại') ||
-        lower.includes('failed')
-      ) {
-        resolvedType = 'error';
-      } else if (
-        lower.includes('cảnh báo') ||
-        lower.includes('warning') ||
-        lower.includes('hết hạn')
-      ) {
-        resolvedType = 'warning';
-      } else if (lower.includes('đăng xuất') || lower.includes('logout')) {
-        resolvedType = 'logout';
-      } else if (lower.includes('thông tin') || lower.includes('info')) {
-        resolvedType = 'info';
-      }
-    }
-
-    const newToast: ToastItemData = {
-      id: toastId,
-      title,
-      desc,
-      type: resolvedType,
-      duration: options?.duration ?? 2200,
-      action: options?.action,
-    };
-
-    // Luôn giữ tối đa 1 toast đang hiển thị để tránh xếp chồng đè lên nhau
-    setToasts([newToast]);
-  }, []);
-
-  const success = useCallback(
-    (title: string, desc: string, options?: Omit<ToastOptions, 'type'>) => {
-      showToast(title, desc, { ...options, type: 'success' });
-    },
-    [showToast],
+export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
+  const [toasts, setToasts] = useState<ToastData[]>([]);
+  const timestamps = useRef(new Map<string, number>());
+  const closeToast = useCallback(
+    (id: string) => setToasts((current) => current.filter((item) => item.id !== id)),
+    [],
   );
 
-  const error = useCallback(
-    (title: string, desc: string, options?: Omit<ToastOptions, 'type'>) => {
-      showToast(title, desc, { ...options, type: 'error' });
+  const showToast = useCallback(
+    (title: string, description: string, options: ToastOptions = {}) => {
+      const type = options.tone ?? options.type ?? inferType(title, description);
+      const tone = normalizeTone(type);
+      const key = options.id ?? `${tone}:${title}:${description}`;
+      const now = Date.now();
+      if (now - (timestamps.current.get(key) ?? 0) < 2500) return;
+      timestamps.current.set(key, now);
+      const item: ToastData = {
+        id: options.id ?? `toast-${now}-${Math.random().toString(36).slice(2, 9)}`,
+        title,
+        description,
+        tone,
+        type,
+        duration: options.duration ?? 5000,
+        action: options.action,
+      };
+      setToasts((current) => [...current, item].slice(-3));
     },
-    [showToast],
+    [],
   );
 
-  const warning = useCallback(
-    (title: string, desc: string, options?: Omit<ToastOptions, 'type'>) => {
-      showToast(title, desc, { ...options, type: 'warning' });
-    },
-    [showToast],
-  );
-
-  const info = useCallback(
-    (title: string, desc: string, options?: Omit<ToastOptions, 'type'>) => {
-      showToast(title, desc, { ...options, type: 'info' });
-    },
+  const method = useCallback(
+    (tone: AlertTone): ToastMethod =>
+      (title, description, options) => {
+        showToast(title, description, { ...options, tone });
+      },
     [showToast],
   );
 
   const value: ToastContextType = {
+    toast: (title, description, options) => showToast(title, description, options),
     showToast,
-    success,
-    error,
-    warning,
-    info,
+    success: method('success'),
+    warning: method('warning'),
+    danger: method('danger'),
+    info: method('info'),
+    neutral: method('neutral'),
+    error: method('danger'),
     closeToast,
   };
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <ToastStack toasts={toasts} onClose={closeToast} />
+      <ToastStack
+        toasts={toasts}
+        onClose={closeToast}
+        closeLabel={t('common.toast.close', 'Close notification')}
+        regionLabel={t('common.toast.region', 'System notifications')}
+      />
     </ToastContext.Provider>
   );
-};
+}
 
-export const useToast = (): ToastContextType => {
+export function useToast(): ToastContextType {
   const context = useContext(ToastContext);
-  if (!context) {
-    return {
-      showToast: (t, d) => console.log('[Toast]', t, d),
-      success: (t, d) => console.log('[Toast Success]', t, d),
-      error: (t, d) => console.error('[Toast Error]', t, d),
-      warning: (t, d) => console.warn('[Toast Warning]', t, d),
-      info: (t, d) => console.info('[Toast Info]', t, d),
-      closeToast: () => {},
-    };
-  }
-  return context;
-};
+  if (context) return context;
+  const log = (title: string, description: string) => console.info('[Toast]', title, description);
+  return {
+    toast: log,
+    showToast: log,
+    success: log,
+    warning: log,
+    danger: log,
+    info: log,
+    neutral: log,
+    error: log,
+    closeToast: () => undefined,
+  };
+}

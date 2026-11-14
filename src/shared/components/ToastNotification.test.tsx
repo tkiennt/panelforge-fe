@@ -22,9 +22,9 @@ describe('ToastNotification Component', () => {
     expect(screen.getByTestId('toast-icon-warning')).toBeInTheDocument();
     expect(screen.queryByTestId('toast-icon-success')).not.toBeInTheDocument();
 
-    // Kiểm tra accessibility: role="alert" và aria-live="assertive" cho thông báo hết phiên
-    const alertEl = screen.getByRole('alert');
-    expect(alertEl).toHaveAttribute('aria-live', 'assertive');
+    // Warning uses a polite announcement under the shared toast contract.
+    const alertEl = screen.getByRole('status');
+    expect(alertEl).toHaveAttribute('aria-live', 'polite');
 
     // Kiểm tra nút đóng với accessible name đúng
     const closeBtn = screen.getByRole('button', { name: 'Đóng thông báo' });
