@@ -1,102 +1,89 @@
-import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
-import { LucianConfirmModal } from '@/shared/components/lucian/LucianConfirmModal';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
+import { ConfirmDialog, type ConfirmDialogVariant } from '@/shared/ui';
 
 export interface ConfirmOptions {
   title?: string;
   description?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  confirmationText?: string;
+  variant?: ConfirmDialogVariant | 'warning' | 'info';
+  dismissible?: boolean;
+  /** Existing localized call sites; prefer confirmLabel. */
   confirmText?: string;
+  /** Existing localized call sites; prefer cancelLabel. */
   cancelText?: string;
-  variant?: 'danger' | 'warning' | 'info';
 }
 
 export type ConfirmFunction = (options: string | ConfirmOptions) => Promise<boolean>;
-
 const ConfirmContext = createContext<ConfirmFunction | null>(null);
 
-export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [modalState, setModalState] = useState<{
-    isOpen: boolean;
-    title: string;
-    description?: string;
-    confirmText?: string;
-    cancelText?: string;
-    variant?: 'danger' | 'warning' | 'info';
-  }>({
-    isOpen: false,
-    title: '',
-  });
-
+export function ConfirmProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
+  const [options, setOptions] = useState<ConfirmOptions | null>(null);
   const resolverRef = useRef<((value: boolean) => void) | null>(null);
 
-  const confirm = useCallback<ConfirmFunction>((options) => {
+  const settle = useCallback((result: boolean) => {
+    const resolve = resolverRef.current;
+    if (!resolve) return;
+    resolverRef.current = null;
+    setOptions(null);
+    resolve(result);
+  }, []);
+
+  const confirm = useCallback<ConfirmFunction>((nextOptions) => {
+    resolverRef.current?.(false);
     return new Promise<boolean>((resolve) => {
       resolverRef.current = resolve;
-      if (typeof options === 'string') {
-        setModalState({
-          isOpen: true,
-          title: 'Xác nhận yêu cầu',
-          description: options,
-          confirmText: 'Đồng ý',
-          cancelText: 'Hủy',
-          variant: 'danger',
-        });
-      } else {
-        setModalState({
-          isOpen: true,
-          title: options.title || 'Xác nhận yêu cầu',
-          description: options.description,
-          confirmText: options.confirmText || 'Đồng ý',
-          cancelText: options.cancelText || 'Hủy',
-          variant: options.variant || 'danger',
-        });
-      }
+      setOptions(typeof nextOptions === 'string' ? { description: nextOptions } : nextOptions);
     });
   }, []);
 
-  const handleConfirm = () => {
-    setModalState((prev) => ({ ...prev, isOpen: false }));
-    if (resolverRef.current) {
-      resolverRef.current(true);
-      resolverRef.current = null;
-    }
-  };
-
-  const handleCancel = () => {
-    setModalState((prev) => ({ ...prev, isOpen: false }));
-    if (resolverRef.current) {
-      resolverRef.current(false);
-      resolverRef.current = null;
-    }
-  };
+  const title = options?.title ?? t('common.confirm.title', 'Confirm request');
+  const confirmLabel =
+    options?.confirmLabel ?? options?.confirmText ?? t('common.actions.confirm', 'Continue');
+  const cancelLabel =
+    options?.cancelLabel ?? options?.cancelText ?? t('common.actions.cancel', 'Cancel');
 
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      <LucianConfirmModal
-        isOpen={modalState.isOpen}
-        title={modalState.title}
-        description={modalState.description}
-        confirmText={modalState.confirmText}
-        cancelText={modalState.cancelText}
-        variant={modalState.variant}
-        onConfirm={handleConfirm}
-        onCancel={handleCancel}
+      <ConfirmDialog
+        isOpen={options !== null}
+        title={title}
+        description={options?.description}
+        variant={
+          options?.variant === 'danger' || options?.variant === 'type-to-confirm'
+            ? options.variant
+            : 'default'
+        }
+        confirmationText={options?.confirmationText}
+        confirmationInputLabel={t('common.dangerZone.typeInputLabel', 'Type name to confirm')}
+        confirmLabel={confirmLabel}
+        cancelLabel={cancelLabel}
+        closeLabel={t('common.actions.close', 'Close')}
+        dismissible={options?.dismissible ?? true}
+        onConfirm={() => settle(true)}
+        onCancel={() => settle(false)}
       />
     </ConfirmContext.Provider>
   );
-};
+}
 
-export const useConfirm = (): ConfirmFunction => {
+export function useConfirm(): ConfirmFunction {
   const context = useContext(ConfirmContext);
   if (!context) {
-    // Graceful fallback to window.confirm in non-provider test environments
-    return async (options: string | ConfirmOptions) => {
-      const msg =
-        typeof options === 'string' ? options : `${options.title}\n${options.description || ''}`;
+    return async (options) => {
+      const message =
+        typeof options === 'string'
+          ? options
+          : `${options.title ?? ''}\n${options.description ?? ''}`;
       return typeof window !== 'undefined' && typeof window.confirm === 'function'
-        ? window.confirm(msg)
+        ? window.confirm(message)
         : true;
     };
   }
   return context;
-};
+}

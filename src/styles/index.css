@@ -38,6 +38,30 @@
   --color-studio-amber-soft: var(--studio-amber-soft, #fffbeb);
   --color-studio-danger: var(--studio-danger, #d93a55);
   --color-studio-danger-soft: var(--studio-danger-soft, #fef2f2);
+  --color-studio-success: var(--studio-status-success);
+  --color-studio-warning: var(--studio-status-warning);
+  --color-studio-info: var(--studio-status-info);
+  --color-studio-surface-0: var(--studio-surface-0);
+  --color-studio-surface-1: var(--studio-surface-1);
+  --color-studio-surface-2: var(--studio-surface-2);
+  --color-studio-surface-3: var(--studio-surface-3);
+  --color-studio-focus-ring: var(--studio-focus-ring);
+  --radius-studio-sm: var(--studio-radius-sm);
+  --radius-studio-md: var(--studio-radius-md);
+  --radius-studio-lg: var(--studio-radius-lg);
+  --shadow-studio-1: var(--studio-shadow-1);
+  --shadow-studio-2: var(--studio-shadow-2);
+  --shadow-studio-3: var(--studio-shadow-3);
+  --ease-studio: var(--studio-ease-standard);
+  --duration-studio-fast: var(--studio-motion-fast);
+  --duration-studio-base: var(--studio-motion-base);
+  --duration-studio-overlay: var(--studio-motion-overlay);
+  --z-index-studio-sticky: var(--studio-z-sticky);
+  --z-index-studio-dropdown: var(--studio-z-dropdown);
+  --z-index-studio-drawer: var(--studio-z-drawer);
+  --z-index-studio-modal: var(--studio-z-modal);
+  --z-index-studio-toast: var(--studio-z-toast);
+  --z-index-studio-tooltip: var(--studio-z-tooltip);
 
   --color-ink-black: #171717;
   --color-ink-dark: #262626;
@@ -152,6 +176,44 @@
   --animate-pulse-subtle: pulseSubtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-orb-float-slow: orbFloat 20s ease-in-out infinite;
   --animate-orb-float-reverse: orbFloat 25s ease-in-out infinite reverse;
+}
+
+@keyframes shared-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shared-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shared-drawer-left-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes shared-drawer-right-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes float {

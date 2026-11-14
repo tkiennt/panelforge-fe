@@ -1,0 +1,124 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
+import type { AlertTone } from './Alert';
+
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+export interface ToastData {
+  id: string;
+  title: string;
+  description: string;
+  tone: AlertTone;
+  duration?: number;
+  action?: ToastAction;
+  iconTestId?: string;
+}
+
+export interface ToastProps {
+  toast: ToastData;
+  closeLabel: string;
+  onClose: (id: string) => void;
+}
+
+const icons = {
+  info: Info,
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  danger: AlertCircle,
+  neutral: Info,
+};
+const colors = {
+  info: 'var(--studio-status-info)',
+  success: 'var(--studio-status-success)',
+  warning: 'var(--studio-status-warning)',
+  danger: 'var(--studio-status-danger)',
+  neutral: 'var(--studio-ink-muted)',
+};
+
+export function Toast({ toast, closeLabel, onClose }: ToastProps) {
+  const [paused, setPaused] = useState(false);
+  const remaining = useRef(toast.duration ?? 5000);
+  const started = useRef(Date.now());
+  const Icon = icons[toast.tone];
+
+  useEffect(() => {
+    if (toast.tone === 'danger' || paused) return;
+    started.current = Date.now();
+    const timer = window.setTimeout(() => onClose(toast.id), remaining.current);
+    return () => {
+      window.clearTimeout(timer);
+      remaining.current = Math.max(0, remaining.current - (Date.now() - started.current));
+    };
+  }, [onClose, paused, toast.id, toast.tone]);
+
+  return (
+    <div
+      className={`u070-t u070-type-${toast.tone} !relative !inset-auto border-l-4`}
+      style={
+        { '--c': colors[toast.tone], borderLeftColor: colors[toast.tone] } as React.CSSProperties
+      }
+      role='status'
+      aria-live={toast.tone === 'danger' ? 'assertive' : 'polite'}
+      aria-atomic='true'
+      data-testid={`toast-item-${toast.tone}`}
+      onPointerEnter={() => setPaused(true)}
+      onPointerLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false);
+      }}
+    >
+      <span
+        className='u070-ic'
+        aria-hidden='true'
+        data-testid={toast.iconTestId ?? `toast-icon-${toast.tone}`}
+      >
+        <Icon className='size-4' />
+      </span>
+      <div className='u070-tx'>
+        <b>{toast.title}</b>
+        <small>{toast.description}</small>
+        {toast.action && (
+          <button type='button' className='u070-act' onClick={toast.action.onClick}>
+            {toast.action.label}
+          </button>
+        )}
+      </div>
+      <button
+        type='button'
+        className='u070-x'
+        aria-label={closeLabel}
+        onClick={() => onClose(toast.id)}
+      >
+        <X className='size-4' aria-hidden='true' />
+      </button>
+    </div>
+  );
+}
+
+export function ToastStack({
+  toasts,
+  closeLabel,
+  regionLabel,
+  onClose,
+}: {
+  toasts: ToastData[];
+  closeLabel: string;
+  regionLabel: string;
+  onClose: (id: string) => void;
+}) {
+  if (!toasts.length) return null;
+  return (
+    <div
+      className='u070-zone !bottom-5 !top-auto !z-[var(--studio-z-toast)] flex flex-col gap-3'
+      role='region'
+      aria-label={regionLabel}
+    >
+      {[...toasts].reverse().map((toast) => (
+        <Toast key={toast.id} toast={toast} closeLabel={closeLabel} onClose={onClose} />
+      ))}
+    </div>
+  );
+}

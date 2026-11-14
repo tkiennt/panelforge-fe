@@ -2,56 +2,30 @@
    Every element reads its colors from these --ux-* tokens and uses the .ux base rules below. */
 :root {
   color-scheme: light;
-  --ux-page: #f3f0e9;
-  --ux-surface: #fcfbf8;
-  --ux-surface-2: #f5f3ef;
-  --ux-surface-3: #eae7e1;
-  --ux-ink: #1c1917;
-  --ux-ink-2: #57534e;
-  --ux-ink-3: #8e8a97;
-  --ux-line: #d8d2c5;
-  --ux-line-2: rgba(28, 25, 23, 0.15);
-  --ux-accent: #f97316;
-  --ux-accent-2: #ea580c;
-  --ux-accent-soft: rgba(249, 115, 22, 0.12);
-  --ux-accent-ink: #ffffff;
-  --ux-mint: #119c72;
-  --ux-warn: #d6731e;
-  --ux-danger: #d93a55;
-  --ux-glass: rgba(252, 251, 248, 0.7);
-  --ux-glass-line: rgba(216, 210, 197, 0.85);
-  --ux-shadow: rgba(28, 25, 23, 0.08);
-  --ux-shadow-strong: rgba(28, 25, 23, 0.18);
-  --ux-grad: linear-gradient(120deg, #f97316, #ea580c 55%, #c2410c);
-  --ux-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ux-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    color-scheme: dark;
-    --ux-page: #07080d;
-    --ux-surface: #13141c;
-    --ux-surface-2: #1a1b25;
-    --ux-surface-3: #252632;
-    --ux-ink: #f4f0e8;
-    --ux-ink-2: rgba(244, 240, 232, 0.68);
-    --ux-ink-3: rgba(244, 240, 232, 0.42);
-    --ux-line: rgba(255, 255, 255, 0.08);
-    --ux-line-2: rgba(255, 255, 255, 0.16);
-    --ux-accent: #fb923c;
-    --ux-accent-2: #f97316;
-    --ux-accent-soft: rgba(251, 146, 60, 0.15);
-    --ux-accent-ink: #0b0c12;
-    --ux-mint: #7ee8c0;
-    --ux-warn: #ffb26b;
-    --ux-danger: #ff7d8c;
-    --ux-glass: rgba(255, 255, 255, 0.07);
-    --ux-glass-line: rgba(255, 255, 255, 0.18);
-    --ux-shadow: rgba(0, 0, 0, 0.45);
-    --ux-shadow-strong: rgba(0, 0, 0, 0.72);
-    --ux-grad: linear-gradient(120deg, #fb923c, #f97316 55%, #a5f2d3);
-  }
+  --ux-page: var(--studio-surface-0);
+  --ux-surface: var(--studio-surface-1);
+  --ux-surface-2: var(--studio-surface-2);
+  --ux-surface-3: var(--studio-surface-3);
+  --ux-ink: var(--studio-ink);
+  --ux-ink-2: var(--studio-ink-muted);
+  --ux-ink-3: var(--studio-ink-subtle);
+  --ux-line: var(--studio-line);
+  --ux-line-2: var(--studio-line-strong);
+  --ux-accent: var(--studio-accent);
+  --ux-accent-2: var(--studio-accent-hover);
+  --ux-accent-soft: var(--studio-accent-soft);
+  --ux-accent-ink: var(--studio-accent-ink);
+  --ux-mint: var(--studio-status-success);
+  --ux-warn: var(--studio-status-warning);
+  --ux-danger: var(--studio-status-danger);
+  --ux-info: var(--studio-status-info);
+  --ux-glass: var(--studio-surface-2);
+  --ux-glass-line: var(--studio-line);
+  --ux-shadow: var(--studio-shadow-1);
+  --ux-shadow-strong: var(--studio-shadow-3);
+  --ux-grad: var(--studio-accent);
+  --ux-ease: var(--studio-ease-standard);
+  --ux-spring: var(--studio-ease-standard);
 }
 
 .ux,

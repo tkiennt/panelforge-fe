@@ -59,6 +59,7 @@
     "menuTitle": "Navigation Menu",
     "chapter": "Chapter",
     "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu",
     "backToWorkspaces": "Back to Workspace Catalog",
     "openSeriesList": "Open Series list",
     "goToSeries": "Go to Series Workspace",

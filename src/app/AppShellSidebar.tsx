@@ -20,6 +20,7 @@ import { SeriesDto } from '@/services/series.service';
 import { seriesService } from '@/services/series.service';
 import { BrandMark } from '@/shared/components/BrandMark';
 import { useTranslation } from '@/lib/i18n';
+import { SidebarItem, SidebarSection } from '@/shared/ui';
 import '@/styles/modules/sidebar-theme.css';
 
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
@@ -412,7 +413,9 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                     {showFullContent && (
                       <div className='min-w-0 pf-sb-label'>
                         <p className='text-xs font-semibold truncate leading-tight'>
-                      {seriesId ? activeSeries?.title || 'Active Series' : t('navigation.sidebar.chooseSeries', 'Chọn Series...')}
+                          {seriesId
+                            ? activeSeries?.title || 'Active Series'
+                            : t('navigation.sidebar.chooseSeries', 'Chọn Series...')}
                         </p>
                         <p
                           className='text-[10.5px] font-mono truncate'
@@ -445,7 +448,9 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                       className='px-3 py-1.5 border-b flex items-center justify-between text-[11px] font-semibold'
                       style={{ borderColor: 'var(--sb-border)', color: 'var(--sb-muted)' }}
                     >
-                  <span>{t('navigation.sidebar.seriesInStudio', 'Bộ truyện trong Studio')}</span>
+                      <span>
+                        {t('navigation.sidebar.seriesInStudio', 'Bộ truyện trong Studio')}
+                      </span>
                       <button
                         type='button'
                         onClick={(e) => {
@@ -455,17 +460,17 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                         className='text-[11px] font-medium cursor-pointer hover:underline'
                         style={{ color: 'var(--sb-accent)' }}
                       >
-                    {t('navigation.sidebar.allSeries', 'Xem tất cả')}
+                        {t('navigation.sidebar.allSeries', 'Xem tất cả')}
                       </button>
                     </div>
                     {loadingSeries && (
                       <div className='p-3 text-xs text-center' style={{ color: 'var(--sb-muted)' }}>
-                    {t('navigation.sidebar.loading', 'Đang tải...')}
+                        {t('navigation.sidebar.loading', 'Đang tải...')}
                       </div>
                     )}
                     {!loadingSeries && seriesList.length === 0 && (
                       <div className='p-3 text-xs text-center' style={{ color: 'var(--sb-muted)' }}>
-                    {t('navigation.sidebar.noSeries', 'Chưa có bộ truyện nào')}
+                        {t('navigation.sidebar.noSeries', 'Chưa có bộ truyện nào')}
                       </div>
                     )}
                     {!loadingSeries &&
@@ -490,7 +495,8 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                             <div className='truncate pr-2 min-w-0'>
                               <p className='truncate'>{s.title}</p>
                               <p className='text-xs font-mono' style={{ color: 'var(--sb-muted)' }}>
-                            {s.genre || 'Manga'} • {s.chaptersCount || 0} {t('navigation.sidebar.chaptersCount', 'chương')}
+                                {s.genre || 'Manga'} • {s.chaptersCount || 0}{' '}
+                                {t('navigation.sidebar.chaptersCount', 'chương')}
                               </p>
                             </div>
                             {isSelected && (
@@ -519,69 +525,39 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         onScroll={() => setTip(null)}
       >
         {navSections.map((section, idx) => (
-          <div
+          <SidebarSection
             key={idx}
+            label={section.section}
+            collapsed={!showFullContent}
             className={idx > 0 && !showFullContent ? 'pt-3 border-t' : undefined}
             style={idx > 0 && !showFullContent ? { borderColor: 'var(--sb-border)' } : undefined}
           >
-            {showFullContent && (
-              <div
-                className='pf-sb-label text-[11px] font-semibold px-2 mb-1.5 uppercase tracking-wider font-mono'
-                style={{ color: 'var(--sb-muted)' }}
-              >
-                {section.section}
-              </div>
-            )}
             <div className='space-y-1'>
-              {section.items.map((item: any, i: number) => {
-                const IconComp = item.icon;
-                return (
-                  <a
-                    key={i}
-                    href={`#${item.href}`}
-                    onClick={(e) => handleNavClick(e, item.href)}
-                    className={`pf-sb-item group relative flex items-center rounded-xl cursor-pointer focus:outline-none transition-all duration-150 ${
-                      showFullContent ? `${rowSize} py-2.5` : rowSize
-                    } ${
-                      item.isActive
-                        ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] font-semibold shadow-xs'
-                        : ''
-                    }`}
-                    aria-current={item.isActive ? 'page' : undefined}
-                    title={showFullContent ? item.label : undefined}
-                    aria-label={item.label}
-                    {...railTip(item.label)}
-                  >
-                    {item.isActive && (
-                      <span
-                        className='absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r bg-[var(--sb-accent)] shadow-[0_0_8px_var(--sb-accent)]'
-                        aria-hidden='true'
-                      />
-                    )}
-                    {IconComp && (
-                      <IconComp
-                        className={`pf-sb-icon w-5 h-5 shrink-0 stroke-[1.9] ${
-                          item.isActive ? 'text-[var(--sb-accent)]' : ''
-                        }`}
-                      />
-                    )}
-                    {showFullContent && (
-                      <>
-                        <span className='pf-sb-label font-sans text-[13.5px] leading-5 flex-1 text-left'>
-                          {item.label}
-                        </span>
-                        {item.badge && (
-                          <span className='pf-sb-label ml-auto shrink-0 flex items-center'>
-                            {renderBadge(item.badge)}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </a>
-                );
-              })}
+              {section.items.map((item, i) => (
+                <SidebarItem
+                  key={`${item.href}-${i}`}
+                  href={`#${item.href}`}
+                  currentPath={location.pathname}
+                  icon={item.icon}
+                  label={item.label}
+                  badge={item.badge ? renderBadge(item.badge) : undefined}
+                  badgeLabel={
+                    item.badge
+                      ? `${item.label}: ${
+                          typeof item.badge === 'string' || typeof item.badge === 'number'
+                            ? item.badge
+                            : 'status'
+                        }`
+                      : undefined
+                  }
+                  collapsed={!showFullContent}
+                  onClick={(event) => handleNavClick(event, item.href)}
+                  className={showFullContent ? rowSize : undefined}
+                  {...railTip(item.label)}
+                />
+              ))}
             </div>
-          </div>
+          </SidebarSection>
         ))}
       </nav>
 
