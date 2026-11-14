@@ -36,6 +36,7 @@ import {
   Smartphone,
   Split,
   Compass,
+  Globe,
 } from 'lucide-react';
 import {
   elementService,
@@ -418,6 +419,14 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Ngôn ngữ soạn thảo bóng thoại (BR-34: balloon localization): 'vi' (ngôn ngữ gốc), 'en', 'ja', 'ko'...
+  const [activeLang, setActiveLang] = useState<string>('vi');
+
+  const getElementText = useCallback((el: ElementSnapshotDto, lang: string) => {
+    if (lang === 'vi') return el.content || el.renderedText || '';
+    return el.texts?.[lang] ?? el.content ?? el.renderedText ?? '';
+  }, []);
 
   // Kích thước canvas thực tế (px) từ cấu hình Page (Lỗi 1)
   const [pageDim, setPageDim] = useState<{ width: number; height: number }>({
@@ -1396,12 +1405,22 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     const target = elements.find((e) => e.elementId === elementId);
     if (!target) return;
 
+    const nextTexts = { ...(target.texts || {}), [activeLang]: text };
     setElements((prev) =>
-      prev.map((b) => (b.elementId === elementId ? { ...b, content: text } : b)),
+      prev.map((b) =>
+        b.elementId === elementId
+          ? {
+              ...b,
+              content: activeLang === 'vi' ? text : (b.content || text),
+              texts: nextTexts,
+            }
+          : b,
+      ),
     );
 
     const payload = {
-      content: text,
+      content: activeLang === 'vi' ? text : (target.content || text),
+      languageCode: activeLang,
       scriptLineId: target.scriptLineId || undefined,
       expectedElementVersion: target.version,
     };
@@ -3104,6 +3123,34 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               <Compass className='w-3 h-3 text-[#C2410C]' />
               <span>{isRTL ? 'RTL (Manga)' : 'LTR (Tây)'}</span>
             </button>
+            <div className='w-px h-4 bg-[#D8D2C5] mx-1'></div>
+            {/* Bộ chọn ngôn ngữ đang soạn (BR-34: Balloon Localization) */}
+            <div
+              data-testid='lettering-language-selector'
+              className='flex items-center gap-1 bg-[#F3F0E9] px-2 py-0.5 rounded-xl border border-[#D8D2C5] text-xs font-semibold'
+            >
+              <Globe className='w-3 h-3 text-[#C2410C]' />
+              <span className='text-[10px] text-[#78716C] font-mono'>Ngôn ngữ:</span>
+              {[
+                { code: 'vi', label: 'VI (Gốc)' },
+                { code: 'en', label: 'EN' },
+                { code: 'ja', label: 'JA' },
+              ].map((l) => (
+                <button
+                  key={l.code}
+                  type='button'
+                  onClick={() => setActiveLang(l.code)}
+                  className={`px-1.5 py-0.5 rounded-lg text-[11px] transition-colors cursor-pointer ${
+                    activeLang === l.code
+                      ? 'bg-[#1C1917] text-white font-bold shadow-2xs'
+                      : 'text-[#57534E] hover:bg-[#E7E2D7]'
+                  }`}
+                  title={`Soạn bóng thoại ở ấn bản: ${l.label} (BR-34)`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
             <button
               onClick={() => setReaderMode((v) => !v)}
               aria-pressed={readerMode}
@@ -3507,8 +3554,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                   );
                 }
 
+                const displayedText = getElementText(b, activeLang);
                 const textConstraints = evaluateTextConstraints(
-                  b.content || '',
+                  displayedText,
                   box.pxW,
                   box.pxH,
                   overflowInfo[b.elementId],
@@ -3533,7 +3581,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                 const shapePath = balloonPath(appearance.shape, box.pxW, box.pxH, currentTail);
                 const textStyle = resolveTextStyle(b);
                 const textLayout = layoutText(
-                  b.content || '',
+                  displayedText,
                   textStyle,
                   appearance.shape,
                   box.pxW,
@@ -3843,7 +3891,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     {editing ? (
                       <CommitTextarea
                         autoFocus
-                        value={b.content || ''}
+                        value={displayedText}
                         readOnly={isReadOnly}
                         onCommit={(text) => updateBalloonText(b.elementId, text)}
                         onDone={() => setEditingId(null)}

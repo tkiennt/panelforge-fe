@@ -57,6 +57,8 @@ export interface ElementSnapshotDto {
   bibleEntryId?: string | null;
   /** Kiểu chữ Letterer chọn; null = mặc định theo loại element. */
   style?: TextStyleDto | null;
+  /** Bản dịch theo từng ngôn ngữ (BR-34): { vi: '...', en: '...', ja: '...' } */
+  texts?: Record<string, string> | null;
 }
 
 /** Khớp TextStyle.cs (Backend): font trong danh sách cho phép, cỡ 14–160px, màu #RRGGBB. */
@@ -134,6 +136,7 @@ export interface UpdateElementTextRequest {
   content?: string;
   scriptLineId?: string;
   expectedElementVersion?: number | null;
+  languageCode?: string;
 }
 
 export interface SetReadingOrderRequest {

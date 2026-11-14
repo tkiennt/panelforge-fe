@@ -1,7 +1,16 @@
 import React from 'react';
-import { Copy, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Copy, Trash2, ZoomIn, ZoomOut, AlertTriangle } from 'lucide-react';
 import type { ElementSnapshotDto } from '@/services/element.service';
-import { createSpeechBalloonPath, createThoughtBalloonPath } from '@/shared/utils/balloonPaths';
+import {
+  resolveAppearance,
+  appearanceFromStyle,
+  tailFromStyle,
+  balloonPath,
+  fillRgba,
+  textSafeArea,
+  defaultTail,
+} from '@/roles/letterer/lib/balloonRender';
+import { resolveTextStyle, textStyleCss } from '@/roles/letterer/lib/textStyle';
 import type { ResizeHandle } from '../../hooks/useLetteringBalloons';
 
 const HANDLES: { id: ResizeHandle; position: string; cursor: string }[] = [
@@ -33,32 +42,46 @@ interface LetteringBalloonOverlayProps {
 }
 
 const BalloonShape: React.FC<{ element: ElementSnapshotDto }> = ({ element: b }) => {
-  if (b.elementType === 'NARRATION_BOX') {
-    return (
-      <div className='w-full h-full bg-amber-50/90 border-2 border-stone-800 rounded-xs p-2 flex items-center justify-center text-center'>
-        <span className='text-xs font-sans font-medium text-stone-900 line-clamp-3 select-none'>
-          {b.content}
-        </span>
-      </div>
-    );
-  }
-
-  const path =
-    b.elementType === 'THOUGHT_BALLOON'
-      ? createThoughtBalloonPath(b.width, b.height)
-      : createSpeechBalloonPath(b.width, b.height, b.width / 2, b.height + 30);
+  const textStyle = resolveTextStyle(b);
+  const appearance = resolveAppearance(b.elementType, appearanceFromStyle(b.style));
+  const tail = tailFromStyle(b.style) ?? defaultTail(b.width, b.height);
+  const path = balloonPath(appearance.shape, b.width, b.height, tail);
+  const fill = fillRgba(appearance);
+  const safeArea = textSafeArea(appearance.shape, b.width, b.height);
 
   return (
-    <div className='relative w-full h-full flex items-center justify-center'>
-      <svg
-        viewBox={`0 0 ${b.width} ${b.height}`}
-        className='absolute inset-0 w-full h-full overflow-visible pointer-events-none'
-        aria-hidden='true'
+    <div className='relative w-full h-full flex items-center justify-center overflow-visible'>
+      {path && appearance.shape !== 'none' && (
+        <svg
+          viewBox={`0 0 ${b.width} ${b.height}`}
+          className='absolute inset-0 w-full h-full overflow-visible pointer-events-none'
+          aria-hidden='true'
+        >
+          <path
+            d={path}
+            fill={fill}
+            stroke={appearance.borderColor}
+            strokeWidth={appearance.borderWidth}
+          />
+        </svg>
+      )}
+      <div
+        className='absolute flex items-center justify-center p-1.5 text-center pointer-events-none overflow-hidden'
+        style={{
+          left: `${(safeArea.x / b.width) * 100}%`,
+          top: `${(safeArea.y / b.height) * 100}%`,
+          width: `${(safeArea.w / b.width) * 100}%`,
+          height: `${(safeArea.h / b.height) * 100}%`,
+        }}
       >
-        <path d={path} fill='#ffffff' stroke='#1c1917' strokeWidth='2.5' />
-      </svg>
-      <div className='relative z-10 p-2 text-center'>
-        <span className='text-xs font-comic font-medium text-stone-900 line-clamp-3 select-none'>
+        <span
+          className='select-none line-clamp-4 leading-tight break-words text-stone-900'
+          style={{
+            ...textStyleCss(textStyle),
+            color: textStyle.color || '#1c1917',
+            fontSize: `${Math.max(11, Math.min(22, textStyle.fontSize * 0.7))}px`,
+          }}
+        >
           {b.content}
         </span>
       </div>
@@ -178,6 +201,15 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
           <span className='absolute -top-2 -left-2 z-20 min-w-5 h-5 px-1 rounded-full bg-stone-900 text-white font-mono text-xs font-bold flex items-center justify-center'>
             #{b.readingOrder ?? idx + 1}
           </span>
+
+          {b.isStale && (
+            <span
+              className='absolute -top-2.5 right-2 z-30 px-1 py-0.2 rounded bg-amber-500 text-stone-900 text-[10px] font-bold flex items-center gap-0.5 shadow-sm'
+              title='Kịch bản đã đổi sau khi đặt bóng (BR-05 / isStale)'
+            >
+              <AlertTriangle className='w-2.5 h-2.5' /> Sửa kịch bản
+            </span>
+          )}
         </div>
       );
     })}
