@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, LayoutTemplate, Check, Sparkles, HelpCircle } from 'lucide-react';
 import { FramePresetTemplate } from './workspace.types';
+import { Drawer } from '@/shared/ui';
 
 export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
   // ── NHÓM 1: TỰ SỰ TIÊU CHUẨN (STANDARD & NARRATIVE) ─────────────────────────
@@ -240,44 +241,41 @@ export const TemplateSelectorSidebar: React.FC<TemplateSelectorSidebarProps> = (
   onSelectTemplate,
 }) => {
   return (
-    <>
-      {/* Backdrop overlay khi mở sidebar trên màn hình nhỏ */}
-      {isOpen && (
-        <div
-          data-testid='template-sidebar-backdrop'
-          onClick={onClose}
-          className='fixed inset-0 bg-stone-900/25 backdrop-blur-[1px] z-40 transition-opacity xl:hidden'
-        />
-      )}
-
-      {/* Slide-over Right Sidebar (320px) */}
-      <aside
-        data-testid='template-selector-sidebar'
-        className={`fixed top-0 right-0 h-full w-80 max-w-[90vw] bg-[#FAF8F5] border-l border-[#D8D2C5] shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-out transform ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        {/* Header */}
-        <div className='p-4 border-b border-[#D8D2C5] flex items-center justify-between bg-white shrink-0'>
-          <div className='flex items-center gap-2'>
-            <div className='w-8 h-8 rounded-lg bg-orange-50 border border-orange-200/60 flex items-center justify-center text-[#F97316]'>
-              <LayoutTemplate className='w-4 h-4' />
-            </div>
-            <div>
-              <h3 className='font-bold text-sm text-[#1C1917]'>Mẫu Khung Trang</h3>
-              <p className='text-[11px] text-[#57534E]'>Chọn bố cục phù hợp nhịp kịch bản</p>
-            </div>
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      placement='right'
+      size='sm'
+      className='translate-x-0'
+      closeLabel='Đóng thanh chọn mẫu khung'
+      backdropTestId='template-sidebar-backdrop'
+      data-testid='template-selector-sidebar'
+      title={
+        <div className='flex items-center gap-2'>
+          <div className='w-8 h-8 rounded-lg bg-orange-50 border border-orange-200/60 flex items-center justify-center text-[#F97316]'>
+            <LayoutTemplate className='w-4 h-4' />
           </div>
-          <button
-            type='button'
-            onClick={onClose}
-            data-testid='close-template-sidebar-btn'
-            className='p-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer'
-            title='Đóng thanh chọn mẫu khung'
-          >
-            <X className='w-4 h-4' />
-          </button>
+          <div>
+            <h3 className='font-bold text-sm text-[#1C1917]'>Mẫu Khung Trang</h3>
+            <p className='text-[11px] text-[#57534E]'>Chọn bố cục phù hợp nhịp kịch bản</p>
+          </div>
         </div>
+      }
+      footer={
+        <div className='p-1 text-center w-full'>
+          <p className='text-[11px] text-stone-500'>Manga Paper Studio · Chuẩn khung B5 Nhật Bản</p>
+        </div>
+      }
+    >
+      <div className='flex flex-col flex-1 min-h-0 overflow-hidden'>
+        <button
+          type='button'
+          onClick={onClose}
+          data-testid='close-template-sidebar-btn'
+          className='hidden'
+        >
+          <X className='w-4 h-4' />
+        </button>
 
         {/* Tip thông báo */}
         <div className='p-3 bg-amber-50/70 border-b border-amber-200/50 flex items-start gap-2 text-xs text-amber-900 shrink-0'>
@@ -378,12 +376,7 @@ export const TemplateSelectorSidebar: React.FC<TemplateSelectorSidebarProps> = (
             );
           })}
         </div>
-
-        {/* Footer */}
-        <div className='p-3 border-t border-[#D8D2C5] bg-white text-center shrink-0'>
-          <p className='text-[11px] text-stone-500'>Manga Paper Studio · Chuẩn khung B5 Nhật Bản</p>
-        </div>
-      </aside>
-    </>
+      </div>
+    </Drawer>
   );
 };

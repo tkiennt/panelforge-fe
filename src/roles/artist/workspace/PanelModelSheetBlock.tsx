@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { Sparkles, Loader2, AlertCircle, BookOpen, User, ExternalLink, X } from 'lucide-react';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
+import { Modal } from '@/shared/ui';
 
 export interface PanelModelSheetBlockProps {
   panelId?: string | null;
@@ -276,32 +277,31 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
       </div>
 
       {/* Lightbox Preview Modal khi click xem chi tiết */}
-      {previewEntry && (
-        <div
-          data-testid='panel-model-sheet-preview-modal'
-          className='fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs'
-          onClick={() => setPreviewEntry(null)}
-        >
-          <div
-            className='bg-white rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-3 font-sans'
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className='flex items-start justify-between gap-2 border-b border-stone-100 pb-2.5'>
-              <div>
-                <h3 className='font-bold text-sm text-stone-900'>{previewEntry.name}</h3>
-                {previewEntry.subtitle && (
-                  <p className='text-xs text-stone-500'>{previewEntry.subtitle}</p>
-                )}
-              </div>
-              <button
-                type='button'
-                data-testid='panel-model-sheet-modal-close-btn'
-                onClick={() => setPreviewEntry(null)}
-                className='p-1 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer'
-              >
-                <X className='w-4 h-4' />
-              </button>
-            </div>
+      <Modal
+        isOpen={Boolean(previewEntry)}
+        onClose={() => setPreviewEntry(null)}
+        size='sm'
+        closeLabel='Đóng'
+        data-testid='panel-model-sheet-preview-modal'
+        title={
+          <div>
+            <h3 className='font-bold text-sm text-stone-900'>{previewEntry?.name}</h3>
+            {previewEntry?.subtitle && (
+              <p className='text-xs text-stone-500 font-normal'>{previewEntry.subtitle}</p>
+            )}
+          </div>
+        }
+      >
+        {previewEntry && (
+          <div className='p-2 space-y-3 font-sans'>
+            <button
+              type='button'
+              data-testid='panel-model-sheet-modal-close-btn'
+              onClick={() => setPreviewEntry(null)}
+              className='hidden'
+            >
+              <X className='w-4 h-4' />
+            </button>
 
             {/* Ảnh lớn */}
             <div className='w-full h-52 rounded-xl bg-stone-50 border border-stone-200 overflow-hidden flex items-center justify-center'>
@@ -350,8 +350,8 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
               </p>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

@@ -11,6 +11,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { PanelBlockData, FramePresetTemplate } from './workspace.types';
+import { Modal } from '@/shared/ui';
 
 export const FRAME_PRESETS: FramePresetTemplate[] = [
   {
@@ -406,89 +407,72 @@ export const TemplatePanelCanvas: React.FC<TemplatePanelCanvasProps> = ({
       )}
 
       {/* 4. Template Picker Modal */}
-      {isPickerOpen && (
-        <div
-          data-testid='template-picker-modal'
-          className='fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 select-none'
-          onClick={() => setIsPickerOpen(false)}
-        >
-          <div
-            className='bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-xl overflow-hidden'
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className='p-4 border-b border-stone-100 flex items-center justify-between'>
-              <div className='flex items-center gap-2'>
-                <div className='w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center text-[#F97316]'>
-                  <LayoutTemplate className='w-4 h-4' />
+      <Modal
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        size='md'
+        closeLabel='Đóng'
+        data-testid='template-picker-modal'
+        title={
+          <div className='flex items-center gap-2'>
+            <div className='w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center text-[#F97316]'>
+              <LayoutTemplate className='w-4 h-4' />
+            </div>
+            <span className='text-sm font-bold text-[#171717]'>Kho Mẫu Khung Truyện</span>
+          </div>
+        }
+        description='Chọn mẫu bố cục chuẩn cho trang manga'
+      >
+        <div className='p-2 grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto custom-scrollbar'>
+          {FRAME_PRESETS.map((preset) => {
+            const isCurrent = activeTemplateId === preset.id;
+
+            return (
+              <div
+                key={preset.id}
+                onClick={() => {
+                  onApplyTemplate(preset);
+                  setIsPickerOpen(false);
+                }}
+                data-testid={`preset-card-${preset.id}`}
+                className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
+                  isCurrent
+                    ? 'border-[#F97316] bg-orange-50/40 ring-2 ring-[#F97316]/30'
+                    : 'border-stone-200 hover:border-stone-300 hover:bg-stone-50/60'
+                }`}
+              >
+                <div className='flex items-center justify-between mb-1'>
+                  <span className='text-xs font-bold text-[#171717]'>{preset.name}</span>
+                  <span className='text-[10px] font-mono px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 font-bold'>
+                    {preset.panelCount} Khung
+                  </span>
                 </div>
-                <div>
-                  <h4 className='text-sm font-bold text-[#171717]'>Kho Mẫu Khung Truyện</h4>
-                  <p className='text-xs text-stone-500'>Chọn mẫu bố cục chuẩn cho trang manga</p>
+
+                <p className='text-[11px] text-stone-500 leading-snug'>{preset.description}</p>
+
+                {/* Miniature Layout Preview */}
+                <div className='mt-3 h-20 bg-stone-100 rounded-lg border border-stone-200 relative p-1 overflow-hidden'>
+                  {preset.panels.map((p) => (
+                    <div
+                      key={`preview-${preset.id}-${p.panelNumber}`}
+                      style={{
+                        position: 'absolute',
+                        left: `${p.x}%`,
+                        top: `${p.y}%`,
+                        width: `${p.width}%`,
+                        height: `${p.height}%`,
+                      }}
+                      className='border border-stone-700 bg-white flex items-center justify-center text-[9px] font-mono font-bold text-stone-600'
+                    >
+                      #{p.panelNumber}
+                    </div>
+                  ))}
                 </div>
               </div>
-              <button
-                type='button'
-                onClick={() => setIsPickerOpen(false)}
-                className='p-1 rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 cursor-pointer'
-              >
-                <X className='w-4 h-4' />
-              </button>
-            </div>
-
-            {/* Presets Grid */}
-            <div className='p-4 grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto custom-scrollbar'>
-              {FRAME_PRESETS.map((preset) => {
-                const isCurrent = activeTemplateId === preset.id;
-
-                return (
-                  <div
-                    key={preset.id}
-                    onClick={() => {
-                      onApplyTemplate(preset);
-                      setIsPickerOpen(false);
-                    }}
-                    data-testid={`preset-card-${preset.id}`}
-                    className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
-                      isCurrent
-                        ? 'border-[#F97316] bg-orange-50/40 ring-2 ring-[#F97316]/30'
-                        : 'border-stone-200 hover:border-stone-300 hover:bg-stone-50/60'
-                    }`}
-                  >
-                    <div className='flex items-center justify-between mb-1'>
-                      <span className='text-xs font-bold text-[#171717]'>{preset.name}</span>
-                      <span className='text-[10px] font-mono px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 font-bold'>
-                        {preset.panelCount} Khung
-                      </span>
-                    </div>
-
-                    <p className='text-[11px] text-stone-500 leading-snug'>{preset.description}</p>
-
-                    {/* Miniature Layout Preview */}
-                    <div className='mt-3 h-20 bg-stone-100 rounded-lg border border-stone-200 relative p-1 overflow-hidden'>
-                      {preset.panels.map((p) => (
-                        <div
-                          key={`preview-${preset.id}-${p.panelNumber}`}
-                          style={{
-                            position: 'absolute',
-                            left: `${p.x}%`,
-                            top: `${p.y}%`,
-                            width: `${p.width}%`,
-                            height: `${p.height}%`,
-                          }}
-                          className='border border-stone-700 bg-white flex items-center justify-center text-[9px] font-mono font-bold text-stone-600'
-                        >
-                          #{p.panelNumber}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+            );
+          })}
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

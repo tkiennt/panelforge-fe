@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { PanelBlockData, CharacterModelSheet } from './workspace.types';
 import { PanelModelSheetBlock } from './PanelModelSheetBlock';
+import { Modal } from '@/shared/ui';
 
 const DEFAULT_CHARACTERS: CharacterModelSheet[] = [
   {
@@ -322,30 +323,23 @@ export const ScriptReaderColumn: React.FC<ScriptReaderColumnProps> = ({
       </div>
 
       {/* Model Sheet Lightbox Modal */}
-      {selectedCharacter && (
-        <div
-          data-testid='character-modal'
-          className='fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs'
-          onClick={() => setSelectedCharacter(null)}
-        >
-          <div
-            className='bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4'
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className='flex items-center justify-between'>
-              <div>
-                <h3 className='font-bold text-base text-stone-900'>{selectedCharacter.name}</h3>
-                <p className='text-xs text-stone-500'>{selectedCharacter.role}</p>
-              </div>
-              <button
-                type='button'
-                onClick={() => setSelectedCharacter(null)}
-                className='text-stone-400 hover:text-stone-700 text-sm font-semibold'
-              >
-                Đóng
-              </button>
-            </div>
-
+      <Modal
+        isOpen={Boolean(selectedCharacter)}
+        onClose={() => setSelectedCharacter(null)}
+        size='sm'
+        closeLabel='Đóng'
+        data-testid='character-modal'
+        title={
+          <div>
+            <h3 className='font-bold text-base text-stone-900'>{selectedCharacter?.name}</h3>
+            {selectedCharacter?.role && (
+              <p className='text-xs text-stone-500 font-normal'>{selectedCharacter.role}</p>
+            )}
+          </div>
+        }
+      >
+        {selectedCharacter && (
+          <div className='p-2 space-y-4'>
             <div className='h-48 bg-stone-100 rounded-xl flex items-center justify-center text-stone-400 border border-stone-200'>
               <div className='text-center space-y-1'>
                 <User className='w-10 h-10 mx-auto text-stone-300' />
@@ -380,8 +374,8 @@ export const ScriptReaderColumn: React.FC<ScriptReaderColumnProps> = ({
               </p>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </aside>
   );
 };

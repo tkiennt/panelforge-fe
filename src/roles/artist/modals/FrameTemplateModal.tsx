@@ -1,14 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import {
-  LayoutTemplate,
-  X,
-  AlertTriangle,
-  CheckCircle2,
-  ArrowRight,
-  ShieldAlert,
-} from 'lucide-react';
+import { LayoutTemplate, AlertTriangle, CheckCircle2, ArrowRight, ShieldAlert } from 'lucide-react';
 import { frameTemplateService, FrameTemplateDto } from '@/services/frameTemplate.service';
 import { PanelDto } from '@/types/pipeline';
+import { Modal } from '@/shared/ui';
 
 interface FrameTemplateModalProps {
   isOpen: boolean;
@@ -96,38 +90,59 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
 
   return (
-    <div className='fixed inset-0 z-50 bg-[#1C1917]/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150'>
-      <div className='bg-[#FCFBF8] rounded-xl sm:rounded-2xl border border-[#D8D2C5] shadow-2xl max-w-xl sm:max-w-2xl w-full flex flex-col max-h-[85vh] sm:max-h-[560px] overflow-hidden'>
-        {/* Header */}
-        <div className='px-4 py-3 border-b border-[#D8D2C5] flex items-center justify-between bg-[#F8F6F0]'>
-          <div className='flex items-center gap-2.5 min-w-0'>
-            <div className='p-1.5 bg-[#FFF2E6] text-[#C2410C] rounded-lg border border-[#FDBA74]/80 shrink-0'>
-              <LayoutTemplate className='w-4 h-4' />
-            </div>
-            <div className='min-w-0'>
-              <div className='flex items-center gap-2'>
-                <h3 className='text-sm font-semibold text-[#1C1917] truncate'>
-                  Áp Dụng Mẫu Khung Tranh (Frame Templates)
-                </h3>
-                <span className='px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#E7E2D9] text-[#57534E] shrink-0'>
-                  Trang {pageNumber}
-                </span>
-              </div>
-              <p className='text-[11px] text-[#78716C] truncate'>
-                Chọn mẫu dựng sẵn để tự động sinh ô Panel theo thứ tự đọc
-              </p>
-            </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='lg'
+      closeLabel='Đóng'
+      title={
+        <div className='flex items-center gap-2.5 min-w-0'>
+          <div className='p-1.5 bg-[#FFF2E6] text-[#C2410C] rounded-lg border border-[#FDBA74]/80 shrink-0'>
+            <LayoutTemplate className='w-4 h-4' />
           </div>
-          <button
-            type='button'
-            onClick={onClose}
-            className='p-1.5 text-[#78716C] hover:text-[#1C1917] hover:bg-[#EAE5D9] rounded-lg transition-colors cursor-pointer shrink-0 ml-2'
-            aria-label='Đóng'
-          >
-            <X className='w-4 h-4' />
-          </button>
+          <div className='flex items-center gap-2 min-w-0'>
+            <span className='text-sm font-semibold text-[#1C1917] truncate'>
+              Áp Dụng Mẫu Khung Tranh (Frame Templates)
+            </span>
+            <span className='px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#E7E2D9] text-[#57534E] shrink-0'>
+              Trang {pageNumber}
+            </span>
+          </div>
         </div>
-
+      }
+      description='Chọn mẫu dựng sẵn để tự động sinh ô Panel theo thứ tự đọc'
+      footer={
+        <div className='flex items-center justify-between w-full gap-3'>
+          <div className='text-xs text-[#57534E] truncate min-w-0'>
+            {selectedTemplate && (
+              <span className='truncate block'>
+                Đang chọn: <strong className='text-[#1C1917]'>{selectedTemplate.name}</strong> (
+                {selectedTemplate.panelCount} ô Panel)
+              </span>
+            )}
+          </div>
+          <div className='flex items-center gap-2 shrink-0'>
+            <button
+              type='button'
+              onClick={onClose}
+              className='px-3 py-1.5 text-xs text-[#57534E] hover:text-[#1C1917] hover:bg-[#EAE5D9] rounded-lg font-medium cursor-pointer transition-colors'
+            >
+              Hủy
+            </button>
+            <button
+              type='button'
+              onClick={handleApply}
+              disabled={applying || !selectedTemplateId}
+              className='px-3.5 py-1.5 bg-[#F97316] hover:bg-[#EA580C] disabled:bg-stone-300 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95'
+            >
+              <span>{applying ? 'Đang áp dụng...' : 'Áp Dụng Mẫu Khung'}</span>
+              <ArrowRight className='w-3.5 h-3.5' />
+            </button>
+          </div>
+        </div>
+      }
+    >
+      <div className='flex flex-col max-h-[70vh] sm:max-h-[500px] overflow-hidden'>
         {/* Warning if page already has panels */}
         {hasExistingPanels && (
           <div className='mx-4 mt-3 px-3 py-2 bg-amber-50/90 border border-amber-200 rounded-lg flex items-center gap-2 text-xs text-amber-900'>
@@ -305,38 +320,8 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div className='px-4 py-2.5 border-t border-[#D8D2C5] flex items-center justify-between bg-[#F8F6F0] gap-3'>
-          <div className='text-xs text-[#57534E] truncate min-w-0'>
-            {selectedTemplate && (
-              <span className='truncate block'>
-                Đang chọn: <strong className='text-[#1C1917]'>{selectedTemplate.name}</strong> (
-                {selectedTemplate.panelCount} ô Panel)
-              </span>
-            )}
-          </div>
-          <div className='flex items-center gap-2 shrink-0'>
-            <button
-              type='button'
-              onClick={onClose}
-              className='px-3 py-1.5 text-xs text-[#57534E] hover:text-[#1C1917] hover:bg-[#EAE5D9] rounded-lg font-medium cursor-pointer transition-colors'
-            >
-              Hủy
-            </button>
-            <button
-              type='button'
-              onClick={handleApply}
-              disabled={applying || !selectedTemplateId}
-              className='px-3.5 py-1.5 bg-[#F97316] hover:bg-[#EA580C] disabled:bg-stone-300 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95'
-            >
-              <span>{applying ? 'Đang áp dụng...' : 'Áp Dụng Mẫu Khung'}</span>
-              <ArrowRight className='w-3.5 h-3.5' />
-            </button>
-          </div>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

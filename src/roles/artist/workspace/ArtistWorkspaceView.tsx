@@ -25,6 +25,7 @@ import { chapterService } from '@/services/chapter.service';
 import { artworkService, computeFileSha256 } from '@/services/artwork.service';
 import { pageService } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
+import { Toast } from '@/shared/ui';
 
 // Khởi tạo layout mặc định: 1 Panel Toàn Trang (Single-Panel)
 const INITIAL_SINGLE_PANEL: PanelBlockData[] = [
@@ -698,25 +699,23 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
       {toastMessage && (
         <div
           data-testid='workspace-toast'
-          className={`fixed bottom-5 right-5 z-50 p-4 rounded-xl border shadow-xl flex items-start gap-3 max-w-sm transition-all transform animate-in slide-in-from-bottom-3 ${
-            toastMessage.type === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
-              : toastMessage.type === 'error'
-                ? 'bg-red-50 border-red-200 text-red-950'
-                : 'bg-white border-[#D8D2C5] text-[#1C1917]'
-          }`}
+          className='fixed bottom-5 right-5 z-[var(--studio-z-toast)]'
         >
-          {toastMessage.type === 'success' ? (
-            <CheckCircle2 className='w-5 h-5 text-emerald-600 shrink-0 mt-0.5' />
-          ) : toastMessage.type === 'error' ? (
-            <AlertCircle className='w-5 h-5 text-red-600 shrink-0 mt-0.5' />
-          ) : (
-            <Sparkles className='w-5 h-5 text-[#F97316] shrink-0 mt-0.5' />
-          )}
-          <div className='flex-1 min-w-0'>
-            <h5 className='font-bold text-xs'>{toastMessage.title}</h5>
-            <p className='text-xs mt-0.5 opacity-90 leading-relaxed'>{toastMessage.desc}</p>
-          </div>
+          <Toast
+            toast={{
+              id: 'ws-toast',
+              title: toastMessage.title,
+              description: toastMessage.desc,
+              tone:
+                toastMessage.type === 'error'
+                  ? 'danger'
+                  : toastMessage.type === 'success'
+                    ? 'success'
+                    : 'info',
+            }}
+            closeLabel='Đóng'
+            onClose={() => setToastMessage(null)}
+          />
         </div>
       )}
     </div>
