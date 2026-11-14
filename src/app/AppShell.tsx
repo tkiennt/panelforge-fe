@@ -583,12 +583,14 @@ export function AppShell({
 
   navSections.forEach((section) => {
     section.items.forEach((item: any) => {
+      // So theo pathname: href có thể mang query (vd. Quy trình sản xuất ?chapterId=...)
+      const itemPath = String(item.href).split('?')[0];
       const isMatch =
-        location.pathname === item.href ||
-        (item.href !== '/' && location.pathname.startsWith(`${item.href}/`));
-      if (isMatch && item.href.length > bestMatchLength) {
+        location.pathname === itemPath ||
+        (itemPath !== '/' && location.pathname.startsWith(`${itemPath}/`));
+      if (isMatch && itemPath.length > bestMatchLength) {
         bestMatch = item;
-        bestMatchLength = item.href.length;
+        bestMatchLength = itemPath.length;
       }
     });
   });
@@ -729,7 +731,10 @@ export function AppShell({
                   data-testid='back-to-workspaces-breadcrumb'
                   className='text-[#1C1917] hover:text-black cursor-pointer transition-all flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-[#FFF2E6] hover:shadow-2xs'
                   onClick={() => navigate('/workspaces')}
-                  title={t('navigation.header.backToWorkspaces', 'Quay lại danh sách Workspace (Workspaces Catalog)')}
+                  title={t(
+                    'navigation.header.backToWorkspaces',
+                    'Quay lại danh sách Workspace (Workspaces Catalog)',
+                  )}
                 >
                   <Briefcase className='w-3.5 h-3.5 text-[#57534E]' />
                   <span className='font-bold'>Workspaces</span>
@@ -793,7 +798,9 @@ export function AppShell({
                           data-testid='header-artist-breadcrumb'
                         >
                           <LayoutTemplate className='w-3.5 h-3.5 text-[#F97316]' />
-                          <span className='truncate'>{t('navigation.menu.desk', 'Bàn vẽ Khung tranh')}</span>
+                          <span className='truncate'>
+                            {t('navigation.menu.desk', 'Bàn vẽ Khung tranh')}
+                          </span>
                         </div>
                       </>
                     )}
@@ -841,7 +848,10 @@ export function AppShell({
                   }
                 }}
                 className='relative flex items-center text-left cursor-pointer group'
-                title={t('navigation.header.quickSearch', 'Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)')}
+                title={t(
+                  'navigation.header.quickSearch',
+                  'Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)',
+                )}
                 data-testid='header-command-palette-trigger'
               >
                 <Search className='w-3.5 h-3.5 text-[#57534E] absolute left-3.5 pointer-events-none stroke-[2] group-hover:text-[#1C1917] transition-colors' />
