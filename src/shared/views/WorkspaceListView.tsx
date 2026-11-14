@@ -10,7 +10,20 @@ import {
   Camera,
   Clock,
   ShieldCheck,
+  ListTodo,
+  BookOpen,
+  Search,
+  ArrowUpDown,
 } from 'lucide-react';
+import { assignmentService } from '@/services/assignment.service';
+import { formatBytes } from './studio-overview/formatters';
+import {
+  PendingInvitations,
+  SeriesShelf,
+  TodayTasks,
+  type PendingInvitation,
+} from './WorkspaceShelfSections';
+import { sortByDue, type TodayTask } from './workspaceShelfTasks';
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
 import { CreateWorkspaceModal } from '@/roles/producer/modals/CreateWorkspaceModal';
@@ -97,6 +110,88 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
 
   useEffect(() => setAvatarFailed(false), [currentUser?.avatarUrl]);
 
+  // Lời mời đang chờ: API đã có (accept/reject) nhưng trước đây chưa màn hình nào hiển thị
+  const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
+  const [inviteBusyId, setInviteBusyId] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  useEffect(() => {
+    if (isAdmin) return;
+    let active = true;
+    workspaceService.getPendingInvitations().then((list) => active && setInvitations(list || []));
+    return () => {
+      active = false;
+    };
+  }, [isAdmin]);
+
+  const handleAcceptInvitation = async (inv: PendingInvitation) => {
+    setInviteBusyId(inv.workspaceId);
+    setInviteError(null);
+    try {
+      await workspaceService.acceptInvitation(inv.workspaceId);
+      setInvitations((prev) => prev.filter((i) => i.workspaceId !== inv.workspaceId));
+      await fetchWorkspaces();
+    } catch (err) {
+      setInviteError((err as Error)?.message || t('workspace.shelf.invitations.error'));
+    } finally {
+      setInviteBusyId(null);
+    }
+  };
+
+  const handleRejectInvitation = async (inv: PendingInvitation) => {
+    const ok = await confirm({
+      title: t('workspace.shelf.invitations.rejectConfirmTitle'),
+      description: t('workspace.shelf.invitations.rejectConfirm', { name: inv.workspaceName }),
+      confirmText: t('workspace.shelf.invitations.reject'),
+      cancelText: t('workspace.shelf.cancel'),
+      variant: 'warning',
+    });
+    if (!ok) return;
+    setInviteBusyId(inv.workspaceId);
+    setInviteError(null);
+    try {
+      await workspaceService.rejectInvitation(inv.workspaceId);
+      setInvitations((prev) => prev.filter((i) => i.workspaceId !== inv.workspaceId));
+    } catch (err) {
+      setInviteError((err as Error)?.message || t('workspace.shelf.invitations.error'));
+    } finally {
+      setInviteBusyId(null);
+    }
+  };
+
+  // "Việc của bạn": chỉ gọi my-assignments cho studio có việc đang chờ (pendingTasks > 0)
+  const [todayTasks, setTodayTasks] = useState<TodayTask[]>([]);
+  const [todayError, setTodayError] = useState(false);
+  useEffect(() => {
+    const withWork = workspaces.filter((w) => (w.pendingTasks ?? 0) > 0);
+    if (withWork.length === 0) {
+      setTodayTasks([]);
+      setTodayError(false);
+      return;
+    }
+    let active = true;
+    Promise.allSettled(
+      withWork.map((w) =>
+        assignmentService
+          .getMyAssignments(w.id)
+          .then((list) =>
+            list
+              .filter((a) => a.status !== 'Approved')
+              .map((a): TodayTask => ({ workspace: w, assignment: a })),
+          ),
+      ),
+    ).then((results) => {
+      if (!active) return;
+      const loaded = results.filter(
+        (r): r is PromiseFulfilledResult<TodayTask[]> => r.status === 'fulfilled',
+      );
+      setTodayError(loaded.length === 0);
+      setTodayTasks(sortByDue(loaded.flatMap((r) => r.value)));
+    });
+    return () => {
+      active = false;
+    };
+  }, [workspaces]);
+
   const handleOpenCreate = async () => {
     if (isAdmin) {
       await confirm({
@@ -151,6 +246,44 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const recent = recentWorkspaceId ? workspaces.find((w) => w.id === recentWorkspaceId) : null;
   const avatarUrl = currentUser?.avatarUrl?.trim();
 
+  // Tóm tắt từ dữ liệu thật của API (không có số liệu giả, DESIGN_RULES §8)
+  const ownedCount = workspaces.filter((w) => w.isOwner).length;
+  const pendingTotal = workspaces.reduce((n, w) => n + (w.pendingTasks ?? 0), 0);
+  const reviewTotal = workspaces.reduce((n, w) => n + (w.pendingEditorReviews ?? 0), 0);
+  const summary =
+    ownedCount === workspaces.length
+      ? t('workspace.shelf.summary.allOwned', { count: workspaces.length })
+      : ownedCount === 0
+        ? t('workspace.shelf.summary.noneOwned', { count: workspaces.length })
+        : t('workspace.shelf.summary.mixed', { count: workspaces.length, owned: ownedCount });
+
+  // Lọc chỉ có nghĩa khi vừa có studio sở hữu vừa có studio được mời
+  const [filter, setFilter] = useState<'all' | 'owned' | 'joined'>('all');
+  const showFilter = ownedCount > 0 && ownedCount < workspaces.length;
+  const filteredByOwner =
+    !showFilter || filter === 'all'
+      ? workspaces
+      : workspaces.filter((w) => (filter === 'owned' ? w.isOwner : !w.isOwner));
+
+  // Tìm kiếm & sắp xếp chỉ hiện khi đủ nhiều studio; ít hơn thì chỉ làm rối màn hình
+  const SEARCH_MIN_STUDIOS = 6;
+  const showSearch = workspaces.length >= SEARCH_MIN_STUDIOS;
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<'created' | 'recent' | 'name'>('created');
+  const q = showSearch ? query.trim().toLowerCase() : '';
+  const searched = q
+    ? filteredByOwner.filter(
+        (w) => w.name.toLowerCase().includes(q) || (w.ownerName || '').toLowerCase().includes(q),
+      )
+    : filteredByOwner;
+  const activityTime = (w: WorkspaceDto) => new Date(w.lastActivityAt || w.createdAt).getTime();
+  const visibleWorkspaces =
+    !showSearch || sort === 'created'
+      ? searched
+      : [...searched].sort((a, b) =>
+          sort === 'name' ? a.name.localeCompare(b.name, 'vi') : activityTime(b) - activityTime(a),
+        );
+
   const createButton = (
     <button
       type='button'
@@ -165,7 +298,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   return (
     <div className='ws-shelf min-h-screen flex flex-col font-sans'>
       {/* Top Navigation Bar */}
-      <header className='sticky top-0 z-30 bg-[#FCFBF8]/95 backdrop-blur-md border-b border-[#D8D2C5] px-4 md:px-6 lg:px-8 py-3'>
+      <header className='sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-stone-200 shadow-xs px-4 md:px-6 lg:px-8 py-3'>
         <div className='w-full flex items-center justify-between gap-3'>
           <div className='flex items-center gap-3 min-w-0'>
             <BrandMark size={32} className='shrink-0' />
@@ -253,7 +386,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                         </div>
                       </div>
                       <div className='h-3 w-4/5 rounded ws-skel mb-4 mt-auto' />
-                      <div className='pt-3 border-t border-[#ECE7DD] flex items-center justify-between'>
+                      <div className='pt-3 border-t border-stone-100 flex items-center justify-between'>
                         <div className='h-3 w-20 rounded ws-skel' />
                         <div className='h-7 w-24 rounded-lg ws-skel' />
                       </div>
@@ -265,7 +398,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
           ) : loadError ? (
             <div
               role='alert'
-              className='max-w-md mx-auto mt-10 p-6 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-center shadow-xs'
+              className='max-w-md mx-auto mt-10 p-6 bg-white border border-stone-200/80 rounded-xl text-center shadow-xs'
             >
               <AlertCircle className='w-6 h-6 text-rose-600 mx-auto mb-3' aria-hidden='true' />
               <p className='text-sm text-[#44403C] mb-4'>{t('workspace.shelf.loadError')}</p>
@@ -280,7 +413,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </div>
           ) : workspaces.length === 0 ? (
             /* Empty State */
-            <div className='mt-6 border-2 border-dashed border-[#D8D2C5] rounded-xl p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left'>
+            <div className='mt-6 bg-white border-2 border-dashed border-stone-300 rounded-xl p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left'>
               <BlankPageSketch />
               <div className='flex-1'>
                 <h1 className='text-2xl font-serif font-bold text-[#1C1917] mb-2 tracking-tight'>
@@ -294,21 +427,72 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </div>
           ) : (
             <>
-              {/* Shelf Heading */}
-              <div className='flex flex-wrap items-end justify-between gap-4 mb-6'>
-                <div>
-                  <h1 className='text-[28px] leading-tight font-serif font-bold text-[#1C1917] tracking-tight'>
+              {/* Header nằm thẳng trên nền giấy: tiêu đề + một câu tóm tắt; chỉ báo việc khi có việc */}
+              <header className='flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6'>
+                <div className='min-w-0'>
+                  <h1 className='text-3xl font-serif font-bold text-stone-900 tracking-tight'>
                     {t('workspace.shelf.title')}
-                    <span className='text-[#716B65] font-normal'> · {workspaces.length}</span>
                   </h1>
-                  <p className='text-sm text-[#57534E] mt-1'>{t('workspace.shelf.subtitle')}</p>
+                  <p
+                    className='mt-1.5 text-sm text-stone-600 leading-relaxed max-w-prose'
+                    data-testid='ws-summary'
+                  >
+                    {summary}
+                  </p>
+                  {(pendingTotal > 0 || reviewTotal > 0) && (
+                    <div className='mt-3 flex flex-wrap items-center gap-2'>
+                      {pendingTotal > 0 && (
+                        <a
+                          href='#ws-today-title'
+                          className='ws-focus inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 text-sm font-medium hover:bg-blue-100'
+                          data-testid='ws-chip-pending'
+                        >
+                          <ListTodo className='w-4 h-4' aria-hidden='true' />
+                          {t('workspace.shelf.pendingForYou', { count: pendingTotal })}
+                        </a>
+                      )}
+                      {reviewTotal > 0 && (
+                        <span
+                          className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-sm font-medium'
+                          data-testid='ws-chip-reviews'
+                        >
+                          <ShieldCheck className='w-4 h-4' aria-hidden='true' />
+                          {t('workspace.shelf.pendingReviews', { count: reviewTotal })}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                {canCreate && createButton}
-              </div>
+                {canCreate && <div className='shrink-0'>{createButton}</div>}
+              </header>
+
+              {invitations.length > 0 && (
+                <PendingInvitations
+                  invitations={invitations}
+                  busyId={inviteBusyId}
+                  error={inviteError}
+                  t={t}
+                  roleLabel={(r) => roleLabel(normalizeWorkspaceRole(r))}
+                  timeAgo={timeAgo}
+                  onAccept={(inv) => void handleAcceptInvitation(inv)}
+                  onReject={(inv) => void handleRejectInvitation(inv)}
+                />
+              )}
+
+              {(todayTasks.length > 0 || todayError) && (
+                <TodayTasks
+                  tasks={todayTasks.slice(0, 5)}
+                  total={todayTasks.length}
+                  error={todayError}
+                  now={now}
+                  t={t}
+                  onOpen={onSelectWorkspace}
+                />
+              )}
 
               {/* Recently Visited Bar (BR / UX Section 7) */}
               {recent && (
-                <div className='ws-recent flex flex-wrap items-center justify-between gap-3 mb-6 px-4 py-2.5'>
+                <div className='ws-recent flex flex-wrap items-center justify-between gap-3 mb-5 px-4 py-2.5'>
                   <div className='flex items-center gap-2 min-w-0'>
                     <Clock className='w-4 h-4 text-[#C2410C] shrink-0' aria-hidden='true' />
                     <p className='text-sm text-[#57534E] truncate'>
@@ -327,9 +511,86 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 </div>
               )}
 
+              {showSearch && (
+                <div className='flex flex-col sm:flex-row sm:items-center gap-2.5 mb-4'>
+                  <label className='relative flex-1 max-w-lg'>
+                    <span className='sr-only'>{t('workspace.shelf.search.placeholder')}</span>
+                    <Search
+                      className='w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none'
+                      aria-hidden='true'
+                    />
+                    <input
+                      type='search'
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={t('workspace.shelf.search.placeholder')}
+                      className='w-full h-10 pl-10 pr-3 rounded-full bg-white border border-stone-200 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-orange-500'
+                    />
+                  </label>
+                  <label className='inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full bg-white border border-stone-200 text-sm text-stone-700'>
+                    <ArrowUpDown className='w-4 h-4 text-stone-500' aria-hidden='true' />
+                    <span className='sr-only'>{t('workspace.shelf.search.sort')}</span>
+                    <select
+                      value={sort}
+                      onChange={(e) => setSort(e.target.value as typeof sort)}
+                      className='bg-transparent text-sm font-medium focus:outline-none cursor-pointer'
+                      aria-label={t('workspace.shelf.search.sort')}
+                    >
+                      <option value='created'>{t('workspace.shelf.search.created')}</option>
+                      <option value='recent'>{t('workspace.shelf.search.recent')}</option>
+                      <option value='name'>{t('workspace.shelf.search.name')}</option>
+                    </select>
+                  </label>
+                </div>
+              )}
+
+              {showFilter && (
+                <div
+                  className='flex items-center gap-2 flex-wrap mb-5'
+                  role='group'
+                  aria-label={t('workspace.shelf.filter.label')}
+                >
+                  {(
+                    [
+                      ['all', workspaces.length],
+                      ['owned', ownedCount],
+                      ['joined', workspaces.length - ownedCount],
+                    ] as const
+                  ).map(([key, count]) => {
+                    const active = filter === key;
+                    return (
+                      <button
+                        key={key}
+                        type='button'
+                        onClick={() => setFilter(key)}
+                        aria-pressed={active}
+                        className={`ws-focus inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium border transition-all duration-150 ${
+                          active
+                            ? 'bg-orange-50 text-orange-800 border-orange-200'
+                            : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-100 hover:text-stone-900'
+                        }`}
+                      >
+                        {t(`workspace.shelf.filter.${key}`)}
+                        <span
+                          className={`text-xs font-mono px-1.5 rounded-full ${active ? 'bg-orange-100' : 'bg-stone-100'}`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {q && visibleWorkspaces.length === 0 && (
+                <p className='text-sm text-stone-600 mb-5'>
+                  {t('workspace.shelf.search.empty', { query: query.trim() })}
+                </p>
+              )}
+
               {/* Studios Shelf Grid */}
               <ul className='ws-grid' role='list'>
-                {workspaces.map((ws) => {
+                {visibleWorkspaces.map((ws) => {
                   const tone = toneFor(ws.id);
                   const mayManageCover = canManageCover(ws);
 
@@ -343,7 +604,6 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                         {/* 1. Cover Image Section (2:1 aspect ratio) */}
                         <div className='ws-card-cover'>
                           <span className='ws-card-tab' aria-hidden='true' />
-                          <span className='ws-card-fold' aria-hidden='true' />
 
                           {ws.coverUrl ? (
                             <AuthenticatedImage
@@ -354,6 +614,13 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                               fallback={
                                 <StudioCoverFallback name={ws.name} tone={tone} id={ws.id} />
                               }
+                            />
+                          ) : (ws.seriesPreviews?.length ?? 0) > 0 ? (
+                            // Chưa có ảnh bìa riêng: series của studio đứng như các tập truyện trên kệ
+                            <SeriesShelf
+                              series={ws.seriesPreviews!}
+                              more={Math.max(0, (ws.seriesCount ?? 0) - ws.seriesPreviews!.length)}
+                              tone={tone}
                             />
                           ) : (
                             <StudioCoverFallback name={ws.name} tone={tone} id={ws.id} />
@@ -367,7 +634,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                                 onClick={() => setCoverModalWorkspace(ws)}
                                 title={t('workspace.shelf.changeCover')}
                                 aria-label={t('workspace.shelf.changeCover')}
-                                className='ws-cover-btn ws-focus inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#FCFBF8]/95 hover:bg-[#FCFBF8] text-[#1C1917] border border-[#D8D2C5] shadow-xs backdrop-blur-xs'
+                                className='ws-cover-btn ws-focus inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/95 hover:bg-white text-stone-800 border border-stone-200 shadow-xs backdrop-blur-xs'
                               >
                                 <Camera className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
                                 <span className='hidden sm:inline'>
@@ -387,12 +654,10 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                             </span>
                             <div className='min-w-0 flex-1'>
                               <div className='flex items-center gap-2 flex-wrap mb-0.5'>
-                                <h2 className='text-base font-serif font-bold text-[#1C1917] leading-snug line-clamp-1'>
+                                <h2 className='text-xl font-serif font-bold text-stone-900 leading-snug line-clamp-1'>
                                   {ws.name}
                                 </h2>
-                                <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${'bg-[#E7E1D5]/60 text-[#57534E]'}`}
-                                >
+                                <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap bg-stone-100 text-stone-600 border border-stone-200'>
                                   {roleLabel(ws.currentUserRole)}
                                 </span>
                               </div>
@@ -410,6 +675,83 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                               {ws.description.trim()}
                             </p>
                           ) : null}
+
+                          {/* Series của studio (BE GetMyWorkspaces: seriesCount, 3 series mới cập nhật) */}
+                          {ws.seriesCount !== undefined && (
+                            <div
+                              className='flex items-center gap-2.5 mb-3'
+                              data-testid='ws-card-series'
+                            >
+                              {/* Bìa nhỏ chỉ cần khi kệ không hiện (studio đã có ảnh bìa riêng) */}
+                              {ws.coverUrl && (ws.seriesPreviews?.length ?? 0) > 0 && (
+                                <div className='flex items-center -space-x-1.5 shrink-0'>
+                                  {ws.seriesPreviews!.map((s) => (
+                                    <span
+                                      key={s.id}
+                                      title={s.title}
+                                      className='relative w-7 h-9 rounded-md border-2 border-white bg-stone-100 overflow-hidden shadow-2xs flex items-center justify-center text-xs font-serif font-bold text-stone-500'
+                                    >
+                                      {s.title.trim().charAt(0).toUpperCase()}
+                                      {s.coverUrl && (
+                                        <AuthenticatedImage
+                                          src={s.coverUrl}
+                                          alt={s.title}
+                                          className='absolute inset-0 w-full h-full object-cover'
+                                          loading='lazy'
+                                          fallback={
+                                            <span className='absolute inset-0 flex items-center justify-center bg-stone-100'>
+                                              {s.title.trim().charAt(0).toUpperCase()}
+                                            </span>
+                                          }
+                                        />
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              <span className='inline-flex items-center gap-1.5 text-xs font-medium text-stone-600'>
+                                <BookOpen
+                                  className='w-3.5 h-3.5 text-stone-500'
+                                  aria-hidden='true'
+                                />
+                                {ws.seriesCount > 0
+                                  ? t('workspace.shelf.series', { count: ws.seriesCount })
+                                  : t('workspace.shelf.noSeries')}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Dung lượng: chỉ Owner/Producer quản lý; chặn chia 0 (DESIGN_RULES §3.3) */}
+                          {mayManageCover &&
+                            (() => {
+                              const quota = ws.storageQuotaBytes || 0;
+                              const used = ws.usedStorageBytes || 0;
+                              const pct =
+                                quota > 0 ? Math.min(100, Math.max(0, (used / quota) * 100)) : 0;
+                              return (
+                                <div className='mb-3' data-testid='ws-card-storage'>
+                                  <div className='flex items-center justify-between text-xs text-stone-500 mb-1'>
+                                    <span>{t('workspace.shelf.storage')}</span>
+                                    <span className='font-mono tabular-nums'>
+                                      {formatBytes(used)} / {quota > 0 ? formatBytes(quota) : '—'}
+                                    </span>
+                                  </div>
+                                  <div
+                                    className='h-1.5 rounded-full bg-stone-100 overflow-hidden'
+                                    role='progressbar'
+                                    aria-label={t('workspace.shelf.storage')}
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                    aria-valuenow={Math.round(pct)}
+                                  >
+                                    <div
+                                      className={`h-full rounded-full ${pct >= 90 ? 'bg-rose-500' : pct >= 75 ? 'bg-amber-500' : 'bg-orange-500'}`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                           {/* Members & Tasks Row */}
                           <div className='flex items-center justify-between gap-2 text-xs text-[#57534E] mb-4 mt-auto pt-2'>
@@ -491,14 +833,17 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                           </div>
 
                           {/* Footer: Date & Enter Button */}
-                          <div className='pt-3 border-t border-[#ECE7DD] flex items-center justify-between gap-2'>
-                            <span className='text-xs text-[#78716C]'>
-                              {t('workspace.shelf.created', { days: timeAgo(ws.createdAt) })}
+                          <div className='pt-3 border-t border-stone-100 flex items-center justify-between gap-2'>
+                            <span className='text-xs text-stone-500 inline-flex items-center gap-1'>
+                              <Clock className='w-3.5 h-3.5' aria-hidden='true' />
+                              {ws.lastActivityAt
+                                ? t('workspace.shelf.updated', { days: timeAgo(ws.lastActivityAt) })
+                                : t('workspace.shelf.created', { days: timeAgo(ws.createdAt) })}
                             </span>
                             <button
                               type='button'
                               onClick={() => onSelectWorkspace(ws)}
-                              className='ws-btn-enter ws-focus inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#C2410C] bg-[#FFF7ED] border border-[#FDBA74] hover:bg-[#FFEDD5]'
+                              className='ws-btn-enter ws-focus inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold text-orange-800 bg-orange-50 border border-orange-200 hover:bg-orange-100 active:scale-[0.98]'
                               aria-label={`${t('workspace.shelf.enter')}: ${ws.name}`}
                             >
                               <span>

@@ -283,6 +283,24 @@ describe('AppShell Component', () => {
     expect(activeLink.querySelector('span[aria-hidden="true"]')).toBeInTheDocument();
   });
 
+  it('highlights Quy trình sản xuất on the production page even though its link carries ?chapterId', () => {
+    const producerUser: CurrentUser = {
+      name: 'Phạm Nhà Sản Xuất',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'PN',
+    };
+
+    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/workspace?chapterId=ch-1');
+
+    const current = screen
+      .getAllByRole('link')
+      .filter((l) => l.getAttribute('aria-current') === 'page');
+    expect(current).toHaveLength(1);
+    expect(current[0].getAttribute('href')).toContain('/series/ser-1/workspace?chapterId=ch-1');
+  });
+
   it('sidebar áp dụng màu nền Dark Ink #1C1917 và viền phải #292524 chuẩn theme Lucianlab (#040)', () => {
     const producerUser: CurrentUser = {
       name: 'Phạm Nhà Sản Xuất',

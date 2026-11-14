@@ -1,6 +1,6 @@
-/* Studio shelf page (/workspaces). Scoped to .ws-shelf. */
+/* Studio shelf page (/workspaces). Scoped to .ws-shelf. Tokens follow DESIGN_RULES (Level 0 paper, Level 1 white cards). */
 .ws-shelf {
-  background: #f3f0e9;
+  background: #faf9f5;
   color: #1c1917;
 }
 
@@ -34,9 +34,9 @@
   flex-direction: column;
   width: 100%;
   text-align: left;
-  background: #fcfbf8;
-  border: 1px solid #d8d2c5;
-  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(231, 229, 228, 0.8);
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(28, 25, 23, 0.05);
   transition:
@@ -48,7 +48,7 @@
 .ws-card:hover,
 .ws-card:focus-within {
   transform: translateY(-2px);
-  border-color: var(--ws-tone);
+  border-color: #fdba74;
   box-shadow: 0 8px 20px -8px rgba(28, 25, 23, 0.18);
 }
 
@@ -63,8 +63,8 @@
   width: 100%;
   aspect-ratio: 2 / 1;
   overflow: hidden;
-  background: #f3f0e9;
-  border-bottom: 1px solid #d8d2c5;
+  background: #f5f5f4;
+  border-bottom: 1px solid #e7e5e4;
 }
 
 /* Notebook spine tab */
@@ -117,14 +117,15 @@
 }
 
 .ws-recent {
-  background: #fcfbf8;
-  border: 1px dashed #d8d2c5;
+  background: #fff;
+  border: 1px solid rgba(231, 229, 228, 0.8);
   border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
 }
 
 .ws-btn-primary {
-  border-radius: 10px;
-  background: #f97316;
+  border-radius: 9999px;
+  background: #ea580c;
   color: #fff;
   transition:
     background-color 150ms ease,
@@ -132,13 +133,17 @@
 }
 
 .ws-btn-primary:hover {
-  background: #ea580c;
-  box-shadow: 0 2px 8px -2px rgba(249, 115, 22, 0.4);
+  background: #c2410c;
+  box-shadow: 0 2px 8px -2px rgba(234, 88, 12, 0.4);
+}
+
+.ws-btn-primary:active {
+  transform: scale(0.98);
 }
 
 .ws-btn-secondary {
-  border-radius: 10px;
-  border: 1px solid #d8d2c5;
+  border-radius: 9999px;
+  border: 1px solid #e7e5e4;
   background: #fff;
   color: #292524;
   transition:
@@ -182,12 +187,19 @@
 
 .ws-card-skel:hover {
   transform: none;
-  border-color: #d8d2c5;
+  border-color: rgba(231, 229, 228, 0.8);
   box-shadow: 0 1px 3px rgba(28, 25, 23, 0.05);
 }
 
 .ws-skel {
-  background: #e7e1d5;
+  background: rgba(231, 229, 228, 0.7);
+  animation: ws-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ws-pulse {
+  50% {
+    opacity: 0.55;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -196,8 +208,10 @@
   .ws-btn-primary,
   .ws-btn-secondary,
   .ws-btn-enter,
-  .ws-cover-btn {
+  .ws-cover-btn,
+  .ws-skel {
     transition: none;
+    animation: none;
   }
   .ws-card:hover,
   .ws-card:hover .ws-arrow,

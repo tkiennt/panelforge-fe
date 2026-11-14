@@ -14,7 +14,10 @@ import {
   FileCheck2,
   AlertTriangle,
   RotateCcw,
+  Table2,
 } from 'lucide-react';
+import { PageStageMatrix } from './PageStageMatrix';
+import { buildPageStageMatrix } from './pageStageMatrix.utils';
 import { KanbanColumn } from './KanbanColumn';
 import { SideDrawer } from './SideDrawer';
 import { ProductionTaskCard } from './ProductionTaskCard';
@@ -49,7 +52,7 @@ import {
   statusKey,
 } from './productionBoard.utils';
 import { assignmentService } from '@/services/assignment.service';
-import { pipelineService } from '@/services/pipeline.service';
+import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { pageService, type PageDto } from '@/services/page.service';
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import type { WorkspaceRole } from '@/types';
@@ -73,6 +76,7 @@ const GROUP_LABELS: Record<GroupBy, string> = {
   assignee: 'Người phụ trách',
 };
 const VIEW_META: Record<ViewMode, { label: string; Icon: React.ElementType }> = {
+  matrix: { label: 'Bảng trang', Icon: Table2 },
   grid: { label: 'Lưới', Icon: LayoutGrid },
   list: { label: 'Danh sách', Icon: List },
   kanban: { label: 'Kanban', Icon: Columns3 },
@@ -99,6 +103,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
   // ── Dữ liệu ──
   const [cards, setCards] = useState<BoardCard[] | null>(null);
   const [pages, setPages] = useState<PageDto[]>([]);
+  const [stages, setStages] = useState<PipelineStageDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -129,6 +134,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
       if (requestId !== requestRef.current) return;
       setCards(mapAssignmentsToCards(assignments, pipeline?.stages ?? [], pagesRes, members));
       setPages(pagesRes);
+      setStages(pipeline?.stages ?? []);
       loadedChapterRef.current = chapterId;
       setNow(Date.now());
     } catch (err) {
@@ -335,7 +341,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
               <span>{QUICK_FILTER_LABELS[f]}</span>
               {quickCounts && !initialLoading && (
                 <span
-                  className={`rounded-full px-1.5 py-0.2 text-[11px] tabular-nums font-bold ${
+                  className={`rounded-full px-1.5 py-0.5 text-xs tabular-nums font-bold ${
                     active ? 'bg-[#C2410C]/15 text-[#C2410C]' : 'bg-stone-200/70 text-stone-600'
                   }`}
                 >
@@ -426,7 +432,9 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
             aria-live='polite'
           >
             {cards === null ? (
-              <span className='text-landing-ink-muted'>{t('board.loadingTasks', 'Đang tải công việc…')}</span>
+              <span className='text-landing-ink-muted'>
+                {t('board.loadingTasks', 'Đang tải công việc…')}
+              </span>
             ) : (
               <>
                 {t(
@@ -434,7 +442,9 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
                   { count: filteredCards.length, total: cards.length },
                   `Đang hiển thị ${filteredCards.length} / ${cards.length} công việc của chương`,
                 )}
-                {anyFilterActive && <span className='text-landing-ink-muted'> {t('board.filtered', '(đã lọc)')}</span>}
+                {anyFilterActive && (
+                  <span className='text-landing-ink-muted'> {t('board.filtered', '(đã lọc)')}</span>
+                )}
               </>
             )}
           </h2>
@@ -463,7 +473,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
         </div>
 
         <div className='flex flex-wrap items-center gap-3'>
-          {viewMode !== 'kanban' && (
+          {(viewMode === 'grid' || viewMode === 'list') && (
             <div className='flex items-center gap-2'>
               <label htmlFor='pb-group' className='text-xs font-semibold text-landing-ink-muted'>
                 {t('board.groupBy', 'Nhóm theo')}
@@ -497,7 +507,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
                   key={v}
                   type='button'
                   aria-pressed={active}
-                  onClick={() => setParam('view', v, 'grid')}
+                  onClick={() => setParam('view', v, 'matrix')}
                   className={`inline-flex min-h-8 min-w-9 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition-colors cursor-pointer ${focusRing} ${
                     active
                       ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]/40 font-bold shadow-2xs'
@@ -586,6 +596,14 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
             }
           />
         )
+      ) : viewMode === 'matrix' ? (
+        <PageStageMatrix
+          {...buildPageStageMatrix(filteredCards, pages, stages, {
+            includeEmptyPages: !anyFilterActive,
+          })}
+          now={now}
+          onOpen={(card, trigger) => openDetails(card, trigger)}
+        />
       ) : viewMode === 'kanban' ? (
         <div className='min-w-0 overflow-x-auto pb-4'>
           <div className='flex w-max items-start gap-4'>
@@ -700,9 +718,7 @@ const ProgressSummaryStrip: React.FC<{ metrics: ChapterMetrics | null; pageCount
         <div className='flex flex-wrap items-center gap-4 sm:gap-6 min-w-0'>
           <div className='min-w-0'>
             <div className='flex items-center gap-2 flex-wrap'>
-              <span className='text-xs font-bold uppercase tracking-wider text-landing-ink-muted'>
-                Tiến độ công việc
-              </span>
+              <span className='text-sm font-semibold text-landing-ink'>Tiến độ công việc</span>
               {pageCount > 0 && (
                 <span className='inline-flex items-center gap-1 rounded bg-[#F3F0E9] border border-stone-200 px-2 py-0.5 text-xs font-medium text-stone-700'>
                   <FileCheck2 className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />

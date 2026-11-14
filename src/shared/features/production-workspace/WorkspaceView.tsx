@@ -208,9 +208,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
             {/* Nhãn chức năng phụ + Tên chương nổi bật */}
             <div className='flex items-center gap-2 mb-1.5'>
-              <h1 className='inline-flex items-center rounded border border-stone-300 bg-stone-200/70 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-stone-700'>
-                Quy trình sản xuất
-              </h1>
+              <h1 className='text-sm font-semibold text-landing-ink-muted'>Quy trình sản xuất</h1>
               {statusMeta && (
                 <span
                   className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${statusMeta.cls}`}
@@ -244,7 +242,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 <BookOpen className='h-4 w-4 shrink-0 text-landing-ink-muted' aria-hidden='true' />
                 <label
                   htmlFor='pipeline-chapter-select'
-                  className='text-xs font-semibold text-landing-ink-muted uppercase tracking-wider'
+                  className='text-xs font-semibold text-landing-ink-muted'
                 >
                   Chương:
                 </label>
