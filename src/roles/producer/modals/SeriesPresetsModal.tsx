@@ -27,6 +27,7 @@ import {
   UpdateConsistencyRuleRequest,
 } from '@/services/series.service';
 import { useConfirm } from '@/shared/context/ConfirmContext';
+import { Modal } from '@/shared/ui';
 
 interface SeriesPresetsModalProps {
   isOpen: boolean;
@@ -318,7 +319,13 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='lg'
+      title={`Cấu Hình Presets & Rules: ${seriesTitle}`}
+      closeLabel='Đóng modal'
+    >
       <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
         {/* Header */}
         <div className='p-5 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5] rounded-t-2xl'>
@@ -867,6 +874,6 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

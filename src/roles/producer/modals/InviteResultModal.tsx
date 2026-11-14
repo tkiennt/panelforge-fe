@@ -1,5 +1,6 @@
 import React from 'react';
-import { X, CheckCircle2, AlertTriangle, Copy, Check } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Copy, Check } from 'lucide-react';
+import { Modal } from '@/shared/ui';
 
 export interface InviteResultItem {
   email: string;
@@ -41,28 +42,15 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='md'
+      title='Kết quả gửi lời mời'
+      description={workspaceName}
+      closeLabel='Đóng'
+    >
       <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]'>
-        {/* Header */}
-        <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
-          <div className='flex items-center gap-2'>
-            <div className='w-8 h-8 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center'>
-              <CheckCircle2 className='w-4 h-4' />
-            </div>
-            <div>
-              <h3 className='font-bold text-sm text-[#171717]'>Kết quả gửi lời mời</h3>
-              {workspaceName && <p className='text-[11px] text-stone-500'>{workspaceName}</p>}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label='Đóng'
-            className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
-          >
-            <X className='w-4 h-4' />
-          </button>
-        </div>
-
         {/* Summary Badges */}
         <div className='p-4 border-b border-[#E7E7E7] bg-white grid grid-cols-2 gap-3'>
           <div className='p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center gap-3'>
@@ -173,6 +161,6 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

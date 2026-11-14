@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Mail, AlertTriangle, Plus, Trash2, User } from 'lucide-react';
+import { Mail, AlertTriangle, Plus, Trash2, User } from 'lucide-react';
 import { workspaceService, WorkspaceMemberDto } from '@/services/workspace.service';
 import { TeamInviteAcceptance, TeamMemberItem } from '@/shared/components/lucian';
 import { InviteResultModal, InviteResultItem } from './InviteResultModal';
+import { Modal } from '@/shared/ui';
 
 interface InviteMemberModalProps {
   isOpen: boolean;
@@ -252,28 +253,15 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
 
   return (
     <>
-      <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+      <Modal
+        isOpen={isOpen && !showResultModal}
+        onClose={onClose}
+        size='md'
+        title='Mời thành viên'
+        description={workspaceName}
+        closeLabel='Đóng modal'
+      >
         <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]'>
-          {/* Header */}
-          <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
-            <div className='flex items-center gap-2.5'>
-              <div className='w-8 h-8 rounded-lg bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center'>
-                <UserPlus className='w-4 h-4' />
-              </div>
-              <div>
-                <h3 className='font-display font-bold text-sm text-[#171717]'>Mời thành viên</h3>
-                {workspaceName && <p className='text-[11px] text-[#737373]'>{workspaceName}</p>}
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              aria-label='Đóng modal'
-              className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
-            >
-              <X className='w-4 h-4' />
-            </button>
-          </div>
-
           {/* Mode Switcher Tabs */}
           <div className='flex items-center gap-1.5 p-1 bg-[#FAF8F4] rounded-xl mx-4 mt-3 border border-[#E7E7E7]'>
             <button
@@ -466,7 +454,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
             </form>
           )}
         </div>
-      </div>
+      </Modal>
 
       {/* Modal Báo Cáo Kết Quả */}
       <InviteResultModal

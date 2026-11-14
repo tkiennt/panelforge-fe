@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState } from 'react';
 import { X, Layers, Plus, Loader2 } from 'lucide-react';
 import { workspaceService, WorkspaceDto } from '@/services/workspace.service';
+import { Modal } from '@/shared/ui';
 
 interface CreateWorkspaceModalProps {
   isOpen: boolean;
@@ -20,15 +20,6 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
   const [quotaGb, setQuotaGb] = useState('10');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -63,12 +54,14 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
     }
   };
 
-  const modalContent = (
-    <div
-      className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200'
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='md'
+      title='Tạo Studio / Workspace mới'
+      description='Khởi tạo không gian làm việc sản xuất truyện'
+      closeLabel='Đóng modal'
     >
       <div className='relative w-full max-w-md bg-[#FCFBF8] rounded-xl shadow-editorial border border-[#D8D2C5] overflow-hidden'>
         {/* Header */}
@@ -163,8 +156,6 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
-
-  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

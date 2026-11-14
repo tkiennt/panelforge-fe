@@ -32,6 +32,7 @@ import {
   describeStartError,
   pendingDependencyCount,
 } from '@/shared/features/collaboration/collaborationRules';
+import { Modal } from '@/shared/ui';
 
 interface ChapterAssignmentsModalProps {
   isOpen: boolean;
@@ -98,7 +99,10 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
       if (pipelineData?.stages) setStages(pipelineData.stages);
       if (membersData) setMembers(membersData);
     } catch (err: any) {
-      setError(err.message || t('chapterAssignmentsModal.loadError', 'Lỗi nạp dữ liệu phân công và tiến độ.'));
+      setError(
+        err.message ||
+          t('chapterAssignmentsModal.loadError', 'Lỗi nạp dữ liệu phân công và tiến độ.'),
+      );
     } finally {
       setLoading(false);
     }
@@ -157,7 +161,10 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
   const handleSubmit = async (assignment: AssignmentDto) => {
     // Backend Breaking Constraint check: status must be InProgress
     if (assignment.status !== 'InProgress') {
-      const msg = t('chapterAssignmentsModal.toastSubmitRuleDesc', 'Phải bắt đầu việc (trạng thái InProgress) trước khi nộp!');
+      const msg = t(
+        'chapterAssignmentsModal.toastSubmitRuleDesc',
+        'Phải bắt đầu việc (trạng thái InProgress) trước khi nộp!',
+      );
       setError(msg);
       onShowToast?.(t('chapterAssignmentsModal.toastSubmitRule', 'Quy định nộp bài'), msg);
       return;
@@ -179,7 +186,10 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
       const p = await assignmentService.getStageProgress(chapterId);
       setStageProgressList(p || []);
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || t('chapterAssignmentsModal.toastSubmitErrorDefault', 'Không thể nộp bài.');
+      const msg =
+        err.response?.data?.message ||
+        err.message ||
+        t('chapterAssignmentsModal.toastSubmitErrorDefault', 'Không thể nộp bài.');
       setError(msg);
       onShowToast?.(t('chapterAssignmentsModal.toastSubmitError', 'Lỗi nộp bài'), msg);
     } finally {
@@ -273,7 +283,16 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
 
   return (
     <>
-      <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[60] flex items-center justify-center p-4'>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        size='xl'
+        title={t('chapterAssignmentsModal.title', {
+          chapterNumber: chapterNumber || '',
+          defaultValue: `Phân Công & Tiến Độ Sản Xuất: Chương ${chapterNumber || ''}`,
+        })}
+        closeLabel={t('common.actions.close', 'Đóng modal')}
+      >
         <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
           {/* Header */}
           <div className='p-5 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5] rounded-t-2xl'>
@@ -291,7 +310,10 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                   </span>
                 </div>
                 <h2 className='text-base font-bold text-[#171717] mt-0.5'>
-                  {t('chapterAssignmentsModal.title', { chapterNumber: chapterNumber || '', defaultValue: `Phân Công & Tiến Độ Sản Xuất: Chương ${chapterNumber || ''}` })}
+                  {t('chapterAssignmentsModal.title', {
+                    chapterNumber: chapterNumber || '',
+                    defaultValue: `Phân Công & Tiến Độ Sản Xuất: Chương ${chapterNumber || ''}`,
+                  })}
                   {chapterTitle ? ` (${chapterTitle})` : ''}
                 </h2>
               </div>
@@ -360,10 +382,18 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                 <div className='flex items-center justify-between'>
                   <span className='font-bold text-[#171717] flex items-center gap-1.5'>
                     <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
-                    <span>{t('chapterAssignmentsModal.stageProgressMatrix', 'Ma Trận Tiến Độ Khung Hình (StageProgress Matrix)')}</span>
+                    <span>
+                      {t(
+                        'chapterAssignmentsModal.stageProgressMatrix',
+                        'Ma Trận Tiến Độ Khung Hình (StageProgress Matrix)',
+                      )}
+                    </span>
                   </span>
                   <span className='text-[10px] font-mono text-zinc-500'>
-                    {t('chapterAssignmentsModal.controlPoints', { count: stageProgressList.length, defaultValue: `${stageProgressList.length} điểm kiểm soát` })}
+                    {t('chapterAssignmentsModal.controlPoints', {
+                      count: stageProgressList.length,
+                      defaultValue: `${stageProgressList.length} điểm kiểm soát`,
+                    })}
                   </span>
                 </div>
                 <div className='flex flex-wrap gap-2 pt-1'>
@@ -405,12 +435,27 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className='px-2.5 py-1 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold'
                 >
-                  <option value='ALL'>{t('chapterAssignmentsModal.allStatus', 'Tất cả trạng thái')}</option>
-                  <option value='Assigned'>{t('chapterAssignmentsModal.statusBadges.assigned', 'Đã giao (Assigned)')}</option>
-                  <option value='InProgress'>{t('chapterAssignmentsModal.statusBadges.inProgress', 'Đang làm (InProgress)')}</option>
-                  <option value='Submitted'>{t('chapterAssignmentsModal.statusBadges.submitted', 'Đã nộp (Submitted)')}</option>
-                  <option value='UnderReview'>{t('chapterAssignmentsModal.statusBadges.underReview', 'Đang duyệt (UnderReview)')}</option>
-                  <option value='Approved'>{t('chapterAssignmentsModal.statusBadges.approved', 'Đã duyệt (Approved)')}</option>
+                  <option value='ALL'>
+                    {t('chapterAssignmentsModal.allStatus', 'Tất cả trạng thái')}
+                  </option>
+                  <option value='Assigned'>
+                    {t('chapterAssignmentsModal.statusBadges.assigned', 'Đã giao (Assigned)')}
+                  </option>
+                  <option value='InProgress'>
+                    {t('chapterAssignmentsModal.statusBadges.inProgress', 'Đang làm (InProgress)')}
+                  </option>
+                  <option value='Submitted'>
+                    {t('chapterAssignmentsModal.statusBadges.submitted', 'Đã nộp (Submitted)')}
+                  </option>
+                  <option value='UnderReview'>
+                    {t(
+                      'chapterAssignmentsModal.statusBadges.underReview',
+                      'Đang duyệt (UnderReview)',
+                    )}
+                  </option>
+                  <option value='Approved'>
+                    {t('chapterAssignmentsModal.statusBadges.approved', 'Đã duyệt (Approved)')}
+                  </option>
                 </select>
 
                 <select
@@ -418,7 +463,9 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                   onChange={(e) => setStageFilter(e.target.value)}
                   className='px-2.5 py-1 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold'
                 >
-                  <option value='ALL'>{t('chapterAssignmentsModal.allStages', 'Tất cả công đoạn')}</option>
+                  <option value='ALL'>
+                    {t('chapterAssignmentsModal.allStages', 'Tất cả công đoạn')}
+                  </option>
                   {stages.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.stageOrder}. {s.name}
@@ -449,14 +496,21 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
               {loading ? (
                 <div className='py-12 text-center text-[#888888]'>
                   <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
-                  <span>{t('chapterAssignmentsModal.loading', 'Đang nạp danh sách công việc...')}</span>
+                  <span>
+                    {t('chapterAssignmentsModal.loading', 'Đang nạp danh sách công việc...')}
+                  </span>
                 </div>
               ) : filteredAssignments.length === 0 ? (
                 <div className='py-12 text-center text-[#888888] border border-dashed border-[#E7E7E7] rounded-xl space-y-2'>
                   <Layers className='w-8 h-8 mx-auto text-[#CCCCCC]' />
-                  <div className='font-bold text-[#171717]'>{t('chapterAssignmentsModal.emptyTitle', 'Chưa có công việc nào')}</div>
+                  <div className='font-bold text-[#171717]'>
+                    {t('chapterAssignmentsModal.emptyTitle', 'Chưa có công việc nào')}
+                  </div>
                   <div className='text-[11px] text-[#737373]'>
-                    {t('chapterAssignmentsModal.emptySubtitle', 'Bấm "+ Giao Việc Mới" để phân công kịch bản, nét vẽ, thoại cho các thành viên.')}
+                    {t(
+                      'chapterAssignmentsModal.emptySubtitle',
+                      'Bấm "+ Giao Việc Mới" để phân công kịch bản, nét vẽ, thoại cho các thành viên.',
+                    )}
                   </div>
                 </div>
               ) : (
@@ -492,7 +546,9 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
 
                       {assignment.referenceNotes && (
                         <div className='text-[11px] text-[#666666] flex items-center gap-1.5'>
-                          <span className='font-bold text-zinc-500 font-mono'>{t('chapterAssignmentsModal.reference', 'Tham chiếu:')}</span>
+                          <span className='font-bold text-zinc-500 font-mono'>
+                            {t('chapterAssignmentsModal.reference', 'Tham chiếu:')}
+                          </span>
                           <span>{assignment.referenceNotes}</span>
                         </div>
                       )}
@@ -501,7 +557,10 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                         <div className='flex items-center gap-4'>
                           <span className='flex items-center gap-1'>
                             <User className='w-3 h-3 text-[#F97316]' />
-                            <strong>{t('chapterAssignmentsModal.assignee', 'Người làm:')}</strong> {getAssigneeName(assignment.assigneeUserId)}
+                            <strong>
+                              {t('chapterAssignmentsModal.assignee', 'Người làm:')}
+                            </strong>{' '}
+                            {getAssigneeName(assignment.assigneeUserId)}
                           </span>
                           {assignment.dueDate && (
                             <span className='flex items-center gap-1 font-mono'>
@@ -533,10 +592,18 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                               <button
                                 onClick={() => handleCarveOut(assignment)}
                                 className='px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold flex items-center gap-1.5 cursor-pointer text-[11px] shadow-2xs transition-colors'
-                                title={t('chapterAssignmentsModal.carveOutTooltip', 'Tách trang hoặc khung cho thành viên khác ở công đoạn này')}
+                                title={t(
+                                  'chapterAssignmentsModal.carveOutTooltip',
+                                  'Tách trang hoặc khung cho thành viên khác ở công đoạn này',
+                                )}
                               >
                                 <Scissors className='w-3 h-3 text-amber-600' />
-                                <span>{t('chapterAssignmentsModal.carveOutBtn', 'Tách trang/khung cho người khác')}</span>
+                                <span>
+                                  {t(
+                                    'chapterAssignmentsModal.carveOutBtn',
+                                    'Tách trang/khung cho người khác',
+                                  )}
+                                </span>
                               </button>
                             );
                           })()}
@@ -546,21 +613,37 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                               const pendingDeps = pendingDependencyCount(assignment, assignments);
                               const lockedReason =
                                 pendingDeps > 0
-                                  ? t('chapterAssignmentsModal.startLockedPrefix', { count: pendingDeps, defaultValue: `Chờ ${pendingDeps} việc phụ thuộc được duyệt (Approved).` })
+                                  ? t('chapterAssignmentsModal.startLockedPrefix', {
+                                      count: pendingDeps,
+                                      defaultValue: `Chờ ${pendingDeps} việc phụ thuộc được duyệt (Approved).`,
+                                    })
                                   : null;
                               return (
                                 <button
                                   onClick={() => handleStart(assignment)}
                                   disabled={isLoadingThis || !!lockedReason}
                                   className='px-3 py-1.5 rounded-lg bg-[#171717] hover:bg-black text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs'
-                                  title={lockedReason ?? t('chapterAssignmentsModal.startWorkTooltip', 'Bắt đầu làm công việc này')}
+                                  title={
+                                    lockedReason ??
+                                    t(
+                                      'chapterAssignmentsModal.startWorkTooltip',
+                                      'Bắt đầu làm công việc này',
+                                    )
+                                  }
                                 >
                                   {isLoadingThis ? (
                                     <Loader2 className='w-3 h-3 animate-spin' />
                                   ) : (
                                     <Play className='w-3 h-3 text-[#F97316]' />
                                   )}
-                                  <span>{lockedReason ? t('chapterAssignmentsModal.waitingDeps', 'Chờ việc phụ thuộc') : t('chapterAssignmentsModal.startWork', 'Bắt đầu làm')}</span>
+                                  <span>
+                                    {lockedReason
+                                      ? t(
+                                          'chapterAssignmentsModal.waitingDeps',
+                                          'Chờ việc phụ thuộc',
+                                        )
+                                      : t('chapterAssignmentsModal.startWork', 'Bắt đầu làm')}
+                                  </span>
                                 </button>
                               );
                             })()}
@@ -570,7 +653,10 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                               onClick={() => handleSubmit(assignment)}
                               disabled={isLoadingThis}
                               className='px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-xs'
-                              title={t('chapterAssignmentsModal.submitTooltip', 'Nộp bài cho công đoạn này để Review')}
+                              title={t(
+                                'chapterAssignmentsModal.submitTooltip',
+                                'Nộp bài cho công đoạn này để Review',
+                              )}
                             >
                               {isLoadingThis ? (
                                 <Loader2 className='w-3 h-3 animate-spin' />
@@ -585,11 +671,19 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                           {assignment.status === 'Assigned' && (
                             <button
                               disabled
-                              title={t('chapterAssignmentsModal.submitNotStartedTooltip', 'Phải bấm "Bắt đầu làm" (InProgress) trước khi nộp theo ràng buộc hệ thống!')}
+                              title={t(
+                                'chapterAssignmentsModal.submitNotStartedTooltip',
+                                'Phải bấm "Bắt đầu làm" (InProgress) trước khi nộp theo ràng buộc hệ thống!',
+                              )}
                               className='px-2.5 py-1.5 rounded-lg bg-zinc-100 text-zinc-400 font-semibold flex items-center gap-1 cursor-not-allowed text-[11px]'
                             >
                               <Send className='w-3 h-3' />
-                              <span>{t('chapterAssignmentsModal.submitNotStarted', 'Nộp bài (Chưa bắt đầu)')}</span>
+                              <span>
+                                {t(
+                                  'chapterAssignmentsModal.submitNotStarted',
+                                  'Nộp bài (Chưa bắt đầu)',
+                                )}
+                              </span>
                             </button>
                           )}
                         </div>
@@ -601,7 +695,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
             </div>
           </div>
         </div>
-      </div>
+      </Modal>
 
       {/* Nested Create Assignment Modal */}
       {showCreateModal && (

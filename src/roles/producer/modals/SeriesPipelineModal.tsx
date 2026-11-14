@@ -28,6 +28,7 @@ import {
   UpdatePipelineStageRequest,
 } from '@/services/pipeline.service';
 import { useConfirm } from '@/shared/context/ConfirmContext';
+import { Modal } from '@/shared/ui';
 
 interface SeriesPipelineModalProps {
   isOpen: boolean;
@@ -260,7 +261,14 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='xl'
+      title='Cấu Hình Quy Trình Sản Xuất (Pipeline Stages)'
+      description={`Series: ${seriesTitle}`}
+      closeLabel='Đóng modal'
+    >
       <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200'>
         {/* Header */}
         <div className='flex items-center justify-between px-6 py-4 border-b border-[#E7E7E7] bg-[#FAF8F5]'>
@@ -770,6 +778,6 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
