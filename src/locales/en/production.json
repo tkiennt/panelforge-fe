@@ -210,7 +210,8 @@
       "unlistedTitle": "Some pages are no longer in the script",
       "unlistedDesc": "Page {pages} still exists on the Artist desk but the script no longer mentions it. It was not deleted; ask the Producer or Artist to remove it if needed.",
       "structureFailed": "Lines saved, but the Page / Panel structure was not",
-      "lostRefsWarning": "Series Bible reference warning"
+      "lostRefsWarning": "Series Bible reference warning",
+      "conflict": "Script changed by someone else - please reload"
     },
     "cast": {
       "referenceTitle": "Reference Series Bible",

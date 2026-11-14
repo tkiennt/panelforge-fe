@@ -6,8 +6,8 @@ import StarterKit from '@tiptap/starter-kit';
 import { ScriptLineKind, SceneDetailDto } from '@/services/scriptLine.service';
 import type { PageDto } from '@/services/page.service';
 import type { PanelDto } from '@/types/pipeline';
-import { ScriptDocument, ScriptLineBlockNode } from './nodes/ScriptLineBlockNode';
-import { docToScript, scriptToDoc, splitSpeakerLabel } from './scriptFlowAdapter';
+import { ScriptDocument, ScriptLineBlockNode, BibleRefMark } from './nodes/ScriptLineBlockNode';
+import { docToScript, scriptToDoc, splitSpeakerLabel, docToScriptTree } from './scriptFlowAdapter';
 
 const PAGE_ID = '11111111-1111-4111-8111-111111111111';
 const PANEL_1 = '22222222-2222-4222-8222-222222222222';
@@ -32,6 +32,7 @@ const toNode = (doc: JSONContent) =>
       }),
       ScriptDocument,
       ScriptLineBlockNode,
+      BibleRefMark,
     ],
     content: doc,
   }).state.doc;
@@ -178,22 +179,134 @@ describe('scriptFlowAdapter', () => {
     });
   });
 
-  it('nhận diện Dialogue và dựng Character khi dòng từ server thiếu kind nhưng có speakerLabel/dialogueText', () => {
-    const doc = scriptToDoc(
-      [
-        scene([
-          {
-            dialogueText: 'Xin chào',
-            speakerLabel: 'NARUTO',
-            panelId: PANEL_1,
-          } as any,
+  it('docToScriptTree dựng toàn bộ cây Trang -> Panel (direction + castRevisions) -> Dòng (refs)', () => {
+    const lineWithMark = (
+      el: string,
+      text: string,
+      refId: string | null = null,
+      castRevisions?: { entryId: string; revisionId: string }[] | null,
+      refMarks?: Array<{ entryId: string; surfaceText: string }>,
+    ): JSONContent => ({
+      type: 'scriptLine',
+      attrs: {
+        el,
+        refId,
+        ...(castRevisions ? { castRevisions } : {}),
+      },
+      ...(text
+        ? {
+            content:
+              refMarks && refMarks.length > 0
+                ? [
+                    {
+                      type: 'text',
+                      text,
+                      marks: refMarks.map((m) => ({
+                        type: 'bibleRef',
+                        attrs: {
+                          entryId: m.entryId,
+                          surfaceText: m.surfaceText,
+                        },
+                      })),
+                    },
+                  ]
+                : [{ type: 'text', text }],
+          }
+        : {}),
+    });
+
+    const expectedRevisionId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const entryId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const revisionId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const lineId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+
+    const node = toNode({
+      type: 'doc',
+      content: [
+        lineWithMark('page', '', PAGE_ID),
+        lineWithMark('panel', 'Toàn cảnh thành phố Neo Tokyo', PANEL_1, [{ entryId, revisionId }]),
+        lineWithMark('action', 'Akira nhìn xuống', lineId, null, [
+          { entryId, surfaceText: 'Akira' },
         ]),
+        lineWithMark('character', 'AKIRA'),
+        lineWithMark('parens', 'nói khẽ'),
+        lineWithMark('dialogue', 'Chúng ta phải đi thôi'),
+        lineWithMark('page', ''),
+        lineWithMark('panel', 'Cận cảnh gương mặt', PANEL_2),
+        lineWithMark('character', 'MIA'),
+        lineWithMark('parens', 'nghĩ'),
+        lineWithMark('dialogue', 'Hắn đang giấu điều gì đó'),
+        lineWithMark('caption', 'Đêm dần tàn'),
+        lineWithMark('sfx', 'TIẾNG SẤM'),
       ],
-      [page],
-      [panels[0]],
-    );
-    const shape = (doc.content ?? []).map((n) => [n.attrs?.el, n.content?.[0]?.text ?? '']);
-    expect(shape).toContainEqual(['character', 'NARUTO:']);
-    expect(shape).toContainEqual(['dialogue', 'Xin chào']);
+    });
+
+    const tree = docToScriptTree(node, expectedRevisionId);
+
+    expect(tree.expectedRevisionId).toBe(expectedRevisionId);
+    expect(tree.pages).toHaveLength(2);
+
+    // Page 1
+    const p1 = tree.pages![0];
+    expect(p1.id).toBe(PAGE_ID);
+    expect(p1.number).toBe(1);
+    expect(p1.panels).toHaveLength(1);
+
+    const pan1 = p1.panels![0];
+    expect(pan1.id).toBe(PANEL_1);
+    expect(pan1.number).toBe(1);
+    expect(pan1.direction).toBe('Toàn cảnh thành phố Neo Tokyo');
+    expect(pan1.castRevisions).toEqual([{ entryId, revisionId }]);
+    expect(pan1.lines).toHaveLength(2);
+
+    expect(pan1.lines![0]).toEqual({
+      id: lineId,
+      kind: ScriptLineKind.Action,
+      speakerLabel: null,
+      text: 'Akira nhìn xuống',
+      refs: [{ bibleEntryId: entryId, surfaceText: 'Akira', newDraft: null }],
+    });
+
+    expect(pan1.lines![1]).toEqual({
+      id: null,
+      kind: ScriptLineKind.Dialogue,
+      speakerLabel: 'AKIRA (NÓI KHẼ)',
+      text: 'Chúng ta phải đi thôi',
+      refs: null,
+    });
+
+    // Page 2
+    const p2 = tree.pages![1];
+    expect(p2.id).toBeNull();
+    expect(p2.number).toBe(2);
+    expect(p2.panels).toHaveLength(1);
+
+    const pan2 = p2.panels![0];
+    expect(pan2.id).toBe(PANEL_2);
+    expect(pan2.number).toBe(1);
+    expect(pan2.direction).toBe('Cận cảnh gương mặt');
+    expect(pan2.lines).toHaveLength(3);
+
+    expect(pan2.lines![0]).toEqual({
+      id: null,
+      kind: ScriptLineKind.Thought,
+      speakerLabel: 'MIA',
+      text: 'Hắn đang giấu điều gì đó',
+      refs: null,
+    });
+    expect(pan2.lines![1]).toEqual({
+      id: null,
+      kind: ScriptLineKind.Narration,
+      speakerLabel: null,
+      text: 'Đêm dần tàn',
+      refs: null,
+    });
+    expect(pan2.lines![2]).toEqual({
+      id: null,
+      kind: ScriptLineKind.Sfx,
+      speakerLabel: null,
+      text: 'TIẾNG SẤM',
+      refs: null,
+    });
   });
 });

@@ -54,6 +54,7 @@ import {
   CreateSceneRequest,
   UpdateSceneRequest,
   NarrationMode,
+  ScriptLineKind,
 } from '@/services/scriptLine.service';
 import {
   chapterService,
@@ -82,7 +83,13 @@ import { NarrativeContextDrawer } from '../components/script/NarrativeContextDra
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
 import { ScriptReviewSidePanel } from '@/shared/features/script-review/ScriptReviewSidePanel';
-import type { ScriptDocSnapshot } from '../components/script/flow/scriptFlowAdapter';
+import {
+  type ScriptDocSnapshot,
+  type ChapterScriptBody,
+  type ScriptTreePage,
+  isValidGuid,
+  docToScriptTree,
+} from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { ScriptVersionsDrawer } from '../components/script/versions/ScriptVersionsDrawer';
 import { ScriptStudioRail, type ScriptRailItem } from '../components/script/ScriptStudioRail';
@@ -190,10 +197,19 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Phiên bản mới nhất và bản đang gửi duyệt: khác mã băm = có thay đổi chưa gửi duyệt lại
   const [versionsTick, setVersionsTick] = useState(0);
   const [hasUnpushedChanges, setHasUnpushedChanges] = useState(false);
+  const [expectedRevisionId, setExpectedRevisionId] = useState<string | null>(null);
+  const expectedRevisionIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    expectedRevisionIdRef.current = expectedRevisionId;
+  }, [expectedRevisionId]);
+
+  const editorGetPayloadRef = useRef<(() => ChapterScriptBody) | null>(null);
+
   useEffect(() => {
     const id = currentChapter?.id;
-    const pushedId = currentChapter?.lastSubmittedVersionId;
-    if (!id || !pushedId) {
+    if (!id) {
+      setExpectedRevisionId(null);
+      expectedRevisionIdRef.current = null;
       setHasUnpushedChanges(false);
       return;
     }
@@ -202,10 +218,27 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       .getScriptVersions(id)
       .then((list) => {
         if (cancelled) return;
-        const pushed = list.find((v) => v.id === pushedId);
-        setHasUnpushedChanges(!!pushed && !!list[0] && list[0].contentHash !== pushed.contentHash);
+        const latestId = list[0]?.id ?? null;
+        setExpectedRevisionId(latestId);
+        expectedRevisionIdRef.current = latestId;
+
+        const pushedId = currentChapter?.lastSubmittedVersionId;
+        if (pushedId) {
+          const pushed = list.find((v) => v.id === pushedId);
+          setHasUnpushedChanges(
+            !!pushed && !!list[0] && list[0].contentHash !== pushed.contentHash,
+          );
+        } else {
+          setHasUnpushedChanges(false);
+        }
       })
-      .catch(() => !cancelled && setHasUnpushedChanges(false));
+      .catch(() => {
+        if (!cancelled) {
+          setExpectedRevisionId(null);
+          expectedRevisionIdRef.current = null;
+          setHasUnpushedChanges(false);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -663,164 +696,163 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   }, []);
 
+  const buildFallbackScriptTree = useCallback((): ChapterScriptBody => {
+    const linesByPanel = new Map<string, any[]>();
+    for (const sc of chapterScenesDetail) {
+      for (const line of sc.scriptLines ?? []) {
+        if (line.panelId) {
+          const list = linesByPanel.get(line.panelId) ?? [];
+          list.push(line);
+          linesByPanel.set(line.panelId, list);
+        }
+      }
+    }
+
+    const pages: ScriptTreePage[] = chapterPages
+      .slice()
+      .sort((a, b) => a.pageNumber - b.pageNumber)
+      .map((p) => {
+        const panels = chapterPanels
+          .filter((panel) => panel.pageId === p.id)
+          .sort((a, b) => a.panelNumber - b.panelNumber)
+          .map((panel) => {
+            const pLines = (linesByPanel.get(panel.id) ?? []).map((l) => ({
+              id: isValidGuid(l.id) ? l.id : null,
+              kind: l.kind ?? ScriptLineKind.Action,
+              speakerLabel: l.speakerLabel ?? null,
+              text: l.text ?? l.dialogueText ?? l.stageDirection ?? '',
+              refs: (l as any).refs ?? null,
+            }));
+            const rawCast = (panel as any).castRevisions as
+              Array<{ entryId?: string; bibleEntryId?: string; revisionId: string }> | undefined;
+            const castRevisions =
+              rawCast && rawCast.length > 0
+                ? rawCast
+                    .map((c) => ({
+                      entryId: c.entryId || c.bibleEntryId || '',
+                      revisionId: c.revisionId,
+                    }))
+                    .filter((c) => !!c.entryId && !!c.revisionId)
+                : null;
+            return {
+              id: isValidGuid(panel.id) ? panel.id : null,
+              number: panel.panelNumber,
+              direction: panel.direction ?? null,
+              ...(castRevisions && castRevisions.length > 0 ? { castRevisions } : {}),
+              lines: pLines,
+            };
+          });
+        return {
+          id: isValidGuid(p.id) ? p.id : null,
+          number: p.pageNumber,
+          panels,
+        };
+      });
+
+    return {
+      expectedRevisionId: expectedRevisionIdRef.current,
+      pages,
+    };
+  }, [chapterPages, chapterPanels, chapterScenesDetail]);
+
   /**
-   * Lưu kịch bản Graphic Novel: toàn bộ dòng vào Scene mặc định của chương (D2) trong một request,
-   * dựng khung Trang → Panel, rồi ghi chữ của dòng Panel vào Panel.Direction.
+   * SCR-14: Lưu toàn bộ kịch bản của chương trong một request duy nhất (PUT /api/chapters/{id}/script).
    */
   const handleSaveScript = useCallback(
-    async (snapshot: ScriptDocSnapshot) => {
+    async (snapshotOrBody: ScriptDocSnapshot | ChapterScriptBody) => {
       if (!currentChapter) return;
       const chapterId = currentChapter.id;
-      const isValidGuid = (id?: string | null) =>
-        Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
 
-      // 1. Scene mặc định của chương
-      let scene: SceneDetailDto | null = chapterScenesDetail[0] ?? selectedScene ?? null;
-      if (!scene && scenes.length > 0) {
-        scene = await scriptLineService.getSceneById(scenes[0].id).catch(() => null);
-      }
-      if (!scene) {
-        const created = await scriptLineService.createScene(chapterId, {
-          sceneNumber: 1,
-          heading: 'CẢNH 1',
-          summary: null,
-          defaultNarrationMode: 'Present',
-        });
-        setScenes([created]);
-        scene = await scriptLineService.getSceneById(created.id);
-      }
+      const body: ChapterScriptBody =
+        'pages' in snapshotOrBody && !('lines' in snapshotOrBody)
+          ? (snapshotOrBody as ChapterScriptBody)
+          : ((snapshotOrBody as ScriptDocSnapshot).tree ??
+            (editorGetPayloadRef.current
+              ? editorGetPayloadRef.current()
+              : buildFallbackScriptTree()));
+      body.expectedRevisionId = expectedRevisionIdRef.current;
 
-      // 2. Toàn bộ dòng trong một request (dòng không còn trong tài liệu sẽ bị gỡ)
-      let currentVersion = currentChapter.versionVector ?? 0;
-      let res;
       try {
-        res = await scriptLineService.batchSaveScriptLines(chapterId, scene.id, {
-          lines: snapshot.lines.map((line, idx) => ({
-            id: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
-            lineOrder: idx + 1,
-            kind: line.kind,
-            speakerLabel: line.speakerLabel ?? null,
-            text: line.text ?? null,
-            dialogueText: line.dialogueText ?? null,
-            stageDirection: line.stageDirection ?? null,
-            narrationMode: line.narrationMode,
-            clientLineId: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
-            panelId: isValidGuid(line.panelId) ? line.panelId : null,
-            refs: line.refs ?? null,
-          })),
-          expectedChapterVersion: currentVersion,
-          summary: 'Lưu kịch bản từ trình soạn thảo',
-        });
-      } catch (batchErr: any) {
-        if (batchErr?.status === 409 || batchErr?.code === 'CONFLICT') {
-          await refreshChapterDetail(chapterId);
-        }
-        throw batchErr;
-      }
-      if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
-        currentVersion = res.chapterVersion;
-      }
-      if (res?.warnings && res.warnings.length > 0) {
-        notify(
-          t('scriptStudio.save.lostRefsWarning', 'Cảnh báo tham chiếu Series Bible'),
-          res.warnings.join('\n'),
-        );
-      }
-      const savedIds = snapshot.lines.map(
-        (line, idx) => res?.lines?.[idx]?.id ?? line.scriptLineId,
-      );
+        const res = await chapterService.saveChapterScript(chapterId, body);
+        setExpectedRevisionId(res.revisionId);
+        expectedRevisionIdRef.current = res.revisionId;
 
-      // 3. Khung Trang → Panel → dòng (một transaction phía máy chủ)
-      const idsByPanel = new Map<string, string[]>();
-      snapshot.lines.forEach((line, idx) => {
-        if (!line.pageNumber || !line.panelNumber || !isValidGuid(savedIds[idx])) return;
-        const key = `${line.pageNumber}:${line.panelNumber}`;
-        idsByPanel.set(key, [...(idsByPanel.get(key) ?? []), savedIds[idx]]);
-      });
-      try {
-        // Kịch bản là nguồn của khung: Trang / Panel không còn trong kịch bản bị gỡ phía máy chủ
-        await pageService.syncScriptStructure(
-          chapterId,
-          snapshot.pages.map((page) => ({
-            pageNumber: page.pageNumber,
-            panels: page.panels.map((panel) => ({
-              panelNumber: panel.panelNumber,
-              scriptLineIds: idsByPanel.get(`${page.pageNumber}:${panel.panelNumber}`) ?? [],
-              castRevisions: panel.castRevisions ?? undefined,
-            })),
-          })),
-        );
-      } catch (structureErr: any) {
-        // Dòng kịch bản đã lưu; chỉ khung Trang/Panel chưa đồng bộ nên báo rõ thay vì nuốt lỗi
-        notify(t('scriptStudio.save.structureFailed'), structureErr?.message ?? '');
-      }
+        if (res.warnings && res.warnings.length > 0) {
+          res.warnings.forEach((warning) => {
+            notify(t('scriptStudio.save.lostRefsWarning', 'Cảnh báo kịch bản'), warning);
+          });
+        }
 
-      // 4. Chữ của dòng Panel → Panel.Direction
-      const freshPanels = await loadPagesAndPanels(chapterId);
-      const directionUpdates: Promise<unknown>[] = [];
-      for (const page of snapshot.pages) {
-        for (const draft of page.panels) {
-          const server = freshPanels.find(
-            (p) => (p as any).pageNumber === page.pageNumber && p.panelNumber === draft.panelNumber,
-          );
-          if (server && (server.direction ?? '') !== draft.direction) {
-            directionUpdates.push(
-              panelService.updatePanelDirection(server.id, {
-                direction: draft.direction || null,
-                expectedVersion: server.version,
-              }),
-            );
-          }
-        }
-      }
-      if (directionUpdates.length > 0) {
-        const results = await Promise.allSettled(directionUpdates);
-        if (results.some((r) => r.status === 'rejected')) {
-          notify(t('scriptStudio.save.structureFailed'), '');
-        }
+        setVersionsTick((n) => n + 1);
+
+        // Nạp lại dữ liệu sau khi lưu
         await loadPagesAndPanels(chapterId);
-      }
-
-      setCurrentChapter((prev) => (prev ? { ...prev, versionVector: currentVersion } : null));
-
-      // 4b. Lưu = commit: chụp phiên bản kịch bản (máy chủ bỏ qua nếu nội dung không đổi)
-      try {
-        await chapterService.commitScriptVersion(chapterId);
-      } catch (commitErr: any) {
-        notify(t('scriptStudio.versions.commitFailed'), commitErr?.message ?? '');
-      }
-      setVersionsTick((n) => n + 1);
-
-      // 5. Nạp lại Scene để editor nhận Id dòng từ máy chủ
-      try {
-        const freshScenes = await scriptLineService.getScenesByChapter(chapterId);
-        freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setScenes(freshScenes);
-        const details = (
-          await Promise.all(
-            freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-          )
-        ).filter((d): d is SceneDetailDto => d !== null);
-        details.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setChapterScenesDetail(details);
-        setSelectedScene(details.find((d) => d.id === scene!.id) ?? details[0] ?? null);
-        void loadChapterCast(chapterId);
-      } catch (refreshErr) {
-        console.error('Lỗi làm mới kịch bản sau khi lưu:', refreshErr);
+        try {
+          const freshScenes = await scriptLineService.getScenesByChapter(chapterId);
+          freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
+          setScenes(freshScenes);
+          const details = (
+            await Promise.all(
+              freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
+            )
+          ).filter((d): d is SceneDetailDto => d !== null);
+          details.sort((a, b) => a.sceneNumber - b.sceneNumber);
+          setChapterScenesDetail(details);
+          if (selectedScene) {
+            setSelectedScene(details.find((d) => d.id === selectedScene.id) ?? details[0] ?? null);
+          }
+          void loadChapterCast(chapterId);
+        } catch (refreshErr) {
+          console.error('Lỗi làm mới kịch bản sau khi lưu:', refreshErr);
+        }
+      } catch (err: any) {
+        if (
+          err?.status === 409 ||
+          err?.code === 'CONFLICT' ||
+          err?.message?.includes('409') ||
+          err?.message?.includes('phiên bản khác')
+        ) {
+          notify(
+            t(
+              'scriptStudio.save.conflict',
+              'Kịch bản đã được người khác thay đổi — vui lòng tải lại',
+            ),
+            '',
+          );
+          return;
+        }
+        notify(t('scriptStudio.gn.saveFailed', 'Chưa lưu được kịch bản'), err?.message ?? '');
+        throw err;
       }
     },
     [
       currentChapter,
-      chapterScenesDetail,
-      selectedScene,
-      scenes,
+      buildFallbackScriptTree,
       loadPagesAndPanels,
-      notify,
-      refreshChapterDetail,
+      selectedScene,
       loadChapterCast,
+      notify,
       t,
     ],
   );
+
+  useEffect(() => {
+    const handleSaveKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (!canEditScript || isChapterLocked) return;
+        if (editorSaveRef.current) {
+          void editorSaveRef.current();
+        } else {
+          void handleSaveScript(
+            editorGetPayloadRef.current ? editorGetPayloadRef.current() : buildFallbackScriptTree(),
+          );
+        }
+      }
+    };
+    window.addEventListener('keydown', handleSaveKeyDown);
+    return () => window.removeEventListener('keydown', handleSaveKeyDown);
+  }, [canEditScript, isChapterLocked, handleSaveScript, buildFallbackScriptTree]);
 
   // Xử lý Xoá Phân Cảnh (Delete Scene - Lucian #269 TypeToConfirmModal)
   const handleConfirmDeleteScene = async () => {
@@ -1749,12 +1781,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   };
 
   /**
-   * D12: Writer gửi duyệt = push (Draft → InReview, hoặc gửi lại khi InReview để Editor đọc bản mới).
-   * Tự lưu chữ chưa lưu trên bàn viết trước; lưu lỗi thì không gửi.
+   * SCR-14: Writer gửi duyệt kịch bản qua POST /api/chapters/{id}/script/submit.
+   * Gửi cùng payload cây kịch bản, lưu và chuyển trạng thái InReview trong cùng một transaction.
    */
   const handleSubmitScript = async () => {
     if (!currentChapter?.id) return;
-    if (editorSaveRef.current && !(await editorSaveRef.current())) return;
 
     // BIB-16 item 6: kiểm tra blockers của Gửi duyệt (mục nháp IsStub chưa định nghĩa)
     if (chapterCast?.submitGate && !chapterCast.submitGate.canSubmit) {
@@ -1778,17 +1809,66 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     });
     if (!confirmed) return;
 
+    const body: ChapterScriptBody = editorGetPayloadRef.current
+      ? editorGetPayloadRef.current()
+      : buildFallbackScriptTree();
+    body.expectedRevisionId = expectedRevisionIdRef.current;
+
     setSubmittingToEditor(true);
     try {
-      const updated = await chapterService.submitScript(currentChapter.id);
+      const res = await chapterService.submitChapterScript(currentChapter.id, body);
+      setExpectedRevisionId(res.revisionId);
+      expectedRevisionIdRef.current = res.revisionId;
+
+      if (res.warnings && res.warnings.length > 0) {
+        res.warnings.forEach((warning) => {
+          notify(t('scriptStudio.save.lostRefsWarning', 'Cảnh báo kịch bản'), warning);
+        });
+      }
+
       notify(
         t('scriptStudio.lifecycle.submitted'),
         t('scriptStudio.lifecycle.submittedBody', { n }),
       );
-      await applyChapterUpdate(updated);
+      await applyChapterUpdate(res.chapter);
       setVersionsTick((v) => v + 1);
+
+      await loadPagesAndPanels(currentChapter.id);
+      try {
+        const freshScenes = await scriptLineService.getScenesByChapter(currentChapter.id);
+        freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        setScenes(freshScenes);
+        const details = (
+          await Promise.all(
+            freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
+          )
+        ).filter((d): d is SceneDetailDto => d !== null);
+        details.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        setChapterScenesDetail(details);
+        if (selectedScene) {
+          setSelectedScene(details.find((d) => d.id === selectedScene.id) ?? details[0] ?? null);
+        }
+        void loadChapterCast(currentChapter.id);
+      } catch (refreshErr) {
+        console.error('Lỗi làm mới kịch bản sau khi submit:', refreshErr);
+      }
     } catch (err: any) {
-      notify(t('scriptStudio.lifecycle.submitFailed'), err.message);
+      if (
+        err?.status === 409 ||
+        err?.code === 'CONFLICT' ||
+        err?.message?.includes('409') ||
+        err?.message?.includes('phiên bản khác')
+      ) {
+        notify(
+          t(
+            'scriptStudio.save.conflict',
+            'Kịch bản đã được người khác thay đổi — vui lòng tải lại',
+          ),
+          '',
+        );
+        return;
+      }
+      notify(t('scriptStudio.lifecycle.submitFailed'), err?.message ?? '');
     } finally {
       setSubmittingToEditor(false);
     }
@@ -2522,6 +2602,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               }}
               onSave={handleSaveScript}
               registerSave={registerEditorSave}
+              registerGetPayload={(fn) => {
+                editorGetPayloadRef.current = fn;
+              }}
               onShowToast={onShowToast}
               dockLeading={viewSwitcher}
               manuscriptTitle={formatChapterOption(

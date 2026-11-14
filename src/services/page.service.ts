@@ -107,40 +107,7 @@ export const toValidPageGuid = (id?: string): string => {
 // Fallback mock pages (empty)
 export const MOCK_PAGES: PageDto[] = [];
 
-export interface ScriptStructurePanel {
-  panelNumber: number;
-  scriptLineIds: string[];
-  castRevisions?: { bibleEntryId: string; revisionId: string }[];
-}
-
-/** Body/kết quả của PUT /chapters/{id}/script-structure (SyncScriptStructureCommand) */
-export interface ScriptStructurePage {
-  pageNumber: number;
-  panels: ScriptStructurePanel[];
-}
-
-export interface SyncScriptStructureResult {
-  pagesCreated: number;
-  panelsCreated: number;
-  linesAnchored: number;
-  /** Trang / Panel kịch bản không còn nhắc tới, đã bị xoá mềm theo kịch bản. */
-  pagesRemoved: number;
-  panelsRemoved: number;
-}
-
 export const pageService = {
-  syncScriptStructure: async (
-    chapterId: string,
-    pages: ScriptStructurePage[],
-  ): Promise<SyncScriptStructureResult> => {
-    try {
-      const response = await axiosClient.put(`/chapters/${chapterId}/script-structure`, { pages });
-      return response.data;
-    } catch (error) {
-      throw await toPageError(error, 'Lưu cấu trúc Trang / Panel thất bại.');
-    }
-  },
-
   createPage: async (chapterId: string, body: CreatePageRequestBody): Promise<PageDto> => {
     const validChapterId = toValidChapterGuid(chapterId);
     try {

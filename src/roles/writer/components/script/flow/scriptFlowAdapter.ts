@@ -33,6 +33,20 @@ export function generateGuid(): string {
   });
 }
 
+import type {
+  ScriptTreeCast,
+  ScriptTreeLine,
+  ScriptTreePanel,
+  ScriptTreePage,
+  ChapterScriptBody,
+} from '@/services/chapter.service';
+export type { ScriptTreeCast, ScriptTreeLine, ScriptTreePanel, ScriptTreePage, ChapterScriptBody };
+
+export function isValidGuid(id?: string | null): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
 export interface ExtractedScriptLinePayload {
   scriptLineId: string;
   sceneId: string;
@@ -66,6 +80,7 @@ export interface ScriptStructurePageDraft {
 export interface ScriptDocSnapshot {
   lines: ExtractedScriptLinePayload[];
   pages: ScriptStructurePageDraft[];
+  tree?: ChapterScriptBody;
 }
 
 // ───────────────────────── máy chủ → editor ─────────────────────────
@@ -300,6 +315,198 @@ const stripParens = (s: string) =>
     .replace(/\s*\)$/, '')
     .trim();
 
+export function extractRefs(node: PMNode): ScriptLineRefInput[] {
+  const lineRefs: ScriptLineRefInput[] = [];
+  node.descendants((child) => {
+    if (child.isText && child.marks.length > 0) {
+      for (const m of child.marks) {
+        if (m.type.name === 'bibleRef') {
+          const entryId = (m.attrs.entryId as string | null) || null;
+          const surf = (m.attrs.surfaceText as string | null) || child.text || '';
+          const newDraft = (m.attrs.newDraft as { name: string; category?: number } | null) || null;
+          if (
+            surf &&
+            !lineRefs.some(
+              (r) =>
+                (entryId && r.bibleEntryId === entryId) ||
+                (!entryId && newDraft && r.newDraft?.name === newDraft.name) ||
+                r.surfaceText.toLowerCase() === surf.toLowerCase(),
+            )
+          ) {
+            lineRefs.push({
+              surfaceText: surf,
+              bibleEntryId: entryId,
+              newDraft: newDraft,
+            });
+          }
+        }
+      }
+    }
+  });
+  return lineRefs;
+}
+
+/**
+ * SCR-14: Xây dựng toàn bộ cây dữ liệu kịch bản (Trang → Panel (kèm direction + castRevisions) → Dòng (kèm refs))
+ * trực tiếp từ tài liệu editor.
+ */
+export function docToScriptTree(
+  doc: PMNode,
+  expectedRevisionId?: string | null,
+): ChapterScriptBody {
+  const pages: ScriptTreePage[] = [];
+  let pageNo = 0;
+  let panelNo = 0;
+  let currentPage: ScriptTreePage | null = null;
+  let currentPanel: ScriptTreePanel | null = null;
+  let speaker: string | null = null;
+  let parens: string | null = null;
+
+  const ensurePage = () => {
+    if (!currentPage) {
+      pageNo += 1;
+      currentPage = {
+        id: null,
+        number: pageNo,
+        panels: [],
+      };
+      pages.push(currentPage);
+    }
+    return currentPage;
+  };
+
+  const ensurePanel = () => {
+    const p = ensurePage();
+    if (!currentPanel) {
+      panelNo += 1;
+      currentPanel = {
+        id: null,
+        number: panelNo,
+        direction: null,
+        castRevisions: null,
+        lines: [],
+      };
+      p.panels = p.panels ?? [];
+      p.panels.push(currentPanel);
+    }
+    return currentPanel;
+  };
+
+  doc.forEach((node) => {
+    const el = node.attrs.el as GnElement;
+    const text = node.textContent.trim();
+    const refId = (node.attrs.refId as string | null) ?? null;
+
+    switch (el) {
+      case 'page': {
+        pageNo += 1;
+        panelNo = 0;
+        currentPanel = null;
+        speaker = null;
+        parens = null;
+        currentPage = {
+          id: isValidGuid(refId) ? refId : null,
+          number: pageNo,
+          panels: [],
+        };
+        pages.push(currentPage);
+        return;
+      }
+      case 'panel': {
+        ensurePage();
+        panelNo += 1;
+        speaker = null;
+        parens = null;
+        const rawCast =
+          (node.attrs.castRevisions as Array<{
+            entryId?: string;
+            bibleEntryId?: string;
+            revisionId: string;
+          }> | null) ?? null;
+        const castRevisions: ScriptTreeCast[] | null =
+          rawCast && rawCast.length > 0
+            ? rawCast
+                .map((c) => ({
+                  entryId: c.entryId || c.bibleEntryId || '',
+                  revisionId: c.revisionId,
+                }))
+                .filter((c) => !!c.entryId && !!c.revisionId)
+            : null;
+
+        currentPanel = {
+          id: isValidGuid(refId) ? refId : null,
+          number: panelNo,
+          direction: text || null,
+          ...(castRevisions && castRevisions.length > 0 ? { castRevisions } : {}),
+          lines: [],
+        };
+        currentPage!.panels = currentPage!.panels ?? [];
+        currentPage!.panels.push(currentPanel);
+        return;
+      }
+      case 'character': {
+        speaker = text ? text.replace(/:+$/, '').trim().toUpperCase() : null;
+        parens = null;
+        return;
+      }
+      case 'parens': {
+        parens = stripParens(text) || null;
+        return;
+      }
+      case 'dialogue': {
+        if (text) {
+          const panel = ensurePanel();
+          const thought = isThoughtParens(parens);
+          const label = speaker
+            ? parens && !thought
+              ? `${speaker} (${parens.toUpperCase()})`
+              : speaker
+            : null;
+          const refs = extractRefs(node);
+          panel.lines = panel.lines ?? [];
+          panel.lines.push({
+            id: isValidGuid(refId) ? refId : null,
+            kind: thought ? ScriptLineKind.Thought : ScriptLineKind.Dialogue,
+            speakerLabel: label,
+            text,
+            refs: refs.length > 0 ? refs : null,
+          });
+        }
+        parens = null;
+        return;
+      }
+      default: {
+        speaker = null;
+        parens = null;
+        if (!text) return;
+        const panel = ensurePanel();
+        const refs = extractRefs(node);
+        const kind =
+          el === 'caption'
+            ? ScriptLineKind.Narration
+            : el === 'sfx'
+              ? ScriptLineKind.Sfx
+              : ScriptLineKind.Action;
+        panel.lines = panel.lines ?? [];
+        panel.lines.push({
+          id: isValidGuid(refId) ? refId : null,
+          kind,
+          speakerLabel: null,
+          text,
+          refs: refs.length > 0 ? refs : null,
+        });
+      }
+    }
+  });
+
+  return {
+    expectedRevisionId: expectedRevisionId ?? null,
+    pages,
+  };
+}
+
+export const docToChapterScript = docToScriptTree;
+
 /** Đọc tài liệu editor thành danh sách dòng + khung Trang/Panel để lưu. Dòng trống bị bỏ qua. */
 export function docToScript(doc: PMNode, sceneId: string): ScriptDocSnapshot {
   const lines: ExtractedScriptLinePayload[] = [];
@@ -406,34 +613,7 @@ export function docToScript(doc: PMNode, sceneId: string): ScriptDocSnapshot {
         if (!text) return;
 
         // Trích xuất refs từ các mark bibleRef trong dòng (BIB-16, 1A, 2A, 5A)
-        const lineRefs: ScriptLineRefInput[] = [];
-        node.descendants((child) => {
-          if (child.isText && child.marks.length > 0) {
-            for (const m of child.marks) {
-              if (m.type.name === 'bibleRef') {
-                const entryId = (m.attrs.entryId as string | null) || null;
-                const surf = (m.attrs.surfaceText as string | null) || child.text || '';
-                const newDraft =
-                  (m.attrs.newDraft as { name: string; category?: number } | null) || null;
-                if (
-                  surf &&
-                  !lineRefs.some(
-                    (r) =>
-                      (entryId && r.bibleEntryId === entryId) ||
-                      (!entryId && newDraft && r.newDraft?.name === newDraft.name) ||
-                      r.surfaceText.toLowerCase() === surf.toLowerCase(),
-                  )
-                ) {
-                  lineRefs.push({
-                    surfaceText: surf,
-                    bibleEntryId: entryId,
-                    newDraft: newDraft,
-                  });
-                }
-              }
-            }
-          }
-        });
+        const lineRefs = extractRefs(node);
 
         if (el === 'caption')
           push(ScriptLineKind.Narration, text, refId, BLOCK_TYPE.caption, null, lineRefs);
@@ -444,5 +624,5 @@ export function docToScript(doc: PMNode, sceneId: string): ScriptDocSnapshot {
     }
   });
 
-  return { lines, pages };
+  return { lines, pages, tree: docToScriptTree(doc) };
 }
