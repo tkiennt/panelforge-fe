@@ -60,8 +60,6 @@ export interface ArtistDeskViewProps {
   initialSidebarTab?: CanvaSidebarTab;
 }
 
-interface RawLoadedScriptLine extends ScriptLineItem {}
-
 /**
  * Artist desk: script and bible reference on the left, a B5 manga sheet in the centre,
  * the page filmstrip along the bottom. Stage submission lives in the focus header.
@@ -104,7 +102,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [chapterAssignments, setChapterAssignments] = useState<AssignmentDto[]>([]);
 
   // Dữ liệu thực tế từ Backend cho Kịch bản & Hồ sơ truyện
-  const [rawScriptLines, setRawScriptLines] = useState<RawLoadedScriptLine[] | undefined>(
+  const [rawScriptLines, setRawScriptLines] = useState<ScriptLineItem[] | undefined>(
     initialScriptLines,
   );
   const [hasLoadedRealScript, setHasLoadedRealScript] = useState(false);
@@ -367,7 +365,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               : Promise.resolve(null),
           ),
         );
-        const combined: RawLoadedScriptLine[] = [];
+        const combined: ScriptLineItem[] = [];
         sceneDetails.forEach((detail, idx) => {
           const sc = sortedScenes[idx];
           const rawLines = detail?.scriptLines || [];
@@ -843,7 +841,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // Đồng bộ các dòng kịch bản với Trang, Khung và Tên/Màu nhân vật từ Hồ sơ truyện
   const resolvedScriptLines = useMemo(() => {
     if (!hasLoadedRealScript && !initialScriptLines) return undefined;
-    const source: RawLoadedScriptLine[] | undefined = rawScriptLines || initialScriptLines;
+    const source: ScriptLineItem[] | undefined = rawScriptLines || initialScriptLines;
     if (!source) return undefined;
 
     const sceneToPageMap = new Map<string, number>();
