@@ -35,14 +35,12 @@ export interface BibleEntryRevisionDto {
   reviewStatus?: BibleReviewStatus;
   reworkFeedback?: string | null;
   associatedChapterId?: string | null;
-  effectiveFromChapterNumber: number;
   isInitialVersion: boolean;
   createdAt: string;
   isLocked?: boolean;
   lockedAt?: string | null;
   lockedById?: string | null;
-  stageName?: string | null;
-  effectiveToChapterNumber?: number | null;
+  variantLabel: string;
   referenceImageUrl?: string | null;
   conceptImageUrl?: string | null;
   events?: BibleRevisionEventDto[] | null;
@@ -92,9 +90,7 @@ export interface CreateBibleEntryRequest {
   referenceImageUrl?: string;
   priority?: BiblePriority;
   strictCheck?: boolean;
-  effectiveFromChapterNumber?: number;
-  stageName?: string | null;
-  effectiveToChapterNumber?: number | null;
+  variantLabel: string;
   aliases?: string[];
   isCrowd?: boolean;
 }
@@ -157,15 +153,13 @@ export interface AddBibleEntryRevisionRequest {
   referenceImageUrl?: string;
   priority?: BiblePriority;
   strictCheck?: boolean;
-  effectiveFromChapterNumber?: number;
-  stageName?: string | null;
-  effectiveToChapterNumber?: number | null;
+  variantLabel: string;
 }
 
 /** Producer thay thế bản đã khoá: nội dung mới + lý do; chương hiệu lực lấy theo bản bị thay. */
 export type SupersedeBibleEntryRevisionRequest = Omit<
   AddBibleEntryRevisionRequest,
-  'summary' | 'effectiveFromChapterNumber'
+  'summary' | 'variantLabel'
 > & { reason: string };
 
 function extractError(error: any, defaultMsg: string): any {
@@ -195,31 +189,6 @@ export const bibleService = {
     } catch (error) {
       throw extractError(error, 'Không thể xóa phiên bản.');
     }
-  },
-
-  async getBibleEntriesAtChapter(
-    seriesId: string,
-    chapterNumber: number,
-    canonOnly?: boolean,
-  ): Promise<BibleEntryDto[]> {
-    try {
-      const url = `/series/${seriesId}/bible/at-chapter/${chapterNumber}${
-        canonOnly ? '?canonOnly=true' : ''
-      }`;
-      const response = await axiosClient.get(url);
-      return response.data;
-    } catch (error) {
-      throw extractError(error, `Không thể tải Bible cho Chapter ${chapterNumber}.`);
-    }
-  },
-
-  async getSeriesBibleAtChapter(
-    seriesId: string,
-    chapterNumber: number,
-    canonOnly?: boolean,
-  ): Promise<{ entries: BibleEntryDto[] }> {
-    const entries = await this.getBibleEntriesAtChapter(seriesId, chapterNumber, canonOnly);
-    return { entries };
   },
 
   /**
@@ -533,8 +502,7 @@ export interface BibleDesignQueueItemDto {
   reworkFeedback?: string | null;
   artistUserId?: string | null;
   referenceImageUrl?: string | null;
-  effectiveFromChapterNumber: number;
-  stageName?: string | null;
+  variantLabel: string;
   versionNumber?: number;
   createdAt?: string;
   updatedAt: string;
@@ -547,15 +515,13 @@ export interface SubmitConceptArtRequest {
   referenceImageUrl?: string;
   imageSha256?: string;
   assetSha256?: string;
-  stageName?: string;
+  variantLabel?: string;
   note?: string;
   summary?: string;
   name?: string;
   description?: string;
   subtitle?: string;
   detailsJson?: string;
-  effectiveFromChapterNumber?: number;
-  effectiveToChapterNumber?: number;
   expectedVersionNumber?: number;
   revisionId?: string;
 }

@@ -94,7 +94,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
     };
   }, [isOpen, activeMode, selectedPanelId]);
 
-  // Load full chapter canon bible entries (endpoint 4: GET /api/series/{seriesId}/bible/at-chapter/{n}?canonOnly=true)
+  // Load the Series Bible. Chapter-specific revision choices are resolved by chapter bindings elsewhere.
   useEffect(() => {
     if (!isOpen || activeMode !== 'chapter' || !seriesId) {
       return;
@@ -105,10 +105,10 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
     setError(null);
 
     bibleService
-      .getBibleEntriesAtChapter(seriesId, chapterNumber, true)
-      .then((entries) => {
+      .getSeriesBible(seriesId)
+      .then((bible) => {
         if (isMounted) {
-          setChapterEntries(entries || []);
+          setChapterEntries(bible.entries || []);
         }
       })
       .catch((err) => {
@@ -124,7 +124,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, activeMode, seriesId, chapterNumber]);
+  }, [isOpen, activeMode, seriesId]);
 
   // Close on Escape key
   useEffect(() => {
@@ -223,7 +223,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                 data-testid='tab-chapter-bible'
               >
                 <Lock className='w-3.5 h-3.5 text-amber-600' />
-                <span>Toàn Bộ Chương (Canon)</span>
+                <span>Toàn bộ Series Bible</span>
               </button>
             </div>
 
@@ -303,7 +303,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                     data-testid='btn-view-all-chapter-bible'
                   >
                     <BookOpen className='w-3.5 h-3.5' />
-                    <span>Xem toàn bộ Bible chương này (Canon Only)</span>
+                    <span>Xem toàn bộ mục trong Series Bible</span>
                   </button>
                 )}
               </div>
@@ -402,9 +402,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                           <span className='font-semibold'>
                             Bản khoá v{entry.effectiveRevision.versionNumber}
                           </span>
-                          <span>
-                            Hiệu lực từ Chương {entry.effectiveRevision.effectiveFromChapterNumber}
-                          </span>
+                          <span>Biến thể: {entry.effectiveRevision.variantLabel}</span>
                         </div>
                       )}
                     </div>

@@ -121,12 +121,12 @@ interface ScriptEditorViewProps {
 import { formatChapterOption } from '../utils/chapterFormat';
 
 /**
- * Trả về tên kèm giai đoạn (stageName) hoặc phụ đề (subtitle) để phân biệt các phiên bản nhân vật.
+ * Trả về tên kèm nhãn biến thể hoặc phụ đề để phân biệt các phiên bản nhân vật.
  */
 const getBibleEntryNameWithStage = (entry?: BibleEntryDto | null): string => {
   if (!entry) return '';
-  const stage = entry.effectiveRevision?.stageName?.trim() || entry.subtitle?.trim();
-  return stage ? `${entry.name} (${stage})` : entry.name;
+  const variant = entry.effectiveRevision?.variantLabel?.trim() || entry.subtitle?.trim();
+  return variant ? `${entry.name} (${variant})` : entry.name;
 };
 
 export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
@@ -913,6 +913,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           category: 'Character',
           description: `Tạo tự động từ kịch bản (Chờ cập nhật mô tả)`,
           priority: 'Standard',
+          variantLabel: 'Mặc định',
         });
         setAllBibleEntries((prev) => [...prev, created]);
         setCharacters((prev) => [...prev, created]);

@@ -32,10 +32,9 @@ const mockEntry: BibleEntryDto = {
     summary: 'Tạo hình ban đầu',
     snapshotJson: '{}',
     contentHash: 'hash-1',
-    effectiveFromChapterNumber: 1,
+    variantLabel: 'Mặc định',
     isInitialVersion: true,
     createdAt: '2026-01-01T00:00:00Z',
-    stageName: 'Mặc định',
     conceptImageUrl: 'https://example.com/naruto-concept.png',
   },
 };
@@ -61,10 +60,9 @@ const mockFlashbackEntry: BibleEntryDto = {
     summary: 'Biến thể hồi tưởng lúc nhỏ',
     snapshotJson: '{}',
     contentHash: 'hash-2',
-    effectiveFromChapterNumber: 1,
+    variantLabel: 'Lúc nhỏ',
     isInitialVersion: false,
     createdAt: '2026-01-01T00:00:00Z',
-    stageName: 'Lúc nhỏ',
     conceptImageUrl: 'https://example.com/sasuke-child.png',
   },
 };

@@ -207,7 +207,7 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
             summary: 'Bản canon đầu tiên',
             snapshotJson: '{}',
             contentHash: 'hash-1',
-            effectiveFromChapterNumber: 1,
+            variantLabel: 'Mặc định',
             isInitialVersion: true,
             createdAt: '2026-01-01T00:00:00Z',
             reviewStatus: 'CanonLocked',
