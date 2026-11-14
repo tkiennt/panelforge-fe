@@ -22,7 +22,6 @@ export const DOMAIN_LEXICON = {
 
     // Versioning & Sync
     versionVector: 'Mốc đồng bộ',
-    effectiveFromChapter: (ch: number) => `Áp dụng từ Ch. ${ch}`,
 
     // Workflow & Assignments
     carveOutAssignment: 'Tách giao việc riêng',
@@ -50,7 +49,6 @@ export const DOMAIN_LEXICON = {
 
     // Versioning & Sync
     versionVector: 'Phiên bản đồng thời (Version Vector)',
-    effectiveFromChapter: (ch: number) => `Hiệu lực mốc chương Ch. ${ch} (BR-15)`,
 
     // Workflow & Assignments
     carveOutAssignment: 'Ủy thác khung độc lập (Carve-out)',

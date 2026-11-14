@@ -173,8 +173,7 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
             registeredEntities.map((ent) => {
               const bible = ent.bibleEntry;
               const isLocation = ent.category === 'Location';
-              const eraBadge =
-                bible?.effectiveRevision?.stageName || 'v1.0 Canon Locked • Ch. 1–14';
+              const variantBadge = bible?.effectiveRevision?.variantLabel || 'Mặc định';
 
               return (
                 <div
@@ -197,11 +196,7 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
                             : 'bg-[#FFF1F2] text-[#E11D48] border-[#E11D48]/30'
                         }`}
                       >
-                        {isLocation ? (
-                          <MapPin className='w-4 h-4' />
-                        ) : (
-                          <User className='w-4 h-4' />
-                        )}
+                        {isLocation ? <MapPin className='w-4 h-4' /> : <User className='w-4 h-4' />}
                       </div>
                     )}
 
@@ -218,10 +213,10 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
                     </div>
                   </div>
 
-                  {/* BR-15 Chapter-Scoped Era Badge */}
+                  {/* Selected design variant */}
                   <div className='flex items-center gap-1.5 pt-1.5 border-t border-stone-100 text-[10px] text-stone-500'>
                     <ShieldCheck className='w-3.5 h-3.5 text-emerald-600 shrink-0' />
-                    <span className='truncate font-medium'>{eraBadge}</span>
+                    <span className='truncate font-medium'>{variantBadge}</span>
                   </div>
                 </div>
               );

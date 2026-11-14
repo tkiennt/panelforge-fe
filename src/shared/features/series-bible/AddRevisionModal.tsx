@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   FileText,
-  Plus,
   ChevronDown,
   X,
   GitCommit,
-  Clock,
   CheckCircle2,
   AlertCircle,
   Lock,
@@ -13,11 +11,12 @@ import {
   Trash2,
   Loader2,
   Palette,
+  Layers,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import type { BibleEntity } from '@/types';
 import type { BibleEntryRevisionDto } from '@/services/bible.service';
-import type { CharacterEraStage } from './BibleEntityDetailModal';
+import type { CharacterVariant } from './BibleEntityDetailModal';
 import { useTranslation } from '@/lib/i18n';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { LucianInlineAlert } from '@/shared/components/lucian';
@@ -37,23 +36,20 @@ export interface AddRevisionModalProps {
   isOpen: boolean;
   revisionTarget: BibleEntity | null;
   supersedeTarget: BibleEntryRevisionDto | null;
-  isNewEraInitial?: boolean;
-  existingStages?: CharacterEraStage[];
+  isNewVariantInitial?: boolean;
+  existingVariants?: CharacterVariant[];
   isArtistConceptSubmit: boolean;
   isArtistResubmit: boolean;
   isArtist: boolean;
   isProducer: boolean;
   revisionReworkFeedback: string | null;
-  initialStageName: string;
-  initialEffectiveChapter: number;
-  initialEffectiveToChapter: number | '';
+  initialVariantLabel: string;
   initialName: string;
   initialSubtitle: string;
   initialSummary: string;
   initialDescription: string;
   initialReferenceImageUrl: string;
   expectedVersionNumber: number | null;
-  lockedChapterNumbers: number[];
   savingRevision: boolean;
   uploadingRevImage: boolean;
   onUploadImage: (file: File) => Promise<string | void>;
@@ -64,9 +60,7 @@ export interface AddRevisionModalProps {
     subtitle: string;
     description: string;
     referenceImageUrl?: string;
-    stageName?: string;
-    effectiveFromChapterNumber: number;
-    effectiveToChapterNumber?: number;
+    variantLabel: string;
     summary: string;
     detailsJson?: string;
     attributes?: Record<string, any>;
@@ -77,9 +71,7 @@ export interface AddRevisionModalProps {
     subtitle: string;
     description: string;
     referenceImageUrl?: string;
-    stageName?: string;
-    effectiveFromChapterNumber: number;
-    effectiveToChapterNumber?: number;
+    variantLabel: string;
     summary: string;
     detailsJson?: string;
     attributes?: Record<string, any>;
@@ -91,23 +83,20 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     isOpen,
     revisionTarget,
     supersedeTarget,
-    isNewEraInitial = false,
-    existingStages = [],
+    isNewVariantInitial = false,
+    existingVariants = [],
     isArtistConceptSubmit,
     isArtistResubmit,
     isArtist,
     isProducer,
     revisionReworkFeedback,
-    initialStageName,
-    initialEffectiveChapter,
-    initialEffectiveToChapter,
+    initialVariantLabel,
     initialName,
     initialSubtitle,
     initialSummary,
     initialDescription,
     initialReferenceImageUrl,
     expectedVersionNumber,
-    lockedChapterNumbers,
     savingRevision,
     uploadingRevImage,
     onUploadImage,
@@ -116,17 +105,13 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     onConfirmArtistSubmit,
   }) => {
     const { t } = useTranslation();
-    const [eraMode, setEraMode] = useState<'existing' | 'new'>(() => {
-      if (isNewEraInitial) return 'new';
-      if (existingStages && existingStages.length > 0) return 'existing';
+    const [variantMode, setVariantMode] = useState<'existing' | 'new'>(() => {
+      if (isNewVariantInitial) return 'new';
+      if (existingVariants.length > 0) return 'existing';
       return 'new';
     });
-    const [selectedExistingStageKey, setSelectedExistingStageKey] = useState<string>('');
-    const [stageName, setStageName] = useState(initialStageName);
-    const [effectiveChapter, setEffectiveChapter] = useState(initialEffectiveChapter);
-    const [effectiveToChapter, setEffectiveToChapter] = useState<number | ''>(
-      initialEffectiveToChapter,
-    );
+    const [selectedExistingVariantKey, setSelectedExistingVariantKey] = useState<string>('');
+    const [variantLabel, setVariantLabel] = useState(initialVariantLabel);
     const [name, setName] = useState(initialName);
     const [subtitle, setSubtitle] = useState(initialSubtitle);
     const [summary, setSummary] = useState(initialSummary);
@@ -167,9 +152,8 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
       }
       if (!isInitRef.current) {
         isInitRef.current = true;
-        const mode =
-          isNewEraInitial || !existingStages || existingStages.length === 0 ? 'new' : 'existing';
-        setEraMode(mode);
+        const mode = isNewVariantInitial || existingVariants.length === 0 ? 'new' : 'existing';
+        setVariantMode(mode);
         setName(initialName);
         setSubtitle(initialSubtitle);
         setSummary(initialSummary);
@@ -201,30 +185,24 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
           );
         }
 
-        if (mode === 'existing' && existingStages && existingStages.length > 0) {
+        if (mode === 'existing' && existingVariants.length > 0) {
           const matching =
-            existingStages.find(
-              (s) =>
-                s.effectiveFromChapterNumber === initialEffectiveChapter ||
-                (initialStageName && s.stageName.toLowerCase() === initialStageName.toLowerCase()),
-            ) || existingStages[0];
-          setSelectedExistingStageKey(matching.stageKey);
-          setStageName(matching.stageName);
-          setEffectiveChapter(matching.effectiveFromChapterNumber);
-          setEffectiveToChapter(matching.effectiveToChapterNumber ?? '');
+            existingVariants.find(
+              (variant) =>
+                initialVariantLabel &&
+                variant.variantLabel.toLowerCase() === initialVariantLabel.toLowerCase(),
+            ) || existingVariants[0];
+          setSelectedExistingVariantKey(matching.variantKey);
+          setVariantLabel(matching.variantLabel);
         } else {
-          setStageName(initialStageName);
-          setEffectiveChapter(initialEffectiveChapter);
-          setEffectiveToChapter(initialEffectiveToChapter);
+          setVariantLabel(initialVariantLabel);
         }
       }
     }, [
       isOpen,
-      isNewEraInitial,
-      existingStages,
-      initialStageName,
-      initialEffectiveChapter,
-      initialEffectiveToChapter,
+      isNewVariantInitial,
+      existingVariants,
+      initialVariantLabel,
       initialName,
       initialSubtitle,
       initialSummary,
@@ -255,10 +233,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         subtitle: subtitle.trim() || revisionTarget.subtitle || '',
         description: description.trim() || revisionTarget.description || '',
         referenceImageUrl: referenceImageUrl || undefined,
-        stageName: stageName.trim() || undefined,
-        effectiveFromChapterNumber: effectiveChapter,
-        effectiveToChapterNumber:
-          effectiveToChapter !== '' ? Number(effectiveToChapter) : undefined,
+        variantLabel: variantLabel.trim(),
         summary: summary.trim(),
         detailsJson: detailsPayload,
         attributes: updatedAttrs,
@@ -308,11 +283,11 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                           { version: supersedeTarget.versionNumber, name: revisionTarget.name },
                           `Thay thế bản khoá v${supersedeTarget.versionNumber}: ${revisionTarget.name}`,
                         )
-                      : eraMode === 'new'
+                      : variantMode === 'new'
                         ? t(
-                            'bible.addRevisionModal.headerNewEra',
+                            'bible.addRevisionModal.headerNewVariant',
                             { name: revisionTarget.name },
-                            `Tạo Thời kỳ (Era) mới: ${revisionTarget.name}`,
+                            `Tạo biến thể mới: ${revisionTarget.name}`,
                           )
                         : isArtistResubmit
                           ? t(
@@ -343,16 +318,16 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                       Họa sĩ (Artist)
                     </span>
                   )}
-                  {eraMode === 'new' && (
+                  {variantMode === 'new' && (
                     <span className='px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300'>
-                      Thời kỳ mới
+                      Biến thể mới
                     </span>
                   )}
                 </div>
                 <p className='text-xs text-stone-500 truncate'>
                   {isArtistConceptSubmit
                     ? 'Tải lên thiết kế nhân vật (Model Sheet / Turnaround) để thẩm định'
-                    : `Thời kỳ: ${stageName || 'Giai đoạn chuẩn'} • Có hiệu lực từ Ch.${effectiveChapter}+`}
+                    : `Biến thể: ${variantLabel || 'Chưa đặt nhãn'}`}
                 </p>
               </div>
             </div>
@@ -382,14 +357,6 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                 type='info'
                 title='Nộp lại bản vẽ Concept Art (Sửa nộp nhầm)'
                 description='Bản vẽ mới sẽ thay thế bản vẽ đang chờ duyệt mà không làm mất lịch sử phiên bản.'
-                dismissible={false}
-              />
-            ) : !supersedeTarget && lockedChapterNumbers.includes(effectiveChapter) ? (
-              <LucianInlineAlert
-                type='warning'
-                title='Chương đã có phiên bản khoá tham chiếu'
-                description={`Chương ${effectiveChapter} đã có bản khoá Canon.`}
-                details='Vui lòng chọn số chương khác cho thời kỳ mới, hoặc dùng chức năng Thay thế bản khoá.'
                 dismissible={false}
               />
             ) : null}
@@ -511,214 +478,107 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               </div>
             )}
 
-            {/* ================= ERA (THỜI KỲ & TIẾN TRÌNH CỐT TRUYỆN) ================= */}
+            {/* ================= DESIGN VARIANT ================= */}
             <div
               className='bg-[#FAF8F5] border border-[#E7E5E4] rounded-2xl p-4 space-y-3'
-              data-testid='era-config-block'
+              data-testid='variant-config-block'
             >
               <div className='flex items-center justify-between gap-2 flex-wrap'>
                 <div className='flex items-center gap-2'>
-                  <Clock className='w-4 h-4 text-[#EA580C]' />
-                  <span className='text-xs font-bold text-stone-900'>
-                    Thời kỳ & Tiến trình cốt truyện (Era)
-                  </span>
+                  <Layers className='w-4 h-4 text-[#EA580C]' />
+                  <span className='text-xs font-bold text-stone-900'>Biến thể thiết kế</span>
                 </div>
-                {!supersedeTarget && existingStages && existingStages.length > 0 && (
-                  <div
-                    className='inline-flex rounded-xl bg-stone-200/70 p-0.5 text-xs font-medium'
-                    role='tablist'
-                  >
+                {!supersedeTarget && existingVariants.length > 0 && (
+                  <div className='inline-flex rounded-xl bg-stone-200/70 p-0.5 text-xs font-medium'>
                     <button
                       type='button'
-                      role='tab'
-                      aria-selected={eraMode === 'existing'}
                       onClick={() => {
-                        setEraMode('existing');
-                        const stg =
-                          existingStages.find((s) => s.stageKey === selectedExistingStageKey) ||
-                          existingStages[0];
-                        if (stg) {
-                          setStageName(stg.stageName);
-                          setEffectiveChapter(stg.effectiveFromChapterNumber);
-                          setEffectiveToChapter(stg.effectiveToChapterNumber ?? '');
-                        }
+                        setVariantMode('existing');
+                        const variant =
+                          existingVariants.find(
+                            (item) => item.variantKey === selectedExistingVariantKey,
+                          ) || existingVariants[0];
+                        setSelectedExistingVariantKey(variant.variantKey);
+                        setVariantLabel(variant.variantLabel);
                       }}
                       className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        eraMode === 'existing'
+                        variantMode === 'existing'
                           ? 'bg-white text-stone-900 shadow-2xs'
                           : 'text-stone-600 hover:text-stone-900'
                       }`}
-                      data-testid='switch-to-existing-era-tab'
+                      data-testid='switch-to-existing-variant'
                     >
-                      Thời kỳ hiện có
+                      Biến thể hiện có
                     </button>
                     <button
                       type='button'
-                      role='tab'
-                      aria-selected={eraMode === 'new'}
                       onClick={() => {
-                        setEraMode('new');
-                        setStageName('');
-                        const maxCh = Math.max(
-                          ...existingStages.map((s) => s.effectiveFromChapterNumber || 1),
-                        );
-                        setEffectiveChapter(maxCh + 1);
-                        setEffectiveToChapter('');
+                        setVariantMode('new');
+                        setVariantLabel('');
                       }}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${
-                        eraMode === 'new'
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        variantMode === 'new'
                           ? 'bg-[#EA580C] text-white shadow-2xs'
                           : 'text-stone-600 hover:text-stone-900'
                       }`}
-                      data-testid='switch-to-new-era-tab'
+                      data-testid='switch-to-new-variant'
                     >
-                      <Plus className='w-3 h-3' />
-                      <span>Tạo thời kỳ mới</span>
+                      Tạo biến thể mới
                     </button>
                   </div>
                 )}
               </div>
 
-              {eraMode === 'existing' &&
-              existingStages &&
-              existingStages.length > 0 &&
-              !supersedeTarget ? (
+              {variantMode === 'existing' && existingVariants.length > 0 && !supersedeTarget ? (
                 <div className='space-y-2 pt-1'>
-                  <label className='block text-xs font-semibold text-stone-700'>
-                    {isArtistConceptSubmit
-                      ? 'Chọn thời kỳ áp dụng bản vẽ Concept Art *'
-                      : 'Chọn thời kỳ của nhân vật để thêm phiên bản *'}
+                  <label
+                    htmlFor='existing-variant-select'
+                    className='block text-xs font-semibold text-stone-700'
+                  >
+                    Chọn biến thể *
                   </label>
                   <select
-                    value={selectedExistingStageKey}
+                    id='existing-variant-select'
+                    value={selectedExistingVariantKey}
                     onChange={(e) => {
-                      const key = e.target.value;
-                      setSelectedExistingStageKey(key);
-                      const stg = existingStages.find((s) => s.stageKey === key);
-                      if (stg) {
-                        setStageName(stg.stageName);
-                        setEffectiveChapter(stg.effectiveFromChapterNumber);
-                        setEffectiveToChapter(stg.effectiveToChapterNumber ?? '');
-                      }
+                      setSelectedExistingVariantKey(e.target.value);
+                      const variant = existingVariants.find(
+                        (item) => item.variantKey === e.target.value,
+                      );
+                      if (variant) setVariantLabel(variant.variantLabel);
                     }}
                     className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-[#F97316] cursor-pointer'
-                    data-testid='existing-era-select'
+                    data-testid='existing-variant-select'
                   >
-                    {existingStages.map((stg) => (
-                      <option key={stg.stageKey} value={stg.stageKey}>
-                        {stg.stageName} (Chương {stg.effectiveFromChapterNumber}
-                        {stg.effectiveToChapterNumber ? `–${stg.effectiveToChapterNumber}` : '+'})
+                    {existingVariants.map((variant) => (
+                      <option key={variant.variantKey} value={variant.variantKey}>
+                        {variant.variantLabel}
                       </option>
                     ))}
                   </select>
-                  <p className='text-xs text-stone-500'>
-                    {isArtistConceptSubmit
-                      ? `Bản vẽ sẽ được thẩm định và liên kết với thời kỳ `
-                      : `Phiên bản mới sẽ bổ sung vào thời kỳ `}
-                    <strong>{stageName || 'Giai đoạn chuẩn'}</strong> (từ Chương {effectiveChapter}
-                    {effectiveToChapter ? ` đến Chương ${effectiveToChapter}` : '+'}).
-                  </p>
                 </div>
               ) : (
-                <div className='space-y-3 pt-1'>
-                  <div>
-                    <div className='flex items-center justify-between mb-1'>
-                      <label className='text-xs font-semibold text-stone-800 flex items-center gap-1.5'>
-                        <span>Tên Thời kỳ mới (Era Name)</span>
-                        <span className='text-red-500'>*</span>
-                      </label>
-                      <span className='text-[10.5px] text-stone-400'>
-                        VD: Lúc nhỏ, Siêu Saiyan, Trưởng thành...
-                      </span>
-                    </div>
-                    <input
-                      type='text'
-                      maxLength={100}
-                      placeholder='Nhập tên thời kỳ (VD: Thiếu niên, Trưởng thành, Hắc hóa...)'
-                      value={stageName}
-                      onChange={(e) => setStageName(e.target.value)}
-                      className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
-                      data-testid='revision-stage-name-input'
-                    />
-                    {/* Quick Preset Pills */}
-                    <div className='flex items-center gap-1.5 mt-2 flex-wrap'>
-                      <span className='text-xs text-stone-400'>Gợi ý nhanh:</span>
-                      {[
-                        'Lúc nhỏ',
-                        'Thiếu niên',
-                        'Trưởng thành',
-                        'Biến hình / Hóa thần',
-                        'Arc mới',
-                      ].map((preset) => (
-                        <button
-                          key={preset}
-                          type='button'
-                          onClick={() => setStageName(preset)}
-                          className='px-2.5 py-0.5 rounded-lg bg-stone-100 hover:bg-orange-50 hover:text-[#EA580C] hover:border-orange-200 border border-stone-200 text-xs text-stone-600 transition-colors cursor-pointer'
-                        >
-                          +{preset}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Chapter Range: From & To */}
-                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                    <div>
-                      <label className='block text-xs font-semibold text-stone-800 mb-1'>
-                        Bắt đầu từ Chương *
-                      </label>
-                      <input
-                        type='number'
-                        min={1}
-                        value={effectiveChapter}
-                        disabled={!!supersedeTarget}
-                        onChange={(e) =>
-                          setEffectiveChapter(Math.max(1, parseInt(e.target.value, 10) || 1))
-                        }
-                        className={`w-full px-3 py-2 bg-white border rounded-xl text-xs font-mono text-stone-900 focus:outline-none disabled:opacity-60 ${
-                          !supersedeTarget && lockedChapterNumbers.includes(effectiveChapter)
-                            ? 'border-red-400 focus:border-red-500'
-                            : 'border-[#D8D2C5] focus:border-[#F97316]'
-                        }`}
-                        data-testid='revision-effective-from-input'
-                      />
-                      {!supersedeTarget && lockedChapterNumbers.includes(effectiveChapter) && (
-                        <p className='text-xs text-red-600 mt-1 font-medium flex items-center gap-1'>
-                          <AlertCircle className='w-3 h-3 text-red-500 shrink-0' />
-                          Chương {effectiveChapter} đã có phiên bản bị khoá!
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className='block text-xs font-semibold text-stone-800 mb-1'>
-                        Đến Chương (Tùy chọn)
-                      </label>
-                      <input
-                        type='number'
-                        min={effectiveChapter}
-                        placeholder='Để trống = Đến hết truyện'
-                        value={effectiveToChapter}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setEffectiveToChapter(val === '' ? '' : parseInt(val, 10));
-                        }}
-                        className={`w-full px-3 py-2 bg-white border rounded-xl text-xs font-mono text-stone-900 focus:outline-none ${
-                          effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter
-                            ? 'border-red-400 focus:border-red-500'
-                            : 'border-[#D8D2C5] focus:border-[#F97316]'
-                        }`}
-                        data-testid='revision-effective-to-input'
-                      />
-                      {effectiveToChapter !== '' &&
-                        Number(effectiveToChapter) < effectiveChapter && (
-                          <p className='text-xs text-red-600 mt-1 font-medium'>
-                            Chương kết thúc phải ≥ chương bắt đầu ({effectiveChapter}).
-                          </p>
-                        )}
-                    </div>
-                  </div>
+                <div className='space-y-1 pt-1'>
+                  <label
+                    htmlFor='revision-variant-label'
+                    className='text-xs font-semibold text-stone-800'
+                  >
+                    Nhãn biến thể mới <span className='text-red-500'>*</span>
+                  </label>
+                  <input
+                    id='revision-variant-label'
+                    type='text'
+                    maxLength={100}
+                    placeholder='Ví dụ: Mặc định, Lúc nhỏ, Trưởng thành...'
+                    value={variantLabel}
+                    onChange={(e) => setVariantLabel(e.target.value)}
+                    className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
+                    data-testid='revision-variant-label-input'
+                    required
+                  />
+                  <p className='text-xs text-stone-500'>
+                    Nhãn bắt buộc và không được trùng với biến thể đang hoạt động khác của mục.
+                  </p>
                 </div>
               )}
             </div>
@@ -946,12 +806,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               </button>
               <button
                 type='button'
-                disabled={
-                  !summary.trim() ||
-                  savingRevision ||
-                  (!supersedeTarget && lockedChapterNumbers.includes(effectiveChapter)) ||
-                  (effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter)
-                }
+                disabled={!summary.trim() || savingRevision || !variantLabel.trim()}
                 onClick={handleSubmit}
                 className={`px-5 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 ${
                   isArtistConceptSubmit
@@ -974,10 +829,10 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         ? isArtistResubmit
                           ? 'Nộp lại Concept Art'
                           : 'Nộp Concept Art'
-                        : eraMode === 'new'
+                        : variantMode === 'new'
                           ? isProducer
-                            ? 'Tạo thời kỳ & Lưu'
-                            : 'Tạo thời kỳ & Gửi'
+                            ? 'Tạo biến thể & Lưu'
+                            : 'Tạo biến thể & Gửi'
                           : isProducer
                             ? 'Lưu phiên bản'
                             : 'Gửi bản nháp'}

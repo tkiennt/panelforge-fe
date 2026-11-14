@@ -4,12 +4,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SeriesBibleView } from './SeriesBibleView';
 import { bibleService } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
-import { chapterService } from '@/services/chapter.service';
 
 vi.mock('@/services/bible.service', () => ({
   bibleService: {
     getSeriesBible: vi.fn(),
-    getSeriesBibleAtChapter: vi.fn(),
     createBibleEntry: vi.fn(),
     createRevision: vi.fn(),
     getRevisions: vi.fn(),
@@ -28,12 +26,6 @@ vi.mock('@/services/bible.service', () => ({
 vi.mock('@/services/series.service', () => ({
   seriesService: {
     getSeriesList: vi.fn(),
-  },
-}));
-
-vi.mock('@/services/chapter.service', () => ({
-  chapterService: {
-    getChaptersBySeries: vi.fn(),
   },
 }));
 
@@ -72,7 +64,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
         summary: 'Bản gốc',
         snapshotJson: '{}',
         contentHash: 'hash-1',
-        effectiveFromChapterNumber: 1,
+        variantLabel: 'Mặc định',
         isInitialVersion: true,
         createdAt: '2026-10-15T00:00:00Z',
         isLocked: true,
@@ -100,17 +92,12 @@ describe('SeriesBibleView UX/UI improvements', () => {
         summary: 'Bản gốc',
         snapshotJson: '{}',
         contentHash: 'hash-2',
-        effectiveFromChapterNumber: 1,
+        variantLabel: 'Mặc định',
         isInitialVersion: true,
         createdAt: '2026-10-15T00:00:00Z',
         isLocked: false,
       },
     },
-  ];
-
-  const mockChapters = [
-    { id: 'ch-1', chapterNumber: 1, title: 'Đại Khư sơ kiến' },
-    { id: 'ch-2', chapterNumber: 2, title: 'Bóng tối giáng lâm' },
   ];
 
   beforeEach(() => {
@@ -129,16 +116,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
       version: 1,
       entries: mockEntries,
     });
-    (bibleService.getSeriesBibleAtChapter as any).mockResolvedValue({
-      id: 'bible-1',
-      seriesId: 'series-123',
-      workspaceId: 'ws-1',
-      name: 'Series Bible',
-      version: 1,
-      entries: mockEntries,
-    });
     (seriesService.getSeriesList as any).mockResolvedValue([mockSeries]);
-    (chapterService.getChaptersBySeries as any).mockResolvedValue({ items: mockChapters });
   });
 
   it('renders hero header with series name, KPI tiles, category sidebar and count badge', async () => {
@@ -188,25 +166,6 @@ describe('SeriesBibleView UX/UI improvements', () => {
 
     // Placeholder updates for Location tab
     expect(screen.getByPlaceholderText('Tìm tên, mã hoặc mô tả địa điểm...')).toBeDefined();
-  });
-
-  it('renders chapter versioning options with clear labels', async () => {
-    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Tần Mục')).toBeDefined();
-    });
-
-    // Finds chapter selector select element
-    const chapterSelect = screen.getByLabelText(/Phiên bản hiệu lực/i) as HTMLSelectElement;
-    expect(chapterSelect).toBeDefined();
-    expect(chapterSelect.value).toBe('all');
-
-    // Check options
-    const options = Array.from(chapterSelect.options).map((opt) => opt.text);
-    expect(options).toContain('Đang xem: Phiên bản mới nhất');
-    expect(options.some((o) => o.includes('Chương 1'))).toBe(true);
-    expect(options.some((o) => o.includes('Chương 2'))).toBe(true);
   });
 
   it('supports toggling between Grid view and List view', async () => {
@@ -322,15 +281,13 @@ describe('SeriesBibleView UX/UI improvements', () => {
     expect(screen.queryByTestId(/add-revision-btn-/i)).toBeNull();
   });
 
-  it('displays stageName without the obsolete chapter range', async () => {
-    const entriesWithStage = [
+  it('displays the variant label', async () => {
+    const entriesWithVariant = [
       {
         ...mockEntries[0],
         effectiveRevision: {
           ...mockEntries[0].effectiveRevision!,
-          stageName: 'Lúc nhỏ',
-          effectiveFromChapterNumber: 1,
-          effectiveToChapterNumber: 19,
+          variantLabel: 'Lúc nhỏ',
         },
       },
     ];
@@ -341,7 +298,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
       workspaceId: 'ws-1',
       name: 'Series Bible',
       version: 1,
-      entries: entriesWithStage,
+      entries: entriesWithVariant,
     });
 
     render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
@@ -350,7 +307,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(screen.getByText(/Tần Mục/)).toBeDefined();
     });
 
-    // Header has name with stage: "Tần Mục · Lúc nhỏ"
+    // Header has name with variant: "Tần Mục · Lúc nhỏ"
     expect(screen.getByText(/· Lúc nhỏ/i)).toBeDefined();
     expect(screen.queryByText(/Ch\.1–19/i)).toBeNull();
   });
@@ -445,7 +402,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(screen.getByText('Nộp lại bản')).toBeDefined();
     });
   });
-  it('cho phép cấu hình tạo Thời kỳ (Era) mới ngay trên giao diện sinh version', async () => {
+  it('creates a new variant with a required label', async () => {
     localStorage.setItem(
       'activeWorkspace',
       JSON.stringify({ id: 'ws-1', currentUserRole: 'PRODUCER', isOwner: true }),
@@ -464,8 +421,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
       {
         id: 'rev-1',
         versionNumber: 1,
-        stageName: 'Giai đoạn chuẩn',
-        effectiveFromChapterNumber: 1,
+        variantLabel: 'Mặc định',
         isLocked: false,
         summary: 'Bản khởi tạo',
         snapshotJson: '{}',
@@ -475,8 +431,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     (bibleService.addRevision as any).mockResolvedValue({
       id: 'rev-2',
       versionNumber: 2,
-      stageName: 'Thiếu niên',
-      effectiveFromChapterNumber: 15,
+      variantLabel: 'Thiếu niên',
       isLocked: false,
     });
 
@@ -490,28 +445,22 @@ describe('SeriesBibleView UX/UI improvements', () => {
 
     // Mở modal tạo version
     await waitFor(() => {
-      expect(screen.getByTestId('add-new-era-btn')).toBeDefined();
+      expect(screen.getByTestId('add-new-variant-btn')).toBeDefined();
     });
-    fireEvent.click(screen.getByTestId('add-new-era-btn'));
+    fireEvent.click(screen.getByTestId('add-new-variant-btn'));
 
-    // Kiểm tra khối Era trên modal sinh version
     await waitFor(() => {
-      expect(screen.getByTestId('era-config-block')).toBeDefined();
-      expect(screen.getByTestId('revision-stage-name-input')).toBeDefined();
+      expect(screen.getByTestId('variant-config-block')).toBeDefined();
+      expect(screen.getByTestId('revision-variant-label-input')).toBeDefined();
     });
 
-    // Nhập tên thời kỳ mới
-    fireEvent.change(screen.getByTestId('revision-stage-name-input'), {
+    fireEvent.change(screen.getByTestId('revision-variant-label-input'), {
       target: { value: 'Thiếu niên' },
     });
-    fireEvent.change(screen.getByTestId('revision-effective-from-input'), {
-      target: { value: '15' },
-    });
     fireEvent.change(screen.getByTestId('revision-summary-input'), {
-      target: { value: 'Tạo thời kỳ thiếu niên cho nhân vật' },
+      target: { value: 'Tạo biến thể thiếu niên cho nhân vật' },
     });
 
-    // Bấm nút Lưu phiên bản & Tạo thời kỳ
     fireEvent.click(screen.getByTestId('save-revision-submit-btn'));
 
     await waitFor(() => {
@@ -519,12 +468,50 @@ describe('SeriesBibleView UX/UI improvements', () => {
         'series-123',
         mockEntries[0].id,
         expect.objectContaining({
-          stageName: 'Thiếu niên',
-          effectiveFromChapterNumber: 15,
-          summary: 'Tạo thời kỳ thiếu niên cho nhân vật',
+          variantLabel: 'Thiếu niên',
+          summary: 'Tạo biến thể thiếu niên cho nhân vật',
         }),
       );
     });
+  });
+
+  it('shows the backend duplicate-label conflict and keeps the variant form open', async () => {
+    const onShowToast = vi.fn();
+    const duplicateMessage = 'Nhãn biến thể "Thiếu niên" đã tồn tại.';
+    (bibleService.getEntryHistory as any).mockResolvedValue([
+      {
+        id: 'rev-1',
+        versionNumber: 1,
+        variantLabel: 'Mặc định',
+        isLocked: false,
+        summary: 'Bản khởi tạo',
+        snapshotJson: '{}',
+      },
+    ]);
+    (bibleService.addRevision as any).mockRejectedValue({
+      status: 409,
+      code: 'CONFLICT',
+      message: duplicateMessage,
+    });
+
+    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={onShowToast} />);
+
+    await waitFor(() => expect(screen.getByText(mockEntries[0].name)).toBeDefined());
+    fireEvent.click(screen.getByText(mockEntries[0].name));
+    await waitFor(() => expect(screen.getByTestId('add-new-variant-btn')).toBeDefined());
+    fireEvent.click(screen.getByTestId('add-new-variant-btn'));
+    fireEvent.change(await screen.findByTestId('revision-variant-label-input'), {
+      target: { value: 'Thiếu niên' },
+    });
+    fireEvent.change(screen.getByTestId('revision-summary-input'), {
+      target: { value: 'Tạo biến thể thiếu niên cho nhân vật' },
+    });
+    fireEvent.click(screen.getByTestId('save-revision-submit-btn'));
+
+    await waitFor(() =>
+      expect(onShowToast).toHaveBeenCalledWith(expect.any(String), duplicateMessage),
+    );
+    expect(screen.getByTestId('revision-variant-label-input')).toBeDefined();
   });
 
   describe('Spec V2.6 §5.1 – quyền thẩm định & khoá Canon', () => {

@@ -178,16 +178,16 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
           const imageUrl =
             entry.referenceImageUrl || rev?.conceptImageUrl || rev?.referenceImageUrl;
           const variantName =
-            rev?.stageName || t('bible.panelModelSheet.defaultVariant', 'Mặc định');
+            rev?.variantLabel || t('bible.panelModelSheet.defaultVariant', 'Mặc định');
           const versionNum = rev?.versionNumber ?? 1;
 
           // Kiểm tra xem Panel có giai đoạn riêng hay không
           const isPanelSpecificStage = Boolean(
             hasOwnStage ||
             panelStage ||
-            (rev?.stageName &&
-              rev.stageName.toLowerCase() !== 'default' &&
-              rev.stageName.toLowerCase() !== 'mặc định'),
+            (rev?.variantLabel &&
+              rev.variantLabel.toLowerCase() !== 'default' &&
+              rev.variantLabel.toLowerCase() !== 'mặc định'),
           );
 
           const stageLabel = isPanelSpecificStage
@@ -330,7 +330,7 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
                   {t('bible.panelModelSheet.variant', 'Biến thể')}:
                 </span>
                 <span className='font-semibold text-stone-800'>
-                  {previewEntry.effectiveRevision?.stageName ||
+                  {previewEntry.effectiveRevision?.variantLabel ||
                     t('bible.panelModelSheet.defaultVariant', 'Mặc định')}
                 </span>
               </div>

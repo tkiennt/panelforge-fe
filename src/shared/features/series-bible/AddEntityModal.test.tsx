@@ -65,6 +65,9 @@ describe('AddEntityModal UX/UI improvements', () => {
     fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
       target: { value: 'Cố nhân của Tần Mục tại Diên Khang.' },
     });
+    fireEvent.change(screen.getByLabelText(/Nhãn biến thể tạo hình/i), {
+      target: { value: 'Mặc định' },
+    });
 
     const submitBtn = screen.getByRole('button', {
       name: /Lưu vào Series Bible/i,
@@ -111,7 +114,7 @@ describe('AddEntityModal UX/UI improvements', () => {
     expect(defaultProps.onAdd).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Goku',
-        stageName: 'Lúc nhỏ',
+        variantLabel: 'Lúc nhỏ',
         aliases: ['Kakarot'],
         isCrowd: true,
       }),
@@ -152,6 +155,9 @@ describe('AddEntityModal UX/UI improvements', () => {
     fireEvent.change(screen.getByLabelText(/Tên mục/i), { target: { value: 'Luffy' } });
     fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
       target: { value: 'Mũ rơm' },
+    });
+    fireEvent.change(screen.getByLabelText(/Nhãn biến thể tạo hình/i), {
+      target: { value: 'Mặc định' },
     });
 
     const submitBtn = screen.getByRole('button', { name: /Lưu vào Series Bible/i });

@@ -37,28 +37,24 @@ import { getCategoryLabel, getCategoryBadgeStyle } from './bibleCategory';
 import { SPEC_DELIVERABLES, SPEC_SCHEMA, specCategoryOf, specCompleteness } from './bibleSpec';
 import type { BibleEntryUsageDto } from '@/services/bible.service';
 
-export interface CharacterEraStage {
-  stageKey: string;
-  stageName: string;
-  effectiveFromChapterNumber: number;
-  effectiveToChapterNumber?: number | null;
+export interface CharacterVariant {
+  variantKey: string;
+  variantLabel: string;
   latestRevision: BibleEntryRevisionDto;
   revisions: BibleEntryRevisionDto[];
   isLocked: boolean;
 }
 
-export function groupRevisionsIntoStages(
+export function groupRevisionsIntoVariants(
   revisions: BibleEntryRevisionDto[],
   fallbackRevision?: BibleEntryRevisionDto | null,
-): CharacterEraStage[] {
+): CharacterVariant[] {
   const all: BibleEntryRevisionDto[] = [];
   const seenIds = new Set<string>();
 
   const addRev = (rev: BibleEntryRevisionDto | null | undefined) => {
     if (!rev) return;
-    const idKey = rev.id
-      ? String(rev.id)
-      : `v${rev.versionNumber}-ch${rev.effectiveFromChapterNumber}-${rev.stageName || ''}`;
+    const idKey = rev.id ? String(rev.id) : `v${rev.versionNumber}-${rev.variantLabel}`;
     if (!seenIds.has(idKey)) {
       seenIds.add(idKey);
       all.push(rev);
@@ -76,38 +72,17 @@ export function groupRevisionsIntoStages(
     return [];
   }
 
-  // 1. Tìm stageName chính thức của Chapter 1 (nếu có revision nào ở ch 1 được đặt tên riêng)
-  const ch1NamedRev = all.find(
-    (r) =>
-      (r.effectiveFromChapterNumber || 1) === 1 && r.stageName && r.stageName.trim().length > 0,
-  );
-  const ch1DefaultStageName = ch1NamedRev?.stageName?.trim() || null;
-
-  // 2. Nhóm các revision thành từng Narrative Era:
-  // Nếu ở Chapter 1 mà có revision chưa đặt tên, ta gộp nó vào Era của Chapter 1 thay vì tách thành "Giai đoạn chuẩn" riêng biệt
   const groupMap = new Map<string, BibleEntryRevisionDto[]>();
   for (const rev of all) {
-    const ch =
-      typeof rev.effectiveFromChapterNumber === 'number' ? rev.effectiveFromChapterNumber : 1;
-    let sName = (rev.stageName || '').trim().toLowerCase();
-
-    // Nếu ở Chapter 1 và revision chưa có tên, kế thừa tên stageName của ch 1 nếu đã có
-    if (ch === 1 && !sName && ch1DefaultStageName) {
-      sName = ch1DefaultStageName.toLowerCase();
-    }
-
-    const groupKey = sName ? `ch_${ch}_stage_${sName}` : `ch_${ch}`;
+    const groupKey = rev.variantLabel.trim().toLocaleLowerCase();
     if (!groupMap.has(groupKey)) {
       groupMap.set(groupKey, []);
     }
     groupMap.get(groupKey)!.push(rev);
   }
 
-  const stages: CharacterEraStage[] = [];
+  const variants: CharacterVariant[] = [];
   const sortedGroupKeys = Array.from(groupMap.keys()).sort((a, b) => {
-    const chA = groupMap.get(a)![0]?.effectiveFromChapterNumber || 1;
-    const chB = groupMap.get(b)![0]?.effectiveFromChapterNumber || 1;
-    if (chA !== chB) return chA - chB;
     const minVerA = Math.min(...groupMap.get(a)!.map((r) => r.versionNumber || 0));
     const minVerB = Math.min(...groupMap.get(b)!.map((r) => r.versionNumber || 0));
     return minVerA - minVerB;
@@ -118,30 +93,19 @@ export function groupRevisionsIntoStages(
     const sortedRevs = [...revList].sort((a, b) => (b.versionNumber || 0) - (a.versionNumber || 0));
     const latest = sortedRevs[0];
     const isLocked = sortedRevs.some((r) => r.isLocked);
-    const ch = latest.effectiveFromChapterNumber || 1;
-
-    // Ưu tiên lấy tên giai đoạn từ revision có stageName
-    const namedRev = sortedRevs.find((r) => r.stageName && r.stageName.trim().length > 0);
-    const stageName =
-      namedRev?.stageName?.trim() ||
-      ch1DefaultStageName ||
-      translate('bible.detailModal.stageStandard', 'Giai đoạn chuẩn');
-
-    stages.push({
-      stageKey: `stage-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
-      stageName,
-      effectiveFromChapterNumber: ch,
-      effectiveToChapterNumber: latest.effectiveToChapterNumber,
+    variants.push({
+      variantKey: `variant-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+      variantLabel: latest.variantLabel,
       latestRevision: latest,
       revisions: sortedRevs,
       isLocked,
     });
   }
 
-  return stages;
+  return variants;
 }
 
-const getStageIcon = (name?: string | null, category?: string | number) => {
+const getVariantIcon = (name?: string | null, category?: string | number) => {
   const cat = String(category || '').toLowerCase();
   if (cat.includes('loc') || cat === '2') return '🗺️';
   if (cat.includes('prop') || cat === '3') return '🗡️';
@@ -197,10 +161,9 @@ interface BibleEntityDetailModalProps {
     entity: BibleEntity,
     supersede?: BibleEntryRevisionDto | null,
     fromQueue?: boolean,
-    queueEffectiveChapter?: number,
     reworkFeedback?: string,
     isResubmit?: boolean,
-    isNewEra?: boolean,
+    isNewVariant?: boolean,
   ) => void;
   onRequestRework?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => void;
   onConfirmCanon?: (rev: BibleEntryRevisionDto) => Promise<void>;
@@ -246,7 +209,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [submittingComment, setSubmittingComment] = useState(false);
 
-  // Revisions & Era Stages State
+  // Revisions & design variants state
   const [allRevisions, setAllRevisions] = useState<BibleEntryRevisionDto[]>(() => {
     return latestSavedRevision && latestSavedRevision.bibleEntryId === entity.id
       ? [latestSavedRevision]
@@ -258,12 +221,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       ? latestSavedRevision.id
       : null;
   });
-  const [selectedStageKey, setSelectedStageKey] = useState<string>(() => {
+  const [selectedVariantKey, setSelectedVariantKey] = useState<string>(() => {
     if (latestSavedRevision && latestSavedRevision.bibleEntryId === entity.id) {
-      const ch = latestSavedRevision.effectiveFromChapterNumber || 1;
-      const sName = (latestSavedRevision.stageName || '').trim().toLowerCase();
-      const groupKey = sName ? `ch_${ch}_stage_${sName}` : `ch_${ch}`;
-      return `stage-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+      return `variant-${latestSavedRevision.variantLabel
+        .trim()
+        .toLocaleLowerCase()
+        .replace(/[^a-zA-Z0-9_-]/g, '_')}`;
     }
     return '';
   });
@@ -275,10 +238,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         return [latestSavedRevision, ...filtered];
       });
       setSelectedVersionId(latestSavedRevision.id);
-      const ch = latestSavedRevision.effectiveFromChapterNumber || 1;
-      const sName = (latestSavedRevision.stageName || '').trim().toLowerCase();
-      const groupKey = sName ? `ch_${ch}_stage_${sName}` : `ch_${ch}`;
-      setSelectedStageKey(`stage-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
+      setSelectedVariantKey(
+        `variant-${latestSavedRevision.variantLabel
+          .trim()
+          .toLocaleLowerCase()
+          .replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+      );
     }
   }, [latestSavedRevision, entity.id]);
   const [revisionToDelete, setRevisionToDelete] = useState<BibleEntryRevisionDto | null>(null);
@@ -345,33 +310,38 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     [entities, entity.category],
   );
 
-  const stages = useMemo(() => {
+  const variants = useMemo(() => {
     const fallback = rawEntry?.effectiveRevision || null;
-    return groupRevisionsIntoStages(allRevisions, fallback);
+    return groupRevisionsIntoVariants(allRevisions, fallback);
   }, [allRevisions, rawEntry?.effectiveRevision]);
 
   useEffect(() => {
     if (
-      stages.length > 0 &&
-      (!selectedStageKey || !stages.some((s) => s.stageKey === selectedStageKey))
+      variants.length > 0 &&
+      (!selectedVariantKey ||
+        !variants.some((variant) => variant.variantKey === selectedVariantKey))
     ) {
       const eff = rawEntry?.effectiveRevision;
-      const matching = eff ? stages.find((s) => s.revisions.some((r) => r.id === eff.id)) : null;
-      setSelectedStageKey(matching ? matching.stageKey : stages[stages.length - 1].stageKey);
+      const matching = eff
+        ? variants.find((variant) => variant.revisions.some((revision) => revision.id === eff.id))
+        : null;
+      setSelectedVariantKey(
+        matching ? matching.variantKey : variants[variants.length - 1].variantKey,
+      );
     }
-  }, [stages, rawEntry?.effectiveRevision, selectedStageKey]);
+  }, [variants, rawEntry?.effectiveRevision, selectedVariantKey]);
 
-  const activeStage = useMemo(() => {
-    return stages.find((s) => s.stageKey === selectedStageKey) || stages[0];
-  }, [stages, selectedStageKey]);
+  const activeVariant = useMemo(() => {
+    return variants.find((variant) => variant.variantKey === selectedVariantKey) || variants[0];
+  }, [variants, selectedVariantKey]);
 
   const activeRevision = useMemo(() => {
-    if (selectedVersionId && activeStage?.revisions) {
-      const found = activeStage.revisions.find((r) => r.id === selectedVersionId);
+    if (selectedVersionId && activeVariant?.revisions) {
+      const found = activeVariant.revisions.find((r) => r.id === selectedVersionId);
       if (found) return found;
     }
-    return activeStage?.latestRevision || rawEntry?.effectiveRevision || null;
-  }, [selectedVersionId, activeStage, rawEntry?.effectiveRevision]);
+    return activeVariant?.latestRevision || rawEntry?.effectiveRevision || null;
+  }, [selectedVersionId, activeVariant, rawEntry?.effectiveRevision]);
 
   // Turnaround / Character Sheet Gallery Active View State
   const initialUrl = entity.imageUrl || (entity.gallery?.[0]?.url ?? '');
@@ -399,7 +369,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     }
     if (img) {
       setSelectedImageUrl(img);
-      setSelectedImageTitle(`${entity.name} - ${activeStage?.stageName || 'Model Sheet'}`);
+      setSelectedImageTitle(`${entity.name} - ${activeVariant?.variantLabel || 'Model Sheet'}`);
     } else {
       setSelectedImageUrl(entity.imageUrl || (entity.gallery?.[0]?.url ?? ''));
       setSelectedImageTitle(
@@ -410,7 +380,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             : entity.name,
       );
     }
-  }, [activeRevision, activeStage?.stageName, entity.imageUrl, entity.gallery, entity.name]);
+  }, [activeRevision, activeVariant?.variantLabel, entity.imageUrl, entity.gallery, entity.name]);
 
   // Concept versions list from revision events (BIB-10 FE)
   const conceptVersions = useMemo(() => {
@@ -526,8 +496,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
   // Visual Diff: Previous Revision & Before/After Image Resolution
   const previousRevision = useMemo(() => {
-    if (!activeStage?.revisions || activeStage.revisions.length <= 1) return null;
-    const sorted = [...activeStage.revisions].sort(
+    if (!activeVariant?.revisions || activeVariant.revisions.length <= 1) return null;
+    const sorted = [...activeVariant.revisions].sort(
       (a, b) => (b.versionNumber || 0) - (a.versionNumber || 0),
     );
     const currentIndex = sorted.findIndex((r) => r.id === activeRevision?.id);
@@ -535,7 +505,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       return sorted[currentIndex + 1];
     }
     return sorted[sorted.length - 1].id !== activeRevision?.id ? sorted[sorted.length - 1] : null;
-  }, [activeStage?.revisions, activeRevision?.id]);
+  }, [activeVariant?.revisions, activeRevision?.id]);
 
   const beforeImageUrl = useMemo(() => {
     let prevImg = previousRevision?.conceptImageUrl || previousRevision?.referenceImageUrl;
@@ -587,8 +557,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const isTerminology = normalizedCategory === 'terminology';
   const isStyleRule = normalizedCategory === 'style';
 
-  // Stage attributes parsing (No hardcoded mock defaults)
-  const stageAttributes = useMemo(() => {
+  // Variant attributes parsing (No hardcoded mock defaults)
+  const variantAttributes = useMemo(() => {
     let parsed: Record<string, any> = {};
     if (activeRevision?.snapshotJson) {
       try {
@@ -721,29 +691,34 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   ]);
 
   const card1Title = useMemo(() => {
-    const stage = activeStage?.stageName || t('bible.detailModal.stageStandard', 'Giai đoạn chuẩn');
+    const variant =
+      activeVariant?.variantLabel || t('bible.detailModal.defaultVariant', 'Mặc định');
     if (isLocation)
       return t(
         'bible.detailModal.card1TitleLocation',
-        { stage },
-        `Thông số không gian & Bối cảnh (${stage})`,
+        { variant },
+        `Thông số không gian & Bối cảnh (${variant})`,
       );
     if (isProp)
       return t(
         'bible.detailModal.card1TitleProp',
-        { stage },
-        `Thông số đạo cụ & Vật phẩm (${stage})`,
+        { variant },
+        `Thông số đạo cụ & Vật phẩm (${variant})`,
       );
     if (isTerminology)
       return t(
         'bible.detailModal.card1TitleTerminology',
-        { stage },
-        `Đặc tả thuật ngữ & Khái niệm (${stage})`,
+        { variant },
+        `Đặc tả thuật ngữ & Khái niệm (${variant})`,
       );
     if (isStyleRule)
-      return t('bible.detailModal.card1TitleStyle', { stage }, `Quy chuẩn mỹ thuật (${stage})`);
-    return t('bible.detailModal.card1TitleEra', { stage }, `Thông số nhân vật (${stage})`);
-  }, [isLocation, isProp, isTerminology, isStyleRule, activeStage, t]);
+      return t('bible.detailModal.card1TitleStyle', { variant }, `Quy chuẩn mỹ thuật (${variant})`);
+    return t(
+      'bible.detailModal.card1TitleCharacter',
+      { variant },
+      `Thông số nhân vật (${variant})`,
+    );
+  }, [isLocation, isProp, isTerminology, isStyleRule, activeVariant, t]);
 
   const visualCardInfo = useMemo(() => {
     if (isLocation) {
@@ -883,8 +858,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             actorDesc = t('bible.detailModal.actorEditor', 'Biên tập viên');
             actionDesc = t(
               'bible.detailModal.actionLocked',
-              { target: activeRevision.stageName || entity.name },
-              `Ban hành quy chuẩn chính thức cho ${activeRevision.stageName || entity.name}`,
+              { target: activeRevision.variantLabel || entity.name },
+              `Ban hành quy chuẩn chính thức cho ${activeRevision.variantLabel || entity.name}`,
             );
             break;
           case 'Superseded':
@@ -911,8 +886,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       return [...list].reverse();
     }
 
-    if (activeStage?.revisions) {
-      activeStage.revisions.forEach((rev) => {
+    if (activeVariant?.revisions) {
+      activeVariant.revisions.forEach((rev) => {
         if (rev.isLocked || rev.reviewStatus === 'CanonLocked') {
           list.push({
             time: rev.lockedAt
@@ -921,8 +896,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             actor: t('bible.detailModal.actorEditor', 'Biên tập viên'),
             action: t(
               'bible.detailModal.actionLocked',
-              { target: `${rev.stageName || entity.name} (v${rev.versionNumber})` },
-              `Ban hành quy chuẩn chính thức cho ${rev.stageName || entity.name} (v${rev.versionNumber})`,
+              { target: `${rev.variantLabel || entity.name} (v${rev.versionNumber})` },
+              `Ban hành quy chuẩn chính thức cho ${rev.variantLabel || entity.name} (v${rev.versionNumber})`,
             ),
             hash: '',
           });
@@ -954,7 +929,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       });
     }
     return list;
-  }, [activeRevision, activeStage, rawEntry, entity.name, t]);
+  }, [activeRevision, activeVariant, rawEntry, entity.name, t]);
 
   const modalContainerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -1090,7 +1065,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       return entity.description ?? '';
     }
   })();
-  const specProgress = specCompleteness(normalizedCategory, stageAttributes.raw);
+  const specProgress = specCompleteness(normalizedCategory, variantAttributes.raw);
 
   const modalContent = (
     <section
@@ -1185,7 +1160,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 <Lock className='w-3.5 h-3.5 text-stone-500' />
                 {isArtist
                   ? t(
-                      'bible.detailModal.artistStagesNotice',
+                      'bible.detailModal.artistVariantsNotice',
                       'Họa sĩ nộp Concept Art theo từng giai đoạn',
                     )
                   : t('bible.detailModal.readOnlyNotice', 'Chế độ chỉ xem')}
@@ -1249,41 +1224,40 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               </nav>
             )}
 
-            <section className='space-y-3' data-testid='era-stages-selector'>
+            <section className='space-y-3' data-testid='variant-selector'>
               <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
                 <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                   <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
                     <Layers className='w-4 h-4 text-[#F97316]' />
-                    <span>{t('bible.detailModal.eraStagesTitle', 'Biến thể thiết kế')}</span>
+                    <span>{t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}</span>
                   </div>
                   <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600'>
                     {t(
                       'bible.detailModal.variantCount',
-                      { count: stages.length },
-                      `${stages.length} biến thể`,
+                      { count: variants.length },
+                      `${variants.length} biến thể`,
                     )}
                   </span>
                 </div>
 
-                {/* Vertical list of variant stages */}
+                {/* Vertical list of variants */}
                 <div className='space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5'>
-                  {stages.map((stage) => {
-                    const isActive = selectedStageKey === stage.stageKey;
-                    const isStandardStage =
-                      stage.stageName === 'Giai đoạn chuẩn' ||
-                      stage.stageName.toLowerCase().includes('chuẩn') ||
-                      stage.stageName.toLowerCase().includes('mặc định');
-                    const stageIcon = isStandardStage
+                  {variants.map((variant) => {
+                    const isActive = selectedVariantKey === variant.variantKey;
+                    const isDefaultVariant =
+                      variant.variantLabel.toLowerCase().includes('chuẩn') ||
+                      variant.variantLabel.toLowerCase().includes('mặc định');
+                    const variantIcon = isDefaultVariant
                       ? null
-                      : getStageIcon(stage.stageName, entity.category);
+                      : getVariantIcon(variant.variantLabel, entity.category);
                     return (
                       <div
-                        key={stage.stageKey}
+                        key={variant.variantKey}
                         onClick={() => {
-                          setSelectedStageKey(stage.stageKey);
+                          setSelectedVariantKey(variant.variantKey);
                           setSelectedVersionId(null);
                         }}
-                        data-testid={`era-tab-${stage.stageKey}`}
+                        data-testid={`variant-tab-${variant.variantKey}`}
                         className={`p-3 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
                           isActive
                             ? 'bg-[#FFF7ED] text-[#EA580C] border-2 border-[#F97316] shadow-xs'
@@ -1292,12 +1266,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       >
                         <div className='flex items-center justify-between gap-1.5'>
                           <div className='flex items-center gap-1.5 min-w-0 font-semibold text-xs sm:text-sm'>
-                            {stageIcon && <span>{stageIcon}</span>}
-                            <span className='truncate'>
-                              {stage.stageName || t('bible.detailModal.defaultStage', 'Mặc định')}
-                            </span>
+                            {variantIcon && <span>{variantIcon}</span>}
+                            <span className='truncate'>{variant.variantLabel}</span>
                           </div>
-                          {stage.isLocked ? (
+                          {variant.isLocked ? (
                             <span className='text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0'>
                               {t('bible.detailModal.officialBadge', 'Chính thức')}
                             </span>
@@ -1310,13 +1282,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
                         <div className='flex items-center justify-between text-xs text-stone-500'>
                           <span className='font-medium text-xs bg-stone-100 px-2 py-0.5 rounded-full text-stone-600'>
-                            {stage.stageName || t('bible.detailModal.defaultStage', 'Mặc định')}
+                            {variant.variantLabel}
                           </span>
                           <span className='text-xs text-stone-400'>
                             {t(
                               'bible.detailModal.revisionCount',
-                              { count: stage.revisions.length },
-                              `${stage.revisions.length} phiên bản`,
+                              { count: variant.revisions.length },
+                              `${variant.revisions.length} phiên bản`,
                             )}
                           </span>
                         </div>
@@ -1325,19 +1297,22 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   })}
                 </div>
 
-                {/* Bottom Quick Create Stage Action */}
+                {/* Bottom quick-create variant action */}
                 {canCreateDraft && (
                   <button
                     type='button'
                     onClick={() => {
-                      onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
+                      onOpenAddRevision(entity, null, false, undefined, false, true);
                     }}
-                    data-testid='add-new-era-btn'
+                    data-testid='add-new-variant-btn'
                     className='w-full py-2 border-2 border-dashed border-stone-300 hover:border-orange-400 text-stone-600 hover:text-[#C2410C] hover:bg-orange-50/60 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer'
-                    title={t('bible.detailModal.createNewEraTitle', 'Thêm biến thể thiết kế mới')}
+                    title={t(
+                      'bible.detailModal.createNewVariantTitle',
+                      'Thêm biến thể thiết kế mới',
+                    )}
                   >
                     <Plus className='w-4 h-4' />
-                    <span>{t('bible.detailModal.createNewEra', 'Tạo biến thể mới')}</span>
+                    <span>{t('bible.detailModal.createNewVariant', 'Tạo biến thể mới')}</span>
                   </button>
                 )}
               </div>
@@ -1494,11 +1469,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 details={t(
                   'bible.detailModal.reworkAlertDetails',
                   {
-                    stage:
-                      activeStage?.stageName ||
-                      t('bible.detailModal.stageStandard', 'Giai đoạn chuẩn'),
+                    variant:
+                      activeVariant?.variantLabel ||
+                      t('bible.detailModal.defaultVariant', 'Mặc định'),
                   },
-                  `Biến thể: "${activeStage?.stageName || t('bible.detailModal.stageStandard', 'Giai đoạn chuẩn')}". Vui lòng chỉnh sửa nét vẽ theo yêu cầu trên và nộp lại.`,
+                  `Biến thể: "${activeVariant?.variantLabel || t('bible.detailModal.defaultVariant', 'Mặc định')}". Vui lòng chỉnh sửa nét vẽ theo yêu cầu trên và nộp lại.`,
                 )}
                 dismissible={false}
               />
@@ -1516,10 +1491,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 details={t(
                   'bible.detailModal.submittedAlertDetails',
                   {
-                    stage: activeStage?.stageName || 'Chuẩn',
+                    variant: activeVariant?.variantLabel || 'Mặc định',
                     version: activeRevision.versionNumber,
                   },
-                  `Giai đoạn: "${activeStage?.stageName || 'Chuẩn'}" · Lần sửa #${activeRevision.versionNumber}.`,
+                  `Biến thể: "${activeVariant?.variantLabel || 'Mặc định'}" · Lần sửa #${activeRevision.versionNumber}.`,
                 )}
                 dismissible={false}
               />
@@ -1533,9 +1508,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     <span className='font-bold uppercase tracking-wider text-xs bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full'>
                       {t('bible.detailModal.canonLockedBadge', 'Đã khóa chuẩn (Canon Locked)')}
                     </span>
-                    {activeStage?.stageName && (
+                    {activeVariant?.variantLabel && (
                       <span className='text-xs font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
-                        {activeStage.stageName}
+                        {activeVariant.variantLabel}
                       </span>
                     )}
                     <span className='font-mono font-bold text-xs bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded'>
@@ -1617,7 +1592,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         </p>
                         <dl className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
                           {group.fields.map((field) => {
-                            const value = String(stageAttributes.raw[field.key] ?? '').trim();
+                            const value = String(variantAttributes.raw[field.key] ?? '').trim();
                             const isForbidden = field.key === 'forbidden' && value !== '';
                             return (
                               <div
@@ -1974,14 +1949,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               <button
                                 type='button'
                                 onClick={() => {
-                                  onOpenAddRevision(
-                                    entity,
-                                    null,
-                                    true,
-                                    activeRevision.effectiveFromChapterNumber,
-                                    undefined,
-                                    true,
-                                  );
+                                  onOpenAddRevision(entity, null, true, undefined, true);
                                 }}
                                 className='px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
                                 data-testid='detail-artist-resubmit-btn'
@@ -2000,7 +1968,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                     entity,
                                     null,
                                     true,
-                                    activeRevision.effectiveFromChapterNumber,
                                     activeRevision.reworkFeedback || undefined,
                                     false,
                                   );
@@ -2405,8 +2372,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
               {/* Version list */}
               <div className='space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-0.5'>
-                {activeStage?.revisions && activeStage.revisions.length > 0 ? (
-                  activeStage.revisions.map((rev) => {
+                {activeVariant?.revisions && activeVariant.revisions.length > 0 ? (
+                  activeVariant.revisions.map((rev) => {
                     const isSelected = rev.id === activeRevision?.id;
                     const isCanon = rev.isLocked || rev.reviewStatus === 'CanonLocked';
                     return (

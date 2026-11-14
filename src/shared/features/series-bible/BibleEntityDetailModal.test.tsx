@@ -56,7 +56,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       summary: 'Cập nhật trang phục',
       snapshotJson: '{}',
       contentHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      effectiveFromChapterNumber: 5,
+      variantLabel: 'Mặc định',
       isInitialVersion: false,
       createdAt: '2026-10-15T08:30:00Z',
       isLocked: true,
@@ -117,18 +117,16 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.queryByText(/BR-18/i)).not.toBeInTheDocument();
   });
 
-  it('displays stageName without the obsolete chapter range', () => {
-    const rawWithStage: BibleEntryDto = {
+  it('displays the variant label without a chapter range', () => {
+    const rawWithVariant: BibleEntryDto = {
       ...mockRawEntry,
       effectiveRevision: {
         ...mockRawEntry.effectiveRevision!,
-        stageName: 'Lúc nhỏ',
-        effectiveFromChapterNumber: 1,
-        effectiveToChapterNumber: 19,
+        variantLabel: 'Lúc nhỏ',
       },
     };
 
-    render(<BibleEntityDetailModal {...defaultProps} rawEntry={rawWithStage} />);
+    render(<BibleEntityDetailModal {...defaultProps} rawEntry={rawWithVariant} />);
 
     expect(screen.getAllByText('Lúc nhỏ').length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(/Ch\.1–19/i)).not.toBeInTheDocument();
@@ -227,7 +225,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.getByText('Tần Mục - Góc nghiêng (Side)')).toBeInTheDocument();
   });
 
-  it('deduplicates revisions of the same chapter milestone and uses explicit stageName without displaying twice', () => {
+  it('deduplicates revisions with the same variant label', () => {
     const rawWithMultiRev: BibleEntryDto = {
       ...mockRawEntry,
       effectiveRevision: {
@@ -235,10 +233,9 @@ describe('BibleEntityDetailModal UX/UI', () => {
         bibleEntryId: 'ent-1',
         versionNumber: 2,
         summary: 'Đặt tên giai đoạn',
-        stageName: 'Lúc nhỏ',
+        variantLabel: 'Lúc nhỏ',
         snapshotJson: '{}',
         contentHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-        effectiveFromChapterNumber: 1,
         isInitialVersion: false,
         createdAt: '2026-10-15T09:00:00Z',
       },
@@ -246,9 +243,8 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     render(<BibleEntityDetailModal {...defaultProps} rawEntry={rawWithMultiRev} />);
 
-    // Era selector should have ONE stage tab for Chapter 1 with stageName 'Lúc nhỏ'
-    const eraSelector = screen.getByTestId('era-stages-selector');
-    expect(eraSelector).toBeInTheDocument();
+    const variantSelector = screen.getByTestId('variant-selector');
+    expect(variantSelector).toBeInTheDocument();
     expect(screen.getAllByText('Lúc nhỏ').length).toBeGreaterThanOrEqual(1);
     // Must not duplicate with fallback 'Giai đoạn khởi đầu'
     expect(screen.queryByText('Giai đoạn khởi đầu')).not.toBeInTheDocument();
@@ -261,10 +257,9 @@ describe('BibleEntityDetailModal UX/UI', () => {
         bibleEntryId: 'ent-1',
         versionNumber: 2,
         summary: 'Canon đã khoá',
-        stageName: 'Giai đoạn chuẩn',
+        variantLabel: 'Mặc định',
         snapshotJson: '{}',
         contentHash: 'abc',
-        effectiveFromChapterNumber: 1,
         isInitialVersion: false,
         createdAt: '2026-10-15T09:00:00Z',
         isLocked: true,
@@ -306,7 +301,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       summary: 'Artist nộp concept mới',
       snapshotJson: '{}',
       contentHash: 'hash3',
-      effectiveFromChapterNumber: 1,
+      variantLabel: 'Mặc định',
       isInitialVersion: false,
       createdAt: '2026-10-29T10:00:00Z',
       reviewStatus: 'ConceptSubmitted' as const,
@@ -394,7 +389,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.queryByTestId('detail-lock-btn')).not.toBeInTheDocument();
   });
 
-  it('renders 3-column layout with Era Stages, Hero Artwork Canvas, and merged Version & Audit Trail', () => {
+  it('renders 3-column layout with variants, artwork, and audit history', () => {
     const rev1: BibleEntryRevisionDto = {
       id: 'rev-v1',
       bibleEntryId: mockEntityWithImage.id,
@@ -406,8 +401,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       isLocked: false,
       isInitialVersion: true,
       referenceImageUrl: '/api/series/ser-1/bible/assets/hash-v1',
-      stageName: 'Giai đoạn chuẩn',
-      effectiveFromChapterNumber: 1,
+      variantLabel: 'Mặc định',
       createdAt: '2026-10-01T00:00:00Z',
     };
 
@@ -422,8 +416,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       isLocked: false,
       isInitialVersion: false,
       referenceImageUrl: '/api/series/ser-1/bible/assets/hash-v2',
-      stageName: 'Giai đoạn chuẩn',
-      effectiveFromChapterNumber: 1,
+      variantLabel: 'Mặc định',
       createdAt: '2026-10-15T00:00:00Z',
     };
 
@@ -453,8 +446,8 @@ describe('BibleEntityDetailModal UX/UI', () => {
       />,
     );
 
-    // Column 1: Era stages selector
-    expect(screen.getByTestId('era-stages-selector')).toBeInTheDocument();
+    // Column 1: variant selector
+    expect(screen.getByTestId('variant-selector')).toBeInTheDocument();
     expect(screen.getByText('Biến thể thiết kế')).toBeInTheDocument();
 
     // Column 2: Hero Artwork Canvas
@@ -473,7 +466,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       summary: 'Revision with events',
       snapshotJson: '{}',
       contentHash: 'hash-events-1234567890',
-      effectiveFromChapterNumber: 1,
+      variantLabel: 'Mặc định',
       isInitialVersion: false,
       createdAt: '2026-11-02T10:00:00Z',
       isLocked: false,
@@ -662,7 +655,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
         summary: 'Bản vẽ',
         snapshotJson: '{}',
         contentHash: 'hash-test-lock-12345',
-        effectiveFromChapterNumber: 1,
+        variantLabel: 'Mặc định',
         isInitialVersion: true,
         createdAt: '2026-11-04T10:00:00Z',
         isLocked: false,
@@ -749,7 +742,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
         summary: 'Bản vẽ cần sửa',
         snapshotJson: '{}',
         contentHash: 'hash-rework-123',
-        effectiveFromChapterNumber: 1,
+        variantLabel: 'Mặc định',
         isInitialVersion: true,
         createdAt: '2026-11-04T10:00:00Z',
         isLocked: false,

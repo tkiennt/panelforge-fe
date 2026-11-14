@@ -22,9 +22,7 @@ import {
 } from '@/shared/utils/tempBibleCodes';
 
 export type NewBibleEntityPayload = BibleEntity & {
-  stageName?: string;
-  effectiveFromChapterNumber?: number;
-  effectiveToChapterNumber?: number | null;
+  variantLabel: string;
   aliases?: string[];
   isCrowd?: boolean;
 };
@@ -56,7 +54,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   const [aliases, setAliases] = useState<string[]>([]);
   const [aliasInput, setAliasInput] = useState('');
   const [isCrowd, setIsCrowd] = useState(false);
-  const [stageName, setStageName] = useState('');
+  const [variantLabel, setVariantLabel] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [description, setDescription] = useState('');
   // Contextual attributes per category
@@ -231,7 +229,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !description.trim()) return;
+    if (!name.trim() || !description.trim() || !variantLabel.trim()) return;
 
     const generatedCode =
       code.trim().toUpperCase() || `ENT-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -264,8 +262,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       description: description.trim(),
       imageUrl: imageUrl.trim() || '',
       status: 'Draft',
-      stageName: stageName.trim() || undefined,
-      effectiveFromChapterNumber: 1,
+      variantLabel: variantLabel.trim(),
       aliases: aliases.length > 0 ? aliases : undefined,
       isCrowd,
       gallery: gallery.length > 0 ? gallery : undefined,
@@ -277,7 +274,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     setName('');
     setCode('');
     setSubtitle('');
-    setStageName('');
+    setVariantLabel('');
     setAliases([]);
     setAliasInput('');
     setIsCrowd(false);
@@ -600,24 +597,24 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
           <div className='p-3.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-3'>
             <div>
               <label
-                htmlFor='bible-entity-stage-name'
+                htmlFor='bible-entity-variant-label'
                 className='block text-xs font-semibold text-stone-800 mb-1'
               >
-                Nhãn biến thể tạo hình (Variant Label)
+                Nhãn biến thể tạo hình (Variant Label) <span className='text-red-500'>*</span>
               </label>
               <input
-                id='bible-entity-stage-name'
+                id='bible-entity-variant-label'
                 type='text'
                 maxLength={100}
                 placeholder='Ví dụ: Mặc định, Lúc nhỏ, Trưởng thành...'
-                value={stageName}
-                onChange={(e) => setStageName(e.target.value)}
+                value={variantLabel}
+                onChange={(e) => setVariantLabel(e.target.value)}
+                required
                 className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
                 data-testid='bible-variant-label-input'
               />
               <p className='text-xs text-stone-500 mt-1'>
-                Nhãn biến thể tạo hình thay thế cho mốc chương. Để trống hệ thống sẽ dùng &quot;Mặc
-                định&quot;.
+                Bắt buộc và không được trùng với biến thể đang hoạt động khác của mục.
               </p>
             </div>
 
@@ -969,7 +966,9 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             </button>
             <button
               type='submit'
-              disabled={uploadingImage || !name.trim() || !description.trim()}
+              disabled={
+                uploadingImage || !name.trim() || !description.trim() || !variantLabel.trim()
+              }
               className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-white text-xs font-semibold rounded-full shadow-soft-sm transition-all cursor-pointer flex items-center gap-1.5'
             >
               <Plus className='w-3.5 h-3.5' />

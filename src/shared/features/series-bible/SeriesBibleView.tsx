@@ -32,12 +32,11 @@ import {
   BibleDesignQueueItemDto,
 } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
-import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { AddEntityModal } from './AddEntityModal';
 import {
   BibleEntityDetailModal,
-  groupRevisionsIntoStages,
-  type CharacterEraStage,
+  groupRevisionsIntoVariants,
+  type CharacterVariant,
 } from './BibleEntityDetailModal';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
@@ -210,27 +209,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
     return availableSeries.find((s) => s.id === selectedSeriesId) || activeProject;
   }, [activeProject, selectedSeriesId, availableSeries]);
-
-  // BR-15: Chapter-Versioned State
-  const [effectiveChapter, setEffectiveChapter] = useState<number | 'all'>('all');
-  const [seriesChapters, setSeriesChapters] = useState<ChapterDto[]>([]);
-
-  useEffect(() => {
-    if (!effectiveSeries?.id) {
-      setSeriesChapters([]);
-      return;
-    }
-    const loadChapters = async () => {
-      try {
-        const res = await chapterService.getChaptersBySeries(effectiveSeries.id, 1, 100);
-        setSeriesChapters(res.items || []);
-      } catch (err) {
-        console.warn('Lỗi tải Chapters cho Series Bible:', err);
-        setSeriesChapters([]);
-      }
-    };
-    loadChapters();
-  }, [effectiveSeries?.id]);
 
   // BR-18: Revision History Modal State
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
@@ -419,8 +397,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
   // Add Revision Modal State
   const [addRevModalOpen, setAddRevModalOpen] = useState(false);
-  const [isNewEraRequested, setIsNewEraRequested] = useState(false);
-  const [targetEntityStages, setTargetEntityStages] = useState<CharacterEraStage[]>([]);
+  const [isNewVariantRequested, setIsNewVariantRequested] = useState(false);
+  const [targetEntityVariants, setTargetEntityVariants] = useState<CharacterVariant[]>([]);
   const [isArtistConceptSubmit, setIsArtistConceptSubmit] = useState(false);
   const [revisionTarget, setRevisionTarget] = useState<BibleEntity | null>(null);
   const [supersedeTarget, setSupersedeTarget] = useState<BibleEntryRevisionDto | null>(null);
@@ -428,13 +406,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [revisionName, setRevisionName] = useState('');
   const [revisionSubtitle, setRevisionSubtitle] = useState('');
   const [revisionDescription, setRevisionDescription] = useState('');
-  const [revisionStageName, setRevisionStageName] = useState('');
-  const [revisionEffectiveChapter, setRevisionEffectiveChapter] = useState(
-    effectiveSeries?.chapter || 1,
-  );
-  const [revisionEffectiveToChapter, setRevisionEffectiveToChapter] = useState<number | ''>('');
+  const [revisionVariantLabel, setRevisionVariantLabel] = useState('');
   const [expectedVersionNumber, setExpectedVersionNumber] = useState<number | null>(null);
-  const [lockedChapterNumbers, setLockedChapterNumbers] = useState<number[]>([]);
   const [fetchingBaseVersion, setFetchingBaseVersion] = useState(false);
   const [savingRevision, setSavingRevision] = useState(false);
   const [revisionReferenceImageUrl, setRevisionReferenceImageUrl] = useState('');
@@ -451,10 +424,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     entity: BibleEntity,
     supersede: BibleEntryRevisionDto | null = null,
     fromQueue: boolean = false,
-    queueEffectiveChapter?: number,
     reworkFeedback?: string,
     isResubmit: boolean = false,
-    isNewEra: boolean = false,
+    isNewVariant: boolean = false,
     queueRevisionId?: string,
   ) => {
     setTargetQueueRevisionId(queueRevisionId || null);
@@ -463,8 +435,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     setSupersedeTarget(supersede);
     setRevisionReworkFeedback(reworkFeedback || null);
     setIsArtistResubmit(isResubmit);
-    setIsNewEraRequested(isNewEra);
-    setTargetEntityStages([]);
+    setIsNewVariantRequested(isNewVariant);
+    setTargetEntityVariants([]);
     setRevisionSummary(
       isResubmit
         ? t(
@@ -475,7 +447,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           ? t('bible.view.revisionSummaryRework', 'Artist nộp bản vẽ sửa đổi theo nhận xét')
           : fromQueue
             ? t('bible.view.revisionSummarySubmit', 'Nộp bản vẽ Concept Art')
-            : isNewEra
+            : isNewVariant
               ? t('bible.view.revisionSummaryVariant', 'Tạo biến thể thiết kế mới')
               : '',
     );
@@ -483,19 +455,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     setRevisionSubtitle(snapshot.Subtitle ?? entity.subtitle ?? '');
     setRevisionDescription(snapshot.Description ?? entity.description ?? '');
     setRevisionReferenceImageUrl(snapshot.ReferenceImageUrl ?? entity.imageUrl ?? '');
-    setRevisionStageName(isNewEra ? '' : supersede?.stageName || '');
-    setRevisionEffectiveChapter(
-      supersede
-        ? supersede.effectiveFromChapterNumber
-        : typeof queueEffectiveChapter === 'number'
-          ? queueEffectiveChapter
-          : typeof effectiveChapter === 'number'
-            ? effectiveChapter
-            : effectiveSeries?.chapter || 1,
+    setRevisionVariantLabel(
+      isNewVariant
+        ? ''
+        : supersede?.variantLabel || rawEntries[entity.id]?.effectiveRevision?.variantLabel || '',
     );
-    setRevisionEffectiveToChapter(isNewEra ? '' : (supersede?.effectiveToChapterNumber ?? ''));
     setExpectedVersionNumber(1);
-    setLockedChapterNumbers([]);
     setIsArtistConceptSubmit(fromQueue);
 
     if (effectiveSeries?.id) {
@@ -503,21 +468,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       try {
         const history = await bibleService.getEntryHistory(effectiveSeries.id, entity.id);
         if (history && history.length > 0) {
-          const stages = groupRevisionsIntoStages(history);
-          setTargetEntityStages(stages);
+          const variants = groupRevisionsIntoVariants(history);
+          setTargetEntityVariants(variants);
           const maxVer = Math.max(...history.map((h) => h.versionNumber));
           setExpectedVersionNumber(maxVer);
-          const lockedChs = history
-            .filter((h) => h.isLocked)
-            .map((h) => h.effectiveFromChapterNumber);
-          setLockedChapterNumbers(lockedChs);
-
-          // Nếu mở để tạo Era mới, tự động đề xuất số chương tiếp theo
-          if (isNewEra) {
-            const maxFrom = Math.max(...stages.map((s) => s.effectiveFromChapterNumber || 1));
-            setRevisionEffectiveChapter(maxFrom + 1);
-            setRevisionStageName('');
-            setRevisionEffectiveToChapter('');
+          if (isNewVariant) {
+            setRevisionVariantLabel('');
           }
 
           // Tự động đồng bộ lại thực thể được chọn nếu đang xem trong Workbench
@@ -540,9 +496,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     subtitle: string;
     description: string;
     referenceImageUrl?: string;
-    stageName?: string;
-    effectiveFromChapterNumber: number;
-    effectiveToChapterNumber?: number;
+    variantLabel: string;
     summary: string;
     detailsJson?: string;
     attributes?: Record<string, any>;
@@ -557,28 +511,30 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           subtitle: revisionSubtitle.trim() || revisionTarget.subtitle,
           description: revisionDescription.trim() || revisionTarget.description,
           referenceImageUrl: revisionReferenceImageUrl || undefined,
-          stageName: revisionStageName.trim() || undefined,
+          variantLabel: revisionVariantLabel.trim(),
           detailsJson: submittedContent?.detailsJson,
-          effectiveToChapterNumber:
-            revisionEffectiveToChapter !== '' ? Number(revisionEffectiveToChapter) : undefined,
         };
         const summaryText = submittedContent ? submittedContent.summary : revisionSummary.trim();
-        const effectiveFromCh = submittedContent
-          ? submittedContent.effectiveFromChapterNumber
-          : revisionEffectiveChapter;
 
         if (supersedeTarget) {
           await bibleService.supersedeRevision(
             effectiveSeries.id,
             revisionTarget.id,
             supersedeTarget.id,
-            { ...content, reason: summaryText, detailsJson: submittedContent?.detailsJson },
+            {
+              expectedVersionNumber: content.expectedVersionNumber,
+              name: content.name,
+              subtitle: content.subtitle,
+              description: content.description,
+              referenceImageUrl: content.referenceImageUrl,
+              detailsJson: submittedContent?.detailsJson,
+              reason: summaryText,
+            },
           );
         } else if (isArtistConceptSubmit && isArtist) {
           await bibleService.submitConceptArt(effectiveSeries.id, revisionTarget.id, {
             ...content,
             summary: summaryText,
-            effectiveToChapterNumber: content.effectiveToChapterNumber,
             detailsJson: submittedContent?.detailsJson,
             revisionId: targetQueueRevisionId || undefined,
           });
@@ -586,7 +542,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           await bibleService.addRevision(effectiveSeries.id, revisionTarget.id, {
             ...content,
             summary: summaryText,
-            effectiveFromChapterNumber: effectiveFromCh,
             detailsJson: submittedContent?.detailsJson,
           });
         }
@@ -594,7 +549,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       const displayName = submittedContent?.name || revisionName || revisionTarget.name;
       onShowToast(
         supersedeTarget
-          ? t('bible.view.saveRevisionSuccessNewEra', 'Đã thay thế bản khoá')
+          ? t('bible.view.saveRevisionSuccessSupersede', 'Đã thay thế bản khoá')
           : isArtistConceptSubmit && isArtist
             ? isArtistResubmit
               ? t(
@@ -607,7 +562,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               : t('bible.view.saveRevisionSuccessDraft', 'Đã tạo bản nháp mới'),
         supersedeTarget
           ? t(
-              'bible.view.saveRevisionDescNewEra',
+              'bible.view.saveRevisionDescSupersede',
               { name: displayName },
               'Đã tạo biến thể thiết kế mới cho {name}.',
             )
@@ -671,30 +626,33 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   'bible.view.conflictDescLocked',
                   'Phiên bản hiện tại đã khoá Canon. Cần sử dụng thao tác Thay thế bản khóa (Supersede) để kích hoạt phiên bản sửa đổi v(N+1).',
                 )
-            : t(
-                'bible.view.conflictDescGeneric',
-                'Đã có người khác sửa đổi mục này hoặc mốc chương bị trùng! Đang mở Lịch sử để bạn đối chiếu.',
-              ),
+            : err.message ||
+                t(
+                  'bible.view.conflictDescGeneric',
+                  'Nhãn biến thể đã tồn tại hoặc mục này vừa được người khác cập nhật. Hãy chọn nhãn khác rồi thử lại.',
+                ),
         );
-        setAddRevModalOpen(false);
-        setConfirmSubmitModalOpen(false);
-        setHistoryEntity(revisionTarget);
-        setHistoryEntityName(revisionTarget.name);
-        setHistoryModalOpen(true);
-        setLoadingHistory(true);
-        try {
-          if (effectiveSeries?.id) {
-            const history = await bibleService.getEntryHistory(
-              effectiveSeries.id,
-              revisionTarget.id,
-            );
-            setHistoryRevisions(history);
+        if (isLockedConflict) {
+          setAddRevModalOpen(false);
+          setConfirmSubmitModalOpen(false);
+          setHistoryEntity(revisionTarget);
+          setHistoryEntityName(revisionTarget.name);
+          setHistoryModalOpen(true);
+          setLoadingHistory(true);
+          try {
+            if (effectiveSeries?.id) {
+              const history = await bibleService.getEntryHistory(
+                effectiveSeries.id,
+                revisionTarget.id,
+              );
+              setHistoryRevisions(history);
+            }
+          } catch (hErr) {
+            console.error('Failed to load history on conflict:', hErr);
+          } finally {
+            setLoadingHistory(false);
+            setRefreshTrigger((prev) => prev + 1);
           }
-        } catch (hErr) {
-          console.error('Failed to load history on conflict:', hErr);
-        } finally {
-          setLoadingHistory(false);
-          setRefreshTrigger((prev) => prev + 1);
         }
       } else {
         onShowToast(t('bible.view.saveRevisionErrorTitle', 'Lỗi tạo phiên bản'), err.message);
@@ -714,10 +672,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     setIsLoading(true);
     setLoadError(null);
     try {
-      const bibleData =
-        effectiveChapter === 'all'
-          ? await bibleService.getSeriesBible(effectiveSeries.id)
-          : await bibleService.getSeriesBibleAtChapter(effectiveSeries.id, effectiveChapter);
+      const bibleData = await bibleService.getSeriesBible(effectiveSeries.id);
 
       if (bibleData?.entries) {
         const rawMap: Record<string, BibleEntryDto> = {};
@@ -770,7 +725,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     void fetchBible();
     void fetchDesignQueue();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveSeries?.id, effectiveChapter, refreshTrigger]);
+  }, [effectiveSeries?.id, refreshTrigger]);
 
   const handleCreateEntity = async (newEntity: any) => {
     if (!effectiveSeries?.id) {
@@ -805,17 +760,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         referenceImageUrl: newEntity.imageUrl || undefined,
         priority: 'Standard',
         strictCheck: true,
-        stageName: newEntity.stageName?.trim() || undefined,
-        effectiveFromChapterNumber:
-          typeof newEntity.effectiveFromChapterNumber === 'number'
-            ? newEntity.effectiveFromChapterNumber
-            : typeof effectiveChapter === 'number'
-              ? effectiveChapter
-              : effectiveSeries.chapter || 1,
-        effectiveToChapterNumber:
-          typeof newEntity.effectiveToChapterNumber === 'number'
-            ? newEntity.effectiveToChapterNumber
-            : undefined,
+        variantLabel: newEntity.variantLabel.trim(),
         aliases: newEntity.aliases,
         isCrowd: newEntity.isCrowd,
       });
@@ -1266,9 +1211,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               {t('bible.view.queueStatusWaiting', 'Chờ nộp Concept Art')}
                             </span>
                           )}
-                          {item.stageName ? (
+                          {item.variantLabel ? (
                             <span className='text-xs text-stone-600 font-medium'>
-                              · {item.stageName}
+                              · {item.variantLabel}
                             </span>
                           ) : null}
                         </div>
@@ -1303,7 +1248,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   matchedEntity,
                                   null,
                                   true,
-                                  item.effectiveFromChapterNumber,
                                   undefined,
                                   true,
                                   false,
@@ -1330,7 +1274,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   matchedEntity,
                                   null,
                                   true,
-                                  item.effectiveFromChapterNumber,
                                   item.reworkFeedback || undefined,
                                   false,
                                   false,
@@ -1357,7 +1300,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   matchedEntity,
                                   null,
                                   true,
-                                  item.effectiveFromChapterNumber,
                                   undefined,
                                   false,
                                   false,
@@ -1400,7 +1342,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
           {/* Thanh công cụ tra cứu tích hợp (Category Tabs + Search + Chapter + Filters + View Mode) */}
           <div className='bg-white border border-stone-200/80 rounded-xl p-3 shadow-xs space-y-3'>
-            {/* Unified Search, Chapter Selector, Status Filter & View Mode */}
+            {/* Unified Search, Status Filter & View Mode */}
             <div className='flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-2.5'>
               {/* Search Input */}
               <div className='relative flex-1 min-w-[220px]'>
@@ -1425,44 +1367,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 )}
               </div>
 
-              {/* Controls: Mốc chương, Trạng thái & Chế độ xem */}
+              {/* Controls: Trạng thái & Chế độ xem */}
               <div className='flex items-center gap-2 flex-wrap'>
-                {/* Bộ chọn mốc chương */}
-                <div className='flex items-center gap-1.5 bg-[#F8F6F0] border border-[#D8D2C5] rounded-lg px-2.5 py-1 text-xs'>
-                  <Layers className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
-                  <span className='text-[#57534E] font-medium text-xs whitespace-nowrap'>
-                    {t('bible.view.effectiveAt', 'Hiệu lực tại:')}
-                  </span>
-                  <select
-                    value={effectiveChapter}
-                    onChange={(e) => {
-                      const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
-                      setEffectiveChapter(val);
-                    }}
-                    className='bg-transparent font-medium text-xs text-[#1C1917] focus:outline-none cursor-pointer pr-1'
-                    data-testid='bible-chapter-select'
-                    aria-label={t('bible.view.chapterFilterAria', 'Phiên bản hiệu lực theo chương')}
-                    title={t(
-                      'bible.view.chapterFilterTitle',
-                      'Chọn chương để xem phiên bản Bible có hiệu lực tại mốc chương đó',
-                    )}
-                  >
-                    <option value='all'>
-                      {t('bible.view.latestVersionOption', 'Đang xem: Phiên bản mới nhất')}
-                    </option>
-                    {seriesChapters.map((ch) => (
-                      <option key={ch.id} value={ch.chapterNumber}>
-                        {t(
-                          'bible.view.chapterOption',
-                          { number: ch.chapterNumber },
-                          'Chương {number}',
-                        )}
-                        {ch.title ? ` - ${ch.title}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 {/* Bộ lọc trạng thái khóa Canon */}
                 <div className='flex items-center gap-1.5 bg-[#F8F6F0] border border-[#D8D2C5] rounded-lg px-2.5 py-1 text-xs'>
                   <Lock className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
@@ -1717,10 +1623,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <div>
                           <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors line-clamp-1'>
                             {entity.name}
-                            {effRev?.stageName ? (
+                            {effRev?.variantLabel ? (
                               <span className='font-sans font-medium text-[#57534E]'>
                                 {' '}
-                                · {effRev.stageName}
+                                · {effRev.variantLabel}
                               </span>
                             ) : null}
                           </h3>
@@ -1753,10 +1659,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           <span
                             className='font-medium text-[#1C1917] truncate max-w-[150px]'
                             title={
-                              effRev?.stageName || t('bible.view.stageStandard', 'Giai đoạn chuẩn')
+                              effRev?.variantLabel || t('bible.view.defaultVariant', 'Mặc định')
                             }
                           >
-                            {effRev?.stageName || t('bible.view.stageStandard', 'Giai đoạn chuẩn')}
+                            {effRev?.variantLabel || t('bible.view.defaultVariant', 'Mặc định')}
                           </span>
                         </div>
                       </div>
@@ -1837,14 +1743,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               type='button'
                               onClick={(e) => {
                                 e.stopPropagation();
-                                void handleOpenAddRevision(
-                                  entity,
-                                  null,
-                                  true,
-                                  effRev.effectiveFromChapterNumber,
-                                  undefined,
-                                  true,
-                                );
+                                void handleOpenAddRevision(entity, null, true, undefined, true);
                               }}
                               className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
                               title={t(
@@ -1868,7 +1767,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   entity,
                                   effRev,
                                   true,
-                                  effRev.effectiveFromChapterNumber,
                                   effRev.reworkFeedback || undefined,
                                   false,
                                 );
@@ -1970,10 +1868,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           </span>
                           <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
                             {entity.name}
-                            {effRev?.stageName ? (
+                            {effRev?.variantLabel ? (
                               <span className='font-sans font-medium text-[#57534E]'>
                                 {' '}
-                                · {effRev.stageName}
+                                · {effRev.variantLabel}
                               </span>
                             ) : null}
                           </h3>
@@ -2021,7 +1919,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     <div className='flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#D8D2C5]/60'>
                       <div className='text-right text-xs text-[#57534E] hidden md:block'>
                         <div className='font-semibold text-[#1C1917] truncate max-w-[140px]'>
-                          {effRev?.stageName || t('bible.view.stageStandard', 'Giai đoạn chuẩn')}
+                          {effRev?.variantLabel || t('bible.view.defaultVariant', 'Mặc định')}
                         </div>
                       </div>
 
@@ -2098,14 +1996,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               type='button'
                               onClick={(e) => {
                                 e.stopPropagation();
-                                void handleOpenAddRevision(
-                                  entity,
-                                  null,
-                                  true,
-                                  effRev.effectiveFromChapterNumber,
-                                  undefined,
-                                  true,
-                                );
+                                void handleOpenAddRevision(entity, null, true, undefined, true);
                               }}
                               className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
                               title={t(
@@ -2131,7 +2022,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   entity,
                                   effRev,
                                   true,
-                                  effRev.effectiveFromChapterNumber,
                                   effRev.reworkFeedback || undefined,
                                   false,
                                 );
@@ -2206,19 +2096,17 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             e,
             supersede,
             fromQueue,
-            queueEffectiveChapter,
             reworkFeedback,
             isResubmit,
-            isNewEra,
+            isNewVariant,
           ) => {
             void handleOpenAddRevision(
               e,
               supersede,
               fromQueue,
-              queueEffectiveChapter,
               reworkFeedback,
               isResubmit,
-              isNewEra,
+              isNewVariant,
             );
           }}
           onRequestRework={(ent, rev) => handleOpenReworkModal(rev, ent)}
@@ -2333,34 +2221,36 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   </div>
                 ) : (
                   <div className='space-y-4'>
-                    {/* Visual Stage Progression Timeline */}
+                    {/* Visual variant progression timeline */}
                     <div className='bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl p-3 space-y-1.5'>
                       <div className='flex items-center gap-1.5 text-xs font-semibold text-stone-700'>
                         <Layers className='w-3.5 h-3.5 text-[#F97316]' />
                         <span>
                           {t(
-                            'bible.view.stageProgressTitle',
+                            'bible.view.variantProgressTitle',
                             { name: historyEntityName },
-                            'Tiến trình các giai đoạn ({name}):',
+                            'Tiến trình các biến thể ({name}):',
                           )}
                         </span>
                       </div>
                       <div className='flex items-center gap-1.5 overflow-x-auto pb-1 text-xs custom-scrollbar flex-wrap'>
                         {(() => {
-                          const stages = groupRevisionsIntoStages(historyRevisions);
-                          return stages.map((stage, idx) => (
-                            <React.Fragment key={stage.stageKey}>
+                          const variants = groupRevisionsIntoVariants(historyRevisions);
+                          return variants.map((variant, idx) => (
+                            <React.Fragment key={variant.variantKey}>
                               <span
                                 className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border font-medium ${
-                                  stage.isLocked
+                                  variant.isLocked
                                     ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold'
                                     : 'bg-white border-stone-200 text-stone-700'
                                 }`}
                               >
-                                {stage.isLocked && <Lock className='w-2.5 h-2.5 text-amber-600' />}
-                                <span>{stage.stageName}</span>
+                                {variant.isLocked && (
+                                  <Lock className='w-2.5 h-2.5 text-amber-600' />
+                                )}
+                                <span>{variant.variantLabel}</span>
                               </span>
-                              {idx < stages.length - 1 && (
+                              {idx < variants.length - 1 && (
                                 <span className='text-stone-400 font-bold'>→</span>
                               )}
                             </React.Fragment>
@@ -2377,7 +2267,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             <div className='flex flex-wrap items-center justify-between gap-2'>
                               <div className='flex items-center gap-2 flex-wrap'>
                                 <span className='px-2 py-0.5 rounded bg-stone-900 text-white font-mono text-xs font-bold'>
-                                  {rev.stageName ? rev.stageName : `VERSION ${rev.versionNumber}`}
+                                  {rev.variantLabel || `VERSION ${rev.versionNumber}`}
                                   {rev.isInitialVersion
                                     ? t('bible.view.versionInitial', ' (Khởi tạo)')
                                     : ''}
@@ -2670,23 +2560,20 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         isOpen={addRevModalOpen}
         revisionTarget={revisionTarget}
         supersedeTarget={supersedeTarget}
-        isNewEraInitial={isNewEraRequested}
-        existingStages={targetEntityStages}
+        isNewVariantInitial={isNewVariantRequested}
+        existingVariants={targetEntityVariants}
         isArtistConceptSubmit={isArtistConceptSubmit}
         isArtistResubmit={isArtistResubmit}
         isArtist={isArtist}
         isProducer={isProducer}
         revisionReworkFeedback={revisionReworkFeedback}
-        initialStageName={revisionStageName}
-        initialEffectiveChapter={revisionEffectiveChapter}
-        initialEffectiveToChapter={revisionEffectiveToChapter}
+        initialVariantLabel={revisionVariantLabel}
         initialName={revisionName}
         initialSubtitle={revisionSubtitle}
         initialSummary={revisionSummary}
         initialDescription={revisionDescription}
         initialReferenceImageUrl={revisionReferenceImageUrl}
         expectedVersionNumber={expectedVersionNumber}
-        lockedChapterNumbers={lockedChapterNumbers}
         savingRevision={savingRevision}
         uploadingRevImage={uploadingRevImage}
         onUploadImage={async (file) => {
