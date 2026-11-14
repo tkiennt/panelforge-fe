@@ -6,7 +6,7 @@ Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng 
 ## 2. Cấu trúc thư mục
 
 ### 2.1 Views chung (`src/shared/views/`)
-- `WorkspaceListView.tsx` (+ test): Danh sách các Studio Workspace người dùng tham gia hoặc sở hữu. Header dạng hero card (pill Studio Hub, tiêu đề serif, KPI thật: tổng studio, bạn sở hữu, việc chờ bạn, bài chờ duyệt), lọc Tất cả / Bạn sở hữu / Được mời khi có cả hai loại, card Level 1 trắng; token theo DESIGN_RULES (`workspaceShelf.css`).
+- `WorkspaceListView.tsx` (+ test): Danh sách các Studio Workspace người dùng tham gia hoặc sở hữu. Header dạng hero card (pill Studio Hub, tiêu đề serif, KPI thật: tổng studio, bạn sở hữu, việc chờ bạn, bài chờ duyệt), lọc Tất cả / Bạn sở hữu / Được mời khi có cả hai loại, card Level 1 trắng; token theo DESIGN_RULES (`workspaceShelf.css`). Dưới header: khối Lời mời đang chờ (chấp nhận/từ chối), dải "Việc của bạn" (việc chưa xong trên mọi studio, gần hạn trước; `WorkspaceShelfSections.tsx`, `workspaceShelfTasks.ts`); card hiện số series + ảnh bìa nhỏ, thanh dung lượng (Owner/Producer), "Cập nhật ... trước" từ `lastActivityAt`; tìm kiếm & sắp xếp khi có từ 6 studio.
 - `NotificationCenterView.tsx`: Trung tâm thông báo hệ thống và tác vụ.
 - `UserProfileView.tsx`: Trang thông tin cá nhân người dùng, cài đặt bảo mật và đăng xuất. Banner: ảnh bìa mẫu phủ toàn chiều ngang + lớp phủ kem (ngang trên desktop, dọc trên mobile), avatar trái, thông tin thật bên phải; nút "Đổi ảnh bìa" mở `features/profile/ProfileCoverPickerDialog` (chọn = xem trước, "Áp dụng" lưu qua `PUT /api/users/me/profile-cover`, "Hủy" trả bìa cũ). Danh mục mẫu: `utils/profileCovers.ts` (ID khớp Backend). Chuyển động: chỉ lớp ảnh (crossfade khi đổi + parallax ±6px theo chuột), tắt khi reduced-motion/cảm ứng.
 

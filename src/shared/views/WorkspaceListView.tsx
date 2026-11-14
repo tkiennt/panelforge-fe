@@ -13,7 +13,14 @@ import {
   Building2,
   KeyRound,
   ListTodo,
+  BookOpen,
+  Search,
+  ArrowUpDown,
 } from 'lucide-react';
+import { assignmentService } from '@/services/assignment.service';
+import { formatBytes } from './studio-overview/formatters';
+import { PendingInvitations, TodayTasks, type PendingInvitation } from './WorkspaceShelfSections';
+import { sortByDue, type TodayTask } from './workspaceShelfTasks';
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
 import { CreateWorkspaceModal } from '@/roles/producer/modals/CreateWorkspaceModal';
@@ -99,6 +106,88 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   }, []);
 
   useEffect(() => setAvatarFailed(false), [currentUser?.avatarUrl]);
+
+  // Lời mời đang chờ: API đã có (accept/reject) nhưng trước đây chưa màn hình nào hiển thị
+  const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
+  const [inviteBusyId, setInviteBusyId] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  useEffect(() => {
+    if (isAdmin) return;
+    let active = true;
+    workspaceService.getPendingInvitations().then((list) => active && setInvitations(list || []));
+    return () => {
+      active = false;
+    };
+  }, [isAdmin]);
+
+  const handleAcceptInvitation = async (inv: PendingInvitation) => {
+    setInviteBusyId(inv.workspaceId);
+    setInviteError(null);
+    try {
+      await workspaceService.acceptInvitation(inv.workspaceId);
+      setInvitations((prev) => prev.filter((i) => i.workspaceId !== inv.workspaceId));
+      await fetchWorkspaces();
+    } catch (err) {
+      setInviteError((err as Error)?.message || t('workspace.shelf.invitations.error'));
+    } finally {
+      setInviteBusyId(null);
+    }
+  };
+
+  const handleRejectInvitation = async (inv: PendingInvitation) => {
+    const ok = await confirm({
+      title: t('workspace.shelf.invitations.rejectConfirmTitle'),
+      description: t('workspace.shelf.invitations.rejectConfirm', { name: inv.workspaceName }),
+      confirmText: t('workspace.shelf.invitations.reject'),
+      cancelText: t('workspace.shelf.cancel'),
+      variant: 'warning',
+    });
+    if (!ok) return;
+    setInviteBusyId(inv.workspaceId);
+    setInviteError(null);
+    try {
+      await workspaceService.rejectInvitation(inv.workspaceId);
+      setInvitations((prev) => prev.filter((i) => i.workspaceId !== inv.workspaceId));
+    } catch (err) {
+      setInviteError((err as Error)?.message || t('workspace.shelf.invitations.error'));
+    } finally {
+      setInviteBusyId(null);
+    }
+  };
+
+  // "Việc của bạn": chỉ gọi my-assignments cho studio có việc đang chờ (pendingTasks > 0)
+  const [todayTasks, setTodayTasks] = useState<TodayTask[]>([]);
+  const [todayError, setTodayError] = useState(false);
+  useEffect(() => {
+    const withWork = workspaces.filter((w) => (w.pendingTasks ?? 0) > 0);
+    if (withWork.length === 0) {
+      setTodayTasks([]);
+      setTodayError(false);
+      return;
+    }
+    let active = true;
+    Promise.allSettled(
+      withWork.map((w) =>
+        assignmentService
+          .getMyAssignments(w.id)
+          .then((list) =>
+            list
+              .filter((a) => a.status !== 'Approved')
+              .map((a): TodayTask => ({ workspace: w, assignment: a })),
+          ),
+      ),
+    ).then((results) => {
+      if (!active) return;
+      const loaded = results.filter(
+        (r): r is PromiseFulfilledResult<TodayTask[]> => r.status === 'fulfilled',
+      );
+      setTodayError(loaded.length === 0);
+      setTodayTasks(sortByDue(loaded.flatMap((r) => r.value)));
+    });
+    return () => {
+      active = false;
+    };
+  }, [workspaces]);
 
   const handleOpenCreate = async () => {
     if (isAdmin) {
@@ -190,10 +279,29 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   // Lọc chỉ có nghĩa khi vừa có studio sở hữu vừa có studio được mời
   const [filter, setFilter] = useState<'all' | 'owned' | 'joined'>('all');
   const showFilter = ownedCount > 0 && ownedCount < workspaces.length;
-  const visibleWorkspaces =
+  const filteredByOwner =
     !showFilter || filter === 'all'
       ? workspaces
       : workspaces.filter((w) => (filter === 'owned' ? w.isOwner : !w.isOwner));
+
+  // Tìm kiếm & sắp xếp chỉ hiện khi đủ nhiều studio; ít hơn thì chỉ làm rối màn hình
+  const SEARCH_MIN_STUDIOS = 6;
+  const showSearch = workspaces.length >= SEARCH_MIN_STUDIOS;
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<'created' | 'recent' | 'name'>('created');
+  const q = showSearch ? query.trim().toLowerCase() : '';
+  const searched = q
+    ? filteredByOwner.filter(
+        (w) => w.name.toLowerCase().includes(q) || (w.ownerName || '').toLowerCase().includes(q),
+      )
+    : filteredByOwner;
+  const activityTime = (w: WorkspaceDto) => new Date(w.lastActivityAt || w.createdAt).getTime();
+  const visibleWorkspaces =
+    !showSearch || sort === 'created'
+      ? searched
+      : [...searched].sort((a, b) =>
+          sort === 'name' ? a.name.localeCompare(b.name, 'vi') : activityTime(b) - activityTime(a),
+        );
 
   const createButton = (
     <button
@@ -380,6 +488,30 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 </div>
               </section>
 
+              {invitations.length > 0 && (
+                <PendingInvitations
+                  invitations={invitations}
+                  busyId={inviteBusyId}
+                  error={inviteError}
+                  t={t}
+                  roleLabel={(r) => roleLabel(normalizeWorkspaceRole(r))}
+                  timeAgo={timeAgo}
+                  onAccept={(inv) => void handleAcceptInvitation(inv)}
+                  onReject={(inv) => void handleRejectInvitation(inv)}
+                />
+              )}
+
+              {(todayTasks.length > 0 || todayError) && (
+                <TodayTasks
+                  tasks={todayTasks.slice(0, 5)}
+                  total={todayTasks.length}
+                  error={todayError}
+                  now={now}
+                  t={t}
+                  onOpen={onSelectWorkspace}
+                />
+              )}
+
               {/* Recently Visited Bar (BR / UX Section 7) */}
               {recent && (
                 <div className='ws-recent flex flex-wrap items-center justify-between gap-3 mb-5 px-4 py-2.5'>
@@ -398,6 +530,39 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                     {t('workspace.shelf.continue')}
                     <ArrowRight className='w-4 h-4' aria-hidden='true' />
                   </button>
+                </div>
+              )}
+
+              {showSearch && (
+                <div className='flex flex-col sm:flex-row sm:items-center gap-2.5 mb-4'>
+                  <label className='relative flex-1 max-w-lg'>
+                    <span className='sr-only'>{t('workspace.shelf.search.placeholder')}</span>
+                    <Search
+                      className='w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none'
+                      aria-hidden='true'
+                    />
+                    <input
+                      type='search'
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={t('workspace.shelf.search.placeholder')}
+                      className='w-full h-10 pl-10 pr-3 rounded-full bg-white border border-stone-200 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-orange-500'
+                    />
+                  </label>
+                  <label className='inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full bg-white border border-stone-200 text-sm text-stone-700'>
+                    <ArrowUpDown className='w-4 h-4 text-stone-500' aria-hidden='true' />
+                    <span className='sr-only'>{t('workspace.shelf.search.sort')}</span>
+                    <select
+                      value={sort}
+                      onChange={(e) => setSort(e.target.value as typeof sort)}
+                      className='bg-transparent text-sm font-medium focus:outline-none cursor-pointer'
+                      aria-label={t('workspace.shelf.search.sort')}
+                    >
+                      <option value='created'>{t('workspace.shelf.search.created')}</option>
+                      <option value='recent'>{t('workspace.shelf.search.recent')}</option>
+                      <option value='name'>{t('workspace.shelf.search.name')}</option>
+                    </select>
+                  </label>
                 </div>
               )}
 
@@ -437,6 +602,12 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                     );
                   })}
                 </div>
+              )}
+
+              {q && visibleWorkspaces.length === 0 && (
+                <p className='text-sm text-stone-600 mb-5'>
+                  {t('workspace.shelf.search.empty', { query: query.trim() })}
+                </p>
               )}
 
               {/* Studios Shelf Grid */}
@@ -519,6 +690,82 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                               {ws.description.trim()}
                             </p>
                           ) : null}
+
+                          {/* Series của studio (BE GetMyWorkspaces: seriesCount, 3 series mới cập nhật) */}
+                          {ws.seriesCount !== undefined && (
+                            <div
+                              className='flex items-center gap-2.5 mb-3'
+                              data-testid='ws-card-series'
+                            >
+                              {(ws.seriesPreviews?.length ?? 0) > 0 && (
+                                <div className='flex items-center -space-x-1.5 shrink-0'>
+                                  {ws.seriesPreviews!.map((s) => (
+                                    <span
+                                      key={s.id}
+                                      title={s.title}
+                                      className='relative w-7 h-9 rounded-md border-2 border-white bg-stone-100 overflow-hidden shadow-2xs flex items-center justify-center text-xs font-serif font-bold text-stone-500'
+                                    >
+                                      {s.title.trim().charAt(0).toUpperCase()}
+                                      {s.coverUrl && (
+                                        <AuthenticatedImage
+                                          src={s.coverUrl}
+                                          alt={s.title}
+                                          className='absolute inset-0 w-full h-full object-cover'
+                                          loading='lazy'
+                                          fallback={
+                                            <span className='absolute inset-0 flex items-center justify-center bg-stone-100'>
+                                              {s.title.trim().charAt(0).toUpperCase()}
+                                            </span>
+                                          }
+                                        />
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              <span className='inline-flex items-center gap-1.5 text-xs font-medium text-stone-600'>
+                                <BookOpen
+                                  className='w-3.5 h-3.5 text-stone-500'
+                                  aria-hidden='true'
+                                />
+                                {ws.seriesCount > 0
+                                  ? t('workspace.shelf.series', { count: ws.seriesCount })
+                                  : t('workspace.shelf.noSeries')}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Dung lượng: chỉ Owner/Producer quản lý; chặn chia 0 (DESIGN_RULES §3.3) */}
+                          {mayManageCover &&
+                            (() => {
+                              const quota = ws.storageQuotaBytes || 0;
+                              const used = ws.usedStorageBytes || 0;
+                              const pct =
+                                quota > 0 ? Math.min(100, Math.max(0, (used / quota) * 100)) : 0;
+                              return (
+                                <div className='mb-3' data-testid='ws-card-storage'>
+                                  <div className='flex items-center justify-between text-xs text-stone-500 mb-1'>
+                                    <span>{t('workspace.shelf.storage')}</span>
+                                    <span className='font-mono tabular-nums'>
+                                      {formatBytes(used)} / {quota > 0 ? formatBytes(quota) : '—'}
+                                    </span>
+                                  </div>
+                                  <div
+                                    className='h-1.5 rounded-full bg-stone-100 overflow-hidden'
+                                    role='progressbar'
+                                    aria-label={t('workspace.shelf.storage')}
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                    aria-valuenow={Math.round(pct)}
+                                  >
+                                    <div
+                                      className={`h-full rounded-full ${pct >= 90 ? 'bg-rose-500' : pct >= 75 ? 'bg-amber-500' : 'bg-orange-500'}`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                           {/* Members & Tasks Row */}
                           <div className='flex items-center justify-between gap-2 text-xs text-[#57534E] mb-4 mt-auto pt-2'>
@@ -603,7 +850,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                           <div className='pt-3 border-t border-stone-100 flex items-center justify-between gap-2'>
                             <span className='text-xs text-stone-500 inline-flex items-center gap-1'>
                               <Clock className='w-3.5 h-3.5' aria-hidden='true' />
-                              {t('workspace.shelf.created', { days: timeAgo(ws.createdAt) })}
+                              {ws.lastActivityAt
+                                ? t('workspace.shelf.updated', { days: timeAgo(ws.lastActivityAt) })
+                                : t('workspace.shelf.created', { days: timeAgo(ws.createdAt) })}
                             </span>
                             <button
                               type='button'

@@ -56,6 +56,40 @@
       "all": "Tất cả",
       "owned": "Bạn sở hữu",
       "joined": "Được mời tham gia"
+    },
+    "updated": "Cập nhật {days}",
+    "storage": "Dung lượng",
+    "series": "{count} series",
+    "noSeries": "Chưa có series",
+    "invitations": {
+      "title": "Lời mời tham gia studio",
+      "subtitle": "Chấp nhận để studio xuất hiện trong danh sách của bạn.",
+      "from": "{owner} mời bạn làm {role}",
+      "accept": "Chấp nhận",
+      "reject": "Từ chối",
+      "rejectConfirmTitle": "Từ chối lời mời?",
+      "rejectConfirm": "Bạn sẽ không vào được studio \"{name}\" cho tới khi được mời lại.",
+      "accepted": "Đã tham gia {name}",
+      "error": "Không xử lý được lời mời, hãy thử lại."
+    },
+    "today": {
+      "title": "Việc của bạn",
+      "subtitle": "Các việc chưa xong trên mọi studio, việc gần hạn ở trên.",
+      "open": "Mở studio",
+      "overdue": "Quá hạn",
+      "dueSoon": "Hạn {date}",
+      "due": "Hạn {date}",
+      "noDue": "Chưa đặt hạn",
+      "more": "Còn {count} việc khác trong Công việc của tôi",
+      "error": "Không tải được danh sách việc."
+    },
+    "search": {
+      "placeholder": "Tìm theo tên studio hoặc chủ sở hữu",
+      "sort": "Sắp xếp",
+      "recent": "Hoạt động gần nhất",
+      "name": "Tên A–Z",
+      "created": "Mới tạo",
+      "empty": "Không có studio khớp \"{query}\"."
     }
   },
   "hub": "Studio Hub",

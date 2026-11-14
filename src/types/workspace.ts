@@ -23,4 +23,14 @@ export interface WorkspaceDto {
   coverUrl?: string | null;
   description?: string | null;
   memberPreviews?: WorkspaceMemberPreviewDto[] | null;
+  /** BE GetMyWorkspaces: số series, 3 series cập nhật gần nhất, lần hoạt động gần nhất. */
+  seriesCount?: number;
+  seriesPreviews?: WorkspaceSeriesPreviewDto[] | null;
+  lastActivityAt?: string | null;
+}
+
+export interface WorkspaceSeriesPreviewDto {
+  id: string;
+  title: string;
+  coverUrl?: string | null;
 }

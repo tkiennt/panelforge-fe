@@ -56,6 +56,40 @@
       "all": "All",
       "owned": "You own",
       "joined": "Invited"
+    },
+    "updated": "Updated {days}",
+    "storage": "Storage",
+    "series": "{count} series",
+    "noSeries": "No series yet",
+    "invitations": {
+      "title": "Studio invitations",
+      "subtitle": "Accept to add the studio to your list.",
+      "from": "{owner} invited you as {role}",
+      "accept": "Accept",
+      "reject": "Decline",
+      "rejectConfirmTitle": "Decline invitation?",
+      "rejectConfirm": "You will not be able to join \"{name}\" until you are invited again.",
+      "accepted": "Joined {name}",
+      "error": "Could not handle the invitation, please try again."
+    },
+    "today": {
+      "title": "Your work",
+      "subtitle": "Unfinished tasks across all studios, nearest deadline first.",
+      "open": "Open studio",
+      "overdue": "Overdue",
+      "dueSoon": "Due {date}",
+      "due": "Due {date}",
+      "noDue": "No due date",
+      "more": "{count} more tasks in My work",
+      "error": "Could not load your tasks."
+    },
+    "search": {
+      "placeholder": "Search by studio or owner name",
+      "sort": "Sort",
+      "recent": "Latest activity",
+      "name": "Name A–Z",
+      "created": "Newest",
+      "empty": "No studio matches \"{query}\"."
     }
   },
   "hub": "Studio Hub",
