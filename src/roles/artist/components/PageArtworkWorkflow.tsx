@@ -3,7 +3,6 @@
 // Kết quả nhận diện chỉ là bản nháp trên FE; chỉ khi Artist bấm Xác nhận mới tạo Panel / element SPEECH_BALLOON
 // bằng các API sẵn có (POST /pages/{id}/panels, POST /pages/{id}/elements). Không xoá / ghi đè dữ liệu cũ.
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
   ArrowDown,
   ArrowUp,
@@ -20,6 +19,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
+import { Modal } from '@/shared/ui';
 import { panelService } from '@/services/panel.service';
 import { elementService } from '@/services/element.service';
 import { artworkService } from '@/services/artwork.service';
@@ -842,39 +842,40 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
   const iconBtn =
     'p-1.5 rounded-md text-[#57534E] hover:text-[#1C1917] hover:bg-white disabled:opacity-30 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]';
 
-  const content = (
-    <div className='fixed inset-0 z-[1000] bg-stone-900/50 flex items-stretch justify-center sm:p-4'>
-      <div
-        ref={dialogRef}
-        role='dialog'
-        aria-modal='true'
-        aria-labelledby='split-review-title'
-        tabIndex={-1}
-        onKeyDown={onKeyDown}
-        data-testid='split-review-dialog'
-        className='bg-[#FCFBF8] w-full max-w-6xl sm:rounded-2xl border border-[#D8D2C5] shadow-2xl flex flex-col min-h-0 outline-none'
-      >
-        <header className='shrink-0 flex items-start justify-between gap-2 px-4 py-2.5 border-b border-[#D8D2C5]'>
+  return (
+    <Modal
+      isOpen={true}
+      onClose={close}
+      size='full'
+      closeLabel='Đóng'
+      data-testid='split-review-dialog'
+      className='w-full max-w-6xl h-[92vh] flex flex-col'
+      title={
+        <div className='flex items-center justify-between w-full'>
           <div className='min-w-0'>
             <h2 id='split-review-title' className='text-sm font-bold text-[#1C1917]'>
               Nhận diện panel — Trang {page.pageNumber}, artwork v{artwork.versionNumber}
             </h2>
-            <p className='text-[11px] text-[#57534E]'>
-              Gợi ý tự động phù hợp với panel có viền rõ và có thể nhận nhầm vùng trắng; hãy kiểm
-              tra trước khi xác nhận.
-            </p>
           </div>
           <button
             type='button'
             onClick={close}
             aria-label='Đóng'
             data-testid='split-close-btn'
-            className={iconBtn}
+            className='hidden'
           >
             <X className='w-4 h-4' />
           </button>
-        </header>
-
+        </div>
+      }
+      description='Gợi ý tự động phù hợp với panel có viền rõ và có thể nhận nhầm vùng trắng; hãy kiểm tra trước khi xác nhận.'
+    >
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        onKeyDown={onKeyDown}
+        className='flex flex-col flex-1 min-h-0 outline-none'
+      >
         <div className='shrink-0 flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[#D8D2C5] bg-[#F7F4EE]'>
           <fieldset className='inline-flex items-center p-0.5 bg-white rounded-lg border border-[#D8D2C5]'>
             <legend className='sr-only'>Hướng đọc</legend>
@@ -1149,10 +1150,8 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
-
-  return typeof document !== 'undefined' ? createPortal(content, document.body) : content;
 };
 
 const RegionList: React.FC<{

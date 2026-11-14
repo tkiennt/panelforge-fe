@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Upload, Maximize2, RefreshCw, X, FileImage, CheckCircle2 } from 'lucide-react';
 import { PageArtworkState } from './workspace.types';
+import { Modal } from '@/shared/ui';
 
 interface FullPageCanvasProps {
   pageNumber: number;
@@ -160,27 +161,24 @@ export const FullPageCanvas: React.FC<FullPageCanvasProps> = ({
       </div>
 
       {/* Lightbox Modal: Xem toàn màn hình */}
-      {isFullscreenModalOpen && artworkState.previewUrl && (
-        <div
-          data-testid='artwork-fullscreen-lightbox'
-          className='fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 select-none'
-          onClick={() => setIsFullscreenModalOpen(false)}
-        >
-          <button
-            type='button'
-            onClick={() => setIsFullscreenModalOpen(false)}
-            className='absolute top-4 right-4 p-2 rounded-full bg-white/20 text-white hover:bg-white/40 cursor-pointer transition-colors'
-          >
-            <X className='w-6 h-6' />
-          </button>
-          <img
-            src={artworkState.previewUrl}
-            alt='Xem trước bản vẽ toàn trang'
-            className='max-w-[90vw] max-h-[90vh] object-contain shadow-2xl rounded-lg'
-            onClick={(e) => e.stopPropagation()}
-          />
+      <Modal
+        isOpen={Boolean(isFullscreenModalOpen && artworkState.previewUrl)}
+        onClose={() => setIsFullscreenModalOpen(false)}
+        size='full'
+        title='Xem trước bản vẽ toàn trang'
+        closeLabel='Đóng'
+        data-testid='artwork-fullscreen-lightbox'
+      >
+        <div className='flex items-center justify-center p-2'>
+          {artworkState.previewUrl && (
+            <img
+              src={artworkState.previewUrl}
+              alt='Xem trước bản vẽ toàn trang'
+              className='max-w-[90vw] max-h-[80vh] object-contain shadow-2xl rounded-lg'
+            />
+          )}
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

@@ -19,6 +19,7 @@ import {
   MAX_ARTWORK_IMAGE_BYTES,
   generateSafeId,
 } from '../utils/artistStage';
+import { Modal } from '@/shared/ui';
 
 export interface UploadPagesModalProps {
   isOpen: boolean;
@@ -556,49 +557,28 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div
-      className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200'
-      data-testid='upload-pages-modal-overlay'
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isSingleUploading && !isBulkUploading) {
-          onClose();
-        }
-      }}
-    >
-      <div
-        className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-[#1C1917]'
-        role='dialog'
-        aria-modal='true'
-        aria-labelledby='upload-modal-title'
-      >
-        {/* Header */}
-        <div className='flex items-center justify-between px-6 py-4 border-b border-[#E7E2D7] bg-[#F5F2EB]'>
-          <div className='flex items-center gap-2.5'>
-            <div className='w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 shadow-2xs'>
-              <Upload className='w-5 h-5' />
-            </div>
-            <div>
-              <h3 id='upload-modal-title' className='font-bold text-base text-[#1C1917]'>
-                Tải Ảnh Trang Truyện
-              </h3>
-              <p className='text-xs text-[#78716C]'>
-                Tải ảnh cho 1 trang cụ thể hoặc import hàng loạt nhiều trang vào chương
-              </p>
-            </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='lg'
+      closeLabel='Đóng'
+      dismissible={!isSingleUploading && !isBulkUploading}
+      backdropTestId='upload-pages-modal-overlay'
+      title={
+        <div className='flex items-center gap-2.5'>
+          <div className='w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 shadow-2xs'>
+            <Upload className='w-5 h-5' />
           </div>
-          <button
-            type='button'
-            onClick={onClose}
-            disabled={isSingleUploading || isBulkUploading}
-            className='p-1.5 rounded-lg text-stone-500 hover:text-stone-800 hover:bg-stone-200/60 transition-colors disabled:opacity-30'
-            aria-label='Đóng'
-          >
-            <X className='w-5 h-5' />
-          </button>
+          <span id='upload-modal-title' className='font-bold text-base text-[#1C1917]'>
+            Tải Ảnh Trang Truyện
+          </span>
         </div>
-
+      }
+      description='Tải ảnh cho 1 trang cụ thể hoặc import hàng loạt nhiều trang vào chương'
+    >
+      <div className='flex flex-col text-[#1C1917] max-h-[75vh] overflow-hidden'>
         {/* Tab switcher */}
-        <div className='flex border-b border-[#E7E2D7] bg-[#FCFBF8] px-6 pt-3 gap-2'>
+        <div className='flex border-b border-[#E7E2D7] bg-[#FCFBF8] px-6 pt-3 gap-2 shrink-0'>
           <button
             type='button'
             onClick={() => setActiveTab('single')}
@@ -1099,6 +1079,6 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

@@ -142,7 +142,7 @@ describe('ArtistWorkspaceView (Clean Consolidated Single-Layout Architecture)', 
     // Nút đóng sidebar
     const closeBtn = screen.getByTestId('close-template-sidebar-btn');
     fireEvent.click(closeBtn);
-    expect(sidebar.className).toContain('translate-x-full');
+    expect(screen.queryByTestId('template-selector-sidebar')).not.toBeInTheDocument();
   });
 
   it('selecting a multi-panel template updates layout immediately into independent dropzones', async () => {
