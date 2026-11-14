@@ -444,7 +444,9 @@ export const ScriptFocusModeModal: React.FC<ScriptFocusModeModalProps> = ({
                           const hasDirection = Boolean(line.stageDirection?.trim());
                           const characterName = line.speakerLabel || 'Lời thoại';
                           const bibleEntry = line.speakerLabel
-                            ? bibleEntries.find((e) => e.name === line.speakerLabel || e.id === line.speakerLabel) ||
+                            ? bibleEntries.find(
+                                (e) => e.name === line.speakerLabel || e.id === line.speakerLabel,
+                              ) ||
                               bibleEntryById[line.speakerLabel] ||
                               null
                             : null;

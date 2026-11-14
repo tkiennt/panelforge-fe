@@ -343,7 +343,9 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
     expect(screen.getByText(/Chúng ta cần thêm tinh thể băng\./i)).toBeInTheDocument();
     // Unpaged line still flows cleanly under unpaged scene section
     expect(screen.getByTestId('script-unpaged-scenes')).toBeInTheDocument();
-    expect(screen.getAllByText(/Cảnh chuyển sang bầu trời đầy mây xám/i).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/Cảnh chuyển sang bầu trời đầy mây xám/i).length,
+    ).toBeGreaterThanOrEqual(1);
 
     // Open Series Bible tab & verify parsed visualNotes + image + CanonLocked badge
     fireEvent.click(screen.getByTestId('canva-tab-bible'));

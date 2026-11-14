@@ -2584,8 +2584,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                             key={line.id}
                             line={line}
                             index={index}
-                            speakerName={getSpeakerName(line.speakerLabel) || line.speakerLabel || ''}
-                            character={characters.find((c) => c.name === line.speakerLabel || c.id === line.speakerLabel)}
+                            speakerName={
+                              getSpeakerName(line.speakerLabel) || line.speakerLabel || ''
+                            }
+                            character={characters.find(
+                              (c) => c.name === line.speakerLabel || c.id === line.speakerLabel,
+                            )}
                             allBibleEntries={allBibleEntries}
                             isFirst={index === 0}
                             isLast={index === (selectedScene.scriptLines?.length || 0) - 1}

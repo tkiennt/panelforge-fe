@@ -911,9 +911,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       }
 
       const resolvedCharName = speaker || 'Người dẫn';
-      const resolvedCharColor =
-        line.characterColor ||
-        getDeterministicColor(resolvedCharName);
+      const resolvedCharColor = line.characterColor || getDeterministicColor(resolvedCharName);
 
       return {
         ...line,

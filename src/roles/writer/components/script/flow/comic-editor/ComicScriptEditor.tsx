@@ -36,9 +36,7 @@ import {
   SfxBlockNode,
   CaptionBlockNode,
 } from './nodes';
-import {
-  ComicKeymapExtension,
-} from './extensions';
+import { ComicKeymapExtension } from './extensions';
 import { getNextPageNumber } from './comicCounting';
 import { AiScriptConvertModal, convertScriptTextToComicBlocks } from '../converter';
 import { INITIAL_COMIC_SCRIPT_DOC } from './sampleScript';

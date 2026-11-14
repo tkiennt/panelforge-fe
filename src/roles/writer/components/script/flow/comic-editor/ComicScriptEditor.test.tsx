@@ -12,9 +12,7 @@ import {
   SfxBlockNode,
   CaptionBlockNode,
 } from './nodes';
-import {
-  ComicKeymapExtension,
-} from './extensions';
+import { ComicKeymapExtension } from './extensions';
 import { ComicScriptEditor } from './ComicScriptEditor';
 
 function createTestEditor(initialContent: any = '<p></p>') {

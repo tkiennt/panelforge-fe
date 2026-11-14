@@ -168,7 +168,9 @@ export function classifyScriptLine(
   toolMode: string = 'bubble',
 ): ScriptLineClassification {
   const rawDialogue = (line.dialogueText ?? '').trim();
-  const speakerName = (line as { speakerName?: string | null; speakerLabel?: string | null }).speakerName || (line as any).speakerLabel;
+  const speakerName =
+    (line as { speakerName?: string | null; speakerLabel?: string | null }).speakerName ||
+    (line as any).speakerLabel;
   const hasSpeaker = Boolean(speakerName);
 
   // SFX: dialogueText bắt đầu bằng 'SFX:' (case-insensitive)

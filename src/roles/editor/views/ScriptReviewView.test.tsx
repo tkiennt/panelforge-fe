@@ -146,25 +146,23 @@ describe('ScriptReviewView', () => {
 
     renderView();
 
-    expect(
-      await screen.findAllByText(/Writer chưa gửi duyệt bản nào cho chương này/),
-    ).toHaveLength(2);
+    expect(await screen.findAllByText(/Writer chưa gửi duyệt bản nào cho chương này/)).toHaveLength(
+      2,
+    );
   });
 
   it('can open comment composer and submit a comment using modern composer card', async () => {
-    const addCommentSpy = vi
-      .spyOn(chapterService, 'addScriptComment')
-      .mockResolvedValue({
-        id: 'cmt-1',
-        chapterId: 'chap-101',
-        authorUserId: EDITOR_ID,
-        authorName: 'Trung Kiên',
-        body: 'Sửa lại câu này ngắn gọn hơn',
-        quotedText: 'Ngươi không thể thoát khỏi đây đâu!',
-        scriptLineId: 'line-1',
-        createdAt: '2026-11-13T10:00:00Z',
-        resolvedAt: null,
-      } as any);
+    const addCommentSpy = vi.spyOn(chapterService, 'addScriptComment').mockResolvedValue({
+      id: 'cmt-1',
+      chapterId: 'chap-101',
+      authorUserId: EDITOR_ID,
+      authorName: 'Trung Kiên',
+      body: 'Sửa lại câu này ngắn gọn hơn',
+      quotedText: 'Ngươi không thể thoát khỏi đây đâu!',
+      scriptLineId: 'line-1',
+      createdAt: '2026-11-13T10:00:00Z',
+      resolvedAt: null,
+    } as any);
 
     renderView();
 
