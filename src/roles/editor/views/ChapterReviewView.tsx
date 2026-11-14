@@ -58,6 +58,7 @@ import {
 } from '@/shared/features/collaboration/ChapterReviewArtworkOverview';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { SubmissionHistory } from '@/shared/features/collaboration/SubmissionHistory';
+import { Modal } from '@/shared/ui';
 import {
   Box,
   CHECKLIST_ITEMS,
@@ -1918,32 +1919,20 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         />
       )}
 
-      {isSubmissionsOpen && (
-        <div
-          role='dialog'
-          aria-modal='true'
-          className='fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4'
-        >
-          <div className='bg-white rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden'>
-            <div className='p-4 border-b border-zinc-200 flex items-center justify-between'>
-              <h3 className='text-sm font-bold text-zinc-900 flex items-center gap-2'>
-                <Clock className='w-4 h-4 text-zinc-600' />
-                Lịch sử các lần nộp Review
-              </h3>
-              <button
-                type='button'
-                onClick={() => setIsSubmissionsOpen(false)}
-                className='p-1 text-zinc-400 hover:text-zinc-700 cursor-pointer'
-              >
-                <X className='w-4 h-4' />
-              </button>
-            </div>
-            <div className='flex-1 overflow-y-auto p-4'>
-              <SubmissionHistory submissions={submissions} />
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={isSubmissionsOpen}
+        onClose={() => setIsSubmissionsOpen(false)}
+        size='md'
+        title={
+          <span className='text-sm font-bold flex items-center gap-2'>
+            <Clock className='w-4 h-4 text-zinc-600' />
+            Lịch sử các lần nộp Review
+          </span>
+        }
+        closeLabel='Đóng'
+      >
+        <SubmissionHistory submissions={submissions} />
+      </Modal>
     </div>
   );
 };

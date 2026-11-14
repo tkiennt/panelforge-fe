@@ -69,6 +69,7 @@ import { offlineQueueService } from '@/services/offlineQueue.service';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 import { AutoAssignScriptLinesModal } from '@/shared/modals/AutoAssignScriptLinesModal';
+import { Modal } from '@/shared/ui';
 import {
   LETTERING_FONT_PX,
   LETTERING_CHAR_WIDTH_EM,
@@ -4617,153 +4618,135 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
       </div>
 
       {/* Modal Đề Xuất Rút Gọn Thoại (Letterer Agent - CF2 2.4) */}
-      {aiModalOpen && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4'>
-          <div className='bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-zinc-200 animate-in fade-in zoom-in-95 duration-150'>
-            {/* Modal Header */}
-            <div className='p-4 border-b border-zinc-200 bg-gradient-to-r from-purple-50 to-indigo-50 flex items-center justify-between shrink-0'>
-              <div className='flex items-center gap-2.5'>
-                <div className='w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs'>
-                  <Bot className='w-5 h-5' />
-                </div>
-                <div>
-                  <h3 className='font-bold text-sm text-zinc-900 flex items-center gap-2'>
-                    <span>Đề Xuất Rút Gọn Thoại (Letterer Agent)</span>
-                    <span className='px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700 font-mono'>
-                      {aiSuggestions.length} đề xuất
-                    </span>
-                  </h3>
-                  <p className='text-xs text-zinc-500'>
-                    Human-in-the-loop: Kiểm tra và quyết định áp dụng từng dòng hoặc cập nhật toàn
-                    bộ vào kịch bản.
-                  </p>
-                </div>
-              </div>
+      <Modal
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        size='lg'
+        title={
+          <span className='flex items-center gap-2'>
+            <span>Đề Xuất Rút Gọn Thoại (Letterer Agent)</span>
+            <span className='px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700 font-mono'>
+              {aiSuggestions.length} đề xuất
+            </span>
+          </span>
+        }
+        description='Human-in-the-loop: Kiểm tra và quyết định áp dụng từng dòng hoặc cập nhật toàn bộ vào kịch bản.'
+        closeLabel='Đóng'
+        footer={
+          <div className='flex items-center justify-between w-full text-xs'>
+            <button
+              onClick={handleRejectAiSuggestions}
+              className='px-3.5 py-2 text-red-600 hover:bg-red-50 font-semibold rounded-xl transition-colors cursor-pointer'
+            >
+              Từ chối đề xuất (Reject)
+            </button>
+
+            <div className='flex items-center gap-2'>
               <button
                 onClick={() => setAiModalOpen(false)}
-                className='p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors cursor-pointer'
+                className='px-3.5 py-2 text-zinc-600 hover:bg-zinc-200 font-semibold rounded-xl transition-colors cursor-pointer'
               >
-                <X className='w-5 h-5' />
+                Đóng
               </button>
-            </div>
-
-            {/* Modal Content - List of Suggestions */}
-            <div className='p-4 overflow-y-auto flex-1 space-y-3 custom-scrollbar'>
-              {aiSuggestions.map((sug, idx) => {
-                const targetBalloon = elements.find(
-                  (e) =>
-                    (sug.targetElementId && e.elementId === sug.targetElementId) ||
-                    (sug.sourceScriptLineId && e.scriptLineId === sug.sourceScriptLineId),
-                );
-                return (
-                  <div
-                    key={idx}
-                    className='p-3.5 rounded-xl border border-zinc-200 bg-[#FAF8F5] space-y-2.5 hover:border-purple-300 transition-colors'
-                  >
-                    <div className='flex items-center justify-between text-xs'>
-                      <div className='flex items-center gap-2'>
-                        <span className='font-mono font-bold text-zinc-700 bg-white px-2 py-0.5 rounded border border-zinc-200 text-xs'>
-                          #{idx + 1}
-                        </span>
-                        {targetBalloon ? (
-                          <span className='text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1'>
-                            <CheckCircle2 className='w-3 h-3' /> Bóng thoại #
-                            {targetBalloon.readingOrder || ''}
-                          </span>
-                        ) : (
-                          <span className='text-xs text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded'>
-                            Chưa đặt trên trang
-                          </span>
-                        )}
-                      </div>
-                      <div className='flex items-center gap-2'>
-                        <span
-                          className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            sug.withinEstimatedLimit
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}
-                        >
-                          {sug.withinEstimatedLimit ? '✓ Vừa balloon' : 'Ước lượng dài'}
-                        </span>
-                        <span className='text-xs font-mono text-zinc-500'>
-                          Tối đa: ~{sug.maxChars} ký tự
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Comparison Box */}
-                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs'>
-                      <div className='p-2.5 bg-red-50/60 rounded-lg border border-red-200/70 space-y-1'>
-                        <div className='text-xs font-bold text-red-700 uppercase tracking-wide flex items-center justify-between font-mono'>
-                          <span>Thoại gốc</span>
-                          <span className='font-mono'>{sug.originalText.length} ký tự</span>
-                        </div>
-                        <p className='text-zinc-800 leading-relaxed font-serif line-clamp-3'>
-                          "{sug.originalText}"
-                        </p>
-                      </div>
-
-                      <div className='p-2.5 bg-emerald-50/70 rounded-lg border border-emerald-200 space-y-1'>
-                        <div className='text-xs font-bold text-emerald-800 uppercase tracking-wide flex items-center justify-between font-mono'>
-                          <span>Đề xuất rút gọn</span>
-                          <span className='font-mono'>{sug.suggestedText.length} ký tự</span>
-                        </div>
-                        <p className='text-zinc-900 font-semibold leading-relaxed font-serif line-clamp-3'>
-                          "{sug.suggestedText}"
-                        </p>
-                      </div>
-                    </div>
-
-                    {sug.reason && (
-                      <p className='text-xs text-zinc-600 bg-white/70 p-2 rounded border border-zinc-200/60 leading-tight'>
-                        <span className='font-semibold text-zinc-700'>Lý do: </span>
-                        {sug.reason}
-                      </p>
-                    )}
-
-                    {targetBalloon && (
-                      <div className='flex justify-end pt-1'>
-                        <button
-                          onClick={() => handleApplySuggestionToElement(sug)}
-                          className='px-3 py-1 bg-white hover:bg-purple-50 text-purple-700 border border-purple-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer'
-                        >
-                          <Check className='w-3.5 h-3.5' /> Áp dụng vào bóng thoại này
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Modal Footer */}
-            <div className='p-3.5 border-t border-zinc-200 bg-zinc-50 flex items-center justify-between shrink-0 text-xs'>
               <button
-                onClick={handleRejectAiSuggestions}
-                className='px-3.5 py-2 text-red-600 hover:bg-red-50 font-semibold rounded-xl transition-colors cursor-pointer'
+                onClick={handleAcceptAllAiSuggestions}
+                className='px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer'
               >
-                Từ chối đề xuất (Reject)
+                <Check className='w-4 h-4' /> Chấp nhận tất cả &amp; Cập nhật kịch bản (Accept)
               </button>
-
-              <div className='flex items-center gap-2'>
-                <button
-                  onClick={() => setAiModalOpen(false)}
-                  className='px-3.5 py-2 text-zinc-600 hover:bg-zinc-200 font-semibold rounded-xl transition-colors cursor-pointer'
-                >
-                  Đóng
-                </button>
-                <button
-                  onClick={handleAcceptAllAiSuggestions}
-                  className='px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer'
-                >
-                  <Check className='w-4 h-4' /> Chấp nhận tất cả &amp; Cập nhật kịch bản (Accept)
-                </button>
-              </div>
             </div>
           </div>
+        }
+      >
+        <div className='space-y-3 custom-scrollbar'>
+          {aiSuggestions.map((sug, idx) => {
+            const targetBalloon = elements.find(
+              (e) =>
+                (sug.targetElementId && e.elementId === sug.targetElementId) ||
+                (sug.sourceScriptLineId && e.scriptLineId === sug.sourceScriptLineId),
+            );
+            return (
+              <div
+                key={idx}
+                className='p-3.5 rounded-xl border border-zinc-200 bg-[#FAF8F5] space-y-2.5 hover:border-purple-300 transition-colors'
+              >
+                <div className='flex items-center justify-between text-xs'>
+                  <div className='flex items-center gap-2'>
+                    <span className='font-mono font-bold text-zinc-700 bg-white px-2 py-0.5 rounded border border-zinc-200 text-xs'>
+                      #{idx + 1}
+                    </span>
+                    {targetBalloon ? (
+                      <span className='text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1'>
+                        <CheckCircle2 className='w-3 h-3' /> Bóng thoại #
+                        {targetBalloon.readingOrder || ''}
+                      </span>
+                    ) : (
+                      <span className='text-xs text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded'>
+                        Chưa đặt trên trang
+                      </span>
+                    )}
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        sug.withinEstimatedLimit
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
+                      {sug.withinEstimatedLimit ? '✓ Vừa balloon' : 'Ước lượng dài'}
+                    </span>
+                    <span className='text-xs font-mono text-zinc-500'>
+                      Tối đa: ~{sug.maxChars} ký tự
+                    </span>
+                  </div>
+                </div>
+
+                {/* Comparison Box */}
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs'>
+                  <div className='p-2.5 bg-red-50/60 rounded-lg border border-red-200/70 space-y-1'>
+                    <div className='text-xs font-bold text-red-700 uppercase tracking-wide flex items-center justify-between font-mono'>
+                      <span>Thoại gốc</span>
+                      <span className='font-mono'>{sug.originalText.length} ký tự</span>
+                    </div>
+                    <p className='text-zinc-800 leading-relaxed font-serif line-clamp-3'>
+                      "{sug.originalText}"
+                    </p>
+                  </div>
+
+                  <div className='p-2.5 bg-emerald-50/70 rounded-lg border border-emerald-200 space-y-1'>
+                    <div className='text-xs font-bold text-emerald-800 uppercase tracking-wide flex items-center justify-between font-mono'>
+                      <span>Đề xuất rút gọn</span>
+                      <span className='font-mono'>{sug.suggestedText.length} ký tự</span>
+                    </div>
+                    <p className='text-zinc-900 font-semibold leading-relaxed font-serif line-clamp-3'>
+                      "{sug.suggestedText}"
+                    </p>
+                  </div>
+                </div>
+
+                {sug.reason && (
+                  <p className='text-xs text-zinc-600 bg-white/70 p-2 rounded border border-zinc-200/60 leading-tight'>
+                    <span className='font-semibold text-zinc-700'>Lý do: </span>
+                    {sug.reason}
+                  </p>
+                )}
+
+                {targetBalloon && (
+                  <div className='flex justify-end pt-1'>
+                    <button
+                      onClick={() => handleApplySuggestionToElement(sug)}
+                      className='px-3 py-1 bg-white hover:bg-purple-50 text-purple-700 border border-purple-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer'
+                    >
+                      <Check className='w-3.5 h-3.5' /> Áp dụng vào bóng thoại này
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-      )}
+      </Modal>
 
       {/* Concurrency Conflict Modal (BR-11) */}
       <ElementConflictModal

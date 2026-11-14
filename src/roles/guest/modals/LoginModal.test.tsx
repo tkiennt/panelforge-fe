@@ -29,12 +29,14 @@ describe('LoginModal Component', () => {
     const handleClose = vi.fn();
     const handleLogin = vi.fn();
 
-    const { container } = render(<LoginModal onClose={handleClose} onLogin={handleLogin} />);
+    render(<LoginModal onClose={handleClose} onLogin={handleLogin} />);
 
     expect(screen.getByText(/Welcome Back|Chào mừng trở lại/i)).toBeInTheDocument();
-    expect(screen.getByText(/Log in to your studio workspace|Tiếp tục sáng tạo/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Log in to your studio workspace|Tiếp tục sáng tạo/i),
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/mika@studio.com/i)).toBeInTheDocument();
-    expect(container.querySelector('input[type="password"]')).toBeInTheDocument();
+    expect(document.querySelector('input[type="password"]')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Log In|Đăng nhập/i })).toBeInTheDocument();
   });
 
@@ -47,10 +49,10 @@ describe('LoginModal Component', () => {
       user: { email: 'editor@panelforge.com', role: 'EDITOR' },
     });
 
-    const { container } = render(<LoginModal onClose={handleClose} onLogin={handleLogin} />);
+    render(<LoginModal onClose={handleClose} onLogin={handleLogin} />);
 
     const emailInput = screen.getByPlaceholderText(/mika@studio.com/i);
-    const passwordInput = container.querySelector('input[type="password"]') as HTMLInputElement;
+    const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
     const submitBtn = screen.getByRole('button', { name: /Log In|Đăng nhập/i });
 
     await user.type(emailInput, 'editor@panelforge.com');
@@ -72,10 +74,10 @@ describe('LoginModal Component', () => {
       user: { email: 'artist@panelforge.com', role: 'ARTIST' },
     });
 
-    const { container } = render(<LoginModal onClose={handleClose} onLogin={handleLogin} />);
+    render(<LoginModal onClose={handleClose} onLogin={handleLogin} />);
 
     const emailInput = screen.getByPlaceholderText(/mika@studio.com/i);
-    const passwordInput = container.querySelector('input[type="password"]') as HTMLInputElement;
+    const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
     const submitBtn = screen.getByRole('button', { name: /Log In|Đăng nhập/i });
 
     await user.type(emailInput, 'artist@panelforge.com');
@@ -92,10 +94,12 @@ describe('LoginModal Component', () => {
     const handleClose = vi.fn();
     const handleLogin = vi.fn();
 
-    const { container } = render(<LoginModal onClose={handleClose} onLogin={handleLogin} />);
+    render(<LoginModal onClose={handleClose} onLogin={handleLogin} />);
 
     // Nút đóng modal góc phải
-    const closeBtn = container.querySelector('button[aria-label="Close"], button.absolute');
+    const closeBtn = document.querySelector(
+      'button[aria-label="Close"], button.absolute',
+    ) as HTMLButtonElement;
     if (closeBtn) {
       await user.click(closeBtn);
       expect(handleClose).toHaveBeenCalledTimes(1);

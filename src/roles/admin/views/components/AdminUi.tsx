@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { adminFocusRing, type AdminToastState } from './adminUiStyles';
+import { Modal, Toast } from '@/shared/ui';
 
 const BUTTON_VARIANTS = {
   primary:
@@ -277,75 +278,19 @@ export const AdminModal: React.FC<{
   size?: 'md' | 'lg';
   children: React.ReactNode;
 }> = ({ title, description, onClose, footer, size = 'md', children }) => {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    panelRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
-      if (e.key !== 'Tab' || !panelRef.current) return;
-      const nodes = panelRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',
-      );
-      if (!nodes.length) return;
-      const first = nodes[0];
-      const last = nodes[nodes.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      previous?.focus?.();
-    };
-  }, []);
-
-  return createPortal(
-    <div className='fixed inset-0 z-[100] flex items-center justify-center p-4 font-sans'>
-      <div className='absolute inset-0 bg-admin-ink/40' onClick={onClose} aria-hidden />
-      <div
-        ref={panelRef}
-        role='dialog'
-        aria-modal='true'
-        aria-label={title}
-        tabIndex={-1}
-        className={cn(
-          'relative w-full max-h-[calc(100dvh-2rem)] flex flex-col bg-admin-field border border-admin-line rounded-2xl shadow-lg focus:outline-none text-admin-ink',
-          size === 'md' ? 'max-w-lg' : 'max-w-3xl',
-        )}
-      >
-        <header className='flex items-start justify-between gap-4 pl-5 pr-3 py-3 border-b border-admin-line'>
-          <div className='min-w-0 py-1'>
-            <h2 className='text-base font-semibold text-admin-ink-strong'>{title}</h2>
-            {description && <div className='mt-0.5 text-sm text-admin-muted'>{description}</div>}
-          </div>
-          <AdminButton
-            size='icon'
-            variant='ghost'
-            aria-label='Đóng'
-            onClick={onClose}
-            icon={<X className='w-4 h-4' />}
-          />
-        </header>
-        <div className='flex-1 overflow-y-auto px-5 py-4'>{children}</div>
-        {footer && (
-          <footer className='flex flex-wrap justify-end gap-2 px-5 py-3 border-t border-admin-line bg-admin-card rounded-b-2xl'>
-            {footer}
-          </footer>
-        )}
-      </div>
-    </div>,
-    document.body,
+  return (
+    <Modal
+      isOpen={true}
+      title={title}
+      description={description}
+      onClose={onClose}
+      footer={footer}
+      size={size === 'lg' ? 'lg' : 'md'}
+      closeLabel='Đóng'
+      className='bg-admin-field border-admin-line text-admin-ink'
+    >
+      {children}
+    </Modal>
   );
 };
 
@@ -354,34 +299,18 @@ export const AdminToast: React.FC<{ toast: AdminToastState; onClose: () => void 
   onClose,
 }) => {
   if (!toast) return null;
-  const tone =
-    toast.type === 'success'
-      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-      : toast.type === 'warning'
-        ? 'bg-amber-50 border-amber-200 text-amber-900'
-        : 'bg-red-50 border-red-200 text-red-800';
-  const Icon = toast.type === 'success' ? CheckCircle2 : AlertCircle;
   return createPortal(
-    <div
-      role={toast.type === 'error' ? 'alert' : 'status'}
-      className={cn(
-        'fixed top-4 right-4 left-4 sm:left-auto z-[110] sm:max-w-sm flex items-start gap-2 pl-4 pr-1 py-1.5 rounded-xl border shadow-md text-sm font-sans',
-        tone,
-      )}
-    >
-      <Icon className='w-4 h-4 mt-2 shrink-0' aria-hidden />
-      <span className='py-1.5 flex-1'>{toast.message}</span>
-      <button
-        type='button'
-        onClick={onClose}
-        aria-label='Đóng thông báo'
-        className={cn(
-          'h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg hover:bg-admin-ink/5 cursor-pointer',
-          adminFocusRing,
-        )}
-      >
-        <X className='w-3.5 h-3.5' />
-      </button>
+    <div className='fixed bottom-5 right-5 z-[var(--studio-z-toast)] max-w-sm'>
+      <Toast
+        toast={{
+          id: 'admin-toast',
+          title: toast.message,
+          description: '',
+          tone: toast.type === 'error' ? 'danger' : toast.type,
+        }}
+        closeLabel='Đóng thông báo'
+        onClose={onClose}
+      />
     </div>,
     document.body,
   );
