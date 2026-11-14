@@ -1,8 +1,9 @@
 // src/roles/writer/components/script/SetPanelStageModal.tsx
 import React, { useState } from 'react';
-import { X, Layers, Check, Trash2 } from 'lucide-react';
+import { Check, Trash2 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { ChapterCastItemDto } from '@/services/chapterCast.service';
+import { Modal } from '@/shared/ui';
 
 interface SetPanelStageModalProps {
   isOpen: boolean;
@@ -43,8 +44,6 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
   const [selectedEntryId, setSelectedEntryId] = useState<string>(entities[0]?.bibleEntryId || '');
   const [selectedRevId, setSelectedRevId] = useState<string>('');
 
-  if (!isOpen) return null;
-
   const currentEntity = entities.find((e) => e.bibleEntryId === selectedEntryId);
   const availableRevisions = currentEntity?.availableRevisions || [];
 
@@ -71,151 +70,18 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150'>
-      <div className='w-full max-w-md bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col text-stone-900'>
-        {/* Header */}
-        <div className='p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/60'>
-          <div className='flex items-center gap-2'>
-            <div className='p-2 rounded-xl bg-orange-100/70 text-orange-600 border border-orange-200/50'>
-              <Layers className='w-4 h-4' />
-            </div>
-            <div>
-              <h3 className='text-sm font-bold font-serif text-stone-900'>
-                {t('production.cast.panelStageTitle', 'Đặt giai đoạn riêng cho Panel')}
-              </h3>
-              <p className='text-[11px] text-stone-500'>
-                {t(
-                  'production.cast.panelStageDesc',
-                  'Dùng tạo hình khác (hồi tưởng, biến thân) riêng cho Panel này',
-                )}
-              </p>
-            </div>
-          </div>
-          <button
-            type='button'
-            onClick={onClose}
-            className='p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer transition-colors'
-          >
-            <X className='w-4 h-4' />
-          </button>
-        </div>
-
-        {/* Form Body */}
-        <div className='p-5 space-y-4 text-xs'>
-          {/* 1. Chọn Trang & Panel */}
-          <div>
-            <label className='font-semibold text-stone-700 block mb-1.5'>
-              {t('production.cast.selectPanel', 'Chọn Trang & Panel')}
-            </label>
-            <div className='grid grid-cols-2 gap-2'>
-              <div>
-                <span className='text-[10px] text-stone-400 block mb-0.5'>
-                  {t('production.cast.pageLabel', 'Trang:')}
-                </span>
-                <select
-                  value={selectedPageNo}
-                  onChange={(e) => {
-                    const pNo = Number(e.target.value);
-                    setSelectedPageNo(pNo);
-                    setSelectedPanelNo(1);
-                  }}
-                  className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
-                >
-                  {pages.map((p) => (
-                    <option key={p.pageNumber} value={p.pageNumber}>
-                      {t(
-                        'production.cast.pageOption',
-                        { number: p.pageNumber },
-                        `Trang ${p.pageNumber}`,
-                      )}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <span className='text-[10px] text-stone-400 block mb-0.5'>
-                  {t('production.cast.panelLabel', 'Panel:')}
-                </span>
-                <select
-                  value={selectedPanelNo}
-                  onChange={(e) => setSelectedPanelNo(Number(e.target.value))}
-                  className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
-                >
-                  {Array.from(
-                    {
-                      length:
-                        pages.find((p) => p.pageNumber === selectedPageNo)?.panels.length || 1,
-                    },
-                    (_, i) => (
-                      <option key={i + 1} value={i + 1}>
-                        {t('production.cast.panelOption', { number: i + 1 }, `Panel ${i + 1}`)}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. Chọn Thực thể */}
-          <div>
-            <label className='font-semibold text-stone-700 block mb-1.5'>
-              {t('production.cast.selectEntity', 'Thực thể Series Bible')}
-            </label>
-            <select
-              value={selectedEntryId}
-              onChange={(e) => {
-                setSelectedEntryId(e.target.value);
-                setSelectedRevId('');
-              }}
-              className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
-            >
-              <option value=''>
-                {t('production.cast.selectEntityPlaceholder', '-- Chọn thực thể --')}
-              </option>
-              {entities.map((e) => (
-                <option key={e.bibleEntryId} value={e.bibleEntryId}>
-                  {e.name} ({e.code || 'BIBLE'})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* 3. Chọn Bản / Biến thể */}
-          {selectedEntryId && (
-            <div>
-              <label className='font-semibold text-stone-700 block mb-1.5'>
-                {t('production.cast.selectRevision', 'Bản tạo hình / Biến thể')}
-              </label>
-              {availableRevisions.length === 0 ? (
-                <p className='text-stone-400 italic py-1'>
-                  {t('production.cast.noRevisionsForEntity', 'Mục này chưa có bản tạo hình nào.')}
-                </p>
-              ) : (
-                <select
-                  value={selectedRevId}
-                  onChange={(e) => setSelectedRevId(e.target.value)}
-                  className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
-                >
-                  <option value=''>
-                    {t('production.cast.selectRevisionPlaceholder', '-- Chọn bản --')}
-                  </option>
-                  {availableRevisions.map((r) => (
-                    <option key={r.revisionId} value={r.revisionId}>
-                      v{r.versionNumber} ·{' '}
-                      {r.variantLabel || t('production.cast.defaultVariant', 'Mặc định')} (
-                      {r.isCanonLocked ? 'CanonLocked' : r.status})
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer Actions */}
-        <div className='p-4 border-t border-stone-100 bg-stone-50/40 flex items-center justify-between gap-2'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='sm'
+      closeLabel={t('common.close', 'Đóng')}
+      title={t('production.cast.panelStageTitle', 'Đặt giai đoạn riêng cho Panel')}
+      description={t(
+        'production.cast.panelStageDesc',
+        'Dùng tạo hình khác (hồi tưởng, biến thân) riêng cho Panel này',
+      )}
+      footer={
+        <div className='flex w-full items-center justify-between gap-2'>
           <button
             type='button'
             onClick={handleClear}
@@ -224,7 +90,6 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
             <Trash2 className='w-3.5 h-3.5' />
             {t('production.cast.clearPanelStage', 'Gỡ giai đoạn riêng')}
           </button>
-
           <div className='flex items-center gap-2'>
             <button
               type='button'
@@ -244,7 +109,119 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
             </button>
           </div>
         </div>
+      }
+    >
+      <div className='space-y-4 text-xs'>
+        {/* 1. Chọn Trang & Panel */}
+        <div>
+          <label className='font-semibold text-stone-700 block mb-1.5'>
+            {t('production.cast.selectPanel', 'Chọn Trang & Panel')}
+          </label>
+          <div className='grid grid-cols-2 gap-2'>
+            <div>
+              <span className='text-[10px] text-stone-400 block mb-0.5'>
+                {t('production.cast.pageLabel', 'Trang:')}
+              </span>
+              <select
+                value={selectedPageNo}
+                onChange={(e) => {
+                  const pNo = Number(e.target.value);
+                  setSelectedPageNo(pNo);
+                  setSelectedPanelNo(1);
+                }}
+                className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
+              >
+                {pages.map((p) => (
+                  <option key={p.pageNumber} value={p.pageNumber}>
+                    {t(
+                      'production.cast.pageOption',
+                      { number: p.pageNumber },
+                      `Trang ${p.pageNumber}`,
+                    )}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <span className='text-[10px] text-stone-400 block mb-0.5'>
+                {t('production.cast.panelLabel', 'Panel:')}
+              </span>
+              <select
+                value={selectedPanelNo}
+                onChange={(e) => setSelectedPanelNo(Number(e.target.value))}
+                className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
+              >
+                {Array.from(
+                  {
+                    length: pages.find((p) => p.pageNumber === selectedPageNo)?.panels.length || 1,
+                  },
+                  (_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {t('production.cast.panelOption', { number: i + 1 }, `Panel ${i + 1}`)}
+                    </option>
+                  ),
+                )}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Chọn Thực thể */}
+        <div>
+          <label className='font-semibold text-stone-700 block mb-1.5'>
+            {t('production.cast.selectEntity', 'Thực thể Series Bible')}
+          </label>
+          <select
+            value={selectedEntryId}
+            onChange={(e) => {
+              setSelectedEntryId(e.target.value);
+              setSelectedRevId('');
+            }}
+            className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
+          >
+            <option value=''>
+              {t('production.cast.selectEntityPlaceholder', '-- Chọn thực thể --')}
+            </option>
+            {entities.map((e) => (
+              <option key={e.bibleEntryId} value={e.bibleEntryId}>
+                {e.name} ({e.code || 'BIBLE'})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* 3. Chọn Bản / Biến thể */}
+        {selectedEntryId && (
+          <div>
+            <label className='font-semibold text-stone-700 block mb-1.5'>
+              {t('production.cast.selectRevision', 'Bản tạo hình / Biến thể')}
+            </label>
+            {availableRevisions.length === 0 ? (
+              <p className='text-stone-400 italic py-1'>
+                {t('production.cast.noRevisionsForEntity', 'Mục này chưa có bản tạo hình nào.')}
+              </p>
+            ) : (
+              <select
+                value={selectedRevId}
+                onChange={(e) => setSelectedRevId(e.target.value)}
+                className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
+              >
+                <option value=''>
+                  {t('production.cast.selectRevisionPlaceholder', '-- Chọn bản --')}
+                </option>
+                {availableRevisions.map((r) => (
+                  <option key={r.revisionId} value={r.revisionId}>
+                    v{r.versionNumber} ·{' '}
+                    {r.variantLabel || t('production.cast.defaultVariant', 'Mặc định')} (
+                    {r.isCanonLocked ? 'CanonLocked' : r.status})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 };
