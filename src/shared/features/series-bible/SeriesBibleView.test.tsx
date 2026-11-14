@@ -556,11 +556,17 @@ describe('SeriesBibleView UX/UI improvements', () => {
       await waitFor(() => expect(screen.getByText(/Tần Mục/)).toBeDefined());
     };
 
-    it.each(['WRITER', 'EDITOR'])('%s được xác nhận thiết kế (WriterEndorsed)', async (role) => {
-      await renderWithConcept(role);
+    it('EDITOR được xác nhận & khoá Canon thiết kế (Q20/Q22)', async () => {
+      await renderWithConcept('EDITOR');
       expect(screen.queryAllByTitle('Writer/Editor duyệt concept art này').length).toBeGreaterThan(
         0,
       );
+      expect(screen.queryAllByTitle('Yêu cầu Artist vẽ lại concept').length).toBeGreaterThan(0);
+    });
+
+    it('WRITER chỉ yêu cầu vẽ lại, không tự xác nhận khoá Canon (Q20/Q22)', async () => {
+      await renderWithConcept('WRITER');
+      expect(screen.queryAllByTitle('Writer/Editor duyệt concept art này')).toHaveLength(0);
       expect(screen.queryAllByTitle('Yêu cầu Artist vẽ lại concept').length).toBeGreaterThan(0);
     });
 

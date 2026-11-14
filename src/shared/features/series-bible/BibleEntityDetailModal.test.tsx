@@ -252,35 +252,31 @@ describe('BibleEntityDetailModal UX/UI', () => {
     // Must not duplicate with fallback 'Giai đoạn khởi đầu'
     expect(screen.queryByText('Giai đoạn khởi đầu')).not.toBeInTheDocument();
   });
-  it('disables rework button and marks endorse button as endorsed when revision is WriterEndorsed (Bug 5)', () => {
-    const rawWithEndorsed: BibleEntryDto = {
+  it('disables rework button when revision is CanonLocked', () => {
+    const rawWithLocked: BibleEntryDto = {
       ...mockRawEntry,
       effectiveRevision: {
-        id: 'rev-endorsed',
+        id: 'rev-locked',
         bibleEntryId: 'ent-1',
         versionNumber: 2,
-        summary: 'Writer đã duyệt',
+        summary: 'Canon đã khoá',
         stageName: 'Giai đoạn chuẩn',
         snapshotJson: '{}',
         contentHash: 'abc',
         effectiveFromChapterNumber: 1,
         isInitialVersion: false,
         createdAt: '2026-10-15T09:00:00Z',
-        reviewStatus: 'WriterEndorsed',
+        isLocked: true,
+        reviewStatus: 'CanonLocked',
         referenceImageUrl: 'https://example.com/sheet.png',
       },
     };
 
-    render(
-      <BibleEntityDetailModal {...defaultProps} rawEntry={rawWithEndorsed} canEndorse={true} />,
-    );
+    render(<BibleEntityDetailModal {...defaultProps} rawEntry={rawWithLocked} canEndorse={true} />);
 
     const reworkBtn = screen.getByTestId('detail-rework-btn');
     expect(reworkBtn).toBeDisabled();
-
-    const endorseBtn = screen.getByTestId('detail-endorse-btn');
-    expect(endorseBtn).toBeDisabled();
-    expect(screen.getByText('Đã duyệt thiết kế')).toBeInTheDocument();
+    expect(screen.getByText('Đã khoá Canon chính thức')).toBeInTheDocument();
   });
 
   it('renders correct category type badge in header for characters and locations (Bug 1)', () => {
@@ -726,19 +722,22 @@ describe('BibleEntityDetailModal UX/UI', () => {
       );
       expect(screen.queryByTestId('detail-lock-btn')).not.toBeInTheDocument();
 
-      // 4. Khi WriterEndorsed: hiển thị nút Khóa Canon
-      const endorsedRev: BibleEntryRevisionDto = { ...baseRev, reviewStatus: 'WriterEndorsed' };
+      // 4. Producer never sees confirm/lock per Q20/Q22
+      const conceptRevProducer: BibleEntryRevisionDto = {
+        ...baseRev,
+        reviewStatus: 'ConceptSubmitted',
+      };
       rerender(
         <BibleEntityDetailModal
           {...defaultProps}
           isProducer={true}
           entity={mockEntityWithImage}
-          rawEntry={makeEntry(endorsedRev)}
-          latestSavedRevision={endorsedRev}
+          rawEntry={makeEntry(conceptRevProducer)}
+          latestSavedRevision={conceptRevProducer}
         />,
       );
-      expect(screen.getByTestId('detail-lock-btn')).toBeInTheDocument();
-      expect(screen.getByTestId('detail-lock-btn')).toHaveTextContent('🔒 Khóa Canon');
+      expect(screen.queryByTestId('detail-lock-btn')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('detail-confirm-btn')).not.toBeInTheDocument();
     });
 
     it('vô hiệu hóa nút Duyệt thiết kế khi revision đang ReworkRequired', () => {
@@ -775,6 +774,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       render(
         <BibleEntityDetailModal
           {...defaultProps}
+          isProducer={false}
           canEndorse={true}
           entity={mockEntityWithImage}
           rawEntry={reworkEntry}
@@ -782,9 +782,9 @@ describe('BibleEntityDetailModal UX/UI', () => {
         />,
       );
 
-      const endorseBtn = screen.getByTestId('detail-endorse-btn');
-      expect(endorseBtn).toBeDisabled();
-      expect(endorseBtn).toHaveAttribute(
+      const confirmBtn = screen.getByTestId('detail-confirm-btn');
+      expect(confirmBtn).toBeDisabled();
+      expect(confirmBtn).toHaveAttribute(
         'title',
         'Bản vẽ đang bị yêu cầu vẽ lại; cần Artist nộp lại concept trước khi duyệt',
       );

@@ -93,6 +93,9 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
     isVisualDesign: isVisualDesignCategory(entry.category),
     isLocked: entry.effectiveRevision?.isLocked ?? false,
     lockedAt: entry.effectiveRevision?.lockedAt ?? null,
+    aliases: entry.aliases ?? undefined,
+    isCrowd: entry.isCrowd ?? false,
+    isStub: entry.isStub ?? false,
     gallery,
     attributes,
   };
@@ -258,10 +261,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   }, [currentUserRole]);
 
   const isArtist = currentUserRole === 'ARTIST';
-  const canCreateDraft = isProducer || currentUserRole === 'WRITER';
-  // §5.1: xác nhận WriterEndorsed = Writer, Editor. Yêu cầu vẽ lại: người thẩm định + Producer (thay vì khoá).
-  const canEndorse = currentUserRole === 'WRITER' || currentUserRole === 'EDITOR';
-  const canRequestRework = canEndorse || isProducer;
+  const isEditor = currentUserRole === 'EDITOR';
+  const isWriter = currentUserRole === 'WRITER';
+  const canCreateDraft = isWriter || isProducer;
+  // V2.6 (Q20/Q22): Xác nhận = khoá Canon chỉ dành cho Editor; Yêu cầu vẽ lại cho Writer + Editor + Producer. Producer không thấy nút xác nhận/khoá.
+  const canConfirm = isEditor;
+  const canEndorse = isEditor;
+  const canRequestRework = isWriter || isEditor || isProducer;
 
   const handleLockRevision = async (rev: BibleEntryRevisionDto, entity?: BibleEntity) => {
     const targetEntity = entity || historyEntity || selectedEntity || null;
@@ -275,18 +281,18 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       return;
     }
 
-    if (rev.reviewStatus !== 'WriterEndorsed' && rev.reviewStatus !== 4) {
+    if (rev.reviewStatus !== 'ConceptSubmitted') {
       onShowToast(
-        'Chưa thể khoá Canon (BR-01)',
-        'Chỉ có thể khoá Canon phiên bản đã được Writer/Editor xác nhận (WriterEndorsed).',
+        'Chưa thể khoá Canon',
+        'Chỉ có thể xác nhận & khoá Canon phiên bản đang nộp concept (ConceptSubmitted).',
       );
       return;
     }
 
     const confirmed = await confirm({
-      title: `Duyệt & Khóa phiên bản v${rev.versionNumber}?`,
-      description: `Cố định phiên bản này của nhân vật "${targetEntity.name}" làm tham chiếu chuẩn (Canon) cho toàn bộ đội ngũ sáng tác và sản xuất.`,
-      confirmText: 'Duyệt & Khóa Canon',
+      title: `Xác nhận & Khóa Canon phiên bản v${rev.versionNumber}?`,
+      description: `Editor xác nhận bản vẽ và cố định phiên bản này của "${targetEntity.name}" làm tham chiếu chuẩn (Canon).`,
+      confirmText: 'Xác nhận & Khóa Canon',
       cancelText: 'Hủy',
       variant: 'warning',
     });
@@ -294,17 +300,22 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
     setLockingRevisionId(rev.id);
     try {
-      const updatedRev = await bibleService.lockRevision(
+      const updatedRev = await bibleService.confirmRevision(
         effectiveSeries.id,
         targetEntity.id,
         rev.id,
+        { conceptEventId: rev.currentConceptEventId || undefined },
       );
       onShowToast(
-        'Đã duyệt & khoá Character Sheet',
+        'Đã xác nhận & khoá Canon',
         `Phiên bản v${rev.versionNumber} của "${targetEntity.name}" đã được khoá làm tham chiếu chuẩn thành công.`,
       );
       setHistoryRevisions((prev) =>
-        prev.map((r) => (r.id === rev.id ? { ...r, ...updatedRev, isLocked: true } : r)),
+        prev.map((r) =>
+          r.id === rev.id
+            ? { ...r, ...updatedRev, isLocked: true, reviewStatus: 'CanonLocked' }
+            : r,
+        ),
       );
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
@@ -326,31 +337,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [endorsingRevId, setEndorsingRevId] = useState<string | null>(null);
 
   const handleEndorseRevision = async (rev: BibleEntryRevisionDto, entity?: BibleEntity) => {
-    const targetEntity = entity || historyEntity || selectedEntity || null;
-    if (!effectiveSeries?.id || !targetEntity) return;
-
-    setEndorsingRevId(rev.id);
-    try {
-      const updatedRev = await bibleService.endorseRevision(
-        effectiveSeries.id,
-        targetEntity.id,
-        rev.id,
-      );
-      onShowToast(
-        'Đã xác nhận thiết kế',
-        `Phiên bản v${rev.versionNumber} của "${targetEntity.name}" đã được xác nhận (Writer Endorsed).`,
-      );
-      setHistoryRevisions((prev) =>
-        prev.map((r) =>
-          r.id === rev.id ? { ...r, ...updatedRev, reviewStatus: 'WriterEndorsed' } : r,
-        ),
-      );
-      setRefreshTrigger((prev) => prev + 1);
-    } catch (err: any) {
-      onShowToast('Lỗi xác nhận thiết kế', err.message || 'Không thể xác nhận phiên bản này.');
-    } finally {
-      setEndorsingRevId(null);
-    }
+    return handleLockRevision(rev, entity);
   };
 
   const handleOpenReworkModal = (rev: BibleEntryRevisionDto, entity?: BibleEntity) => {
@@ -435,6 +422,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [uploadingRevImage, setUploadingRevImage] = useState(false);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [targetQueueRevisionId, setTargetQueueRevisionId] = useState<string | null>(null);
 
   const handleOpenAddRevision = async (
     entity: BibleEntity,
@@ -444,7 +432,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     reworkFeedback?: string,
     isResubmit: boolean = false,
     isNewEra: boolean = false,
+    queueRevisionId?: string,
   ) => {
+    setTargetQueueRevisionId(queueRevisionId || null);
     const snapshot = supersede ? readSnapshot(supersede.snapshotJson) : {};
     setRevisionTarget(entity);
     setSupersedeTarget(supersede);
@@ -564,6 +554,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             summary: summaryText,
             effectiveToChapterNumber: content.effectiveToChapterNumber,
             detailsJson: submittedContent?.detailsJson,
+            revisionId: targetQueueRevisionId || undefined,
           });
         } else {
           await bibleService.addRevision(effectiveSeries.id, revisionTarget.id, {
@@ -769,6 +760,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           typeof newEntity.effectiveToChapterNumber === 'number'
             ? newEntity.effectiveToChapterNumber
             : undefined,
+        aliases: newEntity.aliases,
+        isCrowd: newEntity.isCrowd,
       });
 
       setRefreshTrigger((prev) => prev + 1);
@@ -1100,8 +1093,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               {[
                 { label: 'Bản nháp', who: 'Writer tạo mục', dot: 'bg-stone-400' },
                 { label: 'Đã nộp Concept', who: 'Artist tải Model Sheet', dot: 'bg-amber-500' },
-                { label: 'Đã xác nhận', who: 'Writer / Editor duyệt', dot: 'bg-blue-500' },
-                { label: 'Canon Locked', who: 'Producer khoá', dot: 'bg-emerald-600' },
+                { label: 'Canon Locked', who: 'Editor xác nhận', dot: 'bg-emerald-600' },
               ].map((step, i) => (
                 <li key={step.label} className='flex items-start gap-2.5'>
                   <span className='mt-1.5 flex flex-col items-center'>
@@ -1146,9 +1138,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5'>
                 {designQueue.map((item) => {
                   const matchedEntity = localEntities.find((e) => e.id === item.entryId);
+                  const queueKey = item.revisionId || item.entryId;
                   return (
                     <div
-                      key={item.revisionId ?? item.entryId}
+                      key={queueKey}
                       className='bg-white/95 rounded-lg border border-amber-200 p-2.5 flex items-center justify-between gap-2 hover:border-orange-400 transition-colors shadow-2xs'
                     >
                       <div className='min-w-0 flex-1'>
@@ -1160,7 +1153,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             {item.name}
                           </span>
                         </div>
-                        <div className='flex items-center gap-1 mt-1'>
+                        <div className='flex items-center gap-1 mt-1 flex-wrap'>
                           {item.reviewStatus === 'ReworkRequired' ? (
                             <span className='px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-xs font-semibold whitespace-nowrap'>
                               Yêu cầu vẽ lại
@@ -1174,10 +1167,22 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               Chờ nộp Concept Art
                             </span>
                           )}
-                          <span className='text-xs text-stone-500 font-mono'>
-                            Ch.{item.effectiveFromChapterNumber}
-                          </span>
+                          {item.stageName ? (
+                            <span className='text-xs text-stone-600 font-medium'>
+                              · {item.stageName}
+                            </span>
+                          ) : null}
                         </div>
+                        {item.waitingChapterNumbers && item.waitingChapterNumbers.length > 0 && (
+                          <div
+                            className='flex items-center gap-1 mt-1 text-xs'
+                            data-testid={`waiting-chapters-${queueKey}`}
+                          >
+                            <span className='px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-mono text-xs font-semibold'>
+                              Chương đang chờ: Ch.{item.waitingChapterNumbers.join(', ')}
+                            </span>
+                          </div>
+                        )}
                         {item.reworkFeedback && (
                           <p className='text-xs text-rose-800 truncate mt-0.5 italic'>
                             &quot;{item.reworkFeedback}&quot;
@@ -1198,6 +1203,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   item.effectiveFromChapterNumber,
                                   undefined,
                                   true,
+                                  false,
+                                  item.revisionId,
                                 );
                               }
                             }}
@@ -1220,6 +1227,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   item.effectiveFromChapterNumber,
                                   item.reworkFeedback || undefined,
                                   false,
+                                  false,
+                                  item.revisionId,
                                 );
                               }
                             }}
@@ -1240,6 +1249,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   null,
                                   true,
                                   item.effectiveFromChapterNumber,
+                                  undefined,
+                                  false,
+                                  false,
+                                  item.revisionId,
                                 );
                               }
                             }}
@@ -1505,14 +1518,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                 <Lock className='w-3.5 h-3.5 text-emerald-600' />
                                 Đã khoá Canon
                               </span>
-                            ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
-                              <span
-                                className='px-2 py-0.5 rounded bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1 shadow-2xs'
-                                title='Writer đã duyệt thiết kế (Chờ Producer duyệt & khóa)'
-                              >
-                                <Check className='w-2.5 h-2.5' />
-                                Writer duyệt
-                              </span>
                             ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
                               <span
                                 className='px-2 py-0.5 rounded bg-blue-600 text-white text-xs font-semibold flex items-center gap-1 shadow-2xs'
@@ -1555,10 +1560,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               >
                                 <Lock className='w-3.5 h-3.5 text-emerald-600' />
                                 Đã khoá Canon
-                              </span>
-                            ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
-                              <span className='px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-medium flex items-center gap-1'>
-                                <Check className='w-2.5 h-2.5' /> Writer duyệt
                               </span>
                             ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
                               <span className='px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium flex items-center gap-1'>
@@ -1837,10 +1838,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             >
                               <Lock className='w-3.5 h-3.5 text-emerald-600' />
                               Đã khoá Canon
-                            </span>
-                          ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
-                            <span className='px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-medium flex items-center gap-1'>
-                              <Check className='w-2.5 h-2.5' /> Writer duyệt
                             </span>
                           ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
                             <span className='px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium flex items-center gap-1'>
@@ -2228,10 +2225,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                     <Lock className='w-2.5 h-2.5 text-amber-600' />
                                     ĐÃ KHOÁ CANON
                                   </span>
-                                ) : rev.reviewStatus === 'WriterEndorsed' ? (
-                                  <span className='px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-semibold'>
-                                    ✓ Writer Endorsed
-                                  </span>
                                 ) : rev.reviewStatus === 'ConceptSubmitted' ? (
                                   <span className='px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300 text-xs font-semibold'>
                                     Concept Submitted
@@ -2408,21 +2401,19 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   </>
                                 )}
 
-                                {!rev.isLocked && historyEntity?.isVisualDesign && isProducer && (
+                                {!rev.isLocked && historyEntity?.isVisualDesign && isEditor && (
                                   <button
                                     type='button'
                                     disabled={
                                       lockingRevisionId === rev.id ||
-                                      (rev.reviewStatus !== 'WriterEndorsed' &&
-                                        rev.reviewStatus !== 4)
+                                      rev.reviewStatus !== 'ConceptSubmitted'
                                     }
                                     onClick={() => void handleLockRevision(rev)}
-                                    className='px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
+                                    className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
                                     title={
-                                      rev.reviewStatus !== 'WriterEndorsed' &&
-                                      rev.reviewStatus !== 4
-                                        ? 'Chỉ có thể khoá Canon phiên bản đã được Writer/Editor xác nhận (WriterEndorsed) (BR-01)'
-                                        : 'Producer phê duyệt và khoá phiên bản này làm tham chiếu chuẩn Canon'
+                                      rev.reviewStatus !== 'ConceptSubmitted'
+                                        ? 'Chỉ có thể xác nhận & khoá Canon phiên bản đang nộp concept (ConceptSubmitted)'
+                                        : 'Editor xác nhận và khoá phiên bản này làm tham chiếu chuẩn Canon'
                                     }
                                     data-testid={`btn-lock-canon-${rev.id}`}
                                   >
@@ -2430,25 +2421,27 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                     <span>
                                       {lockingRevisionId === rev.id
                                         ? 'Đang khoá...'
-                                        : 'Duyệt & Khoá Canon'}
+                                        : 'Xác nhận & Khoá Canon'}
                                     </span>
                                   </button>
                                 )}
-                                {rev.isLocked && historyEntity?.isVisualDesign && isProducer && (
-                                  <button
-                                    type='button'
-                                    onClick={() => {
-                                      if (!historyEntity) return;
-                                      setHistoryModalOpen(false);
-                                      void handleOpenAddRevision(historyEntity, rev);
-                                    }}
-                                    className='px-2.5 py-1 rounded-lg bg-stone-600 hover:bg-stone-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
-                                    title='Tạo bản mới cùng chương thay cho bản khoá này'
-                                  >
-                                    <Lock className='w-3 h-3' />
-                                    <span>Thay thế bản khoá</span>
-                                  </button>
-                                )}
+                                {rev.isLocked &&
+                                  historyEntity?.isVisualDesign &&
+                                  (isWriter || isProducer) && (
+                                    <button
+                                      type='button'
+                                      onClick={() => {
+                                        if (!historyEntity) return;
+                                        setHistoryModalOpen(false);
+                                        void handleOpenAddRevision(historyEntity, rev);
+                                      }}
+                                      className='px-2.5 py-1 rounded-lg bg-stone-600 hover:bg-stone-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
+                                      title='Tạo bản mới cùng chương thay cho bản khoá này'
+                                    >
+                                      <Lock className='w-3 h-3' />
+                                      <span>Thay thế bản khoá</span>
+                                    </button>
+                                  )}
                               </div>
                             </div>
                           </div>

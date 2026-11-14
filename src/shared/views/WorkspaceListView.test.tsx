@@ -296,7 +296,7 @@ describe('WorkspaceListView Component', () => {
       expect(screen.getByText('Mappa Japan Studio')).toBeInTheDocument();
     });
     expect(screen.getByText('4 bài chờ duyệt')).toBeInTheDocument();
-    expect(screen.getByText('Vào Bàn Duyệt')).toBeInTheDocument();
+    expect(screen.getByText('Chọn bộ truyện để duyệt')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Mappa Japan Studio/ }));
     expect(onSelectMock).toHaveBeenCalledWith(
