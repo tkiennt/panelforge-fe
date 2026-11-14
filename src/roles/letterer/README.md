@@ -10,7 +10,7 @@ Chuyên viên chèn thoại (Letterer) chịu trách nhiệm chèn bóng thoại
   - `LettererWorkspace.tsx`: Bàn làm việc chèn chữ chuyên sâu tích hợp liên kết kịch bản (Script Binding) và căn chỉnh kiểu chữ.
 
 ## 3. Quy tắc phân loại dòng kịch bản (Script Line Classification)
-Hàm phân loại duy nhất `classifyScriptLine` (`src/roles/letterer/lib/textStyle.ts`) áp dụng thống nhất toàn bộ bàn làm việc:
+Hàm phân loại duy nhất `classifyScriptLine` (`src/shared/lib/lettering/textStyle.ts`) áp dụng thống nhất toàn bộ bàn làm việc:
 | Điều kiện dữ liệu | Loại phần tử (`kind`) | Nhãn UI | Hành vi thao tác |
 |---|---|---|---|
 | `dialogueText` có nội dung, có người nói (`speakerName`) | `SPEECH` (`SPEECH_BALLOON` / `THOUGHT_BALLOON`) | **Thoại** | Kéo thả được, đếm vào tiến độ |

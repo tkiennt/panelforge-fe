@@ -113,7 +113,7 @@ import {
   classifyScriptLine,
   type ScriptLineClassification,
   type ScriptLineKind,
-} from '../lib/textStyle';
+} from '@/shared/lib/lettering/textStyle';
 import { TextFormatToolbar } from '../components/TextFormatToolbar';
 import { BalloonAppearancePanel } from '../components/BalloonAppearancePanel';
 import {
@@ -133,7 +133,7 @@ import {
   resizeFromCorner,
   type ResizeCorner,
   type BalloonAppearance,
-} from '../lib/balloonRender';
+} from '@/shared/lib/lettering/balloonRender';
 
 interface LetteringWorkspaceProps {
   pageId?: string;
@@ -1394,7 +1394,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
         b.elementId === elementId
           ? {
               ...b,
-              content: activeLang === 'vi' ? text : (b.content || text),
+              content: activeLang === 'vi' ? text : b.content || text,
               texts: nextTexts,
             }
           : b,
@@ -1402,7 +1402,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     );
 
     const payload = {
-      content: activeLang === 'vi' ? text : (target.content || text),
+      content: activeLang === 'vi' ? text : target.content || text,
       languageCode: activeLang,
       scriptLineId: target.scriptLineId || undefined,
       expectedElementVersion: target.version,

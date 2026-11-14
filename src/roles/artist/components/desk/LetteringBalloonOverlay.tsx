@@ -9,8 +9,8 @@ import {
   fillRgba,
   textSafeArea,
   defaultTail,
-} from '@/roles/letterer/lib/balloonRender';
-import { resolveTextStyle, textStyleCss } from '@/roles/letterer/lib/textStyle';
+} from '@/shared/lib/lettering/balloonRender';
+import { resolveTextStyle, textStyleCss } from '@/shared/lib/lettering/textStyle';
 import type { ResizeHandle } from '../../hooks/useLetteringBalloons';
 
 const HANDLES: { id: ResizeHandle; position: string; cursor: string }[] = [

@@ -1,4 +1,4 @@
-import { BALLOON_SHAPES, type BalloonAppearance } from '../lib/balloonRender';
+import { BALLOON_SHAPES, type BalloonAppearance } from '@/shared/lib/lettering/balloonRender';
 
 interface Props {
   appearance: BalloonAppearance;
