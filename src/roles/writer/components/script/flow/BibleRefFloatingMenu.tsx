@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Editor } from '@tiptap/core';
 import { Search, Plus, X, Tag, User, MapPin, Box, FileText } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import { BibleEntryDto } from '@/services/bible.service';
 import { applyBibleRefToLine, removeBibleRefFromLine } from './nodes/ScriptLineBlockNode';
 
@@ -9,15 +10,20 @@ interface BibleRefFloatingMenuProps {
   editor: Editor | null;
   allBibleEntries: BibleEntryDto[];
   canEditScript: boolean;
-  t: (key: string, defaultVal?: string) => string;
+  t?: (key: string, defaultVal?: string) => string;
 }
 
 export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
   editor,
   allBibleEntries,
   canEditScript,
-  t,
+  t: propT,
 }) => {
+  const { t: i18nT } = useTranslation();
+  const t = (key: string, fallbackOrParams?: any, explicitFallback?: string) => {
+    return i18nT(key, fallbackOrParams, explicitFallback);
+  };
+
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [selectedText, setSelectedText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -203,7 +209,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
             <div className='flex items-center gap-1.5'>
               <Tag className='w-4 h-4 text-orange-600' />
               <span className='text-xs font-bold text-stone-900 font-serif'>
-                {t('scriptStudio.cast.referenceTitle', 'Tham chiếu Series Bible')}
+                {t('production.cast.referenceTitle', 'Tham chiếu Series Bible')}
               </span>
             </div>
             <button
@@ -222,7 +228,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
                 type='text'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('scriptStudio.cast.searchPlaceholder', 'Tìm tên hoặc bí danh...')}
+                placeholder={t('production.cast.searchPlaceholder', 'Tìm tên hoặc bí danh...')}
                 className='w-full pl-8 pr-2 py-1 text-xs bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 text-stone-800'
                 autoFocus
               />
@@ -256,7 +262,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
 
             {filteredEntries.length === 0 && (
               <p className='text-xs text-stone-400 text-center py-2'>
-                {t('scriptStudio.cast.noMatchingEntry', 'Không tìm thấy mục trùng khớp')}
+                {t('production.cast.noMatchingEntry', 'Không tìm thấy mục trùng khớp')}
               </p>
             )}
           </div>
@@ -265,13 +271,13 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
           <div className='mt-2.5 pt-2 border-t border-stone-100'>
             <div className='flex items-center justify-between gap-1 mb-2'>
               <span className='text-[11px] text-stone-500 font-medium'>
-                {t('scriptStudio.cast.createDraftType', 'Loại bản nháp:')}
+                {t('production.cast.createDraftType', 'Loại bản nháp:')}
               </span>
               <div className='flex items-center gap-1'>
                 {[
-                  { id: 0, label: 'Nhân vật' },
-                  { id: 1, label: 'Địa điểm' },
-                  { id: 2, label: 'Đạo cụ' },
+                  { id: 0, label: t('bible.categories.character', 'Nhân vật') },
+                  { id: 1, label: t('bible.categories.location', 'Địa điểm') },
+                  { id: 2, label: t('bible.categories.item', 'Đạo cụ') },
                 ].map((c) => (
                   <button
                     key={c.id}
@@ -296,7 +302,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
             >
               <Plus className='w-3.5 h-3.5' />
               <span>
-                {t('scriptStudio.cast.createDraftBtn', 'Tạo bản nháp cho')} "{selectedText}"
+                {t('production.cast.createDraftBtn', 'Tạo bản nháp cho')} "{selectedText}"
               </span>
             </button>
           </div>
@@ -319,7 +325,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
             <Tag className='w-3 h-3 text-orange-400' />
             <span className='font-semibold'>
               {hoveredRef.newDraft
-                ? `[Bản nháp] ${hoveredRef.newDraft.name}`
+                ? `${t('production.cast.draftBadge', '[Bản nháp]')} ${hoveredRef.newDraft.name}`
                 : allBibleEntries.find((e) => e.id === hoveredRef.entryId)?.name ||
                   hoveredRef.surfaceText}
             </span>
@@ -331,7 +337,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
               onClick={handleRemoveRef}
               className='ml-1 px-1.5 py-0.5 text-[10px] bg-stone-800 hover:bg-rose-900/80 text-rose-300 rounded cursor-pointer transition-colors border border-rose-500/20'
             >
-              {t('scriptStudio.cast.removeRef', 'Gỡ')}
+              {t('production.cast.removeRef', 'Gỡ')}
             </button>
           )}
         </div>

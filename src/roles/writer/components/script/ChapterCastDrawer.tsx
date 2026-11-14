@@ -20,6 +20,7 @@ import {
   Loader2,
   Undo2,
 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import {
   ChapterCastDto,
   ChapterCastItemDto,
@@ -41,7 +42,7 @@ interface ChapterCastDrawerProps {
   onJumpToPanel?: (pageNumber?: number | null, panelNumber?: number | null) => void;
   onOpenPanelStageModal?: () => void;
   onShowToast?: (title: string, description?: string) => void;
-  t: (key: string, defaultVal?: string) => string;
+  t?: (key: string, defaultVal?: string) => string;
 }
 
 export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
@@ -59,8 +60,13 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
   onJumpToPanel,
   onOpenPanelStageModal,
   onShowToast,
-  t,
+  t: propT,
 }) => {
+  const { t: i18nT } = useTranslation();
+  const t = (key: string, fallbackOrParams?: any, explicitFallback?: string) => {
+    return i18nT(key, fallbackOrParams, explicitFallback);
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [actingEntryId, setActingEntryId] = useState<string | null>(null);
 
@@ -96,22 +102,37 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
       const messages: string[] = [];
       if (res.affectedChapterNumbers && res.affectedChapterNumbers.length > 0) {
         messages.push(
-          `Các chương phía sau sẽ kế thừa: Ch. ${res.affectedChapterNumbers.join(', ')}`,
+          t(
+            'production.cast.affectedChaptersInherit',
+            { chapters: res.affectedChapterNumbers.join(', ') },
+            `Các chương phía sau sẽ kế thừa: Ch. ${res.affectedChapterNumbers.join(', ')}`,
+          ),
         );
       }
       if (res.warnings && res.warnings.length > 0) {
-        messages.push(`Cảnh báo: ${res.warnings.join('; ')}`);
+        messages.push(
+          t(
+            'production.cast.warningPrefix',
+            { warnings: res.warnings.join('; ') },
+            `Cảnh báo: ${res.warnings.join('; ')}`,
+          ),
+        );
       }
 
       if (onShowToast) {
         onShowToast(
-          targetRevId ? 'Đã đổi bản tạo hình cho chương' : 'Đã đưa về bản kế thừa',
+          targetRevId
+            ? t('production.cast.revisionChanged', 'Đã đổi bản tạo hình cho chương')
+            : t('production.cast.revisionReset', 'Đã đưa về bản kế thừa'),
           messages.join('\n') || undefined,
         );
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast('Đổi bản tạo hình thất bại', err?.message || 'Có lỗi xảy ra');
+        onShowToast(
+          t('production.cast.revisionChangeFailed', 'Đổi bản tạo hình thất bại'),
+          err?.message || t('common.errorOccurred', 'Có lỗi xảy ra'),
+        );
       }
     } finally {
       setActingEntryId(null);
@@ -126,15 +147,23 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
       await onRefreshCast();
       if (onShowToast) {
         onShowToast(
-          !entry.isCrowd ? 'Đã gắn cờ Quần chúng' : 'Đã bỏ cờ Quần chúng',
           !entry.isCrowd
-            ? 'Thực thể này không còn chặn Gửi duyệt hay Bắt đầu sản xuất.'
+            ? t('production.cast.crowdSetSuccess', 'Đã gắn cờ Quần chúng')
+            : t('production.cast.crowdRemovedSuccess', 'Đã bỏ cờ Quần chúng'),
+          !entry.isCrowd
+            ? t(
+                'production.cast.crowdUnblockNotice',
+                'Thực thể này không còn chặn Gửi duyệt hay Bắt đầu sản xuất.',
+              )
             : undefined,
         );
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast('Cập nhật cờ Quần chúng thất bại', err?.message);
+        onShowToast(
+          t('production.cast.crowdUpdateFailed', 'Cập nhật cờ Quần chúng thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setActingEntryId(null);
@@ -173,13 +202,19 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
       setStubToDefine(null);
       if (onShowToast) {
         onShowToast(
-          'Đã hoàn thành định nghĩa thực thể',
-          'Mục đã được chuyển sang hàng đợi để Artist thiết kế concept.',
+          t('production.cast.defineSuccess', 'Đã hoàn thành định nghĩa thực thể'),
+          t(
+            'production.cast.defineSuccessDesc',
+            'Mục đã được chuyển sang hàng đợi để Artist thiết kế concept.',
+          ),
         );
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast('Định nghĩa thực thể thất bại', err?.message);
+        onShowToast(
+          t('production.cast.defineFailed', 'Định nghĩa thực thể thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setIsDefining(false);
@@ -188,17 +223,34 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
 
   // 5. Huỷ bản thay thế
   const handleCancelReplacement = async (entryId: string, revisionId: string) => {
-    if (!window.confirm('Bạn có chắc muốn huỷ bản thay thế này không?')) return;
+    if (
+      !window.confirm(
+        t(
+          'production.cast.cancelReplacementConfirm',
+          'Bạn có chắc muốn huỷ bản thay thế này không?',
+        ),
+      )
+    )
+      return;
     setActingEntryId(entryId);
     try {
       await chapterCastService.cancelReplacementRevision(seriesId, entryId, revisionId);
       await onRefreshCast();
       if (onShowToast) {
-        onShowToast('Đã huỷ bản thay thế', 'Binding của chương đã quay về bản kế thừa.');
+        onShowToast(
+          t('production.cast.cancelReplacementSuccess', 'Đã huỷ bản thay thế'),
+          t(
+            'production.cast.cancelReplacementSuccessDesc',
+            'Binding của chương đã quay về bản kế thừa.',
+          ),
+        );
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast('Huỷ bản thay thế thất bại', err?.message);
+        onShowToast(
+          t('production.cast.cancelReplacementFailed', 'Huỷ bản thay thế thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setActingEntryId(null);
@@ -229,10 +281,16 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
           </div>
           <div className='min-w-0'>
             <h3 className='text-sm font-bold text-stone-900 truncate font-serif'>
-              {t('scriptStudio.cast.drawerTitle', 'Thực thể chương')} ({entities.length})
+              {t('production.cast.drawerTitle', 'Thực thể chương')} ({entities.length})
             </h3>
             <p className='text-xs text-stone-500 truncate'>
-              {chapterNumber ? `Chương ${chapterNumber}` : ''}
+              {chapterNumber
+                ? t(
+                    'production.cast.chapterPrefix',
+                    { number: chapterNumber },
+                    `Chương ${chapterNumber}`,
+                  )
+                : ''}
               {chapterTitle ? ` · ${chapterTitle}` : ''}
             </p>
           </div>
@@ -243,7 +301,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
             <button
               type='button'
               onClick={onOpenPanelStageModal}
-              title={t('scriptStudio.cast.setPanelStageBtn', 'Đặt giai đoạn theo Panel')}
+              title={t('production.cast.setPanelStageBtn', 'Đặt giai đoạn theo Panel')}
               className='p-1.5 text-stone-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg cursor-pointer transition-colors'
             >
               <Layers className='w-4 h-4' />
@@ -254,7 +312,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
             type='button'
             onClick={onClose}
             className='p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg cursor-pointer transition-colors'
-            title='Đóng'
+            title={t('production.cast.close', 'Đóng')}
           >
             <X className='w-4 h-4' />
           </button>
@@ -269,7 +327,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
               <AlertTriangle className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
               <div>
                 <span className='font-bold text-amber-950'>
-                  {t('scriptStudio.cast.submitBlockedTitle', 'Chặn Gửi duyệt')} (
+                  {t('production.cast.submitBlockedTitle', 'Chặn Gửi duyệt')} (
                   {submitBlockers.length}):
                 </span>
                 <span className='ml-1 text-[11px] text-amber-800'>
@@ -283,7 +341,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
               <Clock className='w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5' />
               <div>
                 <span className='font-bold text-blue-950'>
-                  {t('scriptStudio.cast.startBlockedTitle', 'Chờ Gate 1')} ({startBlockers.length}):
+                  {t('production.cast.startBlockedTitle', 'Chờ Gate 1')} ({startBlockers.length}):
                 </span>
                 <span className='ml-1 text-[11px] text-blue-800'>
                   {startBlockers.map((b) => `${b.entryName} (${b.reason})`).join(', ')}
@@ -303,7 +361,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
               type='text'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('scriptStudio.cast.search', 'Tìm thực thể trong chương...')}
+              placeholder={t('production.cast.search', 'Tìm thực thể trong chương...')}
               className='w-full pl-8 pr-3 py-1.5 text-xs border border-stone-200 rounded-xl outline-none focus:border-orange-500 bg-stone-50 text-stone-900'
             />
           </div>
@@ -315,7 +373,9 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
         {isLoading && (
           <div className='p-8 text-center text-stone-400 flex items-center justify-center gap-2'>
             <Loader2 className='w-4 h-4 animate-spin text-orange-500' />
-            <span className='text-xs'>Đang tải danh sách thực thể...</span>
+            <span className='text-xs'>
+              {t('production.cast.loadingEntities', 'Đang tải danh sách thực thể...')}
+            </span>
           </div>
         )}
 
@@ -324,11 +384,14 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
             <Users className='w-8 h-8 text-stone-300 mx-auto mb-2' />
             <p className='text-xs font-semibold text-stone-800'>
               {searchQuery
-                ? 'Không tìm thấy thực thể nào phù hợp.'
-                : 'Chưa có thực thể nào trong chương.'}
+                ? t('production.cast.noMatchingEntityFound', 'Không tìm thấy thực thể nào phù hợp.')
+                : t('production.cast.noEntitiesInChapter', 'Chưa có thực thể nào trong chương.')}
             </p>
             <p className='text-[11px] text-stone-400 mt-1'>
-              Dùng tên trong dòng Thoại hoặc bôi đen văn bản để gắn tham chiếu Series Bible.
+              {t(
+                'production.cast.entityHint',
+                'Dùng tên trong dòng Thoại hoặc bôi đen văn bản để gắn tham chiếu Series Bible.',
+              )}
             </p>
           </div>
         )}
@@ -363,11 +426,13 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                       {/* Source tag & Crowd tag */}
                       <div className='flex items-center gap-1 mt-0.5 flex-wrap'>
                         <span className='text-[10px] px-1.5 py-0.2 rounded-full font-medium bg-stone-100 text-stone-600 border border-stone-200'>
-                          {entry.source === 'Speaker' ? 'Người nói' : 'Bôi đen'}
+                          {entry.source === 'Speaker'
+                            ? t('production.cast.speaker', 'Người nói')
+                            : t('production.cast.highlight', 'Bôi đen')}
                         </span>
                         {entry.isCrowd && (
                           <span className='text-[10px] px-1.5 py-0.2 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200'>
-                            Quần chúng
+                            {t('production.cast.crowd', 'Quần chúng')}
                           </span>
                         )}
                         <span
@@ -379,7 +444,9 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                                 : 'bg-blue-50 text-blue-700 border-blue-200'
                           }`}
                         >
-                          {entry.isStub ? 'Chờ định nghĩa' : entry.bibleStatus}
+                          {entry.isStub
+                            ? t('production.cast.pendingDefinition', 'Chờ định nghĩa')
+                            : entry.bibleStatus}
                         </span>
                       </div>
                     </div>
@@ -389,20 +456,27 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                 {/* 2. Bound Revision Info */}
                 <div className='p-2 bg-stone-50 rounded-lg border border-stone-200/60 text-[11px] space-y-1.5'>
                   <div className='flex items-center justify-between gap-1'>
-                    <span className='text-stone-500 font-medium'>Bản gắn cho chương:</span>
+                    <span className='text-stone-500 font-medium'>
+                      {t('production.cast.boundForChapter', 'Bản gắn cho chương:')}
+                    </span>
                     <span className='text-[10px] px-1.5 py-0.2 rounded-full bg-stone-200/80 text-stone-700 font-medium'>
                       {entry.chosenByWriter
-                        ? 'Writer chọn'
+                        ? t('production.cast.chosenByWriter', 'Writer chọn')
                         : entry.inheritedFromChapterNumber
-                          ? `Kế thừa từ Ch. ${entry.inheritedFromChapterNumber}`
-                          : 'Mặc định'}
+                          ? t(
+                              'production.cast.inheritedFromChapter',
+                              { number: entry.inheritedFromChapterNumber },
+                              `Kế thừa từ Ch. ${entry.inheritedFromChapterNumber}`,
+                            )
+                          : t('production.cast.defaultVariant', 'Mặc định')}
                     </span>
                   </div>
 
                   {boundRev ? (
                     <div className='flex items-center justify-between text-stone-800 font-medium'>
                       <span>
-                        v{boundRev.versionNumber} · {boundRev.variantLabel || 'Mặc định'}
+                        v{boundRev.versionNumber} ·{' '}
+                        {boundRev.variantLabel || t('production.cast.defaultVariant', 'Mặc định')}
                       </span>
                       <span
                         className={`text-[10px] ${boundRev.isCanonLocked ? 'text-emerald-600 font-bold' : 'text-amber-600'}`}
@@ -411,7 +485,9 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                       </span>
                     </div>
                   ) : (
-                    <span className='text-stone-400 italic block'>Chưa gắn bản tạo hình nào</span>
+                    <span className='text-stone-400 italic block'>
+                      {t('production.cast.noBoundRevision', 'Chưa gắn bản tạo hình nào')}
+                    </span>
                   )}
                 </div>
 
@@ -421,7 +497,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                     {/* Revision Selector */}
                     <div>
                       <label className='text-[10px] text-stone-500 font-medium block mb-1'>
-                        Đổi bản tạo hình chương:
+                        {t('production.cast.changeChapterRevision', 'Đổi bản tạo hình chương:')}
                       </label>
                       <select
                         disabled={isActing}
@@ -433,12 +509,20 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                       >
                         <option value='__INHERITED__'>
                           {entry.inheritedFromChapterNumber
-                            ? `Kế thừa tự động (từ Ch. ${entry.inheritedFromChapterNumber})`
-                            : 'Kế thừa tự động (bản mặc định)'}
+                            ? t(
+                                'production.cast.autoInheritFrom',
+                                { number: entry.inheritedFromChapterNumber },
+                                `Kế thừa tự động (từ Ch. ${entry.inheritedFromChapterNumber})`,
+                              )
+                            : t(
+                                'production.cast.autoInheritDefault',
+                                'Kế thừa tự động (bản mặc định)',
+                              )}
                         </option>
                         {availableRevs.map((rev) => (
                           <option key={rev.revisionId} value={rev.revisionId}>
-                            v{rev.versionNumber} · {rev.variantLabel || 'Mặc định'} (
+                            v{rev.versionNumber} ·{' '}
+                            {rev.variantLabel || t('production.cast.defaultVariant', 'Mặc định')} (
                             {rev.isCanonLocked ? 'CanonLocked' : rev.status})
                           </option>
                         ))}
@@ -458,7 +542,9 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                             : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
                         }`}
                       >
-                        {entry.isCrowd ? '✓ Quần chúng' : '+ Đặt Quần chúng'}
+                        {entry.isCrowd
+                          ? t('production.cast.crowdMarked', '✓ Quần chúng')
+                          : t('production.cast.setCrowd', '+ Đặt Quần chúng')}
                       </button>
 
                       {/* Define Stub Button */}
@@ -469,7 +555,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                           className='px-2.5 py-1 text-[11px] rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
                         >
                           <Edit3 className='w-3 h-3' />
-                          <span>Viết định nghĩa</span>
+                          <span>{t('production.cast.writeDefinition', 'Viết định nghĩa')}</span>
                         </button>
                       )}
 
@@ -484,7 +570,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                           className='px-2 py-1 text-[11px] rounded-lg text-rose-600 hover:bg-rose-50 border border-rose-200 cursor-pointer transition-colors flex items-center gap-1'
                         >
                           <Undo2 className='w-3 h-3' />
-                          <span>Huỷ bản thay thế</span>
+                          <span>{t('production.cast.cancelReplacement', 'Huỷ bản thay thế')}</span>
                         </button>
                       )}
                     </div>
@@ -496,7 +582,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                   <div className='p-2 bg-blue-50/60 rounded-lg border border-blue-200/60 text-[11px] space-y-1'>
                     <div className='flex items-center gap-1 text-blue-900 font-semibold'>
                       <Layers className='w-3 h-3' />
-                      <span>Bản riêng theo Panel:</span>
+                      <span>{t('production.cast.panelRevisions', 'Bản riêng theo Panel:')}</span>
                     </div>
                     {entry.panelRevisions.map((pr) => (
                       <div
@@ -504,10 +590,15 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                         className='flex items-center justify-between text-blue-800 text-[10px]'
                       >
                         <span>
-                          Trang {pr.pageNumber} · Panel {pr.panelNumber}
+                          {t(
+                            'production.cast.pagePanelFormat',
+                            { page: pr.pageNumber, panel: pr.panelNumber },
+                            `Trang ${pr.pageNumber} · Panel ${pr.panelNumber}`,
+                          )}
                         </span>
                         <span className='font-medium'>
-                          v{pr.versionNumber} · {pr.variantLabel || 'Biến thể'}
+                          v{pr.versionNumber} ·{' '}
+                          {pr.variantLabel || t('production.cast.variant', 'Biến thể')}
                         </span>
                       </div>
                     ))}
@@ -518,7 +609,11 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                 {entry.mentions && entry.mentions.length > 0 && (
                   <div className='text-[11px] space-y-1 pt-1'>
                     <span className='text-stone-400 font-medium block'>
-                      Xuất hiện ({entry.mentions.length}):
+                      {t(
+                        'production.cast.appearances',
+                        { count: entry.mentions.length },
+                        `Xuất hiện (${entry.mentions.length}):`,
+                      )}
                     </span>
                     <div className='flex flex-wrap gap-1'>
                       {entry.mentions.slice(0, 5).map((m) => (
@@ -536,7 +631,11 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                           <span>
                             {m.pageNumber && m.panelNumber
                               ? `P${m.pageNumber}.${m.panelNumber}`
-                              : `Dòng ${m.lineOrder}`}
+                              : t(
+                                  'production.cast.lineFormat',
+                                  { order: m.lineOrder },
+                                  `Dòng ${m.lineOrder}`,
+                                )}
                           </span>
                           <ChevronRight className='w-2.5 h-2.5 opacity-60' />
                         </button>
@@ -568,10 +667,13 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                 </div>
                 <div>
                   <h3 className='text-sm font-bold font-serif text-stone-900'>
-                    Định nghĩa thực thể Bible
+                    {t('production.cast.defineTitle', 'Định nghĩa thực thể Bible')}
                   </h3>
                   <p className='text-[11px] text-stone-500'>
-                    Mục tự động tạo từ kịch bản cần mô tả trước khi Artist vẽ concept
+                    {t(
+                      'production.cast.defineDesc',
+                      'Mục tự động tạo từ kịch bản cần mô tả trước khi Artist vẽ concept',
+                    )}
                   </p>
                 </div>
               </div>
@@ -586,7 +688,9 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
 
             <div className='p-5 space-y-3.5 text-xs'>
               <div>
-                <label className='font-semibold text-stone-700 block mb-1'>Tên thực thể *</label>
+                <label className='font-semibold text-stone-700 block mb-1'>
+                  {t('production.cast.entityNameRequired', 'Tên thực thể *')}
+                </label>
                 <input
                   type='text'
                   value={defineName}
@@ -598,13 +702,16 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
 
               <div>
                 <label className='font-semibold text-stone-700 block mb-1'>
-                  Mô tả & Đặc điểm nhận diện *
+                  {t('production.cast.visualDescriptionRequired', 'Mô tả & Đặc điểm nhận diện *')}
                 </label>
                 <textarea
                   rows={4}
                   value={defineDesc}
                   onChange={(e) => setDefineDesc(e.target.value)}
-                  placeholder='Ngoại hình, trang phục, vũ khí hoặc đặc điểm nhận diện chính...'
+                  placeholder={t(
+                    'production.cast.visualDescriptionPlaceholder',
+                    'Ngoại hình, trang phục, vũ khí hoặc đặc điểm nhận diện chính...',
+                  )}
                   className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-normal custom-scrollbar'
                   required
                 />
@@ -612,26 +719,32 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
 
               <div>
                 <label className='font-semibold text-stone-700 block mb-1'>
-                  Bí danh (cách nhau bởi dấu phẩy)
+                  {t('production.cast.aliasesLabel', 'Bí danh (cách nhau bởi dấu phẩy)')}
                 </label>
                 <input
                   type='text'
                   value={defineAliases}
                   onChange={(e) => setDefineAliases(e.target.value)}
-                  placeholder='Ví dụ: Hắc Long, Long Thần, Đại ca...'
+                  placeholder={t(
+                    'production.cast.aliasesPlaceholder',
+                    'Ví dụ: Hắc Long, Long Thần, Đại ca...',
+                  )}
                   className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-normal'
                 />
               </div>
 
               <div>
                 <label className='font-semibold text-stone-700 block mb-1'>
-                  Tiêu đề phụ / Vai trò
+                  {t('production.cast.subtitleLabel', 'Tiêu đề phụ / Vai trò')}
                 </label>
                 <input
                   type='text'
                   value={defineSubtitle}
                   onChange={(e) => setDefineSubtitle(e.target.value)}
-                  placeholder='Ví dụ: Kiếm sĩ lang thang'
+                  placeholder={t(
+                    'production.cast.subtitlePlaceholder',
+                    'Ví dụ: Kiếm sĩ lang thang',
+                  )}
                   className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-normal'
                 />
               </div>
@@ -643,7 +756,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                 onClick={() => setStubToDefine(null)}
                 className='px-3 py-2 rounded-xl border border-stone-200 hover:bg-stone-100 text-stone-600 text-xs font-semibold cursor-pointer'
               >
-                Huỷ
+                {t('common.cancel', 'Huỷ')}
               </button>
               <button
                 type='submit'
@@ -655,7 +768,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                 ) : (
                   <CheckCircle2 className='w-3.5 h-3.5' />
                 )}
-                Lưu định nghĩa
+                {t('production.cast.saveDefinition', 'Lưu định nghĩa')}
               </button>
             </div>
           </form>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookOpen, User, MapPin, BookMarked, Palette } from 'lucide-react';
 import type { BibleCategory } from '@/types';
+import { translate } from '@/lib/i18n';
 
 export const CATEGORIES: {
   key: string;
@@ -47,23 +48,23 @@ export const getCategoryLabel = (category: string | number): string => {
     case 'character':
     case '0':
     case '1':
-      return 'Nhân vật';
+      return translate('bible.categories.character', 'Nhân vật');
     case 'locations':
     case 'location':
     case '2':
-      return 'Bối cảnh & Địa điểm';
+      return translate('bible.categories.location', 'Bối cảnh & Địa điểm');
     case 'terminology':
     case 'prop':
     case '3':
     case '4':
     case '6':
-      return 'Thuật ngữ & Đạo cụ';
+      return translate('bible.categories.terminology', 'Thuật ngữ & Đạo cụ');
     case 'style':
     case 'rule':
     case '5':
-      return 'Quy tắc mỹ thuật';
+      return translate('bible.categories.style', 'Quy tắc mỹ thuật');
     default:
-      return 'Mục tri thức';
+      return translate('bible.categories.knowledgeItem', 'Mục tri thức');
   }
 };
 

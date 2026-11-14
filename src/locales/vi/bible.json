@@ -2,11 +2,18 @@
   "title": "Series Bible",
   "subtitle": "Hồ sơ chuẩn tắc thế giới và nhân vật của tác phẩm",
   "categories": {
-    "all": "Tất cả mục",
+    "all": "Tất cả",
+    "allEntries": "Tất cả mục",
     "character": "Nhân vật",
+    "characters": "Nhân vật",
     "location": "Bối cảnh & Địa điểm",
+    "locations": "Bối cảnh & Địa điểm",
     "item": "Đạo cụ & Trang bị",
-    "lore": "Quy tắc thế giới & Thiết lập"
+    "prop": "Thuật ngữ & Đạo cụ",
+    "terminology": "Thuật ngữ & Đạo cụ",
+    "lore": "Quy tắc thế giới & Thiết lập",
+    "style": "Quy tắc mỹ thuật",
+    "knowledgeItem": "Mục tri thức"
   },
   "fields": {
     "name": "Tên mục",
@@ -50,5 +57,336 @@
     "variant": "Biến thể",
     "revision": "Bản",
     "noImage": "Chưa có ảnh"
+  },
+  "reworkModal": {
+    "title": "Yêu cầu vẽ lại thiết kế (Rework)",
+    "targetInfo": "Phiên bản v{version} của \"{name}\"",
+    "reasonLabel": "Nhận xét chi tiết cho Artist (Lý do chưa chuẩn / Rắc-co) *",
+    "reasonPlaceholder": "Ví dụ: Kiểu tóc chưa đúng với nguyên tác, màu trang phục cần chỉnh lại thành màu xanh đậm, thiếu biểu cảm giận dữ...",
+    "reasonHelp": "Ghi chú này sẽ được chuyển ngay đến hàng đợi vẽ của Artist để vẽ bản cập nhật tiếp theo.",
+    "cancel": "Hủy",
+    "submitting": "Đang gửi...",
+    "submit": "Gửi yêu cầu vẽ lại"
+  },
+  "spec": {
+    "groups": {
+      "body": "Hình thể",
+      "face": "Khuôn mặt & nhận dạng",
+      "costume": "Trang phục",
+      "art": "Mỹ thuật",
+      "space": "Không gian",
+      "fixedDetails": "Chi tiết cố định",
+      "prop": "Đạo cụ",
+      "terminology": "Thuật ngữ",
+      "style": "Quy tắc mỹ thuật"
+    },
+    "fields": {
+      "age": {
+        "label": "Độ tuổi",
+        "placeholder": "vd. 17"
+      },
+      "height": {
+        "label": "Chiều cao",
+        "placeholder": "vd. 168 cm"
+      },
+      "build": {
+        "label": "Dáng người",
+        "placeholder": "vd. gầy, vai hẹp"
+      },
+      "hair": {
+        "label": "Kiểu tóc",
+        "placeholder": "vd. tóc ngắn rối, mái lệch trái"
+      },
+      "eyes": {
+        "label": "Mắt",
+        "placeholder": "vd. mắt một mí, đuôi xếch"
+      },
+      "marks": {
+        "label": "Đặc điểm nhận dạng",
+        "placeholder": "Sẹo, nốt ruồi, kính..."
+      },
+      "appearance": {
+        "label": "Diện mạo tổng quát"
+      },
+      "outfit": {
+        "label": "Trang phục mặc định"
+      },
+      "accessories": {
+        "label": "Phụ kiện luôn mang"
+      },
+      "inkTone": {
+        "label": "Tông đen trắng / screentone",
+        "placeholder": "vd. tóc tô đen, áo screentone 30%"
+      },
+      "expressions": {
+        "label": "Biểu cảm & tư thế đặc trưng"
+      },
+      "forbidden": {
+        "label": "Không được vẽ",
+        "placeholder": "Những điểm Artist tuyệt đối tránh, vd. không có râu, không đeo kính"
+      },
+      "environmentType": {
+        "label": "Loại không gian",
+        "placeholder": "vd. tiệm sửa đồng hồ, trong nhà"
+      },
+      "scale": {
+        "label": "Quy mô",
+        "placeholder": "vd. 20 m², trần thấp"
+      },
+      "atmosphere": {
+        "label": "Thời điểm & ánh sáng",
+        "placeholder": "vd. chiều mưa, đèn vàng"
+      },
+      "architecture": {
+        "label": "Kiến trúc & vật cố định"
+      },
+      "layout": {
+        "label": "Bố trí / sơ đồ",
+        "placeholder": "Cửa ở đâu, quầy ở đâu"
+      },
+      "cameraAngles": {
+        "label": "Góc máy chuẩn",
+        "placeholder": "vd. toàn cảnh từ cửa, cận quầy"
+      },
+      "propType": {
+        "label": "Loại đạo cụ",
+        "placeholder": "vd. chìa khoá, vũ khí"
+      },
+      "sizeWeight": {
+        "label": "Kích thước so với người",
+        "placeholder": "vd. dài bằng bàn tay"
+      },
+      "material": {
+        "label": "Chất liệu",
+        "placeholder": "vd. bạc, gỉ ở răng"
+      },
+      "owner": {
+        "label": "Chủ sở hữu",
+        "placeholder": "Mã nhân vật, vd. AN"
+      },
+      "stateByChapter": {
+        "label": "Trạng thái theo chương",
+        "placeholder": "vd. gãy từ Ch.12"
+      },
+      "termType": {
+        "label": "Phân loại",
+        "placeholder": "vd. địa danh, chiêu thức"
+      },
+      "origin": {
+        "label": "Nguồn gốc"
+      },
+      "usage": {
+        "label": "Cách dùng trong thoại"
+      },
+      "colorPalette": {
+        "label": "Tông / screentone"
+      },
+      "lineArtRules": {
+        "label": "Quy tắc nét"
+      }
+    },
+    "deliverables": {
+      "charTurnaround": "Turnaround trước / nghiêng / sau",
+      "charExpressions": "Bảng biểu cảm chính",
+      "locWide": "Toàn cảnh (wide shot)",
+      "locClose": "Cận cảnh chi tiết cố định",
+      "propMain": "Hình chính",
+      "propDetail": "Cận chi tiết / chất liệu"
+    }
+  },
+  "addEntityModal": {
+    "title": "Thêm mục mới vào Series Bible",
+    "subtitle": "Tạo thiết kế nhân vật, địa điểm, đạo cụ hoặc thiết lập thế giới cho series.",
+    "categoryLabel": "Danh mục tri thức",
+    "codeLabel": "Mã định danh",
+    "codePlaceholder": "vd. CHAR-01, LOC-01",
+    "codeHelp": "Mã duy nhất dùng để đối chiếu trong kịch bản và phân cảnh.",
+    "nameLabel": "Tên mục",
+    "namePlaceholder": "Tên nhân vật, địa danh hoặc thuật ngữ...",
+    "subtitleLabel": "Tiêu đề phụ / Vai trò",
+    "subtitlePlaceholder": "vd. Nhân vật chính, Làng lá, v.v.",
+    "aliasesLabel": "Bí danh / Tên khác",
+    "aliasesPlaceholder": "Nhập bí danh rồi bấm Thêm hoặc Enter...",
+    "isCrowdLabel": "Đánh dấu Quần chúng (Crowd Entity)",
+    "isCrowdHelp": "Thực thể quần chúng không bắt buộc phải có Model Sheet trước khi bắt đầu sản xuất.",
+    "dropzoneTitle": "Kéo thả ảnh reference sheet vào đây",
+    "dropzoneBrowse": "hoặc bấm để chọn tệp",
+    "dropzoneFormats": "Định dạng PNG, JPEG, WebP dung lượng tối đa 10 MB",
+    "dropzoneUrlPlaceholder": "Hoặc dán URL ảnh trực tiếp (https://...)",
+    "galleryTitle": "Bộ Sưu Tập Phác Thảo Góc Nhìn & Biểu Cảm (Character Sheet Gallery)",
+    "galleryCount": "{count} góc phác thảo",
+    "gallerySubtitle": "Tải lên nhiều góc nhìn (Turnaround 360°, Góc 3/4, Biểu cảm, Trang phục) để hoạ sĩ đối chiếu đa chiều.",
+    "galleryAddBtn": "Thêm góc vẽ này",
+    "galleryAdding": "Đang tải...",
+    "galleryThumbLabel": "Góc #{number}",
+    "galleryDeleteTitle": "Xóa góc này",
+    "descLabel": "Mô tả quy chuẩn thiết kế & Nhận dạng",
+    "descPlaceholder": "Mô tả chi tiết ngoại hình, màu sắc trang phục, tính cách, đặc điểm nhận diện bắt buộc...",
+    "cancel": "Hủy",
+    "saveProducer": "Lưu vào Series Bible",
+    "saveDraft": "Tạo bản nháp mới",
+    "invalidFormatTitle": "Định dạng ảnh không hợp lệ",
+    "invalidFormatDesc": "Hệ thống chỉ nhận ảnh PNG, JPEG hoặc WebP.",
+    "sizeExceededTitle": "Dung lượng ảnh vượt giới hạn",
+    "sizeExceededDesc": "Ảnh reference sheet không được vượt quá 10 MB.",
+    "gallerySizeExceededDesc": "Ảnh phác thảo không được vượt quá 10 MB.",
+    "localSelectedTitle": "Đã chọn ảnh cục bộ",
+    "uploadSuccessTitle": "Đã tải ảnh lên kho an toàn",
+    "uploadErrorTitle": "Lỗi tải ảnh tham chiếu",
+    "uploadErrorDesc": "Không thể tải ảnh reference sheet.",
+    "galleryLocalTitle": "Đã thêm phác thảo cục bộ",
+    "galleryUploadedTitle": "Đã thêm góc phác thảo",
+    "galleryUploadError": "Không thể tải ảnh góc phác thảo.",
+    "draftEraTitle": "Cấu hình Thời kỳ (Era) áp dụng bản nháp này",
+    "draftEraDesc": "Chọn mốc chương kịch bản áp dụng thiết kế này",
+    "draftEraNameLabel": "Tên giai đoạn / Thời kỳ",
+    "draftEraNamePlaceholder": "vd. Thiếu niên, Trưởng thành, Hồi tưởng...",
+    "draftEraFromChapterLabel": "Hiệu lực từ Chương",
+    "draftEraToChapterLabel": "Đến Chương (để trống nếu kéo dài đến hết truyện)",
+    "draftEraHelp": "Thiết lập này giúp Artist vẽ concept đúng mốc thời gian của kịch bản."
+  },
+  "addRevisionModal": {
+    "headerSupersede": "Thay thế bản khoá v{{version}}: {{name}}",
+    "headerNewEra": "Tạo Thời kỳ (Era) mới: {{name}}",
+    "headerResubmit": "Nộp lại bản vẽ Concept Art: {{name}}",
+    "headerArtistSubmit": "Nộp bản vẽ Concept Art: {{name}}",
+    "headerProducerNewVer": "Tạo phiên bản mới: {{name}}",
+    "headerDraftNewVer": "Tạo bản nháp mới: {{name}}",
+    "titleSubmit": "Nộp Concept Art (Model Sheet)",
+    "titleResubmit": "Nộp lại Concept Art",
+    "titleSupersede": "Tạo bản sửa đổi thay thế (Supersede)",
+    "titleNewEra": "Tạo tạo hình cho Thời kỳ mới (New Era)",
+    "titleDefault": "Tạo bản sửa đổi mới",
+    "targetInfo": "Phiên bản mới cho mục \"{name}\"",
+    "artistBanner": "Họa sĩ đang nộp Concept Art cho giai đoạn \"{stageName}\"",
+    "reworkBanner": "Nhận xét cần sửa từ Writer / Editor:",
+    "eraStageLabel": "Thời kỳ / Giai đoạn:",
+    "stageStandard": "Giai đoạn chuẩn",
+    "stageFlashback": "Hồi tưởng",
+    "stageAdult": "Trưởng thành",
+    "stageFuture": "Tương lai",
+    "stageTransform": "Biến thân",
+    "fromChapterLabel": "Hiệu lực từ Chương:",
+    "toChapterLabel": "Đến Chương (để trống nếu kéo dài đến hết truyện):",
+    "summaryLabel": "Tóm tắt thay đổi của bản này *",
+    "summaryPlaceholder": "Ví dụ: Cập nhật trang phục mùa đông, sửa lại mắt...",
+    "conceptImageLabel": "Ảnh Model Sheet / Concept Art *",
+    "dropzoneTitle": "Kéo thả ảnh vào đây",
+    "dropzoneBrowse": "hoặc bấm để chọn tệp",
+    "dropzoneFormats": "Hỗ trợ PNG, JPEG, WebP dung lượng tối đa 10 MB",
+    "removeImage": "Xóa ảnh",
+    "specAttributesTitle": "Thuộc tính đặc tả",
+    "cancel": "Hủy",
+    "saving": "Đang lưu...",
+    "saveRevision": "Lưu bản sửa đổi",
+    "submitConcept": "Nộp Concept Art",
+    "supersedeAlert": "Mục này đã khoá Canon. Bản sửa đổi mới sẽ được gửi duyệt trước khi thay thế bản khoá hiện tại."
+  },
+  "detailModal": {
+    "backToBible": "Series Bible",
+    "roleProducer": "Nhà sản xuất",
+    "roleWriter": "Biên kịch",
+    "roleArtist": "Họa sĩ",
+    "roleEditor": "Biên tập viên",
+    "roleViewer": "Người xem",
+    "historyBtn": "Lịch sử phiên bản",
+    "createRevisionBtn": "Tạo phiên bản mới",
+    "createDraftBtn": "Tạo bản nháp mới",
+    "artistStagesNotice": "Họa sĩ nộp Concept Art theo từng giai đoạn",
+    "readOnlyNotice": "Chế độ chỉ xem",
+    "sameCategoryTitle": "Cùng danh mục · {count}",
+    "eraStagesTitle": "Thời kỳ & Giai đoạn",
+    "variantCount": "{count} biến thể",
+    "scriptAppearancesTitle": "Xuất hiện trong kịch bản · {count} phân cảnh",
+    "gate1Warning": "Chương chưa đạt sẽ bị chặn ở Gate 1 khi Producer chốt kịch bản (BR-21).",
+    "stepWriterSpec": "Đặc tả (Writer)",
+    "stepArtistConcept": "Vẽ Concept (Artist)",
+    "stepWriterEndorse": "Duyệt Concept (Writer)",
+    "stepProducerLock": "Khoá Canon (Producer)",
+    "stepRework": "Cần vẽ lại",
+    "waitingFor": "Đang chờ:",
+    "yourTurn": "Đến lượt bạn",
+    "canonLockedBadge": "Đã khóa chuẩn (Canon Locked)",
+    "canonLockedPeriod": "Ch.{from}–{to}",
+    "canonLockedToSeriesEnd": " → hết",
+    "revisionNumber": "Lần sửa #{number}",
+    "approvedAt": "• Đã duyệt {date}",
+    "canonLockedDesc": "Bản thiết kế cho giai đoạn này đã được Producer phê duyệt chính thức (Canon Locked). Toàn bộ đội ngũ sản xuất sử dụng bản vẽ này làm quy chuẩn tham chiếu thống nhất.",
+    "reworkAlertTitle": "Yêu cầu chỉnh sửa bản vẽ từ Writer / Editor",
+    "reworkAlertDefault": "Writer yêu cầu chỉnh sửa lại thiết kế cho giai đoạn này.",
+    "reworkAlertDetails": "Giai đoạn: \"{stage}\" · Hiệu lực từ Chương {from} đến {to}. Vui lòng chỉnh sửa nét vẽ theo yêu cầu trên và nộp lại.",
+    "submittedAlertTitle": "Bản vẽ Model Sheet đã nộp – Đang chờ kiểm duyệt",
+    "submittedAlertDesc": "Bản thiết kế đang chờ Writer/Editor xác nhận. Nếu bạn phát hiện đã tải nhầm ảnh hoặc muốn cập nhật nét vẽ tốt hơn trước khi được duyệt, bạn có thể nộp lại ngay.",
+    "submittedAlertDetails": "Giai đoạn: \"{stage}\" · Lần sửa #{version}.",
+    "closeTitle": "Đóng (Esc)",
+    "closeAria": "Đóng cửa sổ chi tiết",
+    "specTab": "Đặc tả & Thuộc tính",
+    "modelSheetTab": "Bản vẽ Model Sheet",
+    "commentsTab": "Nhận xét & Trao đổi ({count})",
+    "scenesTab": "Bảng phân cảnh xuất hiện",
+    "endorseBtn": "Xác nhận đạt (Writer Endorsed)",
+    "reworkBtn": "Yêu cầu vẽ lại (Rework)",
+    "lockBtn": "Phê duyệt & Khóa Canon (Canon Locked)",
+    "unlockBtn": "Mở khóa Canon (Unlock)",
+    "supersedeBtn": "Tạo bản thay thế (Supersede)",
+    "removeCrowdBtn": "Gỡ cờ Quần chúng",
+    "setCrowdBtn": "Đặt làm Quần chúng",
+    "deleteBtn": "Xóa mục này",
+    "commentSuccess": "Đã gửi nhận xét",
+    "commentSuccessDesc": "Nhận xét về bản vẽ Concept Art đã được ghi nhận.",
+    "commentError": "Lỗi gửi nhận xét",
+    "replySuccess": "Đã gửi phản hồi",
+    "replySuccessDesc": "Phản hồi của bạn đã được gửi thành công.",
+    "replyError": "Lỗi gửi phản hồi",
+    "resolveComment": "Đã giải quyết nhận xét",
+    "reopenComment": "Đã mở lại nhận xét",
+    "imagePastedTitle": "Đã nhận diện ảnh dán",
+    "imagePastedDesc": "Đang mở giao diện nộp bản vẽ Model Sheet mới...",
+    "deleteError": "Không thể xóa phiên bản."
+  },
+  "view": {
+    "canonHub": "Canon Hub",
+    "seriesBible": "Series Bible",
+    "knowledgeEntries": "{count} mục tri thức",
+    "heroDesc": "Kho tham chiếu chuẩn cho nhân vật, bối cảnh, đạo cụ, thuật ngữ và quy tắc mỹ thuật. Bản đã khoá Canon là chuẩn duy nhất cho họa sĩ và kiểm tra nhất quán.",
+    "kpiTotal": "Tổng số mục",
+    "kpiCanonLocked": "Đã khoá Canon",
+    "kpiConceptSubmitted": "Chờ duyệt concept",
+    "kpiReworkRequired": "Cần vẽ lại",
+    "kpiDraft": "Bản nháp",
+    "addEntityBtn": "Thêm mục mới",
+    "createDraftBtn": "Tạo mục nháp",
+    "readOnlyBadge": "Chế độ chỉ xem",
+    "readOnlyTitle": "Chỉ Biên kịch (Writer) hoặc Producer mới có quyền tạo mục trong Series Bible",
+    "sidebarCategoryTitle": "Danh mục",
+    "artistQueueTitle": "Hàng đợi vẽ của Artist",
+    "artistQueueSubtitle": "Mục cần thiết kế hình",
+    "artistQueueEmpty": "Chưa có mục nào cần vẽ",
+    "waitingChapters": "Chương đang chờ: Ch.{chapters}",
+    "reworkBtn": "Sửa lại",
+    "resubmitBtn": "Nộp lại",
+    "uploadBtn": "Tải ảnh",
+    "artistOnlyNotice": "Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Concept Art",
+    "searchPlaceholderDefault": "Tìm tên, mã hoặc mô tả trong Series Bible...",
+    "searchPlaceholderCharacters": "Tìm tên, mã hoặc mô tả nhân vật...",
+    "searchPlaceholderLocations": "Tìm tên, mã hoặc mô tả địa điểm...",
+    "searchPlaceholderTerminology": "Tìm thuật ngữ, đạo cụ, cốt truyện...",
+    "searchPlaceholderStyle": "Tìm quy tắc mỹ thuật, phong cách...",
+    "statusFilterAll": "Tất cả trạng thái",
+    "statusFilterCanonLocked": "Đã khoá Canon",
+    "statusFilterSubmitted": "Concept đã nộp",
+    "statusFilterRework": "Cần vẽ lại",
+    "statusFilterDraft": "Bản thảo",
+    "resetFilters": "Xóa bộ lọc",
+    "emptyTitle": "Không tìm thấy mục tri thức nào",
+    "emptySubtitle": "Thử thay đổi từ khóa tìm kiếm hoặc bỏ bộ lọc trạng thái.",
+    "cardCanonLocked": "Đã khoá Canon",
+    "cardConceptSubmitted": "Concept đã nộp",
+    "cardReworkRequired": "Cần vẽ lại",
+    "cardDraft": "Bản thảo",
+    "cardViewDetail": "Xem chi tiết",
+    "cardHistory": "Lịch sử",
+    "eraConfigTitle": "Cấu hình tạo Thời kỳ (Era) mới",
+    "eraConfigDesc": "Cấu hình tên thời kỳ và mốc chương áp dụng cho tạo hình mới"
   }
 }

@@ -18,10 +18,14 @@ import { createPortal } from 'react-dom';
 import type { BibleEntity } from '@/types';
 import type { BibleEntryRevisionDto } from '@/services/bible.service';
 import type { CharacterEraStage } from './BibleEntityDetailModal';
+import { useTranslation } from '@/lib/i18n';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { LucianInlineAlert } from '@/shared/components/lucian';
 import {
   SPEC_SCHEMA,
+  getFieldLabel,
+  getFieldPlaceholder,
+  getGroupTitle,
   mergeSpecAttributes,
   specCategoryOf,
   specCompleteness,
@@ -111,6 +115,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     onSubmit,
     onConfirmArtistSubmit,
   }) => {
+    const { t } = useTranslation();
     const [eraMode, setEraMode] = useState<'existing' | 'new'>(() => {
       if (isNewEraInitial) return 'new';
       if (existingStages && existingStages.length > 0) return 'existing';
@@ -298,16 +303,40 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                 <div className='flex items-center gap-2 flex-wrap'>
                   <h3 className='text-sm sm:text-base font-bold text-stone-900 truncate'>
                     {supersedeTarget
-                      ? `Thay thế bản khoá v${supersedeTarget.versionNumber}: ${revisionTarget.name}`
+                      ? t(
+                          'bible.addRevisionModal.headerSupersede',
+                          { version: supersedeTarget.versionNumber, name: revisionTarget.name },
+                          `Thay thế bản khoá v${supersedeTarget.versionNumber}: ${revisionTarget.name}`,
+                        )
                       : eraMode === 'new'
-                        ? `Tạo Thời kỳ (Era) mới: ${revisionTarget.name}`
+                        ? t(
+                            'bible.addRevisionModal.headerNewEra',
+                            { name: revisionTarget.name },
+                            `Tạo Thời kỳ (Era) mới: ${revisionTarget.name}`,
+                          )
                         : isArtistResubmit
-                          ? `Nộp lại bản vẽ Concept Art: ${revisionTarget.name}`
+                          ? t(
+                              'bible.addRevisionModal.headerResubmit',
+                              { name: revisionTarget.name },
+                              `Nộp lại bản vẽ Concept Art: ${revisionTarget.name}`,
+                            )
                           : isArtistConceptSubmit && isArtist
-                            ? `Nộp bản vẽ Concept Art: ${revisionTarget.name}`
+                            ? t(
+                                'bible.addRevisionModal.headerArtistSubmit',
+                                { name: revisionTarget.name },
+                                `Nộp bản vẽ Concept Art: ${revisionTarget.name}`,
+                              )
                             : isProducer
-                              ? `Tạo phiên bản mới: ${revisionTarget.name}`
-                              : `Tạo bản nháp mới: ${revisionTarget.name}`}
+                              ? t(
+                                  'bible.addRevisionModal.headerProducerNewVer',
+                                  { name: revisionTarget.name },
+                                  `Tạo phiên bản mới: ${revisionTarget.name}`,
+                                )
+                              : t(
+                                  'bible.addRevisionModal.headerDraftNewVer',
+                                  { name: revisionTarget.name },
+                                  `Tạo bản nháp mới: ${revisionTarget.name}`,
+                                )}
                   </h3>
                   {isArtistConceptSubmit && isArtist && (
                     <span className='px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300'>
@@ -977,7 +1006,7 @@ const SpecFieldsEditor: React.FC<{
         className='p-3 bg-stone-50 border border-stone-200 rounded-xl space-y-2'
       >
         <legend className='px-1 text-xs font-semibold uppercase tracking-wider text-stone-500'>
-          {group.title}
+          {getGroupTitle(group.title)}
         </legend>
         <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
           {group.fields.map((field) => {
@@ -986,7 +1015,7 @@ const SpecFieldsEditor: React.FC<{
             return (
               <div key={field.key} className={field.multiline ? 'sm:col-span-2' : undefined}>
                 <label htmlFor={id} className='block text-xs font-semibold text-stone-700 mb-1'>
-                  {field.label}
+                  {getFieldLabel(field)}
                 </label>
                 {readOnly ? (
                   <p
@@ -1004,7 +1033,7 @@ const SpecFieldsEditor: React.FC<{
                     id={id}
                     rows={2}
                     value={value}
-                    placeholder={field.placeholder}
+                    placeholder={getFieldPlaceholder(field)}
                     onChange={(e) => onChange?.(field.key, e.target.value)}
                     className='w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:border-orange-500 resize-y'
                   />
@@ -1013,7 +1042,7 @@ const SpecFieldsEditor: React.FC<{
                     id={id}
                     type='text'
                     value={value}
-                    placeholder={field.placeholder}
+                    placeholder={getFieldPlaceholder(field)}
                     onChange={(e) => onChange?.(field.key, e.target.value)}
                     className='w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:border-orange-500'
                   />
