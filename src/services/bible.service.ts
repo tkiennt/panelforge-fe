@@ -63,6 +63,9 @@ export interface BibleEntryDto {
   effectiveRevision?: BibleEntryRevisionDto | null;
   createdAt: string;
   updatedAt?: string | null;
+  isStub?: boolean;
+  aliases?: string[] | null;
+  isCrowd?: boolean;
 }
 
 export interface SeriesBibleDto {

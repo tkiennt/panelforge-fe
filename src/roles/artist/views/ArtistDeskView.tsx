@@ -140,6 +140,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     null,
   );
 
+  const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
+  const [selectedPanelNumber, setSelectedPanelNumber] = useState<number | null>(null);
+
   const tabFromUrl = searchParams.get('tab') as CanvaSidebarTab | null;
   const isLettererRoute = location.pathname.includes('/letterer');
   const defaultTab = initialSidebarTab || tabFromUrl || (isLettererRoute ? 'lettering' : undefined);
@@ -1520,6 +1523,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onDeleteLetteringElement={balloons.deleteElement}
           selectedElementId={balloons.selectedElementId}
           onSelectElementId={balloons.setSelectedElementId}
+          selectedPanelId={selectedPanelId}
+          selectedPanelNumber={selectedPanelNumber}
           theme='paper'
         />
 

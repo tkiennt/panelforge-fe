@@ -37,5 +37,18 @@
     "selectToView": "Select a panel to inspect characters and settings anchored to this scene.",
     "copyPrompt": "Copy AI Prompt",
     "promptCopied": "Reference prompt copied."
+  },
+  "panelModelSheet": {
+    "title": "Referenced Model Sheet",
+    "loading": "Loading Model Sheets...",
+    "empty": "No Model Sheets referenced in this panel.",
+    "error": "Failed to load Model Sheets for this panel.",
+    "retry": "Retry",
+    "defaultVariant": "Default",
+    "stageLabel": "Flashback - {variant} v{version}",
+    "normalLabel": "{variant} v{version}",
+    "variant": "Variant",
+    "revision": "Revision",
+    "noImage": "No image"
   }
 }

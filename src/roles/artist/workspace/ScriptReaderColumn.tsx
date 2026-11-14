@@ -9,6 +9,7 @@ import {
   User,
 } from 'lucide-react';
 import { PanelBlockData, CharacterModelSheet } from './workspace.types';
+import { PanelModelSheetBlock } from './PanelModelSheetBlock';
 
 const DEFAULT_CHARACTERS: CharacterModelSheet[] = [
   {
@@ -50,6 +51,7 @@ export const ScriptReaderColumn: React.FC<ScriptReaderColumnProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'script' | 'characters'>('script');
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterModelSheet | null>(null);
+  const selectedPanel = panels.find((p) => p.panelNumber === selectedPanelNumber);
 
   return (
     <aside
@@ -235,6 +237,21 @@ export const ScriptReaderColumn: React.FC<ScriptReaderColumnProps> = ({
                       ))
                     )}
                   </div>
+
+                  {/* Khối Model Sheet tham chiếu theo Khung đang chọn */}
+                  {isSelected && (
+                    <div
+                      className='mt-3 pt-3 border-t border-stone-200/80'
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <PanelModelSheetBlock
+                        panelId={panel.id}
+                        panelNumber={panel.panelNumber}
+                        hasOwnStage={Boolean(panel.hasCustomStage || panel.stageName)}
+                        panelStage={panel.stageName}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -242,6 +259,20 @@ export const ScriptReaderColumn: React.FC<ScriptReaderColumnProps> = ({
         ) : (
           /* TAB 2: NHÂN VẬT & MODEL SHEETS */
           <div data-testid='character-bible-list' className='space-y-3'>
+            {/* Khối Model Sheet của Khung đang chọn nếu có */}
+            {selectedPanel && (
+              <div
+                className='p-3.5 rounded-xl border border-stone-200/90 bg-white shadow-2xs mb-3'
+                data-testid='selected-panel-model-sheet-container'
+              >
+                <PanelModelSheetBlock
+                  panelId={selectedPanel.id}
+                  panelNumber={selectedPanel.panelNumber}
+                  hasOwnStage={Boolean(selectedPanel.hasCustomStage || selectedPanel.stageName)}
+                  panelStage={selectedPanel.stageName}
+                />
+              </div>
+            )}
             {characters.map((char) => (
               <div
                 key={char.id}
