@@ -13,6 +13,8 @@ vi.mock('@/services/assignment.service', () => ({
     getAssignments: vi.fn(),
     deleteAssignment: vi.fn(),
     resolveImpactReview: vi.fn(),
+    getStageTaskSubmissions: vi.fn(),
+    submitStageTasks: vi.fn(),
   },
 }));
 
@@ -285,5 +287,116 @@ describe('SideDrawer - Cờ kiểm tra ảnh hưởng (impactReviewReason)', () 
         reason: 'Nét vẽ hiện tại vẫn phù hợp',
       });
     });
+  });
+});
+
+describe('SideDrawer - Lô Lưới V3 (Nộp cả lô & nhận xét duyệt)', () => {
+  const mockLotCard: BoardCard = {
+    id: 'lot-ink-1',
+    seriesId: 'series-1',
+    chapterId: 'chap-1',
+    entityType: 'Page',
+    targetEntityId: 'page-1',
+    targetLabel: 'Trang 1–3',
+    pageNumber: 1,
+    pipelineStageId: 'st-ink',
+    stageName: 'Ink',
+    stageOrder: 2,
+    assigneeUserId: 'artist-1',
+    assigneeName: 'Chloe Artist',
+    assigneeAvatarInitials: 'CA',
+    assignedRole: 'ARTIST' as any,
+    brief: 'Đi nét lô trang 1–3',
+    priority: 'High',
+    status: 'InProgress',
+    isGridTask: true,
+    isGridLot: true,
+    lotId: 'lot-ink-1',
+    isStageEnabled: true,
+    lotTasks: [
+      {
+        id: 'cell-p1',
+        pageId: 'page-1',
+        pageNumber: 1,
+        targetLabel: 'Trang 1',
+        status: 'InProgress',
+        isStartable: false,
+        isInputOutdated: false,
+        prerequisitesApproved: true,
+      },
+      {
+        id: 'cell-p2',
+        pageId: 'page-2',
+        pageNumber: 2,
+        targetLabel: 'Trang 2',
+        status: 'InProgress',
+        isStartable: false,
+        isInputOutdated: false,
+        prerequisitesApproved: true,
+      },
+      {
+        id: 'cell-p3',
+        pageId: 'page-3',
+        pageNumber: 3,
+        targetLabel: 'Trang 3',
+        status: 'ReworkRequired',
+        isStartable: true,
+        isInputOutdated: false,
+        prerequisitesApproved: true,
+        lastDecisionComment: 'Cần đậm nét viền khung thoại trang 3',
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(assignmentService.getStageTaskSubmissions).mockResolvedValue([]);
+  });
+
+  it('hiển thị nhận xét duyệt trên ô ReworkRequired và hiện nguyên văn message 409 khi Nộp cả lô', async () => {
+    vi.mocked(assignmentService.submitStageTasks).mockRejectedValueOnce({
+      status: 409,
+      message: 'Trang 2: Chưa tải lên bản vẽ cho công đoạn Ink.',
+    });
+    const onGridUpdated = vi.fn();
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/series-1/pipeline']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/pipeline'
+            element={
+              <SideDrawer
+                isOpen={true}
+                onClose={vi.fn()}
+                card={mockLotCard}
+                currentUserId='artist-1'
+                currentUserRole='ARTIST'
+                onGridUpdated={onGridUpdated}
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByTestId('cell-last-decision-comment-cell-p3')).toHaveTextContent(
+      'Cần đậm nét viền khung thoại trang 3',
+    );
+
+    const submitLotBtn = screen.getByTestId('submit-whole-lot-btn');
+    fireEvent.click(submitLotBtn);
+
+    await waitFor(() => {
+      expect(assignmentService.submitStageTasks).toHaveBeenCalledWith('chap-1', [
+        'cell-p1',
+        'cell-p2',
+      ]);
+    });
+
+    expect(await screen.findByTestId('side-drawer-lot-submit-error')).toHaveTextContent(
+      'Trang 2: Chưa tải lên bản vẽ cho công đoạn Ink.',
+    );
+    expect(onGridUpdated).toHaveBeenCalled();
   });
 });

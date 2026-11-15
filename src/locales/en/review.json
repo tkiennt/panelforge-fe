@@ -421,6 +421,15 @@
     "checklist": "Checklist",
     "consistency": "Consistency",
     "changeRequests": "Change Requests",
-    "returnWork": "Submit Change Request (Return)"
+    "returnWork": "Submit Change Request (Return)",
+    "gate2GridTitle": "Grid V3 Cell Review · Page {page}",
+    "gate2GridApproveCell": "Approve cell",
+    "gate2GridRequestChanges": "Request changes",
+    "gate2GridCommentPlaceholder": "Enter required change request feedback (BR-06)...",
+    "gate2GridConfirmReturn": "Send change request",
+    "gate2GridSubmitChapterReview": "Submit Gate 2 Review",
+    "gate2GridSelfReviewLocked": "Cannot review your own cell (BR-06)",
+    "gate2GridLastComment": "Latest review comment",
+    "openDetailReview": "Open Review"
   }
 }

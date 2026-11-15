@@ -627,4 +627,149 @@ describe('ProductionBoard (Quy trình sản xuất: lưới + bộ lọc)', () =
     fireEvent.click(btn);
     expect(onOpenTaskGrid).toHaveBeenCalledTimes(1);
   });
+
+  it('Ma trận lưới + Nộp cả lô: hiện đủ trang của lô, làm mờ Cancelled, hiện lastDecisionComment và báo đúng message 409 khi Nộp cả lô', async () => {
+    vi.mocked(assignmentService.getTaskGrid).mockResolvedValue({
+      chapterId: 'chap-1',
+      stages: [
+        {
+          id: 'stage-1',
+          name: 'Pencil',
+          stageOrder: 1,
+          track: 'A',
+          allowedRole: 'Artist',
+          isApprovalGate: true,
+          granularity: 'Page',
+          isEnabled: true,
+          prerequisiteStageIds: [],
+        },
+        {
+          id: 'stage-2',
+          name: 'Ink',
+          stageOrder: 2,
+          track: 'A',
+          allowedRole: 'Artist',
+          isApprovalGate: true,
+          granularity: 'Page',
+          isEnabled: true,
+          prerequisiteStageIds: ['stage-1'],
+        },
+        {
+          id: 'stage-color-off',
+          name: 'Color',
+          stageOrder: 3,
+          track: 'A',
+          allowedRole: 'Artist',
+          isApprovalGate: true,
+          granularity: 'Page',
+          isEnabled: false,
+          prerequisiteStageIds: ['stage-2'],
+        },
+      ],
+      pages: [
+        { id: 'page-1', pageNumber: 1 },
+        { id: 'page-2', pageNumber: 2 },
+      ],
+      lots: [
+        {
+          id: 'lot-multi',
+          pipelineStageId: 'stage-1',
+          assigneeUserId: 'user-2',
+          assignedRole: 'Artist',
+          brief: 'Vẽ chì lô 2 trang',
+          dueDate: null,
+          status: 'Active',
+          isOverdue: false,
+          approvedCount: 0,
+          taskCount: 2,
+        },
+      ],
+      tasks: [
+        {
+          id: 'cell-p1-rework',
+          pipelineStageId: 'stage-1',
+          pageId: 'page-1',
+          status: 'ReworkRequired',
+          lotId: 'lot-multi',
+          assigneeUserId: 'user-2',
+          isInputOutdated: false,
+          isStartable: true,
+          rowVersion: 2,
+        },
+        {
+          id: 'cell-p2-doing',
+          pipelineStageId: 'stage-1',
+          pageId: 'page-2',
+          status: 'InProgress',
+          lotId: 'lot-multi',
+          assigneeUserId: 'user-2',
+          isInputOutdated: false,
+          isStartable: true,
+          rowVersion: 1,
+        },
+        {
+          id: 'cell-p1-ink-cancelled',
+          pipelineStageId: 'stage-2',
+          pageId: 'page-1',
+          status: 'Cancelled',
+          lotId: null,
+          assigneeUserId: null,
+          isInputOutdated: false,
+          isStartable: false,
+          rowVersion: 1,
+        },
+      ],
+    } as any);
+    vi.mocked(assignmentService.getStageTaskSubmissions).mockResolvedValue([
+      {
+        id: 'sub-1',
+        attemptNumber: 1,
+        status: 'Rejected',
+        submittedByUserId: 'user-2',
+        submittedAt: '2026-11-15T10:00:00Z',
+        decisionComment: 'Chỉnh lại giải phẫu tay nhân vật chính',
+        artworkReferenceIds: [],
+      },
+    ] as any);
+    const conflictErr: any = new Error('Trang 2: Chưa có artwork cho công đoạn này');
+    conflictErr.status = 409;
+    vi.mocked(assignmentService.submitStageTasks).mockRejectedValueOnce(conflictErr);
+
+    renderBoard(
+      { currentUserRole: 'ARTIST', currentUserId: 'user-2', isProducer: false },
+      '/workspaces/ws-1/series/series-1/workspace?chapterId=chap-1&filter=all&view=matrix',
+    );
+
+    const matrix = await screen.findByTestId('page-stage-matrix');
+    // Không hiện cột Color đang tắt
+    expect(within(matrix).queryByText('Color')).not.toBeInTheDocument();
+    // Hiện đủ cả Trang 1 và Trang 2 của lô trong ma trận
+    expect(within(matrix).getByText('Trang 1')).toBeInTheDocument();
+    expect(within(matrix).getByText('Trang 2')).toBeInTheDocument();
+    // Ô Cancelled được làm mờ
+    expect(within(matrix).getByTestId('matrix-cancelled-cell-page:page-1-stage-2')).toHaveTextContent(
+      'Đã huỷ',
+    );
+    // Hiện lastDecisionComment ngay trong ô ReworkRequired trên ma trận
+    expect(
+      await within(matrix).findByTestId('matrix-rework-comment-lot-multi'),
+    ).toHaveTextContent('Chỉnh lại giải phẫu tay nhân vật chính');
+
+    // Mở chi tiết lô từ ô Trang 2 -> thấy cả lastDecisionComment và nút "Nộp cả lô"
+    fireEvent.click(within(matrix).getByText('Đang làm'));
+    const lotSection = await screen.findByTestId('side-drawer-lot-cells');
+    expect(
+      await within(lotSection).findByTestId('cell-last-decision-comment-cell-p1-rework'),
+    ).toHaveTextContent('Chỉnh lại giải phẫu tay nhân vật chính');
+
+    const submitWholeLotBtn = within(lotSection).getByTestId('submit-whole-lot-btn');
+    fireEvent.click(submitWholeLotBtn);
+
+    await waitFor(() => {
+      expect(assignmentService.submitStageTasks).toHaveBeenCalledWith('chap-1', ['cell-p2-doing']);
+    });
+    expect(await screen.findByTestId('side-drawer-lot-submit-error')).toHaveTextContent(
+      'Trang 2: Chưa có artwork cho công đoạn này',
+    );
+  });
 });
