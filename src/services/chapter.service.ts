@@ -387,7 +387,20 @@ export const chapterService = {
   },
 
   /**
-   * Producer hoặc Publisher mở lại/từ chối chương kèm lý do (POST /api/chapters/{chapterId}/reopen)
+   * Producer bàn giao chương đã duyệt cho Publisher phát hành (POST /api/chapters/{chapterId}/hand-off)
+   * Chuyển trạng thái ChapterApproved -> HandedOff
+   */
+  handOffChapter: async (chapterId: string): Promise<ChapterReviewDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/hand-off`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể bàn giao chương cho Publisher.'));
+    }
+  },
+
+  /**
+   * Producer mở lại chương đã duyệt để sản xuất lại (POST /api/chapters/{chapterId}/reopen)
    * Chuyển trạng thái từ Approved -> InProduction
    */
   reopenChapter: async (chapterId: string, comment: string): Promise<ChapterReviewDto> => {
@@ -395,12 +408,12 @@ export const chapterService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/reopen`, { comment });
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể mở lại/từ chối chương.'));
+      throw new Error(extractError(error, 'Không thể mở lại chương.'));
     }
   },
 
   /**
-   * Publisher xuất bản hoặc lên lịch xuất bản chương (POST /api/chapters/{chapterId}/publish)
+   * Publisher xuất bản / lên lịch ấn bản sau khi Producer bàn giao (POST /api/chapters/{chapterId}/publish)
    * Chuyển trạng thái từ Approved -> Published
    */
   publishChapter: async (

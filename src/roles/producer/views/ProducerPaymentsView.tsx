@@ -499,14 +499,6 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
             />
             <span>{refreshing ? t('refreshing') : t('refresh')}</span>
           </button>
-          <button
-            type='button'
-            onClick={openBankModal}
-            className='inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#171717] hover:bg-black text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer'
-          >
-            <Building2 className='w-4 h-4 text-[#F97316]' />
-            <span>{t('configBank')}</span>
-          </button>
         </div>
       </div>
 

@@ -31,7 +31,6 @@ import {
 } from '@/services/publisher.service';
 import { bibleService, SeriesBibleDto, BibleEntryDto } from '@/services/bible.service';
 import { PublishScheduleModal } from '../modals/PublishScheduleModal';
-import { RejectChapterModal } from '../modals/RejectChapterModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
@@ -61,7 +60,6 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
   const [publishingChapter, setPublishingChapter] = useState<PublisherManagedChapterDto | null>(
     null,
   );
-  const [rejectingChapter, setRejectingChapter] = useState<PublisherManagedChapterDto | null>(null);
   const [reviewingChapter, setReviewingChapter] = useState<PublisherManagedChapterDto | null>(null);
   const [readingChapter, setReadingChapter] = useState<PublisherManagedChapterDto | null>(null);
   const [snapshotChapter, setSnapshotChapter] = useState<PublisherManagedChapterDto | null>(null);
@@ -107,24 +105,46 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
   };
 
   // Filtered chapters list
-  const filteredChapters = useMemo(() => {
+  const handedOffChapters = useMemo(() => {
     if (!detail?.chapters) return [];
+    return detail.chapters.filter(
+      (c) =>
+        c.status === 'ChapterApproved' ||
+        (c.status as any) === 'Approved' ||
+        c.status === 'HandedOffAndPublished' ||
+        (c.status as any) === 'Published',
+    );
+  }, [detail]);
+
+  const filteredChapters = useMemo(() => {
     if (activeTab === 'approved') {
-      return detail.chapters.filter((c) => c.status === 'ChapterApproved');
+      return handedOffChapters.filter(
+        (c) => c.status === 'ChapterApproved' || (c.status as any) === 'Approved',
+      );
     }
     if (activeTab === 'published') {
-      return detail.chapters.filter((c) => c.status === 'HandedOffAndPublished');
+      return handedOffChapters.filter(
+        (c) => c.status === 'HandedOffAndPublished' || (c.status as any) === 'Published',
+      );
     }
-    return detail.chapters;
-  }, [detail, activeTab]);
+    return handedOffChapters;
+  }, [handedOffChapters, activeTab]);
 
   const approvedCount = useMemo(() => {
-    return detail?.chapters.filter((c) => c.status === 'ChapterApproved').length || 0;
-  }, [detail]);
+    return (
+      handedOffChapters.filter(
+        (c) => c.status === 'ChapterApproved' || (c.status as any) === 'Approved',
+      ).length || 0
+    );
+  }, [handedOffChapters]);
 
   const publishedCount = useMemo(() => {
-    return detail?.chapters.filter((c) => c.status === 'HandedOffAndPublished').length || 0;
-  }, [detail]);
+    return (
+      handedOffChapters.filter(
+        (c) => c.status === 'HandedOffAndPublished' || (c.status as any) === 'Published',
+      ).length || 0
+    );
+  }, [handedOffChapters]);
 
   // Filtered Bible entries
   const filteredBibleEntries = useMemo(() => {
@@ -531,16 +551,6 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                       <div className='flex items-center gap-2'>
                         <button
                           type='button'
-                          onClick={() => setRejectingChapter(chap)}
-                          className='px-3.5 py-1.5 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-xs font-bold text-rose-700 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
-                          title='Từ chối và trả về Studio sản xuất'
-                        >
-                          <RotateCcw className='w-3.5 h-3.5 text-rose-600' />
-                          <span>{t('publisher.detail.reject', 'Từ chối')}</span>
-                        </button>
-
-                        <button
-                          type='button'
                           onClick={() => setPublishingChapter(chap)}
                           className='px-4 py-1.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-soft-sm active:scale-95'
                           title='Phát hành ngay hoặc lên lịch hẹn giờ'
@@ -669,19 +679,6 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
           chapterNumber={Number(publishingChapter.chapterNumber)}
           chapterTitle={publishingChapter.title}
           onClose={() => setPublishingChapter(null)}
-          onSuccess={fetchDetail}
-          onShowToast={onShowToast}
-        />
-      )}
-
-      {/* MODAL 4: Reject Chapter Modal */}
-      {rejectingChapter && (
-        <RejectChapterModal
-          isOpen={!!rejectingChapter}
-          chapterId={rejectingChapter.chapterId}
-          chapterNumber={Number(rejectingChapter.chapterNumber)}
-          chapterTitle={rejectingChapter.title}
-          onClose={() => setRejectingChapter(null)}
           onSuccess={fetchDetail}
           onShowToast={onShowToast}
         />

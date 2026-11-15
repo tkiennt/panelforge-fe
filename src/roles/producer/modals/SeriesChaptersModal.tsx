@@ -26,6 +26,7 @@ import {
   Upload,
   Lock,
   Play,
+  Send,
 } from 'lucide-react';
 import {
   chapterService,
@@ -361,7 +362,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         t('seriesChaptersModal.toastApproveSuccess', 'Đã duyệt chương'),
         t('seriesChaptersModal.toastApproveSuccessDesc', {
           number: chap.chapterNumber,
-          defaultValue: `Chương ${chap.chapterNumber} đã hoàn tất sản xuất, nghiệm thu và bàn giao cho Publisher.`,
+          defaultValue: `Chương ${chap.chapterNumber} đã hoàn tất sản xuất, nghiệm thu và sẵn sàng bàn giao cho Publisher.`,
         }),
       );
       await fetchChapters();
@@ -369,6 +370,46 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       onShowToast?.(
         t('seriesChaptersModal.toastApproveError', 'Không thể duyệt chương'),
         err.message,
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleHandOffChapter = async (chap: ChapterDto) => {
+    try {
+      if (
+        !(await confirm({
+          title: t('seriesChaptersModal.confirmHandoffTitle', {
+            number: chap.chapterNumber,
+            defaultValue: `Bàn giao Chương ${chap.chapterNumber} cho Publisher?`,
+          }),
+          description: t('seriesChaptersModal.confirmHandoffDesc', {
+            title: chap.title || t('seriesChaptersModal.untitled', 'Chưa đặt tên'),
+            defaultValue: `Chương "${chap.title || 'Không tiêu đề'}" sẽ được bàn giao sang cổng Publisher để lên lịch hoặc xuất bản công khai.`,
+          }),
+          confirmText: t('seriesChaptersModal.confirmHandoffBtn', 'Bàn giao ngay'),
+          cancelText: t('seriesChaptersModal.confirmHandoffCancel', 'Xem lại'),
+          variant: 'info',
+        }))
+      ) {
+        return;
+      }
+
+      setActionLoading(true);
+      await chapterService.handOffChapter(chap.id);
+      onShowToast?.(
+        t('seriesChaptersModal.toastHandoffSuccess', 'Đã bàn giao chương'),
+        t('seriesChaptersModal.toastHandoffSuccessDesc', {
+          number: chap.chapterNumber,
+          defaultValue: `Chương ${chap.chapterNumber} đã được bàn giao thành công cho Publisher.`,
+        }),
+      );
+      await fetchChapters();
+    } catch (err: any) {
+      onShowToast?.(
+        t('seriesChaptersModal.toastHandoffError', 'Không thể bàn giao chương'),
+        err?.message || 'Có lỗi xảy ra',
       );
     } finally {
       setActionLoading(false);
@@ -1057,19 +1098,38 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                             )}
 
                             {chap.status === 'ChapterApproved' && (
-                              <button
-                                type='button'
-                                onClick={() => handleReopenChapter(chap)}
-                                disabled={actionLoading}
-                                className='px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs disabled:opacity-50'
-                                title={t(
-                                  'seriesChaptersModal.reopenTooltip',
-                                  'Mở lại sản xuất (chuyển về InProduction)',
-                                )}
-                              >
-                                <RotateCcw className='w-3.5 h-3.5 text-amber-600' />
-                                <span>{t('seriesChaptersModal.reopen', 'Mở lại')}</span>
-                              </button>
+                              <>
+                                <button
+                                  type='button'
+                                  onClick={() => handleHandOffChapter(chap)}
+                                  disabled={actionLoading}
+                                  className='px-2.5 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white transition-all cursor-pointer flex items-center gap-1.5 font-bold text-xs shadow-xs disabled:opacity-50 active:scale-98'
+                                  title={t(
+                                    'seriesChaptersModal.handoffTooltip',
+                                    'Bàn giao chương đã nghiệm thu cho Publisher phát hành',
+                                  )}
+                                  data-testid={`producer-handoff-chapter-${chap.id}`}
+                                >
+                                  <Send className='w-3.5 h-3.5 text-white' />
+                                  <span>
+                                    {t('seriesChaptersModal.handoff', 'Bàn giao cho Publisher')}
+                                  </span>
+                                </button>
+
+                                <button
+                                  type='button'
+                                  onClick={() => handleReopenChapter(chap)}
+                                  disabled={actionLoading}
+                                  className='px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs disabled:opacity-50'
+                                  title={t(
+                                    'seriesChaptersModal.reopenTooltip',
+                                    'Mở lại sản xuất (chuyển về InProduction)',
+                                  )}
+                                >
+                                  <RotateCcw className='w-3.5 h-3.5 text-amber-600' />
+                                  <span>{t('seriesChaptersModal.reopen', 'Mở lại')}</span>
+                                </button>
+                              </>
                             )}
 
                             {/* InProduction: vẫn mở được để chuyển phản hồi "cần sửa" thành yêu cầu sửa (5.7) */}

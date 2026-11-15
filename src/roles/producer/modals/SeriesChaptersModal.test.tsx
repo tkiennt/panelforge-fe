@@ -236,6 +236,47 @@ describe('SeriesChaptersModal Component', () => {
     expect(screen.queryByText(/nhập giá vnđ/i)).not.toBeInTheDocument();
   });
 
+  it('renders handoff action and no publish button for ChapterApproved chapter', async () => {
+    vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
+      items: [
+        {
+          id: 'chap-app',
+          seriesId: 'series-1',
+          chapterNumber: 2,
+          title: 'Chương Đã Nghiệm Thu',
+          status: 'ChapterApproved',
+          versionVector: 2,
+          createdAt: '2026-10-01T00:00:00Z',
+          scenesCount: 2,
+          pagesCount: 10,
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 10,
+      totalPages: 1,
+    });
+
+    render(
+      <MemoryRouter>
+        <ConfirmProvider>
+          <SeriesChaptersModal
+            isOpen={true}
+            seriesId='series-1'
+            seriesTitle='Test Series'
+            onClose={vi.fn()}
+          />
+        </ConfirmProvider>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('producer-handoff-chapter-chap-app')).toBeInTheDocument();
+      expect(screen.getByText('Bàn giao cho Publisher')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Xuất bản$/i })).not.toBeInTheDocument();
+    });
+  });
+
   it('returns null when isOpen is false', () => {
     const { container } = render(
       <MemoryRouter>
