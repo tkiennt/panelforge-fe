@@ -63,7 +63,6 @@ export const StatusBadge: React.FC<{ status: BoardCard['status'] }> = ({ status 
 
 const STAGE_ICONS: Record<StageKind, React.ElementType> = {
   script: FileText,
-  thumbnail: LayoutGrid,
   ink: PenTool,
   pencil: Pencil,
   color: Palette,
@@ -71,7 +70,7 @@ const STAGE_ICONS: Record<StageKind, React.ElementType> = {
   other: Layers,
 };
 
-/** Icon theo công đoạn (Script/Thumbnail/Pencil/Ink/Color/Letter) suy từ tên stage thật. */
+/** Icon theo công đoạn (Script/Pencil/Ink/Color/Letter) suy từ tên stage thật. */
 export const StageIcon: React.FC<{ stageName: string; className?: string }> = ({
   stageName,
   className,
@@ -213,57 +212,61 @@ export const ProductionTaskCard: React.FC<ProductionTaskCardProps> = ({
       data-testid='production-task-card'
       aria-label={card.brief}
     >
-      {/* 1. Vùng Thumbnail bản thảo manga */}
-      <div className='relative w-full h-38 bg-[#F3F0E9] rounded-t-xl overflow-hidden border-b border-landing-border flex items-center justify-center select-none'>
-        {/* Floating Badges: Cấp đối tượng bên trái, Trạng thái bên phải */}
-        <div className='absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5'>
-          {card.entityType === 'Page' ? (
-            <span className='inline-flex items-center px-2 py-0.5 rounded-md bg-[#1C1917]/85 backdrop-blur-xs text-[#FCFBF8] font-mono text-xs font-semibold shadow-xs'>
-              {card.targetLabel || `Trang ${card.pageNumber ?? '?'}`}
-            </span>
-          ) : card.entityType === 'Panel' ? (
-            <span className='inline-flex items-center px-2 py-0.5 rounded-md bg-stone-800/85 backdrop-blur-xs text-[#FCFBF8] font-mono text-xs font-semibold shadow-xs'>
-              Khung tranh
-            </span>
-          ) : (
-            <span className='inline-flex items-center px-2 py-0.5 rounded-md bg-amber-950/85 backdrop-blur-xs text-amber-200 font-mono text-xs font-semibold shadow-xs'>
-              Toàn chương
-            </span>
-          )}
-        </div>
-
-        <div className='absolute top-2.5 right-2.5 z-10'>
+      {/* 1. Cấp Chương: thanh tiêu đề gọn (bỏ khung ảnh giả "Toàn chương (Kịch bản/Kế hoạch)"); Cấp Trang/Khung: vùng Thumbnail bản thảo */}
+      {card.entityType === 'Chapter' ? (
+        <div className='w-full px-4 py-2.5 bg-[#F3F0E9] rounded-t-xl border-b border-landing-border flex items-center justify-between gap-2 select-none'>
+          <span className='inline-flex items-center px-2 py-0.5 rounded-md bg-amber-950/85 text-amber-200 font-mono text-xs font-semibold shadow-xs'>
+            Toàn chương
+          </span>
           <StatusBadge status={card.status} />
         </div>
-
-        {/* Nội dung Thumbnail: Ảnh thật (contain) HOẶC Khung bản thảo fallback */}
-        {thumbnail.status === 'success' && thumbnail.url ? (
-          <div className='w-full h-full p-2 flex items-center justify-center relative'>
-            <img
-              src={thumbnail.url}
-              alt={card.brief}
-              className='max-h-full max-w-full object-contain drop-shadow-xs transition-transform duration-200 group-hover:scale-[1.02]'
-              loading='lazy'
-            />
-            {thumbnail.isPreviousStage && (
-              <span className='absolute bottom-2 left-2 z-10 text-[10px] font-mono bg-stone-900/80 text-amber-200 px-1.5 py-0.5 rounded shadow-xs backdrop-blur-xs'>
-                {thumbnail.label}
+      ) : (
+        <div className='relative w-full h-38 bg-[#F3F0E9] rounded-t-xl overflow-hidden border-b border-landing-border flex items-center justify-center select-none'>
+          {/* Floating Badges: Cấp đối tượng bên trái, Trạng thái bên phải */}
+          <div className='absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5'>
+            {card.entityType === 'Page' ? (
+              <span className='inline-flex items-center px-2 py-0.5 rounded-md bg-[#1C1917]/85 backdrop-blur-xs text-[#FCFBF8] font-mono text-xs font-semibold shadow-xs'>
+                {card.targetLabel || `Trang ${card.pageNumber ?? '?'}`}
+              </span>
+            ) : (
+              <span className='inline-flex items-center px-2 py-0.5 rounded-md bg-stone-800/85 backdrop-blur-xs text-[#FCFBF8] font-mono text-xs font-semibold shadow-xs'>
+                Khung tranh
               </span>
             )}
           </div>
-        ) : (
-          <div className='w-full h-full flex flex-col items-center justify-center p-3 text-center'>
-            {/* Manga manuscript page wireframe */}
-            <div className='w-20 h-24 border border-dashed border-[#D8D2C5] rounded bg-[#FCFBF8]/90 shadow-2xs flex flex-col items-center justify-center gap-1.5 p-2'>
-              <StageIcon stageName={card.stageName} className='w-5 h-5 text-stone-400 stroke-1' />
-              <span className='text-[10px] leading-tight text-stone-500 font-medium'>
-                {thumbnail.label ||
-                  (card.entityType === 'Chapter' ? 'Kế hoạch chương' : 'Chưa có bản vẽ')}
-              </span>
-            </div>
+
+          <div className='absolute top-2.5 right-2.5 z-10'>
+            <StatusBadge status={card.status} />
           </div>
-        )}
-      </div>
+
+          {/* Nội dung Thumbnail: Ảnh thật (contain) HOẶC Khung bản thảo fallback */}
+          {thumbnail.status === 'success' && thumbnail.url ? (
+            <div className='w-full h-full p-2 flex items-center justify-center relative'>
+              <img
+                src={thumbnail.url}
+                alt={card.brief}
+                className='max-h-full max-w-full object-contain drop-shadow-xs transition-transform duration-200 group-hover:scale-[1.02]'
+                loading='lazy'
+              />
+              {thumbnail.isPreviousStage && (
+                <span className='absolute bottom-2 left-2 z-10 text-[10px] font-mono bg-stone-900/80 text-amber-200 px-1.5 py-0.5 rounded shadow-xs backdrop-blur-xs'>
+                  {thumbnail.label}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className='w-full h-full flex flex-col items-center justify-center p-3 text-center'>
+              {/* Manga manuscript page wireframe */}
+              <div className='w-20 h-24 border border-dashed border-[#D8D2C5] rounded bg-[#FCFBF8]/90 shadow-2xs flex flex-col items-center justify-center gap-1.5 p-2'>
+                <StageIcon stageName={card.stageName} className='w-5 h-5 text-stone-400 stroke-1' />
+                <span className='text-[10px] leading-tight text-stone-500 font-medium'>
+                  {thumbnail.label || 'Chưa có bản vẽ'}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 2. Nội dung thẻ */}
       <div className='flex flex-1 flex-col p-4'>

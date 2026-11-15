@@ -18,7 +18,7 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
 }) => {
   const [pageNumber, setPageNumber] = useState('');
   const [title, setTitle] = useState('');
-  const [stage, setStage] = useState<KanbanStageKey>('thumbnail');
+  const [stage, setStage] = useState<KanbanStageKey>('pencil');
   const [assignee, setAssignee] = useState('Kenji S.');
   const [pageType, setPageType] = useState<'Action' | 'Dialogue' | 'Spread'>('Action');
 
@@ -128,13 +128,12 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
               className='w-full px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-[#1C1917] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
             >
               <option value='script'>1. Kịch bản (Script)</option>
-              <option value='thumbnail'>2. Thumbnail (Phác thảo)</option>
-              <option value='pencil'>3. Nét chì (Pencil)</option>
-              <option value='ink'>4. Đi mực (Ink)</option>
-              <option value='color'>5. Đổ màu (Color)</option>
-              <option value='letter'>6. Thoại &amp; SFX (Letter)</option>
-              <option value='review'>7. Duyệt (Review)</option>
-              <option value='approved'>8. Hoàn tất (Approved)</option>
+              <option value='pencil'>2. Nét chì (Pencil)</option>
+              <option value='ink'>3. Đi mực (Ink)</option>
+              <option value='color'>4. Đổ màu (Color)</option>
+              <option value='letter'>5. Thoại &amp; SFX (Letter)</option>
+              <option value='review'>6. Duyệt (Review)</option>
+              <option value='approved'>7. Hoàn tất (Approved)</option>
             </select>
           </div>
 

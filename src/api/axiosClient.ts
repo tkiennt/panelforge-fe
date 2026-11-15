@@ -74,6 +74,8 @@ export function clearSession() {
     localStorage.removeItem('user');
     localStorage.removeItem('userRole');
     localStorage.removeItem('activeWorkspace');
+    localStorage.removeItem('workspaceRole');
+    localStorage.removeItem('activeProject');
     localStorage.removeItem('pf_has_session');
     if (!alreadyEnded && hadSession) {
       window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { hadSession: true } }));

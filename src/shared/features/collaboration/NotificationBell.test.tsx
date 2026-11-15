@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import type { NotificationDto, NotificationListDto } from '@/types';
 import { notificationService } from '@/services/notification.service';
+import { chapterService } from '@/services/chapter.service';
 import type { ComponentProps } from 'react';
 import { NotificationBell } from './NotificationBell';
 import { getNotificationBadge } from './notificationBadge';
@@ -14,6 +15,18 @@ vi.mock('@/services/notification.service', () => ({
     getNotifications: vi.fn(),
     markAsRead: vi.fn(),
     markAllAsRead: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/chapter.service', () => ({
+  chapterService: {
+    getChapterById: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/series.service', () => ({
+  seriesService: {
+    getSeriesById: vi.fn(),
   },
 }));
 
@@ -58,8 +71,10 @@ const renderBell = (props: Partial<ComponentProps<typeof NotificationBell>> = {}
 describe('NotificationBell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     vi.mocked(notificationService.markAsRead).mockResolvedValue(1);
     vi.mocked(notificationService.markAllAsRead).mockResolvedValue(2);
+    vi.mocked(chapterService.getChapterById).mockResolvedValue(null as any);
   });
 
   afterEach(() => {
@@ -168,6 +183,92 @@ describe('NotificationBell', () => {
     await waitFor(() => expect(screen.queryByTestId('notification-badge')).not.toBeInTheDocument());
     expect(screen.getByTestId('location')).toHaveTextContent(
       '/workspaces/ws-1/series/se-1/my-work?chapterId=chap-1&assignmentId=asg-1',
+    );
+  });
+
+  it('bấm thông báo Lưới giao việc V3 (assignmentId = null, chapterId có giá trị) thì mở thẳng lưới V3 theo chapterId', async () => {
+    vi.mocked(notificationService.getNotifications).mockResolvedValue(
+      list([
+        notification({
+          id: 'n-v3',
+          type: 'AssignmentReady',
+          assignmentId: null,
+          chapterId: 'chap-v3',
+        }),
+      ]),
+    );
+    const user = userEvent.setup();
+    renderBell();
+
+    await user.click(await screen.findByTestId('notification-bell'));
+    await user.click(await screen.findByTestId('notification-n-v3'));
+
+    expect(notificationService.markAsRead).toHaveBeenCalledWith('n-v3');
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/workspaces/ws-1/series/se-1/workspace?chapterId=chap-v3&board=grid-v3',
+    );
+  });
+
+  it.each([
+    'AssignmentSubmitted',
+    'AssignmentAssigned',
+    'AssignmentApproved',
+    'AssignmentChangesRequested',
+    'AssignmentUpdated',
+    'AssignmentReady',
+    'AssignmentUnassigned',
+  ] as const)(
+    'VIỆC 2: bấm thông báo %s có assignmentId = null và chapterId mở màn lưới V3 của chương đó (không mở Assignment V2 với id null)',
+    async (notifType) => {
+      vi.mocked(notificationService.getNotifications).mockResolvedValue(
+        list([
+          notification({
+            id: `n-${notifType}`,
+            type: notifType,
+            assignmentId: null,
+            chapterId: 'chap-42',
+          }),
+        ]),
+      );
+      const user = userEvent.setup();
+      renderBell();
+
+      await user.click(await screen.findByTestId('notification-bell'));
+      await user.click(await screen.findByTestId(`notification-n-${notifType}`));
+
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/workspaces/ws-1/series/se-1/workspace?chapterId=chap-42&board=grid-v3',
+      );
+      expect(screen.getByTestId('location').textContent).not.toContain('my-work');
+    },
+  );
+
+  it('VIỆC 2: Editor đứng ngoài màn Series (seriesId trống) bấm thông báo AssignmentSubmitted vẫn tự tra seriesId từ chapterId và mở lưới V3', async () => {
+    vi.mocked(chapterService.getChapterById).mockResolvedValueOnce({
+      id: 'chap-99',
+      seriesId: 'se-resolved',
+    } as any);
+    vi.mocked(notificationService.getNotifications).mockResolvedValue(
+      list([
+        notification({
+          id: 'n-sub-editor',
+          type: 'AssignmentSubmitted',
+          assignmentId: null,
+          chapterId: 'chap-99',
+        }),
+      ]),
+    );
+    const user = userEvent.setup();
+    renderBell({ workspaceId: 'ws-1', seriesId: undefined });
+
+    await user.click(await screen.findByTestId('notification-bell'));
+    await user.click(await screen.findByTestId('notification-n-sub-editor'));
+
+    await waitFor(() => {
+      expect(chapterService.getChapterById).toHaveBeenCalledWith('chap-99');
+    });
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/workspaces/ws-1/series/se-resolved/workspace?chapterId=chap-99&board=grid-v3',
     );
   });
 

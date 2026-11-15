@@ -74,6 +74,8 @@ export interface PreviewFeedbackDto {
   createdAt: string;
   /** Yêu cầu sửa sinh từ phản hồi này (5.7); null = chưa chuyển. */
   changeRequestId?: string | null;
+  /** Lưới V3: ô công việc được mở lại / thông báo sửa từ phản hồi này; null = chưa chuyển qua lưới. */
+  stageTaskId?: string | null;
   /** Tên người nhận xét tự khai trên trang review công khai (không bắt buộc). */
   reviewerName?: string | null;
 }

@@ -139,4 +139,30 @@ describe('artworkService', () => {
       'http://h/api/assets/download?token=a&size=thumb',
     );
   });
+
+  it('uploadArtwork trích xuất nguyên văn lý do chặn 403 từ Backend', async () => {
+    const mockFile = new File(['image content'], 'page1.png', { type: 'image/png' });
+    vi.mocked(axiosClient.post).mockRejectedValueOnce({
+      response: {
+        status: 403,
+        data: {
+          code: 'FORBIDDEN',
+          error: 'Đầu vào của ô việc đã lỗi thời, chờ Producer xử lý Impact Review trước khi sửa tiếp.',
+        },
+      },
+    });
+
+    const promise = artworkService.uploadArtwork(
+      'chap-1',
+      'page-1',
+      mockFile,
+      'stage-pencil',
+      'abc123sha256',
+    );
+
+    await expect(promise).rejects.toThrow(
+      'Đầu vào của ô việc đã lỗi thời, chờ Producer xử lý Impact Review trước khi sửa tiếp.',
+    );
+    await expect(promise).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
 });

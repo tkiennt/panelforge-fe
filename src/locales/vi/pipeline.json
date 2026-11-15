@@ -167,7 +167,9 @@
       "underReview": "Đang duyệt (UnderReview)",
       "approved": "Đã duyệt (Approved)",
       "reworkRequired": "Cần sửa lại (Rework)"
-    }
+    },
+    "tabAssignments": "Danh sách phân công",
+    "tabTaskGridV3": "Lưới Trang × Công đoạn (V3)"
   },
   "createAssignmentModal": {
     "headerBadge": "Khởi tạo công việc",

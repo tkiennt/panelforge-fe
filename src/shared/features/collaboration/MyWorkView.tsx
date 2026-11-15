@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from '@/shared/ui';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -21,8 +21,16 @@ import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.
 import { scriptLineService, type SceneDto } from '@/services/scriptLine.service';
 import { pageService, type PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
-import type { AssignmentDto, PanelDto, StageProgressDto, WorkspaceAssignmentDto } from '@/types';
+import type {
+  AssignmentDto,
+  PanelDto,
+  StageProgressDto,
+  TaskGridReviewItemDto,
+  TaskGridStageDto,
+  WorkspaceAssignmentDto,
+} from '@/types';
 import { AssignmentWorkCard } from './AssignmentWorkCard';
+import { TaskGridReviewCard, TaskLotWorkCard, type MyTaskLotViewItem } from './TaskGridWorkCards';
 import {
   compareWorkOrder,
   errorMessage,
@@ -69,9 +77,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const [loadingWork, setLoadingWork] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [studioWork, setStudioWork] = useState<WorkspaceAssignmentDto[]>([]);
+  const [studioLots, setStudioLots] = useState<MyTaskLotViewItem[]>([]);
   const [loadingStudio, setLoadingStudio] = useState(false);
+  const [gridLots, setGridLots] = useState<MyTaskLotViewItem[]>([]);
+  const [gridReviewItems, setGridReviewItems] = useState<TaskGridReviewItemDto[]>([]);
 
-  const highlightedId = searchParams.get('assignmentId');
+  const highlightedId = searchParams.get('taskId') || searchParams.get('assignmentId');
+  const chaptersRef = useRef<ChapterDto[]>([]);
+  chaptersRef.current = chapters;
 
   // Chương, pipeline và thành viên của Series
   useEffect(() => {
@@ -109,55 +122,190 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     try {
       if (chapterId === 'ALL_STUDIO') {
         if (!workspaceId) return;
-        const list = await assignmentService.getMyWorkspaceAssignments(workspaceId, {
-          seriesId: seriesId || undefined,
-        });
-        setAssignments(list);
+        const [myLotsRes, reviewQueueRes, legacyList] = await Promise.all([
+          typeof assignmentService.getMyTaskLots === 'function'
+            ? assignmentService.getMyTaskLots(workspaceId, {
+                seriesId: seriesId || undefined,
+                includeCompleted: true,
+              })
+            : Promise.resolve([]),
+          reviewer && typeof assignmentService.getTaskGridReviewQueue === 'function'
+            ? assignmentService.getTaskGridReviewQueue(workspaceId, {
+                seriesId: seriesId || undefined,
+              })
+            : Promise.resolve([]),
+          typeof assignmentService.getMyWorkspaceAssignments === 'function'
+            ? assignmentService
+                .getMyWorkspaceAssignments(workspaceId, {
+                  seriesId: seriesId || undefined,
+                })
+                .catch(() => [])
+            : Promise.resolve([]),
+        ]);
+        setGridLots(
+          (myLotsRes || []).map((lot) => ({
+            ...lot,
+            assigneeUserId: currentUserId ?? undefined,
+          })),
+        );
+        setGridReviewItems(reviewQueueRes || []);
+        setAssignments(legacyList || []);
         setProgress([]);
         setScenes([]);
         setPages([]);
         setPanels([]);
         setSelectedSceneId('ALL');
       } else {
-        const [list, prog, sceneList, pageList] = await Promise.all([
-          assignmentService.getAssignments(chapterId),
-          assignmentService.getStageProgress(chapterId),
-          scriptLineService.getScenesByChapter(chapterId).catch(() => [] as SceneDto[]),
-          pageService.getPagesByChapter(chapterId).catch(() => [] as PageDto[]),
-        ]);
-        // Cảnh gắn trên Panel (Page không có sceneId), nên cần panel của từng trang để quy việc vào cảnh
-        const panelLists = await Promise.all(
-          (pageList || []).map((p) =>
-            panelService.getPanelsByPage(p.id).catch(() => [] as PanelDto[]),
-          ),
-        );
-        setAssignments(list);
-        setProgress(prog);
-        setScenes(sceneList || []);
-        setPages(pageList || []);
-        setPanels(panelLists.flat());
+        const grid =
+          typeof assignmentService.getTaskGrid === 'function'
+            ? await assignmentService.getTaskGrid(chapterId).catch(() => null)
+            : null;
+        const activeGridTasks = (grid?.tasks ?? []).filter((t) => t.status !== 'Cancelled');
+
+        if (grid && activeGridTasks.length > 0) {
+          const chapMeta = chaptersRef.current.find((c) => c.id === chapterId);
+          const pageMap = new Map<string, number>(
+            (grid.pages ?? []).map((p) => [p.id, p.pageNumber] as const),
+          );
+          const stageMap = new Map<string, TaskGridStageDto>(
+            (grid.stages ?? []).map((s) => [s.id, s] as [string, TaskGridStageDto]),
+          );
+
+          const lotsFromGrid: MyTaskLotViewItem[] = (grid.lots ?? [])
+            .filter((l) => l.status !== 'Closed')
+            .sort((a, b) => {
+              if (a.status !== b.status) return a.status === 'Active' ? -1 : 1;
+              const da = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+              const db = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+              return da - db;
+            })
+            .map((lot) => {
+              const stg = stageMap.get(lot.pipelineStageId);
+              const cells = activeGridTasks
+                .filter((t) => t.lotId === lot.id)
+                .map((t) => ({
+                  id: t.id,
+                  pageId: t.pageId,
+                  pageNumber: t.pageId ? (pageMap.get(t.pageId) ?? null) : null,
+                  status: t.status,
+                  isStartable: t.isStartable,
+                  isInputOutdated: t.isInputOutdated,
+                  outdatedReason: t.outdatedReason,
+                }))
+                .sort((a, b) => (a.pageNumber ?? -1) - (b.pageNumber ?? -1));
+
+              return {
+                id: lot.id,
+                seriesId: seriesId || '',
+                seriesTitle: 'Series hiện tại',
+                chapterId,
+                chapterNumber: chapMeta?.chapterNumber ?? 0,
+                chapterTitle: chapMeta?.title ?? null,
+                pipelineStageId: lot.pipelineStageId,
+                stageName: stg?.name || 'Công đoạn',
+                stageOrder: stg?.stageOrder ?? 0,
+                stageColorCode: null,
+                assignedRole: lot.assignedRole,
+                brief: lot.brief,
+                dueDate: lot.dueDate,
+                status: lot.status === 'Completed' ? 'Completed' : 'Active',
+                isOverdue: lot.isOverdue,
+                tasks: cells,
+                assigneeUserId: lot.assigneeUserId,
+              };
+            })
+            .filter((lot) => lot.tasks.length > 0);
+
+          const reviewsFromGrid: TaskGridReviewItemDto[] = activeGridTasks
+            .filter((t) => t.status === 'Submitted' || t.status === 'UnderReview')
+            .map((t) => {
+              const stg = stageMap.get(t.pipelineStageId);
+              return {
+                taskId: t.id,
+                seriesId: seriesId || '',
+                seriesTitle: 'Series hiện tại',
+                chapterId,
+                chapterNumber: chapMeta?.chapterNumber ?? 0,
+                chapterTitle: chapMeta?.title ?? null,
+                pipelineStageId: t.pipelineStageId,
+                stageName: stg?.name || 'Công đoạn',
+                pageId: t.pageId,
+                pageNumber: t.pageId ? (pageMap.get(t.pageId) ?? null) : null,
+                status: t.status === 'UnderReview' ? 'UnderReview' : 'Submitted',
+                assigneeUserId: t.assigneeUserId,
+                reviewerUserId: t.reviewerUserId,
+                attemptNumber: null,
+                submittedAt: null,
+              };
+            });
+
+          setGridLots(lotsFromGrid);
+          setGridReviewItems(reviewsFromGrid);
+          setAssignments([]);
+          setProgress([]);
+          setScenes([]);
+          setPages([]);
+          setPanels([]);
+          setSelectedSceneId('ALL');
+        } else {
+          setGridLots([]);
+          setGridReviewItems([]);
+          const [list, prog, sceneList, pageList] = await Promise.all([
+            assignmentService.getAssignments(chapterId),
+            assignmentService.getStageProgress(chapterId),
+            scriptLineService.getScenesByChapter(chapterId).catch(() => [] as SceneDto[]),
+            pageService.getPagesByChapter(chapterId).catch(() => [] as PageDto[]),
+          ]);
+          // Cảnh gắn trên Panel (Page không có sceneId), nên cần panel của từng trang để quy việc vào cảnh
+          const panelLists = await Promise.all(
+            (pageList || []).map((p) =>
+              panelService.getPanelsByPage(p.id).catch(() => [] as PanelDto[]),
+            ),
+          );
+          setAssignments(list);
+          setProgress(prog);
+          setScenes(sceneList || []);
+          setPages(pageList || []);
+          setPanels(panelLists.flat());
+        }
       }
+    } catch (err) {
+      setError(errorMessage(err, 'Không thể tải danh sách công việc.'));
     } finally {
       setLoadingWork(false);
     }
-  }, [chapterId, workspaceId, seriesId]);
+  }, [chapterId, workspaceId, seriesId, reviewer, currentUserId]);
 
   useEffect(() => {
     void loadWork();
   }, [loadWork]);
 
-  // Việc cá nhân xuyên chương/series của cả Studio (CF2 Cross-Chapter Worklist)
+  // Việc cá nhân xuyên chương/series của cả Studio (CF2 Cross-Chapter Worklist - ưu tiên Lưới V3)
   const loadStudioWork = useCallback(async () => {
     if (!workspaceId) return;
     setLoadingStudio(true);
     try {
-      setStudioWork(await assignmentService.getMyAssignments(workspaceId));
+      const [lotsRes, legacyStudio] = await Promise.all([
+        typeof assignmentService.getMyTaskLots === 'function'
+          ? assignmentService.getMyTaskLots(workspaceId, { includeCompleted: true })
+          : Promise.resolve([]),
+        typeof assignmentService.getMyAssignments === 'function'
+          ? assignmentService.getMyAssignments(workspaceId).catch(() => [])
+          : Promise.resolve([]),
+      ]);
+      setStudioLots(
+        (lotsRes || []).map((lot) => ({
+          ...lot,
+          assigneeUserId: currentUserId ?? undefined,
+        })),
+      );
+      setStudioWork(legacyStudio || []);
     } catch (err) {
       setError(errorMessage(err, 'Không thể tải việc toàn Studio.'));
     } finally {
       setLoadingStudio(false);
     }
-  }, [workspaceId]);
+  }, [workspaceId, currentUserId]);
 
   useEffect(() => {
     if (tab === 'studio') void loadStudioWork();
@@ -180,6 +328,26 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         : userId.slice(0, 8);
   };
 
+  const mineGridLots = useMemo(
+    () =>
+      gridLots.filter(
+        (lot) => !currentUserId || !lot.assigneeUserId || lot.assigneeUserId === currentUserId,
+      ),
+    [gridLots, currentUserId],
+  );
+
+  const visibleGridLots = useMemo(() => {
+    if (tab === 'mine') return mineGridLots;
+    if (tab === 'all') return gridLots;
+    return [];
+  }, [tab, mineGridLots, gridLots]);
+
+  const visibleGridReviews = useMemo(() => {
+    if (tab === 'review') return gridReviewItems;
+    if (tab === 'all' && chapterId === 'ALL_STUDIO') return gridReviewItems;
+    return [];
+  }, [tab, gridReviewItems, chapterId]);
+
   const visible = useMemo(() => {
     const status = (a: AssignmentDto) => String(a.status);
     if (tab === 'mine') return assignments.filter((a) => a.assigneeUserId === currentUserId);
@@ -189,12 +357,26 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   }, [assignments, tab, currentUserId]);
 
   const counts = {
-    mine: assignments.filter((a) => a.assigneeUserId === currentUserId).length,
-    review: assignments.filter((a) => ['Submitted', 'UnderReview'].includes(String(a.status)))
-      .length,
-    all: assignments.length,
-    studio: studioWork.length,
+    mine:
+      mineGridLots.length + assignments.filter((a) => a.assigneeUserId === currentUserId).length,
+    review:
+      gridReviewItems.length +
+      assignments.filter((a) => ['Submitted', 'UnderReview'].includes(String(a.status))).length,
+    all:
+      gridLots.length +
+      (chapterId === 'ALL_STUDIO' ? gridReviewItems.length : 0) +
+      assignments.length,
+    studio: studioLots.length + studioWork.length,
   };
+
+  const hasHighlightedInData = useMemo(() => {
+    if (!highlightedId) return false;
+    return (
+      assignments.some((a) => a.id === highlightedId) ||
+      gridLots.some((l) => l.id === highlightedId || l.tasks.some((c) => c.id === highlightedId)) ||
+      gridReviewItems.some((r) => r.taskId === highlightedId)
+    );
+  }, [highlightedId, assignments, gridLots, gridReviewItems]);
 
   const orderCtx = useMemo<WorkOrderContext>(
     () => ({
@@ -652,13 +834,37 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         </Alert>
       )}
 
+      {highlightedId &&
+        !loadingChapters &&
+        !loadingWork &&
+        chapterId &&
+        chapterId !== 'ALL_STUDIO' &&
+        !hasHighlightedInData &&
+        workspaceId &&
+        seriesId && (
+          <div
+            data-testid='grid-v3-redirect-hint'
+            className='p-3 rounded-xl bg-orange-50 border border-orange-200 text-orange-950 text-xs flex items-center justify-between gap-3'
+          >
+            <span>
+              Mục công việc này thuộc <strong>Lưới giao việc V3</strong> của chương.
+            </span>
+            <Link
+              to={`/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${encodeURIComponent(chapterId)}&board=grid-v3`}
+              className='px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold shrink-0'
+            >
+              Mở Lưới V3 →
+            </Link>
+          </div>
+        )}
+
       {isStudioTab ? (
         loadingStudio ? (
           <div className='py-12 text-center text-[#888888] text-xs'>
             <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
             Đang tải việc toàn Studio...
           </div>
-        ) : studioWork.length === 0 ? (
+        ) : studioLots.length === 0 && studioWork.length === 0 ? (
           <div
             className='py-12 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E]'
             data-testid='studio-work-empty'
@@ -667,6 +873,18 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           </div>
         ) : (
           <div className='space-y-3' data-testid='studio-work-list'>
+            {studioLots.map((lot) => (
+              <TaskLotWorkCard
+                key={lot.id}
+                workspaceId={workspaceId}
+                lot={lot}
+                isOwner={true}
+                highlightedId={highlightedId}
+                showSeriesHeader={true}
+                onChanged={() => void loadStudioWork()}
+                onToast={onShowToast}
+              />
+            ))}
             {sortedStudioWork.map((a) => (
               <div key={a.id} className='space-y-1'>
                 <p className='text-xs font-semibold text-[#57534E]'>
@@ -694,7 +912,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
           Đang tải công việc...
         </div>
-      ) : visible.length === 0 ? (
+      ) : visibleGridLots.length === 0 &&
+        visibleGridReviews.length === 0 &&
+        visible.length === 0 ? (
         <div
           className='py-12 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E] space-y-2'
           data-testid='my-work-empty'
@@ -722,135 +942,189 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             </button>
           )}
         </div>
-      ) : filteredAssignments.length === 0 ? (
-        <div className='py-10 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E] space-y-2'>
-          <p>Không có công việc nào thuộc phân cảnh này trong mục đã chọn.</p>
-          <button
-            type='button'
-            onClick={() => setSelectedSceneId('ALL')}
-            className='text-xs font-semibold text-[#C2410C] hover:underline cursor-pointer'
-          >
-            Xem tất cả ({visible.length}) công việc trong chương →
-          </button>
-        </div>
-      ) : chapterId === 'ALL_STUDIO' || scenes.length === 0 ? (
-        <div className='space-y-3'>
-          {filteredAssignments.map((a) => (
-            <div key={a.id} className='space-y-1.5'>
-              {(a as any).seriesTitle && (
-                <div className='flex items-center gap-1.5 text-xs font-semibold text-[#C2410C] bg-[#FFF2E6] px-2.5 py-1 rounded-md border border-[#F97316]/30 w-fit'>
-                  <span>Series: {(a as any).seriesTitle}</span>
-                  <span className='text-[#F97316]'>|</span>
-                  <span>Chương {(a as any).chapterNumber}</span>
-                  {(a as any).scopeLabel && (
-                    <>
-                      <span className='text-[#F97316]'>|</span>
-                      <span>{(a as any).scopeLabel}</span>
-                    </>
-                  )}
-                </div>
-              )}
-              <AssignmentWorkCard
-                chapterId={a.chapterId || chapterId}
-                assignment={a}
-                stageName={stageName(a.pipelineStageId, a)}
-                assigneeName={memberName(a.assigneeUserId)}
-                userId={currentUserId}
-                workspaceRole={workspaceRole}
-                stageProgress={progress}
-                highlighted={a.id === highlightedId}
-                onChanged={() => void loadWork()}
-                onToast={onShowToast}
-                relatedAssignments={assignments}
-              />
-            </div>
-          ))}
-        </div>
       ) : (
-        <div className='space-y-6'>
-          {sceneGroups.map((group) => {
-            const isCollapsed = Boolean(collapsedScenes[group.sceneId]);
-            return (
-              <section
-                key={group.sceneId}
-                className='rounded-2xl border border-[#D8D2C5] bg-[#FCFBF8] p-3.5 space-y-3 shadow-xs'
-              >
-                <div
-                  onClick={() =>
-                    setCollapsedScenes((prev) => ({
-                      ...prev,
-                      [group.sceneId]: !prev[group.sceneId],
-                    }))
+        <div className='space-y-4'>
+          {visibleGridReviews.length > 0 && (
+            <div className='space-y-3' data-testid='grid-review-queue-list'>
+              {visibleGridReviews.map((item) => (
+                <TaskGridReviewCard
+                  key={item.taskId}
+                  workspaceId={workspaceId}
+                  item={item}
+                  assigneeName={
+                    item.assigneeUserId ? memberName(item.assigneeUserId) : 'Chưa rõ người nộp'
                   }
-                  className='flex items-center justify-between gap-3 cursor-pointer select-none'
-                >
-                  <div className='flex items-center gap-2.5 min-w-0'>
-                    <div className='w-7 h-7 rounded-lg bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] shrink-0'>
-                      {group.scene ? <Film className='w-4 h-4' /> : <Layers className='w-4 h-4' />}
-                    </div>
-                    <div className='min-w-0'>
-                      <div className='flex items-center gap-2'>
-                        <h2 className='text-xs font-bold text-[#1C1917] truncate'>{group.title}</h2>
-                        <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E]'>
-                          {group.assignments.length} công việc
-                        </span>
-                      </div>
-                      {group.summary && (
-                        <p className='text-xs text-[#57534E] truncate max-w-xl'>{group.summary}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className='flex items-center gap-2 shrink-0'>
-                    <span className='text-xs font-semibold text-[#57534E]'>
-                      {isCollapsed ? 'Mở rộng' : 'Thu gọn'}
-                    </span>
-                    <div className='p-1 rounded-md hover:bg-[#F3F0E9] text-[#78716C] hover:text-[#1C1917] transition-colors'>
-                      {isCollapsed ? (
-                        <ChevronDown className='w-4 h-4' />
-                      ) : (
-                        <ChevronUp className='w-4 h-4' />
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  currentUserId={currentUserId}
+                  highlighted={item.taskId === highlightedId}
+                  onChanged={() => void loadWork()}
+                  onToast={onShowToast}
+                />
+              ))}
+            </div>
+          )}
 
-                {!isCollapsed && (
-                  <div className='space-y-3 pt-1'>
-                    {group.assignments.map((a) => (
-                      <div key={a.id} className='space-y-1.5'>
-                        {(a as any).seriesTitle && (
-                          <div className='flex items-center gap-1.5 text-xs font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
-                            <span>Series: {(a as any).seriesTitle}</span>
-                            <span className='text-orange-400'>|</span>
-                            <span>Chương {(a as any).chapterNumber}</span>
-                            {(a as any).scopeLabel && (
-                              <>
-                                <span className='text-orange-400'>|</span>
-                                <span>{(a as any).scopeLabel}</span>
-                              </>
+          {visibleGridLots.length > 0 && (
+            <div className='space-y-3' data-testid='grid-lots-list'>
+              {visibleGridLots.map((lot) => {
+                const isOwner =
+                  !currentUserId || !lot.assigneeUserId || lot.assigneeUserId === currentUserId;
+                return (
+                  <TaskLotWorkCard
+                    key={lot.id}
+                    workspaceId={workspaceId}
+                    lot={lot}
+                    isOwner={isOwner}
+                    assigneeName={lot.assigneeUserId ? memberName(lot.assigneeUserId) : undefined}
+                    highlightedId={highlightedId}
+                    showSeriesHeader={chapterId === 'ALL_STUDIO'}
+                    onChanged={() => void loadWork()}
+                    onToast={onShowToast}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          {visible.length > 0 &&
+            (filteredAssignments.length === 0 ? (
+              <div className='py-10 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E] space-y-2'>
+                <p>Không có công việc nào thuộc phân cảnh này trong mục đã chọn.</p>
+                <button
+                  type='button'
+                  onClick={() => setSelectedSceneId('ALL')}
+                  className='text-xs font-semibold text-[#C2410C] hover:underline cursor-pointer'
+                >
+                  Xem tất cả ({visible.length}) công việc trong chương →
+                </button>
+              </div>
+            ) : chapterId === 'ALL_STUDIO' || scenes.length === 0 ? (
+              <div className='space-y-3'>
+                {filteredAssignments.map((a) => (
+                  <div key={a.id} className='space-y-1.5'>
+                    {(a as any).seriesTitle && (
+                      <div className='flex items-center gap-1.5 text-xs font-semibold text-[#C2410C] bg-[#FFF2E6] px-2.5 py-1 rounded-md border border-[#F97316]/30 w-fit'>
+                        <span>Series: {(a as any).seriesTitle}</span>
+                        <span className='text-[#F97316]'>|</span>
+                        <span>Chương {(a as any).chapterNumber}</span>
+                        {(a as any).scopeLabel && (
+                          <>
+                            <span className='text-[#F97316]'>|</span>
+                            <span>{(a as any).scopeLabel}</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <AssignmentWorkCard
+                      chapterId={a.chapterId || chapterId}
+                      assignment={a}
+                      stageName={stageName(a.pipelineStageId, a)}
+                      assigneeName={memberName(a.assigneeUserId)}
+                      userId={currentUserId}
+                      workspaceRole={workspaceRole}
+                      stageProgress={progress}
+                      highlighted={a.id === highlightedId}
+                      onChanged={() => void loadWork()}
+                      onToast={onShowToast}
+                      relatedAssignments={assignments}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className='space-y-6'>
+                {sceneGroups.map((group) => {
+                  const isCollapsed = Boolean(collapsedScenes[group.sceneId]);
+                  return (
+                    <section
+                      key={group.sceneId}
+                      className='rounded-2xl border border-[#D8D2C5] bg-[#FCFBF8] p-3.5 space-y-3 shadow-xs'
+                    >
+                      <div
+                        onClick={() =>
+                          setCollapsedScenes((prev) => ({
+                            ...prev,
+                            [group.sceneId]: !prev[group.sceneId],
+                          }))
+                        }
+                        className='flex items-center justify-between gap-3 cursor-pointer select-none'
+                      >
+                        <div className='flex items-center gap-2.5 min-w-0'>
+                          <div className='w-7 h-7 rounded-lg bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] shrink-0'>
+                            {group.scene ? (
+                              <Film className='w-4 h-4' />
+                            ) : (
+                              <Layers className='w-4 h-4' />
                             )}
                           </div>
-                        )}
-                        <AssignmentWorkCard
-                          chapterId={a.chapterId || chapterId}
-                          assignment={a}
-                          stageName={stageName(a.pipelineStageId, a)}
-                          assigneeName={memberName(a.assigneeUserId)}
-                          userId={currentUserId}
-                          workspaceRole={workspaceRole}
-                          stageProgress={progress}
-                          highlighted={a.id === highlightedId}
-                          onChanged={() => void loadWork()}
-                          onToast={onShowToast}
-                          relatedAssignments={assignments}
-                        />
+                          <div className='min-w-0'>
+                            <div className='flex items-center gap-2'>
+                              <h2 className='text-xs font-bold text-[#1C1917] truncate'>
+                                {group.title}
+                              </h2>
+                              <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E]'>
+                                {group.assignments.length} công việc
+                              </span>
+                            </div>
+                            {group.summary && (
+                              <p className='text-xs text-[#57534E] truncate max-w-xl'>
+                                {group.summary}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className='flex items-center gap-2 shrink-0'>
+                          <span className='text-xs font-semibold text-[#57534E]'>
+                            {isCollapsed ? 'Mở rộng' : 'Thu gọn'}
+                          </span>
+                          <div className='p-1 rounded-md hover:bg-[#F3F0E9] text-[#78716C] hover:text-[#1C1917] transition-colors'>
+                            {isCollapsed ? (
+                              <ChevronDown className='w-4 h-4' />
+                            ) : (
+                              <ChevronUp className='w-4 h-4' />
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            );
-          })}
+
+                      {!isCollapsed && (
+                        <div className='space-y-3 pt-1'>
+                          {group.assignments.map((a) => (
+                            <div key={a.id} className='space-y-1.5'>
+                              {(a as any).seriesTitle && (
+                                <div className='flex items-center gap-1.5 text-xs font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
+                                  <span>Series: {(a as any).seriesTitle}</span>
+                                  <span className='text-orange-400'>|</span>
+                                  <span>Chương {(a as any).chapterNumber}</span>
+                                  {(a as any).scopeLabel && (
+                                    <>
+                                      <span className='text-orange-400'>|</span>
+                                      <span>{(a as any).scopeLabel}</span>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                              <AssignmentWorkCard
+                                chapterId={a.chapterId || chapterId}
+                                assignment={a}
+                                stageName={stageName(a.pipelineStageId, a)}
+                                assigneeName={memberName(a.assigneeUserId)}
+                                userId={currentUserId}
+                                workspaceRole={workspaceRole}
+                                stageProgress={progress}
+                                highlighted={a.id === highlightedId}
+                                onChanged={() => void loadWork()}
+                                onToast={onShowToast}
+                                relatedAssignments={assignments}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+            ))}
         </div>
       )}
     </PageContainer>

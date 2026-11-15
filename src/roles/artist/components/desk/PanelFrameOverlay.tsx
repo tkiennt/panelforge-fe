@@ -23,6 +23,8 @@ interface PanelFrameOverlayProps {
   templateCode?: string;
   artworks: Record<string, PanelArtworkData>;
   isLayoutSaved: boolean;
+  selectedPanelId?: string | null;
+  onSelectPanel?: (panelId: string | null) => void;
   onUploadArtwork: (panelId: string, panelNumber: number, file: File) => void;
   onRemoveArtwork: (panelId: string, panelNumber: number) => void;
   onPreviewArtwork: (preview: { imageUrl: string; title: string }) => void;
@@ -46,6 +48,8 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
   templateCode,
   artworks,
   isLayoutSaved,
+  selectedPanelId = null,
+  onSelectPanel,
   onUploadArtwork,
   onRemoveArtwork,
   onPreviewArtwork,
@@ -71,13 +75,20 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
             boxes.some((b, i) => i !== idx && b.percentW > 80));
         const openPicker = () => fileInputs.current[pnl.id]?.click();
 
+        const isSelected = selectedPanelId === pnl.id;
+
         return (
           <div
             key={pnl.id}
             data-testid={`canvas-panel-frame-${panelNum}`}
+            data-panel-selected={isSelected ? 'true' : 'false'}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectPanel?.(isSelected ? null : pnl.id);
+            }}
             className={`absolute overflow-hidden ${isInset ? 'z-30 shadow-md bg-white' : 'z-20'} ${
               corners ? '' : frameClass(!!box.borderless, isLayoutSaved, isInset)
-            } pointer-events-auto`}
+            } ${isSelected ? 'ring-2 ring-[#F97316]' : ''} pointer-events-auto`}
             style={{
               left: `${box.percentX}%`,
               top: `${box.percentY}%`,
@@ -112,9 +123,22 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
               </svg>
             )}
 
-            <span className='absolute top-1 left-1.5 z-20 px-1 rounded text-xs font-mono font-bold bg-white/95 text-stone-800 border border-stone-300/80'>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectPanel?.(isSelected ? null : pnl.id);
+              }}
+              data-testid={`canvas-panel-badge-${panelNum}`}
+              title={`Chọn Khung #${panelNum} để làm nổi dòng kịch bản tương ứng`}
+              className={`absolute top-1 left-1.5 z-20 px-1 rounded text-xs font-mono font-bold border cursor-pointer transition-colors ${
+                isSelected
+                  ? 'bg-[#F97316] text-white border-[#EA580C]'
+                  : 'bg-white/95 text-stone-800 border-stone-300/80 hover:border-[#F97316]'
+              }`}
+            >
               #{panelNum}
-            </span>
+            </button>
 
             {artwork ? (
               <div className='relative w-full h-full group'>

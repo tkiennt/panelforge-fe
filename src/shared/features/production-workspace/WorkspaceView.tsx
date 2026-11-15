@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { ProductionBoard } from '@/shared/features/pipeline-board/ProductionBoard';
+import { TaskGridBoard } from '@/shared/features/pipeline-board/TaskGridBoard';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
-import { CreateAssignmentModal } from '@/roles/producer/modals/CreateAssignmentModal';
-import { SystemRole, WorkspaceRole } from '@/types';
+import { SystemRole, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { BookOpen, RefreshCw, ArrowUpRight, ShieldAlert, Lock, ChevronRight } from 'lucide-react';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { workspaceService } from '@/services/workspace.service';
@@ -50,18 +50,33 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [searchParams, setSearchParams] = useSearchParams();
 
   const chapterIdFromUrl = searchParams.get('chapterId');
+  const boardFromUrl = searchParams.get('board');
+
+  const normalizedWsRole = useMemo(
+    () => normalizeWorkspaceRole(currentUserRole),
+    [currentUserRole],
+  );
 
   const effectiveRoles = useMemo(() => {
-    return userRoles.length > 0
-      ? userRoles
-      : [...(systemRole ? [systemRole] : []), ...(currentUserRole ? [currentUserRole] : [])];
-  }, [userRoles, systemRole, currentUserRole]);
+    if (normalizedWsRole) {
+      return [normalizedWsRole, ...(systemRole ? [systemRole] : [])];
+    }
+    return userRoles.length > 0 ? userRoles : systemRole ? [systemRole] : [];
+  }, [normalizedWsRole, userRoles, systemRole]);
 
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [currentChapterId, setCurrentChapterId] = useState<string>('');
   const [loadingChapters, setLoadingChapters] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [boardMode, setBoardMode] = useState<'legacy' | 'grid-v3'>(() =>
+    boardFromUrl === 'grid-v3' ? 'grid-v3' : 'legacy',
+  );
+
+  useEffect(() => {
+    if (boardFromUrl === 'grid-v3') {
+      setBoardMode('grid-v3');
+    }
+  }, [boardFromUrl]);
 
   // Metadata cho breadcrumb Studio / Series
   const [workspaceName, setWorkspaceName] = useState<string>('');
@@ -69,8 +84,13 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
   const isReaderOnly = effectiveRoles.length === 1 && effectiveRoles[0] === 'READER';
   const isProducer = useMemo(() => {
-    return effectiveRoles.some((r) => r.toUpperCase() === 'PRODUCER');
-  }, [effectiveRoles]);
+    if (normalizedWsRole) return normalizedWsRole === 'PRODUCER';
+    return userRoles.some((r) => r.toUpperCase() === 'PRODUCER');
+  }, [normalizedWsRole, userRoles]);
+  const isEditor = useMemo(() => {
+    if (normalizedWsRole) return normalizedWsRole === 'EDITOR';
+    return userRoles.some((r) => r.toUpperCase() === 'EDITOR');
+  }, [normalizedWsRole, userRoles]);
 
   // Nạp metadata ngữ cảnh Studio và Series
   useEffect(() => {
@@ -278,6 +298,51 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
           {/* Nhóm hành động: tối đa 1 CTA chính nổi bật */}
           <div className='flex flex-wrap items-center gap-2.5'>
+            <div
+              role='group'
+              aria-label='Chế độ bảng điều phối'
+              className='inline-flex rounded-lg border border-landing-border bg-[#FCFBF8] p-0.5 shadow-2xs'
+            >
+              <button
+                type='button'
+                aria-pressed={boardMode === 'legacy'}
+                onClick={() => {
+                  setBoardMode('legacy');
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete('board');
+                    return next;
+                  });
+                }}
+                className={`min-h-9 rounded-md px-3 text-xs font-semibold transition-colors cursor-pointer ${
+                  boardMode === 'legacy'
+                    ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]/40 font-bold'
+                    : 'text-landing-ink-muted hover:text-landing-ink'
+                }`}
+              >
+                Bảng công việc
+              </button>
+              <button
+                type='button'
+                aria-pressed={boardMode === 'grid-v3'}
+                onClick={() => {
+                  setBoardMode('grid-v3');
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set('board', 'grid-v3');
+                    return next;
+                  });
+                }}
+                className={`min-h-9 rounded-md px-3 text-xs font-semibold transition-colors cursor-pointer ${
+                  boardMode === 'grid-v3'
+                    ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]/40 font-bold'
+                    : 'text-landing-ink-muted hover:text-landing-ink'
+                }`}
+              >
+                Lưới Trang × Công đoạn (V3)
+              </button>
+            </div>
+
             <button
               type='button'
               onClick={() => {
@@ -312,34 +377,37 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         </header>
 
         {/* Bàn điều phối sản xuất */}
-        <ProductionBoard
-          chapterId={currentChapterId}
-          refreshKey={refreshKey}
-          currentUserRole={currentUserRole}
-          isProducer={isProducer}
-          currentUserId={currentUserId}
-          onShowToast={onShowToast}
-          onOpenCreateAssignment={() => setIsCreateModalOpen(true)}
-        />
+        {boardMode === 'grid-v3' && currentChapterId ? (
+          <TaskGridBoard
+            chapterId={currentChapterId}
+            seriesId={seriesId}
+            workspaceId={workspaceId}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            isProducer={isProducer}
+            isEditor={isEditor}
+            refreshKey={refreshKey}
+            onShowToast={onShowToast}
+          />
+        ) : (
+          <ProductionBoard
+            chapterId={currentChapterId}
+            refreshKey={refreshKey}
+            currentUserRole={currentUserRole}
+            isProducer={isProducer}
+            currentUserId={currentUserId}
+            onShowToast={onShowToast}
+            onOpenTaskGrid={() => {
+              setBoardMode('grid-v3');
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.set('board', 'grid-v3');
+                return next;
+              });
+            }}
+          />
+        )}
       </div>
-
-      {/* Modal giao việc trực tiếp */}
-      {workspaceId && seriesId && currentChapterId && isCreateModalOpen && (
-        <CreateAssignmentModal
-          isOpen={isCreateModalOpen}
-          workspaceId={workspaceId}
-          seriesId={seriesId}
-          chapterId={currentChapterId}
-          chapterNumber={currentChapter?.chapterNumber}
-          onClose={() => setIsCreateModalOpen(false)}
-          onSuccess={() => {
-            setIsCreateModalOpen(false);
-            setRefreshKey((k) => k + 1);
-            onShowToast('Giao việc thành công', 'Nhiệm vụ mới đã được thêm vào bảng tiến độ');
-          }}
-          onShowToast={onShowToast}
-        />
-      )}
     </div>
   );
 };

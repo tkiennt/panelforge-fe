@@ -167,7 +167,9 @@
       "underReview": "UnderReview",
       "approved": "Approved",
       "reworkRequired": "Rework Required"
-    }
+    },
+    "tabAssignments": "Assignment List",
+    "tabTaskGridV3": "Page × Stage Grid (V3)"
   },
   "createAssignmentModal": {
     "headerBadge": "Task Creation",

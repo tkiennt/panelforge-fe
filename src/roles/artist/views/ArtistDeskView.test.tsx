@@ -1303,4 +1303,59 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
       });
     });
   });
+
+  describe('ArtistDeskView - Collapsible Script Reference Sidebar (VIỆC 2)', () => {
+    it('renders collapsible script reference sidebar in line format with line kind labels and highlights lines when a panel is selected', () => {
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/artist'
+              element={<ArtistDeskView workspaceRole='ARTIST' />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      // Right script reference sidebar is open by default
+      const scriptRefSidebar = screen.getByTestId('artist-script-ref-sidebar');
+      expect(scriptRefSidebar).toBeInTheDocument();
+      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveTextContent('[Mô tả cảnh]');
+      expect(screen.getByTestId('artist-script-ref-line-line-2')).toHaveTextContent(
+        '[Thoại · Minh Triết]',
+      );
+
+      // Apply a 3-panel template so panels exist on Page 1
+      fireEvent.click(screen.getByTestId('canva-tab-templates'));
+      fireEvent.click(
+        screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-000000000004'),
+      );
+
+      // Click Panel #2 on the canvas -> highlights lines of Panel #2 (line-3)
+      fireEvent.click(screen.getByTestId('canvas-panel-badge-2'));
+      expect(screen.getByTestId('artist-script-ref-line-line-3')).toHaveAttribute(
+        'data-line-highlighted',
+        'true',
+      );
+      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveAttribute(
+        'data-line-highlighted',
+        'false',
+      );
+
+      // Click "Cả trang" button in script reference sidebar -> clears panel selection
+      fireEvent.click(screen.getByTestId('artist-script-ref-filter-all'));
+      expect(screen.getByTestId('artist-script-ref-line-line-3')).toHaveAttribute(
+        'data-line-highlighted',
+        'false',
+      );
+
+      // Collapse and re-expand the script reference sidebar
+      fireEvent.click(screen.getByTestId('artist-script-ref-toggle'));
+      expect(screen.queryByTestId('artist-script-ref-sidebar')).not.toBeInTheDocument();
+      expect(screen.getByTestId('artist-script-ref-collapsed')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('artist-script-ref-toggle'));
+      expect(screen.getByTestId('artist-script-ref-sidebar')).toBeInTheDocument();
+    });
+  });
 });

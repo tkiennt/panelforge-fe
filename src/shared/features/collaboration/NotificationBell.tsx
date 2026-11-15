@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { notificationService } from '@/services/notification.service';
 import type { NotificationDto } from '@/types';
 import { formatRelativeTime } from './collaborationRules';
-import { getNotificationBadge } from './notificationBadge';
+import { getNotificationBadge, resolveNotificationTargetPath } from './notificationBadge';
 import '@/styles/modules/lucian/lucian-074.css';
 
 interface NotificationBellProps {
@@ -94,20 +94,10 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
         setUnreadCount((c) => Math.max(0, c - 1));
       }
     }
-    if (workspaceId && seriesId && n.chapterId) {
-      if (
-        n.type === 'ChapterReadyForPublication' ||
-        n.type === 'ChapterReopened' ||
-        n.type === 'ChapterPublished'
-      ) {
-        setOpen(false);
-        navigate(`/workspaces/${workspaceId}/series/${seriesId}/publishing`);
-        return;
-      }
-      const query = new URLSearchParams({ chapterId: n.chapterId });
-      if (n.assignmentId) query.set('assignmentId', n.assignmentId);
+    const targetPath = await resolveNotificationTargetPath(n, { workspaceId, seriesId });
+    if (targetPath) {
       setOpen(false);
-      navigate(`/workspaces/${workspaceId}/series/${seriesId}/my-work?${query.toString()}`);
+      navigate(targetPath);
     }
   };
 

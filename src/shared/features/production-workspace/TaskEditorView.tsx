@@ -216,7 +216,6 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
             )}
           </div>
         );
-      case 'thumbnail':
       case 'pencil':
       case 'ink':
       case 'color':
@@ -269,7 +268,7 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
 
   const canEdit =
     (task.stage === 'script' && isWriter) ||
-    (['thumbnail', 'pencil', 'ink', 'color'].includes(task.stage) && isArtist) ||
+    (['pencil', 'ink', 'color'].includes(task.stage) && isArtist) ||
     (task.stage === 'letter' && isLetterer);
 
   const handleStartWork = async () => {

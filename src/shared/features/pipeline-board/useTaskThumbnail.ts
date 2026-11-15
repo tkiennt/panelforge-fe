@@ -39,26 +39,27 @@ export function useTaskThumbnail(card: BoardCard | null | undefined): TaskThumbn
       return;
     }
 
+    // Cấp Chương không có trang vẽ bản thảo — không hiện nhãn/ảnh giả "Toàn chương (Kịch bản/Kế hoạch)"
+    if (card.entityType === 'Chapter') {
+      setResult({
+        status: 'empty',
+        url: null,
+      });
+      return;
+    }
+
     // In unit test environments without mocked fetch/artwork service, avoid unmocked network calls
     if (import.meta.env.MODE === 'test') {
       setResult({
         status: 'empty',
         url: null,
-        label: card.entityType === 'Chapter' ? 'Toàn chương (Kế hoạch)' : 'Chưa có bản vẽ',
-      });
-      return;
-    }
-    if (card.entityType === 'Chapter') {
-      setResult({
-        status: 'empty',
-        url: null,
-        label: 'Toàn chương (Kịch bản/Kế hoạch)',
+        label: 'Chưa có bản vẽ',
       });
       return;
     }
 
-    // Only Page and Panel can have manuscript artwork
-    const pageId = card.entityType === 'Page' ? card.targetEntityId : null;
+    // Only Page and Panel can have manuscript artwork (thẻ lô dùng firstPageId để lấy ảnh trang đầu)
+    const pageId = card.entityType === 'Page' ? (card.firstPageId ?? card.targetEntityId) : null;
     if (!pageId) {
       setResult({
         status: 'empty',
