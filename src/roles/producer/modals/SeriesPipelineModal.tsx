@@ -38,11 +38,10 @@ interface SeriesPipelineModalProps {
   onShowToast?: (title: string, desc: string) => void;
 }
 
-const AVAILABLE_ROLES: PipelineRole[] = ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor'];
+const AVAILABLE_ROLES: PipelineRole[] = ['Producer', 'Artist', 'Letterer', 'Editor'];
 
 const ROLE_COLORS: Record<string, string> = {
   Producer: 'bg-purple-100 text-purple-700 border-purple-200',
-  Writer: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   Artist: 'bg-blue-100 text-blue-700 border-blue-200',
   Letterer: 'bg-pink-100 text-pink-700 border-pink-200',
   Editor: 'bg-amber-100 text-amber-700 border-amber-200',

@@ -212,12 +212,36 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
       );
     }
 
-    return (
-      <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0'>
-        <Clock className='w-3 h-3 text-amber-600' />
-        <span>Đang sản xuất</span>
-      </span>
-    );
+    switch (chapter.status) {
+      case 'PreProduction':
+        return (
+          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-50 text-stone-700 border border-stone-200 shrink-0'>
+            <Clock className='w-3 h-3 text-stone-500' />
+            <span>Tiền kỳ (viết kịch bản)</span>
+          </span>
+        );
+      case 'ChapterApproved':
+        return (
+          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
+            <CheckCircle2 className='w-3 h-3 text-emerald-600' />
+            <span>Nghiệm thu hoàn tất (Gate 3)</span>
+          </span>
+        );
+      case 'HandedOffAndPublished':
+        return (
+          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
+            <Sparkles className='w-3 h-3 text-purple-600' />
+            <span>Đã phát hành</span>
+          </span>
+        );
+      default:
+        return (
+          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0'>
+            <Clock className='w-3 h-3 text-amber-600' />
+            <span>Đang sản xuất</span>
+          </span>
+        );
+    }
   };
 
   return (

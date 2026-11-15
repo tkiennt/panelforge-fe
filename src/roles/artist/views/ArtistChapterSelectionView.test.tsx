@@ -65,7 +65,7 @@ const MOCK_CHAPTERS: ChapterDto[] = [
     outline: 'Tiết lộ bí mật về hoàng đế cũ.',
     scenesCount: 4,
     pagesCount: 22,
-    status: 'Approved',
+    status: 'ChapterApproved',
     isScriptFrozen: true,
     scriptContentHash: 'def9876543210',
     createdAt: '2026-01-04T00:00:00Z',

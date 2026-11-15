@@ -25,6 +25,7 @@ import {
   Camera,
   Upload,
   Lock,
+  Play,
 } from 'lucide-react';
 import {
   chapterService,
@@ -32,6 +33,7 @@ import {
   CreateChapterRequest,
   UpdateChapterRequest,
 } from '@/services/chapter.service';
+import { chapterCastService } from '@/services/chapterCast.service';
 import { ChapterAssignmentsModal } from './ChapterAssignmentsModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
@@ -39,7 +41,6 @@ import { PreviewLinksModal } from './PreviewLinksModal';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
-import { ChapterPriceBadge } from '@/shared/components/ChapterPriceBadge';
 import { Modal } from '@/shared/ui';
 
 interface SeriesChaptersModalProps {
@@ -100,16 +101,12 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const [newTitle, setNewTitle] = useState('');
   const [newTargetReleaseDate, setNewTargetReleaseDate] = useState('');
   const [newOutline, setNewOutline] = useState('');
-  const [newIsLocked, setNewIsLocked] = useState(false);
-  const [newPriceVnd, setNewPriceVnd] = useState(10000);
 
   // Edit Chapter Modal/Form State
   const [editingChapter, setEditingChapter] = useState<ChapterDto | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editTargetReleaseDate, setEditTargetReleaseDate] = useState('');
   const [editOutline, setEditOutline] = useState('');
-  const [editIsLocked, setEditIsLocked] = useState(false);
-  const [editPriceVnd, setEditPriceVnd] = useState(10000);
 
   // Delete Chapter Confirmation State (Lucian #269)
   const [deleteTargetChapter, setDeleteTargetChapter] = useState<ChapterDto | null>(null);
@@ -162,8 +159,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         title: newTitle.trim() || undefined,
         targetReleaseDate: newTargetReleaseDate || undefined,
         outline: newOutline.trim() || undefined,
-        isLocked: newIsLocked,
-        priceVnd: newIsLocked ? newPriceVnd : 0,
       };
 
       const created = await chapterService.createChapter(seriesId, payload);
@@ -179,8 +174,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       setNewTitle('');
       setNewTargetReleaseDate('');
       setNewOutline('');
-      setNewIsLocked(false);
-      setNewPriceVnd(10000);
       setShowAddForm(false);
       await fetchChapters();
     } catch (err: any) {
@@ -254,8 +247,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     setEditTitle(chap.title || '');
     setEditTargetReleaseDate(chap.targetReleaseDate || '');
     setEditOutline(chap.outline || '');
-    setEditIsLocked(chap.isLocked ?? false);
-    setEditPriceVnd(chap.priceVnd ?? 10000);
   };
 
   const handleUpdateChapter = async (e: React.FormEvent) => {
@@ -267,8 +258,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         title: editTitle.trim() === '' ? '' : editTitle.trim(),
         targetReleaseDate: editTargetReleaseDate || undefined,
         outline: editOutline.trim() === '' ? '' : editOutline.trim(),
-        isLocked: editIsLocked,
-        priceVnd: editIsLocked ? editPriceVnd : 0,
       };
 
       await chapterService.updateChapter(editingChapter.id, payload);
@@ -316,6 +305,78 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     }
   };
 
+  const handleStartProduction = async (chap: ChapterDto) => {
+    setActionLoading(true);
+    try {
+      let openCommentsCount = 0;
+      try {
+        const [cast, comments] = await Promise.all([
+          chapterCastService.getChapterCast(chap.id).catch(() => null),
+          chapterService.getScriptComments(chap.id).catch(() => []),
+        ]);
+        if (cast?.gate && !cast.gate.canStart) {
+          const blockerMsg = cast.gate.blockers
+            .map((b) => `${b.entryName}: ${b.reason || 'Chưa khoá Canon'}`)
+            .join('; ');
+          onShowToast?.(
+            t('seriesChaptersModal.gate1BlockedTitle', 'Chưa thể bắt đầu sản xuất (Gate 1)'),
+            blockerMsg,
+          );
+          setActionLoading(false);
+          return;
+        }
+        openCommentsCount = (comments || []).filter((c) => !c.resolvedAt).length;
+      } catch (err) {
+        console.warn('Lỗi kiểm tra Gate 1:', err);
+      }
+
+      const desc =
+        openCommentsCount > 0
+          ? t('seriesChaptersModal.confirmGate1DescWithComments', {
+              number: chap.chapterNumber,
+              count: openCommentsCount,
+              defaultValue: `Kịch bản Chương ${chap.chapterNumber} sẽ được đóng băng và chuyển sang trạng thái InProduction để bắt đầu sản xuất tranh.\nLưu ý: Còn ${openCommentsCount} góp ý kịch bản chưa giải quyết (góp ý không chặn tiến độ).`,
+            })
+          : t('seriesChaptersModal.confirmGate1Desc', {
+              number: chap.chapterNumber,
+              defaultValue: `Kịch bản Chương ${chap.chapterNumber} sẽ được đóng băng và chuyển sang trạng thái InProduction để bắt đầu sản xuất tranh.`,
+            });
+
+      if (
+        !(await confirm({
+          title: t('seriesChaptersModal.confirmGate1Title', {
+            number: chap.chapterNumber,
+            defaultValue: `Duyệt kịch bản & Bắt đầu sản xuất Chương ${chap.chapterNumber}?`,
+          }),
+          description: desc,
+          confirmText: t('seriesChaptersModal.confirmGate1Btn', 'Bắt đầu sản xuất'),
+          cancelText: t('seriesChaptersModal.confirmGate1Cancel', 'Xem lại'),
+          variant: 'info',
+        }))
+      ) {
+        setActionLoading(false);
+        return;
+      }
+
+      await chapterService.freezeScript(chap.id);
+      onShowToast?.(
+        t('seriesChaptersModal.toastGate1Success', 'Đã bắt đầu sản xuất'),
+        t('seriesChaptersModal.toastGate1SuccessDesc', {
+          number: chap.chapterNumber,
+          defaultValue: `Chương ${chap.chapterNumber} đã chuyển sang InProduction. Kịch bản đã được đóng băng.`,
+        }),
+      );
+      await fetchChapters();
+    } catch (err: any) {
+      onShowToast?.(
+        t('seriesChaptersModal.toastGate1Error', 'Không thể bắt đầu sản xuất'),
+        err.message,
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleApproveChapter = async (chap: ChapterDto) => {
     setActionLoading(true);
     try {
@@ -348,7 +409,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           }),
           description: t('seriesChaptersModal.confirmApproveDesc', {
             title: chap.title || t('seriesChaptersModal.untitled', 'Không tiêu đề'),
-            defaultValue: `Chương "${chap.title || 'Không tiêu đề'}" sẽ chuyển sang trạng thái Approved (Chờ xuất bản). Các phân công sẽ được đóng lại để Publisher duyệt xuất bản.`,
+            defaultValue: `Chương "${chap.title || 'Không tiêu đề'}" sẽ chuyển sang trạng thái đã nghiệm thu (Gate 3). Producer hoàn tất nghiệm thu và bàn giao cho Publisher để phát hành.`,
           }),
           confirmText: t('seriesChaptersModal.confirmApproveBtn', 'Phê duyệt hoàn tất'),
           cancelText: t('seriesChaptersModal.confirmApproveCancel', 'Xem lại'),
@@ -364,7 +425,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         t('seriesChaptersModal.toastApproveSuccess', 'Đã duyệt chương'),
         t('seriesChaptersModal.toastApproveSuccessDesc', {
           number: chap.chapterNumber,
-          defaultValue: `Chương ${chap.chapterNumber} đã hoàn tất sản xuất và chuyển sang trạng thái Approved (chờ Publisher xuất bản).`,
+          defaultValue: `Chương ${chap.chapterNumber} đã hoàn tất sản xuất, nghiệm thu và bàn giao cho Publisher.`,
         }),
       );
       await fetchChapters();
@@ -485,7 +546,14 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   // Helper formatting for BE chapter status (F7 + Core flow)
   const renderChapterStatus = (status?: string, publishedAt?: string | null) => {
     switch (status) {
-      case 'Published': {
+      case 'PreProduction':
+        return (
+          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-stone-50 text-stone-700 border border-stone-200 flex items-center gap-1'>
+            <Clock className='w-3 h-3 text-stone-500' />
+            <span>{t('seriesChaptersModal.preProduction', 'Tiền kỳ (viết kịch bản)')}</span>
+          </span>
+        );
+      case 'HandedOffAndPublished': {
         const pubDate = publishedAt ? new Date(publishedAt) : null;
         const isValidDate = Boolean(pubDate && !isNaN(pubDate.getTime()));
         const isScheduled = Boolean(isValidDate && pubDate! > new Date());
@@ -516,17 +584,11 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           </span>
         );
       }
-      case 'Approved':
+      case 'ChapterApproved':
         return (
           <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1'>
             <CheckCircle2 className='w-3 h-3 text-amber-600' />
-            <span>{t('seriesChaptersModal.approved', 'Chờ xuất bản')}</span>
-          </span>
-        );
-      case 'Locked':
-        return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1'>
-            <span>{t('seriesChaptersModal.locked', 'Đã khóa')}</span>
+            <span>{t('seriesChaptersModal.approved', 'Đã nghiệm thu (Gate 3)')}</span>
           </span>
         );
       case 'InProduction':
@@ -643,13 +705,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                   </div>
                 </div>
 
-                <ChapterPricingFields
-                  isLocked={newIsLocked}
-                  priceVnd={newPriceVnd}
-                  onLockedChange={setNewIsLocked}
-                  onPriceChange={setNewPriceVnd}
-                />
-
                 <div>
                   <div className='flex items-center justify-between mb-1'>
                     <label className='block font-semibold text-[#171717]'>
@@ -754,13 +809,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     />
                   </div>
                 </div>
-
-                <ChapterPricingFields
-                  isLocked={editIsLocked}
-                  priceVnd={editPriceVnd}
-                  onLockedChange={setEditIsLocked}
-                  onPriceChange={setEditPriceVnd}
-                />
 
                 <div>
                   <div className='flex items-center justify-between mb-1'>
@@ -942,7 +990,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                 </span>
                               )}
                             </span>
-                            <ChapterPriceBadge isLocked={chap.isLocked} priceVnd={chap.priceVnd} />
                           </div>
                           {chap.outline && (
                             <div className='mt-1 flex items-start gap-1'>
@@ -1032,6 +1079,28 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               <span>{t('seriesChaptersModal.assign', 'Giao việc')}</span>
                             </button>
 
+                            {chap.status === 'PreProduction' && (
+                              <button
+                                type='button'
+                                onClick={() => handleStartProduction(chap)}
+                                disabled={actionLoading}
+                                className='px-3 py-1.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white transition-all cursor-pointer flex items-center gap-1.5 font-bold text-xs shadow-xs disabled:opacity-50 active:scale-98'
+                                title={t(
+                                  'seriesChaptersModal.gate1Tooltip',
+                                  'Gate 1: Duyệt kịch bản & Bắt đầu sản xuất -> chuyển sang InProduction',
+                                )}
+                                data-testid={`producer-gate1-start-${chap.id}`}
+                              >
+                                <Play className='w-3.5 h-3.5 text-orange-200' />
+                                <span>
+                                  {t(
+                                    'seriesChaptersModal.gate1Start',
+                                    'Gate 1: Duyệt kịch bản & Bắt đầu sản xuất',
+                                  )}
+                                </span>
+                              </button>
+                            )}
+
                             {chap.status === 'InProduction' && (
                               <button
                                 type='button'
@@ -1051,7 +1120,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               </button>
                             )}
 
-                            {chap.status === 'Approved' && (
+                            {chap.status === 'ChapterApproved' && (
                               <button
                                 type='button'
                                 onClick={() => handleReopenChapter(chap)}
@@ -1068,7 +1137,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                             )}
 
                             {/* InProduction: vẫn mở được để chuyển phản hồi "cần sửa" thành yêu cầu sửa (5.7) */}
-                            {(chap.status === 'Approved' || chap.status === 'InProduction') && (
+                            {(chap.status === 'ChapterApproved' ||
+                              chap.status === 'InProduction') && (
                               <button
                                 type='button'
                                 onClick={() => setPreviewChapter(chap)}
@@ -1081,7 +1151,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               >
                                 <Share2 className='w-3.5 h-3.5 text-indigo-600' />
                                 <span>
-                                  {chap.status === 'Approved'
+                                  {chap.status === 'ChapterApproved'
                                     ? t('seriesChaptersModal.previewSend', 'Gửi xem thử')
                                     : t('seriesChaptersModal.previewFeedback', 'Phản hồi xem thử')}
                                 </span>
@@ -1119,10 +1189,14 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                             <button
                               type='button'
                               onClick={() => handleStartEdit(chap)}
-                              disabled={chap.status === 'Approved' || chap.status === 'Published'}
+                              disabled={
+                                chap.status === 'ChapterApproved' ||
+                                chap.status === 'HandedOffAndPublished'
+                              }
                               className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
                               title={
-                                chap.status === 'Approved' || chap.status === 'Published'
+                                chap.status === 'ChapterApproved' ||
+                                chap.status === 'HandedOffAndPublished'
                                   ? t(
                                       'seriesChaptersModal.editDisabledTooltip',
                                       'Chương đã duyệt hoặc đã xuất bản',
@@ -1138,10 +1212,14 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                             <button
                               type='button'
                               onClick={() => handleDeleteChapter(chap)}
-                              disabled={chap.status === 'Approved' || chap.status === 'Published'}
+                              disabled={
+                                chap.status === 'ChapterApproved' ||
+                                chap.status === 'HandedOffAndPublished'
+                              }
                               className='p-1.5 rounded-lg hover:bg-red-50 text-[#888888] hover:text-red-600 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
                               title={
-                                chap.status === 'Approved' || chap.status === 'Published'
+                                chap.status === 'ChapterApproved' ||
+                                chap.status === 'HandedOffAndPublished'
                                   ? t(
                                       'seriesChaptersModal.deleteDisabledTooltip',
                                       'Chương đã duyệt hoặc đã xuất bản không thể xóa',
@@ -1282,101 +1360,5 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         />
       )}
     </>
-  );
-};
-
-const CHAPTER_PRICE_PRESETS_VND = [5000, 10000, 15000, 20000];
-const MIN_CHAPTER_PRICE_VND = 1000;
-
-const formatVnd = (amount: number) => `${amount.toLocaleString('vi-VN')}đ`;
-
-interface ChapterPricingFieldsProps {
-  isLocked: boolean;
-  priceVnd: number;
-  onLockedChange: (value: boolean) => void;
-  onPriceChange: (value: number) => void;
-}
-
-/** Toggle "Chương trả phí" + ô nhập giá VNĐ + nút chọn nhanh mệnh giá (form tạo & sửa chương). */
-const ChapterPricingFields: React.FC<ChapterPricingFieldsProps> = ({
-  isLocked,
-  priceVnd,
-  onLockedChange,
-  onPriceChange,
-}) => {
-  const { t } = useTranslation();
-  const priceTooLow = isLocked && priceVnd < MIN_CHAPTER_PRICE_VND;
-
-  return (
-    <div className='p-3 bg-white border border-[#E7E7E7] rounded-lg space-y-2.5'>
-      <div className='flex items-center justify-between gap-3'>
-        <div className='flex items-center gap-2 select-none'>
-          <button
-            type='button'
-            role='switch'
-            aria-checked={isLocked}
-            aria-label={t('payments.chapterPricing.toggle')}
-            onClick={() => onLockedChange(!isLocked)}
-            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
-              isLocked ? 'bg-[#F97316]' : 'bg-stone-300'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                isLocked ? 'translate-x-4' : 'translate-x-0.5'
-              }`}
-            />
-          </button>
-          <span className='font-semibold text-xs text-[#171717] flex items-center gap-1.5'>
-            <Lock className='w-3.5 h-3.5 text-amber-600' />
-            {t('payments.chapterPricing.toggle')}
-          </span>
-        </div>
-        <span className='text-[10px] text-stone-500 text-right'>
-          {isLocked
-            ? t('payments.chapterPricing.lockedHint')
-            : t('payments.chapterPricing.freeHint')}
-        </span>
-      </div>
-
-      {isLocked && (
-        <div className='pt-2 border-t border-dashed border-[#E7E7E7] space-y-1.5 animate-in fade-in duration-150'>
-          <div className='flex flex-wrap items-center gap-2'>
-            <label className='text-xs font-semibold text-[#171717] shrink-0'>
-              {t('payments.chapterPricing.priceLabel')}
-            </label>
-            <input
-              type='number'
-              min={MIN_CHAPTER_PRICE_VND}
-              step={1000}
-              required
-              value={priceVnd}
-              onChange={(e) => onPriceChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
-              className='w-32 px-2.5 py-1 bg-[#FFF7ED] border border-[#FDBA74] rounded-lg text-xs font-mono font-bold text-[#F97316] focus:outline-none'
-            />
-            <span className='text-xs text-stone-400'>{t('payments.chapterPricing.quickPick')}</span>
-            {CHAPTER_PRICE_PRESETS_VND.map((amt) => (
-              <button
-                key={amt}
-                type='button'
-                onClick={() => onPriceChange(amt)}
-                className={`px-2 py-0.5 text-[11px] font-mono rounded transition-colors border ${
-                  priceVnd === amt
-                    ? 'bg-amber-100 text-amber-800 border-amber-300 font-bold'
-                    : 'bg-stone-100 hover:bg-amber-100 hover:text-amber-800 text-stone-600 border-stone-200'
-                }`}
-              >
-                {formatVnd(amt)}
-              </button>
-            ))}
-          </div>
-          {priceTooLow && (
-            <p className='text-[10px] text-rose-600'>
-              {t('payments.chapterPricing.minPrice', { min: formatVnd(MIN_CHAPTER_PRICE_VND) })}
-            </p>
-          )}
-        </div>
-      )}
-    </div>
   );
 };

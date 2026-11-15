@@ -1,5 +1,6 @@
 // src/services/series.service.ts
 import axiosClient from '../api/axiosClient';
+import type { ChapterStatus } from './chapter.service';
 
 // axiosClient mặc định Content-Type JSON → axios 1.x đổi FormData thành JSON (415). Upload file phải ghi rõ multipart (axios tự thêm boundary).
 const MULTIPART = { headers: { 'Content-Type': 'multipart/form-data' } };
@@ -84,7 +85,7 @@ export interface ChapterProgressDto {
   chapterId: string;
   chapterNumber: number;
   title: string | null;
-  status: 'InProduction' | 'Approved' | 'Locked' | 'Published' | string;
+  status: ChapterStatus | string;
   targetReleaseDate: string | null;
   pageCount: number;
   panelCount: number;

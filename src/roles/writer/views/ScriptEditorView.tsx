@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   FileText,
   Plus,
@@ -191,9 +191,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const isScriptFrozen = scriptStatus === 'Frozen';
   const isScriptInReview = scriptStatus === 'InReview';
   const isChapterContentLocked =
-    currentChapter?.status === 'Approved' ||
-    currentChapter?.status === 'Locked' ||
-    currentChapter?.status === 'Published';
+    currentChapter?.status === 'ChapterApproved' ||
+    currentChapter?.status === 'HandedOffAndPublished';
   const isChapterLocked = isScriptFrozen || isChapterContentLocked;
 
   // Phiên bản mới nhất và bản đang gửi duyệt: khác mã băm = có thay đổi chưa gửi duyệt lại
@@ -1911,9 +1910,25 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   };
 
-  /** D12: chỉ Writer rút kịch bản về sửa (InReview → Draft). */
+  /** D12 / F#27: chỉ Writer rút kịch bản về sửa (InReview → Draft), yêu cầu xác nhận via ConfirmDialog. */
   const handleRecallScript = async () => {
     if (!currentChapter?.id) return;
+
+    const confirmed = await confirm({
+      title: t('scriptStudio.lifecycle.recallConfirmTitle', {
+        n: currentChapter.chapterNumber,
+        defaultValue: `Rút kịch bản Chương ${currentChapter.chapterNumber} về sửa?`,
+      }),
+      description: t(
+        'scriptStudio.lifecycle.recallConfirmBody',
+        'Kịch bản sẽ chuyển về trạng thái Bản thảo (Draft). Các góp ý và ghi chú đánh giá của Editor vẫn được lưu giữ.',
+      ),
+      confirmText: t('scriptStudio.submit.recall', 'Rút về sửa'),
+      cancelText: t('scriptStudio.lifecycle.cancel', 'Hủy'),
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+
     setSubmittingToEditor(true);
     try {
       const updated = await chapterService.recallScript(currentChapter.id);
@@ -1994,38 +2009,34 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Handler đi qua ref vì chúng được tạo lại mỗi lần render; đưa trực tiếp vào deps sẽ gây vòng lặp setHeaderConfig.
   const focusHeader = useFocusHeaderContext();
   const isWriterRole = normRole === 'WRITER' || effectiveRole === 'WRITER';
-  // D12: Writer gửi duyệt (Draft) / gửi lại khi đã sửa sau lần gửi (InReview); hủy gửi duyệt nằm ở banner.
-  // Producer Start Production (InReview). Editor không có nút đổi trạng thái.
-  const scriptAction: 'submit' | 'resubmit' | 'start' | null =
+  // D12 / F#20: Writer gửi duyệt (Draft) / gửi lại khi đã sửa sau lần gửi (InReview).
+  // Producer Start Production nằm ở ScriptReviewView và SeriesChaptersModal; màn Writer header giữ trạng thái read-only.
+  const scriptAction: 'submit' | 'resubmit' | null =
     !currentChapter || isChapterContentLocked
       ? null
       : isWriterRole && scriptStatus === 'Draft'
         ? 'submit'
         : isWriterRole && isScriptInReview
           ? 'resubmit'
-          : isProducer && isScriptInReview
-            ? 'start'
-            : null;
+          : null;
   // BIB-16 item 6: kiểm tra blockers của submitGate và gate
   const isSubmitBlocked =
     (scriptAction === 'submit' || scriptAction === 'resubmit') &&
     chapterCast?.submitGate?.canSubmit === false;
-  const isStartBlocked = scriptAction === 'start' && chapterCast?.gate?.canStart === false;
+  const isStartBlocked = !isScriptFrozen && chapterCast?.gate?.canStart === false;
 
   // Gửi lại chỉ khi đã lưu thay đổi sau lần gửi duyệt gần nhất; và không bị chặn bởi gate blockers
   const canSubmitScript =
     scriptAction !== null &&
     (scriptAction !== 'resubmit' || hasUnpushedChanges) &&
-    !isSubmitBlocked &&
-    !isStartBlocked;
+    !isSubmitBlocked;
   const scriptStageIndex = isScriptFrozen ? 2 : isScriptInReview ? 1 : 0;
 
   const submitScriptRef = React.useRef<() => void>(() => {});
   const selectChapterRef = React.useRef(handleSelectChapter);
   useEffect(() => {
     submitScriptRef.current = () => {
-      if (scriptAction === 'start') void handleFreezeScript();
-      else if (scriptAction === 'submit' || scriptAction === 'resubmit') void handleSubmitScript();
+      if (scriptAction === 'submit' || scriptAction === 'resubmit') void handleSubmitScript();
     };
     selectChapterRef.current = handleSelectChapter;
   });
@@ -2057,14 +2068,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       stages: scriptStages,
       currentStageIndex: scriptStageIndex,
       isStageFlowCompleted: isScriptFrozen,
-      isSubmittingStage: submittingToEditor || freezingScript,
+      isSubmittingStage: submittingToEditor,
       onSubmitStage: canSubmitScript ? () => submitScriptRef.current() : undefined,
       submitButtonLabel:
-        scriptAction === 'start'
-          ? t('scriptStudio.submit.producer')
-          : scriptAction === 'resubmit'
-            ? t('scriptStudio.submit.resubmit')
-            : t('scriptStudio.submit.writer'),
+        scriptAction === 'resubmit'
+          ? t('scriptStudio.submit.resubmit')
+          : t('scriptStudio.submit.writer'),
     });
   }, [
     focusHeader,
@@ -2077,7 +2086,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     scriptStageIndex,
     isScriptFrozen,
     submittingToEditor,
-    freezingScript,
     canSubmitScript,
     scriptAction,
     t,
@@ -2344,7 +2352,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       })}
 
       {/* 2. Thanh thông báo ngắn gọn gom thông báo chỉ đọc & xung đột */}
-      {(concurrencyError || isChapterLocked || !canEditScript || loadError) && (
+      {(concurrencyError ||
+        isChapterLocked ||
+        !canEditScript ||
+        loadError ||
+        isScriptInReview ||
+        isSubmitBlocked ||
+        isStartBlocked) && (
         <div className='px-4 py-2.5 bg-white border-b border-[#E7E2D9] shrink-0 text-xs space-y-2'>
           {concurrencyError && (
             <div
@@ -2513,36 +2527,25 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   Còn {chapterCast.gate.blockers.length} biến thể chưa khoá Canon.
                 </span>
               </div>
-              <button
-                type='button'
-                onClick={() => setActiveSideDrawer('cast')}
-                className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shrink-0 cursor-pointer transition-colors'
-              >
-                {t('scriptStudio.cast.viewCast', 'Xem thực thể')}
-              </button>
-            </div>
-          )}
-
-          {scriptAction === 'start' && openScriptComments.length > 0 && (
-            <div
-              data-testid='open-comments-warning-banner'
-              className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
-            >
-              <div className='flex items-center gap-2 min-w-0'>
-                <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0' />
-                <span className='text-xs font-medium truncate'>
-                  {t('scriptStudio.lifecycle.openCommentsWarning', {
-                    count: openScriptComments.length,
-                  })}
-                </span>
+              <div className='flex items-center gap-2 shrink-0'>
+                <Link
+                  to={
+                    workspaceId && seriesId
+                      ? `/workspaces/${workspaceId}/series/${seriesId}/bible`
+                      : '#'
+                  }
+                  className='text-xs font-semibold text-rose-700 hover:text-rose-900 underline'
+                >
+                  Mở Series Bible để duyệt Canon
+                </Link>
+                <button
+                  type='button'
+                  onClick={() => setActiveSideDrawer('cast')}
+                  className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shrink-0 cursor-pointer transition-colors'
+                >
+                  {t('scriptStudio.cast.viewCast', 'Xem thực thể')}
+                </button>
               </div>
-              <button
-                type='button'
-                onClick={() => setShowCommentsSidePanel(true)}
-                className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer transition-colors'
-              >
-                {t('scriptStudio.comments.viewComments', 'Xem góp ý')}
-              </button>
             </div>
           )}
 

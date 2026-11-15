@@ -24,7 +24,7 @@ const mockChapters: ChapterDto[] = [
     scenesCount: 5,
     pagesCount: 20,
     versionVector: 2,
-    status: 'Approved',
+    status: 'ChapterApproved',
     createdAt: '2026-01-01',
   },
   {
