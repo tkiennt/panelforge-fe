@@ -27,7 +27,6 @@ import {
   PublisherWorkspaceDto,
 } from '@/services/publisher.service';
 import { PublishScheduleModal } from '../modals/PublishScheduleModal';
-import { RejectChapterModal } from '../modals/RejectChapterModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
@@ -59,7 +58,6 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
 
   // Modals state
   const [publishingChapter, setPublishingChapter] = useState<PublisherChapterDto | null>(null);
-  const [rejectingChapter, setRejectingChapter] = useState<PublisherChapterDto | null>(null);
   const [reviewingChapter, setReviewingChapter] = useState<PublisherChapterDto | null>(null);
   const [readingChapter, setReadingChapter] = useState<PublisherChapterDto | null>(null);
   const [snapshotChapter, setSnapshotChapter] = useState<PublisherChapterDto | null>(null);
@@ -104,15 +102,26 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
     fetchChapters();
   }, [fetchChapters]);
 
-  const approvedChapters = chapters.filter((c) => c.status === 'ChapterApproved');
-  const publishedChapters = chapters.filter((c) => c.status === 'HandedOffAndPublished');
+  const handedOffChapters = chapters.filter(
+    (c) =>
+      c.status === 'ChapterApproved' ||
+      (c.status as any) === 'Approved' ||
+      c.status === 'HandedOffAndPublished' ||
+      (c.status as any) === 'Published',
+  );
+  const approvedChapters = handedOffChapters.filter(
+    (c) => c.status === 'ChapterApproved' || (c.status as any) === 'Approved',
+  );
+  const publishedChapters = handedOffChapters.filter(
+    (c) => c.status === 'HandedOffAndPublished' || (c.status as any) === 'Published',
+  );
 
   const filteredChapters =
     activeTab === 'approved'
       ? approvedChapters
       : activeTab === 'published'
         ? publishedChapters
-        : chapters;
+        : handedOffChapters;
 
   const formatDate = (isoString?: string | null) => {
     if (!isoString) return 'Chưa xác định';
@@ -293,14 +302,14 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           }`}
         >
           <div className='flex items-center justify-between text-xs text-[#57534E]'>
-            <span className='font-semibold'>Tổng Số Chương</span>
+            <span className='font-semibold'>Tổng Số Chương Bàn Giao</span>
             <BookOpen className='w-4 h-4 text-[#57534E]' />
           </div>
           <div className='text-2xl font-bold font-mono tabular-nums text-[#1C1917] mt-1.5'>
-            {chapters.length}
+            {handedOffChapters.length}
           </div>
           <p className='text-xs text-[#57534E] mt-1 font-medium'>
-            Tất cả các chương trong phạm vi lọc
+            Tất cả các chương đã được bàn giao
           </p>
         </div>
       </div>
@@ -315,7 +324,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                 ? 'Danh Sách Chương Chờ Publisher Phê Duyệt'
                 : activeTab === 'published'
                   ? 'Danh Sách Chương Đã Phát Hành & Lên Lịch'
-                  : 'Tất Cả Các Chương'}
+                  : 'Tất Cả Các Chương Đã Bàn Giao'}
             </span>
             <span className='px-2 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-mono font-bold'>
               {filteredChapters.length}
@@ -354,7 +363,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                   : 'text-[#57534E] hover:text-[#1C1917]'
               }`}
             >
-              Tất cả ({chapters.length})
+              Tất cả ({handedOffChapters.length})
             </button>
           </div>
         </div>
@@ -454,11 +463,6 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                             </span>
                           </span>
                         )}
-                        {chap.status === 'InProduction' && (
-                          <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200'>
-                            ĐANG SẢN XUẤT
-                          </span>
-                        )}
                       </div>
 
                       <div className='flex items-center gap-4 text-xs text-[#57534E] font-mono flex-wrap'>
@@ -524,27 +528,15 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                     )}
 
                     {chap.status === 'ChapterApproved' && (
-                      <>
-                        <button
-                          type='button'
-                          onClick={() => setRejectingChapter(chap)}
-                          className='px-3.5 py-1.5 rounded-full border border-rose-300 bg-rose-50 hover:bg-rose-100 text-xs font-semibold text-rose-700 flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
-                          title='Từ chối xuất bản và mở lại sản xuất'
-                        >
-                          <RotateCcw className='w-3.5 h-3.5 text-rose-600' />
-                          <span>Từ Chối</span>
-                        </button>
-
-                        <button
-                          type='button'
-                          onClick={() => setPublishingChapter(chap)}
-                          className='px-4 py-1.5 rounded-full bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-soft-sm active:scale-95'
-                          title='Xuất bản hoặc lên lịch phát hành'
-                        >
-                          <Send className='w-3.5 h-3.5' />
-                          <span>Xuất Bản / Lên Lịch</span>
-                        </button>
-                      </>
+                      <button
+                        type='button'
+                        onClick={() => setPublishingChapter(chap)}
+                        className='px-4 py-1.5 rounded-full bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-soft-sm active:scale-95'
+                        title='Xuất bản hoặc lên lịch phát hành'
+                      >
+                        <Send className='w-3.5 h-3.5' />
+                        <span>Xuất Bản / Lên Lịch</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -562,18 +554,6 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           chapterNumber={publishingChapter.chapterNumber}
           chapterTitle={publishingChapter.title}
           onClose={() => setPublishingChapter(null)}
-          onSuccess={fetchChapters}
-          onShowToast={onShowToast}
-        />
-      )}
-
-      {rejectingChapter && (
-        <RejectChapterModal
-          isOpen={!!rejectingChapter}
-          chapterId={rejectingChapter.id}
-          chapterNumber={rejectingChapter.chapterNumber}
-          chapterTitle={rejectingChapter.title}
-          onClose={() => setRejectingChapter(null)}
           onSuccess={fetchChapters}
           onShowToast={onShowToast}
         />

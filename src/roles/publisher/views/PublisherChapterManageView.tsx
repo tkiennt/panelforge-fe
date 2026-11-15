@@ -243,10 +243,6 @@ const PricesSection: React.FC<{
   );
   const [saving, setSaving] = useState(false);
 
-  if (!manage.chapterIsLocked) {
-    return <Notice>{t('manage.pricesFreeChapter')}</Notice>;
-  }
-
   const save = async () => {
     setSaving(true);
     try {
@@ -335,7 +331,9 @@ const PagesSection: React.FC<{
 
   useEffect(() => setDraft(previewIdsOf(manage)), [manage]);
 
-  const paid = manage.chapterIsLocked;
+  const paid =
+    manage.chapterIsLocked ||
+    manage.languagePrices.some((p) => p.priceVnd !== null && p.priceVnd > 0);
   const changed = useMemo(() => {
     const saved = previewIdsOf(manage);
     return saved.size !== draft.size || [...draft].some((id) => !saved.has(id));

@@ -143,7 +143,7 @@
   },
   "revenue": {
     "title": "Doanh thu theo bộ truyện",
-    "subtitle": "Doanh thu mở khóa chương trả phí từ độc giả Mobile, kèm lượt đọc. Bấm một bộ truyện để xem giao dịch, duyệt VietQR và cấu hình ngân hàng của Studio.",
+    "subtitle": "Doanh thu mở khóa chương trả phí từ độc giả Mobile, kèm lượt đọc. Cấu hình ngân hàng Studio và thiết lập giá theo ngôn ngữ.",
     "total": "Tổng doanh thu",
     "chapterRevenue": "Mở khóa chương",
     "pending": "Chờ duyệt VietQR",
@@ -154,7 +154,7 @@
     "studio": "Studio",
     "unlocks": "Lượt mở khóa",
     "readers": "Người đọc",
-    "manage": "Giao dịch",
+    "manage": "Ngân hàng Studio",
     "empty": "Chưa có bộ truyện nào.",
     "loadError": "Không tải được doanh thu.",
     "back": "Doanh thu theo bộ truyện",

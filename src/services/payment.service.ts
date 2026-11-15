@@ -145,6 +145,23 @@ export const paymentService = {
   },
 };
 
+export const POPULAR_VIETNAM_BANKS = [
+  { bin: '970422', code: 'MB', name: 'MB Bank' },
+  { bin: '970436', code: 'VCB', name: 'Vietcombank' },
+  { bin: '970407', code: 'TCB', name: 'Techcombank' },
+  { bin: '970416', code: 'ACB', name: 'ACB' },
+  { bin: '970418', code: 'BIDV', name: 'BIDV' },
+  { bin: '970415', code: 'CTG', name: 'VietinBank' },
+  { bin: '970423', code: 'TPB', name: 'TPBank' },
+  { bin: '970432', code: 'VPB', name: 'VPBank' },
+  { bin: '970405', code: 'VBA', name: 'Agribank' },
+  { bin: '970403', code: 'STB', name: 'Sacombank' },
+  { bin: '970448', code: 'OCB', name: 'OCB' },
+  { bin: '970443', code: 'SHB', name: 'SHB' },
+  { bin: '970437', code: 'HDB', name: 'HDBank' },
+  { bin: '970441', code: 'VIB', name: 'VIB' },
+];
+
 /** Bỏ dấu tiếng Việt + viết hoa — định dạng tên chủ tài khoản ngân hàng / VietQR. */
 export function toBankAccountName(value: string): string {
   return value

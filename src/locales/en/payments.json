@@ -143,7 +143,7 @@
   },
   "revenue": {
     "title": "Revenue by series",
-    "subtitle": "Revenue from paid chapter unlocks by Mobile readers, with read counts. Click a series to see its transactions, approve VietQR and set up the Studio bank account.",
+    "subtitle": "Revenue from paid chapter unlocks by Mobile readers, with read counts. Configure Studio bank settings and edition prices.",
     "total": "Total revenue",
     "chapterRevenue": "Chapter unlocks",
     "pending": "Pending VietQR",
@@ -154,7 +154,7 @@
     "studio": "Studio",
     "unlocks": "Unlocks",
     "readers": "Readers",
-    "manage": "Transactions",
+    "manage": "Studio Bank",
     "empty": "No series yet.",
     "loadError": "Could not load revenue.",
     "back": "Revenue by series",

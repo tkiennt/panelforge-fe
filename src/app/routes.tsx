@@ -126,6 +126,11 @@ const PublisherSeriesDetailView = lazy(() =>
     default: m.PublisherSeriesDetailView,
   })),
 );
+const PublisherBankSettingsView = lazy(() =>
+  import('@/roles/publisher/views/PublisherBankSettingsView').then((m) => ({
+    default: m.PublisherBankSettingsView,
+  })),
+);
 const ScriptEditorView = lazy(() =>
   import('@/roles/writer/views/ScriptEditorView').then((m) => ({
     default: m.default || m.ScriptEditorView,
@@ -637,7 +642,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 element={<PublisherSeriesDetailView onShowToast={showToast} />}
               />
               <Route path='desk' element={<PublisherDeskView onShowToast={showToast} />} />
-              {/* Doanh thu: chỉ Publisher quản lý (giao dịch, duyệt VietQR, ngân hàng Studio) */}
+              {/* Doanh thu: chỉ Publisher quản lý (cấu hình ngân hàng Studio, giá theo ngôn ngữ) */}
               <Route path='revenue' element={<PublisherRevenueView />} />
               <Route path='revenue/series/:seriesId' element={<PublisherSeriesInsightsView />} />
               <Route
@@ -646,7 +651,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               />
               <Route
                 path='revenue/workspaces/:workspaceId'
-                element={<ProducerPaymentsView onShowToast={showToast} />}
+                element={<PublisherBankSettingsView onShowToast={showToast} />}
               />
             </Route>
           </Route>
