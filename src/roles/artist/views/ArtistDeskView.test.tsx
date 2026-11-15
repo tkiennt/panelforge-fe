@@ -110,7 +110,7 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
     expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('7 / 7');
   });
 
-  it('displays continuous script across pages by default and supports syncing to current page', () => {
+  it('defaults script to the current page and supports the full chapter mode', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
         <Routes>
@@ -122,11 +122,16 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
       </MemoryRouter>,
     );
 
-    // Open Script tab -> defaults to continuous ("xuyên suốt") view showing Page 1 & Page 2
+    // Open Script tab -> defaults to the page currently being drawn.
     fireEvent.click(screen.getByTestId('canva-tab-script'));
-    expect(screen.getByText(/── TRANG 1 ──/i)).toBeInTheDocument();
-    expect(screen.getByText(/── TRANG 2 ──/i)).toBeInTheDocument();
+    expect(screen.getByTestId('canva-script-mode-current-page')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.getByTestId('script-line-line-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('script-line-line-6')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('canva-script-mode-all'));
     expect(screen.getByTestId('script-line-line-6')).toBeInTheDocument();
 
     // Filter to current page mode -> shows Page 1 only, then updates to Page 2 when page 2 selected
@@ -136,7 +141,7 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
 
     const card2 = screen.getByTestId('canva-page-card-2');
     fireEvent.click(card2.querySelector('[role="button"]')!);
-    expect(screen.getByText(/── TRANG 2 ──/i)).toBeInTheDocument();
+    expect(screen.getByTestId('script-panel-section-2-1')).toBeInTheDocument();
     expect(screen.getByTestId('script-line-line-6')).toBeInTheDocument();
     expect(screen.queryByTestId('script-line-line-1')).not.toBeInTheDocument();
   });
@@ -333,9 +338,8 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
       expect(screen.getByTestId('script-line-ln-1')).toBeInTheDocument();
     });
 
-    // Verify continuous pages & panels layout
-    expect(screen.getByText(/── TRANG 1 ──/i)).toBeInTheDocument();
-    expect(screen.getByText(/── TRANG 2 ──/i)).toBeInTheDocument();
+    // Opt into the full chapter before verifying cross-page and unpaged content.
+    fireEvent.click(screen.getByTestId('canva-script-mode-all'));
     expect(screen.getByTestId('script-panel-section-1-1')).toBeInTheDocument();
     expect(screen.getByTestId('script-panel-section-2-2')).toBeInTheDocument();
     // Character name resolved from Bible entry ID

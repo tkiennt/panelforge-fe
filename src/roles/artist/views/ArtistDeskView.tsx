@@ -1258,6 +1258,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     () => (selectedPage ? panelArtworksByPageId[selectedPage.id] || {} : {}),
     [selectedPage, panelArtworksByPageId],
   );
+  const artworkPanelKeys = useMemo<Set<string | number>>(() => {
+    const keys = new Set<string | number>();
+    Object.values(currentPageArtworks).forEach((artwork) => {
+      keys.add(artwork.panelId);
+      keys.add(artwork.panelNumber);
+    });
+    return keys;
+  }, [currentPageArtworks]);
   const hasCurrentPageArtwork = Object.keys(currentPageArtworks).length > 0;
   const currentTemplate = useMemo(
     () =>
@@ -1789,6 +1797,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onSelectElementId={balloons.setSelectedElementId}
           selectedPanelId={selectedPanelId}
           selectedPanelNumber={selectedPanelNumber}
+          artworkPanelKeys={artworkPanelKeys}
+          onSelectPanel={(pageNumber, panelNumber) => {
+            const targetPage = pages.find((page) => page.pageNumber === pageNumber);
+            if (!targetPage) return;
+            setSelectedPageId(targetPage.id);
+            const targetPanel = (panelsByPageId[targetPage.id] || []).find(
+              (panel) => (panel.panelNumber || panel.readingOrder) === panelNumber,
+            );
+            setSelectedPanelId(targetPanel?.id || null);
+            setSelectedPanelNumber(panelNumber);
+          }}
           theme='paper'
         />
 
