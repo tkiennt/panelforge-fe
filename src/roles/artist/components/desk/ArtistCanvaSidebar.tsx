@@ -117,13 +117,6 @@ export interface ArtistCanvaSidebarProps {
   isLoadingTemplates?: boolean;
   isApplyingTemplate?: boolean;
   templateError?: string | null;
-  // Layout Lock / Confirm props
-  isLayoutLocked?: boolean;
-  onLockLayout?: () => void;
-  onUnlockLayout?: () => void;
-  hasPageArtwork?: boolean;
-  // Khóa chọn mẫu khi trang đang chứa bản phác thảo toàn trang (tránh đè chồng khung)
-  hasSketchUnderlay?: boolean;
   // Controlled tab & drawer props
   activeTab?: CanvaSidebarTab;
   onTabChange?: (tab: CanvaSidebarTab) => void;
@@ -813,11 +806,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   isLoadingTemplates = false,
   isApplyingTemplate = false,
   templateError = null,
-  isLayoutLocked = false,
-  onLockLayout,
-  onUnlockLayout,
-  hasPageArtwork = false,
-  hasSketchUnderlay = false,
   activeTab: activeTabProp,
   onTabChange,
   isDrawerOpen: isDrawerOpenProp,
@@ -2215,29 +2203,16 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       <button
                         key={tpl.id}
                         type='button'
-                        disabled={isApplyingTemplate || hasSketchUnderlay}
+                        disabled={isApplyingTemplate}
                         onClick={() => {
-                          if (hasSketchUnderlay) return;
-                          if (isLayoutLocked && hasPageArtwork && !isSelected) {
-                            onUnlockLayout?.();
-                          } else {
-                            onSelectTemplate?.(tpl);
-                          }
+                          onSelectTemplate?.(tpl);
                         }}
                         data-testid={`canva-template-card-${tpl.id}`}
-                        title={
-                          hasSketchUnderlay
-                            ? 'Trang đang có ảnh phác thảo toàn trang. Vui lòng tách khung hoặc gỡ ảnh trước.'
-                            : tpl.description || tpl.name
-                        }
+                        title={tpl.description || tpl.name}
                         className={`group p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between relative ${
-                          hasSketchUnderlay
-                            ? 'opacity-40 cursor-not-allowed bg-stone-100/50 border-stone-200'
-                            : isSelected
-                              ? 'bg-[var(--sb-active-bg)] border-[var(--sb-accent)] ring-1 ring-[var(--sb-accent)]/60 shadow-sm cursor-pointer'
-                              : isLayoutLocked
-                                ? 'bg-[var(--sb-surface)] border-[var(--sb-border)] opacity-70 hover:opacity-100 hover:border-amber-400 cursor-pointer'
-                                : 'bg-[var(--sb-surface)] border-[var(--sb-border)] hover:border-[var(--sb-accent)]/50 hover:bg-[var(--sb-surface-hover)] cursor-pointer'
+                          isSelected
+                            ? 'bg-[var(--sb-active-bg)] border-[var(--sb-accent)] ring-1 ring-[var(--sb-accent)]/60 shadow-sm cursor-pointer'
+                            : 'bg-[var(--sb-surface)] border-[var(--sb-border)] hover:border-[var(--sb-accent)]/50 hover:bg-[var(--sb-surface-hover)] cursor-pointer'
                         }`}
                       >
                         {/* Wireframe Preview tỷ lệ B5 / Spread */}

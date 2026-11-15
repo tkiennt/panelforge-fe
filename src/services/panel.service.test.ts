@@ -45,6 +45,24 @@ describe('panelService', () => {
     expect(result).toEqual(mockPanel);
   });
 
+  it('replacePageLayout calls PUT /api/pages/{pageId}/panels/layout', async () => {
+    const request = [
+      {
+        panelNumber: 1,
+        readingOrder: 1,
+        boundingBox: mockPanel.boundingBox,
+        direction: null,
+      },
+    ];
+    const response = { panels: [mockPanel], unassignedArtworkCount: 2 };
+    vi.mocked(axiosClient.put).mockResolvedValueOnce({ data: response });
+
+    const result = await panelService.replacePageLayout('page-101', request);
+
+    expect(axiosClient.put).toHaveBeenCalledWith('/pages/page-101/panels/layout', request);
+    expect(result).toEqual(response);
+  });
+
   it('getPanelsByPage gọi đúng GET /api/pages/{pageId}/panels và trả về danh sách PanelDto', async () => {
     vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: [mockPanel] });
 

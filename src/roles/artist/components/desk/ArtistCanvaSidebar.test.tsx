@@ -308,8 +308,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(handleClearTemplate).toHaveBeenCalledTimes(1);
   });
 
-  it('renders locked layout banner when isLayoutLocked=true and triggers onUnlockLayout', () => {
-    const handleUnlock = vi.fn();
+  it('allows selecting another template when the page already has panels', () => {
     const handleSelectTemplate = vi.fn();
 
     renderWithRouter(
@@ -324,9 +323,6 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onToggleVisibility={vi.fn()}
         activeTemplateId='f0000000-0000-0000-0000-000000000004'
         hasPagePanels={true}
-        isLayoutLocked={true}
-        hasPageArtwork={true}
-        onUnlockLayout={handleUnlock}
         onSelectTemplate={handleSelectTemplate}
       />,
     );
@@ -335,10 +331,11 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     // Status banner is removed to keep template drawer clean
     expect(screen.queryByTestId('canva-layout-locked-banner')).not.toBeInTheDocument();
 
-    // Clicking a different template card when locked with artwork triggers unlock prompt rather than directly switching
+    // Existing panels never block choosing another template.
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
-    expect(handleUnlock).toHaveBeenCalledTimes(1);
-    expect(handleSelectTemplate).not.toHaveBeenCalled();
+    expect(handleSelectTemplate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'f0000000-0000-0000-0000-00000000000c' }),
+    );
   });
 
   it('renders Sidetab Changes (Tab 5) with badge counter, filters, and resolve actions', () => {

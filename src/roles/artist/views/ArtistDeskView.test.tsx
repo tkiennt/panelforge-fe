@@ -15,6 +15,7 @@ import { frameTemplateService } from '@/services/frameTemplate.service';
 import { artworkService } from '@/services/artwork.service';
 import { FocusWorkspaceLayout } from '@/app/FocusWorkspaceLayout';
 import { ToastProvider } from '@/shared/context/ToastContext';
+import { ConfirmProvider } from '@/shared/context/ConfirmContext';
 import { beforeEach } from 'vitest';
 
 beforeEach(() => {
@@ -678,25 +679,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
       },
     ]);
 
-    vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValueOnce([]);
-
-    vi.spyOn(frameTemplateService, 'getFrameTemplates').mockResolvedValueOnce([
-      {
-        id: tplGuid,
-        workspaceId: 'ws-real',
-        name: 'Mẫu 2 Khung API',
-        layoutFormat: 'StandardPage',
-        isBuiltIn: false,
-        panelCount: 2,
-        slots: [
-          { x: 0.05, y: 0.05, w: 0.9, h: 0.4, borderless: false },
-          { x: 0.05, y: 0.5, w: 0.9, h: 0.45, borderless: true },
-        ],
-        createdAt: '2026-01-01T00:00:00Z',
-      },
-    ]);
-
-    const applySpy = vi.spyOn(frameTemplateService, 'applyFrameTemplate').mockResolvedValueOnce([
+    const savedPanels = [
       {
         id: 'created-pnl-1',
         pageId: pageGuid,
@@ -716,17 +699,45 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         readingOrder: 2,
         createdAt: '2026-01-01T00:00:00Z',
       },
+    ];
+    vi.spyOn(panelService, 'getPanelsByPage')
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(savedPanels);
+
+    vi.spyOn(frameTemplateService, 'getFrameTemplates').mockResolvedValueOnce([
+      {
+        id: tplGuid,
+        workspaceId: 'ws-real',
+        name: 'Mẫu 2 Khung API',
+        layoutFormat: 'StandardPage',
+        isBuiltIn: false,
+        panelCount: 2,
+        slots: [
+          { x: 0.05, y: 0.05, w: 0.9, h: 0.4, borderless: false },
+          { x: 0.05, y: 0.5, w: 0.9, h: 0.45, borderless: true },
+        ],
+        createdAt: '2026-01-01T00:00:00Z',
+      },
     ]);
 
+    const getArtworksSpy = vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+
+    const applySpy = vi.spyOn(frameTemplateService, 'applyFrameTemplate').mockResolvedValueOnce({
+      panels: savedPanels,
+      unassignedArtworkCount: 2,
+    });
+
     render(
-      <MemoryRouter initialEntries={['/workspaces/ws-real/series/ser-real/artist']}>
-        <Routes>
-          <Route
-            path='/workspaces/:workspaceId/series/:seriesId/artist'
-            element={<ArtistDeskView workspaceRole='ARTIST' />}
-          />
-        </Routes>
-      </MemoryRouter>,
+      <ToastProvider>
+        <MemoryRouter initialEntries={['/workspaces/ws-real/series/ser-real/artist']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/artist'
+              element={<ArtistDeskView workspaceRole='ARTIST' />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>,
     );
 
     fireEvent.click(screen.getByTestId('canva-tab-templates'));
@@ -743,21 +754,26 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
 
     await waitFor(() => {
       expect(applySpy).toHaveBeenCalledWith(pageGuid, tplGuid);
+      expect(panelService.getPanelsByPage).toHaveBeenCalledTimes(2);
+      expect(getArtworksSpy).toHaveBeenCalledWith(chapGuid, pageGuid, undefined);
     });
+    expect(screen.getByText('2 tranh chưa có khung')).toBeInTheDocument();
     expect(screen.getByTestId('canvas-panel-frame-1')).toBeInTheDocument();
     expect(screen.getByTestId('canvas-panel-frame-2')).toBeInTheDocument();
   });
 
-  it('enforces layout locking before uploading artworks and guards re-templating with confirmation modal', async () => {
+  it('keeps artwork mapped by reading order when re-templating and marks layout dirty again', async () => {
     render(
-      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
-        <Routes>
-          <Route
-            path='/workspaces/:workspaceId/series/:seriesId/artist'
-            element={<ArtistDeskView workspaceRole='ARTIST' />}
-          />
-        </Routes>
-      </MemoryRouter>,
+      <ConfirmProvider>
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/artist'
+              element={<ArtistDeskView workspaceRole='ARTIST' />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </ConfirmProvider>,
     );
 
     // Open templates tab and select 3 Khung Shonen for Page 1
@@ -765,10 +781,10 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-000000000004'));
 
     // Verify Lucian-style save button is rendered at bottom-right beside the sheet
-    expect(screen.getByTestId('canvas-bottom-layout-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('artist-layout-toolbar')).toBeInTheDocument();
     const saveBtn = screen.getByTestId('canvas-btn-save-layout');
     expect(saveBtn).toBeInTheDocument();
-    expect(saveBtn).toHaveTextContent('Lưu');
+    expect(saveBtn).toHaveTextContent('Lưu bố cục');
 
     // In draft mode, dropzone is NOT accessible
     expect(screen.queryByTestId('panel-dropzone-1')).not.toBeInTheDocument();
@@ -796,8 +812,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     // Save layout (lucian button) -> saves and button turns off (disappears)
     fireEvent.click(screen.getByTestId('canvas-btn-save-layout'));
 
-    // After saving, save button is hidden / turned off
-    expect(screen.queryByTestId('canvas-btn-save-layout')).not.toBeInTheDocument();
+    expect(screen.getByTestId('canvas-btn-save-layout')).toBeDisabled();
 
     // Dropzone is now enabled for each panel
     expect(screen.getByTestId('panel-dropzone-1')).toBeInTheDocument();
@@ -823,20 +838,18 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
 
     // When artist tries to switch template while page has artwork, confirmation modal appears
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
-    expect(screen.getByTestId('modal-unlock-layout-confirm')).toBeInTheDocument();
-    expect(screen.getByText(/Mở khóa đổi mẫu khung trang\?/i)).toBeInTheDocument();
+    expect(await screen.findByText('Đổi mẫu khung và giữ tranh?')).toBeInTheDocument();
 
     // Cancel preserves locked layout and artwork
-    fireEvent.click(screen.getByTestId('btn-cancel-unlock'));
-    expect(screen.queryByTestId('modal-unlock-layout-confirm')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Giữ bố cục hiện tại' }));
     expect(screen.getByAltText('panel1-sketch.png')).toBeInTheDocument();
 
     // Confirm unlock resets artwork and returns to draft template selection -> Save button reappears
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
-    fireEvent.click(screen.getByTestId('btn-confirm-unlock'));
-    expect(screen.queryByTestId('modal-unlock-layout-confirm')).not.toBeInTheDocument();
-    expect(screen.getByTestId('canvas-btn-save-layout')).toBeInTheDocument();
-    expect(screen.queryByAltText('panel1-sketch.png')).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Đổi mẫu khung' }));
+    await waitFor(() => expect(screen.getByTestId('canvas-panel-frame-4')).toBeInTheDocument());
+    expect(screen.getByAltText('panel1-sketch.png')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-btn-save-layout')).toBeEnabled();
   });
 
   describe('ArtistDeskView - Artwork Persistence & Error Notification (CF2 / WAITING_FE Fix)', () => {
