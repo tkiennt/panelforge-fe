@@ -32,6 +32,19 @@ type StatusFilterType = 'all' | 'frozen' | 'in_progress' | 'approved';
 type SortByType = 'chapter_asc' | 'chapter_desc' | 'newest' | 'oldest';
 type ViewModeType = 'grid' | 'table';
 
+const getOpenBlockReason = (chapter: ChapterDto): string | null => {
+  if (String(chapter.status) === 'PreProduction') {
+    return 'Chương đang ở giai đoạn tiền kỳ. Hãy chờ Producer bắt đầu sản xuất.';
+  }
+  if (!chapter.isScriptFrozen) {
+    return 'Kịch bản chưa được đóng băng nên chưa thể mở bàn chữ.';
+  }
+  return null;
+};
+
+const isCompletedChapter = (chapter: ChapterDto): boolean =>
+  ['ChapterApproved', 'HandedOffAndPublished'].includes(String(chapter.status));
+
 export const LettererChapterSelectionView: React.FC<LettererChapterSelectionViewProps> = ({
   onShowToast,
 }) => {
@@ -78,13 +91,8 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
   const stats = useMemo(() => {
     const total = chapters.length;
     const frozen = chapters.filter((c) => !!c.isScriptFrozen).length;
-    const approved = chapters.filter(
-      (c) => c.status === 'ChapterApproved' || c.status === 'HandedOffAndPublished',
-    ).length;
-    const inProgress = chapters.filter(
-      (c) =>
-        !c.isScriptFrozen && c.status !== 'ChapterApproved' && c.status !== 'HandedOffAndPublished',
-    ).length;
+    const approved = chapters.filter(isCompletedChapter).length;
+    const inProgress = chapters.filter((c) => !c.isScriptFrozen && !isCompletedChapter(c)).length;
     return { total, frozen, approved, inProgress };
   }, [chapters]);
 
@@ -106,16 +114,9 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
     if (statusFilter === 'frozen') {
       list = list.filter((c) => !!c.isScriptFrozen);
     } else if (statusFilter === 'in_progress') {
-      list = list.filter(
-        (c) =>
-          !c.isScriptFrozen &&
-          c.status !== 'ChapterApproved' &&
-          c.status !== 'HandedOffAndPublished',
-      );
+      list = list.filter((c) => !c.isScriptFrozen && !isCompletedChapter(c));
     } else if (statusFilter === 'approved') {
-      list = list.filter(
-        (c) => c.status === 'ChapterApproved' || c.status === 'HandedOffAndPublished',
-      );
+      list = list.filter(isCompletedChapter);
     }
 
     list.sort((a, b) => {
@@ -131,14 +132,35 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
 
   const seriesTitle = seriesDetail?.title || 'Bộ truyện';
 
-  const handleSelectChapter = (chapterId: string) => {
+  const handleSelectChapter = (chapter: ChapterDto) => {
     if (!workspaceId || !seriesId) return;
+    const blockReason = getOpenBlockReason(chapter);
+    if (blockReason) {
+      onShowToast?.('Chưa thể mở bàn chữ', blockReason);
+      return;
+    }
     navigate(
-      `/workspaces/${workspaceId}/series/${seriesId}/artist/desk?chapterId=${chapterId}&tab=lettering`,
+      `/workspaces/${workspaceId}/series/${seriesId}/artist/desk?chapterId=${chapter.id}&tab=lettering`,
     );
   };
 
   const getStatusBadge = (chapter: ChapterDto) => {
+    if (String(chapter.status) === 'ChapterApproved') {
+      return (
+        <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
+          <CheckCircle2 className='w-3 h-3 text-emerald-600' />
+          <span>Nghiệm thu hoàn tất (Gate 3)</span>
+        </span>
+      );
+    }
+    if (String(chapter.status) === 'HandedOffAndPublished') {
+      return (
+        <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
+          <Sparkles className='w-3 h-3 text-purple-600' />
+          <span>Đã bàn giao và phát hành</span>
+        </span>
+      );
+    }
     if (chapter.isScriptFrozen) {
       return (
         <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0'>
@@ -374,45 +396,54 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
         </div>
       ) : viewMode === 'grid' ? (
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
-          {filteredChapters.map((chap) => (
-            <div
-              key={chap.id}
-              data-testid={`letterer-chapter-card-${chap.chapterNumber}`}
-              onClick={() => handleSelectChapter(chap.id)}
-              className='group bg-white border border-[#D8D2C5]/80 hover:border-[#F97316]/60 rounded-2xl p-5 shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between gap-4'
-            >
-              <div className='space-y-3'>
-                <div className='flex items-center justify-between gap-2 flex-wrap'>
-                  <span className='font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-[#1C1917] group-hover:border-[#F97316]/50 transition-colors'>
-                    CHƯƠNG {chap.chapterNumber}
+          {filteredChapters.map((chap) => {
+            const blockReason = getOpenBlockReason(chap);
+            return (
+              <div
+                key={chap.id}
+                data-testid={`letterer-chapter-card-${chap.chapterNumber}`}
+                onClick={() => !blockReason && handleSelectChapter(chap)}
+                aria-disabled={blockReason ? 'true' : undefined}
+                title={blockReason || undefined}
+                className={`group bg-white border border-[#D8D2C5]/80 rounded-2xl p-5 shadow-2xs transition-all duration-200 flex flex-col justify-between gap-4 ${
+                  blockReason
+                    ? 'cursor-not-allowed opacity-70'
+                    : 'hover:border-[#F97316]/60 hover:shadow-md cursor-pointer'
+                }`}
+              >
+                <div className='space-y-3'>
+                  <div className='flex items-center justify-between gap-2 flex-wrap'>
+                    <span className='font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-[#1C1917] group-hover:border-[#F97316]/50 transition-colors'>
+                      CHƯƠNG {chap.chapterNumber}
+                    </span>
+                    {getStatusBadge(chap)}
+                  </div>
+
+                  <div>
+                    <h3 className='text-sm font-bold font-serif text-[#1C1917] group-hover:text-[#C2410C] transition-colors line-clamp-2 leading-snug'>
+                      {chap.title || `Chương ${chap.chapterNumber}`}
+                    </h3>
+                    {chap.outline && (
+                      <p className='text-xs text-[#57534E] line-clamp-3 mt-1.5 leading-relaxed bg-[#FAF8F5] p-2.5 rounded-xl border border-[#EBE7DF]'>
+                        {chap.outline}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className='pt-3 border-t border-[#EBE7DF] flex items-center justify-between text-xs text-[#78716C]'>
+                  <span className='flex items-center gap-1 font-mono text-[11px]'>
+                    <Type className='w-3 h-3 text-[#C2410C]' />
+                    <span>Xếp chữ &amp; thoại</span>
                   </span>
-                  {getStatusBadge(chap)}
-                </div>
-
-                <div>
-                  <h3 className='text-sm font-bold font-serif text-[#1C1917] group-hover:text-[#C2410C] transition-colors line-clamp-2 leading-snug'>
-                    {chap.title || `Chương ${chap.chapterNumber}`}
-                  </h3>
-                  {chap.outline && (
-                    <p className='text-xs text-[#57534E] line-clamp-3 mt-1.5 leading-relaxed bg-[#FAF8F5] p-2.5 rounded-xl border border-[#EBE7DF]'>
-                      {chap.outline}
-                    </p>
-                  )}
+                  <span className='flex items-center gap-1 text-[#C2410C] font-bold group-hover:translate-x-0.5 transition-transform'>
+                    <span>Vào bàn làm việc</span>
+                    <ArrowRight className='w-3.5 h-3.5' />
+                  </span>
                 </div>
               </div>
-
-              <div className='pt-3 border-t border-[#EBE7DF] flex items-center justify-between text-xs text-[#78716C]'>
-                <span className='flex items-center gap-1 font-mono text-[11px]'>
-                  <Type className='w-3 h-3 text-[#C2410C]' />
-                  <span>Xếp chữ &amp; thoại</span>
-                </span>
-                <span className='flex items-center gap-1 text-[#C2410C] font-bold group-hover:translate-x-0.5 transition-transform'>
-                  <span>Vào bàn làm việc</span>
-                  <ArrowRight className='w-3.5 h-3.5' />
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className='bg-white rounded-2xl border border-[#D8D2C5] shadow-2xs overflow-hidden'>
@@ -426,27 +457,41 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
               </tr>
             </thead>
             <tbody className='divide-y divide-[#EBE7DF] text-[#1C1917]'>
-              {filteredChapters.map((chap) => (
-                <tr
-                  key={chap.id}
-                  onClick={() => handleSelectChapter(chap.id)}
-                  className='hover:bg-[#FFF8F2] transition-colors cursor-pointer group'
-                >
-                  <td className='py-3 px-4 font-mono font-bold text-[#C2410C]'>
-                    Chương {chap.chapterNumber}
-                  </td>
-                  <td className='py-3 px-4 font-bold font-serif max-w-md truncate group-hover:text-[#C2410C]'>
-                    {chap.title || `Chương ${chap.chapterNumber}`}
-                  </td>
-                  <td className='py-3 px-4'>{getStatusBadge(chap)}</td>
-                  <td className='py-3 px-4 text-right'>
-                    <button className='inline-flex items-center gap-1 text-xs font-bold text-[#C2410C] group-hover:underline'>
-                      <span>Mở bàn chữ</span>
-                      <ArrowRight className='w-3.5 h-3.5' />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filteredChapters.map((chap) => {
+                const blockReason = getOpenBlockReason(chap);
+                return (
+                  <tr
+                    key={chap.id}
+                    onClick={() => !blockReason && handleSelectChapter(chap)}
+                    aria-disabled={blockReason ? 'true' : undefined}
+                    title={blockReason || undefined}
+                    className={`transition-colors group ${
+                      blockReason
+                        ? 'cursor-not-allowed opacity-70'
+                        : 'hover:bg-[#FFF8F2] cursor-pointer'
+                    }`}
+                  >
+                    <td className='py-3 px-4 font-mono font-bold text-[#C2410C]'>
+                      Chương {chap.chapterNumber}
+                    </td>
+                    <td className='py-3 px-4 font-bold font-serif max-w-md truncate group-hover:text-[#C2410C]'>
+                      {chap.title || `Chương ${chap.chapterNumber}`}
+                    </td>
+                    <td className='py-3 px-4'>{getStatusBadge(chap)}</td>
+                    <td className='py-3 px-4 text-right'>
+                      <button
+                        type='button'
+                        disabled={Boolean(blockReason)}
+                        title={blockReason || undefined}
+                        className='inline-flex items-center gap-1 text-xs font-bold text-[#C2410C] group-hover:underline disabled:cursor-not-allowed disabled:text-[#A8A29E] disabled:no-underline'
+                      >
+                        <span>Mở bàn chữ</span>
+                        <ArrowRight className='w-3.5 h-3.5' />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

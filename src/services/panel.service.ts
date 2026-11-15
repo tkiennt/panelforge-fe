@@ -9,6 +9,7 @@ import {
   AssignPanelScriptLinesRequest,
   ImageConsistencyResultDto,
   PanelSplitResult,
+  PageLayoutDto,
 } from '../types/pipeline';
 
 function extractError(error: any, defaultMsg: string): any {
@@ -39,6 +40,16 @@ export const panelService = {
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể tạo panel mới trên trang.');
+    }
+  },
+
+  /** Replace every panel on a page atomically and carry artwork by reading order. */
+  async replacePageLayout(pageId: string, panels: CreatePanelRequest[]): Promise<PageLayoutDto> {
+    try {
+      const response = await axiosClient.put(`/pages/${pageId}/panels/layout`, panels);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể thay thế bố cục trang.');
     }
   },
 

@@ -286,7 +286,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const backToDesk = () =>
     workspaceId && seriesId
       ? navigate(`/workspaces/${workspaceId}/series/${seriesId}/editor/desk`)
-      : navigate(-1);
+      : navigate('/workspaces');
 
   if (loading && !chapter) {
     return (

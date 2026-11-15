@@ -68,17 +68,14 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
     setApplying(true);
     setErrorMsg(null);
     try {
-      const createdPanels = await frameTemplateService.applyFrameTemplate(
-        pageId,
-        selectedTemplateId,
-      );
+      const result = await frameTemplateService.applyFrameTemplate(pageId, selectedTemplateId);
       if (onShowToast) {
         onShowToast(
           'Đã áp dụng mẫu khung',
-          `Áp dụng mẫu khung ${createdPanels.length} ô cho Trang ${pageNumber}.`,
+          `Áp dụng mẫu khung ${result.panels.length} ô cho Trang ${pageNumber}.`,
         );
       }
-      onApplied(createdPanels);
+      onApplied(result.panels);
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Lỗi khi áp dụng mẫu khung vào trang.');

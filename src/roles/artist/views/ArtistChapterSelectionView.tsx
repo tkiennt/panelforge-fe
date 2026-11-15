@@ -31,6 +31,19 @@ type StatusFilterType = 'all' | 'frozen' | 'in_progress' | 'approved';
 type SortByType = 'chapter_asc' | 'chapter_desc' | 'newest' | 'oldest';
 type ViewModeType = 'grid' | 'table';
 
+const getOpenBlockReason = (chapter: ChapterDto): string | null => {
+  if (String(chapter.status) === 'PreProduction') {
+    return 'Chương đang ở giai đoạn tiền kỳ. Hãy chờ Producer bắt đầu sản xuất.';
+  }
+  if (!chapter.isScriptFrozen) {
+    return 'Kịch bản chưa được đóng băng nên chưa thể mở bàn vẽ.';
+  }
+  return null;
+};
+
+const isCompletedChapter = (chapter: ChapterDto): boolean =>
+  ['ChapterApproved', 'HandedOffAndPublished'].includes(String(chapter.status));
+
 export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProps> = ({
   onShowToast,
 }) => {
@@ -87,13 +100,8 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
   const stats = useMemo(() => {
     const total = chapters.length;
     const frozen = chapters.filter((c) => !!c.isScriptFrozen).length;
-    const approved = chapters.filter(
-      (c) => c.status === 'ChapterApproved' || c.status === 'HandedOffAndPublished',
-    ).length;
-    const inProgress = chapters.filter(
-      (c) =>
-        !c.isScriptFrozen && c.status !== 'ChapterApproved' && c.status !== 'HandedOffAndPublished',
-    ).length;
+    const approved = chapters.filter(isCompletedChapter).length;
+    const inProgress = chapters.filter((c) => !c.isScriptFrozen && !isCompletedChapter(c)).length;
     return { total, frozen, approved, inProgress };
   }, [chapters]);
 
@@ -119,16 +127,9 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
     if (statusFilter === 'frozen') {
       list = list.filter((c) => !!c.isScriptFrozen);
     } else if (statusFilter === 'in_progress') {
-      list = list.filter(
-        (c) =>
-          !c.isScriptFrozen &&
-          c.status !== 'ChapterApproved' &&
-          c.status !== 'HandedOffAndPublished',
-      );
+      list = list.filter((c) => !c.isScriptFrozen && !isCompletedChapter(c));
     } else if (statusFilter === 'approved') {
-      list = list.filter(
-        (c) => c.status === 'ChapterApproved' || c.status === 'HandedOffAndPublished',
-      );
+      list = list.filter(isCompletedChapter);
     }
 
     // Sắp xếp
@@ -158,6 +159,11 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
   // Chuyển sang bàn vẽ độc lập (FocusWorkspaceLayout) cho chương được chọn
   const handleOpenArtistDesk = (chapter: ChapterDto) => {
     if (!workspaceId || !seriesId) return;
+    const blockReason = getOpenBlockReason(chapter);
+    if (blockReason) {
+      onShowToast?.('Chưa thể mở bàn vẽ', blockReason);
+      return;
+    }
     const targetUrl = `/workspaces/${workspaceId}/series/${seriesId}/artist/desk?chapterId=${encodeURIComponent(chapter.id)}`;
 
     // Tận dụng View Transition API nếu trình duyệt hỗ trợ để chuyển cảnh êm ái
@@ -173,6 +179,22 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
   const seriesTitle = seriesDetail?.title || 'Bộ truyện';
 
   const renderStatusBadge = (chapter: ChapterDto) => {
+    if (String(chapter.status) === 'ChapterApproved') {
+      return (
+        <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
+          <CheckCircle2 className='w-3 h-3 text-emerald-600' />
+          <span>Nghiệm thu hoàn tất (Gate 3)</span>
+        </span>
+      );
+    }
+    if (String(chapter.status) === 'HandedOffAndPublished') {
+      return (
+        <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
+          <Sparkles className='w-3 h-3 text-purple-600' />
+          <span>Đã bàn giao và phát hành</span>
+        </span>
+      );
+    }
     if (chapter.isScriptFrozen) {
       return (
         <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0'>
@@ -491,12 +513,19 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
         >
           {filteredChapters.map((chapter) => {
             const isFrozen = !!chapter.isScriptFrozen;
+            const blockReason = getOpenBlockReason(chapter);
             return (
               <div
                 key={chapter.id}
                 data-testid={`artist-chapter-card-${chapter.chapterNumber}`}
-                onClick={() => handleOpenArtistDesk(chapter)}
-                className='group relative rounded-2xl p-5 bg-white border border-[#D8D2C5]/80 hover:border-[#F97316]/60 shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between overflow-hidden'
+                onClick={() => !blockReason && handleOpenArtistDesk(chapter)}
+                aria-disabled={blockReason ? 'true' : undefined}
+                title={blockReason || undefined}
+                className={`group relative rounded-2xl p-5 bg-white border border-[#D8D2C5]/80 shadow-2xs transition-all duration-200 flex flex-col justify-between overflow-hidden ${
+                  blockReason
+                    ? 'cursor-not-allowed opacity-70'
+                    : 'hover:border-[#F97316]/60 hover:shadow-md cursor-pointer'
+                }`}
               >
                 {/* Viền nhấn màu phía trên khi hover */}
                 <div className='absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#C2410C] to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
@@ -570,7 +599,9 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                       e.stopPropagation();
                       handleOpenArtistDesk(chapter);
                     }}
-                    className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1C1917] hover:bg-[#C2410C] text-white text-xs font-bold transition-all duration-150 cursor-pointer shadow-xs group-hover:translate-x-0.5'
+                    disabled={Boolean(blockReason)}
+                    title={blockReason || undefined}
+                    className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1C1917] hover:bg-[#C2410C] text-white text-xs font-bold transition-all duration-150 cursor-pointer shadow-xs group-hover:translate-x-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-[#1C1917]'
                   >
                     <LayoutTemplate className='w-3.5 h-3.5 text-orange-400' />
                     <span>Vào bàn vẽ</span>
@@ -600,49 +631,62 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                 </tr>
               </thead>
               <tbody className='divide-y divide-[#EBE7DF]'>
-                {filteredChapters.map((chapter) => (
-                  <tr
-                    key={chapter.id}
-                    data-testid={`artist-chapter-row-${chapter.chapterNumber}`}
-                    onClick={() => handleOpenArtistDesk(chapter)}
-                    className='hover:bg-[#FFF8F2] transition-colors cursor-pointer group'
-                  >
-                    <td className='py-3.5 px-4 whitespace-nowrap'>
-                      <span className='px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-[#1C1917] font-mono font-bold text-xs group-hover:border-[#F97316]/50'>
-                        Chương {chapter.chapterNumber}
-                      </span>
-                    </td>
-                    <td className='py-3.5 px-4 min-w-[220px] max-w-sm'>
-                      <div className='font-bold font-serif text-[#1C1917] group-hover:text-[#C2410C] transition-colors truncate'>
-                        {chapter.title || `Chương ${chapter.chapterNumber}`}
-                      </div>
-                      <div className='text-[11px] text-[#57534E] truncate mt-0.5'>
-                        {chapter.outline || 'Chưa có mô tả tóm tắt.'}
-                      </div>
-                    </td>
-                    <td className='py-3.5 px-4 whitespace-nowrap'>{renderStatusBadge(chapter)}</td>
-                    <td className='py-3.5 px-4 text-center whitespace-nowrap font-bold text-[#1C1917]'>
-                      {chapter.pagesCount || 0}
-                    </td>
-                    <td className='py-3.5 px-4 text-center whitespace-nowrap text-[#78716C] font-medium'>
-                      {chapter.scenesCount || 0}
-                    </td>
-                    <td className='py-3.5 px-4 text-right whitespace-nowrap'>
-                      <button
-                        type='button'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenArtistDesk(chapter);
-                        }}
-                        className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1C1917] hover:bg-[#C2410C] text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs'
-                      >
-                        <LayoutTemplate className='w-3.5 h-3.5 text-orange-400' />
-                        <span>Vào bàn vẽ</span>
-                        <ArrowRight className='w-3 h-3' />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredChapters.map((chapter) => {
+                  const blockReason = getOpenBlockReason(chapter);
+                  return (
+                    <tr
+                      key={chapter.id}
+                      data-testid={`artist-chapter-row-${chapter.chapterNumber}`}
+                      onClick={() => !blockReason && handleOpenArtistDesk(chapter)}
+                      aria-disabled={blockReason ? 'true' : undefined}
+                      title={blockReason || undefined}
+                      className={`transition-colors group ${
+                        blockReason
+                          ? 'cursor-not-allowed opacity-70'
+                          : 'hover:bg-[#FFF8F2] cursor-pointer'
+                      }`}
+                    >
+                      <td className='py-3.5 px-4 whitespace-nowrap'>
+                        <span className='px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-[#1C1917] font-mono font-bold text-xs group-hover:border-[#F97316]/50'>
+                          Chương {chapter.chapterNumber}
+                        </span>
+                      </td>
+                      <td className='py-3.5 px-4 min-w-[220px] max-w-sm'>
+                        <div className='font-bold font-serif text-[#1C1917] group-hover:text-[#C2410C] transition-colors truncate'>
+                          {chapter.title || `Chương ${chapter.chapterNumber}`}
+                        </div>
+                        <div className='text-[11px] text-[#57534E] truncate mt-0.5'>
+                          {chapter.outline || 'Chưa có mô tả tóm tắt.'}
+                        </div>
+                      </td>
+                      <td className='py-3.5 px-4 whitespace-nowrap'>
+                        {renderStatusBadge(chapter)}
+                      </td>
+                      <td className='py-3.5 px-4 text-center whitespace-nowrap font-bold text-[#1C1917]'>
+                        {chapter.pagesCount || 0}
+                      </td>
+                      <td className='py-3.5 px-4 text-center whitespace-nowrap text-[#78716C] font-medium'>
+                        {chapter.scenesCount || 0}
+                      </td>
+                      <td className='py-3.5 px-4 text-right whitespace-nowrap'>
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenArtistDesk(chapter);
+                          }}
+                          disabled={Boolean(blockReason)}
+                          title={blockReason || undefined}
+                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1C1917] hover:bg-[#C2410C] text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs'
+                        >
+                          <LayoutTemplate className='w-3.5 h-3.5 text-orange-400' />
+                          <span>Vào bàn vẽ</span>
+                          <ArrowRight className='w-3 h-3' />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

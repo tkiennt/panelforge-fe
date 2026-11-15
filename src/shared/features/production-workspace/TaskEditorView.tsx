@@ -20,6 +20,7 @@ import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProv
 import { canViewProvenanceReport } from '@/shared/features/provenance/provenanceRules';
 import { KanbanCard, AssignmentDto } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
+import { buildTaskReviewUrl } from '@/app/routePaths';
 
 interface TaskEditorProps {
   activeRoles: string[];
@@ -167,7 +168,13 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
           <div className='flex-1 flex flex-col items-center justify-center text-[#737373]'>
             <p>Task đang ở trạng thái {task.stage}.</p>
             <button
-              onClick={() => navigate(`/review/${task.id}`)}
+              onClick={() => {
+                if (workspaceId && seriesId) {
+                  navigate(buildTaskReviewUrl(workspaceId, seriesId, task.id));
+                } else {
+                  navigate(`/review/${task.id}`);
+                }
+              }}
               className='mt-4 px-4 py-2 bg-[#171717] text-white rounded font-bold'
             >
               Chuyển tới màn hình Review

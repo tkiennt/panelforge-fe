@@ -22,19 +22,10 @@ const LegacyPreviewRedirect: React.FC = () => {
   return <Navigate to={`/review/invite/${encodeURIComponent(token)}`} replace />;
 };
 
-const WorkspaceRedirect: React.FC = () => {
-  const { workspaceId, '*': rest } = useParams<{ workspaceId: string; '*'?: string }>();
-  return <Navigate to={`/workspaces/${workspaceId}${rest ? `/${rest}` : ''}`} replace />;
-};
 import { seriesService } from '@/services/series.service';
 const WorkspaceView = lazy(() =>
   import('@/shared/features/production-workspace/WorkspaceView').then((m) => ({
     default: m.WorkspaceView,
-  })),
-);
-const TaskEditorView = lazy(() =>
-  import('@/shared/features/production-workspace/TaskEditorView').then((m) => ({
-    default: m.TaskEditorView,
   })),
 );
 const ExportView = lazy(() =>
@@ -52,7 +43,7 @@ const StudioOverviewView = lazy(() =>
   import('@/shared/views/StudioOverviewView').then((m) => ({ default: m.StudioOverviewView })),
 );
 const AdminDashboard = lazy(() =>
-  import('@/roles/admin/views').then((m) => ({ default: m.AdminDashboard })),
+  import('@/roles/admin/views/AdminDashboard').then((m) => ({ default: m.AdminDashboard })),
 );
 const ArtistDeskView = lazy(() =>
   import('@/roles/artist/views/ArtistDeskView').then((m) => ({ default: m.ArtistDeskView })),
@@ -60,11 +51,6 @@ const ArtistDeskView = lazy(() =>
 const ArtistChapterSelectionView = lazy(() =>
   import('@/roles/artist/views/ArtistChapterSelectionView').then((m) => ({
     default: m.ArtistChapterSelectionView,
-  })),
-);
-const ArtistWorkspaceView = lazy(() =>
-  import('@/roles/artist/workspace/ArtistWorkspaceView').then((m) => ({
-    default: m.ArtistWorkspaceView,
   })),
 );
 const ReviewView = lazy(() =>
@@ -150,7 +136,6 @@ const ScriptChapterSelectionView = lazy(() =>
     default: m.default || m.ScriptChapterSelectionView,
   })),
 );
-const LettererDeskView = lazy(() => import('@/roles/letterer/views/LettererDeskView'));
 const LettererChapterSelectionView = lazy(() =>
   import('@/roles/letterer/views/LettererChapterSelectionView').then((m) => ({
     default: m.LettererChapterSelectionView,
@@ -401,10 +386,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             }
           />
 
-          <Route path='projects' element={<Navigate to='/workspaces' replace />} />
-          <Route path='workspace/:workspaceId/*' element={<WorkspaceRedirect />} />
-          <Route path='workspace/:workspaceId' element={<WorkspaceRedirect />} />
-
           <Route
             element={
               <AppShell
@@ -612,28 +593,9 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     </RequireWorkspaceRole>
                   }
                 />
-                <Route
-                  path='reader-stats'
-                  element={
-                    <RequireWorkspaceRole
-                      allowedRoles={['PRODUCER', 'ADMINISTRATOR']}
-                      currentWorkspaceRole={currentWorkspaceRole}
-                      currentRole={currentRole}
-                      activeRoles={activeProjectRoles}
-                    >
-                      <ProducerReaderStatsView />
-                    </RequireWorkspaceRole>
-                  }
-                />
-                <Route path='payments' element={<Navigate to='../reader-stats' replace />} />
               </Route>
             </Route>
 
-            {/* Flat legacy routes: safely redirect to /workspaces or /catalog */}
-            <Route path='producer' element={<Navigate to='/workspaces' replace />} />
-            <Route path='reader' element={<Navigate to='/catalog' replace />} />
-            <Route path='artist' element={<Navigate to='/workspaces' replace />} />
-            <Route path='letterer' element={<Navigate to='/workspaces' replace />} />
             <Route
               path='profile'
               element={
@@ -643,10 +605,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   onShowToast={showToast}
                 />
               }
-            />
-            <Route
-              path='catalog'
-              element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}
             />
             <Route
               path='notifications'
@@ -690,14 +648,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 path='revenue/workspaces/:workspaceId'
                 element={<ProducerPaymentsView onShowToast={showToast} />}
               />
-              {/* Publisher không dùng AI: route cũ của AI Publisher Copilot chuyển về danh sách bộ truyện */}
-              <Route path='copilot' element={<Navigate to='/publisher/series' replace />} />
-              <Route
-                path='catalog'
-                element={
-                  <PublicCatalogView onBackToWorkspaces={() => navigate('/publisher/series')} />
-                }
-              />
             </Route>
           </Route>
 
@@ -728,30 +678,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='artist/desk'
                   element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
                 />
-                <Route
-                  path='artist/desk/:chapterId'
-                  element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
-                />
-                <Route
-                  path='chapters/:chapterId/artist'
-                  element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
-                />
               </Route>
-
-              {/* Artist Workspace: ARTIST, PRODUCER */}
-              <Route
-                path='artist/workspace'
-                element={
-                  <RequireWorkspaceRole
-                    allowedRoles={['ARTIST', 'PRODUCER']}
-                    currentWorkspaceRole={currentWorkspaceRole}
-                    currentRole={currentRole}
-                    activeRoles={activeProjectRoles}
-                  >
-                    <ArtistWorkspaceView workspaceRole={currentWorkspaceRole} />
-                  </RequireWorkspaceRole>
-                }
-              />
 
               {/* Script Editor routes: WRITER, PRODUCER */}
               <Route
@@ -773,51 +700,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                       workspaceRole={currentWorkspaceRole}
                     />
                   }
-                />
-                <Route
-                  path='script/editor/:chapterId'
-                  element={
-                    <ScriptEditorView
-                      currentUserId={currentUserInfo?.id}
-                      onShowToast={showToast}
-                      workspaceRole={currentWorkspaceRole}
-                    />
-                  }
-                />
-                <Route
-                  path='chapters/:chapterId/script'
-                  element={
-                    <ScriptEditorView
-                      currentUserId={currentUserInfo?.id}
-                      onShowToast={showToast}
-                      workspaceRole={currentWorkspaceRole}
-                    />
-                  }
-                />
-              </Route>
-
-              {/* Letterer Desk routes: LETTERER, PRODUCER */}
-              <Route
-                element={
-                  <RequireWorkspaceRole
-                    allowedRoles={['LETTERER', 'PRODUCER']}
-                    currentWorkspaceRole={currentWorkspaceRole}
-                    currentRole={currentRole}
-                    activeRoles={activeProjectRoles}
-                  />
-                }
-              >
-                <Route
-                  path='letterer/desk'
-                  element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
-                />
-                <Route
-                  path='letterer/desk/:chapterId'
-                  element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
-                />
-                <Route
-                  path='chapters/:chapterId/letterer'
-                  element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
                 />
               </Route>
 
@@ -842,22 +724,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='editor/bible'
                   element={
                     <BibleReviewView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
-                  }
-                />
-                <Route
-                  path='editor/desk/:chapterId'
-                  element={
-                    <EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
-                  }
-                />
-                <Route
-                  path='script/review/:chapterId'
-                  element={
-                    <ScriptReviewView
-                      currentUserId={currentUserInfo?.id}
-                      workspaceRole={currentWorkspaceRole}
-                      onShowToast={showToast}
-                    />
                   }
                 />
                 <Route
@@ -891,25 +757,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   }
                 />
               </Route>
-
-              {/* Task Editor: ARTIST, LETTERER, WRITER, EDITOR, PRODUCER */}
-              <Route
-                path='task/:taskId'
-                element={
-                  <RequireWorkspaceRole
-                    allowedRoles={['ARTIST', 'LETTERER', 'WRITER', 'EDITOR', 'PRODUCER']}
-                    currentWorkspaceRole={currentWorkspaceRole}
-                    currentRole={currentRole}
-                    activeRoles={activeProjectRoles}
-                  >
-                    <TaskEditorView
-                      activeRoles={activeProjectRoles}
-                      onShowToast={showToast}
-                      isDevMode={isDevMode}
-                    />
-                  </RequireWorkspaceRole>
-                }
-              />
             </Route>
           </Route>
 

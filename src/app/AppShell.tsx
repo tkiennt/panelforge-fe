@@ -45,6 +45,7 @@ import {
   Menu,
   Palette,
   CreditCard,
+  Download,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
@@ -90,14 +91,14 @@ const getRoleNavConfig = (
       section: t('navigation.sections.systemAdmin'),
       items: [
         { icon: LayoutDashboard, label: t('navigation.menu.systemDashboard'), href: '/admin' },
-        { icon: Users, label: t('navigation.menu.usersAndRoles'), href: '/users' },
+        { icon: Users, label: t('navigation.menu.usersAndRoles'), href: '/admin?tab=users' },
         {
           icon: Cpu,
           label: t('navigation.menu.aiQuota'),
-          href: '/ai-quota',
+          href: '/admin?tab=ai-config',
           badge: { type: 'dot', color: 'bg-emerald-500' },
         },
-        { icon: List, label: t('navigation.menu.auditLog'), href: '/audit-log' },
+        { icon: List, label: t('navigation.menu.auditLog'), href: '/admin?tab=audit' },
       ],
     },
   ],
@@ -134,6 +135,7 @@ const getRoleNavConfig = (
         { icon: FileText, label: 'B5 Pre-Press Specs', href: '/specs' },
         { icon: ShieldCheck, label: 'SHA-256 Provenance', href: '/sha' },
         { icon: Send, label: t('navigation.menu.publishingGate'), href: '/publishing' },
+        { icon: Download, label: t('navigation.menu.exportHandoff'), href: '/export' },
       ],
     },
   ],
@@ -308,6 +310,11 @@ export function AppShell({
                 icon: Send,
                 label: t('navigation.menu.publishingGate'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
+              },
+              {
+                icon: Download,
+                label: t('navigation.menu.exportHandoff'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/export`,
               },
               {
                 icon: Eye,

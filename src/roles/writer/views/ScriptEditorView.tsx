@@ -970,7 +970,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     (pageNumber?: number) => {
       if (workspaceId && seriesId && currentChapter?.id) {
         navigate(
-          `/workspaces/${workspaceId}/series/${seriesId}/artist?chapterId=${currentChapter.id}${pageNumber ? `&page=${pageNumber}` : ''}`,
+          `/workspaces/${workspaceId}/series/${seriesId}/artist/desk?chapterId=${currentChapter.id}${pageNumber ? `&page=${pageNumber}` : ''}`,
         );
       }
     },

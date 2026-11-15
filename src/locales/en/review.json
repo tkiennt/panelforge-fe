@@ -261,7 +261,7 @@
       "startConfirm": "Start production of chapter {n}? The script will be finalized (read-only).",
       "started": "Production started",
       "startFailed": "Could not start production",
-      "openCommentsWarning": "{count} open comments on the script"
+      "openCommentsWarning": "{count} advisory comments remain; they do not block Gate 1"
     },
     "comments": {
       "tab": "Comments ({count})",
@@ -313,7 +313,10 @@
       "reopenReason": "Why is it not fixed? (sent to the assignee)",
       "rejectTitle": "Accept the assignee's objection and close this request",
       "emptyCanDraw": "No notes yet. Drag on the submission to mark an area.",
-      "describe": "Describe the change needed"
+      "describe": "Describe the change needed",
+      "layerLabel": "Affected layer",
+      "layerArtwork": "Artwork",
+      "layerLettering": "Lettering"
     },
     "checks": {
       "title": "Visual consistency",
@@ -358,7 +361,7 @@
   },
   "bibleReview": {
     "title": "Series Bible design review",
-    "subtitle": "Compare the artist's design with the spec and story. You endorse or request a redraw; the Producer locks canon.",
+    "subtitle": "Compare the artist's design with the spec and story. The Editor locks canon or requests a redraw.",
     "listLabel": "Bible entries to review",
     "emptyTitle": "No designs waiting for review",
     "emptyBody": "When an artist submits concept art or a model sheet for a Bible entry, it shows up here for you to check.",
@@ -366,9 +369,7 @@
       "pending": "Waiting for you",
       "pendingHint": "The artist submitted a design.",
       "rework": "Being redrawn",
-      "reworkHint": "Changes requested, waiting for the artist.",
-      "endorsed": "Endorsed",
-      "endorsedHint": "Waiting for the Producer to lock canon."
+      "reworkHint": "Changes requested, waiting for the artist."
     },
     "openImage": "Zoom to full size",
     "noImage": "No design image yet",
@@ -386,15 +387,14 @@
       "StyleRule": "Style rule",
       "PlotFact": "Plot fact"
     },
-    "decisionHint": "Does the design match the spec and story? After you endorse, the Producer locks canon.",
-    "endorse": "Endorse design",
+    "decisionHint": "Does the design match the spec and story? Editor confirmation locks this revision as canon.",
+    "lockCanon": "Confirm & Lock Canon",
     "requestRework": "Request redraw",
     "reworkReason": "What needs to change? (the artist sees this note)",
-    "waitingProducer": "Endorsed. Waiting for the Producer to lock canon.",
     "waitingArtist": "Redraw requested. Waiting for the artist's new version.",
     "notReviewer": "Your role can view designs only.",
     "toast": {
-      "endorsed": "Design endorsed",
+      "canonLocked": "Canon locked",
       "reworkRequested": "Redraw requested",
       "failed": "Could not save the decision"
     },

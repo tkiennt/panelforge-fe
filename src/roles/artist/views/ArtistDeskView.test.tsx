@@ -15,6 +15,7 @@ import { frameTemplateService } from '@/services/frameTemplate.service';
 import { artworkService } from '@/services/artwork.service';
 import { FocusWorkspaceLayout } from '@/app/FocusWorkspaceLayout';
 import { ToastProvider } from '@/shared/context/ToastContext';
+import { ConfirmProvider } from '@/shared/context/ConfirmContext';
 import { beforeEach } from 'vitest';
 
 beforeEach(() => {
@@ -109,7 +110,7 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
     expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('7 / 7');
   });
 
-  it('displays continuous script across pages by default and supports syncing to current page', () => {
+  it('defaults script to the current page and supports the full chapter mode', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
         <Routes>
@@ -121,11 +122,16 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
       </MemoryRouter>,
     );
 
-    // Open Script tab -> defaults to continuous ("xuyên suốt") view showing Page 1 & Page 2
+    // Open Script tab -> defaults to the page currently being drawn.
     fireEvent.click(screen.getByTestId('canva-tab-script'));
-    expect(screen.getByText(/── TRANG 1 ──/i)).toBeInTheDocument();
-    expect(screen.getByText(/── TRANG 2 ──/i)).toBeInTheDocument();
+    expect(screen.getByTestId('canva-script-mode-current-page')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.getByTestId('script-line-line-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('script-line-line-6')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('canva-script-mode-all'));
     expect(screen.getByTestId('script-line-line-6')).toBeInTheDocument();
 
     // Filter to current page mode -> shows Page 1 only, then updates to Page 2 when page 2 selected
@@ -135,7 +141,7 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
 
     const card2 = screen.getByTestId('canva-page-card-2');
     fireEvent.click(card2.querySelector('[role="button"]')!);
-    expect(screen.getByText(/── TRANG 2 ──/i)).toBeInTheDocument();
+    expect(screen.getByTestId('script-panel-section-2-1')).toBeInTheDocument();
     expect(screen.getByTestId('script-line-line-6')).toBeInTheDocument();
     expect(screen.queryByTestId('script-line-line-1')).not.toBeInTheDocument();
   });
@@ -332,9 +338,8 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
       expect(screen.getByTestId('script-line-ln-1')).toBeInTheDocument();
     });
 
-    // Verify continuous pages & panels layout
-    expect(screen.getByText(/── TRANG 1 ──/i)).toBeInTheDocument();
-    expect(screen.getByText(/── TRANG 2 ──/i)).toBeInTheDocument();
+    // Opt into the full chapter before verifying cross-page and unpaged content.
+    fireEvent.click(screen.getByTestId('canva-script-mode-all'));
     expect(screen.getByTestId('script-panel-section-1-1')).toBeInTheDocument();
     expect(screen.getByTestId('script-panel-section-2-2')).toBeInTheDocument();
     // Character name resolved from Bible entry ID
@@ -471,6 +476,34 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
         priority: 'Medium',
         createdAt: '2026-01-01T00:00:00Z',
       },
+      {
+        id: 'assign-ink',
+        seriesId: 'ser-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter',
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'st-ink',
+        assigneeUserId: 'user-1',
+        assignedRole: 'ARTIST',
+        brief: 'Đi nét chương 1',
+        status: 'Assigned',
+        priority: 'Medium',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'assign-letter',
+        seriesId: 'ser-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter',
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'st-dialogue',
+        assigneeUserId: 'user-1',
+        assignedRole: 'ARTIST',
+        brief: 'Đặt chữ chương 1',
+        status: 'Assigned',
+        priority: 'Medium',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
     ]);
 
     const submitSpy = vi.spyOn(assignmentService, 'submitAssignment').mockResolvedValue({
@@ -549,6 +582,8 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
       'data-stage-state',
       'upcoming',
     );
+    fireEvent.click(screen.getByTestId('focus-stage-step-2'));
+    expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute('data-stage-state', 'current');
     expect(screen.queryByText(/SHA-256|CAS|DPI|Canon|Zen Mode/i)).not.toBeInTheDocument();
 
     // Submit 1: Pencil -> Ink
@@ -592,6 +627,79 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     await waitFor(() => {
       expect(pagesSpy).toHaveBeenCalledWith('chap-2');
     });
+  });
+
+  it('warns instead of advancing when the active stage has no matching assignment', async () => {
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+        <ToastProvider>
+          <ConfirmProvider>
+            <Routes>
+              <Route
+                path='/workspaces/:workspaceId/series/:seriesId/artist'
+                element={<ArtistDeskView workspaceRole='ARTIST' initialScriptLines={[]} />}
+              />
+            </Routes>
+          </ConfirmProvider>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
+
+    expect(await screen.findByText('Không thể nộp công đoạn')).toBeInTheDocument();
+    expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute('data-stage-state', 'current');
+  });
+
+  it('shows script coverage and blocks Submit Pencil below 100%', async () => {
+    vi.spyOn(assignmentService, 'getAssignments').mockResolvedValue([
+      {
+        id: 'assign-pencil',
+        seriesId: 'ser-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter',
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'stage-pencil',
+        assigneeUserId: 'user-1',
+        assignedRole: 'ARTIST',
+        brief: 'Vẽ chì',
+        status: 'InProgress',
+        priority: 'Medium',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    const submitSpy = vi.spyOn(assignmentService, 'submitAssignment');
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+        <ToastProvider>
+          <ConfirmProvider>
+            <Routes>
+              <Route
+                path='/workspaces/:workspaceId/series/:seriesId/artist'
+                element={
+                  <ArtistDeskView
+                    workspaceRole='ARTIST'
+                    initialScriptLines={[
+                      { id: 'line-1', dialogueText: 'Đã gán', panelId: 'panel-1' },
+                      { id: 'line-2', dialogueText: 'Chưa gán' },
+                    ]}
+                  />
+                }
+              />
+            </Routes>
+          </ConfirmProvider>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('artist-script-coverage')).toHaveTextContent(
+      'Script Coverage: 1/2 dòng thoại · 50%',
+    );
+    fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
+
+    expect(await screen.findByText('Chưa thể nộp Pencil')).toBeInTheDocument();
+    expect(submitSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -678,25 +786,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
       },
     ]);
 
-    vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValueOnce([]);
-
-    vi.spyOn(frameTemplateService, 'getFrameTemplates').mockResolvedValueOnce([
-      {
-        id: tplGuid,
-        workspaceId: 'ws-real',
-        name: 'Mẫu 2 Khung API',
-        layoutFormat: 'StandardPage',
-        isBuiltIn: false,
-        panelCount: 2,
-        slots: [
-          { x: 0.05, y: 0.05, w: 0.9, h: 0.4, borderless: false },
-          { x: 0.05, y: 0.5, w: 0.9, h: 0.45, borderless: true },
-        ],
-        createdAt: '2026-01-01T00:00:00Z',
-      },
-    ]);
-
-    const applySpy = vi.spyOn(frameTemplateService, 'applyFrameTemplate').mockResolvedValueOnce([
+    const savedPanels = [
       {
         id: 'created-pnl-1',
         pageId: pageGuid,
@@ -716,17 +806,45 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         readingOrder: 2,
         createdAt: '2026-01-01T00:00:00Z',
       },
+    ];
+    vi.spyOn(panelService, 'getPanelsByPage')
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(savedPanels);
+
+    vi.spyOn(frameTemplateService, 'getFrameTemplates').mockResolvedValueOnce([
+      {
+        id: tplGuid,
+        workspaceId: 'ws-real',
+        name: 'Mẫu 2 Khung API',
+        layoutFormat: 'StandardPage',
+        isBuiltIn: false,
+        panelCount: 2,
+        slots: [
+          { x: 0.05, y: 0.05, w: 0.9, h: 0.4, borderless: false },
+          { x: 0.05, y: 0.5, w: 0.9, h: 0.45, borderless: true },
+        ],
+        createdAt: '2026-01-01T00:00:00Z',
+      },
     ]);
 
+    const getArtworksSpy = vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+
+    const applySpy = vi.spyOn(frameTemplateService, 'applyFrameTemplate').mockResolvedValueOnce({
+      panels: savedPanels,
+      unassignedArtworkCount: 2,
+    });
+
     render(
-      <MemoryRouter initialEntries={['/workspaces/ws-real/series/ser-real/artist']}>
-        <Routes>
-          <Route
-            path='/workspaces/:workspaceId/series/:seriesId/artist'
-            element={<ArtistDeskView workspaceRole='ARTIST' />}
-          />
-        </Routes>
-      </MemoryRouter>,
+      <ToastProvider>
+        <MemoryRouter initialEntries={['/workspaces/ws-real/series/ser-real/artist']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/artist'
+              element={<ArtistDeskView workspaceRole='ARTIST' />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>,
     );
 
     fireEvent.click(screen.getByTestId('canva-tab-templates'));
@@ -743,21 +861,26 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
 
     await waitFor(() => {
       expect(applySpy).toHaveBeenCalledWith(pageGuid, tplGuid);
+      expect(panelService.getPanelsByPage).toHaveBeenCalledTimes(2);
+      expect(getArtworksSpy).toHaveBeenCalledWith(chapGuid, pageGuid, undefined);
     });
+    expect(screen.getByText('2 tranh chưa có khung')).toBeInTheDocument();
     expect(screen.getByTestId('canvas-panel-frame-1')).toBeInTheDocument();
     expect(screen.getByTestId('canvas-panel-frame-2')).toBeInTheDocument();
   });
 
-  it('enforces layout locking before uploading artworks and guards re-templating with confirmation modal', async () => {
+  it('keeps artwork mapped by reading order when re-templating and marks layout dirty again', async () => {
     render(
-      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
-        <Routes>
-          <Route
-            path='/workspaces/:workspaceId/series/:seriesId/artist'
-            element={<ArtistDeskView workspaceRole='ARTIST' />}
-          />
-        </Routes>
-      </MemoryRouter>,
+      <ConfirmProvider>
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/artist'
+              element={<ArtistDeskView workspaceRole='ARTIST' />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </ConfirmProvider>,
     );
 
     // Open templates tab and select 3 Khung Shonen for Page 1
@@ -765,10 +888,10 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-000000000004'));
 
     // Verify Lucian-style save button is rendered at bottom-right beside the sheet
-    expect(screen.getByTestId('canvas-bottom-layout-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('artist-layout-toolbar')).toBeInTheDocument();
     const saveBtn = screen.getByTestId('canvas-btn-save-layout');
     expect(saveBtn).toBeInTheDocument();
-    expect(saveBtn).toHaveTextContent('Lưu');
+    expect(saveBtn).toHaveTextContent('Lưu bố cục');
 
     // In draft mode, dropzone is NOT accessible
     expect(screen.queryByTestId('panel-dropzone-1')).not.toBeInTheDocument();
@@ -796,8 +919,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     // Save layout (lucian button) -> saves and button turns off (disappears)
     fireEvent.click(screen.getByTestId('canvas-btn-save-layout'));
 
-    // After saving, save button is hidden / turned off
-    expect(screen.queryByTestId('canvas-btn-save-layout')).not.toBeInTheDocument();
+    expect(screen.getByTestId('canvas-btn-save-layout')).toBeDisabled();
 
     // Dropzone is now enabled for each panel
     expect(screen.getByTestId('panel-dropzone-1')).toBeInTheDocument();
@@ -823,20 +945,18 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
 
     // When artist tries to switch template while page has artwork, confirmation modal appears
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
-    expect(screen.getByTestId('modal-unlock-layout-confirm')).toBeInTheDocument();
-    expect(screen.getByText(/Mở khóa đổi mẫu khung trang\?/i)).toBeInTheDocument();
+    expect(await screen.findByText('Đổi mẫu khung và giữ tranh?')).toBeInTheDocument();
 
     // Cancel preserves locked layout and artwork
-    fireEvent.click(screen.getByTestId('btn-cancel-unlock'));
-    expect(screen.queryByTestId('modal-unlock-layout-confirm')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Giữ bố cục hiện tại' }));
     expect(screen.getByAltText('panel1-sketch.png')).toBeInTheDocument();
 
     // Confirm unlock resets artwork and returns to draft template selection -> Save button reappears
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
-    fireEvent.click(screen.getByTestId('btn-confirm-unlock'));
-    expect(screen.queryByTestId('modal-unlock-layout-confirm')).not.toBeInTheDocument();
-    expect(screen.getByTestId('canvas-btn-save-layout')).toBeInTheDocument();
-    expect(screen.queryByAltText('panel1-sketch.png')).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Đổi mẫu khung' }));
+    await waitFor(() => expect(screen.getByTestId('canvas-panel-frame-4')).toBeInTheDocument());
+    expect(screen.getByAltText('panel1-sketch.png')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-btn-save-layout')).toBeEnabled();
   });
 
   describe('ArtistDeskView - Artwork Persistence & Error Notification (CF2 / WAITING_FE Fix)', () => {
@@ -1137,11 +1257,28 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
           expiresAtUtc: new Date(Date.now() + 300000).toISOString(),
         };
       });
-
+      vi.spyOn(assignmentService, 'getAssignments').mockResolvedValue([
+        {
+          id: 'assign-pencil',
+          seriesId: 'ser-1',
+          chapterId: mockChapterId,
+          entityType: 'Chapter',
+          targetEntityId: mockChapterId,
+          pipelineStageId: pencilStageId,
+          assigneeUserId: 'user-1',
+          assignedRole: 'ARTIST',
+          brief: 'Vẽ chì',
+          status: 'Submitted',
+          priority: 'Medium',
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+      ]);
       render(
         <ToastProvider>
           <MemoryRouter
-            initialEntries={[`/workspaces/ws-1/series/ser-1/artist?chapterId=${mockChapterId}`]}
+            initialEntries={[
+              `/workspaces/ws-1/series/ser-1/artist?chapterId=${mockChapterId}&assignmentId=assign-pencil`,
+            ]}
           >
             <Routes>
               <Route
@@ -1158,10 +1295,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         expect(screen.getByAltText('pencil-sketch.png')).toBeInTheDocument();
       });
 
-      // Switch stage to Ink by clicking stage step 1
-      fireEvent.click(screen.getByTestId('focus-stage-step-1'));
-
-      // Artworks for ink stage are loaded and rendered
+      // A submitted Pencil assignment unlocks Ink; saved artwork reloads for the new stage.
       await waitFor(() => {
         expect(getArtworksSpy).toHaveBeenCalledWith(mockChapterId, mockPageId, inkStageId);
         expect(screen.getByAltText('ink-drawing.png')).toBeInTheDocument();

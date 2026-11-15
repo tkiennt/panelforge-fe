@@ -22,7 +22,7 @@ interface PanelFrameOverlayProps {
   pageHeight: number;
   templateCode?: string;
   artworks: Record<string, PanelArtworkData>;
-  isLayoutLocked: boolean;
+  isLayoutSaved: boolean;
   onUploadArtwork: (panelId: string, panelNumber: number, file: File) => void;
   onRemoveArtwork: (panelId: string, panelNumber: number) => void;
   onPreviewArtwork: (preview: { imageUrl: string; title: string }) => void;
@@ -45,7 +45,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
   pageHeight,
   templateCode,
   artworks,
-  isLayoutLocked,
+  isLayoutSaved,
   onUploadArtwork,
   onRemoveArtwork,
   onPreviewArtwork,
@@ -76,8 +76,8 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
             key={pnl.id}
             data-testid={`canvas-panel-frame-${panelNum}`}
             className={`absolute overflow-hidden ${isInset ? 'z-30 shadow-md bg-white' : 'z-20'} ${
-              corners ? '' : frameClass(!!box.borderless, isLayoutLocked, isInset)
-            } ${isLayoutLocked ? 'pointer-events-auto' : 'pointer-events-none'}`}
+              corners ? '' : frameClass(!!box.borderless, isLayoutSaved, isInset)
+            } pointer-events-auto`}
             style={{
               left: `${box.percentX}%`,
               top: `${box.percentY}%`,
@@ -100,13 +100,13 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                   fill={
                     isInset
                       ? '#ffffff'
-                      : isLayoutLocked
+                      : isLayoutSaved
                         ? 'rgba(250, 250, 249, 0.2)'
                         : 'rgba(245, 245, 244, 0.3)'
                   }
-                  stroke={box.borderless ? '#f97316' : isLayoutLocked ? '#1c1917' : '#78716c'}
-                  strokeWidth={isLayoutLocked ? '2.5' : '2'}
-                  strokeDasharray={box.borderless || !isLayoutLocked ? '6 4' : undefined}
+                  stroke={box.borderless ? '#f97316' : isLayoutSaved ? '#1c1917' : '#78716c'}
+                  strokeWidth={isLayoutSaved ? '2.5' : '2'}
+                  strokeDasharray={box.borderless || !isLayoutSaved ? '6 4' : undefined}
                   vectorEffect='non-scaling-stroke'
                 />
               </svg>
@@ -116,75 +116,74 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
               #{panelNum}
             </span>
 
-            {isLayoutLocked &&
-              (artwork ? (
-                <div className='relative w-full h-full group'>
-                  <img
-                    src={artwork.imageUrl}
-                    alt={artwork.fileName}
-                    className='w-full h-full object-cover select-none'
-                  />
-                  <div className='absolute inset-0 bg-stone-900/40 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center justify-center gap-2'>
-                    <button
-                      type='button'
-                      onClick={() =>
-                        onPreviewArtwork({
-                          imageUrl: artwork.imageUrl,
-                          title: `Khung #${panelNum} - ${artwork.fileName}`,
-                        })
-                      }
-                      data-testid={`panel-btn-view-${panelNum}`}
-                      className={`${HOVER_ACTION} bg-white/90 hover:bg-white text-stone-800`}
-                      title='Xem phóng to tranh'
-                      aria-label={`Xem phóng to tranh khung ${panelNum}`}
-                    >
-                      <Eye className='w-4 h-4' aria-hidden='true' />
-                    </button>
-                    <button
-                      type='button'
-                      onClick={openPicker}
-                      data-testid={`panel-btn-replace-${panelNum}`}
-                      className={`${HOVER_ACTION} bg-white/90 hover:bg-white text-stone-800`}
-                      title='Thay đổi ảnh'
-                      aria-label={`Thay tranh khung ${panelNum}`}
-                    >
-                      <UploadCloud className='w-4 h-4' aria-hidden='true' />
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => onRemoveArtwork(pnl.id, panelNum)}
-                      data-testid={`panel-btn-remove-${panelNum}`}
-                      className={`${HOVER_ACTION} bg-rose-600 hover:bg-rose-700 text-white`}
-                      title='Gỡ tranh'
-                      aria-label={`Gỡ tranh khung ${panelNum}`}
-                    >
-                      <Trash2 className='w-4 h-4' aria-hidden='true' />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type='button'
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const file = e.dataTransfer.files?.[0];
-                    if (file) onUploadArtwork(pnl.id, panelNum, file);
-                  }}
-                  onClick={openPicker}
-                  data-testid={`panel-dropzone-${panelNum}`}
-                  className='focus-ring w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-50/50 cursor-pointer transition-colors border border-dashed border-stone-300 hover:border-stone-500'
-                >
-                  <span
-                    className='p-2 rounded-full bg-white/80 border border-stone-200/80'
-                    aria-hidden='true'
+            {artwork ? (
+              <div className='relative w-full h-full group'>
+                <img
+                  src={artwork.imageUrl}
+                  alt={artwork.fileName}
+                  className='w-full h-full object-cover select-none'
+                />
+                <div className='absolute inset-0 bg-stone-900/40 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center justify-center gap-2'>
+                  <button
+                    type='button'
+                    onClick={() =>
+                      onPreviewArtwork({
+                        imageUrl: artwork.imageUrl,
+                        title: `Khung #${panelNum} - ${artwork.fileName}`,
+                      })
+                    }
+                    data-testid={`panel-btn-view-${panelNum}`}
+                    className={`${HOVER_ACTION} bg-white/90 hover:bg-white text-stone-800`}
+                    title='Xem phóng to tranh'
+                    aria-label={`Xem phóng to tranh khung ${panelNum}`}
                   >
-                    <ImagePlus className='w-4 h-4 text-stone-600' />
-                  </span>
-                  <span className='text-xs font-semibold'>+ Nạp tranh Khung #{panelNum}</span>
-                  <span className='text-xs text-stone-500'>Kéo thả hoặc nhấn để chọn</span>
-                </button>
-              ))}
+                    <Eye className='w-4 h-4' aria-hidden='true' />
+                  </button>
+                  <button
+                    type='button'
+                    onClick={openPicker}
+                    data-testid={`panel-btn-replace-${panelNum}`}
+                    className={`${HOVER_ACTION} bg-white/90 hover:bg-white text-stone-800`}
+                    title='Thay đổi ảnh'
+                    aria-label={`Thay tranh khung ${panelNum}`}
+                  >
+                    <UploadCloud className='w-4 h-4' aria-hidden='true' />
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => onRemoveArtwork(pnl.id, panelNum)}
+                    data-testid={`panel-btn-remove-${panelNum}`}
+                    className={`${HOVER_ACTION} bg-rose-600 hover:bg-rose-700 text-white`}
+                    title='Gỡ tranh'
+                    aria-label={`Gỡ tranh khung ${panelNum}`}
+                  >
+                    <Trash2 className='w-4 h-4' aria-hidden='true' />
+                  </button>
+                </div>
+              </div>
+            ) : isLayoutSaved ? (
+              <button
+                type='button'
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) onUploadArtwork(pnl.id, panelNum, file);
+                }}
+                onClick={openPicker}
+                data-testid={`panel-dropzone-${panelNum}`}
+                className='focus-ring w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-50/50 cursor-pointer transition-colors border border-dashed border-stone-300 hover:border-stone-500'
+              >
+                <span
+                  className='p-2 rounded-full bg-white/80 border border-stone-200/80'
+                  aria-hidden='true'
+                >
+                  <ImagePlus className='w-4 h-4 text-stone-600' />
+                </span>
+                <span className='text-xs font-semibold'>+ Nạp tranh Khung #{panelNum}</span>
+                <span className='text-xs text-stone-500'>Kéo thả hoặc nhấn để chọn</span>
+              </button>
+            ) : null}
 
             <input
               type='file'

@@ -13,6 +13,7 @@ import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
 import { PanelDto, ChangeRequestDto, AssetReferenceDto } from '@/types/pipeline';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
 import { useToast } from '@/shared/context/ToastContext';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 import { detectPanelsFromSketchImage, cropImageByBoundingBox } from '../lib/panelDetection';
 import { getRoleDefaultPath } from '@/roles/roles';
 import {
@@ -37,7 +38,7 @@ import { PageStage } from '../components/desk/ArtistPageSidebar';
 import { ArtistCanvasViewport, type PageSketch } from '../components/desk/ArtistCanvasViewport';
 import { PanelFrameOverlay, type PanelArtworkData } from '../components/desk/PanelFrameOverlay';
 import { LetteringBalloonOverlay } from '../components/desk/LetteringBalloonOverlay';
-import { ArtworkPreviewDialog, UnlockLayoutDialog } from '../components/desk/ArtistDeskDialogs';
+import { ArtworkPreviewDialog } from '../components/desk/ArtistDeskDialogs';
 import { useLetteringBalloons } from '../hooks/useLetteringBalloons';
 import {
   DEFAULT_ARTIST_STAGES,
@@ -58,6 +59,37 @@ export interface ArtistDeskViewProps {
   initialScriptLines?: ScriptLineItem[];
   initialBibleEntities?: BibleEntityItem[];
   initialSidebarTab?: CanvaSidebarTab;
+}
+
+function carryArtworksByReadingOrder(
+  oldPanels: PanelDto[],
+  newPanels: PanelDto[],
+  artworks: Record<string, PanelArtworkData>,
+  existingOrphans: PanelArtworkData[] = [],
+): { mapped: Record<string, PanelArtworkData>; orphans: PanelArtworkData[] } {
+  const byReadingOrder = (panels: PanelDto[]) =>
+    [...panels].sort(
+      (a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
+    );
+  const orderedArtworks = byReadingOrder(oldPanels)
+    .map((panel) => artworks[panel.id])
+    .filter((artwork): artwork is PanelArtworkData => Boolean(artwork));
+  const orderedTargets = byReadingOrder(newPanels);
+  const mapped: Record<string, PanelArtworkData> = {};
+
+  orderedArtworks.slice(0, orderedTargets.length).forEach((artwork, index) => {
+    const target = orderedTargets[index];
+    mapped[target.id] = {
+      ...artwork,
+      panelId: target.id,
+      panelNumber: target.panelNumber || target.readingOrder || index + 1,
+    };
+  });
+
+  return {
+    mapped,
+    orphans: [...existingOrphans, ...orderedArtworks.slice(orderedTargets.length)],
+  };
 }
 
 /**
@@ -83,6 +115,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
+  const confirm = useConfirm();
   const focusHeader = useFocusHeaderContext();
 
   const chapterIdFromUrl = chapterIdFromParam || searchParams.get('chapterId');
@@ -107,6 +140,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   );
   const [hasLoadedRealScript, setHasLoadedRealScript] = useState(false);
   const [panelsByPageId, setPanelsByPageId] = useState<Record<string, PanelDto[]>>({});
+  const [persistedPanelsByPageId, setPersistedPanelsByPageId] = useState<
+    Record<string, PanelDto[]>
+  >({});
   const [panelPageMap, setPanelPageMap] = useState<
     Record<string, { pageNumber: number; panelNumber: number; sceneId?: string | null }>
   >({});
@@ -122,8 +158,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
   const [templateError, setTemplateError] = useState<string | null>(null);
 
-  // Artwork uploads unlock only after the page layout has been locked.
-  const [lockedTemplateByPageId, setLockedTemplateByPageId] = useState<Record<string, boolean>>({});
+  // A saved layout may receive artwork; any layout edit makes the page dirty again.
+  const [savedLayoutByPageId, setSavedLayoutByPageId] = useState<Record<string, boolean>>({});
   const [panelArtworksByPageId, setPanelArtworksByPageId] = useState<
     Record<string, Record<string, PanelArtworkData>>
   >({});
@@ -131,7 +167,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     Record<string, PageSketch>
   >({});
   const [isDetectingPanels, setIsDetectingPanels] = useState(false);
-  const [isUnlockConfirmOpen, setIsUnlockConfirmOpen] = useState(false);
+  const [orphanedArtworksByPageId, setOrphanedArtworksByPageId] = useState<
+    Record<string, PanelArtworkData[]>
+  >({});
   const [previewArtwork, setPreviewArtwork] = useState<{ imageUrl: string; title: string } | null>(
     null,
   );
@@ -474,11 +512,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             );
             const nextMap: Record<string, { pageNumber: number; panelNumber: number }> = {};
             const nextPanelsByPage: Record<string, PanelDto[]> = {};
-            const backendLockedMap: Record<string, boolean> = {};
+            const backendSavedMap: Record<string, boolean> = {};
             panelResults.forEach(({ pageId, pageNumber, panels }) => {
               if (panels && panels.length > 0) {
                 nextPanelsByPage[pageId] = panels;
-                backendLockedMap[pageId] = true;
+                backendSavedMap[pageId] = true;
                 panels.forEach((pnl) => {
                   nextMap[pnl.id] = {
                     pageNumber,
@@ -489,8 +527,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             });
             resolvedPanelsByPage = nextPanelsByPage;
             setPanelsByPageId((prev) => ({ ...prev, ...nextPanelsByPage }));
+            setPersistedPanelsByPageId((prev) => ({ ...prev, ...nextPanelsByPage }));
             setPanelPageMap((prev) => ({ ...prev, ...nextMap }));
-            setLockedTemplateByPageId((prev) => ({ ...prev, ...backendLockedMap }));
+            setSavedLayoutByPageId((prev) => ({ ...prev, ...backendSavedMap }));
           }
 
           // Tải danh sách tranh đã lưu trên R2 cho các trang
@@ -815,6 +854,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return formatChapterLabel(activeChapter.chapterNumber, activeChapter.title);
   }, [activeChapter]);
 
+  const scriptCoverage = useMemo(() => {
+    const dialogueLines = (rawScriptLines || initialScriptLines || []).filter((line) =>
+      Boolean(line.dialogueText?.trim()),
+    );
+    const covered = dialogueLines.filter((line) => Boolean(line.panelId)).length;
+    const total = dialogueLines.length;
+    return {
+      covered,
+      total,
+      percent: total === 0 ? 100 : Math.round((covered / total) * 100),
+    };
+  }, [rawScriptLines, initialScriptLines]);
+
   const handleSelectChapter = useCallback(
     (chapId: string) => {
       setCurrentChapterId(chapId);
@@ -846,46 +898,59 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     const currentStage = artistStages[currentStageIndex];
     if (!currentStage) return;
 
+    if (currentStage.key === 'pencil' && scriptCoverage.percent < 100) {
+      toast.warning(
+        'Chưa thể nộp Pencil',
+        `Mới ánh xạ ${scriptCoverage.covered}/${scriptCoverage.total} dòng thoại vào khung. Cần đạt 100% Script Coverage trước khi nộp.`,
+      );
+      return;
+    }
+
+    const matchingAssignment = currentChapterId
+      ? (assignmentIdFromUrl
+          ? chapterAssignments.find(
+              (a) => a.id === assignmentIdFromUrl && a.pipelineStageId === currentStage.id,
+            )
+          : undefined) ||
+        chapterAssignments.find((a) => {
+          const st = String(a.status || '').toLowerCase();
+          return (
+            a.pipelineStageId === currentStage.id &&
+            (st === 'assigned' || st === 'inprogress' || st === 'reworkrequired')
+          );
+        })
+      : undefined;
+
+    if (!matchingAssignment) {
+      toast.warning(
+        'Không thể nộp công đoạn',
+        `Bạn chưa có phân công phù hợp cho công đoạn "${currentStage.label}" trong chương này.`,
+      );
+      return;
+    }
+
     setIsSubmittingStage(true);
     try {
       if (currentChapterId) {
-        const matchingAssignment =
-          (assignmentIdFromUrl
-            ? chapterAssignments.find(
-                (a) => a.id === assignmentIdFromUrl && a.pipelineStageId === currentStage.id,
-              )
-            : undefined) ||
-          chapterAssignments.find((a) => {
-            const st = String(a.status || '').toLowerCase();
-            return (
-              a.pipelineStageId === currentStage.id &&
-              (st === 'assigned' || st === 'inprogress' || st === 'reworkrequired')
-            );
-          });
-
-        if (matchingAssignment) {
-          try {
-            const statusLower = String(matchingAssignment.status || '').toLowerCase();
-            if (
-              (statusLower === 'assigned' || statusLower === 'reworkrequired') &&
-              assignmentService?.startAssignment
-            ) {
-              await assignmentService.startAssignment(currentChapterId, matchingAssignment.id);
-            }
-            if (assignmentService?.submitAssignment) {
-              const updated = await assignmentService.submitAssignment(
-                currentChapterId,
-                matchingAssignment.id,
-              );
-              if (updated) {
-                setChapterAssignments((prev) =>
-                  prev.map((a) => (a.id === updated.id ? updated : a)),
-                );
-              }
-            }
-          } catch {
-            // Không chặn luồng chuyển bước trên bàn vẽ nếu API phân công chưa sẵn sàng
+        try {
+          const statusLower = String(matchingAssignment.status || '').toLowerCase();
+          if (
+            (statusLower === 'assigned' || statusLower === 'reworkrequired') &&
+            assignmentService?.startAssignment
+          ) {
+            await assignmentService.startAssignment(currentChapterId, matchingAssignment.id);
           }
+          if (assignmentService?.submitAssignment) {
+            const updated = await assignmentService.submitAssignment(
+              currentChapterId,
+              matchingAssignment.id,
+            );
+            if (updated) {
+              setChapterAssignments((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+            }
+          }
+        } catch {
+          // Không chặn luồng chuyển bước trên bàn vẽ nếu API phân công chưa sẵn sàng
         }
       }
 
@@ -911,8 +976,24 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     currentChapterId,
     assignmentIdFromUrl,
     chapterAssignments,
+    scriptCoverage,
     toast,
   ]);
+
+  const handleSelectStage = useCallback(
+    (idx: number) => {
+      if (idx < 0 || idx >= artistStages.length) return;
+      if (idx > currentStageIndex) {
+        toast.warning(
+          'Công đoạn chưa mở khóa',
+          `Hãy nộp "${artistStages[currentStageIndex]?.label || 'công đoạn hiện tại'}" trước khi chuyển tiếp.`,
+        );
+        return;
+      }
+      setCurrentStageIndex(idx);
+    },
+    [artistStages, currentStageIndex, toast],
+  );
 
   const seriesPath = useMemo(() => {
     if (workspaceId && seriesId) {
@@ -943,11 +1024,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       isStageFlowCompleted,
       isSubmittingStage,
       onSubmitStage: handleSubmitStage,
-      onSelectStage: (idx: number) => {
-        if (idx >= 0 && idx < artistStages.length) {
-          setCurrentStageIndex(idx);
-        }
-      },
+      onSelectStage: handleSelectStage,
       submitButtonLabel: 'Nộp bản thảo',
     });
   }, [
@@ -963,6 +1040,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     isStageFlowCompleted,
     isSubmittingStage,
     handleSubmitStage,
+    handleSelectStage,
   ]);
 
   useEffect(() => {
@@ -1214,13 +1292,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     [selectedPage, fullPageSketchesByPageId],
   );
 
-  const isCurrentPageLayoutLocked = Boolean(
-    selectedPage && lockedTemplateByPageId[selectedPage.id],
-  );
+  const isCurrentPageLayoutSaved = Boolean(selectedPage && savedLayoutByPageId[selectedPage.id]);
   const currentPageArtworks = useMemo(
     () => (selectedPage ? panelArtworksByPageId[selectedPage.id] || {} : {}),
     [selectedPage, panelArtworksByPageId],
   );
+  const artworkPanelKeys = useMemo<Set<string | number>>(() => {
+    const keys = new Set<string | number>();
+    Object.values(currentPageArtworks).forEach((artwork) => {
+      keys.add(artwork.panelId);
+      keys.add(artwork.panelNumber);
+    });
+    return keys;
+  }, [currentPageArtworks]);
   const hasCurrentPageArtwork = Object.keys(currentPageArtworks).length > 0;
   const currentTemplate = useMemo(
     () =>
@@ -1230,98 +1314,96 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     [frameTemplates, currentTemplateId],
   );
 
-  // Lưu bố cục mẫu khung cho trang hiện tại (chuyển từ Draft -> Saved / Locked Artwork Phase)
+  // Persist the current dirty layout. Saving never prevents later layout changes.
   const handleSaveLayout = useCallback(async () => {
-    if (!selectedPage) return;
+    if (!selectedPage || currentPagePanels.length === 0 || isCurrentPageLayoutSaved) return;
     const targetPage = selectedPage;
     const templateId = activeTemplateByPageId[targetPage.id];
     const template =
       frameTemplates.find((t) => t.id === templateId) ||
       DEFAULT_FRAME_TEMPLATES.find((t) => t.id === templateId);
 
-    setLockedTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: true }));
-
-    if (
-      templateId &&
-      isGuid(targetPage.id) &&
-      !templateId.startsWith('builtin-') &&
-      frameTemplateService?.applyFrameTemplate
-    ) {
+    if (isGuid(targetPage.id)) {
       setIsApplyingTemplate(true);
       try {
-        const createdPanels = await frameTemplateService.applyFrameTemplate(
-          targetPage.id,
-          templateId,
+        const requestPanels = currentPagePanels.map((panel) => ({
+          panelNumber: panel.panelNumber,
+          readingOrder: panel.readingOrder,
+          boundingBox: panel.boundingBox,
+          direction: panel.direction,
+        }));
+        const result =
+          templateId && !templateId.startsWith('builtin-')
+            ? await frameTemplateService.applyFrameTemplate(targetPage.id, templateId)
+            : await panelService.replacePageLayout(targetPage.id, requestPanels);
+        const reloadedPanels = await panelService.getPanelsByPage(targetPage.id);
+        const savedPanels = [...reloadedPanels].sort(
+          (a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
         );
-        if (Array.isArray(createdPanels) && createdPanels.length > 0) {
-          const sorted = [...createdPanels].sort(
-            (a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
-          );
-          setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: sorted }));
-          setPanelPageMap((prev) => {
-            const next = { ...prev };
-            sorted.forEach((pnl) => {
-              next[pnl.id] = {
-                pageNumber: targetPage.pageNumber,
-                panelNumber: pnl.panelNumber || pnl.readingOrder || 1,
-                sceneId: pnl.sceneId,
-              };
-            });
-            return next;
+
+        setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: savedPanels }));
+        setPersistedPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: savedPanels }));
+        setPanelPageMap((prev) => {
+          const next = { ...prev };
+          currentPagePanels.forEach((panel) => {
+            delete next[panel.id];
           });
-          setPages((prev) =>
-            prev.map((pg) =>
-              pg.id === targetPage.id ? { ...pg, elementsCount: sorted.length } : pg,
-            ),
-          );
+          savedPanels.forEach((panel) => {
+            next[panel.id] = {
+              pageNumber: targetPage.pageNumber,
+              panelNumber: panel.panelNumber || panel.readingOrder || 1,
+              sceneId: panel.sceneId,
+            };
+          });
+          return next;
+        });
+        setPages((prev) =>
+          prev.map((page) =>
+            page.id === targetPage.id ? { ...page, elementsCount: savedPanels.length } : page,
+          ),
+        );
+        if (currentChapterId) {
+          await loadPageArtworks(currentChapterId, [targetPage], currentStageId, {
+            [targetPage.id]: savedPanels,
+          });
+        }
+        if (result.unassignedArtworkCount > 0) {
+          toast.warning(`${result.unassignedArtworkCount} tranh chưa có khung`, '');
         }
       } catch (err: any) {
-        setTemplateError(err?.message || 'Không thể lưu mẫu khung lên máy chủ.');
+        setTemplateError(err?.message || 'Không thể lưu bố cục lên máy chủ.');
+        toast.error('Không thể lưu bố cục', err?.message || 'Không thể thay thế bố cục trang.');
+        return;
       } finally {
         setIsApplyingTemplate(false);
       }
     }
 
+    setSavedLayoutByPageId((prev) => ({ ...prev, [targetPage.id]: true }));
     toast.success(
       'Đã lưu bố cục trang',
       `Khung vẽ Trang #${targetPage.pageNumber} (${template?.name || 'Mẫu khung'}) đã sẵn sàng nhận ảnh. Bạn có thể nạp tranh vào từng ô.`,
     );
-  }, [selectedPage, activeTemplateByPageId, frameTemplates, toast]);
-
-  // Alias tương thích với các component và test cũ
-  const handleLockLayout = handleSaveLayout;
-
-  // Yêu cầu mở khóa để đổi mẫu khung (bảo vệ tránh mất tranh khi trang đã có bản vẽ)
-  const handleRequestUnlockLayout = useCallback(() => {
-    if (!selectedPage) return;
-    if (!hasCurrentPageArtwork) {
-      setLockedTemplateByPageId((prev) => ({ ...prev, [selectedPage.id]: false }));
-      setActiveSidebarTab('templates');
-      setIsSidebarDrawerOpen(true);
-      toast.info('Chế độ bố cục nháp', 'Bạn có thể chọn mẫu khung mới cho trang.');
-    } else {
-      setIsUnlockConfirmOpen(true);
-    }
-  }, [selectedPage, hasCurrentPageArtwork, toast]);
-
-  // Xác nhận mở khóa và gỡ tranh cũ
-  const handleConfirmUnlockLayout = useCallback(() => {
-    if (!selectedPage) return;
-    setLockedTemplateByPageId((prev) => ({ ...prev, [selectedPage.id]: false }));
-    setPanelArtworksByPageId((prev) => ({ ...prev, [selectedPage.id]: {} }));
-    setIsUnlockConfirmOpen(false);
-    setActiveSidebarTab('templates');
-    setIsSidebarDrawerOpen(true);
-    toast.warning(
-      'Đã mở khóa bố cục',
-      'Đã gỡ tranh tạm trên trang. Bạn có thể chọn mẫu khung mới.',
-    );
-  }, [selectedPage, toast]);
+  }, [
+    activeTemplateByPageId,
+    currentPagePanels,
+    currentChapterId,
+    currentStageId,
+    frameTemplates,
+    isCurrentPageLayoutSaved,
+    loadPageArtworks,
+    selectedPage,
+    toast,
+  ]);
 
   // Nạp tranh vào ô khung
   const handleUploadPanelArtwork = useCallback(
     async (panelId: string, panelNum: number, file: File) => {
       if (!selectedPage) return;
+      if (!savedLayoutByPageId[selectedPage.id]) {
+        toast.warning('Lưu bố cục trước khi nạp tranh', '');
+        return;
+      }
       const objectUrl = URL.createObjectURL(file);
       const newArtwork: PanelArtworkData = {
         id: `art-${panelId}-${Date.now()}`,
@@ -1370,7 +1452,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         }
       }
     },
-    [selectedPage, currentChapterId, artistStages, currentStageIndex, toast],
+    [selectedPage, currentChapterId, artistStages, currentStageIndex, savedLayoutByPageId, toast],
   );
 
   // Xóa tranh khỏi ô khung
@@ -1388,31 +1470,23 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   );
 
   // Áp dụng mẫu khung tranh tham khảo vào TRANG HIỆN TẠI (chế độ nháp, chuyển đổi mượt mà)
-  const handleSelectTemplate = (template: FrameTemplateDto) => {
+  const handleSelectTemplate = async (template: FrameTemplateDto) => {
     if (!selectedPage) return;
     const targetPage = selectedPage;
 
-    // Không cho phép chọn khung khi trang đang có ảnh phác thảo toàn trang (tránh bị chồng lên)
-    if (currentSketch) {
-      toast.warning(
-        'Không thể chọn mẫu khung',
-        'Trang đang có ảnh phác thảo toàn trang. Vui lòng bấm "Tách khung" hoặc gỡ ảnh phác thảo để tránh bị chồng khung.',
-      );
-      return;
-    }
-
-    // Nếu trang đã chốt bố cục VÀ đã có tranh thực tế: cảnh báo an toàn trước khi đổi
-    if (lockedTemplateByPageId[targetPage.id] && hasCurrentPageArtwork) {
-      handleRequestUnlockLayout();
-      return;
+    if (hasCurrentPageArtwork) {
+      const accepted = await confirm({
+        title: 'Đổi mẫu khung và giữ tranh?',
+        description:
+          'Tranh hiện có sẽ được chuyển theo thứ tự đọc: tranh ở khung cũ thứ N sang khung mới thứ N. Tranh dư vẫn được giữ trong lịch sử trang.',
+        confirmLabel: 'Đổi mẫu khung',
+        cancelLabel: 'Giữ bố cục hiện tại',
+        variant: 'warning',
+      });
+      if (!accepted) return;
     }
 
     setTemplateError(null);
-
-    // Nếu trang đang ở trạng thái đã chốt nhưng chưa có tranh: cho phép đổi sang mẫu mới mượt mà
-    if (lockedTemplateByPageId[targetPage.id]) {
-      setLockedTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: false }));
-    }
 
     const nowIso = new Date().toISOString();
     const localPanels: PanelDto[] = template.slots.map((slot, idx) => ({
@@ -1430,29 +1504,54 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       createdAt: nowIso,
     }));
 
+    const carried = carryArtworksByReadingOrder(
+      currentPagePanels,
+      localPanels,
+      currentPageArtworks,
+      orphanedArtworksByPageId[targetPage.id] || [],
+    );
     setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: localPanels }));
+    setPanelArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: carried.mapped }));
+    setOrphanedArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: carried.orphans }));
+    setSavedLayoutByPageId((prev) => ({ ...prev, [targetPage.id]: false }));
     setActiveTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: template.id }));
     setPages((prev) =>
       prev.map((pg) =>
         pg.id === targetPage.id ? { ...pg, elementsCount: localPanels.length } : pg,
       ),
     );
+    if (carried.orphans.length > 0) {
+      toast.warning(
+        `${carried.orphans.length} tranh chưa có khung`,
+        'Tranh vẫn được giữ trong lịch sử trang.',
+      );
+    }
   };
 
   // Xoá khung tham khảo của trang hiện tại (trở về giấy trắng)
   const handleClearTemplate = async () => {
     if (!selectedPage) return;
     const targetPage = selectedPage;
-    const existingPanels = panelsByPageId[targetPage.id] || [];
 
-    if (lockedTemplateByPageId[targetPage.id] && hasCurrentPageArtwork) {
-      handleRequestUnlockLayout();
-      return;
+    if (hasCurrentPageArtwork) {
+      const accepted = await confirm({
+        title: 'Xóa các khung và giữ tranh?',
+        description: 'Toàn bộ tranh sẽ chưa có khung nhưng vẫn được giữ trong lịch sử trang.',
+        confirmLabel: 'Xóa khung',
+        cancelLabel: 'Giữ bố cục hiện tại',
+        variant: 'warning',
+      });
+      if (!accepted) return;
     }
 
     setTemplateError(null);
-    setLockedTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: false }));
+    const orphaned = [
+      ...(orphanedArtworksByPageId[targetPage.id] || []),
+      ...Object.values(currentPageArtworks),
+    ];
+    setSavedLayoutByPageId((prev) => ({ ...prev, [targetPage.id]: false }));
     setPanelArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: {} }));
+    setOrphanedArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: orphaned }));
 
     setPanelsByPageId((prev) => {
       const next = { ...prev };
@@ -1468,11 +1567,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       prev.map((pg) => (pg.id === targetPage.id ? { ...pg, elementsCount: 0 } : pg)),
     );
 
-    if (panelService?.deletePanel) {
-      const realIds = existingPanels.map((p) => p.id).filter((id) => isGuid(id));
-      if (realIds.length > 0) {
-        await Promise.all(realIds.map((id) => panelService.deletePanel(id).catch(() => null)));
-      }
+    if (orphaned.length > 0) {
+      toast.warning(
+        `${orphaned.length} tranh chưa có khung`,
+        'Tranh vẫn được giữ trong lịch sử trang.',
+      );
     }
   };
 
@@ -1524,6 +1623,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     if (!selectedPage || !currentSketch) return;
     const targetPage = selectedPage;
 
+    if (hasCurrentPageArtwork) {
+      const accepted = await confirm({
+        title: 'Tách lại khung và giữ tranh?',
+        description:
+          'Tranh hiện có sẽ được chuyển theo thứ tự đọc: tranh ở khung cũ thứ N sang khung mới thứ N. Tranh dư vẫn được giữ trong lịch sử trang.',
+        confirmLabel: 'Tách lại khung',
+        cancelLabel: 'Giữ bố cục hiện tại',
+        variant: 'warning',
+      });
+      if (!accepted) return;
+    }
+
     setIsDetectingPanels(true);
     setTemplateError(null);
 
@@ -1569,10 +1680,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         }),
       );
 
+      const carried = hasCurrentPageArtwork
+        ? carryArtworksByReadingOrder(
+            currentPagePanels,
+            detectedPanels,
+            currentPageArtworks,
+            orphanedArtworksByPageId[targetPage.id] || [],
+          )
+        : { mapped: newArtworks, orphans: orphanedArtworksByPageId[targetPage.id] || [] };
       setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: detectedPanels }));
-      setPanelArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: newArtworks }));
-      // Tự động chốt bố cục và nạp tranh xong, không yêu cầu người dùng phải bấm lưu hay nạp tranh lại
-      setLockedTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: true }));
+      setPanelArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: carried.mapped }));
+      setOrphanedArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: carried.orphans }));
+      setSavedLayoutByPageId((prev) => ({ ...prev, [targetPage.id]: false }));
       setActiveTemplateByPageId((prev) => {
         const next = { ...prev };
         delete next[targetPage.id];
@@ -1586,6 +1705,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       );
 
       toast.success('Đã tách khung', '');
+      if (carried.orphans.length > 0) {
+        toast.warning(
+          `${carried.orphans.length} tranh chưa có khung`,
+          'Tranh vẫn được giữ trong lịch sử trang.',
+        );
+      }
     } catch (err) {
       console.error('Lỗi nhận diện panel:', err);
       toast.error('Không thể tách khung', 'Vui lòng kiểm tra lại ảnh phác thảo.');
@@ -1634,15 +1759,31 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             isStageFlowCompleted,
             isSubmittingStage,
             onSubmitStage: handleSubmitStage,
-            onSelectStage: (idx: number) => {
-              if (idx >= 0 && idx < artistStages.length) {
-                setCurrentStageIndex(idx);
-              }
-            },
+            onSelectStage: handleSelectStage,
             submitButtonLabel: 'Nộp bản thảo',
           }}
           showFocusControls={false}
         />
+      )}
+
+      {!isStageFlowCompleted && artistStages[currentStageIndex]?.key === 'pencil' && (
+        <div
+          data-testid='artist-script-coverage'
+          role='status'
+          className={`shrink-0 border-b px-4 py-2 text-xs font-semibold ${
+            scriptCoverage.percent === 100
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-amber-200 bg-amber-50 text-amber-900'
+          }`}
+        >
+          Script Coverage: {scriptCoverage.covered}/{scriptCoverage.total} dòng thoại ·{' '}
+          {scriptCoverage.percent}%
+          {scriptCoverage.percent < 100 && (
+            <span className='ml-2 font-medium'>
+              — Submit Pencil bị khóa đến khi mọi dòng thoại được ánh xạ vào khung.
+            </span>
+          )}
+        </div>
       )}
 
       <div className='flex-1 min-h-0 w-full flex flex-row overflow-hidden relative'>
@@ -1686,11 +1827,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           isLoadingTemplates={isLoadingTemplates}
           isApplyingTemplate={isApplyingTemplate}
           templateError={templateError}
-          isLayoutLocked={isCurrentPageLayoutLocked}
-          onLockLayout={handleLockLayout}
-          onUnlockLayout={handleRequestUnlockLayout}
-          hasPageArtwork={hasCurrentPageArtwork}
-          hasSketchUnderlay={Boolean(currentSketch)}
           activeTab={activeSidebarTab}
           onTabChange={(tab) => setActiveSidebarTab(tab)}
           isDrawerOpen={isSidebarDrawerOpen}
@@ -1716,6 +1852,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onSelectElementId={balloons.setSelectedElementId}
           selectedPanelId={selectedPanelId}
           selectedPanelNumber={selectedPanelNumber}
+          artworkPanelKeys={artworkPanelKeys}
+          onSelectPanel={(pageNumber, panelNumber) => {
+            const targetPage = pages.find((page) => page.pageNumber === pageNumber);
+            if (!targetPage) return;
+            setSelectedPageId(targetPage.id);
+            const targetPanel = (panelsByPageId[targetPage.id] || []).find(
+              (panel) => (panel.panelNumber || panel.readingOrder) === panelNumber,
+            );
+            setSelectedPanelId(targetPanel?.id || null);
+            setSelectedPanelNumber(panelNumber);
+          }}
           theme='paper'
         />
 
@@ -1725,7 +1872,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             zoomScale={zoomScale}
             sketch={currentSketch}
             hasPanels={currentPagePanels.length > 0}
-            isLayoutLocked={isCurrentPageLayoutLocked}
+            isLayoutSaved={isCurrentPageLayoutSaved}
             isDetectingPanels={isDetectingPanels}
             isSavingLayout={isApplyingTemplate}
             onCanvasClick={() => balloons.setSelectedElementId(null)}
@@ -1744,7 +1891,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 pageHeight={selectedPage?.heightPx || 1800}
                 templateCode={currentTemplate?.code}
                 artworks={currentPageArtworks}
-                isLayoutLocked={isCurrentPageLayoutLocked}
+                isLayoutSaved={isCurrentPageLayoutSaved}
                 onUploadArtwork={handleUploadPanelArtwork}
                 onRemoveArtwork={handleRemovePanelArtwork}
                 onPreviewArtwork={setPreviewArtwork}
@@ -1788,13 +1935,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           />
         </div>
       </div>
-
-      {isUnlockConfirmOpen && (
-        <UnlockLayoutDialog
-          onCancel={() => setIsUnlockConfirmOpen(false)}
-          onConfirm={handleConfirmUnlockLayout}
-        />
-      )}
 
       {previewArtwork && (
         <ArtworkPreviewDialog

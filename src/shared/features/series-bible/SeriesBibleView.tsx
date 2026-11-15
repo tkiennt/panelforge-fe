@@ -30,6 +30,7 @@ import {
   BibleEntryRevisionDto,
   BibleEntryDto,
   BibleDesignQueueItemDto,
+  BibleReviewStatus,
 } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
 import { AddEntityModal } from './AddEntityModal';
@@ -91,7 +92,7 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
     imageUrl: entry.referenceImageUrl || '',
     status: entry.isActive ? 'Active' : 'Draft',
     isVisualDesign: isVisualDesignCategory(entry.category),
-    isLocked: entry.effectiveRevision?.isLocked ?? false,
+    isLocked: entry.effectiveRevision?.reviewStatus === 'CanonLocked',
     lockedAt: entry.effectiveRevision?.lockedAt ?? null,
     latestDraftVersionNumber: entry.latestDraftVersionNumber ?? null,
     isCrowd: entry.isCrowd ?? false,
@@ -136,7 +137,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   // Filter & Search states
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'LOCKED' | 'UNLOCKED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | BibleReviewStatus>('ALL');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     return (localStorage.getItem('panelforge_bible_view_mode') as 'grid' | 'list') || 'grid';
   });
@@ -246,9 +247,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const isArtist = currentUserRole === 'ARTIST';
   const isEditor = currentUserRole === 'EDITOR';
   const isWriter = currentUserRole === 'WRITER';
-  const canCreateDraft = isWriter || isProducer;
+  const canCreateDraft = isWriter;
   // V2.6 (Q20/Q22): Xác nhận = khoá Canon chỉ dành cho Editor; Yêu cầu vẽ lại cho Writer + Editor + Producer. Producer không thấy nút xác nhận/khoá.
-  const canConfirm = isEditor;
   const canEndorse = isEditor;
   const canRequestRework = isWriter || isEditor || isProducer;
 
@@ -311,9 +311,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       );
       setHistoryRevisions((prev) =>
         prev.map((r) =>
-          r.id === rev.id
-            ? { ...r, ...updatedRev, isLocked: true, reviewStatus: 'CanonLocked' }
-            : r,
+          r.id === rev.id ? { ...r, ...updatedRev, reviewStatus: 'CanonLocked' } : r,
         ),
       );
       setRefreshTrigger((prev) => prev + 1);
@@ -854,17 +852,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
   // KPI ở header: đếm theo trạng thái phiên bản hiệu lực (spec V2.6 §5.2)
   const bibleStats = useMemo(() => {
-    const statusOf = (id: string) => {
-      const st = rawEntries[id]?.effectiveRevision?.reviewStatus as string | number | undefined;
-      return st === 2 ? 'ConceptSubmitted' : st === 3 ? 'ReworkRequired' : st;
-    };
-    const pending = localEntities.filter(
-      (e) => !e.isLocked && statusOf(e.id) === 'ConceptSubmitted',
-    ).length;
-    const rework = localEntities.filter(
-      (e) => !e.isLocked && statusOf(e.id) === 'ReworkRequired',
-    ).length;
-    const locked = localEntities.filter((e) => e.isLocked).length;
+    const statusOf = (id: string) => rawEntries[id]?.effectiveRevision?.reviewStatus;
+    const pending = localEntities.filter((e) => statusOf(e.id) === 'ConceptSubmitted').length;
+    const rework = localEntities.filter((e) => statusOf(e.id) === 'ReworkRequired').length;
+    const locked = localEntities.filter((e) => statusOf(e.id) === 'CanonLocked').length;
     return [
       {
         key: 'pending',
@@ -907,12 +898,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
       const matchesStatus =
         statusFilter === 'ALL' ||
-        (statusFilter === 'LOCKED' && item.isLocked) ||
-        (statusFilter === 'UNLOCKED' && !item.isLocked);
+        rawEntries[item.id]?.effectiveRevision?.reviewStatus === statusFilter;
 
       return matchesTab && matchesSearch && matchesStatus;
     });
-  }, [localEntities, activeTab, searchQuery, statusFilter]);
+  }, [localEntities, rawEntries, activeTab, searchQuery, statusFilter]);
 
   const hasActiveFilters =
     searchQuery.trim() !== '' || statusFilter !== 'ALL' || activeTab !== 'all';
@@ -1373,7 +1363,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   <Lock className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
                   <select
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    onChange={(e) => setStatusFilter(e.target.value as 'ALL' | BibleReviewStatus)}
                     className='bg-transparent font-medium text-xs text-[#1C1917] focus:outline-none cursor-pointer pr-1'
                     data-testid='bible-status-filter'
                     aria-label={t('bible.view.statusFilterAria', 'Lọc trạng thái khóa Canon')}
@@ -1381,11 +1371,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     <option value='ALL'>
                       {t('bible.view.statusFilterAll', 'Tất cả trạng thái')}
                     </option>
-                    <option value='LOCKED'>
-                      {t('bible.view.statusFilterLocked', 'Đã khoá Canon')}
+                    <option value='Draft'>{t('bible.view.statusFilterDraft', 'Bản thảo')}</option>
+                    <option value='ConceptSubmitted'>
+                      {t('bible.view.statusFilterConceptSubmitted', 'Concept đã nộp')}
                     </option>
-                    <option value='UNLOCKED'>
-                      {t('bible.view.statusFilterUnlocked', 'Chưa khoá / Bản thảo')}
+                    <option value='ReworkRequired'>
+                      {t('bible.view.statusFilterReworkRequired', 'Yêu cầu vẽ lại')}
+                    </option>
+                    <option value='CanonLocked'>
+                      {t('bible.view.statusFilterCanonLocked', 'Đã khoá Canon')}
                     </option>
                   </select>
                 </div>
@@ -1489,9 +1483,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 )}
                 actionText={
                   canCreateDraft
-                    ? isProducer
-                      ? t('bible.view.emptyFolderCreateProducer', 'Tạo mục đầu tiên')
-                      : t('bible.view.emptyFolderCreateDraft', 'Tạo bản nháp đầu tiên')
+                    ? t('bible.view.emptyFolderCreateDraft', 'Tạo bản nháp đầu tiên')
                     : undefined
                 }
                 onAction={canCreateDraft ? () => setAddEntityOpen(true) : undefined}
@@ -1547,7 +1539,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             <span className='px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-xs text-white text-xs font-mono font-bold'>
                               {entity.code}
                             </span>
-                            {entity.isLocked ? (
+                            {effRev?.reviewStatus === 'CanonLocked' ? (
                               <span
                                 className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1 shadow-2xs'
                                 title={t('bible.view.cardCanonLocked', 'Đã khoá Canon')}
@@ -1590,7 +1582,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             </span>
                           </div>
                           <div className='flex items-center gap-1.5'>
-                            {entity.isLocked ? (
+                            {effRev?.reviewStatus === 'CanonLocked' ? (
                               <span
                                 className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1'
                                 title={t('bible.view.cardCanonLocked', 'Đã khoá Canon')}
@@ -1705,92 +1697,86 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         </button>
 
                         {/* Quick review actions for Writer/Editor when concept is submitted */}
-                        {canRequestRework &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ConceptSubmitted' && (
-                            <div className='flex items-center gap-1'>
-                              {canEndorse && (
-                                <button
-                                  type='button'
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    void handleConfirmCanon(effRev, entity);
-                                  }}
-                                  className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                                  title={t(
-                                    'bible.view.approveBtnTitle',
-                                    'Writer/Editor duyệt concept art này',
-                                  )}
-                                >
-                                  <Check className='w-3 h-3' />
-                                  <span>{t('bible.view.approveBtn', 'Duyệt')}</span>
-                                </button>
-                              )}
+                        {canRequestRework && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                          <div className='flex items-center gap-1'>
+                            {canEndorse && (
                               <button
                                 type='button'
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleOpenReworkModal(effRev, entity);
+                                  void handleConfirmCanon(effRev, entity);
                                 }}
-                                className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                                className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
                                 title={t(
-                                  'bible.view.reworkBtnTitle',
-                                  'Yêu cầu Artist vẽ lại concept',
+                                  'bible.view.approveBtnTitle',
+                                  'Writer/Editor duyệt concept art này',
                                 )}
                               >
-                                <MessageSquare className='w-3 h-3' />
-                                <span>{t('bible.view.reworkBtn', 'Sửa lại')}</span>
+                                <Check className='w-3 h-3' />
+                                <span>{t('bible.view.approveBtn', 'Duyệt')}</span>
                               </button>
-                            </div>
-                          )}
-
-                        {/* Artist actions: Resubmit if mistakenly submitted, or rework */}
-                        {isArtist &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ConceptSubmitted' && (
+                            )}
                             <button
                               type='button'
                               onClick={(e) => {
                                 e.stopPropagation();
-                                void handleOpenAddRevision(entity, null, true, undefined, true);
+                                handleOpenReworkModal(effRev, entity);
                               }}
-                              className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                              className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
                               title={t(
-                                'bible.view.resubmitBtnTitle',
-                                'Nộp lại bản vẽ thay thế nếu nộp nhầm file',
+                                'bible.view.reworkBtnTitle',
+                                'Yêu cầu Artist vẽ lại concept',
                               )}
-                              data-testid={`artist-resubmit-btn-${entity.id}`}
                             >
-                              <RotateCcw className='w-3 h-3 text-amber-600' />
-                              <span>{t('bible.view.resubmitBtn', 'Nộp lại')}</span>
-                            </button>
-                          )}
-                        {isArtist &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ReworkRequired' && (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleOpenAddRevision(
-                                  entity,
-                                  effRev,
-                                  true,
-                                  effRev.reworkFeedback || undefined,
-                                  false,
-                                );
-                              }}
-                              className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                              title={t(
-                                'bible.view.artistReworkBtnTitle',
-                                'Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor',
-                              )}
-                              data-testid={`artist-rework-btn-${entity.id}`}
-                            >
-                              <Palette className='w-3 h-3 text-rose-600' />
+                              <MessageSquare className='w-3 h-3' />
                               <span>{t('bible.view.reworkBtn', 'Sửa lại')}</span>
                             </button>
-                          )}
+                          </div>
+                        )}
+
+                        {/* Artist actions: Resubmit if mistakenly submitted, or rework */}
+                        {isArtist && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleOpenAddRevision(entity, null, true, undefined, true);
+                            }}
+                            className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                            title={t(
+                              'bible.view.resubmitBtnTitle',
+                              'Nộp lại bản vẽ thay thế nếu nộp nhầm file',
+                            )}
+                            data-testid={`artist-resubmit-btn-${entity.id}`}
+                          >
+                            <RotateCcw className='w-3 h-3 text-amber-600' />
+                            <span>{t('bible.view.resubmitBtn', 'Nộp lại')}</span>
+                          </button>
+                        )}
+                        {isArtist && effRev?.reviewStatus === 'ReworkRequired' && (
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleOpenAddRevision(
+                                entity,
+                                effRev,
+                                true,
+                                effRev.reworkFeedback || undefined,
+                                false,
+                              );
+                            }}
+                            className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                            title={t(
+                              'bible.view.artistReworkBtnTitle',
+                              'Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor',
+                            )}
+                            data-testid={`artist-rework-btn-${entity.id}`}
+                          >
+                            <Palette className='w-3 h-3 text-rose-600' />
+                            <span>{t('bible.view.reworkBtn', 'Sửa lại')}</span>
+                          </button>
+                        )}
                       </div>
 
                       {canCreateDraft && (
@@ -1897,7 +1883,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-xs font-medium'>
                             {getCategoryLabel(entity.category)}
                           </span>
-                          {entity.isLocked ? (
+                          {effRev?.reviewStatus === 'CanonLocked' ? (
                             <span
                               className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1'
                               title={t('bible.view.cardCanonLocked', 'Đã khoá Canon')}
@@ -1966,98 +1952,92 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           <History className='w-3 h-3 text-[#78716C]' />
                         </button>
 
-                        {canRequestRework &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ConceptSubmitted' && (
-                            <>
-                              {canEndorse && (
-                                <button
-                                  type='button'
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    void handleConfirmCanon(effRev, entity);
-                                  }}
-                                  className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                                  title={t(
-                                    'bible.view.approveBtnTitle',
-                                    'Writer/Editor duyệt concept art này',
-                                  )}
-                                >
-                                  <Check className='w-3 h-3' />
-                                  <span className='hidden sm:inline'>
-                                    {t('bible.view.approveBtn', 'Duyệt')}
-                                  </span>
-                                </button>
-                              )}
+                        {canRequestRework && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                          <>
+                            {canEndorse && (
                               <button
                                 type='button'
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleOpenReworkModal(effRev, entity);
+                                  void handleConfirmCanon(effRev, entity);
                                 }}
-                                className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                                className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
                                 title={t(
-                                  'bible.view.reworkBtnTitle',
-                                  'Yêu cầu Artist vẽ lại concept',
+                                  'bible.view.approveBtnTitle',
+                                  'Writer/Editor duyệt concept art này',
                                 )}
                               >
-                                <MessageSquare className='w-3 h-3' />
+                                <Check className='w-3 h-3' />
                                 <span className='hidden sm:inline'>
-                                  {t('bible.view.reworkBtn', 'Sửa lại')}
+                                  {t('bible.view.approveBtn', 'Duyệt')}
                                 </span>
                               </button>
-                            </>
-                          )}
-                        {isArtist &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ConceptSubmitted' && (
+                            )}
                             <button
                               type='button'
                               onClick={(e) => {
                                 e.stopPropagation();
-                                void handleOpenAddRevision(entity, null, true, undefined, true);
+                                handleOpenReworkModal(effRev, entity);
                               }}
-                              className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                              className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
                               title={t(
-                                'bible.view.resubmitBtnTitle',
-                                'Nộp lại bản vẽ thay thế nếu nộp nhầm file',
+                                'bible.view.reworkBtnTitle',
+                                'Yêu cầu Artist vẽ lại concept',
                               )}
-                              data-testid={`artist-resubmit-btn-${entity.id}`}
                             >
-                              <RotateCcw className='w-3 h-3 text-amber-600' />
-                              <span className='hidden sm:inline'>
-                                {t('bible.view.resubmitBtn', 'Nộp lại')}
-                              </span>
-                            </button>
-                          )}
-                        {isArtist &&
-                          !entity.isLocked &&
-                          effRev?.reviewStatus === 'ReworkRequired' && (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleOpenAddRevision(
-                                  entity,
-                                  effRev,
-                                  true,
-                                  effRev.reworkFeedback || undefined,
-                                  false,
-                                );
-                              }}
-                              className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                              title={t(
-                                'bible.view.artistReworkBtnTitle',
-                                'Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor',
-                              )}
-                              data-testid={`artist-rework-btn-${entity.id}`}
-                            >
-                              <Palette className='w-3 h-3 text-rose-600' />
+                              <MessageSquare className='w-3 h-3' />
                               <span className='hidden sm:inline'>
                                 {t('bible.view.reworkBtn', 'Sửa lại')}
                               </span>
                             </button>
-                          )}
+                          </>
+                        )}
+                        {isArtist && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleOpenAddRevision(entity, null, true, undefined, true);
+                            }}
+                            className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                            title={t(
+                              'bible.view.resubmitBtnTitle',
+                              'Nộp lại bản vẽ thay thế nếu nộp nhầm file',
+                            )}
+                            data-testid={`artist-resubmit-btn-${entity.id}`}
+                          >
+                            <RotateCcw className='w-3 h-3 text-amber-600' />
+                            <span className='hidden sm:inline'>
+                              {t('bible.view.resubmitBtn', 'Nộp lại')}
+                            </span>
+                          </button>
+                        )}
+                        {isArtist && effRev?.reviewStatus === 'ReworkRequired' && (
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleOpenAddRevision(
+                                entity,
+                                effRev,
+                                true,
+                                effRev.reworkFeedback || undefined,
+                                false,
+                              );
+                            }}
+                            className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                            title={t(
+                              'bible.view.artistReworkBtnTitle',
+                              'Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor',
+                            )}
+                            data-testid={`artist-rework-btn-${entity.id}`}
+                          >
+                            <Palette className='w-3 h-3 text-rose-600' />
+                            <span className='hidden sm:inline'>
+                              {t('bible.view.reworkBtn', 'Sửa lại')}
+                            </span>
+                          </button>
+                        )}
                         {canCreateDraft && (
                           <button
                             type='button'
@@ -2246,7 +2226,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               ? t('bible.view.versionInitial', ' (Khởi tạo)')
                               : ''}
                           </span>
-                          {rev.isLocked || rev.reviewStatus === 'CanonLocked' ? (
+                          {rev.reviewStatus === 'CanonLocked' ? (
                             <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-xs font-mono font-bold flex items-center gap-1 shadow-2xs'>
                               <Lock className='w-2.5 h-2.5 text-amber-600' />
                               {t('bible.view.canonLockedBadgeUpper', 'ĐÃ KHOÁ CANON')}
@@ -2410,7 +2390,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         </div>
 
                         <div className='flex items-center gap-1.5 flex-wrap'>
-                          {canRequestRework && !rev.isLocked && (
+                          {canRequestRework && rev.reviewStatus === 'ConceptSubmitted' && (
                             <button
                               type='button'
                               onClick={() => handleOpenReworkModal(rev)}
@@ -2425,37 +2405,42 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             </button>
                           )}
 
-                          {!rev.isLocked && historyEntity?.isVisualDesign && isEditor && (
-                            <button
-                              type='button'
-                              disabled={
-                                lockingRevisionId === rev.id ||
-                                rev.reviewStatus !== 'ConceptSubmitted'
-                              }
-                              onClick={() => void handleConfirmCanon(rev)}
-                              className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
-                              title={
-                                rev.reviewStatus !== 'ConceptSubmitted'
-                                  ? t(
-                                      'bible.view.lockCanonConceptSubmittedOnlyDesc',
-                                      'Chỉ có thể xác nhận & khoá Canon phiên bản đang nộp concept (ConceptSubmitted)',
-                                    )
-                                  : t(
-                                      'bible.view.confirmAndLockHistoryTitle',
-                                      'Editor xác nhận và khoá phiên bản này làm tham chiếu chuẩn Canon',
-                                    )
-                              }
-                              data-testid={`btn-lock-canon-${rev.id}`}
-                            >
-                              <Lock className='w-3 h-3' />
-                              <span>
-                                {lockingRevisionId === rev.id
-                                  ? t('bible.view.confirmingLock', 'Đang khoá...')
-                                  : t('bible.view.confirmLockCanonSubmit', 'Xác nhận & Khoá Canon')}
-                              </span>
-                            </button>
-                          )}
-                          {rev.isLocked &&
+                          {rev.reviewStatus !== 'CanonLocked' &&
+                            historyEntity?.isVisualDesign &&
+                            isEditor && (
+                              <button
+                                type='button'
+                                disabled={
+                                  lockingRevisionId === rev.id ||
+                                  rev.reviewStatus !== 'ConceptSubmitted'
+                                }
+                                onClick={() => void handleConfirmCanon(rev)}
+                                className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
+                                title={
+                                  rev.reviewStatus !== 'ConceptSubmitted'
+                                    ? t(
+                                        'bible.view.lockCanonConceptSubmittedOnlyDesc',
+                                        'Chỉ có thể xác nhận & khoá Canon phiên bản đang nộp concept (ConceptSubmitted)',
+                                      )
+                                    : t(
+                                        'bible.view.confirmAndLockHistoryTitle',
+                                        'Editor xác nhận và khoá phiên bản này làm tham chiếu chuẩn Canon',
+                                      )
+                                }
+                                data-testid={`btn-lock-canon-${rev.id}`}
+                              >
+                                <Lock className='w-3 h-3' />
+                                <span>
+                                  {lockingRevisionId === rev.id
+                                    ? t('bible.view.confirmingLock', 'Đang khoá...')
+                                    : t(
+                                        'bible.view.confirmLockCanonSubmit',
+                                        'Xác nhận & Khoá Canon',
+                                      )}
+                                </span>
+                              </button>
+                            )}
+                          {rev.reviewStatus === 'CanonLocked' &&
                             historyEntity?.isVisualDesign &&
                             (isWriter || isProducer) && (
                               <button

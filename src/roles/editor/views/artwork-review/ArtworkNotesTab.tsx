@@ -17,7 +17,8 @@ export interface ArtworkDraft {
   text: string;
   /** Phiên bản artwork thật; undefined với ảnh ghép (không có AssetReference riêng). */
   assetReferenceId?: string;
-  panelId?: string;
+  panelIds: string[];
+  layer: 'Artwork' | 'Lettering';
 }
 
 export const ArtworkNotesTab: React.FC<{
@@ -29,6 +30,7 @@ export const ArtworkNotesTab: React.FC<{
   canDecide: boolean;
   busyId: string | null;
   onDraftText: (id: string, text: string) => void;
+  onDraftLayer: (id: string, layer: ArtworkDraft['layer']) => void;
   onDeleteDraft: (id: string) => void;
   onVerify: (cr: ChangeRequestDto) => void;
   onReopen: (cr: ChangeRequestDto, comment: string) => void;
@@ -42,6 +44,7 @@ export const ArtworkNotesTab: React.FC<{
   canDecide,
   busyId,
   onDraftText,
+  onDraftLayer,
   onDeleteDraft,
   onVerify,
   onReopen,
@@ -216,6 +219,28 @@ export const ArtworkNotesTab: React.FC<{
                   placeholder={t('scriptReview.composer.placeholder')}
                   className='mt-1.5 w-full resize-y rounded-md border border-stone-200 bg-[#FAF9F5] px-2 py-1.5 text-sm text-stone-800 focus:border-orange-500 focus:outline-none'
                 />
+                <fieldset className='mt-2'>
+                  <legend className='text-xs font-semibold text-stone-700'>
+                    {t('artworkReview.notes.layerLabel')}
+                  </legend>
+                  <div className='mt-1 flex gap-3'>
+                    {(['Artwork', 'Lettering'] as const).map((layer) => (
+                      <label
+                        key={layer}
+                        className='inline-flex items-center gap-1.5 text-xs text-stone-700'
+                      >
+                        <input
+                          type='radio'
+                          name={`draft-layer-${d.id}`}
+                          value={layer}
+                          checked={d.layer === layer}
+                          onChange={() => onDraftLayer(d.id, layer)}
+                        />
+                        {t(`artworkReview.notes.layer${layer}`)}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
               </li>
             ))}
           </ul>

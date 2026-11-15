@@ -76,13 +76,14 @@ export function parseRegionBox(regionJson?: string | null): Box | null {
 }
 
 /**
- * Tìm Panel có phần diện tích giao lớn nhất với vùng khoanh (chuẩn hoá 0..1).
+ * Tìm mọi Panel chiếm ít nhất 15% diện tích vùng khoanh (chuẩn hoá 0..1).
+ * Tỷ lệ được tính trên diện tích vùng lỗi, không phải diện tích Panel.
  */
-export function findIntersectingPanelId(box: Box, panels: PanelDto[]): string | undefined {
-  if (!panels || panels.length === 0 || box.w <= 0 || box.h <= 0) return undefined;
+export function findIntersectingPanelIds(box: Box, panels: PanelDto[]): string[] {
+  if (!panels || panels.length === 0 || box.w <= 0 || box.h <= 0) return [];
 
-  let maxArea = 0;
-  let bestPanelId: string | undefined = undefined;
+  const errorArea = box.w * box.h;
+  const matches: string[] = [];
 
   for (const p of panels) {
     if (!p.boundingBox) continue;
@@ -97,18 +98,14 @@ export function findIntersectingPanelId(box: Box, panels: PanelDto[]): string | 
 
       const ox = Math.max(0, Math.min(box.x + box.w, pBox.x + pBox.w) - Math.max(box.x, pBox.x));
       const oy = Math.max(0, Math.min(box.y + box.h, pBox.y + pBox.h) - Math.max(box.y, pBox.y));
-      const area = ox * oy;
-
-      if (area > maxArea) {
-        maxArea = area;
-        bestPanelId = p.id;
-      }
+      const overlapRatio = (ox * oy) / errorArea;
+      if (overlapRatio >= 0.15) matches.push(p.id);
     } catch {
       /* ignore invalid boundingBox */
     }
   }
 
-  return bestPanelId;
+  return matches;
 }
 
 /**

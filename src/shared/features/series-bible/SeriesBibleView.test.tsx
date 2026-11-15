@@ -68,7 +68,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
         variantLabel: 'Mặc định',
         isInitialVersion: true,
         createdAt: '2026-10-15T00:00:00Z',
-        isLocked: true,
+        reviewStatus: 'CanonLocked',
         lockedAt: '2026-10-15T00:00:00Z',
       },
     },
@@ -96,7 +96,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
         variantLabel: 'Mặc định',
         isInitialVersion: true,
         createdAt: '2026-10-15T00:00:00Z',
-        isLocked: false,
+        reviewStatus: 'Draft',
       },
     },
   ];
@@ -106,7 +106,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     localStorage.clear();
     localStorage.setItem(
       'activeWorkspace',
-      JSON.stringify({ id: 'ws-1', currentUserRole: 'PRODUCER', isOwner: true }),
+      JSON.stringify({ id: 'ws-1', currentUserRole: 'WRITER', isOwner: false }),
     );
 
     (bibleService.getSeriesBible as any).mockResolvedValue({
@@ -137,8 +137,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     // KPI: Tần Mục đã khoá Canon
     expect(screen.getByTestId('bible-stat-locked').textContent).toContain('1');
 
-    // Check primary button for producer
-    expect(screen.getByText('Thêm mục mới')).toBeDefined();
+    expect(screen.getByText('Tạo mục nháp')).toBeDefined();
   });
 
   it('updates search placeholder dynamically when switching tabs', async () => {
@@ -207,8 +206,8 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(screen.getByText('Tàn Lão Thôn')).toBeDefined();
     });
 
-    const statusSelect = screen.getByLabelText(/Lọc trạng thái/i) as HTMLSelectElement;
-    fireEvent.change(statusSelect, { target: { value: 'LOCKED' } });
+    const statusSelect = screen.getByTestId('bible-status-filter') as HTMLSelectElement;
+    fireEvent.change(statusSelect, { target: { value: 'CanonLocked' } });
 
     // Only Canon locked entry (Tần Mục) is visible
     expect(screen.getByText('Tần Mục')).toBeDefined();
@@ -260,6 +259,20 @@ describe('SeriesBibleView UX/UI improvements', () => {
     expect(screen.queryByTestId('add-bible-entry-btn')).toBeNull();
     const addRevBtns = screen.queryAllByTestId(/add-revision-btn-/i);
     expect(addRevBtns.length).toBe(0);
+  });
+
+  it('restricts Producer to redraw requests without draft creation (Q19/Q22)', async () => {
+    localStorage.setItem(
+      'activeWorkspace',
+      JSON.stringify({ id: 'ws-1', currentUserRole: 'PRODUCER', isOwner: true }),
+    );
+
+    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+
+    await waitFor(() => expect(screen.getByText('Tần Mục')).toBeDefined());
+    expect(screen.getByTestId('bible-readonly-badge')).toBeDefined();
+    expect(screen.queryByTestId('add-bible-entry-btn')).toBeNull();
+    expect(screen.queryByTestId(/add-revision-btn-/i)).toBeNull();
   });
 
   it('restricts Editor to read-only mode without draft buttons (Direction B)', async () => {
@@ -431,7 +444,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
   it('creates a new variant with a required label', async () => {
     localStorage.setItem(
       'activeWorkspace',
-      JSON.stringify({ id: 'ws-1', currentUserRole: 'PRODUCER', isOwner: true }),
+      JSON.stringify({ id: 'ws-1', currentUserRole: 'WRITER', isOwner: false }),
     );
 
     (bibleService.getSeriesBible as any).mockResolvedValue({
