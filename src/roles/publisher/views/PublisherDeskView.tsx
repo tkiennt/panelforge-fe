@@ -104,8 +104,8 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
     fetchChapters();
   }, [fetchChapters]);
 
-  const approvedChapters = chapters.filter((c) => c.status === 'Approved');
-  const publishedChapters = chapters.filter((c) => c.status === 'Published');
+  const approvedChapters = chapters.filter((c) => c.status === 'ChapterApproved');
+  const publishedChapters = chapters.filter((c) => c.status === 'HandedOffAndPublished');
 
   const filteredChapters =
     activeTab === 'approved'
@@ -430,13 +430,13 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
 
                         <ChapterPriceBadge isLocked={chap.isLocked} priceVnd={chap.priceVnd} />
 
-                        {chap.status === 'Approved' && (
+                        {chap.status === 'ChapterApproved' && (
                           <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1'>
                             <Clock className='w-3 h-3 text-[#C2410C]' />
                             <span>CHỜ DUYỆT XUẤT BẢN</span>
                           </span>
                         )}
-                        {chap.status === 'Published' && (
+                        {chap.status === 'HandedOffAndPublished' && (
                           <span
                             className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold border flex items-center gap-1 ${
                               isScheduled
@@ -511,7 +511,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                       <span>Bản duyệt</span>
                     </button>
 
-                    {chap.status === 'Published' && (
+                    {chap.status === 'HandedOffAndPublished' && (
                       <button
                         type='button'
                         onClick={() => setReadingChapter(chap)}
@@ -523,7 +523,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                       </button>
                     )}
 
-                    {chap.status === 'Approved' && (
+                    {chap.status === 'ChapterApproved' && (
                       <>
                         <button
                           type='button'

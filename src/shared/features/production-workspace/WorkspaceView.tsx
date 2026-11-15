@@ -28,15 +28,10 @@ const CHAPTER_STATUS_META: Record<string, { label: string; cls: string }> = {
     label: 'Đã nghiệm thu (Gate 3)',
     cls: 'text-emerald-900 bg-emerald-50 border-emerald-300',
   },
-  Approved: {
-    label: 'Đã nghiệm thu (Gate 3)',
-    cls: 'text-emerald-900 bg-emerald-50 border-emerald-300',
-  },
   HandedOffAndPublished: {
     label: 'Đã bàn giao & phát hành',
     cls: 'text-violet-900 bg-violet-50 border-violet-300',
   },
-  Published: { label: 'Đã xuất bản', cls: 'text-violet-900 bg-violet-50 border-violet-300' },
 };
 
 const focusRing =

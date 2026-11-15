@@ -21,11 +21,7 @@ export const StageProgressTimeline: React.FC<{ percentComplete: number; status?:
   status,
 }) => {
   const isFinished =
-    status === 'ChapterApproved' ||
-    status === 'Approved' ||
-    status === 'HandedOffAndPublished' ||
-    status === 'Published' ||
-    percentComplete >= 100;
+    status === 'ChapterApproved' || status === 'HandedOffAndPublished' || percentComplete >= 100;
   const currentIndex = stageIndexFor(percentComplete, isFinished);
 
   return (

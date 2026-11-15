@@ -110,20 +110,20 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
   const filteredChapters = useMemo(() => {
     if (!detail?.chapters) return [];
     if (activeTab === 'approved') {
-      return detail.chapters.filter((c) => c.status === 'Approved');
+      return detail.chapters.filter((c) => c.status === 'ChapterApproved');
     }
     if (activeTab === 'published') {
-      return detail.chapters.filter((c) => c.status === 'Published');
+      return detail.chapters.filter((c) => c.status === 'HandedOffAndPublished');
     }
     return detail.chapters;
   }, [detail, activeTab]);
 
   const approvedCount = useMemo(() => {
-    return detail?.chapters.filter((c) => c.status === 'Approved').length || 0;
+    return detail?.chapters.filter((c) => c.status === 'ChapterApproved').length || 0;
   }, [detail]);
 
   const publishedCount = useMemo(() => {
-    return detail?.chapters.filter((c) => c.status === 'Published').length || 0;
+    return detail?.chapters.filter((c) => c.status === 'HandedOffAndPublished').length || 0;
   }, [detail]);
 
   // Filtered Bible entries
@@ -402,11 +402,11 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
           <div className='space-y-3.5'>
             {filteredChapters.map((chap) => {
               const isScheduled =
-                chap.status === 'Published' &&
+                chap.status === 'HandedOffAndPublished' &&
                 chap.publishAt &&
                 new Date(chap.publishAt) > new Date();
               const isOfficialReleased =
-                chap.status === 'Published' &&
+                chap.status === 'HandedOffAndPublished' &&
                 (!chap.publishAt || new Date(chap.publishAt) <= new Date());
 
               return (
@@ -433,7 +433,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                         <ChapterPriceBadge isLocked={chap.isLocked} priceVnd={chap.priceVnd} />
 
                         {/* Status Badge */}
-                        {chap.status === 'Approved' && (
+                        {chap.status === 'ChapterApproved' && (
                           <span className='px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1 shadow-2xs'>
                             <Clock className='w-3 h-3 text-[#EA580C]' />
                             <span>Chờ Publisher duyệt</span>
@@ -527,7 +527,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                     </div>
 
                     {/* Nhóm nút quyết định */}
-                    {chap.status === 'Approved' && (
+                    {chap.status === 'ChapterApproved' && (
                       <div className='flex items-center gap-2'>
                         <button
                           type='button'

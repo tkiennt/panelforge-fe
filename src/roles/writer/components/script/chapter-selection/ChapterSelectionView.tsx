@@ -75,9 +75,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
     ).length;
     const inProgress = chapters.filter(
       (c) =>
-        !c.isScriptFrozen &&
-        c.status !== 'ChapterApproved' &&
-        c.status !== 'HandedOffAndPublished',
+        !c.isScriptFrozen && c.status !== 'ChapterApproved' && c.status !== 'HandedOffAndPublished',
     ).length;
     return { total, frozen, approved, inProgress };
   }, [chapters]);

@@ -553,8 +553,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
             <span>{t('seriesChaptersModal.preProduction', 'Tiền kỳ (viết kịch bản)')}</span>
           </span>
         );
-      case 'HandedOffAndPublished':
-      case 'Published': {
+      case 'HandedOffAndPublished': {
         const pubDate = publishedAt ? new Date(publishedAt) : null;
         const isValidDate = Boolean(pubDate && !isNaN(pubDate.getTime()));
         const isScheduled = Boolean(isValidDate && pubDate! > new Date());
@@ -586,7 +585,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         );
       }
       case 'ChapterApproved':
-      case 'Approved':
         return (
           <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1'>
             <CheckCircle2 className='w-3 h-3 text-amber-600' />

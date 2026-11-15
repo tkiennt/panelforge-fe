@@ -26,10 +26,7 @@ const ChapterRow: React.FC<{
   const hasPanels = (ch.panelCount || 0) > 0;
   const barTone = isSelected
     ? 'bg-studio-accent'
-    : ch.status === 'ChapterApproved' ||
-        ch.status === 'Approved' ||
-        ch.status === 'HandedOffAndPublished' ||
-        ch.status === 'Published'
+    : ch.status === 'ChapterApproved' || ch.status === 'HandedOffAndPublished'
       ? 'bg-emerald-600'
       : 'bg-stone-400';
 
