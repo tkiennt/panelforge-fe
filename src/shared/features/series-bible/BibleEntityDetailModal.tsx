@@ -150,6 +150,7 @@ interface BibleEntityDetailModalProps {
   latestSavedRevision?: BibleEntryRevisionDto | null;
   isProducer: boolean;
   isArtist?: boolean;
+  isWriter?: boolean;
   canCreateDraft?: boolean;
   canEndorse?: boolean;
   canRequestRework?: boolean;
@@ -180,6 +181,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   latestSavedRevision,
   isProducer,
   isArtist = false,
+  isWriter = false,
   canCreateDraft = true,
   canEndorse = false,
   canRequestRework = canEndorse,
@@ -250,7 +252,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     try {
       const rawWs = localStorage.getItem('activeWorkspace');
       const ws = rawWs ? JSON.parse(rawWs) : null;
-      return normalizeWorkspaceRole(ws?.currentUserRole);
+      return (
+        normalizeWorkspaceRole(ws?.currentUserRole || ws?.role || ws?.userRole) ||
+        normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
+      );
     } catch {
       return null;
     }
@@ -260,8 +265,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const isArtistUser = isArtist || currentRole === 'ARTIST';
   const isEditorUser = currentRole === 'EDITOR' || (!isProducerUser && canEndorse);
   const isWriterUser =
+    Boolean(isWriter) ||
     currentRole === 'WRITER' ||
     (!isProducerUser && canCreateDraft && !isArtistUser && !isEditorUser);
+
+  const effectiveCanCreateDraft = canCreateDraft || isWriterUser || isProducerUser;
 
   useEffect(() => {
     if (!seriesId || !entity.id) return;
@@ -985,7 +993,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   // Clipboard paste listener for quick Model Sheet upload via Ctrl+V
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
-      if (!canCreateDraft) return;
+      if (!effectiveCanCreateDraft) return;
       const items = e.clipboardData?.items;
       if (!items) return;
       for (let i = 0; i < items.length; i++) {
@@ -1005,7 +1013,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     };
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [canCreateDraft, entity, activeRevision, onOpenAddRevision, onShowToast, t]);
+  }, [effectiveCanCreateDraft, entity, activeRevision, onOpenAddRevision, onShowToast, t]);
 
   const handleRequestRework = (rev: BibleEntryRevisionDto) => {
     if (!onRequestRework) return;
@@ -1169,7 +1177,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               <History className='w-4 h-4 text-stone-500' />
               <span>{t('bible.detailModal.historyBtn', 'Lịch sử phiên bản')}</span>
             </button>
-            {canCreateDraft ? (
+            {effectiveCanCreateDraft ? (
               <button
                 type='button'
                 onClick={() => onOpenAddRevision(entity)}
@@ -1328,7 +1336,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </div>
 
                 {/* Bottom quick-create variant action */}
-                {canCreateDraft && (
+                {effectiveCanCreateDraft && (
                   <button
                     type='button'
                     onClick={() => {
@@ -1587,7 +1595,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       </span>
                     </div>
                     <div className='flex items-center gap-1.5'>
-                      {canCreateDraft && (
+                      {effectiveCanCreateDraft && (
                         <button
                           type='button'
                           onClick={() => onOpenAddRevision(entity, activeRevision)}
@@ -1843,13 +1851,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <div
                         onDragOver={(e) => {
                           e.preventDefault();
-                          if (canCreateDraft) setIsDraggingOver(true);
+                          if (effectiveCanCreateDraft) setIsDraggingOver(true);
                         }}
                         onDragLeave={() => setIsDraggingOver(false)}
                         onDrop={(e) => {
                           e.preventDefault();
                           setIsDraggingOver(false);
-                          if (canCreateDraft) {
+                          if (effectiveCanCreateDraft) {
                             onOpenAddRevision(entity, activeRevision);
                           }
                         }}
@@ -1875,7 +1883,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               : visualCardInfo.emptyWriterPrompt}
                           </p>
                         </div>
-                        {canCreateDraft && (
+                        {effectiveCanCreateDraft && (
                           <div className='flex flex-col items-center gap-2 pt-2'>
                             <button
                               type='button'
@@ -2474,7 +2482,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   </span>
                 </div>
 
-                {activeRevision?.isLocked && canCreateDraft && (
+                {activeRevision?.isLocked && effectiveCanCreateDraft && (
                   <button
                     type='button'
                     onClick={() => onOpenAddRevision(entity, activeRevision)}

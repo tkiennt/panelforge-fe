@@ -223,7 +223,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     try {
       const rawWs = localStorage.getItem('activeWorkspace');
       const ws = rawWs ? JSON.parse(rawWs) : null;
-      return normalizeWorkspaceRole(ws?.currentUserRole);
+      return (
+        normalizeWorkspaceRole(ws?.currentUserRole || ws?.role || ws?.userRole) ||
+        normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
+      );
     } catch {
       return null;
     }
@@ -2100,6 +2103,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           rawEntry={rawEntries[selectedEntity.id]}
           isProducer={isProducer}
           isArtist={isArtist}
+          isWriter={isWriter}
           canCreateDraft={canCreateDraft}
           canEndorse={canEndorse}
           canRequestRework={canRequestRework}

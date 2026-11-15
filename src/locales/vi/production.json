@@ -294,7 +294,25 @@
       "subtitlePlaceholder": "Ví dụ: Kiếm sĩ lang thang",
       "saveDefinition": "Lưu định nghĩa",
       "cancel": "Huỷ",
-      "draftBadge": "[Bản nháp]"
+      "draftBadge": "[Bản nháp]",
+      "charactersDrawerTitle": "Nhân vật Series Bible",
+      "charactersDrawerDesc": "Danh sách nhân vật Canon đối chiếu kịch bản",
+      "searchCharacter": "Tìm kiếm nhân vật...",
+      "noMatchingCharacterFound": "Không tìm thấy nhân vật nào phù hợp.",
+      "noCharactersInBible": "Chưa có nhân vật nào trong Series Bible.",
+      "editSpecTitle": "Chỉnh sửa thông tin & Đặc tả",
+      "editSpecHint": "Lưu thành bản nháp Series Bible",
+      "entityNameReadonly": "Tên thực thể (Bất biến)",
+      "saveDraft": "Lưu bản nháp",
+      "noDescription": "Chưa có mô tả chi tiết.",
+      "specFilledCount": "Đặc tả:",
+      "fields": "trường",
+      "editSpecBtn": "Sửa thông tin",
+      "draft": "Bản nháp",
+      "draftSummaryDefault": "Cập nhật đặc tả từ kịch bản",
+      "saveDraftSuccess": "Đã lưu bản nháp Series Bible",
+      "saveDraftSuccessDesc": "Đặc tả đã được cập nhật thành phiên bản nháp mới.",
+      "saveDraftFailed": "Lưu bản nháp thất bại"
     },
     "paper": {
       "hint": "Cứ viết. Enter xuống dòng · gõ \"Tên:\" để viết lời thoại · Tab đổi loại dòng"

@@ -294,7 +294,25 @@
       "subtitlePlaceholder": "e.g. Wandering Swordsman",
       "saveDefinition": "Save Definition",
       "cancel": "Cancel",
-      "draftBadge": "[Draft]"
+      "draftBadge": "[Draft]",
+      "charactersDrawerTitle": "Series Bible Characters",
+      "charactersDrawerDesc": "Canon character list for script verification",
+      "searchCharacter": "Search characters...",
+      "noMatchingCharacterFound": "No matching characters found.",
+      "noCharactersInBible": "No characters in Series Bible yet.",
+      "editSpecTitle": "Edit Details & Specifications",
+      "editSpecHint": "Saved as Series Bible draft",
+      "entityNameReadonly": "Entity Name (Immutable)",
+      "saveDraft": "Save Draft",
+      "noDescription": "No detailed description.",
+      "specFilledCount": "Specs:",
+      "fields": "fields",
+      "editSpecBtn": "Edit details",
+      "draft": "Draft",
+      "draftSummaryDefault": "Updated specs from script",
+      "saveDraftSuccess": "Saved Series Bible draft",
+      "saveDraftSuccessDesc": "Specifications updated into a new draft revision.",
+      "saveDraftFailed": "Failed to save draft"
     },
     "paper": {
       "hint": "Just write. Enter for a new line · type \"Name:\" for dialogue · Tab changes the line type"
