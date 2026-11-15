@@ -261,7 +261,7 @@
       "startConfirm": "Start production of chapter {n}? The script will be finalized (read-only).",
       "started": "Production started",
       "startFailed": "Could not start production",
-      "openCommentsWarning": "{count} open comments on the script"
+      "openCommentsWarning": "{count} advisory comments remain; they do not block Gate 1"
     },
     "comments": {
       "tab": "Comments ({count})",
@@ -313,7 +313,10 @@
       "reopenReason": "Why is it not fixed? (sent to the assignee)",
       "rejectTitle": "Accept the assignee's objection and close this request",
       "emptyCanDraw": "No notes yet. Drag on the submission to mark an area.",
-      "describe": "Describe the change needed"
+      "describe": "Describe the change needed",
+      "layerLabel": "Affected layer",
+      "layerArtwork": "Artwork",
+      "layerLettering": "Lettering"
     },
     "checks": {
       "title": "Visual consistency",

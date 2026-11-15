@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   normalizeRegionBox,
   parseRegionBox,
-  findIntersectingPanelId,
+  findIntersectingPanelIds,
   isRegionOverlappingText,
   suggestTargetAssignment,
   buildReturnWorkPayload,
@@ -61,7 +61,7 @@ describe('chapterReviewViewUtils', () => {
     });
   });
 
-  describe('findIntersectingPanelId', () => {
+  describe('findIntersectingPanelIds', () => {
     const panels: PanelDto[] = [
       {
         id: 'panel-top',
@@ -100,16 +100,24 @@ describe('chapterReviewViewUtils', () => {
     it('tìm đúng panel có diện tích giao lớn nhất', () => {
       // Vùng ở nửa trên (y: 0.1 đến 0.2) -> panel-top
       const topBox = { x: 0.1, y: 0.1, w: 0.2, h: 0.1 };
-      expect(findIntersectingPanelId(topBox, panels)).toBe('panel-top');
+      expect(findIntersectingPanelIds(topBox, panels)).toEqual(['panel-top']);
 
       // Vùng ở nửa dưới (y: 0.5 đến 0.8) -> panel-bottom
       const bottomBox = { x: 0.1, y: 0.5, w: 0.3, h: 0.3 };
-      expect(findIntersectingPanelId(bottomBox, panels)).toBe('panel-bottom');
+      expect(findIntersectingPanelIds(bottomBox, panels)).toEqual(['panel-bottom']);
+    });
+
+    it('returns every panel covering at least 15% of the marked error area', () => {
+      const spanningBox = { x: 0.1, y: 0.25, w: 0.2, h: 0.2 };
+      expect(findIntersectingPanelIds(spanningBox, panels)).toEqual(['panel-top', 'panel-bottom']);
+
+      const mostlyBottomBox = { x: 0.1, y: 0.31, w: 0.2, h: 0.2 };
+      expect(findIntersectingPanelIds(mostlyBottomBox, panels)).toEqual(['panel-bottom']);
     });
 
     it('trả về undefined khi vùng không giao với panel nào', () => {
       const box = { x: 0.1, y: 0.1, w: 0, h: 0 };
-      expect(findIntersectingPanelId(box, panels)).toBeUndefined();
+      expect(findIntersectingPanelIds(box, panels)).toEqual([]);
     });
   });
 

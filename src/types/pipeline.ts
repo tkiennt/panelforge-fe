@@ -318,6 +318,7 @@ export interface SubmissionDto {
 }
 
 export type ChangeRequestStatus = 'Open' | 'Resolved' | 'Verified' | 'Rejected' | number;
+export type ChangeRequestLayer = 'Artwork' | 'Lettering';
 
 export interface ChangeRequestDto {
   id: string;
@@ -349,6 +350,8 @@ export interface ChangeRequestDto {
   pageId?: string | null;
   /** Công đoạn của việc bị trả về. Chỉ có ở GET /chapters/{id}/change-requests. */
   pipelineStageId?: string | null;
+  groupId?: string | null;
+  layer?: ChangeRequestLayer;
 }
 
 export interface ChangeRequestItemRequest {
@@ -359,6 +362,8 @@ export interface ChangeRequestItemRequest {
   assetReferenceId?: string;
   /** Panel thuộc một Page của Chapter; null/undefined nếu khoanh chung cả trang. */
   panelId?: string | null;
+  groupId?: string;
+  layer?: ChangeRequestLayer;
   sceneId?: string;
   /** Phải đi kèm sceneId của phân cảnh chứa dòng. */
   scriptLineId?: string;

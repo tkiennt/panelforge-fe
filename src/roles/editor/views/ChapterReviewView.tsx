@@ -65,7 +65,7 @@ import {
   ChecklistId,
   normalizeRegionBox,
   parseRegionBox,
-  findIntersectingPanelId,
+  findIntersectingPanelIds,
   isRegionOverlappingText,
   suggestTargetAssignment,
   buildReturnWorkPayload,
@@ -590,7 +590,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         }
 
         // Valid box drawn: identify panel & smart target assignment
-        const matchedPanelId = findIntersectingPanelId(box, activePanels);
+        const matchedPanelId = findIntersectingPanelIds(box, activePanels)[0];
         const suggestedTarget = suggestTargetAssignment(
           box,
           currentPageAssignments,
@@ -706,10 +706,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     setBackendBlockError(null);
     try {
       await assignmentService.startAssignment(chapterId, assignment.id);
-      toast('Đã bắt đầu', 'Bắt đầu quá trình duyệt toàn chương.');
+      toast('Đã bắt đầu', 'Bắt đầu kiểm duyệt Gate 2.');
       void loadChapterData();
     } catch (err: any) {
-      const msg = extractError(err, 'Không thể bắt đầu duyệt chương.');
+      const msg = extractError(err, 'Không thể bắt đầu kiểm duyệt Gate 2.');
       setBackendBlockError(msg);
       toast('Bị chặn', msg);
     } finally {
@@ -718,17 +718,11 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   };
 
   const handleApproveChapter = async () => {
-    // Generate comment with checklist summary if any
-    const checkedLabels = CHECKLIST_ITEMS.filter((item) => checklist[item.id]).map((i) => i.label);
-    const checklistPart =
-      checkedLabels.length > 0 ? `[Checklist đạt: ${checkedLabels.join(', ')}] ` : '';
-    const comment = `${checklistPart}Duyệt hoàn tất nội dung toàn bộ chương.`;
-
     setActionBusy(true);
     setBackendBlockError(null);
     try {
       await assignmentService.approveAssignment(chapterId, assignment.id);
-      toast('Đã duyệt chương', 'Công đoạn Review đã hoàn tất thành công!');
+      toast('Đã duyệt Gate 2', 'Công đoạn kiểm duyệt Gate 2 đã hoàn tất.');
       void loadChapterData();
     } catch (err: any) {
       const msg = extractError(err, 'Không thể duyệt công đoạn Review.');
@@ -864,7 +858,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       <div className='w-full h-full flex flex-col items-center justify-center bg-[#FAF8F4] gap-3'>
         <Loader2 className='w-8 h-8 animate-spin text-[#171717]' />
         <span className='text-xs font-semibold text-zinc-600'>
-          Đang nạp màn hình duyệt toàn chương...
+          Đang nạp màn hình kiểm duyệt Gate 2...
         </span>
       </div>
     );
@@ -991,14 +985,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               onClick={() => void handleApproveChapter()}
               title={
                 unfinishedWarning
-                  ? 'Còn trang chưa xong công đoạn, chưa thể hoàn tất duyệt cả chương.'
-                  : 'Duyệt toàn bộ nội dung chương'
+                  ? 'Còn trang chưa xong công đoạn, chưa thể hoàn tất Gate 2.'
+                  : 'Duyệt công đoạn kiểm duyệt (Gate 2)'
               }
               className='px-5 py-2 flex items-center gap-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-all active:scale-98'
               data-testid='btn-approve-chapter-review'
             >
               <CheckCircle2 className='w-4 h-4' />
-              <span>Duyệt cả chương</span>
+              <span>Duyệt Gate 2</span>
             </button>
           )}
 

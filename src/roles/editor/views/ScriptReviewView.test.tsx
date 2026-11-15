@@ -151,6 +151,16 @@ describe('ScriptReviewView', () => {
     );
   });
 
+  it('returns to the canonical editor desk instead of browser history', async () => {
+    vi.mocked(chapterService.getChapterById).mockRejectedValueOnce(new Error('load failed'));
+    renderView();
+
+    await screen.findByText(/Không mở được kịch bản/i);
+    fireEvent.click(screen.getByRole('button', { name: /Về bàn thẩm định/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/workspaces/ws-1/series/series-001/editor/desk');
+  });
+
   it('can open comment composer and submit a comment using modern composer card', async () => {
     const addCommentSpy = vi.spyOn(chapterService, 'addScriptComment').mockResolvedValue({
       id: 'cmt-1',
@@ -234,7 +244,7 @@ describe('ScriptReviewView', () => {
 
     // Warning shows with 2 unresolved comments
     expect(await screen.findByTestId('open-comments-warning')).toHaveTextContent(
-      'Còn 2 góp ý trên kịch bản',
+      'Còn 2 góp ý tham khảo; không chặn Gate 1',
     );
 
     // Button stays enabled

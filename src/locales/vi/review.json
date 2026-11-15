@@ -261,7 +261,7 @@
       "startConfirm": "Bắt đầu sản xuất Chương {n}? Kịch bản sẽ được chốt (chỉ đọc).",
       "started": "Đã bắt đầu sản xuất",
       "startFailed": "Không bắt đầu sản xuất được",
-      "openCommentsWarning": "Còn {count} góp ý trên kịch bản"
+      "openCommentsWarning": "Còn {count} góp ý tham khảo; không chặn Gate 1"
     },
     "comments": {
       "tab": "Góp ý ({count})",
@@ -313,7 +313,10 @@
       "reopenReason": "Vì sao chưa đạt? (gửi lại cho người làm)",
       "rejectTitle": "Chấp nhận phản hồi của người làm và đóng yêu cầu này",
       "emptyCanDraw": "Chưa có nhận xét. Kéo chuột trên bản nộp để khoanh vùng cần sửa.",
-      "describe": "Mô tả vùng cần sửa"
+      "describe": "Mô tả vùng cần sửa",
+      "layerLabel": "Lớp bị ảnh hưởng",
+      "layerArtwork": "Tranh vẽ",
+      "layerLettering": "Chữ thoại"
     },
     "checks": {
       "title": "Nhất quán hình ảnh",
