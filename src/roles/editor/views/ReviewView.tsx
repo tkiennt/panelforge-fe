@@ -19,7 +19,7 @@ import {
   getWorkActions,
 } from '@/shared/features/collaboration/collaborationRules';
 import { ChapterReviewView } from './ChapterReviewView';
-import { findIntersectingPanelId } from './chapterReviewViewUtils';
+import { findIntersectingPanelIds } from './chapterReviewViewUtils';
 import { ArtworkCanvas } from './artwork-review/ArtworkCanvas';
 import { parseRegion, type Box, type CanvasRegion } from './artwork-review/artworkModel';
 import { ArtworkNotesTab, type ArtworkDraft } from './artwork-review/ArtworkNotesTab';
@@ -225,7 +225,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       box,
       text: '',
       assetReferenceId: current.id.startsWith('composite-') ? undefined : current.id,
-      panelId: findIntersectingPanelId(box, arts.panels),
+      panelIds: findIntersectingPanelIds(box, arts.panels),
+      layer: 'Artwork',
     };
     updateDrafts([...drafts, draft]);
     setActiveId(draft.id);
@@ -265,19 +266,30 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           expectedSubmissionId: pendingSub?.id,
           changes:
             drafts.length > 0
-              ? drafts.map((d) => ({
-                  description: d.text.trim(),
-                  regionJson: JSON.stringify(d.box),
-                  assetReferenceId: d.assetReferenceId,
-                  panelId: d.panelId,
-                }))
+              ? drafts.flatMap((d) => {
+                  const panelIds = d.panelIds.length > 0 ? d.panelIds : [undefined];
+                  const groupId = panelIds.length > 1 ? newDraftId() : undefined;
+                  return panelIds.map((panelId) => ({
+                    description: d.text.trim(),
+                    regionJson: JSON.stringify(d.box),
+                    assetReferenceId: d.assetReferenceId,
+                    panelId,
+                    groupId,
+                    layer: d.layer,
+                  }));
+                })
               : undefined,
         });
         updateDrafts([]);
         setSummary('');
         onShowToast?.(
           t('artworkReview.toast.returnedTitle'),
-          t('scriptReview.toast.returnedBody', { count: Math.max(drafts.length, 1) }),
+          t('scriptReview.toast.returnedBody', {
+            count: Math.max(
+              drafts.reduce((count, draft) => count + Math.max(draft.panelIds.length, 1), 0),
+              1,
+            ),
+          }),
         );
         await loadData();
       },
@@ -290,7 +302,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       async () => {
         await assignmentService.approveAssignment(chapterId, taskId, pendingSub?.id);
         onShowToast?.(t('artworkReview.toast.approvedTitle'), assignment?.brief ?? '');
-        await loadData();
+        backToDesk();
       },
       t('scriptReview.toast.approveFailed'),
     );
@@ -340,7 +352,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const backToDesk = () =>
     effectiveWsId && seriesId
       ? navigate(`/workspaces/${effectiveWsId}/series/${seriesId}/editor/desk`)
-      : navigate(-1);
+      : navigate('/workspaces');
 
   if (!chapterId) {
     return (
@@ -408,6 +420,10 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   // ── Điều kiện quyết định ──
   const unclosed = countUnclosed(changeRequests, true);
   const emptyDrafts = drafts.filter((d) => !d.text.trim()).length;
+  const draftRequestCount = drafts.reduce(
+    (count, draft) => count + Math.max(draft.panelIds.length, 1),
+    0,
+  );
   const approveBlocker =
     drafts.length > 0
       ? t('scriptReview.decision.blockedByDrafts', { count: drafts.length })
@@ -648,7 +664,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 }`}
               >
                 {key === 'notes'
-                  ? t('scriptReview.tabs.notes', { count: drafts.length + liveCrCount })
+                  ? t('scriptReview.tabs.notes', { count: draftRequestCount + liveCrCount })
                   : t('scriptReview.tabs.checks')}
               </button>
             ))}
@@ -666,6 +682,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 busyId={busy}
                 onDraftText={(id, text) =>
                   updateDrafts(drafts.map((d) => (d.id === id ? { ...d, text } : d)))
+                }
+                onDraftLayer={(id, layer) =>
+                  updateDrafts(drafts.map((d) => (d.id === id ? { ...d, layer } : d)))
                 }
                 onDeleteDraft={(id) => updateDrafts(drafts.filter((d) => d.id !== id))}
                 onVerify={(cr) =>
@@ -703,8 +722,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 summaryPlaceholder: t('scriptReview.decision.summaryPlaceholder'),
                 summaryRequired: t('scriptReview.decision.summaryRequired'),
                 returnAction:
-                  drafts.length > 0
-                    ? t('scriptReview.decision.returnWithNotes', { count: drafts.length })
+                  draftRequestCount > 0
+                    ? t('scriptReview.decision.returnWithNotes', { count: draftRequestCount })
                     : t('artworkReview.decision.return'),
                 approve: t('artworkReview.decision.approve'),
               }}

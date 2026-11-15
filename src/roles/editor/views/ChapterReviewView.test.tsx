@@ -240,6 +240,7 @@ describe('ChapterReviewView Component', () => {
     expect(screen.getByText(/Editor duyệt/i)).toBeInTheDocument();
     expect(screen.getByText(/Producer duyệt/i)).toBeInTheDocument();
     expect(screen.getByText(/Publisher phát hành/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Duyệt Gate 2' })).toBeInTheDocument();
   });
 
   it('allows switching active page', async () => {
