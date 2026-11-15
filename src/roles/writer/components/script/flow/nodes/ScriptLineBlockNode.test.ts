@@ -55,6 +55,17 @@ function caretAtEndOf(editor: Editor, index: number) {
   editor.commands.setTextSelection(pos);
 }
 
+function selectText(editor: Editor, lineIndex: number, text: string) {
+  editor.state.doc.forEach((node, offset, index) => {
+    if (index !== lineIndex) return;
+    const textOffset = node.textContent.indexOf(text);
+    editor.commands.setTextSelection({
+      from: offset + 1 + textOffset,
+      to: offset + 1 + textOffset + text.length,
+    });
+  });
+}
+
 const els = (editor: Editor) =>
   (editor.getJSON().content ?? []).map((n) => n.attrs?.el as GnElement);
 const texts = (editor: Editor) => {
@@ -191,7 +202,7 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
       line('panel'),
       line('action', 'Naruto chạy đến gặp Sasuke tại thung lũng'),
     ]);
-    caretAtEndOf(editor, 2);
+    selectText(editor, 2, 'Naruto');
 
     // Gắn mark cho Naruto
     const applied = applyBibleRefToLine(editor, 'Naruto', { entryId: 'ent-naruto' });

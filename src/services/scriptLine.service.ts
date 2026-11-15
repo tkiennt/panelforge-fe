@@ -131,7 +131,7 @@ export interface ScriptLineRefInput {
   bibleEntryId?: string | null;
   newDraft?: {
     name: string;
-    category?: number;
+    category?: import('./bible.service').BibleCategory;
   } | null;
 }
 

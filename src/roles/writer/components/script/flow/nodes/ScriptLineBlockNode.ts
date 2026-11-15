@@ -8,6 +8,7 @@ import type { Editor } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { EditorState, Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import type { BibleCategory } from '@/services/bible.service';
 import {
   GN_ELEMENTS,
   GnElement,
@@ -408,12 +409,12 @@ export interface ScriptTypingOptions {
 }
 
 /**
- * Gắn mark bibleRef lên tất cả các vị trí trùng surfaceText trong dòng hiện tại (5A, BIB-16).
+ * Gắn mark bibleRef lên đúng vùng chữ đang được chọn trong dòng hiện tại (5A, BIB-16).
  */
 export function applyBibleRefToLine(
   editor: Editor,
   surfaceText: string,
-  attrs: { entryId?: string | null; newDraft?: { name: string; category?: number } | null },
+  attrs: { entryId?: string | null; newDraft?: { name: string; category?: BibleCategory } | null },
 ): boolean {
   const { state, view } = editor;
   const line = currentLine(state);
@@ -423,30 +424,22 @@ export function applyBibleRefToLine(
   const markType = state.schema.marks.bibleRef;
   if (!markType) return false;
 
-  const lineStart = line.pos + 1;
-  const text = line.node.textContent;
-  const lowerText = text.toLowerCase();
-  const lowerTarget = surfaceText.toLowerCase().trim();
-  if (!lowerTarget) return false;
+  const { from, to, empty } = state.selection;
+  if (empty || state.selection.$to.parent !== state.selection.$from.parent) return false;
+  const selectedText = state.doc.textBetween(from, to);
+  if (selectedText.trim() !== surfaceText.trim()) return false;
 
-  let tr = state.tr;
-  let idx = 0;
-  while ((idx = lowerText.indexOf(lowerTarget, idx)) !== -1) {
-    const from = lineStart + idx;
-    const to = from + lowerTarget.length;
-    tr = tr.addMark(
+  view.dispatch(
+    state.tr.addMark(
       from,
       to,
       markType.create({
         entryId: attrs.entryId ?? null,
-        surfaceText: text.substring(idx, idx + lowerTarget.length),
+        surfaceText: selectedText,
         newDraft: attrs.newDraft ?? null,
       }),
-    );
-    idx += lowerTarget.length;
-  }
-
-  view.dispatch(tr);
+    ),
+  );
   return true;
 }
 
