@@ -476,6 +476,34 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
         priority: 'Medium',
         createdAt: '2026-01-01T00:00:00Z',
       },
+      {
+        id: 'assign-ink',
+        seriesId: 'ser-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter',
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'st-ink',
+        assigneeUserId: 'user-1',
+        assignedRole: 'ARTIST',
+        brief: 'Đi nét chương 1',
+        status: 'Assigned',
+        priority: 'Medium',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'assign-letter',
+        seriesId: 'ser-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter',
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'st-dialogue',
+        assigneeUserId: 'user-1',
+        assignedRole: 'ARTIST',
+        brief: 'Đặt chữ chương 1',
+        status: 'Assigned',
+        priority: 'Medium',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
     ]);
 
     const submitSpy = vi.spyOn(assignmentService, 'submitAssignment').mockResolvedValue({
@@ -554,6 +582,8 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
       'data-stage-state',
       'upcoming',
     );
+    fireEvent.click(screen.getByTestId('focus-stage-step-2'));
+    expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute('data-stage-state', 'current');
     expect(screen.queryByText(/SHA-256|CAS|DPI|Canon|Zen Mode/i)).not.toBeInTheDocument();
 
     // Submit 1: Pencil -> Ink
@@ -597,6 +627,79 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     await waitFor(() => {
       expect(pagesSpy).toHaveBeenCalledWith('chap-2');
     });
+  });
+
+  it('warns instead of advancing when the active stage has no matching assignment', async () => {
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+        <ToastProvider>
+          <ConfirmProvider>
+            <Routes>
+              <Route
+                path='/workspaces/:workspaceId/series/:seriesId/artist'
+                element={<ArtistDeskView workspaceRole='ARTIST' initialScriptLines={[]} />}
+              />
+            </Routes>
+          </ConfirmProvider>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
+
+    expect(await screen.findByText('Không thể nộp công đoạn')).toBeInTheDocument();
+    expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute('data-stage-state', 'current');
+  });
+
+  it('shows script coverage and blocks Submit Pencil below 100%', async () => {
+    vi.spyOn(assignmentService, 'getAssignments').mockResolvedValue([
+      {
+        id: 'assign-pencil',
+        seriesId: 'ser-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter',
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'stage-pencil',
+        assigneeUserId: 'user-1',
+        assignedRole: 'ARTIST',
+        brief: 'Vẽ chì',
+        status: 'InProgress',
+        priority: 'Medium',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    const submitSpy = vi.spyOn(assignmentService, 'submitAssignment');
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+        <ToastProvider>
+          <ConfirmProvider>
+            <Routes>
+              <Route
+                path='/workspaces/:workspaceId/series/:seriesId/artist'
+                element={
+                  <ArtistDeskView
+                    workspaceRole='ARTIST'
+                    initialScriptLines={[
+                      { id: 'line-1', dialogueText: 'Đã gán', panelId: 'panel-1' },
+                      { id: 'line-2', dialogueText: 'Chưa gán' },
+                    ]}
+                  />
+                }
+              />
+            </Routes>
+          </ConfirmProvider>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('artist-script-coverage')).toHaveTextContent(
+      'Script Coverage: 1/2 dòng thoại · 50%',
+    );
+    fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
+
+    expect(await screen.findByText('Chưa thể nộp Pencil')).toBeInTheDocument();
+    expect(submitSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -1154,11 +1257,28 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
           expiresAtUtc: new Date(Date.now() + 300000).toISOString(),
         };
       });
-
+      vi.spyOn(assignmentService, 'getAssignments').mockResolvedValue([
+        {
+          id: 'assign-pencil',
+          seriesId: 'ser-1',
+          chapterId: mockChapterId,
+          entityType: 'Chapter',
+          targetEntityId: mockChapterId,
+          pipelineStageId: pencilStageId,
+          assigneeUserId: 'user-1',
+          assignedRole: 'ARTIST',
+          brief: 'Vẽ chì',
+          status: 'Submitted',
+          priority: 'Medium',
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+      ]);
       render(
         <ToastProvider>
           <MemoryRouter
-            initialEntries={[`/workspaces/ws-1/series/ser-1/artist?chapterId=${mockChapterId}`]}
+            initialEntries={[
+              `/workspaces/ws-1/series/ser-1/artist?chapterId=${mockChapterId}&assignmentId=assign-pencil`,
+            ]}
           >
             <Routes>
               <Route
@@ -1175,10 +1295,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         expect(screen.getByAltText('pencil-sketch.png')).toBeInTheDocument();
       });
 
-      // Switch stage to Ink by clicking stage step 1
-      fireEvent.click(screen.getByTestId('focus-stage-step-1'));
-
-      // Artworks for ink stage are loaded and rendered
+      // A submitted Pencil assignment unlocks Ink; saved artwork reloads for the new stage.
       await waitFor(() => {
         expect(getArtworksSpy).toHaveBeenCalledWith(mockChapterId, mockPageId, inkStageId);
         expect(screen.getByAltText('ink-drawing.png')).toBeInTheDocument();
