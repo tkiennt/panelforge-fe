@@ -38,14 +38,13 @@ import {
 } from './nodes';
 import { ComicKeymapExtension } from './extensions';
 import { getNextPageNumber } from './comicCounting';
-import { AiScriptConvertModal, convertScriptTextToComicBlocks } from '../converter';
+import { convertScriptTextToComicBlocks } from '../converter';
 import { INITIAL_COMIC_SCRIPT_DOC } from './sampleScript';
 import {
   useScriptVersionStore,
   ScriptVersion,
   ScriptDiffViewer,
   VersionHistoryDrawer,
-  VersionPreviewModal,
 } from './versioning';
 import { Modal } from '@/shared/ui';
 
@@ -72,7 +71,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [showCheatsheet, setShowCheatsheet] = useState(false);
-  const [showConvertModal, setShowConvertModal] = useState(false);
   const [lastAction, setLastAction] = useState<string | null>(null);
 
   // Modal yêu cầu sửa của Producer
@@ -302,41 +300,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
     editor.commands.setContent(INITIAL_COMIC_SCRIPT_DOC);
     updateDocumentStats(editor);
     notify('Đã khôi phục', 'Đã nạp lại kịch bản mẫu Comic Script.');
-  };
-
-  const handleApplyConvertedScript = (
-    scriptText: string,
-    mode: 'append' | 'insert' | 'replace',
-  ) => {
-    if (!editor || isLockedOrReadOnly) return;
-
-    if (mode === 'replace') {
-      const blocks = convertScriptTextToComicBlocks(scriptText, { startingPageNumber: 1 });
-      editor.commands.setContent({ type: 'doc', content: blocks });
-      updateDocumentStats(editor);
-      notify('Đã ghi đè kịch bản', 'Toàn bộ nội dung đã được thay thế bằng kịch bản mới.');
-      return;
-    }
-
-    if (mode === 'append') {
-      const nextNum = getNextPageNumber(editor.state.doc);
-      const blocks = convertScriptTextToComicBlocks(scriptText, { startingPageNumber: nextNum });
-      const endPos = editor.state.doc.content.size;
-      editor.chain().focus().insertContentAt(endPos, blocks).run();
-      updateDocumentStats(editor);
-      notify('Đã chèn kịch bản', `Đã thêm các trang mới (từ Trang ${nextNum}) vào cuối kịch bản.`);
-      return;
-    }
-
-    if (mode === 'insert') {
-      const currentPos = editor.state.selection.$from.pos;
-      const currentNum = getNextPageNumber(editor.state.doc, currentPos);
-      const blocks = convertScriptTextToComicBlocks(scriptText, { startingPageNumber: currentNum });
-      editor.chain().focus().insertContent(blocks).run();
-      updateDocumentStats(editor);
-      notify('Đã chèn kịch bản', 'Đã chèn nội dung kịch bản mới tại vị trí con trỏ.');
-      return;
-    }
   };
 
   // --- VERSIONING LIFECYCLE HANDLERS ---
@@ -643,22 +606,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
               <Scroll className='w-3.5 h-3.5 text-slate-500' />
               <span className='hidden md:inline'>Lời dẫn</span>
             </button>
-
-            {/* Nút Smart Convert / Gen AI */}
-            <button
-              type='button'
-              disabled={isLockedOrReadOnly}
-              onClick={() => setShowConvertModal(true)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-white rounded-lg transition-all shadow-2xs group ml-1 ${
-                isLockedOrReadOnly
-                  ? 'opacity-50 cursor-not-allowed bg-stone-400'
-                  : 'bg-gradient-to-r from-[#C2410C] to-indigo-700 hover:from-[#9A3412] hover:to-indigo-800 cursor-pointer'
-              }`}
-              title='Chuyển đổi văn bản thô hoặc AI viết phân cảnh kịch bản'
-            >
-              <Sparkles className='w-3.5 h-3.5 animate-pulse' />
-              <span>⚡ Chuyển đổi / Gen AI</span>
-            </button>
           </div>
 
           {/* Phản hồi trạng thái biến đổi O(1) Transaction */}
@@ -831,23 +778,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
         </div>
       </footer>
 
-      {/* 5. MODAL SMART CONVERT & AI BIÊN KỊCH */}
-      <AiScriptConvertModal
-        isOpen={showConvertModal}
-        onClose={() => setShowConvertModal(false)}
-        onApplyScript={handleApplyConvertedScript}
-        initialStartingPageNumber={editor ? getNextPageNumber(editor.state.doc) : 1}
-        seriesBibleContext={{
-          characters: [
-            { name: 'Minh', role: 'Nam chính' },
-            { name: 'Lan', role: 'Nữ chính' },
-            { name: 'Người lạ mặt', role: 'Phản diện bí ẩn' },
-          ],
-          locations: ['Ngã tư Shibuya', 'Hẻm tối Shinjuku', 'Tòa nhà bỏ hoang'],
-        }}
-        onShowToast={notify}
-      />
-
       {/* 6. VERSION HISTORY DRAWER */}
       <VersionHistoryDrawer
         isOpen={isDrawerOpen}
@@ -868,16 +798,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
           allVersions={versions}
           onSelectBaseVersion={(id) => openDiff(id)}
           onClose={closeDiff}
-        />
-      )}
-
-      {/* 8. VERSION PREVIEW MODAL */}
-      {previewVersion && (
-        <VersionPreviewModal
-          version={previewVersion}
-          onClose={() => setPreviewVersion(null)}
-          onRestore={handleRestoreVersion}
-          canRestore={!isLockedOrReadOnly}
         />
       )}
 

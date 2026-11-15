@@ -30,8 +30,6 @@ import { startSessionKeepAlive } from './api/sessionKeepAlive';
 import { seriesService } from './services/series.service';
 import { workspaceService } from './services/workspace.service';
 import { offlineQueueService } from './services/offlineQueue.service';
-import { LoginModal } from '@/roles/guest/modals/LoginModal';
-import { RegisterModal } from '@/roles/guest/modals/RegisterModal';
 import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupModal';
 import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordModal';
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
@@ -521,8 +519,6 @@ function AppContent() {
   const [auditLogOpen, setAuditLogOpen] = useState(false);
   const [newCardOpen, setNewCardOpen] = useState(false);
   const [selectedCardForDetail, setSelectedCardForDetail] = useState<KanbanCard | null>(null);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [isTwoFactorModalOpen, setIsTwoFactorModalOpen] = useState(false);
 
   // Global Lucian #070 Toast System via ToastContext
@@ -711,8 +707,6 @@ function AppContent() {
         : '/workspaces';
 
   const handleApiLoginSuccess = (authResponse: any, customRedirect?: string) => {
-    setIsLoginModalOpen(false);
-    setIsRegisterModalOpen(false);
     setIsAuthenticated(true);
     localStorage.removeItem('demoRole');
     localStorage.removeItem('isDemoMode');
@@ -800,8 +794,6 @@ function AppContent() {
         showToast={showToast}
         setIsTwoFactorModalOpen={setIsTwoFactorModalOpen}
         setIsChangePasswordModalOpen={setIsChangePasswordModalOpen}
-        setIsLoginModalOpen={setIsLoginModalOpen}
-        setIsRegisterModalOpen={setIsRegisterModalOpen}
         setIsCommandPaletteOpen={setCommandPaletteOpen}
         setIsAuditLogOpen={setAuditLogOpen}
         members={members}
@@ -847,125 +839,6 @@ function AppContent() {
         handleUpdateCardStage={handleUpdateCardStage}
         handleAddCard={handleAddCard}
       />
-
-      {isLoginModalOpen && (
-        <LoginModal
-          onClose={() => setIsLoginModalOpen(false)}
-          onLogin={(username, password) => {
-            const name = username.split('@')[0].toLowerCase();
-            if (name === 'admin' || name === 'administrator') {
-              setIsAuthenticated(true);
-              setCurrentRole('ADMINISTRATOR');
-              setCurrentWorkspaceRole(null);
-              setCurrentUserInfo({
-                name: 'Administrator',
-                email: username,
-                role: 'ADMINISTRATOR',
-              });
-              localStorage.setItem('userRole', 'ADMINISTRATOR');
-              localStorage.setItem('token', 'mock-admin-token');
-              setIsLoginModalOpen(false);
-              navigate('/admin');
-              showToast('Đăng nhập thành công', 'Chào mừng Quản trị viên hệ thống!');
-            } else if (name === 'publisher') {
-              setIsAuthenticated(true);
-              setCurrentRole('PUBLISHER');
-              setCurrentWorkspaceRole('PUBLISHER');
-              setCurrentUserInfo({
-                name: 'Grace Publisher',
-                email: username,
-                role: 'PUBLISHER',
-              });
-              localStorage.setItem('userRole', 'PUBLISHER');
-              localStorage.setItem('token', 'mock-publisher-token');
-              setIsLoginModalOpen(false);
-              navigate('/publisher/desk');
-              showToast('Đăng nhập thành công', 'Chào mừng Grace Publisher!');
-            } else if (password === '123456') {
-              setIsAuthenticated(true);
-              setCurrentRole('USER');
-              setCurrentWorkspaceRole(null);
-              setCurrentUserInfo({
-                name: username.split('@')[0],
-                email: username,
-                role: 'USER',
-              });
-              localStorage.setItem('userRole', 'USER');
-              localStorage.setItem('token', 'mock-user-token');
-              setIsLoginModalOpen(false);
-              navigate('/workspaces');
-              showToast('Đăng nhập thành công', `Chào mừng ${username.split('@')[0]}!`);
-            } else {
-              showToast(
-                'Lỗi xác thực',
-                'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor, producer, admin (mật khẩu: 123456).',
-              );
-            }
-          }}
-          onSwitchToRegister={() => {
-            setIsLoginModalOpen(false);
-            setIsRegisterModalOpen(true);
-          }}
-          onGoogleLogin={(res) => {
-            setIsLoginModalOpen(false);
-            setIsAuthenticated(true);
-            localStorage.removeItem('demoRole');
-            localStorage.removeItem('isDemoMode');
-            const role = normalizeSystemRole(res?.user?.role);
-            setCurrentRole(role);
-            const googleAvatar = res?.user?.avatarUrl || res?.user?.avatar || res?.photoURL || null;
-            setCurrentUserInfo({
-              id: res?.user?.id,
-              name:
-                res?.user?.fullName ||
-                res?.displayName ||
-                res?.user?.email?.split('@')[0] ||
-                'User',
-              email: res?.user?.email || res?.email || '',
-              role,
-              avatarUrl: googleAvatar,
-            });
-            if (res?.user) {
-              localStorage.setItem('user', JSON.stringify(res.user));
-            }
-            localStorage.setItem('userRole', role);
-
-            if (res?.token) {
-              localStorage.setItem('token', res.token);
-            }
-            if (res?.refreshToken) {
-              localStorage.setItem('refreshToken', res.refreshToken);
-            }
-
-            navigate(
-              role === 'ADMINISTRATOR'
-                ? '/admin'
-                : role === 'PUBLISHER'
-                  ? '/publisher/desk'
-                  : '/workspaces',
-            );
-            const displayName =
-              res?.user?.fullName ||
-              res?.user?.name ||
-              res?.displayName ||
-              (res?.user?.email ? res.user.email.split('@')[0] : res?.email?.split('@')[0]) ||
-              'bạn';
-            showToast('Đăng nhập thành công', `Chào mừng ${displayName}!`);
-          }}
-          onApiLoginSuccess={handleApiLoginSuccess}
-        />
-      )}
-
-      {isRegisterModalOpen && (
-        <RegisterModal
-          onClose={() => setIsRegisterModalOpen(false)}
-          onSwitchToLogin={() => {
-            setIsRegisterModalOpen(false);
-            setIsLoginModalOpen(true);
-          }}
-          onSuccess={handleRegisterSuccess}
-        />
-      )}
 
       <TwoFactorSetupModal
         isOpen={isTwoFactorModalOpen}

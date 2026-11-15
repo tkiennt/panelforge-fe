@@ -84,7 +84,6 @@ export interface FocusStudioHeaderBarProps {
 }
 
 function getReadableWorkspaceTitle(pathname: string): string {
-  if (pathname.includes('/artist/workspace')) return 'Không gian vẽ';
   if (pathname.includes('/artist')) return 'Bàn vẽ họa sĩ';
   if (pathname.includes('/script/review')) return 'Duyệt kịch bản';
   if (pathname.includes('/script')) return 'Biên soạn kịch bản';

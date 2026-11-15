@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import LettererWorkspace from './LettererWorkspace';
+import LettererDeskView from './LettererDeskView';
 import { chapterService } from '@/services/chapter.service';
 import { pageService } from '@/services/page.service';
 import { elementService } from '@/services/element.service';
@@ -43,7 +43,7 @@ beforeAll(() => {
   });
 });
 
-describe('LettererWorkspace', () => {
+describe('LettererDeskView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -118,7 +118,7 @@ describe('LettererWorkspace', () => {
         <Routes>
           <Route
             path='/workspaces/:workspaceId/series/:seriesId/canvas'
-            element={<LettererWorkspace />}
+            element={<LettererDeskView />}
           />
         </Routes>
       </MemoryRouter>,

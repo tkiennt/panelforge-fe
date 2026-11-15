@@ -52,7 +52,6 @@ interface ArtistBottomDockProps {
   setUploadMode: (mode: 'page' | 'panel') => void;
   selectedPanelDetail: any;
   hasPanelOnlyAssignmentOnPage: boolean;
-  setFrameTemplateModalOpen: (open: boolean) => void;
   layoutEdit?: boolean;
   onToggleLayoutEdit?: () => void;
   isCurrentPageCarvedOut?: boolean;
@@ -146,7 +145,6 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
   setUploadMode,
   selectedPanelDetail,
   hasPanelOnlyAssignmentOnPage,
-  setFrameTemplateModalOpen,
   layoutEdit = false,
   onToggleLayoutEdit,
   isCurrentPageCarvedOut = false,
@@ -384,20 +382,6 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
                 </div>
               )}
             </div>
-          )}
-
-          {/* Nút Mẫu Khung */}
-          {canEditPages && (
-            <button
-              type='button'
-              onClick={() => setFrameTemplateModalOpen(true)}
-              data-testid='toolbar-frame-template-btn'
-              title='Áp dụng mẫu khung tranh dựng sẵn vào trang'
-              className={`${toolbarBtn} ${toolbarIdle} h-7 text-xs px-2.5 flex items-center gap-1.5 cursor-pointer font-medium hover:bg-stone-100 hover:text-stone-900`}
-            >
-              <LayoutTemplate className='w-3.5 h-3.5 text-[#C2410C]' />
-              <span>Mẫu Khung</span>
-            </button>
           )}
 
           {/* Nút Sửa bố cục */}

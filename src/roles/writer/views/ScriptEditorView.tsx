@@ -111,8 +111,6 @@ import { useTranslation } from '@/lib/i18n';
 import { ReasonForm } from '@/shared/components/ReasonForm';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { Modal } from '@/shared/ui';
-import { useComicStudioStore } from '../components/script/thumbnail-studio/store/useComicStudioStore';
-import { scenesToComicScriptText } from '../components/script/thumbnail-studio/lib/comicScriptParser';
 
 interface ScriptEditorViewProps {
   onShowToast?: (title: string, desc: string) => void;
