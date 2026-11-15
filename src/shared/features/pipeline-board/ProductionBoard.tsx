@@ -23,6 +23,7 @@ import { SideDrawer } from './SideDrawer';
 import { ProductionTaskCard } from './ProductionTaskCard';
 import { ProductionTaskList } from './ProductionTaskList';
 import { BOARD_COLUMNS, type BoardCard } from './pipelineBoard.types';
+import { buildArtistDeskUrl, buildScriptEditorUrl, buildScriptReviewUrl } from '@/app/routePaths';
 import { Alert } from '@/shared/ui';
 import {
   type ChapterMetrics,
@@ -272,17 +273,45 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
     });
   }, []);
 
-  const openMyWork = (card: BoardCard) => {
+  const openDeskForCard = (card: BoardCard) => {
     if (workspaceId && seriesId) {
-      navigate(
-        `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${card.chapterId}&assignmentId=${card.id}`,
-      );
+      const role = String(card.assignedRole || '').toUpperCase();
+      if (role === 'WRITER') {
+        navigate(
+          buildScriptEditorUrl(workspaceId, seriesId, {
+            chapterId: card.chapterId,
+            assignmentId: card.id,
+          }),
+        );
+      } else if (role === 'LETTERER') {
+        navigate(
+          buildArtistDeskUrl(workspaceId, seriesId, {
+            chapterId: card.chapterId,
+            assignmentId: card.id,
+            tab: 'lettering',
+            page: card.pageNumber ?? undefined,
+          }),
+        );
+      } else if (role === 'EDITOR') {
+        navigate(buildScriptReviewUrl(workspaceId, seriesId, card.chapterId));
+      } else {
+        // ARTIST and other production roles
+        navigate(
+          buildArtistDeskUrl(workspaceId, seriesId, {
+            chapterId: card.chapterId,
+            assignmentId: card.id,
+            page: card.pageNumber ?? undefined,
+          }),
+        );
+      }
     }
   };
 
+  const openMyWork = openDeskForCard;
+
   const handleAction = (card: BoardCard, action: PrimaryAction, trigger: HTMLElement) => {
     if (action.kind === 'details') openDetails(card, trigger);
-    else openMyWork(card);
+    else openDeskForCard(card);
   };
 
   const actionFor = useCallback((card: BoardCard) => primaryActionFor(card, userCtx), [userCtx]);

@@ -88,6 +88,10 @@ const renderBoard = (
           path='/workspaces/:workspaceId/series/:seriesId/workspace'
           element={<ProductionBoard chapterId='chap-1' onShowToast={vi.fn()} {...props} />}
         />
+        <Route
+          path='/workspaces/:workspaceId/series/:seriesId/script/editor'
+          element={<p>SCRIPT EDITOR</p>}
+        />
         <Route path='/workspaces/:workspaceId/series/:seriesId/my-work' element={<p>MY WORK</p>} />
       </Routes>
     </MemoryRouter>,
@@ -314,7 +318,7 @@ describe('ProductionBoard (Quy trình sản xuất: lưới + bộ lọc)', () =
     renderBoard({ currentUserRole: 'WRITER', currentUserId: 'user-1' });
     await waitFor(() => expect(screen.getAllByTestId('production-task-card')).toHaveLength(1));
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục: Viết kịch bản cho Trang 1' }));
-    await waitFor(() => expect(screen.getByText('MY WORK')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('SCRIPT EDITOR')).toBeInTheDocument());
   });
 
   it('mặc định là Bảng trang: mỗi trang một dòng, mỗi công đoạn một cột, ô trống khi chưa giao', async () => {
