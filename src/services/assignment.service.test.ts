@@ -371,7 +371,7 @@ describe('assignmentService', () => {
     expect(result).toEqual(mockResult);
   });
 
-  it('extractError nhắc tải lại trang khi gặp 409 CONFLICT', () => {
+  it('extractError giữ nguyên thông báo nghiệp vụ của BE khi gặp 409 CONFLICT', () => {
     const err = {
       response: {
         status: 409,
@@ -379,7 +379,7 @@ describe('assignmentService', () => {
       },
     };
     const msg = extractError(err, 'Lỗi thao tác');
-    expect(msg).toContain('Vui lòng tải lại trang');
+    expect(msg).toBe('Dữ liệu phân công đã thay đổi');
   });
 
   it('createAssignmentPlan gọi POST /chapters/{id}/assignments/plan với payload kế hoạch', async () => {
