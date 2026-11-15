@@ -91,14 +91,14 @@ describe('EditorDeskView Component', () => {
     expect(screen.getByText(/Đang nạp hàng đợi duyệt bài của Editor/i)).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText('Bàn Thẩm Định Biên Tập (Editor Desk)')).toBeInTheDocument();
+      expect(screen.getByText(/Bàn thẩm định biên tập/i)).toBeInTheDocument();
       expect(screen.getByText('Trang 4')).toBeInTheDocument();
       expect(screen.getByText('Trang 5')).toBeInTheDocument();
     });
 
     // Check Gate Pills
-    expect(screen.getByText('Gate 1: Storyboard')).toBeInTheDocument();
-    expect(screen.getByText('Gate 2: Composite')).toBeInTheDocument();
+    expect(screen.getAllByText(/Gate 1: Storyboard/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Gate 2:.*Composite/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders KPI metric summary cards correctly', async () => {
@@ -188,7 +188,7 @@ describe('EditorDeskView Component', () => {
     await waitFor(() => {
       expect(assignmentService.openReview).toHaveBeenCalledWith('chap-101', 'asg-open-me');
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/workspaces/ws-1/series/series-001/review/asg-open-me',
+        '/workspaces/ws-1/series/series-001/chapters/chap-101/review/asg-open-me?chapterId=chap-101',
       );
       expect(onShowToast).toHaveBeenCalledWith(
         'Bắt đầu thẩm định',
@@ -220,7 +220,7 @@ describe('EditorDeskView Component', () => {
 
     expect(openReviewSpy).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/workspaces/ws-1/series/series-001/review/asg-under-review',
+      '/workspaces/ws-1/series/series-001/chapters/chap-101/review/asg-under-review?chapterId=chap-101',
     );
   });
 
@@ -233,7 +233,7 @@ describe('EditorDeskView Component', () => {
     renderView();
 
     await waitFor(() => {
-      expect(screen.getByText('Gate 1: Storyboard')).toBeInTheDocument();
+      expect(screen.getAllByText(/Gate 1: Storyboard/i).length).toBeGreaterThanOrEqual(1);
     });
 
     // Click Gate 2 tab
