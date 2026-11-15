@@ -404,6 +404,20 @@ export function AppShell({
                     },
                   ]
                 : []),
+              ...(effectiveRole === 'EDITOR'
+                ? [
+                    {
+                      icon: ShieldCheck,
+                      label: t('navigation.menu.reviewDesk'),
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk`,
+                    },
+                    {
+                      icon: Palette,
+                      label: t('navigation.menu.bibleReview'),
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/editor/bible`,
+                    },
+                  ]
+                : []),
               {
                 icon: BookMarked,
                 label: t('navigation.menu.bible'),

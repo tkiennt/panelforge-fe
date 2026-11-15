@@ -11,6 +11,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
+  Eye,
   type LucideIcon,
 } from 'lucide-react';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
@@ -22,10 +23,18 @@ import { AdminAuditLogView } from './AdminAuditLogView';
 import { AIConfigurationView } from './modules/AIConfigurationView';
 import { StorageBackupSettings } from './modules/StorageBackupSettings';
 import { SessionPolicySettings } from './modules/SessionPolicySettings';
+import { ReaderStatsView } from '@/shared/views/ReaderStatsView';
 import { adminFocusRing } from './components/adminUiStyles';
 
 export type AdminTab =
-  'dashboard' | 'users' | 'master-data' | 'ai-config' | 'storage' | 'session-policy' | 'audit';
+  | 'dashboard'
+  | 'users'
+  | 'master-data'
+  | 'ai-config'
+  | 'storage'
+  | 'session-policy'
+  | 'audit'
+  | 'analytics';
 
 interface AdminDashboardProps {
   onLogout?: () => void;
@@ -57,7 +66,10 @@ const NAV_GROUPS: { label: string; items: { id: AdminTab; label: string; icon: L
     },
     {
       label: 'Giám sát',
-      items: [{ id: 'audit', label: 'Nhật ký hệ thống', icon: List }],
+      items: [
+        { id: 'audit', label: 'Nhật ký hệ thống', icon: List },
+        { id: 'analytics', label: 'Thống kê độc giả', icon: Eye },
+      ],
     },
   ];
 
@@ -275,6 +287,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
                 onNavigateToAudit={() => go('audit')}
                 onNavigateToSessionPolicy={() => go('session-policy')}
                 onNavigateToStorage={() => go('storage')}
+                onNavigateToAnalytics={() => go('analytics')}
               />
             )}
             {activeTab === 'users' && <AdminUserManagementView />}
@@ -282,6 +295,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
             {activeTab === 'storage' && <StorageBackupSettings />}
             {activeTab === 'session-policy' && <SessionPolicySettings />}
             {activeTab === 'audit' && <AdminAuditLogView />}
+            {activeTab === 'analytics' && <ReaderStatsView />}
           </div>
         </main>
       </div>

@@ -11,6 +11,7 @@ import {
 import { User } from 'firebase/auth';
 import { AppShell } from './AppShell';
 import { FocusWorkspaceLayout } from './FocusWorkspaceLayout';
+import { RequireWorkspaceRole } from './RequireWorkspaceRole';
 import { AuthLayout } from '@/roles/guest/views/AuthLayout';
 import { LoginPage } from '@/roles/guest/views/LoginPage';
 import { RegisterPage } from '@/roles/guest/views/RegisterPage';
@@ -452,7 +453,19 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               <Route index element={<StudioOverviewView />} />
               <Route path='overview' element={<StudioOverviewView />} />
               <Route path='series' element={<StudioOverviewView />} />
-              <Route path='reader-stats' element={<ProducerReaderStatsView />} />
+              <Route
+                path='reader-stats'
+                element={
+                  <RequireWorkspaceRole
+                    allowedRoles={['PRODUCER', 'ADMINISTRATOR']}
+                    currentWorkspaceRole={currentWorkspaceRole}
+                    currentRole={currentRole}
+                    activeRoles={activeProjectRoles}
+                  >
+                    <ProducerReaderStatsView />
+                  </RequireWorkspaceRole>
+                }
+              />
               <Route path='payments' element={<Navigate to='../reader-stats' replace />} />
 
               <Route path='series/:seriesId'>
@@ -460,69 +473,158 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 <Route
                   path='dashboard'
                   element={
-                    <DashboardView
-                      workspaceRole={currentWorkspaceRole}
-                      activeProject={activeProject}
-                      assistants={assistants}
-                      provenanceLogs={provenanceLogs}
-                      onShowToast={showToast}
-                    />
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER', 'ADMINISTRATOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <DashboardView
+                        workspaceRole={currentWorkspaceRole}
+                        activeProject={activeProject}
+                        assistants={assistants}
+                        provenanceLogs={provenanceLogs}
+                        onShowToast={showToast}
+                      />
+                    </RequireWorkspaceRole>
                   }
                 />
                 <Route
                   path='workspace'
                   element={
-                    <WorkspaceView
-                      currentUserRole={currentWorkspaceRole}
-                      systemRole={currentRole}
-                      userRoles={activeProjectRoles}
-                      currentUserId={currentUserInfo?.id}
-                      onShowToast={showToast}
-                    />
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER', 'WRITER', 'ARTIST', 'LETTERER', 'EDITOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <WorkspaceView
+                        currentUserRole={currentWorkspaceRole}
+                        systemRole={currentRole}
+                        userRoles={activeProjectRoles}
+                        currentUserId={currentUserInfo?.id}
+                        onShowToast={showToast}
+                      />
+                    </RequireWorkspaceRole>
                   }
                 />
                 <Route
                   path='bible'
                   element={
-                    <SeriesBibleView
-                      activeProject={activeProject}
-                      onAddEntity={handleAddEntity}
-                      onSelectSeries={(p) => setActiveProject(p)}
-                      onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
-                      onShowToast={showToast}
-                    />
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER', 'WRITER', 'ARTIST', 'LETTERER', 'EDITOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <SeriesBibleView
+                        activeProject={activeProject}
+                        onAddEntity={handleAddEntity}
+                        onSelectSeries={(p) => setActiveProject(p)}
+                        onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
+                        onShowToast={showToast}
+                      />
+                    </RequireWorkspaceRole>
                   }
                 />
                 <Route
                   path='my-work'
                   element={
-                    <MyWorkView
-                      currentUserId={currentUserInfo?.id}
-                      workspaceRole={currentWorkspaceRole}
-                      onShowToast={showToast}
-                    />
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER', 'WRITER', 'ARTIST', 'LETTERER', 'EDITOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <MyWorkView
+                        currentUserId={currentUserInfo?.id}
+                        workspaceRole={currentWorkspaceRole}
+                        onShowToast={showToast}
+                      />
+                    </RequireWorkspaceRole>
                   }
                 />
-                <Route path='publishing' element={<PublisherDeskView onShowToast={showToast} />} />
-                <Route path='export' element={<ExportView onShowToast={showToast} />} />
+                <Route
+                  path='publishing'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <PublisherDeskView onShowToast={showToast} />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
+                  path='export'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <ExportView onShowToast={showToast} />
+                    </RequireWorkspaceRole>
+                  }
+                />
                 <Route
                   path='artist'
-                  element={<ArtistChapterSelectionView onShowToast={showToast} />}
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['ARTIST', 'PRODUCER']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <ArtistChapterSelectionView onShowToast={showToast} />
+                    </RequireWorkspaceRole>
+                  }
                 />
                 <Route
                   path='script'
                   element={
-                    <ScriptChapterSelectionView
-                      onShowToast={showToast}
-                      workspaceRole={currentWorkspaceRole}
-                    />
+                    <RequireWorkspaceRole
+                      allowedRoles={['WRITER', 'EDITOR', 'PRODUCER']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <ScriptChapterSelectionView
+                        onShowToast={showToast}
+                        workspaceRole={currentWorkspaceRole}
+                      />
+                    </RequireWorkspaceRole>
                   }
                 />
                 <Route
                   path='letterer'
-                  element={<LettererChapterSelectionView onShowToast={showToast} />}
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['LETTERER', 'PRODUCER']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <LettererChapterSelectionView onShowToast={showToast} />
+                    </RequireWorkspaceRole>
+                  }
                 />
-                <Route path='reader-stats' element={<ProducerReaderStatsView />} />
+                <Route
+                  path='reader-stats'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER', 'ADMINISTRATOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <ProducerReaderStatsView />
+                    </RequireWorkspaceRole>
+                  }
+                />
                 <Route path='payments' element={<Navigate to='../reader-stats' replace />} />
               </Route>
             </Route>
@@ -556,7 +658,17 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             />
 
             {/* Dedicated Top-Level Publisher Portal */}
-            <Route path='publisher'>
+            <Route
+              path='publisher'
+              element={
+                <RequireWorkspaceRole
+                  allowedRoles={['PUBLISHER']}
+                  currentWorkspaceRole={currentWorkspaceRole}
+                  currentRole={currentRole}
+                  activeRoles={activeProjectRoles}
+                />
+              }
+            >
               <Route index element={<Navigate to='series' replace />} />
               <Route
                 path='series'
@@ -601,130 +713,201 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             }
           >
             <Route path='workspaces/:workspaceId/series/:seriesId'>
+              {/* Artist Desk routes: ARTIST, LETTERER, PRODUCER */}
               <Route
-                path='artist/desk'
-                element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
-              />
-              <Route
-                path='artist/desk/:chapterId'
-                element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
-              />
-              <Route
-                path='chapters/:chapterId/artist'
-                element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
-              />
+                element={
+                  <RequireWorkspaceRole
+                    allowedRoles={['ARTIST', 'LETTERER', 'PRODUCER']}
+                    currentWorkspaceRole={currentWorkspaceRole}
+                    currentRole={currentRole}
+                    activeRoles={activeProjectRoles}
+                  />
+                }
+              >
+                <Route
+                  path='artist/desk'
+                  element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
+                />
+                <Route
+                  path='artist/desk/:chapterId'
+                  element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
+                />
+                <Route
+                  path='chapters/:chapterId/artist'
+                  element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
+                />
+              </Route>
+
+              {/* Artist Workspace: ARTIST, PRODUCER */}
               <Route
                 path='artist/workspace'
-                element={<ArtistWorkspaceView workspaceRole={currentWorkspaceRole} />}
-              />
-              <Route
-                path='script/editor'
                 element={
-                  <ScriptEditorView
-                    currentUserId={currentUserInfo?.id}
-                    onShowToast={showToast}
-                    workspaceRole={currentWorkspaceRole}
+                  <RequireWorkspaceRole
+                    allowedRoles={['ARTIST', 'PRODUCER']}
+                    currentWorkspaceRole={currentWorkspaceRole}
+                    currentRole={currentRole}
+                    activeRoles={activeProjectRoles}
+                  >
+                    <ArtistWorkspaceView workspaceRole={currentWorkspaceRole} />
+                  </RequireWorkspaceRole>
+                }
+              />
+
+              {/* Script Editor routes: WRITER, PRODUCER */}
+              <Route
+                element={
+                  <RequireWorkspaceRole
+                    allowedRoles={['WRITER', 'PRODUCER']}
+                    currentWorkspaceRole={currentWorkspaceRole}
+                    currentRole={currentRole}
+                    activeRoles={activeProjectRoles}
                   />
                 }
-              />
+              >
+                <Route
+                  path='script/editor'
+                  element={
+                    <ScriptEditorView
+                      currentUserId={currentUserInfo?.id}
+                      onShowToast={showToast}
+                      workspaceRole={currentWorkspaceRole}
+                    />
+                  }
+                />
+                <Route
+                  path='script/editor/:chapterId'
+                  element={
+                    <ScriptEditorView
+                      currentUserId={currentUserInfo?.id}
+                      onShowToast={showToast}
+                      workspaceRole={currentWorkspaceRole}
+                    />
+                  }
+                />
+                <Route
+                  path='chapters/:chapterId/script'
+                  element={
+                    <ScriptEditorView
+                      currentUserId={currentUserInfo?.id}
+                      onShowToast={showToast}
+                      workspaceRole={currentWorkspaceRole}
+                    />
+                  }
+                />
+              </Route>
+
+              {/* Letterer Desk routes: LETTERER, PRODUCER */}
               <Route
-                path='script/editor/:chapterId'
                 element={
-                  <ScriptEditorView
-                    currentUserId={currentUserInfo?.id}
-                    onShowToast={showToast}
-                    workspaceRole={currentWorkspaceRole}
+                  <RequireWorkspaceRole
+                    allowedRoles={['LETTERER', 'PRODUCER']}
+                    currentWorkspaceRole={currentWorkspaceRole}
+                    currentRole={currentRole}
+                    activeRoles={activeProjectRoles}
                   />
                 }
-              />
+              >
+                <Route
+                  path='letterer/desk'
+                  element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
+                />
+                <Route
+                  path='letterer/desk/:chapterId'
+                  element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
+                />
+                <Route
+                  path='chapters/:chapterId/letterer'
+                  element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
+                />
+              </Route>
+
+              {/* Editor Desk, Bible Review & Script/Task Review routes: EDITOR, PRODUCER */}
               <Route
-                path='chapters/:chapterId/script'
                 element={
-                  <ScriptEditorView
-                    currentUserId={currentUserInfo?.id}
-                    onShowToast={showToast}
-                    workspaceRole={currentWorkspaceRole}
+                  <RequireWorkspaceRole
+                    allowedRoles={['EDITOR', 'PRODUCER']}
+                    currentWorkspaceRole={currentWorkspaceRole}
+                    currentRole={currentRole}
+                    activeRoles={activeProjectRoles}
                   />
                 }
-              />
-              <Route
-                path='letterer/desk'
-                element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
-              />
-              <Route
-                path='letterer/desk/:chapterId'
-                element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
-              />
-              <Route
-                path='chapters/:chapterId/letterer'
-                element={<LettererDeskView workspaceRole={currentWorkspaceRole} />}
-              />
-              <Route
-                path='editor/desk'
-                element={
-                  <EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
-                }
-              />
-              <Route
-                path='editor/bible'
-                element={
-                  <BibleReviewView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
-                }
-              />
-              <Route
-                path='editor/desk/:chapterId'
-                element={
-                  <EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
-                }
-              />
-              <Route
-                path='script/review/:chapterId'
-                element={
-                  <ScriptReviewView
-                    currentUserId={currentUserInfo?.id}
-                    workspaceRole={currentWorkspaceRole}
-                    onShowToast={showToast}
-                  />
-                }
-              />
-              <Route
-                path='chapters/:chapterId/script/review'
-                element={
-                  <ScriptReviewView
-                    currentUserId={currentUserInfo?.id}
-                    workspaceRole={currentWorkspaceRole}
-                    onShowToast={showToast}
-                  />
-                }
-              />
+              >
+                <Route
+                  path='editor/desk'
+                  element={
+                    <EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
+                  }
+                />
+                <Route
+                  path='editor/bible'
+                  element={
+                    <BibleReviewView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
+                  }
+                />
+                <Route
+                  path='editor/desk/:chapterId'
+                  element={
+                    <EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
+                  }
+                />
+                <Route
+                  path='script/review/:chapterId'
+                  element={
+                    <ScriptReviewView
+                      currentUserId={currentUserInfo?.id}
+                      workspaceRole={currentWorkspaceRole}
+                      onShowToast={showToast}
+                    />
+                  }
+                />
+                <Route
+                  path='chapters/:chapterId/script/review'
+                  element={
+                    <ScriptReviewView
+                      currentUserId={currentUserInfo?.id}
+                      workspaceRole={currentWorkspaceRole}
+                      onShowToast={showToast}
+                    />
+                  }
+                />
+                <Route
+                  path='review/:taskId'
+                  element={
+                    <ReviewView
+                      currentUserId={currentUserInfo?.id}
+                      workspaceRole={currentWorkspaceRole}
+                      onShowToast={showToast}
+                    />
+                  }
+                />
+                <Route
+                  path='chapters/:chapterId/review/:taskId'
+                  element={
+                    <ReviewView
+                      currentUserId={currentUserInfo?.id}
+                      workspaceRole={currentWorkspaceRole}
+                      onShowToast={showToast}
+                    />
+                  }
+                />
+              </Route>
+
+              {/* Task Editor: ARTIST, LETTERER, WRITER, EDITOR, PRODUCER */}
               <Route
                 path='task/:taskId'
                 element={
-                  <TaskEditorView
+                  <RequireWorkspaceRole
+                    allowedRoles={['ARTIST', 'LETTERER', 'WRITER', 'EDITOR', 'PRODUCER']}
+                    currentWorkspaceRole={currentWorkspaceRole}
+                    currentRole={currentRole}
                     activeRoles={activeProjectRoles}
-                    onShowToast={showToast}
-                    isDevMode={isDevMode}
-                  />
-                }
-              />
-              <Route
-                path='review/:taskId'
-                element={
-                  <ReviewView
-                    currentUserId={currentUserInfo?.id}
-                    workspaceRole={currentWorkspaceRole}
-                    onShowToast={showToast}
-                  />
-                }
-              />
-              <Route
-                path='chapters/:chapterId/review/:taskId'
-                element={
-                  <ReviewView
-                    currentUserId={currentUserInfo?.id}
-                    workspaceRole={currentWorkspaceRole}
-                    onShowToast={showToast}
-                  />
+                  >
+                    <TaskEditorView
+                      activeRoles={activeProjectRoles}
+                      onShowToast={showToast}
+                      isDevMode={isDevMode}
+                    />
+                  </RequireWorkspaceRole>
                 }
               />
             </Route>
