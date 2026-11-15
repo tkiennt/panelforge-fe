@@ -679,8 +679,10 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     const bibleBtn = await screen.findByTestId('rail-characters-btn');
     await user.click(bibleBtn);
 
-    expect(await screen.findByText('Nhân vật Series Bible (1)')).toBeInTheDocument();
-    expect(screen.getByText('Nhân vật chính 20 tuổi')).toBeInTheDocument();
+    const drawer = await screen.findByTestId('bible-characters-drawer');
+    expect(within(drawer).getByText('Nhân vật Series Bible (1)')).toBeInTheDocument();
+    await user.click(within(drawer).getByText('Akira'));
+    expect(await within(drawer).findByText('Nhân vật chính 20 tuổi')).toBeInTheDocument();
   });
 
   describe('Bản nháp cục bộ khi mất phiên / đóng tab', () => {
