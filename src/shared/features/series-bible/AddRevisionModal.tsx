@@ -18,6 +18,7 @@ import type { CharacterVariant } from './BibleEntityDetailModal';
 import { useTranslation } from '@/lib/i18n';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { Alert, Modal } from '@/shared/ui';
+import { SpecFieldsEditor } from './SpecFieldsEditor';
 import {
   SPEC_SCHEMA,
   getFieldLabel,
@@ -801,66 +802,3 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
   },
 );
 AddRevisionModal.displayName = 'AddRevisionModal';
-
-const SpecFieldsEditor: React.FC<{
-  category: SpecCategory;
-  values: Record<string, string>;
-  readOnly?: boolean;
-  onChange?: (key: string, value: string) => void;
-}> = ({ category, values, readOnly = false, onChange }) => (
-  <div className='space-y-3'>
-    {SPEC_SCHEMA[category].map((group) => (
-      <fieldset
-        key={group.title}
-        className='p-3 bg-stone-50 border border-stone-200 rounded-xl space-y-2'
-      >
-        <legend className='px-1 text-xs font-semibold uppercase tracking-wider text-stone-500'>
-          {getGroupTitle(group.title)}
-        </legend>
-        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-          {group.fields.map((field) => {
-            const id = `spec-${field.key}`;
-            const value = values[field.key] ?? '';
-            return (
-              <div key={field.key} className={field.multiline ? 'sm:col-span-2' : undefined}>
-                <label htmlFor={id} className='block text-xs font-semibold text-stone-700 mb-1'>
-                  {getFieldLabel(field)}
-                </label>
-                {readOnly ? (
-                  <p
-                    id={id}
-                    className={
-                      value
-                        ? 'text-sm text-stone-800 whitespace-pre-line'
-                        : 'text-xs italic text-stone-500'
-                    }
-                  >
-                    {value || 'Chưa thiết lập'}
-                  </p>
-                ) : field.multiline ? (
-                  <textarea
-                    id={id}
-                    rows={2}
-                    value={value}
-                    placeholder={getFieldPlaceholder(field)}
-                    onChange={(e) => onChange?.(field.key, e.target.value)}
-                    className='w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:border-orange-500 resize-y'
-                  />
-                ) : (
-                  <input
-                    id={id}
-                    type='text'
-                    value={value}
-                    placeholder={getFieldPlaceholder(field)}
-                    onChange={(e) => onChange?.(field.key, e.target.value)}
-                    className='w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:border-orange-500'
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </fieldset>
-    ))}
-  </div>
-);

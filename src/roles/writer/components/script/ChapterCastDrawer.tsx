@@ -4,21 +4,11 @@ import {
   Users,
   Search,
   X,
-  Tag,
-  User,
-  MapPin,
-  Box,
-  FileText,
   AlertTriangle,
-  RotateCcw,
-  Edit3,
-  ShieldCheck,
-  CheckCircle2,
   Clock,
   Layers,
-  ChevronRight,
   Loader2,
-  Undo2,
+  CheckCircle2,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { Modal } from '@/shared/ui';
@@ -28,6 +18,8 @@ import {
   ChapterCastItemDto,
   chapterCastService,
 } from '@/services/chapterCast.service';
+import { BibleEntryDto, bibleService } from '@/services/bible.service';
+import { BibleEntryAccordionItem, BibleAccordionEntity } from './BibleEntryAccordionItem';
 
 interface ChapterCastDrawerProps {
   isOpen: boolean;
@@ -40,11 +32,13 @@ interface ChapterCastDrawerProps {
   chapterCast: ChapterCastDto | null;
   isLoading: boolean;
   onRefreshCast: () => Promise<void>;
+  onRefreshBible?: () => Promise<void>;
+  allBibleEntries?: BibleEntryDto[];
   onJumpToLine?: (lineId: string) => void;
   onJumpToPanel?: (pageNumber?: number | null, panelNumber?: number | null) => void;
   onOpenPanelStageModal?: () => void;
   onShowToast?: (title: string, description?: string) => void;
-  t?: (key: string, defaultVal?: string) => string;
+  t?: (key: string, fallbackOrParams?: any, explicitFallback?: string) => string;
 }
 
 export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
@@ -58,6 +52,8 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
   chapterCast,
   isLoading,
   onRefreshCast,
+  onRefreshBible,
+  allBibleEntries = [],
   onJumpToLine,
   onJumpToPanel,
   onOpenPanelStageModal,
@@ -67,15 +63,16 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
   const { t: i18nT } = useTranslation();
   const confirm = useConfirm();
   const t = (key: string, fallbackOrParams?: any, explicitFallback?: string) => {
+    if (propT) return propT(key, fallbackOrParams, explicitFallback);
     return i18nT(key, fallbackOrParams, explicitFallback);
   };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [actingEntryId, setActingEntryId] = useState<string | null>(null);
+  const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
 
   // Modal Định nghĩa mục nháp (IsStub)
   const [stubToDefine, setStubToDefine] = useState<ChapterCastItemDto | null>(null);
-  const [defineName, setDefineName] = useState('');
   const [defineDesc, setDefineDesc] = useState('');
   const [defineSubtitle, setDefineSubtitle] = useState('');
   const [isDefining, setIsDefining] = useState(false);
@@ -142,11 +139,12 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
   };
 
   // 2. Bật / tắt cờ Quần chúng
-  const handleToggleCrowd = async (entry: ChapterCastItemDto) => {
-    setActingEntryId(entry.bibleEntryId);
+  const handleToggleCrowd = async (entry: BibleAccordionEntity) => {
+    setActingEntryId(entry.id);
     try {
-      await chapterCastService.setBibleEntryCrowd(seriesId, entry.bibleEntryId, !entry.isCrowd);
+      await chapterCastService.setBibleEntryCrowd(seriesId, entry.id, !entry.isCrowd);
       await onRefreshCast();
+      if (onRefreshBible) await onRefreshBible();
       if (onShowToast) {
         onShowToast(
           !entry.isCrowd
@@ -172,15 +170,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
     }
   };
 
-  // 3. Mở form Định nghĩa mục nháp
-  const handleOpenDefine = (entry: ChapterCastItemDto) => {
-    setStubToDefine(entry);
-    setDefineName(entry.name);
-    setDefineDesc('');
-    setDefineSubtitle('');
-  };
-
-  // 4. Submit Định nghĩa mục nháp
+  // 3. Submit Định nghĩa mục nháp từ Modal
   const handleSubmitDefine = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stubToDefine || !defineDesc.trim()) return;
@@ -188,12 +178,13 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
     setIsDefining(true);
     try {
       await chapterCastService.defineBibleEntry(seriesId, stubToDefine.bibleEntryId, {
-        name: defineName.trim() || stubToDefine.name,
+        name: stubToDefine.name, // Name is immutable!
         description: defineDesc.trim(),
         subtitle: defineSubtitle.trim() || undefined,
       });
 
       await onRefreshCast();
+      if (onRefreshBible) await onRefreshBible();
       setStubToDefine(null);
       if (onShowToast) {
         onShowToast(
@@ -216,6 +207,59 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
     }
   };
 
+  // 4. Lưu bản nháp (Draft Revision) trực tiếp từ accordion row
+  const handleSaveDraft = async (
+    entryId: string,
+    payload: {
+      name: string;
+      description: string;
+      subtitle?: string;
+      detailsJson?: string;
+      isStub?: boolean;
+    },
+  ) => {
+    if (!seriesId) return;
+    try {
+      if (payload.isStub) {
+        await chapterCastService.defineBibleEntry(seriesId, entryId, {
+          name: payload.name,
+          description: payload.description,
+          subtitle: payload.subtitle,
+          detailsJson: payload.detailsJson,
+        });
+      } else {
+        await bibleService.addRevision(seriesId, entryId, {
+          summary: t('production.cast.draftSummaryDefault', 'Cập nhật đặc tả từ kịch bản'),
+          name: payload.name,
+          description: payload.description,
+          subtitle: payload.subtitle,
+          detailsJson: payload.detailsJson,
+          variantLabel: 'Mặc định',
+        });
+      }
+
+      await onRefreshCast();
+      if (onRefreshBible) await onRefreshBible();
+
+      if (onShowToast) {
+        onShowToast(
+          t('production.cast.saveDraftSuccess', 'Đã lưu bản nháp Series Bible'),
+          t(
+            'production.cast.saveDraftSuccessDesc',
+            'Đặc tả đã được cập nhật thành phiên bản nháp mới.',
+          ),
+        );
+      }
+    } catch (err: any) {
+      if (onShowToast) {
+        onShowToast(
+          t('production.cast.saveDraftFailed', 'Lưu bản nháp thất bại'),
+          err?.message || t('common.errorOccurred', 'Có lỗi xảy ra'),
+        );
+      }
+    }
+  };
+
   // 5. Huỷ bản thay thế
   const handleCancelReplacement = async (entryId: string, revisionId: string) => {
     if (
@@ -234,6 +278,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
     try {
       await chapterCastService.cancelReplacementRevision(seriesId, entryId, revisionId);
       await onRefreshCast();
+      if (onRefreshBible) await onRefreshBible();
       if (onShowToast) {
         onShowToast(
           t('production.cast.cancelReplacementSuccess', 'Đã huỷ bản thay thế'),
@@ -253,14 +298,6 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
     } finally {
       setActingEntryId(null);
     }
-  };
-
-  const getCategoryIcon = (cat: number | string) => {
-    const c = String(cat).toLowerCase();
-    if (c === '0' || c === 'character') return <User className='w-4 h-4 text-orange-600' />;
-    if (c === '1' || c === 'location') return <MapPin className='w-4 h-4 text-blue-600' />;
-    if (c === '2' || c === 'item') return <Box className='w-4 h-4 text-emerald-600' />;
-    return <FileText className='w-4 h-4 text-stone-600' />;
   };
 
   const submitBlockers = chapterCast?.submitGate?.blockers || [];
@@ -328,7 +365,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                   {t('production.cast.submitBlockedTitle', 'Chặn Gửi duyệt')} (
                   {submitBlockers.length}):
                 </span>
-                <span className='ml-1 text-[11px] text-amber-800'>
+                <span className='ml-1 text-xs text-amber-800'>
                   {submitBlockers.map((b) => `${b.entryName} (${b.reason})`).join(', ')}
                 </span>
               </div>
@@ -341,7 +378,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                 <span className='font-bold text-blue-950'>
                   {t('production.cast.startBlockedTitle', 'Chờ Gate 1')} ({startBlockers.length}):
                 </span>
-                <span className='ml-1 text-[11px] text-blue-800'>
+                <span className='ml-1 text-xs text-blue-800'>
                   {startBlockers.map((b) => `${b.entryName} (${b.reason})`).join(', ')}
                 </span>
               </div>
@@ -385,7 +422,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                 ? t('production.cast.noMatchingEntityFound', 'Không tìm thấy thực thể nào phù hợp.')
                 : t('production.cast.noEntitiesInChapter', 'Chưa có thực thể nào trong chương.')}
             </p>
-            <p className='text-[11px] text-stone-400 mt-1'>
+            <p className='text-xs text-stone-400 mt-1'>
               {t(
                 'production.cast.entityHint',
                 'Dùng tên trong dòng Thoại hoặc bôi đen văn bản để gắn tham chiếu Series Bible.',
@@ -396,262 +433,54 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
 
         {!isLoading &&
           filteredEntities.map((entry) => {
-            const isActing = actingEntryId === entry.bibleEntryId;
-            const boundRev = entry.boundRevision;
-            const availableRevs = entry.availableRevisions || [];
+            const bibleEntry = allBibleEntries.find((b) => b.id === entry.bibleEntryId);
+            const accordionEntity: BibleAccordionEntity = {
+              id: entry.bibleEntryId,
+              name: entry.name,
+              code: entry.code,
+              category: entry.category,
+              subtitle: bibleEntry?.subtitle,
+              description: bibleEntry?.description,
+              detailsJson: bibleEntry?.detailsJson,
+              isStub: entry.isStub,
+              isCrowd: entry.isCrowd,
+              isCanonLocked: entry.boundRevision?.isCanonLocked ?? false,
+              bibleStatus: entry.bibleStatus,
+              source: entry.source,
+              boundRevision: entry.boundRevision,
+              chosenByWriter: entry.chosenByWriter,
+              inheritedFromChapterNumber: entry.inheritedFromChapterNumber,
+              panelRevisions: entry.panelRevisions,
+              availableRevisions: entry.availableRevisions,
+              mentions: entry.mentions,
+            };
 
             return (
-              <div
+              <BibleEntryAccordionItem
                 key={entry.bibleEntryId}
-                className='p-3.5 rounded-xl border border-stone-200/90 bg-white shadow-xs space-y-2.5 hover:border-orange-300/80 transition-colors'
-              >
-                {/* 1. Header & Badges */}
-                <div className='flex items-start justify-between gap-2'>
-                  <div className='flex items-center gap-2 min-w-0'>
-                    <div className='p-1.5 rounded-lg bg-stone-50 border border-stone-200/60 shrink-0'>
-                      {getCategoryIcon(entry.category)}
-                    </div>
-                    <div className='min-w-0'>
-                      <div className='flex items-center gap-1.5 flex-wrap'>
-                        <span className='font-bold text-xs text-stone-900 truncate'>
-                          {entry.name}
-                        </span>
-                        <span className='text-[10px] font-mono text-stone-400 shrink-0'>
-                          {entry.code || 'BIBLE'}
-                        </span>
-                      </div>
-
-                      {/* Source tag & Crowd tag */}
-                      <div className='flex items-center gap-1 mt-0.5 flex-wrap'>
-                        <span className='text-[10px] px-1.5 py-0.2 rounded-full font-medium bg-stone-100 text-stone-600 border border-stone-200'>
-                          {entry.source === 'Speaker'
-                            ? t('production.cast.speaker', 'Người nói')
-                            : t('production.cast.highlight', 'Bôi đen')}
-                        </span>
-                        {entry.isCrowd && (
-                          <span className='text-[10px] px-1.5 py-0.2 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200'>
-                            {t('production.cast.crowd', 'Quần chúng')}
-                          </span>
-                        )}
-                        <span
-                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium border ${
-                            entry.isStub
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : boundRev?.isCanonLocked
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : 'bg-blue-50 text-blue-700 border-blue-200'
-                          }`}
-                        >
-                          {entry.isStub
-                            ? t('production.cast.pendingDefinition', 'Chờ định nghĩa')
-                            : entry.bibleStatus}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Bound Revision Info */}
-                <div className='p-2 bg-stone-50 rounded-lg border border-stone-200/60 text-[11px] space-y-1.5'>
-                  <div className='flex items-center justify-between gap-1'>
-                    <span className='text-stone-500 font-medium'>
-                      {t('production.cast.boundForChapter', 'Bản gắn cho chương:')}
-                    </span>
-                    <span className='text-[10px] px-1.5 py-0.2 rounded-full bg-stone-200/80 text-stone-700 font-medium'>
-                      {entry.chosenByWriter
-                        ? t('production.cast.chosenByWriter', 'Writer chọn')
-                        : entry.inheritedFromChapterNumber
-                          ? t(
-                              'production.cast.inheritedFromChapter',
-                              { number: entry.inheritedFromChapterNumber },
-                              `Kế thừa từ Ch. ${entry.inheritedFromChapterNumber}`,
-                            )
-                          : t('production.cast.defaultVariant', 'Mặc định')}
-                    </span>
-                  </div>
-
-                  {boundRev ? (
-                    <div className='flex items-center justify-between text-stone-800 font-medium'>
-                      <span>
-                        v{boundRev.versionNumber} ·{' '}
-                        {boundRev.variantLabel || t('production.cast.defaultVariant', 'Mặc định')}
-                      </span>
-                      <span
-                        className={`text-[10px] ${boundRev.isCanonLocked ? 'text-emerald-600 font-bold' : 'text-amber-600'}`}
-                      >
-                        {boundRev.isCanonLocked ? 'CanonLocked' : boundRev.status}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className='text-stone-400 italic block'>
-                      {t('production.cast.noBoundRevision', 'Chưa gắn bản tạo hình nào')}
-                    </span>
-                  )}
-                </div>
-
-                {/* 3. Writer Controls (Only Writer has action buttons) */}
-                {canEditScript && (
-                  <div className='pt-2 border-t border-stone-100 space-y-2'>
-                    {/* Revision Selector */}
-                    <div>
-                      <label className='text-[10px] text-stone-500 font-medium block mb-1'>
-                        {t('production.cast.changeChapterRevision', 'Đổi bản tạo hình chương:')}
-                      </label>
-                      <select
-                        disabled={isActing}
-                        value={
-                          entry.chosenByWriter && boundRev ? boundRev.revisionId : '__INHERITED__'
-                        }
-                        onChange={(e) => handleRevisionChange(entry.bibleEntryId, e.target.value)}
-                        className='w-full p-1.5 text-xs bg-white border border-stone-200 rounded-lg outline-none focus:border-orange-500 text-stone-800 font-medium disabled:opacity-60 cursor-pointer'
-                      >
-                        <option value='__INHERITED__'>
-                          {entry.inheritedFromChapterNumber
-                            ? t(
-                                'production.cast.autoInheritFrom',
-                                { number: entry.inheritedFromChapterNumber },
-                                `Kế thừa tự động (từ Ch. ${entry.inheritedFromChapterNumber})`,
-                              )
-                            : t(
-                                'production.cast.autoInheritDefault',
-                                'Kế thừa tự động (bản mặc định)',
-                              )}
-                        </option>
-                        {availableRevs.map((rev) => (
-                          <option key={rev.revisionId} value={rev.revisionId}>
-                            v{rev.versionNumber} ·{' '}
-                            {rev.variantLabel || t('production.cast.defaultVariant', 'Mặc định')} (
-                            {rev.isCanonLocked ? 'CanonLocked' : rev.status})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Action buttons bar */}
-                    <div className='flex items-center justify-between gap-1.5 flex-wrap pt-1'>
-                      {/* Crowd Toggle */}
-                      <button
-                        type='button'
-                        disabled={isActing}
-                        onClick={() => handleToggleCrowd(entry)}
-                        className={`px-2 py-1 text-[11px] rounded-lg border font-medium cursor-pointer transition-colors ${
-                          entry.isCrowd
-                            ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
-                            : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
-                        }`}
-                      >
-                        {entry.isCrowd
-                          ? t('production.cast.crowdMarked', '✓ Quần chúng')
-                          : t('production.cast.setCrowd', '+ Đặt Quần chúng')}
-                      </button>
-
-                      {/* Define Stub Button */}
-                      {entry.isStub && (
-                        <button
-                          type='button'
-                          onClick={() => handleOpenDefine(entry)}
-                          className='px-2.5 py-1 text-[11px] rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
-                        >
-                          <Edit3 className='w-3 h-3' />
-                          <span>{t('production.cast.writeDefinition', 'Viết định nghĩa')}</span>
-                        </button>
-                      )}
-
-                      {/* Cancel Replacement Button (if active replacement exists) */}
-                      {entry.chosenByWriter && boundRev && !boundRev.isCanonLocked && (
-                        <button
-                          type='button'
-                          disabled={isActing}
-                          onClick={() =>
-                            handleCancelReplacement(entry.bibleEntryId, boundRev.revisionId)
-                          }
-                          className='px-2 py-1 text-[11px] rounded-lg text-rose-600 hover:bg-rose-50 border border-rose-200 cursor-pointer transition-colors flex items-center gap-1'
-                        >
-                          <Undo2 className='w-3 h-3' />
-                          <span>{t('production.cast.cancelReplacement', 'Huỷ bản thay thế')}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* 4. Panel-specific revisions (hồi tưởng / biến thể panel) */}
-                {entry.panelRevisions && entry.panelRevisions.length > 0 && (
-                  <div className='p-2 bg-blue-50/60 rounded-lg border border-blue-200/60 text-[11px] space-y-1'>
-                    <div className='flex items-center gap-1 text-blue-900 font-semibold'>
-                      <Layers className='w-3 h-3' />
-                      <span>{t('production.cast.panelRevisions', 'Bản riêng theo Panel:')}</span>
-                    </div>
-                    {entry.panelRevisions.map((pr) => (
-                      <div
-                        key={pr.panelId}
-                        className='flex items-center justify-between text-blue-800 text-[10px]'
-                      >
-                        <span>
-                          {t(
-                            'production.cast.pagePanelFormat',
-                            { page: pr.pageNumber, panel: pr.panelNumber },
-                            `Trang ${pr.pageNumber} · Panel ${pr.panelNumber}`,
-                          )}
-                        </span>
-                        <span className='font-medium'>
-                          v{pr.versionNumber} ·{' '}
-                          {pr.variantLabel || t('production.cast.variant', 'Biến thể')}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* 5. Mentions in Script (Jump to line / panel) */}
-                {entry.mentions && entry.mentions.length > 0 && (
-                  <div className='text-[11px] space-y-1 pt-1'>
-                    <span className='text-stone-400 font-medium block'>
-                      {t(
-                        'production.cast.appearances',
-                        { count: entry.mentions.length },
-                        `Xuất hiện (${entry.mentions.length}):`,
-                      )}
-                    </span>
-                    <div className='flex flex-wrap gap-1'>
-                      {entry.mentions.slice(0, 5).map((m) => (
-                        <button
-                          key={m.lineId}
-                          type='button'
-                          onClick={() => {
-                            if (onJumpToLine) onJumpToLine(m.lineId);
-                            if (onJumpToPanel && m.pageNumber && m.panelNumber) {
-                              onJumpToPanel(m.pageNumber, m.panelNumber);
-                            }
-                          }}
-                          className='px-1.5 py-0.5 rounded text-[10px] bg-stone-100 hover:bg-orange-100 text-stone-700 hover:text-orange-800 transition-colors cursor-pointer border border-stone-200/80 flex items-center gap-0.5'
-                        >
-                          <span>
-                            {m.pageNumber && m.panelNumber
-                              ? `P${m.pageNumber}.${m.panelNumber}`
-                              : t(
-                                  'production.cast.lineFormat',
-                                  { order: m.lineOrder },
-                                  `Dòng ${m.lineOrder}`,
-                                )}
-                          </span>
-                          <ChevronRight className='w-2.5 h-2.5 opacity-60' />
-                        </button>
-                      ))}
-                      {entry.mentions.length > 5 && (
-                        <span className='text-[10px] text-stone-400 self-center'>
-                          +{entry.mentions.length - 5}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+                entity={accordionEntity}
+                isOpen={expandedEntryId === entry.bibleEntryId}
+                onToggle={() =>
+                  setExpandedEntryId((prev) =>
+                    prev === entry.bibleEntryId ? null : entry.bibleEntryId,
+                  )
+                }
+                canEditScript={canEditScript}
+                seriesId={seriesId}
+                isActing={actingEntryId === entry.bibleEntryId}
+                onSaveDraft={handleSaveDraft}
+                onChangeRevision={handleRevisionChange}
+                onToggleCrowd={handleToggleCrowd}
+                onCancelReplacement={handleCancelReplacement}
+                onJumpToLine={onJumpToLine}
+                onJumpToPanel={onJumpToPanel}
+                t={t}
+              />
             );
           })}
       </div>
 
-      {/* Modal Định nghĩa mục nháp (BIB-13 & 4A) */}
+      {/* Modal Định nghĩa mục nháp (IsStub) - Name is IMMUTABLE */}
       <Modal
         isOpen={Boolean(stubToDefine)}
         onClose={() => setStubToDefine(null)}
@@ -665,18 +494,17 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
       >
         {stubToDefine && (
           <form onSubmit={handleSubmitDefine} className='flex flex-col text-stone-900'>
-            <div className='space-y-3.5 text-xs'>
+            <div className='space-y-3.5 text-xs p-5'>
               <div>
                 <label className='font-semibold text-stone-700 block mb-1'>
-                  {t('production.cast.entityNameRequired', 'Tên thực thể *')}
+                  {t('production.cast.entityNameReadonly', 'Tên thực thể (Bất biến)')}
                 </label>
-                <input
-                  type='text'
-                  value={defineName}
-                  onChange={(e) => setDefineName(e.target.value)}
-                  className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-medium'
-                  required
-                />
+                <div
+                  data-testid='define-entity-name-readonly'
+                  className='w-full p-2 bg-stone-100 border border-stone-200 rounded-lg text-xs font-bold text-stone-700 select-none cursor-not-allowed'
+                >
+                  {stubToDefine.name}
+                </div>
               </div>
 
               <div>

@@ -429,6 +429,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     [currentChapter?.id],
   );
 
+  const refreshBible = useCallback(async () => {
+    if (!seriesId) return;
+    try {
+      const bibleRes = await bibleService.getSeriesBible(seriesId);
+      if (bibleRes && bibleRes.entries) {
+        setAllBibleEntries(bibleRes.entries);
+        const charList = bibleRes.entries.filter(
+          (e) => String(e.category) === 'Character' || e.category === 0,
+        );
+        setCharacters(charList);
+      }
+    } catch (err) {
+      console.warn('Lỗi tải lại Series Bible:', err);
+    }
+  }, [seriesId]);
+
   useEffect(() => {
     if (currentChapter?.id) {
       void loadChapterCast(currentChapter.id);
@@ -2809,6 +2825,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           isOpen={activeSideDrawer === 'characters'}
           onClose={() => setActiveSideDrawer(null)}
           characters={characters}
+          seriesId={seriesId || currentChapter?.seriesId}
+          canEditScript={canEditScript}
+          onRefreshBible={refreshBible}
+          onShowToast={notify}
+          chapterCast={chapterCast}
+          onJumpToLine={(lineId) => setActiveCommentLineId(lineId)}
+          onJumpToPanel={(pageNo, panNo) =>
+            setActivePanelJump({ pageNumber: pageNo, panelNumber: panNo })
+          }
+          t={t}
         />
 
         {/* 4. Lịch sử commit (Lưu = commit, Gửi duyệt = push) và so với bản đã gửi duyệt */}
@@ -2834,6 +2860,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             chapterCast={chapterCast}
             isLoading={loadingCast}
             onRefreshCast={() => loadChapterCast(currentChapter.id)}
+            onRefreshBible={refreshBible}
+            allBibleEntries={allBibleEntries}
             onJumpToLine={(lineId) => setActiveCommentLineId(lineId)}
             onJumpToPanel={(pageNo, panNo) =>
               setActivePanelJump({ pageNumber: pageNo, panelNumber: panNo })
