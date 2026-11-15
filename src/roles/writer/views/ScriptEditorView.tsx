@@ -1754,47 +1754,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (currentChapter?.id) await refreshChapterDetail(currentChapter.id);
   };
 
-  /** D12 / Gate 1: Producer bấm Start Production khi kịch bản đang InReview. */
-  const handleFreezeScript = async () => {
-    if (!currentChapter?.id) return;
-
-    // BIB-16 item 6: kiểm tra blockers của Gate 1 trước khi bắt đầu sản xuất
-    if (chapterCast?.gate && !chapterCast.gate.canStart) {
-      notify(
-        t('scriptStudio.cast.startBlockedTitle', 'Chặn Bắt đầu sản xuất do vướng mắc Gate 1'),
-        chapterCast.gate.blockers
-          .map(
-            (b) =>
-              `${b.entryName}: ${b.reason}${b.sourceExplanation ? ` (${b.sourceExplanation})` : ''}`,
-          )
-          .join('\n'),
-      );
-      setActiveSideDrawer('cast');
-      return;
-    }
-
-    const n = currentChapter.chapterNumber;
-    const confirmed = await confirm({
-      title: t('scriptStudio.lifecycle.startConfirmTitle', { n }),
-      description: t('scriptStudio.lifecycle.startConfirmBody'),
-      confirmText: t('scriptStudio.submit.producer'),
-      cancelText: t('scriptStudio.lifecycle.cancel'),
-      variant: 'info',
-    });
-    if (!confirmed) return;
-
-    setFreezingScript(true);
-    try {
-      const updated = await chapterService.freezeScript(currentChapter.id);
-      notify(t('scriptStudio.lifecycle.started'), t('scriptStudio.lifecycle.startedBody', { n }));
-      await applyChapterUpdate(updated);
-    } catch (err: any) {
-      notify(t('scriptStudio.lifecycle.startFailed'), err.message);
-    } finally {
-      setFreezingScript(false);
-    }
-  };
-
   // BR-18: lý do mở lại là bắt buộc, Backend ghi vào Audit Log (Frozen → Draft)
   const handleUnfreezeScript = async (reason: string) => {
     if (!currentChapter?.id) return;

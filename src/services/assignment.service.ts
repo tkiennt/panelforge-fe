@@ -78,9 +78,7 @@ export function extractError(error: any, defaultMsg: string): string {
 
   if (error?.response?.status === 409 || data?.code === 'CONFLICT') {
     const detail = data?.message || data?.error || data?.detail;
-    return detail
-      ? `${detail}. Vui lòng tải lại trang để xem trạng thái mới nhất.`
-      : 'Xung đột dữ liệu (409 Conflict): Thông tin công việc đã thay đổi. Vui lòng tải lại trang để xem trạng thái mới nhất.';
+    return detail || 'Xung đột dữ liệu (409 Conflict).';
   }
 
   if (typeof data === 'string' && data.trim()) return data;
@@ -109,6 +107,13 @@ export function extractError(error: any, defaultMsg: string): string {
   }
 
   return error?.message || defaultMsg;
+}
+
+export function extractBlockers<T = any>(error: any): T[] {
+  const data = error?.response?.data || error?.data;
+  if (Array.isArray(data?.blockers)) return data.blockers;
+  if (Array.isArray(error?.blockers)) return error.blockers;
+  return [];
 }
 
 export const assignmentService = {
