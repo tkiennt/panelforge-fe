@@ -60,6 +60,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       isInitialVersion: false,
       createdAt: '2026-10-15T08:30:00Z',
       isLocked: true,
+      reviewStatus: 'CanonLocked',
       lockedAt: '2026-10-15T08:30:00Z',
     },
   };
@@ -661,7 +662,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
   });
 
   describe('Khóa Canon & Duyệt thiết kế (2026-11-04 Handoff & Breaking changes)', () => {
-    it('chỉ hiển thị nút Khóa Canon khi revision là WriterEndorsed; ẩn khi Draft, ConceptSubmitted hoặc ReworkRequired', () => {
+    it('không cho Producer khoá Canon ở bất kỳ trạng thái duyệt nào', () => {
       const baseRev: BibleEntryRevisionDto = {
         id: 'rev-test-lock',
         bibleEntryId: mockEntityWithImage.id,
@@ -672,7 +673,6 @@ describe('BibleEntityDetailModal UX/UI', () => {
         variantLabel: 'Mặc định',
         isInitialVersion: true,
         createdAt: '2026-11-04T10:00:00Z',
-        isLocked: false,
         reviewStatus: 'Draft',
         referenceImageUrl: 'https://example.com/concept.png',
       };

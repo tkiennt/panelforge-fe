@@ -6,7 +6,6 @@ import {
   bibleService,
   type BibleEntryDto,
   type BibleEntryRevisionDto,
-  type BibleReviewStatus,
 } from '@/services/bible.service';
 import { errorMessage } from '@/shared/features/collaboration/collaborationRules';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
@@ -17,23 +16,11 @@ interface BibleReviewViewProps {
   onShowToast?: (title: string, message: string) => void;
 }
 
-type ReviewStatus =
-  'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'WriterEndorsed' | 'CanonLocked';
-
-const STATUS_BY_NUMBER: Record<number, ReviewStatus> = {
-  1: 'Draft',
-  2: 'ConceptSubmitted',
-  3: 'ReworkRequired',
-  4: 'WriterEndorsed',
-  5: 'CanonLocked',
-};
+type ReviewStatus = 'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'CanonLocked';
 
 const statusOf = (rev?: BibleEntryRevisionDto | null): ReviewStatus | null => {
   if (!rev) return null;
-  if (rev.isLocked) return 'CanonLocked';
-  const s: BibleReviewStatus | undefined = rev.reviewStatus;
-  if (typeof s === 'number') return STATUS_BY_NUMBER[s] ?? null;
-  return (s as ReviewStatus) ?? null;
+  return rev.reviewStatus ?? null;
 };
 
 /** detailsJson là đặc tả do Writer nhập; chỉ hiện các cặp khoá–giá trị đơn giản. */
@@ -53,9 +40,8 @@ const parseDetails = (json?: string | null): [string, string][] => {
 };
 
 /**
- * Duyệt thiết kế Series Bible của Editor (vòng đời V2.5, `domain/series-bible.md` mục 3.2):
- * Artist nộp concept (ConceptSubmitted) → Writer/Editor đối chiếu cốt truyện và xác nhận (WriterEndorsed)
- * hoặc yêu cầu vẽ lại kèm nhận xét (ReworkRequired) → Producer khoá canon. Editor không khoá canon.
+ * Duyệt thiết kế Series Bible theo V2.6 Q20/Q22:
+ * Artist nộp concept → Editor xác nhận và khoá Canon, hoặc reviewer yêu cầu vẽ lại.
  */
 export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole, onShowToast }) => {
   const { seriesId = '' } = useParams<{ seriesId: string }>();
@@ -70,9 +56,9 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
   const [zoomed, setZoomed] = useState(false);
 
   const role = (workspaceRole ?? '').toUpperCase();
-  // Spec V2.6 §5.1: Writer/Editor xác nhận thiết kế; Producer chỉ được yêu cầu vẽ lại.
-  const canEndorse = role === 'EDITOR' || role === 'WRITER';
-  const canReview = canEndorse || role === 'PRODUCER';
+  // Q20/Q22: chỉ Editor khoá Canon; Writer, Editor và Producer đều có thể yêu cầu vẽ lại.
+  const canLockCanon = role === 'EDITOR';
+  const canRequestRework = canLockCanon || role === 'WRITER' || role === 'PRODUCER';
 
   const load = useCallback(async () => {
     if (!seriesId) return;
@@ -96,13 +82,12 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
     const by = (s: ReviewStatus) => entries.filter((e) => statusOf(e.effectiveRevision) === s);
     return {
       pending: by('ConceptSubmitted'),
-      endorsed: by('WriterEndorsed'),
       rework: by('ReworkRequired'),
     };
   }, [entries]);
 
   useEffect(() => {
-    const all = [...groups.pending, ...groups.endorsed, ...groups.rework];
+    const all = [...groups.pending, ...groups.rework];
     if (!selectedId || !all.some((e) => e.id === selectedId)) {
       setSelectedId(all[0]?.id ?? null);
     }
@@ -125,7 +110,7 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
     };
   }, [seriesId, selectedId, rev?.id]);
   const status = statusOf(rev);
-  const canDecide = canReview && status === 'ConceptSubmitted';
+  const canDecide = canRequestRework && status === 'ConceptSubmitted';
 
   const decide = async (action: () => Promise<unknown>, title: string) => {
     setBusy(true);
@@ -144,12 +129,12 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
     }
   };
 
-  const endorse = () =>
+  const lockCanon = () =>
     selected &&
     rev &&
     decide(
       () => bibleService.confirmRevision(seriesId, selected.id, rev.id),
-      t('bibleReview.toast.endorsed'),
+      t('bibleReview.toast.canonLocked'),
     );
 
   const requestRework = (reason: string) =>
@@ -229,7 +214,7 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
     );
   }
 
-  const total = groups.pending.length + groups.endorsed.length + groups.rework.length;
+  const total = groups.pending.length + groups.rework.length;
   const imageUrl = rev?.conceptImageUrl || rev?.referenceImageUrl || selected?.referenceImageUrl;
   const details = parseDetails(selected?.detailsJson);
   const pastFeedback = history
@@ -273,11 +258,6 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
               t('bibleReview.groups.rework'),
               groups.rework,
               t('bibleReview.groups.reworkHint'),
-            )}
-            {renderGroup(
-              t('bibleReview.groups.endorsed'),
-              groups.endorsed,
-              t('bibleReview.groups.endorsedHint'),
             )}
           </nav>
 
@@ -381,11 +361,8 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
               </div>
 
               <div className='shrink-0 space-y-2 border-t border-stone-200 bg-[#FAF9F5] p-4'>
-                {status === 'ConceptSubmitted' && !canReview && (
+                {status === 'ConceptSubmitted' && !canRequestRework && (
                   <p className='text-xs text-stone-600'>{t('bibleReview.notReviewer')}</p>
-                )}
-                {status === 'WriterEndorsed' && (
-                  <p className='text-xs text-stone-600'>{t('bibleReview.waitingProducer')}</p>
                 )}
                 {status === 'ReworkRequired' && (
                   <p className='text-xs text-stone-600'>{t('bibleReview.waitingArtist')}</p>
@@ -403,15 +380,15 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
                         <CornerUpLeft className='h-4 w-4' aria-hidden='true' />
                         {t('bibleReview.requestRework')}
                       </button>
-                      {canEndorse && (
+                      {canLockCanon && (
                         <button
                           type='button'
-                          onClick={endorse}
+                          onClick={lockCanon}
                           disabled={busy}
                           className='inline-flex min-w-40 flex-1 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50'
                         >
                           <CheckCircle2 className='h-4 w-4' aria-hidden='true' />
-                          {t('bibleReview.endorse')}
+                          {t('bibleReview.lockCanon')}
                         </button>
                       )}
                     </div>

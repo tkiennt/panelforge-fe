@@ -91,7 +91,7 @@ export function groupRevisionsIntoVariants(
     const revList = groupMap.get(groupKey)!;
     const sortedRevs = [...revList].sort((a, b) => (b.versionNumber || 0) - (a.versionNumber || 0));
     const latest = sortedRevs[0];
-    const isLocked = sortedRevs.some((r) => r.isLocked);
+    const isLocked = sortedRevs.some((r) => r.reviewStatus === 'CanonLocked');
     variants.push({
       variantKey: `variant-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
       variantLabel: latest.variantLabel,
@@ -269,7 +269,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     currentRole === 'WRITER' ||
     (!isProducerUser && canCreateDraft && !isArtistUser && !isEditorUser);
 
-  const effectiveCanCreateDraft = canCreateDraft || isWriterUser || isProducerUser;
+  const effectiveCanCreateDraft = canCreateDraft || isWriterUser;
 
   useEffect(() => {
     if (!seriesId || !entity.id) return;
@@ -912,7 +912,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
     if (activeVariant?.revisions) {
       activeVariant.revisions.forEach((rev) => {
-        if (rev.isLocked || rev.reviewStatus === 'CanonLocked') {
+        if (rev.reviewStatus === 'CanonLocked') {
           list.push({
             time: rev.lockedAt
               ? new Date(rev.lockedAt).toLocaleDateString('vi-VN')
@@ -1029,9 +1029,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     try {
       await onConfirmCanon(rev);
       setAllRevisions((prev) =>
-        prev.map((r) =>
-          r.id === rev.id ? { ...r, isLocked: true, reviewStatus: 'CanonLocked' } : r,
-        ),
+        prev.map((r) => (r.id === rev.id ? { ...r, reviewStatus: 'CanonLocked' } : r)),
       );
     } finally {
       setIsLocking(false);
@@ -1042,8 +1040,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const isVisualDesign = ['character', 'location', 'prop'].includes(normalizedCategory);
   const lifecycleStatus = ((): 'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'CanonLocked' => {
     if (!activeRevision) return 'Draft';
-    if (activeRevision.isLocked) return 'CanonLocked';
-    return (activeRevision.reviewStatus as 'Draft' | undefined) || 'Draft';
+    return activeRevision.reviewStatus || 'Draft';
   })();
   const lifecycleSteps = isVisualDesign
     ? [
@@ -1513,7 +1510,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   `Biến thể: "${activeVariant?.variantLabel || t('bible.detailModal.defaultVariant', 'Mặc định')}". Vui lòng chỉnh sửa nét vẽ theo yêu cầu trên và nộp lại.`,
                 )}
               </Alert>
-            ) : activeRevision?.reviewStatus === 'ConceptSubmitted' && !activeRevision.isLocked ? (
+            ) : activeRevision?.reviewStatus === 'ConceptSubmitted' ? (
               <Alert
                 tone='info'
                 title={t(
@@ -1534,7 +1531,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   `Biến thể: "${activeVariant?.variantLabel || 'Mặc định'}" · Lần sửa #${activeRevision.versionNumber}.`,
                 )}
               </Alert>
-            ) : activeRevision?.isLocked || activeRevision?.reviewStatus === 'CanonLocked' ? (
+            ) : activeRevision?.reviewStatus === 'CanonLocked' ? (
               <Alert
                 tone='success'
                 title={t('bible.detailModal.canonLockedBadge', 'Đã khóa chuẩn (Canon Locked)')}
@@ -1566,7 +1563,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   <p className='text-xs text-amber-900/90 leading-relaxed'>
                     {t(
                       'bible.detailModal.canonLockedDesc',
-                      'Bản thiết kế cho giai đoạn này đã được Producer phê duyệt chính thức (Canon Locked). Toàn bộ đội ngũ sản xuất sử dụng bản vẽ này làm quy chuẩn tham chiếu thống nhất.',
+                      'Bản thiết kế cho giai đoạn này đã được Editor xác nhận chính thức (Canon Locked). Toàn bộ đội ngũ sản xuất sử dụng bản vẽ này làm quy chuẩn tham chiếu thống nhất.',
                     )}
                   </p>
                 </div>
@@ -1950,8 +1947,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               'Chờ Họa sĩ tải lên bản vẽ',
                             )}
                           </span>
-                        ) : activeRevision?.isLocked ||
-                          activeRevision?.reviewStatus === 'CanonLocked' ? (
+                        ) : activeRevision?.reviewStatus === 'CanonLocked' ? (
                           <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200'>
                             <CheckCircle2 className='w-3 h-3 text-emerald-600' />
                             {t('bible.detailModal.canonLockedOfficial', 'Đã khoá Canon chính thức')}
@@ -2022,7 +2018,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           !isProducerUser &&
                           (entity.isVisualDesign ?? (isCharacter || isLocation || isProp)) &&
                           activeRevision &&
-                          !activeRevision.isLocked &&
                           activeRevision.reviewStatus !== 'CanonLocked' && (
                             <button
                               type='button'
@@ -2066,20 +2061,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         {canRequestRework && activeRevision && (
                           <button
                             type='button'
-                            disabled={
-                              activeRevision.isLocked ||
-                              activeRevision.reviewStatus === 'CanonLocked' ||
-                              isLocking
-                            }
+                            disabled={activeRevision.reviewStatus === 'CanonLocked' || isLocking}
                             onClick={() => handleRequestRework(activeRevision)}
                             className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all ${
-                              activeRevision.isLocked ||
                               activeRevision.reviewStatus === 'CanonLocked'
                                 ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed opacity-50'
                                 : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer active:scale-[0.98]'
                             }`}
                             title={
-                              activeRevision.isLocked ||
                               activeRevision.reviewStatus === 'CanonLocked'
                                 ? t(
                                     'bible.detailModal.reworkLockedNotice',
@@ -2098,8 +2087,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         )}
 
                         {/* Canon locked status badge */}
-                        {(activeRevision?.isLocked ||
-                          activeRevision?.reviewStatus === 'CanonLocked' ||
+                        {(activeRevision?.reviewStatus === 'CanonLocked' ||
                           !(entity.isVisualDesign ?? isCharacter)) && (
                           <div className='px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center gap-1.5'>
                             <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
@@ -2408,7 +2396,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 {activeVariant?.revisions && activeVariant.revisions.length > 0 ? (
                   activeVariant.revisions.map((rev) => {
                     const isSelected = rev.id === activeRevision?.id;
-                    const isCanon = rev.isLocked || rev.reviewStatus === 'CanonLocked';
+                    const isCanon = rev.reviewStatus === 'CanonLocked';
                     return (
                       <div
                         key={rev.id}
@@ -2462,11 +2450,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   <span className='font-bold text-stone-800 flex items-center gap-1.5'>
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        activeRevision?.isLocked ? 'bg-emerald-500' : 'bg-amber-500'
+                        activeRevision?.reviewStatus === 'CanonLocked'
+                          ? 'bg-emerald-500'
+                          : 'bg-amber-500'
                       }`}
                     />
                     v{activeRevision?.versionNumber ?? 1} (
-                    {activeRevision?.isLocked
+                    {activeRevision?.reviewStatus === 'CanonLocked'
                       ? t('bible.detailModal.officialBadge', 'Chính thức')
                       : activeRevision?.reviewStatus === 'ConceptSubmitted'
                         ? t('bible.detailModal.pendingReview', 'Chờ thẩm định')
@@ -2476,13 +2466,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     )
                   </span>
                   <span className='text-xs text-stone-500 font-medium'>
-                    {activeRevision?.isLocked
+                    {activeRevision?.reviewStatus === 'CanonLocked'
                       ? t('bible.detailModal.immutable', 'Bất biến')
                       : t('bible.detailModal.editable', 'Có thể chỉnh sửa')}
                   </span>
                 </div>
 
-                {activeRevision?.isLocked && effectiveCanCreateDraft && (
+                {activeRevision?.reviewStatus === 'CanonLocked' && effectiveCanCreateDraft && (
                   <button
                     type='button'
                     onClick={() => onOpenAddRevision(entity, activeRevision)}
