@@ -14,7 +14,7 @@ vi.mock('@/services/chapter.service', () => ({
     deleteChapter: vi.fn(),
     approveChapter: vi.fn(),
     reopenChapter: vi.fn(),
-    freezeScript: vi.fn(),
+    startProduction: vi.fn(),
     getScriptComments: vi.fn().mockResolvedValue([]),
     getChapterLockGate: vi.fn().mockResolvedValue({ canApprove: true, items: [] }),
   },

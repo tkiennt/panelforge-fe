@@ -13,7 +13,7 @@ import {
 import { chapterCastService, type ChapterCastDto } from '@/services/chapterCast.service';
 import { assignmentService } from '@/services/assignment.service';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
-import { useConfirm } from '@/shared/context/ConfirmContext';
+import { StartProductionModal } from '@/shared/modals/StartProductionModal';
 import { ScriptCommentItemCard } from '@/shared/features/script-review/ScriptCommentCard';
 import {
   SubmittedScriptPane,
@@ -62,7 +62,6 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     chapterId: string;
   }>();
   const navigate = useNavigate();
-  const confirm = useConfirm();
   const { t, lang } = useTranslation('review');
   const { t: tp } = useTranslation('production');
 
@@ -79,6 +78,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const [activeLineId, setActiveLineId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('comments');
   const [busy, setBusy] = useState<string | null>(null);
+  const [startOpen, setStartOpen] = useState(false);
 
   const role = (workspaceRole ?? '').toLowerCase();
   const isProducer = ['producer', 'owner'].includes(role);
@@ -264,24 +264,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     run(key, async () => setChapter(await call()), t('scriptReview.toast.canonFailed'));
 
   /** D12 / Gate 1: Producer bấm Bắt đầu sản xuất khi kịch bản đang chờ duyệt. */
-  const handleStartProduction = async () => {
-    if (!chapter) return;
-    const ok = await confirm({
-      title: t('scriptReview.lifecycle.startProduction'),
-      description: t('scriptReview.lifecycle.startConfirm', { n: chapter.chapterNumber }),
-      confirmText: t('scriptReview.lifecycle.startProduction'),
-      variant: 'info',
-    });
-    if (!ok) return;
-    await run(
-      'start',
-      async () => {
-        setChapter(await chapterService.freezeScript(chapterId));
-        onShowToast?.(t('scriptReview.lifecycle.started'), '');
-      },
-      t('scriptReview.lifecycle.startFailed'),
-    );
-  };
+  const handleStartProduction = () => setStartOpen(true);
 
   const backToDesk = () =>
     workspaceId && seriesId
@@ -385,8 +368,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               )}
               <button
                 type='button'
-                onClick={() => void handleStartProduction()}
-                disabled={busy === 'start'}
+                onClick={handleStartProduction}
                 className='inline-flex items-center gap-1.5 rounded-full bg-[#EA580C] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C] disabled:opacity-50'
               >
                 <Play className='h-3.5 w-3.5' aria-hidden='true' />
@@ -510,9 +492,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 onTriage={handleTriage}
                 onFindingToComment={handleFindingToComment}
                 openComments={openComments}
-                onFreeze={() =>
-                  chapterAction('freeze', () => chapterService.freezeScript(chapterId))
-                }
+                onFreeze={handleStartProduction}
                 onUnfreeze={(reason) =>
                   chapterAction('freeze', () => chapterService.unfreezeScript(chapterId, reason))
                 }
@@ -521,6 +501,22 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
           </div>
         </aside>
       </div>
+      {startOpen && chapter && (
+        <StartProductionModal
+          isOpen
+          workspaceId={workspaceId}
+          seriesId={seriesId}
+          chapterId={chapterId}
+          chapterNumber={chapter.chapterNumber}
+          chapterTitle={chapter.title || undefined}
+          onClose={() => setStartOpen(false)}
+          onSuccess={() => {
+            setStartOpen(false);
+            void chapterService.getChapterById(chapterId).then(setChapter);
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
     </div>
   );
 };

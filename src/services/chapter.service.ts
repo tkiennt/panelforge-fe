@@ -1,6 +1,8 @@
 // src/services/chapter.service.ts
 import axiosClient from '../api/axiosClient';
 import type { ScriptLineKind, ScriptLineRefInput } from './scriptLine.service';
+import type { AssignmentDto } from './assignment.service';
+import type { ChapterCastBlockerDto } from './chapterCast.service';
 
 export interface ScriptTreeCast {
   entryId: string;
@@ -51,6 +53,22 @@ export interface SubmitChapterScriptResult {
 
 export type ChapterStatus =
   'PreProduction' | 'InProduction' | 'ChapterApproved' | 'HandedOffAndPublished';
+
+export interface ProductionPageAssignmentRequest {
+  artistId: string;
+  pageFrom: number;
+  pageTo: number;
+}
+
+export interface StartChapterProductionRequest {
+  pageAssignments: ProductionPageAssignmentRequest[];
+  lettererAssignments?: ProductionPageAssignmentRequest[] | null;
+}
+
+export interface StartChapterProductionResultDto {
+  chapter: ChapterDto;
+  assignments: AssignmentDto[];
+}
 
 /** D12: vòng đời kịch bản Draft ↔ InReview → Frozen. */
 export type ScriptStatus = 'Draft' | 'InReview' | 'Frozen';
@@ -611,14 +629,27 @@ export const chapterService = {
   },
 
   /**
-   * Gate 1 — Producer bấm Start Production khi kịch bản đang InReview (→ Frozen, chương → InProduction)
+   * Gate 1 — Producer duyệt kịch bản và bắt đầu sản xuất (InReview / PreProduction → InProduction)
+   * POST /api/chapters/{chapterId}/start-production
    */
-  freezeScript: async (chapterId: string): Promise<ChapterDto> => {
+  startProduction: async (
+    chapterId: string,
+    body: StartChapterProductionRequest,
+  ): Promise<StartChapterProductionResultDto> => {
     try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/freeze-script`);
+      const response = await axiosClient.post<StartChapterProductionResultDto>(
+        `/chapters/${chapterId}/start-production`,
+        body,
+      );
       return response.data;
-    } catch (error) {
-      throw new Error(extractError(error, 'Không thể đóng băng kịch bản để bắt đầu sản xuất.'));
+    } catch (error: any) {
+      const msg = extractError(error, 'Không thể bắt đầu sản xuất chương.');
+      const err: any = new Error(msg);
+      err.status = error.response?.status;
+      err.code = error.response?.data?.code;
+      err.blockers = error.response?.data?.blockers;
+      err.response = error.response;
+      throw err;
     }
   },
 

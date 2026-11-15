@@ -109,6 +109,13 @@ export function extractError(error: any, defaultMsg: string): string {
   return error?.message || defaultMsg;
 }
 
+export function extractBlockers<T = any>(error: any): T[] {
+  const data = error?.response?.data || error?.data;
+  if (Array.isArray(data?.blockers)) return data.blockers;
+  if (Array.isArray(error?.blockers)) return error.blockers;
+  return [];
+}
+
 export const assignmentService = {
   /**
    * Việc cá nhân của người đang đăng nhập trên mọi series/chương của Studio

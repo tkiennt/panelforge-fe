@@ -53,7 +53,6 @@ vi.mock('@/services/chapter.service', () => ({
     submitChapterScript: vi.fn(),
     getScriptComments: vi.fn(),
     resolveScriptComment: vi.fn(),
-    freezeScript: vi.fn(),
     unfreezeScript: vi.fn(),
     recallScript: vi.fn(),
     createChapter: vi.fn(),

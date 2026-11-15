@@ -34,6 +34,7 @@ import {
   UpdateChapterRequest,
 } from '@/services/chapter.service';
 import { chapterCastService } from '@/services/chapterCast.service';
+import { StartProductionModal } from '@/shared/modals/StartProductionModal';
 import { ChapterAssignmentsModal } from './ChapterAssignmentsModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
@@ -52,6 +53,7 @@ interface SeriesChaptersModalProps {
   onChaptersCountChange?: (newCount: number) => void;
   onChapterCountChange?: (delta: number) => void;
   onShowToast?: (title: string, desc: string) => void;
+  onRefreshKanban?: () => void;
 }
 
 export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
@@ -63,6 +65,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   onChaptersCountChange,
   onChapterCountChange,
   onShowToast,
+  onRefreshKanban,
 }) => {
   const { t } = useTranslation('production');
   const confirm = useConfirm();
@@ -84,6 +87,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     '';
 
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
+  const [startProductionChapter, setStartProductionChapter] = useState<ChapterDto | null>(null);
   const [assigningChapter, setAssigningChapter] = useState<ChapterDto | null>(null);
   const [reviewingChapter, setReviewingChapter] = useState<ChapterDto | null>(null);
   const [previewChapter, setPreviewChapter] = useState<ChapterDto | null>(null);
@@ -305,76 +309,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     }
   };
 
-  const handleStartProduction = async (chap: ChapterDto) => {
-    setActionLoading(true);
-    try {
-      let openCommentsCount = 0;
-      try {
-        const [cast, comments] = await Promise.all([
-          chapterCastService.getChapterCast(chap.id).catch(() => null),
-          chapterService.getScriptComments(chap.id).catch(() => []),
-        ]);
-        if (cast?.gate && !cast.gate.canStart) {
-          const blockerMsg = cast.gate.blockers
-            .map((b) => `${b.entryName}: ${b.reason || 'Chưa khoá Canon'}`)
-            .join('; ');
-          onShowToast?.(
-            t('seriesChaptersModal.gate1BlockedTitle', 'Chưa thể bắt đầu sản xuất (Gate 1)'),
-            blockerMsg,
-          );
-          setActionLoading(false);
-          return;
-        }
-        openCommentsCount = (comments || []).filter((c) => !c.resolvedAt).length;
-      } catch (err) {
-        console.warn('Lỗi kiểm tra Gate 1:', err);
-      }
-
-      const desc =
-        openCommentsCount > 0
-          ? t('seriesChaptersModal.confirmGate1DescWithComments', {
-              number: chap.chapterNumber,
-              count: openCommentsCount,
-              defaultValue: `Kịch bản Chương ${chap.chapterNumber} sẽ được đóng băng và chuyển sang trạng thái InProduction để bắt đầu sản xuất tranh.\nLưu ý: Còn ${openCommentsCount} góp ý kịch bản chưa giải quyết (góp ý không chặn tiến độ).`,
-            })
-          : t('seriesChaptersModal.confirmGate1Desc', {
-              number: chap.chapterNumber,
-              defaultValue: `Kịch bản Chương ${chap.chapterNumber} sẽ được đóng băng và chuyển sang trạng thái InProduction để bắt đầu sản xuất tranh.`,
-            });
-
-      if (
-        !(await confirm({
-          title: t('seriesChaptersModal.confirmGate1Title', {
-            number: chap.chapterNumber,
-            defaultValue: `Duyệt kịch bản & Bắt đầu sản xuất Chương ${chap.chapterNumber}?`,
-          }),
-          description: desc,
-          confirmText: t('seriesChaptersModal.confirmGate1Btn', 'Bắt đầu sản xuất'),
-          cancelText: t('seriesChaptersModal.confirmGate1Cancel', 'Xem lại'),
-          variant: 'info',
-        }))
-      ) {
-        setActionLoading(false);
-        return;
-      }
-
-      await chapterService.freezeScript(chap.id);
-      onShowToast?.(
-        t('seriesChaptersModal.toastGate1Success', 'Đã bắt đầu sản xuất'),
-        t('seriesChaptersModal.toastGate1SuccessDesc', {
-          number: chap.chapterNumber,
-          defaultValue: `Chương ${chap.chapterNumber} đã chuyển sang InProduction. Kịch bản đã được đóng băng.`,
-        }),
-      );
-      await fetchChapters();
-    } catch (err: any) {
-      onShowToast?.(
-        t('seriesChaptersModal.toastGate1Error', 'Không thể bắt đầu sản xuất'),
-        err.message,
-      );
-    } finally {
-      setActionLoading(false);
-    }
+  const handleStartProduction = (chap: ChapterDto) => {
+    setStartProductionChapter(chap);
   };
 
   const handleApproveChapter = async (chap: ChapterDto) => {
@@ -1287,6 +1223,26 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           </div>
         </div>
       </Modal>
+
+      {/* Gate 1: Duyệt kịch bản & Bắt đầu sản xuất Modal */}
+      {startProductionChapter && (
+        <StartProductionModal
+          isOpen={!!startProductionChapter}
+          workspaceId={effectiveWorkspaceId}
+          seriesId={seriesId}
+          chapterId={startProductionChapter.id}
+          chapterNumber={startProductionChapter.chapterNumber}
+          chapterTitle={startProductionChapter.title || undefined}
+          onClose={() => setStartProductionChapter(null)}
+          onSuccess={async () => {
+            setStartProductionChapter(null);
+            await fetchChapters();
+            onChaptersCountChange?.(chapters.length);
+            onRefreshKanban?.();
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
 
       {/* UC-05: Chapter Assignments & StageProgress Modal */}
       {assigningChapter && (

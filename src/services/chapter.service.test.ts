@@ -108,4 +108,56 @@ describe('chapterService - saveChapterScript & submitChapterScript (SCR-14)', ()
       });
     });
   });
+
+  describe('startProduction (Gate 1)', () => {
+    it('gọi POST /chapters/{id}/start-production với payload giao trang', async () => {
+      const payload = {
+        pageAssignments: [{ artistId: 'artist-1', pageFrom: 1, pageTo: 5 }],
+        lettererAssignments: [{ artistId: 'letterer-1', pageFrom: 1, pageTo: 5 }],
+      };
+      const mockResult = {
+        chapter: { id: 'chap-1', status: 'InProduction' } as any,
+        assignments: [{ id: 'asg-1' } as any],
+      };
+      vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockResult });
+
+      const res = await chapterService.startProduction('chap-1', payload);
+      expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/start-production', payload);
+      expect(res).toEqual(mockResult);
+    });
+
+    it('bắt lỗi 409 CONFLICT kèm message và danh sách blockers', async () => {
+      const axiosErr = {
+        response: {
+          status: 409,
+          data: {
+            error: 'Không thể bắt đầu sản xuất do Series Bible chưa sẵn sàng.',
+            code: 'CONFLICT',
+            blockers: [
+              {
+                bibleEntryId: 'entry-1',
+                entryName: 'Nhân vật A',
+                revisionId: null,
+                reason: 'Canon chưa khóa',
+              },
+            ],
+          },
+        },
+      };
+      vi.mocked(axiosClient.post).mockRejectedValueOnce(axiosErr);
+
+      await expect(
+        chapterService.startProduction('chap-1', {
+          pageAssignments: [{ artistId: 'artist-1', pageFrom: 1, pageTo: 5 }],
+        }),
+      ).rejects.toMatchObject({
+        message: 'Không thể bắt đầu sản xuất do Series Bible chưa sẵn sàng.',
+        status: 409,
+        code: 'CONFLICT',
+        blockers: expect.arrayContaining([
+          expect.objectContaining({ entryName: 'Nhân vật A', reason: 'Canon chưa khóa' }),
+        ]),
+      });
+    });
+  });
 });
