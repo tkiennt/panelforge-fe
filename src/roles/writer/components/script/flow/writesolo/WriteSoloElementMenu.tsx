@@ -67,7 +67,9 @@ export const WriteSoloElementMenu: React.FC<WriteSoloElementMenuProps> = ({
 
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + ELEMENT_MENU_ITEMS.length) % ELEMENT_MENU_ITEMS.length);
+        setSelectedIndex(
+          (prev) => (prev - 1 + ELEMENT_MENU_ITEMS.length) % ELEMENT_MENU_ITEMS.length,
+        );
         return;
       }
 
@@ -140,7 +142,9 @@ export const WriteSoloElementMenu: React.FC<WriteSoloElementMenuProps> = ({
             }}
             onMouseEnter={() => setSelectedIndex(idx)}
             className={`px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors ${
-              isSelected ? 'bg-[#BAE6FD] text-stone-900 font-semibold' : 'hover:bg-stone-100 text-stone-700'
+              isSelected
+                ? 'bg-[#BAE6FD] text-stone-900 font-semibold'
+                : 'hover:bg-stone-100 text-stone-700'
             }`}
           >
             <span className='w-7 text-stone-500 font-mono text-[12px]'>

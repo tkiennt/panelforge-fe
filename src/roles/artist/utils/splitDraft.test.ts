@@ -103,7 +103,16 @@ describe('panel cắt chéo (polygon từ BE)', () => {
       width: 900,
       height: 600,
       panels: [
-        { order: 1, bbox: [20, 20, 400, 300], polygon: [[20, 20], [419, 20], [419, 319], [20, 319]] },
+        {
+          order: 1,
+          bbox: [20, 20, 400, 300],
+          polygon: [
+            [20, 20],
+            [419, 20],
+            [419, 319],
+            [20, 319],
+          ],
+        },
       ],
       bubbles: [],
     });
@@ -115,7 +124,16 @@ describe('panel cắt chéo (polygon từ BE)', () => {
       width: 900,
       height: 600,
       panels: [
-        { order: 1, bbox: [20, 20, 480, 560], polygon: [[20, 20], [500, 20], [380, 580], [20, 580]] },
+        {
+          order: 1,
+          bbox: [20, 20, 480, 560],
+          polygon: [
+            [20, 20],
+            [500, 20],
+            [380, 580],
+            [20, 580],
+          ],
+        },
       ],
       bubbles: [],
     });

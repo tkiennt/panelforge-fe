@@ -32,7 +32,7 @@ export const INITIAL_WRITESOLO_DOC = {
       content: [
         {
           type: 'text',
-          text: "Nancy is alone in her spacious living room, bundled under multiple blankets. A HOWLING STORM rages outside.",
+          text: 'Nancy is alone in her spacious living room, bundled under multiple blankets. A HOWLING STORM rages outside.',
         },
       ],
     },
@@ -60,7 +60,7 @@ export const INITIAL_WRITESOLO_DOC = {
       content: [
         {
           type: 'text',
-          text: "Suddenly, the door FLIES OPEN as FRED enters, completely soaked. Nancy gasps.",
+          text: 'Suddenly, the door FLIES OPEN as FRED enters, completely soaked. Nancy gasps.',
         },
       ],
     },

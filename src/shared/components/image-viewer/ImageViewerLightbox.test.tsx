@@ -24,9 +24,7 @@ describe('ImageViewerLightbox Component', () => {
   });
 
   it('hiển thị lightbox khi isOpen là true', () => {
-    render(
-      <ImageViewerLightbox isOpen={true} onClose={vi.fn()} slides={mockSlides} />,
-    );
+    render(<ImageViewerLightbox isOpen={true} onClose={vi.fn()} slides={mockSlides} />);
     // yet-another-react-lightbox renders a dialog / container in document.body
     const dialog = document.querySelector('.yarl__container');
     expect(dialog).toBeInTheDocument();
