@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Users,
   Shield,
@@ -75,10 +76,32 @@ const NAV_GROUPS: { label: string; items: { id: AdminTab; label: string; icon: L
 
 const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
+const VALID_TABS: AdminTab[] = [
+  'dashboard',
+  'users',
+  'master-data',
+  'ai-config',
+  'storage',
+  'session-policy',
+  'audit',
+  'analytics',
+];
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentUser }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as AdminTab | null;
+  const initialTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'dashboard';
+  const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (tabParam && VALID_TABS.includes(tabParam)) {
+      setActiveTab(tabParam);
+    } else if (!tabParam) {
+      setActiveTab('dashboard');
+    }
+  }, [tabParam]);
 
   const activeLabel = NAV_ITEMS.find((i) => i.id === activeTab)?.label ?? '';
   const displayName = currentUser?.name || 'Administrator';
@@ -86,6 +109,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
 
   const go = (tab: AdminTab) => {
     setActiveTab(tab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (tab === 'dashboard') {
+          next.delete('tab');
+        } else {
+          next.set('tab', tab);
+        }
+        return next;
+      },
+      { replace: true },
+    );
     setIsMobileDrawerOpen(false);
   };
 

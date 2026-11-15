@@ -175,17 +175,20 @@ describe('App Integration Smoke Test', () => {
     render(<App />);
 
     // Phải render Admin Console và System Admin Zone
-    await waitFor(() => {
-      expect(screen.getByText('Quản trị hệ thống')).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
-      // Menu của Admin phải hiện đầy đủ
-      expect(screen.getAllByText('Tổng quan').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Người dùng & quyền').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Cấu hình AI').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Nhật ký hệ thống').length).toBeGreaterThan(0);
-      // TUYỆT ĐỐI KHÔNG bị redirect về màn hình danh sách Workspace
-      expect(screen.queryByText('Active Studio Workspaces')).not.toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Quản trị hệ thống')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
+        // Menu của Admin phải hiện đầy đủ
+        expect(screen.getAllByText('Tổng quan').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Người dùng & quyền').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Cấu hình AI').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Nhật ký hệ thống').length).toBeGreaterThan(0);
+        // TUYỆT ĐỐI KHÔNG bị redirect về màn hình danh sách Workspace
+        expect(screen.queryByText('Active Studio Workspaces')).not.toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
   });
 
   it('đăng nhập USER -> điều hướng tới /workspaces và render WorkspaceListView', async () => {

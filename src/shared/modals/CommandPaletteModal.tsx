@@ -74,6 +74,18 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
     return undefined;
   }, [propWorkspaceId]);
 
+  // Lấy series ID đang hoạt động
+  const activeSeriesId = useMemo(() => {
+    if (propSeriesId) return propSeriesId;
+    try {
+      const saved = localStorage.getItem('activeProject');
+      if (saved) return JSON.parse(saved)?.id || undefined;
+    } catch {
+      // ignore
+    }
+    return undefined;
+  }, [propSeriesId]);
+
   // Nạp danh sách Series và Workspaces từ Backend API khi modal mở
   useEffect(() => {
     if (!isOpen) {
@@ -243,10 +255,12 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   };
 
   const handleSelectNav = (item: NavItem) => {
-    onClose();
     if (item.path) {
+      onClose();
       navigate(item.path);
     } else if (item.viewKey) {
+      if (!activeWorkspaceId || !activeSeriesId) return;
+      onClose();
       onNavigateView(item.viewKey);
     }
   };
@@ -292,12 +306,19 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
               <div className='space-y-0.5 mt-1'>
                 {filteredNavItems.map((item) => {
                   const Icon = item.icon;
+                  const isContextRequired = Boolean(item.viewKey);
+                  const isDisabled = isContextRequired && (!activeWorkspaceId || !activeSeriesId);
                   return (
                     <button
                       key={item.id}
                       type='button'
+                      disabled={isDisabled}
                       onClick={() => handleSelectNav(item)}
-                      className='w-full text-left px-2.5 py-2 rounded-lg hover:bg-[#F3F0E9] flex items-center justify-between text-[#1C1917] transition-colors cursor-pointer group'
+                      className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between text-[#1C1917] transition-colors group ${
+                        isDisabled
+                          ? 'opacity-40 cursor-not-allowed bg-transparent'
+                          : 'hover:bg-[#F3F0E9] cursor-pointer'
+                      }`}
                     >
                       <div className='flex items-center gap-2.5 min-w-0'>
                         <Icon className={`w-4 h-4 shrink-0 ${item.color}`} />
@@ -310,9 +331,15 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                           </span>
                         </div>
                       </div>
-                      <span className='text-[10px] font-mono text-[#78716C] group-hover:text-[#F97316] shrink-0 ml-2'>
-                        Mở ↵
-                      </span>
+                      {isDisabled ? (
+                        <span className='text-[10px] text-[#A8A29E] shrink-0 ml-2'>
+                          Cần chọn Series
+                        </span>
+                      ) : (
+                        <span className='text-[10px] font-mono text-[#78716C] group-hover:text-[#F97316] shrink-0 ml-2'>
+                          Mở ↵
+                        </span>
+                      )}
                     </button>
                   );
                 })}

@@ -32,6 +32,7 @@
     "review": "Kiểm duyệt",
     "bible": "Series Bible",
     "publishingGate": "Cổng Duyệt Xuất Bản",
+    "exportHandoff": "Đóng gói & Handoff (B5)",
     "usersAndRoles": "Users & Roles",
     "aiQuota": "AI Provider & Quota",
     "auditLog": "Global Audit Log",

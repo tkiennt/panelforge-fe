@@ -1,10 +1,31 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Terminal, X, Code, FileText, Image, MessageSquare, Eye } from 'lucide-react';
+import { buildArtistDeskUrl, buildScriptEditorUrl, buildTaskReviewUrl } from '@/app/routePaths';
 
 export const DevFloatingMenu: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+
+  const workspaceId =
+    (() => {
+      try {
+        const saved = localStorage.getItem('activeWorkspace');
+        return saved ? JSON.parse(saved)?.id : undefined;
+      } catch {
+        return undefined;
+      }
+    })() || 'mock-ws';
+
+  const seriesId =
+    (() => {
+      try {
+        const saved = localStorage.getItem('activeProject');
+        return saved ? JSON.parse(saved)?.id : undefined;
+      } catch {
+        return undefined;
+      }
+    })() || 'mock-series';
 
   if (!isOpen) {
     return (
@@ -40,28 +61,39 @@ export const DevFloatingMenu: React.FC = () => {
         </p>
 
         <button
-          onClick={() => navigate('/workspace/task/mock-script')}
+          onClick={() =>
+            navigate(buildScriptEditorUrl(workspaceId, seriesId, { chapterId: 'mock-script' }))
+          }
           className='w-full flex items-center gap-2 p-2 hover:bg-[#333] rounded transition-colors text-left text-xs font-semibold'
         >
           <FileText className='w-4 h-4 text-[#8B5CF6]' /> Task Editor: Script
         </button>
 
         <button
-          onClick={() => navigate('/workspace/task/mock-artwork')}
+          onClick={() =>
+            navigate(buildArtistDeskUrl(workspaceId, seriesId, { chapterId: 'mock-artwork' }))
+          }
           className='w-full flex items-center gap-2 p-2 hover:bg-[#333] rounded transition-colors text-left text-xs font-semibold'
         >
           <Image className='w-4 h-4 text-[#3B82F6]' /> Task Editor: Artwork
         </button>
 
         <button
-          onClick={() => navigate('/workspace/task/mock-letter')}
+          onClick={() =>
+            navigate(
+              buildArtistDeskUrl(workspaceId, seriesId, {
+                chapterId: 'mock-letter',
+                tab: 'lettering',
+              }),
+            )
+          }
           className='w-full flex items-center gap-2 p-2 hover:bg-[#333] rounded transition-colors text-left text-xs font-semibold'
         >
           <MessageSquare className='w-4 h-4 text-[#10B981]' /> Task Editor: Lettering
         </button>
 
         <button
-          onClick={() => navigate('/review/mock-conflict')}
+          onClick={() => navigate(buildTaskReviewUrl(workspaceId, seriesId, 'mock-conflict'))}
           className='w-full flex items-center gap-2 p-2 hover:bg-[#333] rounded transition-colors text-left text-xs font-semibold'
         >
           <Eye className='w-4 h-4 text-[#EF4444]' /> Review Board (Mock)

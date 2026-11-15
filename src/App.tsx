@@ -16,6 +16,7 @@ import {
   AssistantRosterItem,
 } from './types';
 import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
+import { buildSeriesPath } from './app/routePaths';
 import { GlobalModals } from './app/GlobalModals';
 import { AppRoutes } from './app/routes';
 import { ROLE_MANIFEST } from './roles/roles';
@@ -313,9 +314,6 @@ function AppContent() {
       } else {
         setActiveProjectRoles((prev) => (prev.includes('ADMINISTRATOR') ? ['ARTIST'] : prev));
       }
-      if (token && token.startsWith('mock-')) {
-        return;
-      }
     }
 
     // Nạp thông tin user từ localStorage để hiển thị nhanh (optimistic UI)
@@ -342,6 +340,10 @@ function AppContent() {
       } catch {
         // bỏ qua lỗi parse
       }
+    }
+
+    if (token && token.startsWith('mock-')) {
+      return;
     }
 
     // Gọi GET /Auth/me để xác thực phiên với Backend qua cookie HttpOnly pf_access
@@ -548,7 +550,7 @@ function AppContent() {
           localStorage.getItem('pf_has_session') === 'true' ||
           localStorage.getItem('user') ||
           localStorage.getItem('userRole') ||
-          (localStorage.getItem('token') && !localStorage.getItem('token')?.startsWith('mock-'))
+          (localStorage.getItem('token') && !localStorage.getItem('token')?.startsWith('mock-')),
         );
 
       localStorage.removeItem('user');
@@ -830,8 +832,17 @@ function AppContent() {
         provenanceLogs={provenanceLogs}
         activeProjectRoles={activeProjectRoles}
         activeWorkspace={activeWorkspace}
+        activeSeries={activeProject}
         currentRole={currentRole}
-        setCurrentView={(v) => navigate(`/${v}`)}
+        setCurrentView={(v) => {
+          if (v.startsWith('/')) {
+            navigate(v);
+          } else if (activeWorkspace && activeProject) {
+            navigate(buildSeriesPath(activeWorkspace.id, activeProject.id, v));
+          } else {
+            navigate(`/${v}`);
+          }
+        }}
         showToast={showToast}
         handleUpdateCardStage={handleUpdateCardStage}
         handleAddCard={handleAddCard}
