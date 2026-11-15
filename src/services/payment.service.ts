@@ -88,7 +88,7 @@ export const paymentService = {
   ): Promise<WorkspacePaymentsPagedResult> {
     const query = { ...params, status: params?.status === 'All' ? undefined : params?.status };
     const res = await axiosClient.get<WorkspacePaymentsResponseDto>(
-      `/api/workspaces/${workspaceId}/payments`,
+      `/workspaces/${workspaceId}/payments`,
       { params: query },
     );
     const page = res.data?.transactions;
@@ -102,43 +102,43 @@ export const paymentService = {
     };
   },
 
-  /** POST /api/workspaces/{workspaceId}/payments/{transactionId}/approve */
+  /** POST /workspaces/{workspaceId}/payments/{transactionId}/approve */
   async approvePayment(workspaceId: string, transactionId: string): Promise<{ message: string }> {
     const res = await axiosClient.post<{ message: string }>(
-      `/api/workspaces/${workspaceId}/payments/${transactionId}/approve`,
+      `/workspaces/${workspaceId}/payments/${transactionId}/approve`,
       {},
     );
     return res.data;
   },
 
-  /** POST /api/workspaces/{workspaceId}/payments/{transactionId}/reject — body: RejectPaymentRequest */
+  /** POST /workspaces/{workspaceId}/payments/{transactionId}/reject — body: RejectPaymentRequest */
   async rejectPayment(
     workspaceId: string,
     transactionId: string,
     reason?: string,
   ): Promise<{ message: string }> {
     const res = await axiosClient.post<{ message: string }>(
-      `/api/workspaces/${workspaceId}/payments/${transactionId}/reject`,
+      `/workspaces/${workspaceId}/payments/${transactionId}/reject`,
       { reason: reason?.trim() || null },
     );
     return res.data;
   },
 
-  /** GET /api/workspaces/{workspaceId}/payments/bank-settings */
+  /** GET /workspaces/{workspaceId}/payments/bank-settings */
   async getBankSettings(workspaceId: string): Promise<WorkspaceBankSettingsDto> {
     const res = await axiosClient.get<WorkspaceBankSettingsDto>(
-      `/api/workspaces/${workspaceId}/payments/bank-settings`,
+      `/workspaces/${workspaceId}/payments/bank-settings`,
     );
     return res.data;
   },
 
-  /** PUT /api/workspaces/{workspaceId}/payments/bank-settings */
+  /** PUT /workspaces/{workspaceId}/payments/bank-settings */
   async updateBankSettings(
     workspaceId: string,
     settings: UpdateWorkspaceBankSettingsRequest,
   ): Promise<WorkspaceBankSettingsDto> {
     const res = await axiosClient.put<WorkspaceBankSettingsDto>(
-      `/api/workspaces/${workspaceId}/payments/bank-settings`,
+      `/workspaces/${workspaceId}/payments/bank-settings`,
       settings,
     );
     return res.data;
@@ -360,65 +360,60 @@ export const monetizationService = {
     seriesId: string,
     language?: ContentLanguage,
   ): Promise<SeriesInsightsDto> {
-    const res = await axiosClient.get<SeriesInsightsDto>(
-      `/api/publisher/series/${seriesId}/insights`,
-      {
-        params: language ? { language } : undefined,
-      },
-    );
+    const res = await axiosClient.get<SeriesInsightsDto>(`/publisher/series/${seriesId}/insights`, {
+      params: language ? { language } : undefined,
+    });
     return res.data;
   },
 
-  /** PUT /api/publisher/series/{seriesId}/monetization-settings — mặc định N trang đầu xem trước. */
+  /** PUT /publisher/series/{seriesId}/monetization-settings — mặc định N trang đầu xem trước. */
   async updateSeriesSettings(
     seriesId: string,
     body: { defaultPreviewPageCount: number },
   ): Promise<SeriesMonetizationSettingsDto> {
     const res = await axiosClient.put<SeriesMonetizationSettingsDto>(
-      `/api/publisher/series/${seriesId}/monetization-settings`,
+      `/publisher/series/${seriesId}/monetization-settings`,
       body,
     );
     return res.data;
   },
 
-  /** GET /api/publisher/chapters/{chapterId}/manage */
+  /** GET /publisher/chapters/{chapterId}/manage */
   async getChapterManage(chapterId: string): Promise<ChapterManageDto> {
-    const res = await axiosClient.get<ChapterManageDto>(
-      `/api/publisher/chapters/${chapterId}/manage`,
-    );
+    const res = await axiosClient.get<ChapterManageDto>(`/publisher/chapters/${chapterId}/manage`);
     return res.data;
   },
 
-  /** PUT /api/publisher/chapters/{chapterId}/preview-pages — chọn trang xem trước (chương chuyển sang chọn tay). */
+  /** PUT /publisher/chapters/{chapterId}/preview-pages — chọn trang xem trước (chương chuyển sang chọn tay). */
   async setPreviewPages(chapterId: string, previewPageIds: string[]): Promise<ChapterManageDto> {
     const res = await axiosClient.put<ChapterManageDto>(
-      `/api/publisher/chapters/${chapterId}/preview-pages`,
+      `/publisher/chapters/${chapterId}/preview-pages`,
       { previewPageIds },
     );
     return res.data;
   },
 
-  /** DELETE /api/publisher/chapters/{chapterId}/preview-pages — quay về mặc định của bộ truyện. */
+  /** DELETE /publisher/chapters/{chapterId}/preview-pages — quay về mặc định của bộ truyện. */
   async resetPreviewPages(chapterId: string): Promise<ChapterManageDto> {
     const res = await axiosClient.delete<ChapterManageDto>(
-      `/api/publisher/chapters/${chapterId}/preview-pages`,
+      `/publisher/chapters/${chapterId}/preview-pages`,
     );
     return res.data;
   },
 
-  /** PUT /api/publisher/chapters/{chapterId}/language-prices */
+  /** PUT /publisher/chapters/{chapterId}/language-prices */
   async setLanguagePrices(
     chapterId: string,
     prices: LanguagePriceItem[],
   ): Promise<ChapterManageDto> {
     const res = await axiosClient.put<ChapterManageDto>(
-      `/api/publisher/chapters/${chapterId}/language-prices`,
+      `/publisher/chapters/${chapterId}/language-prices`,
       { prices },
     );
     return res.data;
   },
 
-  /** PUT /api/publisher/chapters/{chapterId}/pages/{pageId}/translations/{language} (multipart: file) */
+  /** PUT /publisher/chapters/{chapterId}/pages/{pageId}/translations/{language} (multipart: file) */
   async uploadPageTranslation(
     chapterId: string,
     pageId: string,
@@ -428,38 +423,38 @@ export const monetizationService = {
     const form = new FormData();
     form.append('file', file);
     const res = await axiosClient.put<ChapterManageDto>(
-      `/api/publisher/chapters/${chapterId}/pages/${pageId}/translations/${language}`,
+      `/publisher/chapters/${chapterId}/pages/${pageId}/translations/${language}`,
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } },
     );
     return res.data;
   },
 
-  /** DELETE /api/publisher/chapters/{chapterId}/pages/{pageId}/translations/{language} */
+  /** DELETE /publisher/chapters/{chapterId}/pages/{pageId}/translations/{language} */
   async deletePageTranslation(
     chapterId: string,
     pageId: string,
     language: ContentLanguage,
   ): Promise<ChapterManageDto> {
     const res = await axiosClient.delete<ChapterManageDto>(
-      `/api/publisher/chapters/${chapterId}/pages/${pageId}/translations/${language}`,
+      `/publisher/chapters/${chapterId}/pages/${pageId}/translations/${language}`,
     );
     return res.data;
   },
 
-  /** GET /api/publisher/revenue (Publisher/Admin) */
+  /** GET /publisher/revenue (Publisher/Admin) */
   async getPublisherRevenue(params?: {
     workspaceId?: string;
     search?: string;
   }): Promise<PublisherRevenueDto> {
-    const res = await axiosClient.get<PublisherRevenueDto>('/api/publisher/revenue', { params });
+    const res = await axiosClient.get<PublisherRevenueDto>('/publisher/revenue', { params });
     return res.data;
   },
 
-  /** GET /api/workspaces/{workspaceId}/reader-stats (Producer) */
+  /** GET /workspaces/{workspaceId}/reader-stats (Producer) */
   async getReaderStats(workspaceId: string): Promise<WorkspaceReaderStatsDto> {
     const res = await axiosClient.get<WorkspaceReaderStatsDto>(
-      `/api/workspaces/${workspaceId}/reader-stats`,
+      `/workspaces/${workspaceId}/reader-stats`,
     );
     return res.data;
   },

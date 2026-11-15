@@ -221,20 +221,6 @@ export interface UpdateConsistencyRuleRequest {
   configurationJson?: string;
 }
 
-export interface SeriesPresetDto {
-  id: string;
-  seriesId: string;
-  typographyPresetsJson: string;
-  consistencyRulesJson: string;
-  createdAt: string;
-  updatedAt?: string | null;
-}
-
-export interface UpdateSeriesPresetRequest {
-  typographyPresetsJson: string;
-  consistencyRulesJson: string;
-}
-
 // Series Members (UC-04 / RBAC)
 export interface SeriesMemberDto {
   id: string;
@@ -397,24 +383,6 @@ export const seriesService = {
       await axiosClient.delete(`/series/${seriesId}`);
     } catch (err: any) {
       throw new Error(extractError(err, 'Không thể xóa Series.'));
-    }
-  },
-
-  async getPresets(seriesId: string): Promise<SeriesPresetDto> {
-    try {
-      const res = await axiosClient.get(`/series/${seriesId}/presets`);
-      return res.data;
-    } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể tải cấu hình Presets của Series.'));
-    }
-  },
-
-  async updatePresets(seriesId: string, data: UpdateSeriesPresetRequest): Promise<SeriesPresetDto> {
-    try {
-      const res = await axiosClient.put(`/series/${seriesId}/presets`, data);
-      return res.data;
-    } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể lưu cấu hình Presets.'));
     }
   },
 
