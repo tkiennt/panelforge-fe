@@ -662,7 +662,11 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               <Route
                 path='editor/desk'
                 element={
-                  <EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
+                  <EditorDeskView
+                    currentUserId={currentUserInfo?.id}
+                    workspaceRole={currentWorkspaceRole}
+                    onShowToast={showToast}
+                  />
                 }
               />
               <Route
@@ -674,7 +678,11 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               <Route
                 path='editor/desk/:chapterId'
                 element={
-                  <EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
+                  <EditorDeskView
+                    currentUserId={currentUserInfo?.id}
+                    workspaceRole={currentWorkspaceRole}
+                    onShowToast={showToast}
+                  />
                 }
               />
               <Route

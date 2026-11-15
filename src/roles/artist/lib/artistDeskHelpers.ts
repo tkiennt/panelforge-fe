@@ -44,13 +44,13 @@ export function localizeArtistStageLabel(stage: Pick<PipelineStageDto, 'name' | 
   if (lower.includes('letter') || lower.includes('dialogue') || lower.includes('thoại'))
     return 'Letter';
   if (lower.includes('ink') || lower.includes('mực') || lower.includes('nét')) return 'Ink';
-  if (['pencil', 'chì', 'layout', 'bố cục', 'thumbnail'].some((k) => lower.includes(k)))
+  if (['pencil', 'chì', 'layout', 'bố cục', 'sketch'].some((k) => lower.includes(k)))
     return 'Pencil';
 
   const boardKind = stageKindOf(stage.name || '');
   if (boardKind === 'letter') return 'Letter';
   if (boardKind === 'ink') return 'Ink';
-  if (boardKind === 'pencil' || boardKind === 'thumbnail') return 'Pencil';
+  if (boardKind === 'pencil') return 'Pencil';
 
   const cleaned = (stage.name || '').replace(/\s*\([A-Za-z0-9\s/-]+\)\s*/g, '').trim();
   return cleaned || 'Pencil';

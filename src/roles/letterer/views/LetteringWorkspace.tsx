@@ -1006,10 +1006,15 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     [pageDim.width, pageDim.height],
   );
 
-  // Xử lý xung đột phiên bản BR-11
+  // Xử lý xung đột phiên bản BR-11 & lý do chặn 403 từ WorkScopeGuard
   const handleConcurrencyError = (err: any, elementId?: string) => {
     if (err?.code === 'FORBIDDEN' || err?.status === 403 || err?.response?.status === 403) {
-      showToast('Không có quyền thao tác', 'Phần này thuộc việc của người khác / đang chờ duyệt');
+      const reason =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Phần này thuộc việc của người khác / đang chờ duyệt';
+      showToast('Không có quyền thao tác', reason);
       return;
     }
     if (err.code === 'CHAPTER_READ_ONLY') {

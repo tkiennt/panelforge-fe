@@ -68,16 +68,32 @@ export const artworkService = {
       formData.append('panelId', panelId);
     }
 
-    const res = await axiosClient.post<AssetReferenceDto>(
-      `/chapters/${chapterId}/pages/${pageId}/artwork`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+    try {
+      const res = await axiosClient.post<AssetReferenceDto>(
+        `/chapters/${chapterId}/pages/${pageId}/artwork`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         },
-      },
-    );
-    return res.data;
+      );
+      return res.data;
+    } catch (error: any) {
+      const data = error?.response?.data;
+      const serverMsg = (data?.error || data?.message || '').trim();
+      const err: any = new Error(serverMsg || error?.message || 'Không thể tải artwork lên.');
+      err.status = error?.response?.status;
+      err.code =
+        data?.code ||
+        (error?.response?.status === 403
+          ? 'FORBIDDEN'
+          : error?.response?.status === 409
+            ? 'CONFLICT'
+            : undefined);
+      err.response = error?.response;
+      throw err;
+    }
   },
 
   /**

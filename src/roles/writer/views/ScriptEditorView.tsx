@@ -2235,7 +2235,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       )}
                     </span>
                     <span className='text-[11px] text-indigo-700 font-medium'>
-                      Đã chuyển giao cho Artist dựng Thumbnail &amp; Layout
+                      Đã chuyển giao cho Artist phác thảo (Pencil) &amp; bố cục khung
                     </span>
                   </div>
                   <p className='text-[11px] text-indigo-800/80 mt-0.5'>

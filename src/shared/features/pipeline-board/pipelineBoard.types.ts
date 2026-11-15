@@ -2,9 +2,23 @@ import {
   AssignmentDto,
   AssignmentPriority,
   AssignmentStatus,
+  StageTaskStatus,
   WorkflowEntityType,
   WorkspaceRole,
 } from '@/types';
+
+export interface BoardLotCellItem {
+  id: string;
+  pageId: string | null;
+  pageNumber: number | null;
+  targetLabel: string;
+  status: StageTaskStatus;
+  assigneeUserId?: string | null;
+  isStartable: boolean;
+  isInputOutdated: boolean;
+  outdatedReason?: string | null;
+  prerequisitesApproved: boolean;
+}
 
 export interface BoardCard {
   id: string;
@@ -36,7 +50,17 @@ export interface BoardCard {
   completedAt?: string | null;
   lastFeedbackComment?: string | null;
   impactReviewReason?: string | null;
-  rawAssignment: AssignmentDto;
+  rawAssignment?: AssignmentDto;
+  /** True khi thẻ được đọc từ Lưới giao việc V3 (StageTask × StageTaskLot). */
+  isGridTask?: boolean;
+  /** True khi thẻ đại diện cho 1 lô (StageTaskLot) gom nhiều ô cấp Trang. */
+  isGridLot?: boolean;
+  lotId?: string | null;
+  lotApprovedCount?: number;
+  lotTaskCount?: number;
+  firstPageId?: string | null;
+  lotTasks?: BoardLotCellItem[];
+  isStartable?: boolean;
 }
 
 export interface BoardColumnDefinition {

@@ -64,7 +64,7 @@ export function clearSession() {
       localStorage.getItem('user') ||
       localStorage.getItem('userRole') ||
       (token && !token.startsWith('mock-')) ||
-      localStorage.getItem(REFRESH_TOKEN_KEY)
+      localStorage.getItem(REFRESH_TOKEN_KEY),
     );
     // Phiên đã kết thúc: bỏ cả token fallback trong localStorage (trừ token demo 'mock-...')
     if (token && !token.startsWith('mock-')) {
@@ -74,6 +74,8 @@ export function clearSession() {
     localStorage.removeItem('user');
     localStorage.removeItem('userRole');
     localStorage.removeItem('activeWorkspace');
+    localStorage.removeItem('workspaceRole');
+    localStorage.removeItem('activeProject');
     localStorage.removeItem('pf_has_session');
     if (!alreadyEnded && hadSession) {
       window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { hadSession: true } }));

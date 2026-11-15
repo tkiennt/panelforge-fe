@@ -194,8 +194,8 @@ export function suggestTargetAssignment(
     if (letterAssign) return letterAssign.id;
   }
 
-  // Ngược lại gợi ý Color -> Ink -> Pencil -> Thumbnail
-  const priorities = ['color', 'ink', 'pencil', 'thumbnail'];
+  // Ngược lại gợi ý Color -> Ink -> Pencil
+  const priorities = ['color', 'ink', 'pencil'];
   for (const pri of priorities) {
     const match = pageAssignments.find((a) => {
       const st = stageMap.get(a.pipelineStageId);

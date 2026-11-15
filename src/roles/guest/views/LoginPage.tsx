@@ -78,6 +78,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }
 
     // Default standalone auth handling if not provided by App wrapper
+    localStorage.removeItem('activeWorkspace');
+    localStorage.removeItem('workspaceRole');
+    localStorage.removeItem('activeProject');
     const role: SystemRole = normalizeSystemRole(response.user?.role);
     localStorage.setItem('userRole', role);
     localStorage.setItem('pf_has_session', 'true');
@@ -227,7 +230,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         t(
           'common.auth.otpSentNotice',
           { email: targetEmail },
-        `Mã OTP 6 chữ số đã được gửi đến email ${targetEmail}. Vui lòng kiểm tra hộp thư.`,
+          `Mã OTP 6 chữ số đã được gửi đến email ${targetEmail}. Vui lòng kiểm tra hộp thư.`,
         ),
       );
     } catch (err: any) {
@@ -264,7 +267,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       setServerError(
         t(
           'common.auth.errPasswordComplexity',
-        'Mật khẩu mới phải có ít nhất 6 ký tự, chứa ít nhất 1 chữ hoa và 1 ký tự đặc biệt.',
+          'Mật khẩu mới phải có ít nhất 6 ký tự, chứa ít nhất 1 chữ hoa và 1 ký tự đặc biệt.',
         ),
       );
       return;
@@ -287,13 +290,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       setSuccessNotice(
         t(
           'common.auth.resetSuccessNotice',
-        'Kích hoạt tài khoản / Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.',
+          'Kích hoạt tài khoản / Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.',
         ),
       );
     } catch (err: any) {
       console.error('Lỗi đặt lại mật khẩu:', err);
       setServerError(
-        err.message || t('common.auth.errLoginFailed', 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.'),
+        err.message ||
+          t(
+            'common.auth.errLoginFailed',
+            'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.',
+          ),
       );
     } finally {
       setIsLoading(false);
@@ -417,10 +424,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               </h1>
             </div>
             <p className='text-xs text-[#777169] mt-1'>
-              {t(
-                'common.auth.forgotDesc',
-                'Nhập email để nhận mã xác nhận đặt lại mật khẩu.',
-              )}
+              {t('common.auth.forgotDesc', 'Nhập email để nhận mã xác nhận đặt lại mật khẩu.')}
             </p>
           </div>
         )}
@@ -815,7 +819,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 type={showNewPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder={t('common.auth.newPasswordHint', 'Tối thiểu 6 ký tự, 1 hoa, 1 ký tự đặc biệt')}
+                placeholder={t(
+                  'common.auth.newPasswordHint',
+                  'Tối thiểu 6 ký tự, 1 hoa, 1 ký tự đặc biệt',
+                )}
                 required
                 disabled={isLoading}
                 className='w-full pl-3.5 pr-10 py-2 bg-white border border-[#E7E5E4] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 rounded-xl text-xs text-[#171717] outline-none'

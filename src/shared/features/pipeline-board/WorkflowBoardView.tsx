@@ -40,13 +40,12 @@ interface WorkflowBoardViewProps {
 
 const STAGES: { key: KanbanStageKey; label: string; dotColor: string }[] = [
   { key: 'script', label: '1. Script', dotColor: 'bg-[#171717]' },
-  { key: 'thumbnail', label: '2. Thumbnail', dotColor: 'bg-[#0EA5E9]' },
-  { key: 'pencil', label: '3. Pencil', dotColor: 'bg-[#F97316]' },
-  { key: 'ink', label: '4. Ink', dotColor: 'bg-[#171717]' },
-  { key: 'color', label: '5. Color', dotColor: 'bg-[#006591]' },
-  { key: 'letter', label: '6. Letter', dotColor: 'bg-[#6D28D9]' },
-  { key: 'review', label: '7. Review', dotColor: 'bg-[#F59E0B]' },
-  { key: 'approved', label: '8. Approved', dotColor: 'bg-[#10B981]' },
+  { key: 'pencil', label: '2. Pencil', dotColor: 'bg-[#F97316]' },
+  { key: 'ink', label: '3. Ink', dotColor: 'bg-[#171717]' },
+  { key: 'color', label: '4. Color', dotColor: 'bg-[#006591]' },
+  { key: 'letter', label: '5. Letter', dotColor: 'bg-[#6D28D9]' },
+  { key: 'review', label: '6. Review', dotColor: 'bg-[#F59E0B]' },
+  { key: 'approved', label: '7. Approved', dotColor: 'bg-[#10B981]' },
 ];
 
 export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
@@ -120,7 +119,6 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
   const cardsByStage = useMemo(() => {
     const map: Record<KanbanStageKey, KanbanCard[]> = {
       script: [],
-      thumbnail: [],
       pencil: [],
       ink: [],
       color: [],
@@ -139,7 +137,6 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
   const advanceStage = (card: KanbanCard) => {
     const stageOrder: KanbanStageKey[] = [
       'script',
-      'thumbnail',
       'pencil',
       'ink',
       'color',
@@ -539,7 +536,7 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                             ) : null}
                           </div>
 
-                          {/* Image or Wireframe preview if available */}
+                          {/* Image preview if available */}
                           {card.imageUrl ? (
                             <div className='relative w-full h-28 bg-[#171717] rounded-lg border border-[#E7E7E7] overflow-hidden mb-2.5'>
                               <img
@@ -552,13 +549,6 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                                   {card.wireframeText}
                                 </div>
                               )}
-                            </div>
-                          ) : card.stage === 'thumbnail' && card.pageNumber === 'PAGE 18' ? (
-                            <div className='w-full h-16 bg-[#F8F6F0] rounded border border-[#E7E7E7] p-1.5 grid grid-cols-3 gap-1 mb-2'>
-                              <div className='bg-white border border-[#E7E7E7] col-span-2'></div>
-                              <div className='bg-white border border-[#E7E7E7]'></div>
-                              <div className='bg-white border border-[#E7E7E7]'></div>
-                              <div className='bg-white border border-[#E7E7E7] col-span-2'></div>
                             </div>
                           ) : null}
 

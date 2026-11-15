@@ -130,7 +130,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
       {
         id: 'workflow',
         label: 'Bảng quy trình (Pipeline Board)',
-        description: '8 công đoạn sản xuất truyện tranh',
+        description: 'Điều phối các công đoạn sản xuất truyện tranh',
         icon: Kanban,
         viewKey: 'workspace',
         color: 'text-[#0EA5E9]',

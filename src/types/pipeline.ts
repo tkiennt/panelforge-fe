@@ -1,7 +1,7 @@
 import { StudioRole, RoleKey, WorkspaceRole } from './auth';
 
 export type KanbanStageKey =
-  'script' | 'pencil' | 'ink' | 'color' | 'letter' | 'review' | 'approved' | 'thumbnail'; // Deprecated: Thumbnail stage is retired and merged into pre-split artist layout
+  'script' | 'pencil' | 'ink' | 'color' | 'letter' | 'review' | 'approved';
 
 export interface KanbanCard {
   id: string;
@@ -682,4 +682,262 @@ export interface EditorReviewQueueItemDto {
   priority: AssignmentPriority;
   createdAt: string;
   artworkReferenceIds?: string[];
+}
+
+// ==========================================
+// Assignment Grid V3 (StageTask × StageTaskLot)
+// ==========================================
+
+export type StageTaskStatus =
+  | 'Unassigned'
+  | 'Assigned'
+  | 'InProgress'
+  | 'Submitted'
+  | 'UnderReview'
+  | 'Approved'
+  | 'ReworkRequired'
+  | 'Cancelled';
+
+export type StageTaskLotStatus = 'Active' | 'Completed' | 'Closed';
+
+export interface TaskGridStageDto {
+  id: string;
+  name: string;
+  stageOrder: number;
+  track?: string | null;
+  allowedRole?: WorkspaceRole | string | null;
+  isApprovalGate: boolean;
+  granularity: WorkflowEntityType;
+  isEnabled: boolean;
+  prerequisiteStageIds: string[];
+}
+
+export interface TaskGridPageDto {
+  id: string;
+  pageNumber: number;
+}
+
+export interface StageTaskDto {
+  id: string;
+  pipelineStageId: string;
+  pageId?: string | null;
+  status: StageTaskStatus;
+  lotId?: string | null;
+  assigneeUserId?: string | null;
+  isInputOutdated: boolean;
+  outdatedReason?: string | null;
+  reviewerUserId?: string | null;
+  isStartable: boolean;
+  startedAt?: string | null;
+  rowVersion: number;
+}
+
+export interface StageTaskLotDto {
+  id: string;
+  pipelineStageId: string;
+  assigneeUserId: string;
+  assignedRole: WorkspaceRole | string;
+  brief?: string | null;
+  dueDate?: string | null;
+  status: StageTaskLotStatus;
+  isOverdue: boolean;
+  taskCount: number;
+  approvedCount: number;
+  rowVersion: number;
+}
+
+export interface TaskGridDto {
+  chapterId: string;
+  stages: TaskGridStageDto[];
+  pages: TaskGridPageDto[];
+  tasks: StageTaskDto[];
+  lots: StageTaskLotDto[];
+}
+
+export interface GenerateStageTasksResultDto {
+  created: number;
+  cancelled: number;
+  total: number;
+}
+
+export interface StageTaskLotRequest {
+  pipelineStageId: string;
+  assigneeUserId: string;
+  taskIds: string[];
+  brief?: string | null;
+  dueDate?: string | null;
+}
+
+export interface AssignStageTaskLotsRequest {
+  lots: StageTaskLotRequest[];
+  dryRun?: boolean;
+}
+
+export interface AssignStageTaskLotsResultDto {
+  dryRun: boolean;
+  taskCount: number;
+  lots: StageTaskLotDto[];
+}
+
+export interface SubmitStageTasksRequest {
+  taskIds: string[];
+}
+
+export interface UnassignStageTasksRequest {
+  taskIds: string[];
+}
+
+export interface ReopenStageTaskRequest {
+  reason: string;
+}
+
+export interface ResolveStageTaskImpactRequest {
+  keep: boolean;
+}
+
+export interface ReopenStageTaskResultDto {
+  task: StageTaskDto;
+  outdatedTaskIds: string[];
+}
+
+export interface RequestStageTaskChangesRequest {
+  comment: string;
+}
+
+export type StageTaskSubmissionStatus = 'Pending' | 'Approved' | 'Rejected' | 'Superseded';
+
+export interface StageTaskSubmissionDto {
+  id: string;
+  attemptNumber: number;
+  status: StageTaskSubmissionStatus | string;
+  submittedByUserId: string;
+  submittedAt: string;
+  artworkReferenceIds: string[];
+  decidedByUserId?: string | null;
+  decidedAt?: string | null;
+  decisionComment?: string | null;
+  /** JSON mảng SubmissionPanelDto lúc nộp (BR-01). */
+  panelLayoutJson?: string | null;
+  /** JSON { [pageId]: streamVersion } lúc nộp (BR-01). */
+  canvasVersionsJson?: string | null;
+  /** ID ScriptVersion mới nhất của chương lúc nộp (BR-01). */
+  scriptVersionId?: string | null;
+}
+
+/** Parse an toàn panelLayoutJson từ StageTaskSubmissionDto; JSON hỏng/trống trả về []. */
+export function parseStageTaskPanelLayout(panelLayoutJson?: string | null): SubmissionPanelDto[] {
+  if (!panelLayoutJson || typeof panelLayoutJson !== 'string') return [];
+  try {
+    const parsed = JSON.parse(panelLayoutJson);
+    if (!Array.isArray(parsed)) return [];
+    const result: SubmissionPanelDto[] = [];
+    for (const item of parsed) {
+      if (!item || typeof item !== 'object') continue;
+      const id = typeof item.id === 'string' ? item.id : typeof item.Id === 'string' ? item.Id : '';
+      const pageId =
+        typeof item.pageId === 'string'
+          ? item.pageId
+          : typeof item.PageId === 'string'
+            ? item.PageId
+            : '';
+      if (!id || !pageId) continue;
+      result.push({
+        id,
+        pageId,
+        panelNumber: Number(item.panelNumber ?? item.PanelNumber ?? 0) || 0,
+        readingOrder: Number(item.readingOrder ?? item.ReadingOrder ?? 0) || 0,
+        boundingBox: String(item.boundingBox ?? item.BoundingBox ?? ''),
+      });
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}
+
+/** Parse an toàn canvasVersionsJson từ StageTaskSubmissionDto; JSON hỏng/trống trả về {}. */
+export function parseStageTaskCanvasVersions(
+  canvasVersionsJson?: string | null,
+): Record<string, number> {
+  if (!canvasVersionsJson || typeof canvasVersionsJson !== 'string') return {};
+  try {
+    const parsed = JSON.parse(canvasVersionsJson);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const result: Record<string, number> = {};
+    for (const [pageId, rawVer] of Object.entries(parsed)) {
+      const ver = typeof rawVer === 'number' ? rawVer : Number(rawVer);
+      if (pageId && Number.isFinite(ver)) {
+        result[pageId] = ver;
+      }
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+// ─── Clean Cutover (Lát cắt 4) ───────────────────────────────────────────────
+
+/** Một ô công việc thuộc lô cá nhân xuyên chương (GET /api/workspaces/{workspaceId}/my-task-lots). */
+export interface MyTaskCellDto {
+  id: string;
+  pageId?: string | null;
+  /** null = ô cấp Chương */
+  pageNumber?: number | null;
+  status: StageTaskStatus;
+  isStartable: boolean;
+  isInputOutdated: boolean;
+  outdatedReason?: string | null;
+}
+
+/** Một lô công việc của người gọi xuyên chương (thay my-assignments V2). */
+export interface MyTaskLotDto {
+  id: string;
+  seriesId: string;
+  seriesTitle: string;
+  chapterId: string;
+  chapterNumber: number;
+  chapterTitle?: string | null;
+  pipelineStageId: string;
+  stageName: string;
+  stageOrder: number;
+  stageColorCode?: string | null;
+  assignedRole: WorkspaceRole | string;
+  brief?: string | null;
+  dueDate?: string | null;
+  status: StageTaskLotStatus;
+  isOverdue: boolean;
+  tasks: MyTaskCellDto[];
+}
+
+/** Ô chờ duyệt (Submitted / UnderReview) trong Workspace (GET /api/workspaces/{workspaceId}/task-grid/review-queue). */
+export interface TaskGridReviewItemDto {
+  taskId: string;
+  seriesId: string;
+  seriesTitle: string;
+  chapterId: string;
+  chapterNumber: number;
+  chapterTitle?: string | null;
+  pipelineStageId: string;
+  stageName: string;
+  pageId?: string | null;
+  pageNumber?: number | null;
+  status: StageTaskStatus;
+  assigneeUserId?: string | null;
+  reviewerUserId?: string | null;
+  attemptNumber?: number | null;
+  submittedAt?: string | null;
+}
+
+export interface MigrateSkippedDto {
+  assignmentId: string;
+  chapterId: string;
+  reason: string;
+}
+
+/** Kết quả chuyển Assignment V2 sang Lưới V3 (POST /api/series/{seriesId}/task-grid/migrate-assignments). */
+export interface MigrateAssignmentsResultDto {
+  migrated: number;
+  cellsAssigned: number;
+  skipped: MigrateSkippedDto[];
 }

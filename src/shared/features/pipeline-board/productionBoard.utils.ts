@@ -1,9 +1,16 @@
-import type { AssignmentDto } from '@/types';
+import type {
+  AssignmentDto,
+  AssignmentStatus,
+  StageTaskDto,
+  TaskGridDto,
+  WorkflowEntityType,
+  WorkspaceRole,
+} from '@/types';
 import type { PipelineStageDto } from '@/services/pipeline.service';
 import type { PageDto } from '@/services/page.service';
 import type { WorkspaceMemberDto } from '@/services/workspace.service';
 import { isReviewerRole } from '@/shared/features/collaboration/collaborationRules';
-import type { BoardCard } from './pipelineBoard.types';
+import type { BoardCard, BoardLotCellItem } from './pipelineBoard.types';
 
 /**
  * Logic thuần của màn "Quy trình sản xuất" (lưới công việc + bộ lọc).
@@ -46,15 +53,15 @@ export const QUICK_FILTER_LABELS: Record<QuickFilter, string> = {
   done: 'Hoàn tất',
 };
 
-export type StageKind = 'script' | 'thumbnail' | 'ink' | 'pencil' | 'color' | 'letter' | 'other';
+export type StageKind = 'script' | 'ink' | 'pencil' | 'color' | 'letter' | 'other';
 
 /** Loại công đoạn suy từ tên stage thật (Backend cho phép đặt tên tự do). */
 export const stageKindOf = (stageName: string): StageKind => {
   const n = stageName.toLowerCase();
   if (/script|kịch bản|kich ban/.test(n)) return 'script';
-  if (/thumb|bố cục|bo cuc|phân khung|layout/.test(n)) return 'thumbnail';
   if (/\bink|đi nét|di net|mực/.test(n)) return 'ink';
-  if (/pencil|phác|phac|vẽ nét|ve net|sketch/.test(n)) return 'pencil';
+  if (/pencil|phác|phac|vẽ nét|ve net|sketch|bố cục|bo cuc|phân khung|layout/.test(n))
+    return 'pencil';
   if (/colou?r|màu|mau/.test(n)) return 'color';
   if (/letter|chữ|thoại|typeset/.test(n)) return 'letter';
   return 'other';
@@ -123,8 +130,20 @@ export interface UserContext {
  */
 export const needsMyAction = (card: BoardCard, ctx: UserContext): boolean => {
   if (!ctx.userId) return false;
-  const st = statusKey(card.status);
   const isAssignee = card.assigneeUserId === ctx.userId;
+  if (card.lotTasks && card.lotTasks.length > 0) {
+    if (isAssignee) {
+      return card.lotTasks.some(
+        (t) =>
+          t.status === 'Assigned' || t.status === 'InProgress' || t.status === 'ReworkRequired',
+      );
+    }
+    return (
+      isReviewerRole(ctx.workspaceRole) &&
+      card.lotTasks.some((t) => t.status === 'Submitted' || t.status === 'UnderReview')
+    );
+  }
+  const st = statusKey(card.status);
   if (isAssignee) return st === 'Assigned' || st === 'InProgress' || st === 'ReworkRequired';
   return isReviewerRole(ctx.workspaceRole) && (st === 'Submitted' || st === 'UnderReview');
 };
@@ -435,6 +454,321 @@ export const mapAssignmentsToCards = (
   });
 };
 
+export const formatPageRangeLabel = (pageNumbers: number[]): string => {
+  const nums = [...new Set(pageNumbers.filter((n) => Number.isFinite(n)))].sort((a, b) => a - b);
+  if (nums.length === 0) return 'Trang bản thảo';
+  if (nums.length === 1) return `Trang ${nums[0]}`;
+
+  const ranges: string[] = [];
+  let start = nums[0];
+  let prev = nums[0];
+  for (let i = 1; i < nums.length; i++) {
+    const cur = nums[i];
+    if (cur === prev + 1) {
+      prev = cur;
+    } else {
+      ranges.push(start === prev ? `${start}` : `${start}–${prev}`);
+      start = cur;
+      prev = cur;
+    }
+  }
+  ranges.push(start === prev ? `${start}` : `${start}–${prev}`);
+  return `Trang ${ranges.join(', ')}`;
+};
+
+const aggregateLotStatus = (cells: BoardLotCellItem[]): AssignmentStatus => {
+  if (cells.some((c) => c.status === 'ReworkRequired')) return 'ReworkRequired';
+  if (cells.some((c) => c.status === 'UnderReview')) return 'UnderReview';
+  if (cells.some((c) => c.status === 'Submitted')) return 'Submitted';
+  if (cells.some((c) => c.status === 'InProgress')) return 'InProgress';
+  if (cells.length > 0 && cells.every((c) => c.status === 'Approved')) return 'Approved';
+  if (cells.some((c) => c.status === 'Assigned' && c.isStartable)) return 'Assigned';
+  return 'Blocked';
+};
+
+/**
+ * Clean Cutover (Lát cắt 4 + LỖI 3):
+ * - Mỗi lô cấp Trang (`lots` trong TaskGridDto) là một thẻ gom danh sách ô, tiêu đề rõ:
+ *   "Pencil – Chloe Artist – Trang 1–2 (1/2)".
+ * - Ô cấp Chương (Script / Review / Approved) vẫn là thẻ riêng.
+ */
+export const mapTaskGridToCards = (
+  grid: TaskGridDto,
+  stages: PipelineStageDto[],
+  pages: PageDto[],
+  members: WorkspaceMemberDto[],
+  seriesId: string,
+): BoardCard[] => {
+  const gridStagesMap = new Map((grid.stages ?? []).map((s) => [s.id, s]));
+  const stagesMap = new Map(stages.map((s) => [s.id, s]));
+  const gridPagesMap = new Map((grid.pages ?? []).map((p) => [p.id, p.pageNumber]));
+  const pagesMap = new Map(pages.map((p) => [p.id, p]));
+  const lotsMap = new Map((grid.lots ?? []).map((l) => [l.id, l]));
+  const membersMap = new Map(members.map((m) => [m.userId, m]));
+
+  const nonCancelledTasks = (grid.tasks ?? []).filter((t) => t.status !== 'Cancelled');
+  const assignedTasks = nonCancelledTasks.filter((t) => t.status !== 'Unassigned');
+
+  const resolvePageNumber = (pageId: string | null | undefined): number | null => {
+    if (!pageId) return null;
+    return gridPagesMap.get(pageId) ?? pagesMap.get(pageId)?.pageNumber ?? null;
+  };
+
+  const areCellPrereqsApproved = (cell: StageTaskDto): boolean => {
+    const gridStage = gridStagesMap.get(cell.pipelineStageId);
+    const prereqStageIds = gridStage?.prerequisiteStageIds ?? [];
+    if (prereqStageIds.length === 0) return true;
+    for (const prereqStageId of prereqStageIds) {
+      const matching = nonCancelledTasks.filter(
+        (other) =>
+          other.pipelineStageId === prereqStageId &&
+          (cell.pageId ? other.pageId === cell.pageId || other.pageId == null : true),
+      );
+      if (matching.length === 0) return false;
+      if (matching.some((m) => m.status !== 'Approved' || m.isInputOutdated)) return false;
+    }
+    return true;
+  };
+
+  const toCellItem = (t: StageTaskDto, fallbackAssigneeId?: string): BoardLotCellItem => {
+    const pageNumber = resolvePageNumber(t.pageId);
+    const targetLabel = t.pageId
+      ? pageNumber != null
+        ? `Trang ${pageNumber}`
+        : 'Trang bản thảo'
+      : 'Toàn chương';
+    return {
+      id: t.id,
+      pageId: t.pageId,
+      pageNumber,
+      targetLabel,
+      status: t.status,
+      assigneeUserId: t.assigneeUserId || fallbackAssigneeId || null,
+      isStartable: t.isStartable,
+      isInputOutdated: t.isInputOutdated,
+      outdatedReason: t.outdatedReason ?? null,
+      prerequisitesApproved: areCellPrereqsApproved(t),
+    };
+  };
+
+  const buildMemberInfo = (userId: string) => {
+    const member = userId ? membersMap.get(userId) : undefined;
+    const memberName =
+      member?.fullName || (member?.email ? member.email.split('@')[0] : '') || 'Chưa gán';
+    const initials =
+      memberName
+        .split(' ')
+        .filter(Boolean)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || 'U';
+    return { member, memberName, initials };
+  };
+
+  const cards: BoardCard[] = [];
+
+  // 1. Ô cấp Chương (Script / Review / Approved): giữ nguyên mỗi ô là một thẻ riêng
+  const chapterTasks = assignedTasks.filter((t) => !t.pageId);
+  for (const t of chapterTasks) {
+    const gridStage = gridStagesMap.get(t.pipelineStageId);
+    const pipelineStage = stagesMap.get(t.pipelineStageId);
+    const lot = t.lotId ? lotsMap.get(t.lotId) : undefined;
+    const assigneeUserId = t.assigneeUserId || lot?.assigneeUserId || '';
+    const { member, memberName, initials } = buildMemberInfo(assigneeUserId);
+
+    const stageName = gridStage?.name || pipelineStage?.name || 'Công đoạn';
+    const stageOrder = gridStage?.stageOrder ?? pipelineStage?.stageOrder ?? 99;
+    const isStageEnabled = gridStage
+      ? gridStage.isEnabled !== false
+      : pipelineStage
+        ? pipelineStage.isEnabled !== false
+        : true;
+    const assignedRole = (lot?.assignedRole ||
+      gridStage?.allowedRole ||
+      pipelineStage?.allowedRole ||
+      'Editor') as WorkspaceRole;
+
+    const visualStatus: AssignmentStatus =
+      t.status === 'Assigned' && !t.isStartable ? 'Blocked' : (t.status as AssignmentStatus);
+    const cellItem = toCellItem(t, assigneeUserId);
+
+    cards.push({
+      id: t.id,
+      seriesId,
+      chapterId: grid.chapterId,
+      entityType: 'Chapter',
+      targetEntityId: grid.chapterId,
+      targetLabel: 'Toàn chương',
+      pageNumber: null,
+      pipelineStageId: t.pipelineStageId,
+      stageName,
+      stageOrder,
+      stageColor: pipelineStage?.colorCode || null,
+      isStageEnabled,
+      assigneeUserId,
+      assigneeName: memberName,
+      assigneeEmail: member?.email,
+      assigneeAvatarInitials: initials,
+      assignedRole,
+      brief: `${stageName} – ${memberName} – Toàn chương`,
+      referenceNotes: lot?.brief?.trim() || null,
+      dueDate: lot?.dueDate ?? null,
+      priority: 'Medium',
+      status: visualStatus,
+      dependsOnAssignmentId: null,
+      dependsOnAssignmentIds: [],
+      startedAt: t.startedAt ?? null,
+      completedAt: null,
+      lastFeedbackComment: null,
+      impactReviewReason: t.isInputOutdated
+        ? t.outdatedReason || 'Đầu vào từ công đoạn trước đã thay đổi'
+        : null,
+      isGridTask: true,
+      isGridLot: false,
+      lotId: t.lotId ?? null,
+      lotApprovedCount: t.status === 'Approved' ? 1 : 0,
+      lotTaskCount: 1,
+      lotTasks: [cellItem],
+      isStartable: t.isStartable,
+    });
+  }
+
+  // 2. Các ô cấp Trang gom theo từng Lô (StageTaskLot)
+  const pageTasks = assignedTasks.filter((t) => Boolean(t.pageId));
+  const consumedTaskIds = new Set<string>();
+
+  const buildLotCard = (
+    lotId: string,
+    rawCells: StageTaskDto[],
+    stageId: string,
+    fallbackAssigneeId: string,
+    lotBrief?: string | null,
+    lotDueDate?: string | null,
+    lotAssignedRole?: string | null,
+  ): BoardCard => {
+    const gridStage = gridStagesMap.get(stageId);
+    const pipelineStage = stagesMap.get(stageId);
+    const assigneeUserId = fallbackAssigneeId || rawCells[0]?.assigneeUserId || '';
+    const { member, memberName, initials } = buildMemberInfo(assigneeUserId);
+
+    const stageName = gridStage?.name || pipelineStage?.name || 'Công đoạn';
+    const stageOrder = gridStage?.stageOrder ?? pipelineStage?.stageOrder ?? 99;
+    const isStageEnabled = gridStage
+      ? gridStage.isEnabled !== false
+      : pipelineStage
+        ? pipelineStage.isEnabled !== false
+        : true;
+    const assignedRole = (lotAssignedRole ||
+      gridStage?.allowedRole ||
+      pipelineStage?.allowedRole ||
+      'Artist') as WorkspaceRole;
+
+    const sortedCells = [...rawCells]
+      .map((t) => toCellItem(t, assigneeUserId))
+      .sort(
+        (a, b) =>
+          (a.pageNumber ?? Number.MAX_SAFE_INTEGER) - (b.pageNumber ?? Number.MAX_SAFE_INTEGER),
+      );
+
+    const approvedCount = sortedCells.filter((c) => c.status === 'Approved').length;
+    const totalCount = sortedCells.length;
+    const pageNumbers = sortedCells.map((c) => c.pageNumber).filter((n): n is number => n != null);
+    const pageRangeLabel = formatPageRangeLabel(pageNumbers);
+    const firstCell = sortedCells[0];
+    const outdatedCell = sortedCells.find((c) => c.isInputOutdated);
+    const earliestStarted = rawCells
+      .map((c) => c.startedAt)
+      .filter((s): s is string => Boolean(s))
+      .sort()[0];
+
+    return {
+      id: lotId,
+      seriesId,
+      chapterId: grid.chapterId,
+      entityType: 'Page',
+      targetEntityId: firstCell?.pageId || lotId,
+      targetLabel: `${pageRangeLabel} (${approvedCount}/${totalCount})`,
+      pageNumber: firstCell?.pageNumber ?? null,
+      pipelineStageId: stageId,
+      stageName,
+      stageOrder,
+      stageColor: pipelineStage?.colorCode || null,
+      isStageEnabled,
+      assigneeUserId,
+      assigneeName: memberName,
+      assigneeEmail: member?.email,
+      assigneeAvatarInitials: initials,
+      assignedRole,
+      brief: `${stageName} – ${memberName} – ${pageRangeLabel} (${approvedCount}/${totalCount})`,
+      referenceNotes: lotBrief?.trim() || null,
+      dueDate: lotDueDate ?? null,
+      priority: 'Medium',
+      status: aggregateLotStatus(sortedCells),
+      dependsOnAssignmentId: null,
+      dependsOnAssignmentIds: [],
+      startedAt: earliestStarted ?? null,
+      completedAt: null,
+      lastFeedbackComment: null,
+      impactReviewReason: outdatedCell
+        ? outdatedCell.outdatedReason || 'Đầu vào từ công đoạn trước đã thay đổi'
+        : null,
+      isGridTask: true,
+      isGridLot: true,
+      lotId,
+      lotApprovedCount: approvedCount,
+      lotTaskCount: totalCount,
+      firstPageId: firstCell?.pageId ?? null,
+      lotTasks: sortedCells,
+      isStartable: sortedCells.some((c) => c.isStartable),
+    };
+  };
+
+  for (const lot of grid.lots ?? []) {
+    if (lot.status === 'Closed') continue;
+    const cellsInLot = pageTasks.filter((t) => t.lotId === lot.id);
+    if (cellsInLot.length === 0) continue;
+    cellsInLot.forEach((t) => consumedTaskIds.add(t.id));
+    cards.push(
+      buildLotCard(
+        lot.id,
+        cellsInLot,
+        lot.pipelineStageId,
+        lot.assigneeUserId,
+        lot.brief,
+        lot.dueDate,
+        String(lot.assignedRole || ''),
+      ),
+    );
+  }
+
+  // Phòng hộ: nếu có ô cấp Trang đã gán nhưng thiếu bản ghi trong grid.lots, gom theo lotId hoặc tạo thẻ đơn
+  const orphanGroups = new Map<string, StageTaskDto[]>();
+  for (const t of pageTasks) {
+    if (consumedTaskIds.has(t.id)) continue;
+    const key = t.lotId || t.id;
+    const existing = orphanGroups.get(key);
+    if (existing) existing.push(t);
+    else orphanGroups.set(key, [t]);
+  }
+  for (const [groupKey, groupCells] of orphanGroups.entries()) {
+    const first = groupCells[0];
+    cards.push(
+      buildLotCard(
+        groupKey,
+        groupCells,
+        first.pipelineStageId,
+        first.assigneeUserId || '',
+        null,
+        null,
+        null,
+      ),
+    );
+  }
+
+  return cards;
+};
+
 // ── Hành động chính trên thẻ: chỉ điều hướng/mở chi tiết, không đổi trạng thái ──
 
 export type PrimaryAction =
@@ -443,8 +777,26 @@ export type PrimaryAction =
   | { kind: 'details'; label: 'Xem chi tiết' };
 
 export const primaryActionFor = (card: BoardCard, ctx: UserContext): PrimaryAction => {
-  const st = statusKey(card.status);
   const isAssignee = !!ctx.userId && card.assigneeUserId === ctx.userId;
+  if (card.lotTasks && card.lotTasks.length > 0) {
+    if (isAssignee) {
+      if (card.lotTasks.some((t) => t.status === 'ReworkRequired'))
+        return { kind: 'work', label: 'Xem yêu cầu sửa' };
+      if (card.lotTasks.some((t) => t.status === 'InProgress'))
+        return { kind: 'work', label: 'Tiếp tục' };
+      if (card.lotTasks.some((t) => t.status === 'Assigned'))
+        return { kind: 'work', label: 'Mở công việc' };
+    } else if (
+      !!ctx.userId &&
+      isReviewerRole(ctx.workspaceRole) &&
+      card.lotTasks.some((t) => t.status === 'Submitted' || t.status === 'UnderReview')
+    ) {
+      return { kind: 'review', label: 'Xét duyệt' };
+    }
+    return { kind: 'details', label: 'Xem chi tiết' };
+  }
+
+  const st = statusKey(card.status);
   if (isAssignee) {
     if (st === 'InProgress') return { kind: 'work', label: 'Tiếp tục' };
     if (st === 'Assigned') return { kind: 'work', label: 'Mở công việc' };

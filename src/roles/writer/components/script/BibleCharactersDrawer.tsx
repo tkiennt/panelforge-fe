@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { User, Search, X, BookOpen } from 'lucide-react';
 import { BibleEntryDto } from '@/services/bible.service';
 
@@ -13,6 +14,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
   onClose,
   characters,
 }) => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
   if (!isOpen) return null;
@@ -35,10 +37,14 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           </div>
           <div className='min-w-0'>
             <h3 className='text-sm font-bold text-[#1C1917] truncate font-serif'>
-              Nhân vật Series Bible ({characters.length})
+              {t(
+                'bible.charDrawer.title',
+                { count: characters.length },
+                'Nhân vật Series Bible ({count})',
+              )}
             </h3>
             <p className='text-xs text-[#57534E] truncate'>
-              Danh sách nhân vật Canon đối chiếu kịch bản
+              {t('bible.charDrawer.subtitle', 'Danh sách nhân vật Canon đối chiếu kịch bản')}
             </p>
           </div>
         </div>
@@ -47,7 +53,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           type='button'
           onClick={onClose}
           className='p-1.5 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer transition-colors'
-          title='Đóng'
+          title={t('bible.charDrawer.close', 'Đóng')}
         >
           <X className='w-4 h-4' />
         </button>
@@ -62,7 +68,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
               type='text'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder='Tìm kiếm nhân vật...'
+              placeholder={t('bible.charDrawer.searchPh', 'Tìm kiếm nhân vật...')}
               className='w-full pl-8 pr-3 py-1.5 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
             />
           </div>
@@ -76,8 +82,8 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
             <User className='w-8 h-8 text-[#57534E]/40 mx-auto mb-2' />
             <p className='text-xs font-semibold text-[#1C1917]'>
               {searchQuery
-                ? 'Không tìm thấy nhân vật nào phù hợp.'
-                : 'Chưa có nhân vật nào trong Series Bible.'}
+                ? t('bible.charDrawer.noMatch', 'Không tìm thấy nhân vật nào phù hợp.')
+                : t('bible.charDrawer.empty', 'Chưa có nhân vật nào trong Series Bible.')}
             </p>
           </div>
         ) : (

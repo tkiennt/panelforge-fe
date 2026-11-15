@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   X,
   BookOpen,
@@ -40,6 +41,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
   availablePanels = [],
   onSelectPanel,
 }) => {
+  const { t } = useTranslation();
   const [activeMode, setActiveMode] = useState<'panel' | 'chapter'>('panel');
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(panelId || null);
 
@@ -81,7 +83,13 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
       })
       .catch((err) => {
         if (isMounted) {
-          setError(err.message || 'Không thể tải thiết kế nhân vật trong khung tranh.');
+          setError(
+            err.message ||
+              t(
+                'bible.refDrawer.loadPanelFailed',
+                'Không thể tải thiết kế nhân vật trong khung tranh.',
+              ),
+          );
           setPanelEntries([]);
         }
       })
@@ -113,7 +121,10 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
       })
       .catch((err) => {
         if (isMounted) {
-          setError(err.message || 'Không thể tải toàn bộ Bible chương này.');
+          setError(
+            err.message ||
+              t('bible.refDrawer.loadChapterFailed', 'Không thể tải toàn bộ Bible chương này.'),
+          );
           setChapterEntries([]);
         }
       })
@@ -172,15 +183,17 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                     BIBLE REFERENCE
                   </span>
                   <span className='text-xs text-stone-500 font-mono'>
-                    Chương {chapterNumber}
-                    {displayPanelNumber ? ` • Khung #${displayPanelNumber}` : ''}
+                    {t('bible.refDrawer.chapterN', { ch: chapterNumber }, 'Chương {ch}')}
+                    {displayPanelNumber
+                      ? ' • ' + t('bible.refDrawer.panelN', { n: displayPanelNumber }, 'Khung #{n}')
+                      : ''}
                   </span>
                 </div>
                 <h3
                   id='bible-reference-drawer-title'
                   className='text-sm font-bold text-[#0c0a09] truncate font-serif mt-0.5 tracking-tight'
                 >
-                  Tham Chiếu Thiết Kế &amp; Nhân Vật
+                  {t('bible.refDrawer.title', 'Tham Chiếu Thiết Kế & Nhân Vật')}
                 </h3>
               </div>
             </div>
@@ -190,7 +203,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
               onClick={onClose}
               className='w-8 h-8 rounded-lg hover:bg-stone-200/60 border border-transparent hover:border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-800 transition-colors cursor-pointer'
               data-testid='close-bible-drawer-btn'
-              aria-label='Đóng tham chiếu Bible'
+              aria-label={t('bible.refDrawer.close', 'Đóng tham chiếu Bible')}
             >
               <X className='w-4 h-4' />
             </button>
@@ -223,7 +236,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                 data-testid='tab-chapter-bible'
               >
                 <Lock className='w-3.5 h-3.5 text-amber-600' />
-                <span>Toàn Bộ Chương (Canon)</span>
+                <span>{t('bible.refDrawer.wholeChapter', 'Toàn Bộ Chương (Canon)')}</span>
               </button>
             </div>
 
@@ -231,7 +244,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
             {activeMode === 'panel' && availablePanels.length > 1 && (
               <div className='flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar'>
                 <span className='text-xs font-mono text-stone-500 whitespace-nowrap font-medium'>
-                  Chọn khung:
+                  {t('bible.refDrawer.pickPanel', 'Chọn khung:')}
                 </span>
                 {availablePanels.map((p, idx) => {
                   const pNum = p.panelNumber ?? idx + 1;
@@ -267,13 +280,17 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                 data-testid='bible-drawer-loading'
               >
                 <Loader2 className='w-6 h-6 animate-spin text-[#F97316] mx-auto' />
-                <p className='text-xs font-medium'>Đang nạp thiết kế tham chiếu nhân vật...</p>
+                <p className='text-xs font-medium'>
+                  {t('bible.refDrawer.loading', 'Đang nạp thiết kế tham chiếu nhân vật...')}
+                </p>
               </div>
             ) : error ? (
               <div className='p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs flex items-start gap-2.5'>
                 <AlertCircle className='w-4 h-4 text-red-500 shrink-0 mt-0.5' />
                 <div>
-                  <p className='font-semibold'>Không thể tải Bible Reference</p>
+                  <p className='font-semibold'>
+                    {t('bible.refDrawer.loadError', 'Không thể tải Bible Reference')}
+                  </p>
                   <p className='text-xs text-red-700 mt-0.5'>{error}</p>
                 </div>
               </div>
@@ -285,13 +302,19 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                 <div>
                   <h4 className='font-bold text-sm text-[#0c0a09]'>
                     {activeMode === 'panel'
-                      ? 'Chưa có nhân vật gắn trong khung này'
-                      : 'Chưa có nhân vật nào được duyệt khoá'}
+                      ? t('bible.refDrawer.noCharInPanel', 'Chưa có nhân vật gắn trong khung này')
+                      : t('bible.refDrawer.noLockedChar', 'Chưa có nhân vật nào được duyệt khoá')}
                   </h4>
                   <p className='text-xs text-stone-500 mt-1 max-w-xs mx-auto leading-relaxed'>
                     {activeMode === 'panel'
-                      ? 'Khung tranh chưa neo dòng thoại của nhân vật có bản character sheet được khoá tham chiếu.'
-                      : 'Chưa có mục nhân vật nào được Producer duyệt và khoá tham chiếu ở chương này.'}
+                      ? t(
+                          'bible.refDrawer.noCharInPanelDesc',
+                          'Khung tranh chưa neo dòng thoại của nhân vật có bản character sheet được khoá tham chiếu.',
+                        )
+                      : t(
+                          'bible.refDrawer.noLockedCharDesc',
+                          'Chưa có mục nhân vật nào được Producer duyệt và khoá tham chiếu ở chương này.',
+                        )}
                   </p>
                 </div>
 
@@ -303,7 +326,12 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                     data-testid='btn-view-all-chapter-bible'
                   >
                     <BookOpen className='w-3.5 h-3.5' />
-                    <span>Xem toàn bộ Bible chương này (Canon Only)</span>
+                    <span>
+                      {t(
+                        'bible.refDrawer.viewWholeChapter',
+                        'Xem toàn bộ Bible chương này (Canon Only)',
+                      )}
+                    </span>
                   </button>
                 )}
               </div>
@@ -312,7 +340,8 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                 {activeMode === 'panel' && (
                   <div className='flex items-center justify-between text-xs text-stone-500 px-1 font-medium'>
                     <span>
-                      Nhân vật có thoại trong khung: <strong>{currentEntries.length}</strong>
+                      {t('bible.refDrawer.speakingInPanel', 'Nhân vật có thoại trong khung:')}{' '}
+                      <strong>{currentEntries.length}</strong>
                     </span>
                     <button
                       type='button'
@@ -320,7 +349,13 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                       className='text-[#F97316] hover:underline font-semibold flex items-center gap-1 cursor-pointer'
                       data-testid='switch-to-all-chapter-bible-btn'
                     >
-                      <span>Xem toàn bộ ({chapterEntries.length || '...'})</span>
+                      <span>
+                        {t(
+                          'bible.refDrawer.viewAll',
+                          { count: chapterEntries.length || '...' },
+                          'Xem toàn bộ ({count})',
+                        )}
+                      </span>
                       <ChevronRight className='w-3.5 h-3.5' />
                     </button>
                   </div>
@@ -343,7 +378,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                               name: entry.name,
                             })
                           }
-                          title='Bấm để phóng to ảnh tham chiếu'
+                          title={t('bible.refDrawer.zoomTitle', 'Bấm để phóng to ảnh tham chiếu')}
                         >
                           <AuthenticatedImage
                             src={entry.referenceImageUrl}
@@ -352,14 +387,14 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                           />
                           <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5 backdrop-blur-[1px]'>
                             <Eye className='w-4 h-4' />
-                            <span>Phóng to Reference Sheet</span>
+                            <span>{t('bible.refDrawer.zoom', 'Phóng to Reference Sheet')}</span>
                           </div>
                         </div>
                       ) : (
                         <div className='w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-stone-500 p-4 text-center'>
                           <BookOpen className='w-8 h-8 mb-1.5 opacity-40' />
                           <span className='text-xs font-mono uppercase tracking-wider text-stone-400'>
-                            Chưa có ảnh Reference Sheet
+                            {t('bible.refDrawer.noRefSheet', 'Chưa có ảnh Reference Sheet')}
                           </span>
                         </div>
                       )}
@@ -400,10 +435,18 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                       {entry.effectiveRevision && (
                         <div className='pt-2.5 border-t border-[#F0ECE1] flex items-center justify-between text-xs font-mono text-stone-500'>
                           <span className='font-semibold'>
-                            Bản khoá v{entry.effectiveRevision.versionNumber}
+                            {t(
+                              'bible.refDrawer.lockedVersion',
+                              { v: entry.effectiveRevision.versionNumber },
+                              'Bản khoá v{v}',
+                            )}
                           </span>
                           <span>
-                            Hiệu lực từ Chương {entry.effectiveRevision.effectiveFromChapterNumber}
+                            {t(
+                              'bible.refDrawer.effectiveFrom',
+                              { ch: entry.effectiveRevision.effectiveFromChapterNumber },
+                              'Hiệu lực từ Chương {ch}',
+                            )}
                           </span>
                         </div>
                       )}
@@ -418,14 +461,14 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
           <div className='p-4 bg-white border-t border-stone-200 flex items-center justify-between'>
             <div className='flex items-center gap-1.5 text-xs text-stone-500 font-medium'>
               <ShieldCheck className='w-4 h-4 text-emerald-600' />
-              <span>Tham chiếu chuẩn Canon</span>
+              <span>{t('bible.refDrawer.canonReference', 'Tham chiếu chuẩn Canon')}</span>
             </div>
             <button
               type='button'
               onClick={onClose}
               className='px-4 py-2 bg-[#0c0a09] hover:bg-stone-800 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-soft-sm'
             >
-              Đóng
+              {t('bible.refDrawer.closeShort', 'Đóng')}
             </button>
           </div>
         </div>

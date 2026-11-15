@@ -53,11 +53,14 @@ export interface ScriptLineItem {
   sceneTitle?: string;
   sceneSlugline?: string;
   speakerCharacterId?: string | null;
+  speakerLabel?: string | null;
   characterName?: string;
   characterColor?: string;
   dialogueText?: string;
   stageDirection?: string;
   narrationMode?: string;
+  kind?: string | number | null;
+  text?: string | null;
   panelId?: string;
   lineOrder?: number;
 }
@@ -101,6 +104,9 @@ export interface ArtistCanvaSidebarProps {
   selectedChapterId?: string | null;
   onSelectChapter?: (chapterId: string) => void;
   isLoadingScript?: boolean;
+  selectedPanelId?: string | null;
+  selectedPanelNumber?: number | null;
+  onSelectPanelId?: (panelId: string | null) => void;
   // Bible props
   bibleEntities?: BibleEntityItem[];
   seriesTitle?: string;
@@ -164,7 +170,88 @@ function formatNarrationMode(mode?: string): string | null {
   return null;
 }
 
-const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
+export type ResolvedLineKind = 'action' | 'dialogue' | 'thought' | 'narration' | 'sfx';
+
+export function resolveScriptLineMeta(line: ScriptLineItem): {
+  kind: ResolvedLineKind;
+  typeLabel: string;
+  speaker?: string;
+  text: string;
+  secondaryAction?: string;
+} {
+  const rawKind = String(line.kind ?? line.narrationMode ?? '').toLowerCase();
+  const hasDialogue = Boolean(line.dialogueText && line.dialogueText.trim());
+  const hasStage = Boolean(line.stageDirection && line.stageDirection.trim());
+  const fallbackText = (line.text || line.dialogueText || line.stageDirection || '').trim();
+  const speakerName = (line.characterName || line.speakerLabel || '').trim();
+
+  if (rawKind === '5' || rawKind === 'sfx' || /^sfx\b/i.test(fallbackText)) {
+    return {
+      kind: 'sfx',
+      typeLabel: 'SFX',
+      text: (line.dialogueText || line.text || line.stageDirection || '').trim(),
+    };
+  }
+
+  if (
+    rawKind === '4' ||
+    rawKind === 'narration' ||
+    rawKind.includes('voice') ||
+    rawKind.includes('narrat') ||
+    /^(Người dẫn|Lời dẫn|Dẫn chuyện|Caption)$/i.test(speakerName)
+  ) {
+    return {
+      kind: 'narration',
+      typeLabel: 'Narration',
+      text: (line.dialogueText || line.text || line.stageDirection || '').trim(),
+      secondaryAction:
+        hasDialogue && hasStage && line.dialogueText !== line.stageDirection
+          ? line.stageDirection?.trim()
+          : undefined,
+    };
+  }
+
+  if (
+    rawKind === '3' ||
+    rawKind === 'thought' ||
+    rawKind.includes('inner') ||
+    rawKind.includes('monologue')
+  ) {
+    const spk = speakerName && speakerName !== 'Người dẫn' ? speakerName : 'Nhân vật';
+    return {
+      kind: 'thought',
+      typeLabel: `Suy nghĩ · ${spk}`,
+      speaker: spk,
+      text: (line.dialogueText || line.text || line.stageDirection || '').trim(),
+      secondaryAction:
+        hasDialogue && hasStage && line.dialogueText !== line.stageDirection
+          ? line.stageDirection?.trim()
+          : undefined,
+    };
+  }
+
+  if (rawKind === '2' || rawKind === 'dialogue' || hasDialogue) {
+    const spk = speakerName && speakerName !== 'Người dẫn' ? speakerName : 'Nhân vật';
+    return {
+      kind: 'dialogue',
+      typeLabel: `Thoại · ${spk}`,
+      speaker: spk,
+      text: (line.dialogueText || line.text || '').trim(),
+      secondaryAction:
+        hasStage && line.stageDirection !== line.dialogueText
+          ? line.stageDirection?.trim()
+          : undefined,
+    };
+  }
+
+  return {
+    kind: 'action',
+    typeLabel: 'Mô tả cảnh',
+    text: (line.stageDirection || line.text || line.dialogueText || '').trim(),
+  };
+}
+
+export const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
   {
     id: 'line-1',
     pageNumber: 1,
@@ -797,6 +884,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   selectedChapterId,
   onSelectChapter,
   isLoadingScript = false,
+  selectedPanelId = null,
+  selectedPanelNumber = null,
+  onSelectPanelId,
   bibleEntities = DEFAULT_BIBLE_ENTITIES,
   seriesTitle = 'Huyết Thống Viễn Cổ',
   isLoadingBible = false,
@@ -971,7 +1061,70 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const selectedPage = pages[selectedPageIndex] || null;
   const activePageNumber = selectedPage?.pageNumber || 1;
 
-  // Danh sách câu thoại hiển thị trong Tab Lettering (theo trang hiện tại hoặc toàn bộ)
+  const renderScriptLineRow = (line: ScriptLineItem, isPanelSelected: boolean) => {
+    const meta = resolveScriptLineMeta(line);
+    const hasActivePanelFilter = Boolean(selectedPanelId || selectedPanelNumber);
+    const isMatchedPanel = Boolean(
+      (selectedPanelId && line.panelId && line.panelId === selectedPanelId) ||
+      (!selectedPanelId &&
+        selectedPanelNumber &&
+        line.panelNumber === selectedPanelNumber &&
+        (line.pageNumber ?? activePageNumber) === activePageNumber) ||
+      isPanelSelected,
+    );
+
+    return (
+      <div
+        key={line.id}
+        data-testid={`script-line-${line.id}`}
+        data-script-kind={meta.kind}
+        data-panel-highlighted={isMatchedPanel ? 'true' : 'false'}
+        className={`py-0.5 leading-relaxed transition-colors ${
+          isMatchedPanel
+            ? 'pl-2 -ml-2 border-l-2 border-[#F97316] bg-[#FFF7ED]/70 font-medium'
+            : hasActivePanelFilter
+              ? 'opacity-60'
+              : ''
+        }`}
+      >
+        {/* Chỉ dẫn cảnh / hành động (nếu dòng vừa có chỉ dẫn cảnh vừa có thoại hoặc là dòng mô tả cảnh thuần) */}
+        {line.stageDirection && (
+          <p className='text-[11.5px] text-[var(--sb-muted)] italic leading-relaxed font-sans'>
+            <span className='not-italic font-mono text-[10px] font-bold uppercase tracking-wider text-stone-500 mr-1.5'>
+              [Mô tả cảnh]
+            </span>
+            {line.stageDirection}
+          </p>
+        )}
+
+        {/* Dòng Thoại / Suy nghĩ / Narration / SFX */}
+        {(line.dialogueText || (line.text && !line.stageDirection)) && (
+          <div className='text-xs text-[var(--sb-text)] leading-relaxed mt-0.5'>
+            <span
+              className='font-mono text-[10px] font-bold uppercase tracking-wider mr-1.5'
+              style={{
+                color:
+                  meta.kind === 'sfx'
+                    ? '#D97706'
+                    : meta.kind === 'narration'
+                      ? '#4F46E5'
+                      : line.characterColor || 'var(--sb-accent)',
+              }}
+            >
+              [{meta.typeLabel}]
+            </span>
+            {line.characterName && <span className='sr-only'>{line.characterName}</span>}
+            {formatNarrationMode(line.narrationMode) && (
+              <span className='text-[9px] text-[var(--sb-muted)] mr-1'>
+                ({formatNarrationMode(line.narrationMode)})
+              </span>
+            )}
+            <span className='font-serif'>&ldquo;{line.dialogueText || line.text}&rdquo;</span>
+          </div>
+        )}
+      </div>
+    );
+  };
   const displayedLetteringScriptLines = useMemo(() => {
     if (!letteringFilterCurrentPage) return scriptLines;
     const pageLines = scriptLines.filter((l) => (l.pageNumber ?? 1) === activePageNumber);
@@ -1662,6 +1815,27 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     Trang {activePageNumber}
                   </button>
                 </div>
+
+                {(selectedPanelId || selectedPanelNumber) && (
+                  <div
+                    data-testid='canva-script-active-panel-filter'
+                    className='flex items-center justify-between gap-2 pt-1 text-[10px] font-mono text-[#C2410C]'
+                  >
+                    <span>
+                      Đang làm nổi: Khung #{selectedPanelNumber || '?'} (Trang {activePageNumber})
+                    </span>
+                    {onSelectPanelId && (
+                      <button
+                        type='button'
+                        data-testid='canva-script-clear-panel-filter'
+                        onClick={() => onSelectPanelId(null)}
+                        className='underline hover:opacity-80 cursor-pointer'
+                      >
+                        Hiện cả trang
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1734,24 +1908,40 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           </span>
                         </button>
 
-                        {/* Danh sách các khung và lời thoại trong trang (chảy liền mạch, không chia ô hộp) */}
-                        <div className='space-y-3'>
-                          {panelsInPage.map(({ panelNumber, lines }) => {
+                        {/* Danh sách các khung và lời thoại trong trang (chảy liền mạch dạng dòng, ngăn cách nhẹ theo Scene, không chia ô hộp) */}
+                        <div className='space-y-2.5'>
+                          {panelsInPage.map(({ panelNumber, lines }, panelIdx) => {
                             const firstSceneTitle = lines[0]?.sceneTitle || '';
                             const firstSceneSlug = lines[0]?.sceneSlugline || '';
                             const sceneKey = `${firstSceneTitle}|${firstSceneSlug}`;
                             const showSceneHeader = Boolean(
                               firstSceneTitle && sceneKey !== lastSceneKey,
                             );
+                            const isNewSceneAfterFirst = showSceneHeader && panelIdx > 0;
                             if (firstSceneTitle) {
                               lastSceneKey = sceneKey;
                             }
+                            const firstPanelId = lines.find((l) => l.panelId)?.panelId;
+                            const isPanelHighlighted = Boolean(
+                              (selectedPanelId &&
+                                lines.some((l) => l.panelId === selectedPanelId)) ||
+                              (!selectedPanelId &&
+                                isSelectedPage &&
+                                selectedPanelNumber &&
+                                panelNumber > 0 &&
+                                panelNumber === selectedPanelNumber),
+                            );
 
                             return (
                               <div
                                 key={`script-panel-${pageNumber}-${panelNumber}`}
                                 data-testid={`script-panel-section-${pageNumber}-${panelNumber}`}
-                                className='space-y-1.5'
+                                data-panel-active={isPanelHighlighted ? 'true' : 'false'}
+                                className={`space-y-1 ${
+                                  isNewSceneAfterFirst
+                                    ? 'pt-2.5 border-t border-dashed border-[var(--sb-border)]'
+                                    : ''
+                                }`}
                               >
                                 {showSceneHeader && (
                                   <div className='pt-0.5 text-[10px] font-mono uppercase tracking-wider text-[var(--sb-muted)]'>
@@ -1762,53 +1952,35 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
 
                                 {/* Nhãn Khung gọn nhẹ không đóng khung hộp */}
                                 <div className='flex items-center gap-2 pt-0.5'>
-                                  <span className='text-[10.5px] font-mono font-bold uppercase tracking-wider text-[var(--sb-accent)]'>
+                                  <button
+                                    type='button'
+                                    onClick={() => {
+                                      if (!onSelectPanelId || panelNumber <= 0) return;
+                                      const targetId =
+                                        firstPanelId || `panel-num-${pageNumber}-${panelNumber}`;
+                                      onSelectPanelId(
+                                        selectedPanelId === targetId ? null : targetId,
+                                      );
+                                    }}
+                                    className={`text-[10.5px] font-mono font-bold uppercase tracking-wider text-left ${
+                                      onSelectPanelId && panelNumber > 0
+                                        ? 'cursor-pointer hover:underline'
+                                        : 'cursor-default'
+                                    } ${
+                                      isPanelHighlighted
+                                        ? 'text-[#EA580C]'
+                                        : 'text-[var(--sb-accent)]'
+                                    }`}
+                                  >
                                     {panelNumber > 0 ? `Khung ${panelNumber}` : 'Chưa gán khung'}
-                                  </span>
+                                  </button>
                                 </div>
 
-                                {/* Các dòng thoại & chỉ dẫn chảy liền mạch */}
-                                <div className='space-y-2 pl-2.5 border-l border-[var(--sb-border)]'>
-                                  {lines.map((line) => (
-                                    <div
-                                      key={line.id}
-                                      data-testid={`script-line-${line.id}`}
-                                      className='space-y-1'
-                                    >
-                                      {/* Chỉ dẫn hành động / bối cảnh */}
-                                      {line.stageDirection && (
-                                        <p className='text-[11.5px] text-[var(--sb-muted)] italic leading-relaxed font-sans'>
-                                          🎬 {line.stageDirection}
-                                        </p>
-                                      )}
-
-                                      {/* Lời thoại nhân vật */}
-                                      {line.dialogueText && (
-                                        <div className='py-0.5'>
-                                          {line.characterName && (
-                                            <div className='flex items-center gap-1.5'>
-                                              <span
-                                                className='text-[11px] font-bold tracking-wide uppercase'
-                                                style={{
-                                                  color: line.characterColor || 'var(--sb-accent)',
-                                                }}
-                                              >
-                                                {line.characterName}
-                                              </span>
-                                              {formatNarrationMode(line.narrationMode) && (
-                                                <span className='text-[9px] text-[var(--sb-muted)]'>
-                                                  ({formatNarrationMode(line.narrationMode)})
-                                                </span>
-                                              )}
-                                            </div>
-                                          )}
-                                          <p className='text-xs text-[var(--sb-text)] font-serif leading-relaxed mt-0.5'>
-                                            &ldquo;{line.dialogueText}&rdquo;
-                                          </p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
+                                {/* Các dòng kịch bản chảy liền mạch (mỗi ScriptLine một dòng theo thứ tự) */}
+                                <div className='space-y-1.5 pl-2.5 border-l border-[var(--sb-border)]'>
+                                  {lines.map((line) =>
+                                    renderScriptLineRow(line, isPanelHighlighted),
+                                  )}
                                 </div>
                               </div>
                             );
@@ -1842,44 +2014,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             )}
                           </div>
 
-                          <div className='space-y-2 pl-2.5 border-l border-[var(--sb-border)]'>
-                            {scene.lines.map((line) => (
-                              <div
-                                key={line.id}
-                                data-testid={`script-line-${line.id}`}
-                                className='space-y-1'
-                              >
-                                {line.stageDirection && (
-                                  <p className='text-[11.5px] text-[var(--sb-muted)] italic leading-relaxed font-sans'>
-                                    🎬 {line.stageDirection}
-                                  </p>
-                                )}
-                                {line.dialogueText && (
-                                  <div className='py-0.5'>
-                                    {line.characterName && (
-                                      <div className='flex items-center gap-1.5'>
-                                        <span
-                                          className='text-[11px] font-bold tracking-wide uppercase'
-                                          style={{
-                                            color: line.characterColor || 'var(--sb-accent)',
-                                          }}
-                                        >
-                                          {line.characterName}
-                                        </span>
-                                        {formatNarrationMode(line.narrationMode) && (
-                                          <span className='text-[9px] text-[var(--sb-muted)]'>
-                                            ({formatNarrationMode(line.narrationMode)})
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                    <p className='text-xs text-[var(--sb-text)] font-serif leading-relaxed mt-0.5'>
-                                      &ldquo;{line.dialogueText}&rdquo;
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                          <div className='space-y-1.5 pl-2.5 border-l border-[var(--sb-border)]'>
+                            {scene.lines.map((line) => renderScriptLineRow(line, false))}
                           </div>
                         </div>
                       ))}
@@ -2508,7 +2644,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       )}
 
                       <div className='flex items-center justify-end gap-1.5 pt-1'>
-                          {onNavigateToChangeRequestTarget && hasChangeRequestLocation(cr) && (
+                        {onNavigateToChangeRequestTarget && hasChangeRequestLocation(cr) && (
                           <button
                             type='button'
                             onClick={() => onNavigateToChangeRequestTarget(cr)}

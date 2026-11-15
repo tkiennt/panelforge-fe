@@ -207,24 +207,29 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
             </div>
           </div>
 
-          {pipelineTemplates.length > 0 && (
-            <div>
-              <label className='block font-semibold text-[#171717] mb-1'>
-                Mẫu Quy Trình Sản Xuất (Pipeline Template)
-              </label>
-              <select
-                value={templateId}
-                onChange={(e) => onTemplateIdChange(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
-              >
-                {pipelineTemplates.map((tpl) => (
-                  <option key={tpl.id} value={tpl.id}>
-                    {tpl.name} {tpl.isDefault ? '(Mặc định)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div>
+            <label
+              htmlFor='create-series-pipeline-template'
+              className='block font-semibold text-[#171717] mb-1'
+            >
+              Mẫu Quy Trình Sản Xuất (Pipeline Template)
+            </label>
+            <select
+              id='create-series-pipeline-template'
+              value={templateId}
+              onChange={(e) => onTemplateIdChange(e.target.value)}
+              className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+            >
+              <option value=''>
+                Mặc định chuẩn V3 (Pencil → Ink / Letter song song → Review → Approved)
+              </option>
+              {pipelineTemplates.map((tpl) => (
+                <option key={tpl.id} value={tpl.id}>
+                  {tpl.name} {tpl.isDefault ? '(Mẫu hệ thống)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div>
             <label className='block font-semibold text-[#171717] mb-1'>
@@ -244,7 +249,10 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
               <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
               <span>Cấu hình tự động:</span>
             </div>
-            <div>• Áp dụng chuẩn 8 công đoạn (Script → Approved) có Review Gate.</div>
+            <div>
+              • Pipeline mặc định bắt đầu từ Pencil (không có Thumbnail); Ink/Color (Nhánh A) và
+              Letter (Nhánh B) mở song song sau Pencil, qua cổng Review trước Approved.
+            </div>
             <div>• Hướng đọc tự động thiết lập theo Format.</div>
             <div>• Khởi tạo sẵn Series Bible rỗng.</div>
           </div>

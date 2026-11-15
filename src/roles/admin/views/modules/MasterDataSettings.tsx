@@ -15,13 +15,12 @@ import { Input } from '@/shared/components/ui/Input';
 export const MasterDataSettings: React.FC = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [stages, setStages] = useState([
-    { key: 'script', name: 'Script Drafting', color: 'bg-indigo-500' },
-    { key: 'thumbnail', name: 'Name / Storyboard', color: 'bg-blue-500' },
     { key: 'pencil', name: 'Draft Pencil Art', color: 'bg-amber-500' },
-    { key: 'ink', name: 'Line Inking & G-Pen', color: 'bg-zinc-800' },
-    { key: 'color', name: 'Halftone & Screentone', color: 'bg-purple-500' },
-    { key: 'letter', name: 'Typesetting & Dialogue', color: 'bg-emerald-500' },
+    { key: 'ink', name: 'Line Inking & G-Pen (Track A)', color: 'bg-zinc-800' },
+    { key: 'color', name: 'Halftone & Color (Track A)', color: 'bg-purple-500' },
+    { key: 'letter', name: 'Typesetting & Dialogue (Track B)', color: 'bg-emerald-500' },
     { key: 'review', name: 'Editor-in-Chief Review', color: 'bg-red-500' },
+    { key: 'approved', name: 'Approved', color: 'bg-teal-600' },
   ]);
 
   const [elementTypes, setElementTypes] = useState([

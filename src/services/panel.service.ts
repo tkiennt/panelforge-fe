@@ -12,14 +12,16 @@ import {
   PanelSplitResult,
 } from '../types/pipeline';
 
+const FALLBACK_FORBIDDEN_MSG = 'Phần này thuộc việc của người khác / đang chờ duyệt';
+
 function extractError(error: any, defaultMsg: string): any {
-  let message = error.response?.data?.error || error.response?.data?.message || defaultMsg;
-  if (error.response?.status === 403 || error.response?.data?.code === 'FORBIDDEN') {
-    message = 'Phần này thuộc việc của người khác / đang chờ duyệt';
-  }
+  const data = error.response?.data;
+  const serverMsg = (data?.error || data?.message || '').trim();
+  const isForbidden = error.response?.status === 403 || data?.code === 'FORBIDDEN';
+  const message = serverMsg || (isForbidden ? FALLBACK_FORBIDDEN_MSG : defaultMsg);
   const err: any = new Error(message);
   err.code =
-    error.response?.data?.code ||
+    data?.code ||
     (error.response?.status === 403
       ? 'FORBIDDEN'
       : error.response?.status === 409

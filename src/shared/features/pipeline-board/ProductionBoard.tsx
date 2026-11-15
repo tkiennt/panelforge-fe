@@ -39,6 +39,7 @@ import {
   groupCards,
   hasActiveDetailFilters,
   mapAssignmentsToCards,
+  mapTaskGridToCards,
   matchesDetailFilters,
   matchesQuickFilter,
   primaryActionFor,
@@ -63,6 +64,9 @@ export interface ProductionBoardProps {
   isProducer?: boolean;
   currentUserId?: string;
   onShowToast: (title: string, desc: string) => void;
+  /** Clean Cutover: mở sang Lưới Trang × Công đoạn (V3) để giao việc (không tạo việc ở Bảng nữa). */
+  onOpenTaskGrid?: () => void;
+  /** Chỉ còn cho test/chương V2 độc lập chưa nối Lưới V3. */
   onOpenCreateAssignment?: () => void;
 }
 
@@ -89,6 +93,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
   isProducer = false,
   currentUserId,
   onShowToast,
+  onOpenTaskGrid,
   onOpenCreateAssignment,
 }) => {
   const { t } = useTranslation('pipeline');
@@ -98,6 +103,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
 
   // ── Dữ liệu ──
   const [cards, setCards] = useState<BoardCard[] | null>(null);
+  const [isGridBacked, setIsGridBacked] = useState(false);
   const [pages, setPages] = useState<PageDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,6 +114,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
   const loadBoard = useCallback(async () => {
     if (!chapterId || !seriesId || !workspaceId) {
       setCards(null);
+      setIsGridBacked(false);
       setPages([]);
       loadedChapterRef.current = null;
       return;
@@ -115,19 +122,37 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
     const requestId = ++requestRef.current;
     if (loadedChapterRef.current !== chapterId) {
       setCards(null);
+      setIsGridBacked(false);
       setPages([]);
     }
     setLoading(true);
     setError(null);
     try {
-      const [assignments, pipeline, pagesRes, members] = await Promise.all([
-        assignmentService.getAssignmentsStrict(chapterId),
+      const hasTaskGridApi = typeof assignmentService.getTaskGrid === 'function';
+      const [taskGrid, pipeline, pagesRes, members] = await Promise.all([
+        hasTaskGridApi
+          ? assignmentService.getTaskGrid(chapterId).catch((err) => {
+              // Nếu không có getAssignmentsStrict (môi trường test chỉ mock getTaskGrid) thì ném lỗi
+              if (typeof assignmentService.getAssignmentsStrict !== 'function') throw err;
+              return null;
+            })
+          : Promise.resolve(null),
         pipelineService.getSeriesPipeline(seriesId).catch(() => null),
         pageService.getPagesByChapter(chapterId).catch(() => [] as PageDto[]),
         workspaceService.getMembers(workspaceId).catch(() => [] as WorkspaceMemberDto[]),
       ]);
       if (requestId !== requestRef.current) return;
-      setCards(mapAssignmentsToCards(assignments, pipeline?.stages ?? [], pagesRes, members));
+
+      const activeGridTasks = (taskGrid?.tasks ?? []).filter((t) => t.status !== 'Cancelled');
+      if (taskGrid && activeGridTasks.length > 0) {
+        setIsGridBacked(true);
+        setCards(mapTaskGridToCards(taskGrid, pipeline?.stages ?? [], pagesRes, members, seriesId));
+      } else {
+        setIsGridBacked(false);
+        const assignments = await assignmentService.getAssignmentsStrict(chapterId);
+        if (requestId !== requestRef.current) return;
+        setCards(mapAssignmentsToCards(assignments, pipeline?.stages ?? [], pagesRes, members));
+      }
       setPages(pagesRes);
       loadedChapterRef.current = chapterId;
       setNow(Date.now());
@@ -146,12 +171,14 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
   }, [loadBoard, refreshKey]);
 
   // ── Trạng thái lọc & cách xem ──
+  const normalizedRole = currentUserRole ? String(currentUserRole).trim().toUpperCase() : '';
+  const effectiveIsProducer = normalizedRole ? normalizedRole === 'PRODUCER' : Boolean(isProducer);
   const userCtx: UserContext = useMemo(
     () => ({
       userId: currentUserId ?? null,
-      workspaceRole: currentUserRole || (isProducer ? 'PRODUCER' : null),
+      workspaceRole: currentUserRole || (effectiveIsProducer ? 'PRODUCER' : null),
     }),
-    [currentUserId, currentUserRole, isProducer],
+    [currentUserId, currentUserRole, effectiveIsProducer],
   );
   const canUseNeedsMe = !!currentUserId;
   const availableQuickFilters = useMemo(
@@ -159,7 +186,11 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
     [canUseNeedsMe],
   );
 
-  const quickFilter = resolveQuickFilter(searchParams.get('filter'), canUseNeedsMe, isProducer);
+  const quickFilter = resolveQuickFilter(
+    searchParams.get('filter'),
+    canUseNeedsMe,
+    effectiveIsProducer,
+  );
   const viewMode = resolveViewMode(searchParams.get('view'));
   const groupBy = resolveGroupBy(searchParams.get('group'));
 
@@ -282,8 +313,19 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
     }
   };
 
+  // Khi dữ liệu lưới tải lại sau thao tác trên ô trong SideDrawer, đồng bộ lại selectedCard
+  useEffect(() => {
+    if (!isDrawerOpen || !selectedCard || !cards) return;
+    const next = cards.find((c) => c.id === selectedCard.id);
+    if (next) {
+      setSelectedCard(next);
+    } else if (selectedCard.isGridTask) {
+      closeDrawer();
+    }
+  }, [cards, isDrawerOpen, selectedCard, closeDrawer]);
+
   const handleAction = (card: BoardCard, action: PrimaryAction, trigger: HTMLElement) => {
-    if (action.kind === 'details') openDetails(card, trigger);
+    if (action.kind === 'details' || card.isGridTask) openDetails(card, trigger);
     else openMyWork(card);
   };
 
@@ -426,7 +468,9 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
             aria-live='polite'
           >
             {cards === null ? (
-              <span className='text-landing-ink-muted'>{t('board.loadingTasks', 'Đang tải công việc…')}</span>
+              <span className='text-landing-ink-muted'>
+                {t('board.loadingTasks', 'Đang tải công việc…')}
+              </span>
             ) : (
               <>
                 {t(
@@ -434,7 +478,9 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
                   { count: filteredCards.length, total: cards.length },
                   `Đang hiển thị ${filteredCards.length} / ${cards.length} công việc của chương`,
                 )}
-                {anyFilterActive && <span className='text-landing-ink-muted'> {t('board.filtered', '(đã lọc)')}</span>}
+                {anyFilterActive && (
+                  <span className='text-landing-ink-muted'> {t('board.filtered', '(đã lọc)')}</span>
+                )}
               </>
             )}
           </h2>
@@ -549,13 +595,21 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
         <EmptyState
           icon={Plus}
           title='Chương này chưa có công việc nào'
-          description='Phân công các công đoạn Kịch bản, Bố cục, Vẽ nét, Đi nét, Tô màu hoặc Chèn chữ để bắt đầu theo dõi tiến độ.'
+          description={
+            isGridBacked || onOpenTaskGrid
+              ? 'Giao việc hiện được thực hiện trên Lưới Trang × Công đoạn (V3). Chuyển sang Lưới để sinh ô và giao lô cho thành viên.'
+              : 'Phân công các công đoạn Kịch bản, Vẽ nét, Đi nét, Tô màu hoặc Chèn chữ để bắt đầu theo dõi tiến độ.'
+          }
           action={
-            onOpenCreateAssignment && (
+            onOpenTaskGrid && isProducer ? (
+              <button type='button' onClick={onOpenTaskGrid} className={primaryCta}>
+                <LayoutGrid className='h-4 w-4' aria-hidden='true' /> Mở Lưới để giao việc
+              </button>
+            ) : !isGridBacked && onOpenCreateAssignment ? (
               <button type='button' onClick={onOpenCreateAssignment} className={primaryCta}>
                 <Plus className='h-4 w-4' aria-hidden='true' /> Giao việc cho chương này
               </button>
-            )
+            ) : undefined
           }
         />
       ) : filteredCards.length === 0 ? (
@@ -650,7 +704,15 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
         isOpen={isDrawerOpen}
         onClose={closeDrawer}
         card={selectedCard}
+        chapterCards={allCards}
+        currentUserId={currentUserId}
+        currentUserRole={currentUserRole || (effectiveIsProducer ? 'PRODUCER' : null)}
         onShowToast={onShowToast}
+        onGridUpdated={loadBoard}
+        onImpactResolved={(updated) => {
+          setCards((prev) => (prev ? prev.map((c) => (c.id === updated.id ? updated : c)) : prev));
+          setSelectedCard(updated);
+        }}
         onDeleted={(deletedId) => {
           setCards((prev) => (prev ? prev.filter((c) => c.id !== deletedId) : prev));
           closeDrawer();

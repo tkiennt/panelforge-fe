@@ -155,21 +155,42 @@ describe('panelService', () => {
       }),
     ).rejects.toThrow('Tọa độ không hợp lệ');
   });
-  it('ném lỗi 403 FORBIDDEN với thông điệp "Phần này thuộc việc của người khác / đang chờ duyệt"', async () => {
+  it('giữ nguyên lý do 403 cụ thể từ WorkScopeGuard (error hoặc message) và dùng fallback khi body rỗng', async () => {
     vi.mocked(axiosClient.post).mockRejectedValueOnce({
       response: {
         status: 403,
-        data: { code: 'FORBIDDEN', message: 'Forbidden action' },
+        data: {
+          code: 'FORBIDDEN',
+          error: 'Ô việc chưa bắt đầu: bấm Bắt đầu khi công đoạn trước đã được duyệt.',
+        },
       },
     });
 
-    const promise = panelService.createPanel('page-101', {
+    const specific = panelService.createPanel('page-101', {
       panelNumber: 1,
       readingOrder: 1,
       boundingBox: '{"x": 10, "y": 10, "width": 80, "height": 40}',
     });
 
-    await expect(promise).rejects.toThrow('Phần này thuộc việc của người khác / đang chờ duyệt');
-    await expect(promise).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(specific).rejects.toThrow(
+      'Ô việc chưa bắt đầu: bấm Bắt đầu khi công đoạn trước đã được duyệt.',
+    );
+    await expect(specific).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+
+    vi.mocked(axiosClient.post).mockRejectedValueOnce({
+      response: {
+        status: 403,
+        data: { code: 'FORBIDDEN' },
+      },
+    });
+
+    const fallback = panelService.createPanel('page-101', {
+      panelNumber: 1,
+      readingOrder: 1,
+      boundingBox: '{"x": 10, "y": 10, "width": 80, "height": 40}',
+    });
+
+    await expect(fallback).rejects.toThrow('Phần này thuộc việc của người khác / đang chờ duyệt');
+    await expect(fallback).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
   });
 });
