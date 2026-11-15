@@ -96,6 +96,25 @@ describe('AppShell Component', () => {
     expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
   });
 
+  it('hiển thị Bàn duyệt và Duyệt thiết kế Bible cho vai trò EDITOR trong ngữ cảnh Series (Row #12)', () => {
+    const editorUser: CurrentUser = {
+      name: 'Vũ Biên Tập',
+      role: 'USER',
+      workspaceRole: 'EDITOR' as any,
+      activeRoles: ['EDITOR'],
+      avatarInitials: 'VB',
+    };
+
+    renderInRouter(editorUser, '/workspaces/ws-1/series/ser-1/my-work');
+
+    expect(screen.getByText('Bàn duyệt')).toBeInTheDocument();
+    expect(screen.getByText('Duyệt thiết kế Bible')).toBeInTheDocument();
+    expect(screen.getByText('Kịch bản (Script)')).toBeInTheDocument();
+    expect(screen.getByText('Series Bible')).toBeInTheDocument();
+    expect(screen.queryByText('Bàn vẽ & Khung trang')).not.toBeInTheDocument();
+    expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
+  });
+
   it('vai trò PRODUCER trong Series thấy đầy đủ các menu quản lý và sản xuất', () => {
     const producerUser: CurrentUser = {
       name: 'Phạm Nhà Sản Xuất',

@@ -10,6 +10,7 @@ import {
   UserCheck,
   ChevronRight,
   AlertCircle,
+  Eye,
 } from 'lucide-react';
 import { adminService, SystemStatsResponse } from '@/services/admin.service';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,7 @@ interface AdminDashboardViewProps {
   onNavigateToAudit?: () => void;
   onNavigateToSessionPolicy?: () => void;
   onNavigateToStorage?: () => void;
+  onNavigateToAnalytics?: () => void;
 }
 
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
@@ -30,6 +32,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   onNavigateToAudit,
   onNavigateToSessionPolicy,
   onNavigateToStorage,
+  onNavigateToAnalytics,
 }) => {
   const [stats, setStats] = useState<SystemStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,6 +90,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       desc: 'Tra cứu và xuất lịch sử thao tác',
       icon: List,
       onClick: onNavigateToAudit,
+    },
+    {
+      label: 'Thống kê độc giả',
+      desc: 'Lượt đọc và độc giả các bộ truyện',
+      icon: Eye,
+      onClick: onNavigateToAnalytics,
     },
   ];
 
