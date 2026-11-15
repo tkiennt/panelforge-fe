@@ -41,6 +41,7 @@ import { hasChangeRequestLocation } from '../../utils/changeRequestLocation';
 import { PageHistoryDto } from '@/services/page.service';
 import { ElementSnapshotDto } from '@/services/element.service';
 import { CollapsibleSidebar, SidebarSection } from '@/shared/ui';
+import { ArtistScriptReader } from './ArtistScriptReader';
 import '@/styles/modules/sidebar-theme.css';
 
 export type CanvaSidebarTab =
@@ -108,6 +109,8 @@ export interface ArtistCanvaSidebarProps {
   isLoadingBible?: boolean;
   selectedPanelId?: string | null;
   selectedPanelNumber?: number | null;
+  artworkPanelKeys?: Set<string | number>;
+  onSelectPanel?: (pageNumber: number, panelNumber: number) => void;
   // Panel Template props (Áp dụng tức thì vào trang hiện tại)
   templates?: FrameTemplateDto[];
   activeTemplateId?: string | null;
@@ -786,8 +789,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   onMovePage,
   onToggleVisibility,
   scriptLines = DEFAULT_SCRIPT_LINES,
-  sceneTitle = 'Phân cảnh 1: Cổng Thành Phía Nam',
-  sceneSlugline = 'NGOẠI · CỔNG THÀNH · SÁNG',
   chapterTitle,
   chapters,
   selectedChapterId,
@@ -798,6 +799,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   isLoadingBible = false,
   selectedPanelId = null,
   selectedPanelNumber = null,
+  artworkPanelKeys = new Set<string | number>(),
+  onSelectPanel,
   templates = DEFAULT_FRAME_TEMPLATES,
   activeTemplateId = null,
   onSelectTemplate,
@@ -864,6 +867,24 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
     onToggleDrawer?.(nextVal);
   };
 
+  const [scriptDrawerWidth, setScriptDrawerWidth] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem('pf.artist.scriptReader.width'));
+      return Number.isFinite(saved) && saved >= 320 && saved <= 560 ? saved : 400;
+    } catch {
+      return 400;
+    }
+  });
+  const updateScriptDrawerWidth = (nextWidth: number) => {
+    const width = Math.max(320, Math.min(560, nextWidth));
+    setScriptDrawerWidth(width);
+    try {
+      localStorage.setItem('pf.artist.scriptReader.width', String(width));
+    } catch {
+      // Keep the resize interaction available when persistent storage is unavailable.
+    }
+  };
+
   // Phím tắt '[' để mở/đóng nhanh Drawer
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -890,11 +911,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const [pageSearchQuery, setPageSearchQuery] = useState('');
   const [pageViewMode, setPageViewMode] = useState<'thumbnail' | 'compact'>('thumbnail');
 
-  // Bộ lọc Kịch bản (Tab Kịch bản: mặc định hiển thị xuyên suốt toàn bộ kịch bản, có thể chuyển sang trang đang chọn)
-  const [scriptSearchQuery, setScriptSearchQuery] = useState('');
-  const [scriptViewMode, setScriptViewMode] = useState<'all' | 'current-page'>('all');
-
-  // Bộ lọc Bible
   const [bibleCategory, setBibleCategory] = useState<'all' | 'character' | 'location' | 'lore'>(
     'all',
   );
@@ -971,127 +987,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
     return pageLines.length > 0 ? pageLines : scriptLines;
   }, [scriptLines, letteringFilterCurrentPage, activePageNumber]);
 
-  // Đồng bộ tiêu đề phân cảnh & slugline theo đúng trang đang chọn
-  const activeSceneInfo = useMemo(() => {
-    const linesForPage = scriptLines.filter((l) => (l.pageNumber || 1) === activePageNumber);
-    const lineWithScene = linesForPage.find((l) => l.sceneTitle || l.sceneSlugline);
-    if (lineWithScene) {
-      return {
-        title: lineWithScene.sceneTitle || sceneTitle,
-        slugline: lineWithScene.sceneSlugline || sceneSlugline,
-      };
-    }
-    if (linesForPage.length > 0) {
-      return {
-        title: sceneTitle,
-        slugline: sceneSlugline,
-      };
-    }
-    return {
-      title: `Trang ${activePageNumber}`,
-      slugline: undefined,
-    };
-  }, [scriptLines, activePageNumber, sceneTitle, sceneSlugline]);
-
-  // Tự động cuộn tới phân đoạn kịch bản của trang đang chọn khi đổi trang hoặc đổi chế độ xem
-  useEffect(() => {
-    if (activeTab === 'script' && isDrawerOpen) {
-      const anchor = document.getElementById(`script-page-anchor-${activePageNumber}`);
-      if (anchor && typeof anchor.scrollIntoView === 'function') {
-        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-  }, [activePageNumber, activeTab, isDrawerOpen, scriptViewMode]);
-
-  // Xử lý kịch bản: lọc & gom nhóm theo Trang -> Khung (panel), cộng các phân cảnh chưa gán trang để đọc xuyên suốt
-  const { groupedScriptByPage, groupedUnpagedScenes } = useMemo(() => {
-    let lines = scriptLines;
-
-    // Tìm kiếm trong kịch bản
-    if (scriptSearchQuery.trim()) {
-      const q = scriptSearchQuery.toLowerCase().trim();
-      lines = lines.filter(
-        (l) =>
-          (l.dialogueText && l.dialogueText.toLowerCase().includes(q)) ||
-          (l.stageDirection && l.stageDirection.toLowerCase().includes(q)) ||
-          (l.characterName && l.characterName.toLowerCase().includes(q)) ||
-          (l.sceneTitle && l.sceneTitle.toLowerCase().includes(q)) ||
-          (l.sceneSlugline && l.sceneSlugline.toLowerCase().includes(q)),
-      );
-    }
-
-    // Phân tách các dòng đã gắn với Trang và các dòng chưa gán trang
-    const pagedLines = lines.filter((l) => typeof l.pageNumber === 'number' && l.pageNumber > 0);
-    const unpagedLines = lines.filter((l) => typeof l.pageNumber !== 'number' || l.pageNumber <= 0);
-
-    // Chế độ xem: Toàn bộ kịch bản xuyên suốt vs Chỉ xem trang đang vẽ
-    const filteredPagedLines =
-      scriptViewMode === 'current-page' && selectedPage
-        ? pagedLines.filter((l) => l.pageNumber === selectedPage.pageNumber)
-        : pagedLines;
-
-    // Gom nhóm theo Trang -> Khung (panelNumber === 0 cho các dòng thuộc trang nhưng chưa gán panel)
-    const pageMap = new Map<number, Map<number, ScriptLineItem[]>>();
-    filteredPagedLines.forEach((l) => {
-      const pNum = l.pageNumber!;
-      const panelNum = typeof l.panelNumber === 'number' && l.panelNumber > 0 ? l.panelNumber : 0;
-      if (!pageMap.has(pNum)) {
-        pageMap.set(pNum, new Map<number, ScriptLineItem[]>());
-      }
-      const panelMap = pageMap.get(pNum)!;
-      if (!panelMap.has(panelNum)) {
-        panelMap.set(panelNum, []);
-      }
-      panelMap.get(panelNum)!.push(l);
-    });
-
-    const sortedPages = Array.from(pageMap.keys()).sort((a, b) => a - b);
-    const byPage = sortedPages.map((pNum) => {
-      const panelMap = pageMap.get(pNum)!;
-      const sortedPanels = Array.from(panelMap.keys()).sort((a, b) => {
-        if (a === 0) return 1;
-        if (b === 0) return -1;
-        return a - b;
-      });
-      return {
-        pageNumber: pNum,
-        panelsInPage: sortedPanels.map((panelNum) => ({
-          panelNumber: panelNum,
-          lines: panelMap.get(panelNum)!,
-        })),
-      };
-    });
-
-    // Gom nhóm các dòng chưa gắn trang theo Phân cảnh (chỉ hiển thị ở chế độ Toàn bộ kịch bản)
-    const sceneMap = new Map<
-      string,
-      { sceneNumber?: number; sceneTitle?: string; sceneSlugline?: string; lines: ScriptLineItem[] }
-    >();
-    if (scriptViewMode === 'all') {
-      unpagedLines.forEach((l) => {
-        const key = l.sceneId || l.sceneTitle || 'unpaged-default';
-        if (!sceneMap.has(key)) {
-          sceneMap.set(key, {
-            sceneNumber: l.sceneNumber,
-            sceneTitle: l.sceneTitle,
-            sceneSlugline: l.sceneSlugline,
-            lines: [],
-          });
-        }
-        sceneMap.get(key)!.lines.push(l);
-      });
-    }
-
-    return {
-      groupedScriptByPage: byPage,
-      groupedUnpagedScenes: Array.from(sceneMap.entries()).map(([key, val]) => ({
-        key,
-        ...val,
-      })),
-    };
-  }, [scriptLines, scriptSearchQuery, scriptViewMode, selectedPage]);
-
-  // Lọc danh sách Series Bible
   const filteredBible = useMemo(() => {
     return bibleEntities.filter((item) => {
       const matchCat = bibleCategory === 'all' || item.category === bibleCategory;
@@ -1335,9 +1230,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         aria-hidden={!isDrawerOpen}
         className={`bg-[var(--sb-popover,var(--sb-bg))] text-[var(--sb-text)] border-r border-[var(--sb-border)] flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
           isDrawerOpen
-            ? `${activeTab === 'history' ? 'w-[280px] sm:w-[290px]' : 'w-[330px] sm:w-[350px]'} opacity-100 shadow-xl`
+            ? `${activeTab === 'history' ? 'w-[280px] sm:w-[290px]' : activeTab === 'script' ? '' : 'w-[330px] sm:w-[350px]'} opacity-100 shadow-xl`
             : 'w-0 opacity-0 pointer-events-none border-r-0'
         }`}
+        style={isDrawerOpen && activeTab === 'script' ? { width: scriptDrawerWidth } : undefined}
       >
         {/* -------------------------------------------------------------
               TAB 1: PAGES (QUẢN LÝ TRANG)
@@ -1576,323 +1472,24 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               TAB 2: SCRIPT (XEM KỊCH BẢN THAM KHẢO XUYÊN SUỐT)
               ------------------------------------------------------------- */}
         {activeTab === 'script' && (
-          <div data-testid='canva-drawer-script' className='flex flex-col h-full overflow-hidden'>
-            {/* Header Drawer Kịch bản */}
-            <div className='p-3.5 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] shrink-0 space-y-2'>
-              <div className='flex items-center justify-between gap-2'>
-                <div className='flex items-center gap-1.5 min-w-0'>
-                  {chapters && chapters.length > 1 && onSelectChapter ? (
-                    <select
-                      value={selectedChapterId || ''}
-                      onChange={(e) => onSelectChapter(e.target.value)}
-                      data-testid='canva-script-chapter-select'
-                      className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold focus:outline-none max-w-[190px] truncate cursor-pointer'
-                    >
-                      {chapters.map((ch) => (
-                        <option key={ch.id} value={ch.id}>
-                          {`Chương ${ch.chapterNumber}${ch.title ? `: ${ch.title}` : ''}`}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold truncate max-w-[200px]'>
-                      {chapterTitle || 'Kịch Bản Tham Chiếu'}
-                    </span>
-                  )}
-                  {isLoadingScript && (
-                    <span className='text-[10px] text-[var(--sb-muted)] animate-pulse shrink-0'>
-                      Đang tải...
-                    </span>
-                  )}
-                </div>
-                <span className='text-[10px] font-medium text-[var(--sb-muted)] shrink-0'>
-                  Trang {selectedPage?.pageNumber || 1}
-                </span>
-              </div>
-
-              <div>
-                <h2 className='text-xs font-bold text-[var(--sb-text)] tracking-tight truncate'>
-                  {activeSceneInfo.title}
-                </h2>
-                {activeSceneInfo.slugline && (
-                  <p className='text-[10px] font-mono text-[var(--sb-muted)] uppercase truncate mt-0.5'>
-                    {activeSceneInfo.slugline}
-                  </p>
-                )}
-              </div>
-
-              {/* Thanh tìm kiếm kịch bản & Chế độ xem: Toàn bộ kịch bản xuyên suốt vs Trang đang chọn */}
-              <div className='space-y-1.5 pt-1'>
-                <div className='relative'>
-                  <Search className='w-3.5 h-3.5 text-[var(--sb-muted)] absolute left-2.5 top-2.5' />
-                  <input
-                    type='text'
-                    value={scriptSearchQuery}
-                    onChange={(e) => setScriptSearchQuery(e.target.value)}
-                    placeholder='Tìm thoại, chỉ dẫn hình ảnh...'
-                    data-testid='canva-input-search-script'
-                    className='w-full h-8 bg-[var(--sb-hover)] border border-[var(--sb-border)] rounded-lg pl-8 pr-3 text-[11px] text-[var(--sb-text)] placeholder-[var(--sb-muted)] focus:outline-none focus:border-[var(--sb-accent)]'
-                  />
-                </div>
-
-                <div className='flex items-center gap-1 text-[10px]'>
-                  <button
-                    type='button'
-                    onClick={() => setScriptViewMode('all')}
-                    data-testid='canva-script-mode-all'
-                    className={`flex-1 py-1 px-2 rounded-md font-medium transition-colors cursor-pointer text-center ${
-                      scriptViewMode === 'all'
-                        ? 'bg-[var(--sb-accent)] text-white'
-                        : 'bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
-                    }`}
-                  >
-                    Toàn bộ kịch bản
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => setScriptViewMode('current-page')}
-                    data-testid='canva-script-mode-current-page'
-                    className={`flex-1 py-1 px-2 rounded-md font-medium transition-colors cursor-pointer text-center ${
-                      scriptViewMode === 'current-page'
-                        ? 'bg-[var(--sb-accent)] text-white'
-                        : 'bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
-                    }`}
-                  >
-                    Trang {activePageNumber}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Thân văn bản kịch bản liền mạch xuyên suốt theo trang & panel (không chia thành từng ô hộp) */}
-            <div
-              data-testid='canva-script-manuscript-flow'
-              className='flex-1 overflow-y-auto px-4 py-3 space-y-5 custom-scrollbar text-left font-sans select-text'
-            >
-              {groupedScriptByPage.length === 0 && groupedUnpagedScenes.length === 0 ? (
-                <div className='py-12 px-3 text-center space-y-2.5'>
-                  <p className='text-[var(--sb-muted)] text-xs italic'>
-                    {scriptLines.length === 0 && !isLoadingScript
-                      ? 'Chương này chưa có nội dung kịch bản.'
-                      : scriptViewMode === 'current-page' && !scriptSearchQuery.trim()
-                        ? `Trang ${activePageNumber} chưa có nội dung kịch bản được gán.`
-                        : 'Không tìm thấy nội dung kịch bản phù hợp.'}
-                  </p>
-                  {scriptViewMode === 'current-page' &&
-                    !scriptSearchQuery.trim() &&
-                    scriptLines.length > 0 && (
-                      <button
-                        type='button'
-                        onClick={() => setScriptViewMode('all')}
-                        className='inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-medium bg-[var(--sb-surface)] border border-[var(--sb-border)] text-[var(--sb-accent)] hover:bg-[var(--sb-hover)] transition-colors cursor-pointer'
-                      >
-                        Xem toàn bộ kịch bản
-                      </button>
-                    )}
-                </div>
-              ) : (
-                <>
-                  {groupedScriptByPage.map(({ pageNumber, panelsInPage }) => {
-                    const isSelectedPage = pageNumber === activePageNumber;
-                    const matchingPage = pages.find((p) => p.pageNumber === pageNumber);
-                    let lastSceneKey = '';
-
-                    return (
-                      <div
-                        key={`script-page-${pageNumber}`}
-                        id={`script-page-anchor-${pageNumber}`}
-                        className='space-y-3'
-                      >
-                        {/* Tiêu đề phân trang nhẹ nhàng (click để nhảy tới trang vẽ) */}
-                        <button
-                          type='button'
-                          onClick={() => matchingPage && onSelectPage(matchingPage.id)}
-                          disabled={!matchingPage}
-                          className={`w-full flex items-center justify-between pb-1 border-b transition-colors text-left ${
-                            matchingPage ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
-                          } ${
-                            isSelectedPage
-                              ? 'border-[var(--sb-accent)] text-[var(--sb-accent)]'
-                              : 'border-[var(--sb-border)] text-[var(--sb-muted)]'
-                          }`}
-                        >
-                          <div className='flex items-center gap-2'>
-                            <span className='font-mono text-xs font-bold uppercase tracking-wider'>
-                              ── TRANG {pageNumber} ──
-                            </span>
-                            {isSelectedPage && (
-                              <span className='text-[9px] px-1.5 py-0.2 rounded-full bg-[var(--sb-accent)] text-white font-medium'>
-                                Đang vẽ
-                              </span>
-                            )}
-                          </div>
-                          <span className='text-[10px] font-mono opacity-80'>
-                            {panelsInPage.filter((p) => p.panelNumber > 0).length ||
-                              panelsInPage.length}{' '}
-                            khung
-                          </span>
-                        </button>
-
-                        {/* Danh sách các khung và lời thoại trong trang (chảy liền mạch, không chia ô hộp) */}
-                        <div className='space-y-3'>
-                          {panelsInPage.map(({ panelNumber, lines }) => {
-                            const firstSceneTitle = lines[0]?.sceneTitle || '';
-                            const firstSceneSlug = lines[0]?.sceneSlugline || '';
-                            const sceneKey = `${firstSceneTitle}|${firstSceneSlug}`;
-                            const showSceneHeader = Boolean(
-                              firstSceneTitle && sceneKey !== lastSceneKey,
-                            );
-                            if (firstSceneTitle) {
-                              lastSceneKey = sceneKey;
-                            }
-
-                            return (
-                              <div
-                                key={`script-panel-${pageNumber}-${panelNumber}`}
-                                data-testid={`script-panel-section-${pageNumber}-${panelNumber}`}
-                                className='space-y-1.5'
-                              >
-                                {showSceneHeader && (
-                                  <div className='pt-0.5 text-[10px] font-mono uppercase tracking-wider text-[var(--sb-muted)]'>
-                                    {firstSceneTitle}
-                                    {firstSceneSlug ? ` · ${firstSceneSlug}` : ''}
-                                  </div>
-                                )}
-
-                                {/* Nhãn Khung gọn nhẹ không đóng khung hộp */}
-                                <div className='flex items-center gap-2 pt-0.5'>
-                                  <span className='text-[10.5px] font-mono font-bold uppercase tracking-wider text-[var(--sb-accent)]'>
-                                    {panelNumber > 0 ? `Khung ${panelNumber}` : 'Chưa gán khung'}
-                                  </span>
-                                </div>
-
-                                {/* Các dòng thoại & chỉ dẫn chảy liền mạch */}
-                                <div className='space-y-2 pl-2.5 border-l border-[var(--sb-border)]'>
-                                  {lines.map((line) => (
-                                    <div
-                                      key={line.id}
-                                      data-testid={`script-line-${line.id}`}
-                                      className='space-y-1'
-                                    >
-                                      {/* Chỉ dẫn hành động / bối cảnh */}
-                                      {line.stageDirection && (
-                                        <p className='text-[11.5px] text-[var(--sb-muted)] italic leading-relaxed font-sans'>
-                                          🎬 {line.stageDirection}
-                                        </p>
-                                      )}
-
-                                      {/* Lời thoại nhân vật */}
-                                      {line.dialogueText && (
-                                        <div className='py-0.5'>
-                                          {line.characterName && (
-                                            <div className='flex items-center gap-1.5'>
-                                              <span
-                                                className='text-[11px] font-bold tracking-wide uppercase'
-                                                style={{
-                                                  color: line.characterColor || 'var(--sb-accent)',
-                                                }}
-                                              >
-                                                {line.characterName}
-                                              </span>
-                                              {formatNarrationMode(line.narrationMode) && (
-                                                <span className='text-[9px] text-[var(--sb-muted)]'>
-                                                  ({formatNarrationMode(line.narrationMode)})
-                                                </span>
-                                              )}
-                                            </div>
-                                          )}
-                                          <p className='text-xs text-[var(--sb-text)] font-serif leading-relaxed mt-0.5'>
-                                            &ldquo;{line.dialogueText}&rdquo;
-                                          </p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Các phân cảnh chưa gắn vào trang/panel (hiển thị xuyên suốt liền mạch để tham khảo) */}
-                  {groupedUnpagedScenes.length > 0 && (
-                    <div className='space-y-4 pt-1' data-testid='script-unpaged-scenes'>
-                      {groupedScriptByPage.length > 0 && (
-                        <div className='text-[10px] font-mono uppercase tracking-wider text-[var(--sb-muted)] border-t border-dashed border-[var(--sb-border)] pt-3'>
-                          Phân cảnh chưa gắn trang
-                        </div>
-                      )}
-                      {groupedUnpagedScenes.map((scene) => (
-                        <div key={`unpaged-scene-${scene.key}`} className='space-y-2'>
-                          <div className='pb-1 border-b border-[var(--sb-border)]'>
-                            <div className='font-mono text-[11px] font-bold uppercase tracking-wider text-[var(--sb-accent)]'>
-                              {scene.sceneTitle ||
-                                (scene.sceneNumber
-                                  ? `Phân cảnh ${scene.sceneNumber}`
-                                  : 'Phân cảnh')}
-                            </div>
-                            {scene.sceneSlugline && (
-                              <div className='text-[10px] font-mono uppercase text-[var(--sb-muted)] mt-0.5'>
-                                {scene.sceneSlugline}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className='space-y-2 pl-2.5 border-l border-[var(--sb-border)]'>
-                            {scene.lines.map((line) => (
-                              <div
-                                key={line.id}
-                                data-testid={`script-line-${line.id}`}
-                                className='space-y-1'
-                              >
-                                {line.stageDirection && (
-                                  <p className='text-[11.5px] text-[var(--sb-muted)] italic leading-relaxed font-sans'>
-                                    🎬 {line.stageDirection}
-                                  </p>
-                                )}
-                                {line.dialogueText && (
-                                  <div className='py-0.5'>
-                                    {line.characterName && (
-                                      <div className='flex items-center gap-1.5'>
-                                        <span
-                                          className='text-[11px] font-bold tracking-wide uppercase'
-                                          style={{
-                                            color: line.characterColor || 'var(--sb-accent)',
-                                          }}
-                                        >
-                                          {line.characterName}
-                                        </span>
-                                        {formatNarrationMode(line.narrationMode) && (
-                                          <span className='text-[9px] text-[var(--sb-muted)]'>
-                                            ({formatNarrationMode(line.narrationMode)})
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                    <p className='text-xs text-[var(--sb-text)] font-serif leading-relaxed mt-0.5'>
-                                      &ldquo;{line.dialogueText}&rdquo;
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+          <ArtistScriptReader
+            scriptLines={scriptLines}
+            activePageNumber={activePageNumber}
+            chapterTitle={chapterTitle}
+            chapters={chapters}
+            selectedChapterId={selectedChapterId}
+            onSelectChapter={onSelectChapter}
+            isLoading={isLoadingScript}
+            bibleEntities={bibleEntities}
+            selectedPanelId={selectedPanelId}
+            selectedPanelNumber={selectedPanelNumber}
+            artworkPanelKeys={artworkPanelKeys}
+            onSelectPanel={onSelectPanel}
+            width={scriptDrawerWidth}
+            onWidthChange={updateScriptDrawerWidth}
+          />
         )}
 
-        {/* -------------------------------------------------------------
-              TAB 3: SERIES BIBLE (TRA CỨU CANON)
-              ------------------------------------------------------------- */}
         {activeTab === 'bible' && (
           <div data-testid='canva-drawer-bible' className='flex flex-col h-full overflow-hidden'>
             {/* Header Drawer Hồ sơ */}
