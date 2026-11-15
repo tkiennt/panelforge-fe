@@ -19,6 +19,7 @@ import {
 } from '@/services/scriptLine.service';
 import type { PageDto } from '@/services/page.service';
 import type { PanelDto } from '@/types/pipeline';
+import type { BibleCategory } from '@/services/bible.service';
 import { GnElement, isThoughtParens } from './grammar/scriptGrammar';
 import { MangaBlockType } from './types';
 
@@ -323,7 +324,8 @@ export function extractRefs(node: PMNode): ScriptLineRefInput[] {
         if (m.type.name === 'bibleRef') {
           const entryId = (m.attrs.entryId as string | null) || null;
           const surf = (m.attrs.surfaceText as string | null) || child.text || '';
-          const newDraft = (m.attrs.newDraft as { name: string; category?: number } | null) || null;
+          const newDraft =
+            (m.attrs.newDraft as { name: string; category?: BibleCategory } | null) || null;
           if (
             surf &&
             !lineRefs.some(

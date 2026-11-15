@@ -1,10 +1,23 @@
-// src/roles/writer/components/script/flow/BibleRefFloatingMenu.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/core';
-import { Search, Plus, X, Tag, User, MapPin, Box, FileText } from 'lucide-react';
+import { TextSelection } from '@tiptap/pm/state';
+import { Plus, Search, Tag, X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import { BibleEntryDto } from '@/services/bible.service';
+import type { BibleCategory, BibleEntryDto } from '@/services/bible.service';
+import {
+  getCategoryIcon,
+  getCategoryLabel,
+  mapCategoryToTab,
+} from '@/shared/features/series-bible/bibleCategory';
 import { applyBibleRefToLine, removeBibleRefFromLine } from './nodes/ScriptLineBlockNode';
+import {
+  DRAFT_CATEGORIES,
+  findEntryAtOffset,
+  isValidBibleSelection,
+  normalizeEntryName,
+  snapSelectionToWords,
+  toBibleDraftCategory,
+} from './bibleRefSelection';
 
 interface BibleRefFloatingMenuProps {
   editor: Editor | null;
@@ -20,316 +33,387 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
   t: propT,
 }) => {
   const { t: i18nT } = useTranslation();
-  const t = (key: string, fallbackOrParams?: any, explicitFallback?: string) => {
-    return i18nT(key, fallbackOrParams, explicitFallback);
-  };
-
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const t = (key: string, fallback: string) => propT?.(key, fallback) ?? i18nT(key, fallback);
+  const [anchor, setAnchor] = useState<{
+    top: number;
+    left: number;
+    recognizedEntry?: BibleEntryDto;
+  } | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<number>(0); // 0 = Character, 1 = Location, 2 = Item
+  const [selectedCategory, setSelectedCategory] =
+    useState<(typeof DRAFT_CATEGORIES)[number]>('Character');
   const [hoveredRef, setHoveredRef] = useState<{
     entryId?: string | null;
     surfaceText: string;
-    newDraft?: { name: string; category?: number } | null;
+    newDraft?: { name: string; category?: BibleCategory } | null;
     top: number;
     left: number;
   } | null>(null);
 
+  const chipRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const hoverRef = useRef<HTMLDivElement>(null);
 
-  // 1. Theo dõi lựa chọn văn bản (Text selection) để hiện Floating Menu
+  const closeSelectionUi = () => {
+    setAnchor(null);
+    setMenuOpen(false);
+  };
+
   useEffect(() => {
     if (!editor || !canEditScript) {
-      setMenuPos(null);
+      closeSelectionUi();
       return;
     }
 
-    const updateMenu = () => {
+    const showSelection = (
+      from: number,
+      to: number,
+      text: string,
+      recognizedEntry?: BibleEntryDto,
+    ) => {
       const { state, view } = editor;
-      const { selection } = state;
-
-      if (selection.empty) {
-        setMenuPos(null);
-        setSelectedText('');
-        return;
+      if (state.selection.from !== from || state.selection.to !== to) {
+        view.dispatch(state.tr.setSelection(TextSelection.create(state.doc, from, to)));
       }
-
-      const { $from, from, to } = selection;
-      const node = $from.parent;
-      if (node.type.name !== 'scriptLine') {
-        setMenuPos(null);
-        return;
-      }
-
-      const el = node.attrs.el;
-      // BIB-16 & 1A: chỉ cho phép bôi đen trên action, caption (narration), sfx
-      if (el !== 'action' && el !== 'caption' && el !== 'sfx') {
-        setMenuPos(null);
-        return;
-      }
-
-      const text = state.doc.textBetween(from, to).trim();
-      if (!text || text.length > 100) {
-        setMenuPos(null);
-        return;
-      }
-
       try {
-        const startCoords = view.coordsAtPos(from);
-        const endCoords = view.coordsAtPos(to);
-        const top = startCoords.top - 10;
-        const left = (startCoords.left + endCoords.right) / 2;
-        setMenuPos({ top, left });
+        const start = view.coordsAtPos(from);
+        const end = view.coordsAtPos(to);
+        setAnchor({
+          top: Math.min(start.top, end.top) - 8,
+          left: (start.left + end.right) / 2,
+          recognizedEntry,
+        });
+        setMenuOpen(false);
         setSelectedText(text);
-        setSearchQuery(text);
+        setSearchQuery(recognizedEntry?.name ?? text);
       } catch {
-        setMenuPos(null);
+        closeSelectionUi();
       }
     };
 
-    editor.on('selectionUpdate', updateMenu);
-    editor.on('transaction', updateMenu);
+    const settleSelection = () => {
+      const { state } = editor;
+      const { selection } = state;
+      if (selection.empty) {
+        closeSelectionUi();
+        return;
+      }
 
-    return () => {
-      editor.off('selectionUpdate', updateMenu);
-      editor.off('transaction', updateMenu);
+      const { $from, $to } = selection;
+      const node = $from.parent;
+      const allowedLine = ['action', 'caption', 'sfx'].includes(String(node.attrs.el));
+      if (node.type.name !== 'scriptLine' || $from.parent !== $to.parent || !allowedLine) {
+        closeSelectionUi();
+        return;
+      }
+
+      const snapped = snapSelectionToWords(
+        node.textContent,
+        selection.from - $from.start(),
+        selection.to - $from.start(),
+      );
+      if (!snapped || !isValidBibleSelection(snapped.text)) {
+        closeSelectionUi();
+        return;
+      }
+      showSelection($from.start() + snapped.from, $from.start() + snapped.to, snapped.text);
     };
-  }, [editor, canEditScript]);
 
-  // 2. Theo dõi di chuột vào các span.gn-bible-ref để hiện Hover Tooltip
+    const handleMouseUp = (event: MouseEvent) => {
+      window.requestAnimationFrame(() => {
+        if (!editor.state.selection.empty) {
+          settleSelection();
+          return;
+        }
+
+        const target = event.target as HTMLElement;
+        const marked = target.closest('.gn-bible-ref') as HTMLElement | null;
+        if (marked) {
+          const text = marked.getAttribute('data-surface-text') || marked.textContent || '';
+          const entryId = marked.getAttribute('data-entry-id');
+          const from = editor.view.posAtDOM(marked, 0);
+          const entry = allBibleEntries.find((item) => item.id === entryId);
+          showSelection(from, from + text.length, text, entry);
+          return;
+        }
+
+        const point = editor.view.posAtCoords({ left: event.clientX, top: event.clientY });
+        if (!point) return;
+        const $point = editor.state.doc.resolve(point.pos);
+        const node = $point.parent;
+        if (
+          node.type.name !== 'scriptLine' ||
+          !['action', 'caption', 'sfx'].includes(String(node.attrs.el))
+        ) {
+          closeSelectionUi();
+          return;
+        }
+        const match = findEntryAtOffset(node.textContent, $point.parentOffset, allBibleEntries);
+        if (!match) {
+          closeSelectionUi();
+          return;
+        }
+        showSelection(
+          $point.start() + match.from,
+          $point.start() + match.to,
+          match.text,
+          match.entry,
+        );
+      });
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (!event.shiftKey) window.requestAnimationFrame(settleSelection);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeSelectionUi();
+        setHoveredRef(null);
+      } else if (
+        (event.ctrlKey || event.metaKey) &&
+        event.altKey &&
+        event.key.toLowerCase() === 'b'
+      ) {
+        event.preventDefault();
+        settleSelection();
+        setMenuOpen(true);
+      }
+    };
+
+    const dom = editor.view.dom;
+    dom.addEventListener('mouseup', handleMouseUp);
+    dom.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      dom.removeEventListener('mouseup', handleMouseUp);
+      dom.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [editor, canEditScript, allBibleEntries]);
+
   useEffect(() => {
     if (!editor) return;
-
-    const handleMouseOver = (e: MouseEvent) => {
-      const target = (e.target as HTMLElement).closest('.gn-bible-ref') as HTMLElement | null;
+    const handleMouseOver = (event: MouseEvent) => {
+      const target = (event.target as HTMLElement).closest('.gn-bible-ref') as HTMLElement | null;
       if (!target) return;
-
-      const entryId = target.getAttribute('data-entry-id');
-      const surfaceText = target.getAttribute('data-surface-text') || target.textContent || '';
       const rawDraft = target.getAttribute('data-new-draft');
       let newDraft = null;
-      if (rawDraft) {
-        try {
-          newDraft = JSON.parse(rawDraft);
-        } catch {
-          newDraft = null;
-        }
+      try {
+        newDraft = rawDraft ? JSON.parse(rawDraft) : null;
+      } catch {
+        newDraft = null;
       }
-
       const rect = target.getBoundingClientRect();
       setHoveredRef({
-        entryId,
-        surfaceText,
+        entryId: target.getAttribute('data-entry-id'),
+        surfaceText: target.getAttribute('data-surface-text') || target.textContent || '',
         newDraft,
         top: rect.bottom + 4,
         left: rect.left,
       });
     };
-
-    const handleMouseOut = (e: MouseEvent) => {
-      const related = e.relatedTarget as HTMLElement | null;
-      if (related && (related.closest('.gn-bible-ref') || related.closest('.gn-ref-popover'))) {
-        return;
-      }
+    const handleMouseOut = (event: MouseEvent) => {
+      const related = event.relatedTarget as HTMLElement | null;
+      if (related?.closest('.gn-bible-ref, .gn-ref-popover')) return;
       setHoveredRef(null);
     };
-
     const dom = editor.view.dom;
     dom.addEventListener('mouseover', handleMouseOver);
     dom.addEventListener('mouseout', handleMouseOut);
-
     return () => {
       dom.removeEventListener('mouseover', handleMouseOver);
       dom.removeEventListener('mouseout', handleMouseOut);
     };
   }, [editor]);
 
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        !menuRef.current?.contains(target) &&
+        !chipRef.current?.contains(target) &&
+        !hoverRef.current?.contains(target)
+      ) {
+        closeSelectionUi();
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, []);
+
   if (!editor) return null;
 
-  // Lọc mục Bible theo từ khoá
+  const normalizedQuery = normalizeEntryName(searchQuery);
   const filteredEntries = allBibleEntries.filter((entry) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    const nameMatch = entry.name.toLowerCase().includes(q);
-    const codeMatch = entry.code?.toLowerCase().includes(q);
-    return nameMatch || codeMatch;
+    if (!normalizedQuery) return true;
+    return (
+      normalizeEntryName(entry.name).includes(normalizedQuery) ||
+      entry.code?.toLocaleLowerCase().includes(normalizedQuery)
+    );
   });
 
   const handleSelectEntry = (entry: BibleEntryDto) => {
-    applyBibleRefToLine(editor, selectedText, {
-      entryId: entry.id,
-      newDraft: null,
-    });
-    setMenuPos(null);
+    applyBibleRefToLine(editor, selectedText, { entryId: entry.id, newDraft: null });
+    closeSelectionUi();
   };
 
   const handleCreateDraft = () => {
     applyBibleRefToLine(editor, selectedText, {
       entryId: null,
-      newDraft: {
-        name: selectedText,
-        category: selectedCategory,
-      },
+      newDraft: { name: selectedText, category: toBibleDraftCategory(selectedCategory) },
     });
-    setMenuPos(null);
+    closeSelectionUi();
   };
 
   const handleRemoveRef = () => {
     if (!hoveredRef) return;
     removeBibleRefFromLine(editor, hoveredRef.surfaceText, hoveredRef.entryId);
     setHoveredRef(null);
-  };
-
-  const getCategoryIcon = (cat: number | string) => {
-    const c = String(cat).toLowerCase();
-    if (c === '0' || c === 'character') return <User className='w-3.5 h-3.5 text-orange-600' />;
-    if (c === '1' || c === 'location') return <MapPin className='w-3.5 h-3.5 text-blue-600' />;
-    if (c === '2' || c === 'item') return <Box className='w-3.5 h-3.5 text-emerald-600' />;
-    return <FileText className='w-3.5 h-3.5 text-stone-600' />;
+    closeSelectionUi();
   };
 
   return (
     <>
-      {/* 1. Floating Menu khi bôi đen */}
-      {menuPos && (
+      {anchor && !menuOpen && (
+        <button
+          ref={chipRef}
+          type='button'
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => setMenuOpen(true)}
+          title='Mở Series Bible (Ctrl/Cmd + Alt + B)'
+          style={{ position: 'fixed', top: anchor.top, left: anchor.left }}
+          className='z-40 -translate-x-1/2 -translate-y-full inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-white px-2.5 py-1 text-xs font-semibold text-orange-700 shadow-md hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500'
+        >
+          <Tag className='h-3 w-3' aria-hidden='true' />
+          {anchor.recognizedEntry
+            ? `Gắn ${anchor.recognizedEntry.name}`
+            : t('production.cast.attachBible', 'Gắn Series Bible')}
+        </button>
+      )}
+
+      {anchor && menuOpen && (
         <div
           ref={menuRef}
-          style={{
-            position: 'fixed',
-            top: `${Math.max(10, menuPos.top - 240)}px`,
-            left: `${Math.max(10, menuPos.left - 160)}px`,
-            zIndex: 9999,
-          }}
-          className='w-80 bg-white rounded-xl shadow-xl border border-stone-200/90 p-3 text-stone-900 animate-in fade-in zoom-in-95 duration-150'
+          role='dialog'
+          aria-label={t('production.cast.referenceTitle', 'Tham chiếu Series Bible')}
+          style={{ position: 'fixed', top: anchor.top + 12, left: anchor.left }}
+          className='z-50 w-80 -translate-x-1/2 rounded-xl border border-stone-200/90 bg-white p-3 text-stone-900 shadow-xl animate-in fade-in zoom-in-95 duration-150'
         >
-          <div className='flex items-center justify-between pb-2 border-b border-stone-100'>
+          <div className='flex items-center justify-between border-b border-stone-100 pb-2'>
             <div className='flex items-center gap-1.5'>
-              <Tag className='w-4 h-4 text-orange-600' />
-              <span className='text-xs font-bold text-stone-900 font-serif'>
+              <Tag className='h-4 w-4 text-orange-600' aria-hidden='true' />
+              <span className='font-serif text-xs font-bold'>
                 {t('production.cast.referenceTitle', 'Tham chiếu Series Bible')}
               </span>
             </div>
             <button
               type='button'
-              onClick={() => setMenuPos(null)}
-              className='text-stone-400 hover:text-stone-600 p-0.5 rounded cursor-pointer'
+              onClick={closeSelectionUi}
+              aria-label={t('common.close', 'Đóng')}
+              className='rounded p-0.5 text-stone-400 hover:text-stone-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500'
             >
-              <X className='w-3.5 h-3.5' />
+              <X className='h-3.5 w-3.5' aria-hidden='true' />
             </button>
           </div>
 
-          <div className='mt-2'>
-            <div className='relative'>
-              <Search className='w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2' />
-              <input
-                type='text'
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('production.cast.searchPlaceholder', 'Tìm theo tên...')}
-                className='w-full pl-8 pr-2 py-1 text-xs bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 text-stone-800'
-                autoFocus
-              />
-            </div>
+          <div className='relative mt-2'>
+            <Search
+              className='absolute left-2.5 top-2 h-3.5 w-3.5 text-stone-400'
+              aria-hidden='true'
+            />
+            <input
+              type='text'
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              aria-label={t('production.cast.searchPlaceholder', 'Tìm theo tên')}
+              placeholder={t('production.cast.searchPlaceholder', 'Tìm theo tên...')}
+              className='w-full rounded-lg border border-stone-200 bg-stone-50 py-1 pl-8 pr-2 text-xs text-stone-800 outline-none focus:border-orange-500'
+              autoFocus
+            />
           </div>
 
-          <div className='mt-2 max-h-40 overflow-y-auto space-y-1 custom-scrollbar'>
+          <div className='custom-scrollbar mt-2 max-h-40 space-y-1 overflow-y-auto'>
             {filteredEntries.slice(0, 8).map((entry) => (
               <button
                 key={entry.id}
                 type='button'
                 onClick={() => handleSelectEntry(entry)}
-                className='w-full text-left p-1.5 rounded-lg hover:bg-orange-50 border border-transparent hover:border-orange-200/60 flex items-center justify-between gap-2 transition-colors cursor-pointer'
+                className='flex w-full items-center justify-between gap-2 rounded-lg border border-transparent p-1.5 text-left transition-colors hover:border-orange-200/60 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500'
               >
-                <div className='flex items-center gap-2 min-w-0'>
-                  {getCategoryIcon(entry.category)}
-                  <span className='text-xs font-semibold text-stone-800 truncate'>
-                    {entry.name}
-                  </span>
-                </div>
-                <span className='text-[10px] font-mono text-stone-400 shrink-0'>
-                  {entry.code || 'BIBLE'}
+                <span className='flex min-w-0 items-center gap-2'>
+                  {getCategoryIcon(mapCategoryToTab(entry.category), 'h-3.5 w-3.5 text-orange-600')}
+                  <span className='truncate text-xs font-semibold'>{entry.name}</span>
+                </span>
+                <span className='shrink-0 font-mono text-[10px] text-stone-400'>
+                  {entry.code || getCategoryLabel(entry.category)}
                 </span>
               </button>
             ))}
-
             {filteredEntries.length === 0 && (
-              <p className='text-xs text-stone-400 text-center py-2'>
+              <p className='py-2 text-center text-xs text-stone-400'>
                 {t('production.cast.noMatchingEntry', 'Không tìm thấy mục trùng khớp')}
               </p>
             )}
           </div>
 
-          {/* Quick Create Draft Button */}
-          <div className='mt-2.5 pt-2 border-t border-stone-100'>
-            <div className='flex items-center justify-between gap-1 mb-2'>
-              <span className='text-[11px] text-stone-500 font-medium'>
+          <div className='mt-2.5 border-t border-stone-100 pt-2'>
+            <div className='mb-2 flex items-center justify-between gap-1'>
+              <span className='text-[11px] font-medium text-stone-500'>
                 {t('production.cast.createDraftType', 'Loại bản nháp:')}
               </span>
               <div className='flex items-center gap-1'>
-                {[
-                  { id: 0, label: t('bible.categories.character', 'Nhân vật') },
-                  { id: 1, label: t('bible.categories.location', 'Địa điểm') },
-                  { id: 2, label: t('bible.categories.item', 'Đạo cụ') },
-                ].map((c) => (
+                {DRAFT_CATEGORIES.map((category) => (
                   <button
-                    key={c.id}
+                    key={category}
                     type='button'
-                    onClick={() => setSelectedCategory(c.id)}
-                    className={`px-1.5 py-0.5 text-[10px] rounded font-medium cursor-pointer transition-colors ${
-                      selectedCategory === c.id
+                    onClick={() => setSelectedCategory(category)}
+                    aria-pressed={selectedCategory === category}
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
+                      selectedCategory === category
                         ? 'bg-orange-500 text-white'
                         : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                     }`}
                   >
-                    {c.label}
+                    {getCategoryLabel(category)}
                   </button>
                 ))}
               </div>
             </div>
-
             <button
               type='button'
               onClick={handleCreateDraft}
-              className='w-full py-1.5 px-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors'
+              className='flex w-full items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-2 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2'
             >
-              <Plus className='w-3.5 h-3.5' />
+              <Plus className='h-3.5 w-3.5' aria-hidden='true' />
               <span>
-                {t('production.cast.createDraftBtn', 'Tạo bản nháp cho')} "{selectedText}"
+                {t('production.cast.createDraftBtn', 'Tạo bản nháp cho')} “{selectedText}”
               </span>
             </button>
           </div>
         </div>
       )}
 
-      {/* 2. Hover Tooltip trên mark bibleRef */}
-      {hoveredRef && !menuPos && (
+      {hoveredRef && !menuOpen && (
         <div
           ref={hoverRef}
-          style={{
-            position: 'fixed',
-            top: `${hoveredRef.top}px`,
-            left: `${hoveredRef.left}px`,
-            zIndex: 9998,
-          }}
-          className='gn-ref-popover bg-stone-900 text-white rounded-lg shadow-lg px-2.5 py-1.5 text-xs flex items-center gap-2 animate-in fade-in duration-100 pointer-events-auto'
+          style={{ position: 'fixed', top: hoveredRef.top, left: hoveredRef.left }}
+          className='gn-ref-popover z-40 flex items-center gap-2 rounded-lg bg-stone-900 px-2.5 py-1.5 text-xs text-white shadow-lg animate-in fade-in duration-100'
         >
-          <div className='flex items-center gap-1.5'>
-            <Tag className='w-3 h-3 text-orange-400' />
-            <span className='font-semibold'>
-              {hoveredRef.newDraft
-                ? `${t('production.cast.draftBadge', '[Bản nháp]')} ${hoveredRef.newDraft.name}`
-                : allBibleEntries.find((e) => e.id === hoveredRef.entryId)?.name ||
-                  hoveredRef.surfaceText}
-            </span>
-          </div>
-
+          <span className='flex items-center gap-1.5 font-semibold'>
+            <Tag className='h-3 w-3 text-orange-400' aria-hidden='true' />
+            {hoveredRef.newDraft
+              ? `${t('production.cast.draftBadge', '[Bản nháp]')} ${hoveredRef.newDraft.name}`
+              : allBibleEntries.find((entry) => entry.id === hoveredRef.entryId)?.name ||
+                hoveredRef.surfaceText}
+          </span>
           {canEditScript && (
             <button
               type='button'
               onClick={handleRemoveRef}
-              className='ml-1 px-1.5 py-0.5 text-[10px] bg-stone-800 hover:bg-rose-900/80 text-rose-300 rounded cursor-pointer transition-colors border border-rose-500/20'
+              className='ml-1 rounded border border-rose-500/20 bg-stone-800 px-1.5 py-0.5 text-[10px] text-rose-300 transition-colors hover:bg-rose-900/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400'
             >
               {t('production.cast.removeRef', 'Gỡ')}
             </button>

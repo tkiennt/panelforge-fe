@@ -70,6 +70,7 @@ import { PanelDto } from '@/types/pipeline';
 import { generateTempCode, saveTempBibleCode } from '@/shared/utils/tempBibleCodes';
 import { ChapterSelectionView } from '../components/script/chapter-selection';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
+import { mapCategoryToTab } from '@/shared/features/series-bible/bibleCategory';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import {
   assignmentService,
@@ -559,7 +560,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         if (bibleRes && bibleRes.entries) {
           setAllBibleEntries(bibleRes.entries);
           const charList = bibleRes.entries.filter(
-            (e) => String(e.category) === 'Character' || e.category === 0,
+            (entry) => mapCategoryToTab(entry.category) === 'characters',
           );
           setCharacters(charList);
         }
@@ -802,6 +803,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           if (selectedScene) {
             setSelectedScene(details.find((d) => d.id === selectedScene.id) ?? details[0] ?? null);
           }
+          if (seriesId) {
+            const freshBible = await bibleService.getSeriesBible(seriesId);
+            setAllBibleEntries(freshBible.entries);
+            setCharacters(
+              freshBible.entries.filter(
+                (entry) => mapCategoryToTab(entry.category) === 'characters',
+              ),
+            );
+          }
           void loadChapterCast(chapterId);
         } catch (refreshErr) {
           console.error('Lỗi làm mới kịch bản sau khi lưu:', refreshErr);
@@ -831,6 +841,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       buildFallbackScriptTree,
       loadPagesAndPanels,
       selectedScene,
+      seriesId,
       loadChapterCast,
       notify,
       t,

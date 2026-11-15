@@ -38,6 +38,7 @@ import {
   ChapterScriptBody,
 } from './scriptFlowAdapter';
 import { BibleRefFloatingMenu } from './BibleRefFloatingMenu';
+import { mapCategoryToTab } from '@/shared/features/series-bible/bibleCategory';
 
 export interface ScreenplayFlowEditorProps {
   chapterId?: string;
@@ -144,7 +145,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
   const bibleSpeakers = useMemo<BibleSpeakerRef[]>(() => {
     return (allBibleEntries || [])
-      .filter((e) => String(e.category) === '0' || String(e.category).toLowerCase() === 'character')
+      .filter((entry) => mapCategoryToTab(entry.category) === 'characters')
       .map((e) => ({ name: e.name }));
   }, [allBibleEntries]);
 
