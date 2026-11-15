@@ -216,8 +216,6 @@ export interface AppRoutesProps {
   showToast: (title: string, desc: string) => void;
   setIsTwoFactorModalOpen: (open: boolean) => void;
   setIsChangePasswordModalOpen: (open: boolean) => void;
-  setIsLoginModalOpen: (open: boolean) => void;
-  setIsRegisterModalOpen: (open: boolean) => void;
   setIsCommandPaletteOpen?: (open: boolean) => void;
   setIsAuditLogOpen?: (open: boolean) => void;
   members: StudioMember[];
@@ -262,8 +260,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
   showToast,
   setIsTwoFactorModalOpen,
   setIsChangePasswordModalOpen,
-  setIsLoginModalOpen,
-  setIsRegisterModalOpen,
   setIsCommandPaletteOpen,
   setIsAuditLogOpen,
   members,

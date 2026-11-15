@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { ArtistPageItem, PageStage } from './ArtistPageSidebar';
 import { SidebarTheme } from '@/app/sidebarTheme';
-import { PanelModelSheetBlock } from '../../workspace/PanelModelSheetBlock';
+import { PanelModelSheetBlock } from './PanelModelSheetBlock';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { FrameTemplateDto } from '@/services/frameTemplate.service';
 import { ChangeRequestDto } from '@/types/pipeline';

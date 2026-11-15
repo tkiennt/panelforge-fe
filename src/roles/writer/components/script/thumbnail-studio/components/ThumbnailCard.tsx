@@ -9,11 +9,9 @@ import {
   Volume2,
   Phone,
   Eye,
-  Edit2,
   Trash2,
   Image as ImageIcon,
 } from 'lucide-react';
-import { QuickSketchModal } from './QuickSketchModal';
 
 interface ThumbnailCardProps {
   panel: PanelNode;
@@ -79,10 +77,9 @@ export const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
   sketchDataUrl,
   isActive,
   onSelectPanel,
-  onSaveSketch,
+  onSaveSketch: _onSaveSketch,
   onClearSketch,
 }) => {
-  const [sketchModalOpen, setSketchModalOpen] = useState(false);
   const shotConfig = shotTypeConfig[panel.shotType || 'unknown'];
 
   return (
@@ -133,16 +130,6 @@ export const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
                   type='button'
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSketchModalOpen(true);
-                  }}
-                  className='p-1.5 rounded-lg bg-white text-[#1C1917] hover:bg-[#F3F0E9] shadow-xs cursor-pointer text-xs flex items-center gap-1 font-semibold'
-                >
-                  <Edit2 className='w-3.5 h-3.5' /> Sửa
-                </button>
-                <button
-                  type='button'
-                  onClick={(e) => {
-                    e.stopPropagation();
                     onClearSketch(panel.id);
                   }}
                   className='p-1.5 rounded-lg bg-white text-rose-600 hover:bg-rose-50 shadow-xs cursor-pointer text-xs flex items-center gap-1 font-semibold'
@@ -152,19 +139,12 @@ export const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
               </div>
             </div>
           ) : (
-            <button
-              type='button'
-              onClick={(e) => {
-                e.stopPropagation();
-                setSketchModalOpen(true);
-              }}
-              className='flex flex-col items-center justify-center gap-1 text-[#57534E] hover:text-[#C2410C] p-3 w-full h-full transition-colors cursor-pointer border border-dashed border-transparent hover:border-[#C2410C]/40'
-            >
+            <div className='flex flex-col items-center justify-center gap-1 text-[#57534E] p-3 w-full h-full'>
               <div className='w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-2xs border border-[#D8D2C5]'>
                 <ImageIcon className='w-3.5 h-3.5 text-[#57534E]' />
               </div>
-              <span className='text-[11px] font-semibold'>+ Thêm hình phác</span>
-            </button>
+              <span className='text-[11px] font-semibold text-stone-400'>Chưa có phác thảo</span>
+            </div>
           )}
         </div>
 
@@ -243,15 +223,6 @@ export const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
           </div>
         )}
       </div>
-
-      <QuickSketchModal
-        isOpen={sketchModalOpen}
-        panelTitle={`P${pageNumber}.${panel.panelNumber}`}
-        initialDataUrl={sketchDataUrl}
-        onClose={() => setSketchModalOpen(false)}
-        onSave={(dataUrl) => onSaveSketch(panel.id, dataUrl)}
-        onClear={() => onClearSketch(panel.id)}
-      />
     </>
   );
 };

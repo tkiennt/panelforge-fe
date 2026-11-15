@@ -5,4 +5,3 @@ export * from './scriptVersionActions';
 export * from './useScriptVersionStore';
 export * from './ScriptDiffViewer';
 export * from './VersionHistoryDrawer';
-export * from './VersionPreviewModal';
