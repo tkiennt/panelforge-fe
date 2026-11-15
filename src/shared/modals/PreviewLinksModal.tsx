@@ -120,7 +120,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isApproved = chapterStatus === 'Approved';
+  const isApproved = chapterStatus === 'ChapterApproved' || chapterStatus === 'Approved';
 
   const handleCreateLink = async (e: React.FormEvent) => {
     e.preventDefault();

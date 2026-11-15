@@ -516,13 +516,6 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 onUnfreeze={(reason) =>
                   chapterAction('freeze', () => chapterService.unfreezeScript(chapterId, reason))
                 }
-                onDecideReopen={(approve) =>
-                  chapterAction('reopen', () =>
-                    approve
-                      ? chapterService.approveScriptReopen(chapterId)
-                      : chapterService.rejectScriptReopen(chapterId),
-                  )
-                }
               />
             )}
           </div>

@@ -14,6 +14,20 @@ vi.mock('@/services/chapter.service', () => ({
     deleteChapter: vi.fn(),
     approveChapter: vi.fn(),
     reopenChapter: vi.fn(),
+    freezeScript: vi.fn(),
+    getScriptComments: vi.fn().mockResolvedValue([]),
+    getChapterLockGate: vi.fn().mockResolvedValue({ canApprove: true, items: [] }),
+  },
+}));
+
+vi.mock('@/services/chapterCast.service', () => ({
+  chapterCastService: {
+    getChapterCast: vi.fn().mockResolvedValue({
+      chapterId: 'chap-1',
+      entries: [],
+      submitGate: { isPassed: true, blockers: [] },
+      gate: { isPassed: true, canStart: true, blockers: [] },
+    }),
   },
 }));
 
@@ -173,6 +187,53 @@ describe('SeriesChaptersModal Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Chưa có chương nào')).toBeInTheDocument();
     });
+  });
+
+  it('renders Gate 1 button for PreProduction chapter and lacks isLocked/priceVnd in create form', async () => {
+    vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
+      items: [
+        {
+          id: 'chap-pre',
+          seriesId: 'series-1',
+          chapterNumber: 1,
+          title: 'Chương Tiền Kỳ',
+          status: 'PreProduction',
+          versionVector: 1,
+          createdAt: '2026-10-01T00:00:00Z',
+          scenesCount: 1,
+          pagesCount: 5,
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 10,
+      totalPages: 1,
+    });
+
+    render(
+      <MemoryRouter>
+        <ConfirmProvider>
+          <SeriesChaptersModal
+            isOpen={true}
+            seriesId='series-1'
+            seriesTitle='Test Series'
+            onClose={vi.fn()}
+          />
+        </ConfirmProvider>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('producer-gate1-start-chap-pre')).toBeInTheDocument();
+      expect(screen.getByText('Tiền kỳ (viết kịch bản)')).toBeInTheDocument();
+    });
+
+    // Bấm nút tạo chương mới và kiểm tra không còn trường isLocked hay priceVnd
+    const addBtn = screen.getByText('Tạo Chương Mới');
+    addBtn.click();
+
+    expect(screen.queryByLabelText(/chương trả phí/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/nhập giá vnđ/i)).not.toBeInTheDocument();
   });
 
   it('returns null when isOpen is false', () => {

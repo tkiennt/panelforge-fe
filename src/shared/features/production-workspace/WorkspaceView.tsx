@@ -24,7 +24,18 @@ const CHAPTER_STATUS_META: Record<string, { label: string; cls: string }> = {
     cls: 'text-stone-800 bg-stone-50 border-stone-300',
   },
   InProduction: { label: 'Đang sản xuất', cls: 'text-amber-900 bg-amber-50 border-amber-300' },
-  Approved: { label: 'Đã duyệt chương', cls: 'text-emerald-900 bg-emerald-50 border-emerald-300' },
+  ChapterApproved: {
+    label: 'Đã nghiệm thu (Gate 3)',
+    cls: 'text-emerald-900 bg-emerald-50 border-emerald-300',
+  },
+  Approved: {
+    label: 'Đã nghiệm thu (Gate 3)',
+    cls: 'text-emerald-900 bg-emerald-50 border-emerald-300',
+  },
+  HandedOffAndPublished: {
+    label: 'Đã bàn giao & phát hành',
+    cls: 'text-violet-900 bg-violet-50 border-violet-300',
+  },
   Published: { label: 'Đã xuất bản', cls: 'text-violet-900 bg-violet-50 border-violet-300' },
 };
 
@@ -217,7 +228,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 </span>
               )}
               {currentChapter &&
-                ['Approved', 'Published'].includes(String(currentChapter.status)) && (
+                ['ChapterApproved', 'Approved', 'HandedOffAndPublished', 'Published'].includes(
+                  String(currentChapter.status),
+                ) && (
                   <span className='inline-flex items-center gap-1 text-xs text-landing-ink-muted'>
                     <Lock className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
                     <span className='hidden sm:inline'>

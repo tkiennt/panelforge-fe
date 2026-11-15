@@ -79,10 +79,13 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
     const total = chapters.length;
     const frozen = chapters.filter((c) => !!c.isScriptFrozen).length;
     const approved = chapters.filter(
-      (c) => c.status === 'Approved' || c.status === 'Published',
+      (c) => c.status === 'ChapterApproved' || c.status === 'HandedOffAndPublished',
     ).length;
     const inProgress = chapters.filter(
-      (c) => !c.isScriptFrozen && c.status !== 'Approved' && c.status !== 'Published',
+      (c) =>
+        !c.isScriptFrozen &&
+        c.status !== 'ChapterApproved' &&
+        c.status !== 'HandedOffAndPublished',
     ).length;
     return { total, frozen, approved, inProgress };
   }, [chapters]);
@@ -106,10 +109,15 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
       list = list.filter((c) => !!c.isScriptFrozen);
     } else if (statusFilter === 'in_progress') {
       list = list.filter(
-        (c) => !c.isScriptFrozen && c.status !== 'Approved' && c.status !== 'Published',
+        (c) =>
+          !c.isScriptFrozen &&
+          c.status !== 'ChapterApproved' &&
+          c.status !== 'HandedOffAndPublished',
       );
     } else if (statusFilter === 'approved') {
-      list = list.filter((c) => c.status === 'Approved' || c.status === 'Published');
+      list = list.filter(
+        (c) => c.status === 'ChapterApproved' || c.status === 'HandedOffAndPublished',
+      );
     }
 
     list.sort((a, b) => {
@@ -143,14 +151,21 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
     }
 
     switch (chapter.status) {
-      case 'Approved':
+      case 'PreProduction':
+        return (
+          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-50 text-stone-700 border border-stone-200 shrink-0'>
+            <Clock className='w-3 h-3 text-stone-500' />
+            <span>Tiền kỳ (viết kịch bản)</span>
+          </span>
+        );
+      case 'ChapterApproved':
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
             <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-            <span>Đã duyệt kịch bản</span>
+            <span>Nghiệm thu hoàn tất (Gate 3)</span>
           </span>
         );
-      case 'Published':
+      case 'HandedOffAndPublished':
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
             <Sparkles className='w-3 h-3 text-purple-600' />

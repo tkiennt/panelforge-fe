@@ -35,7 +35,6 @@ interface ChecksTabProps {
   openComments?: number;
   onFreeze: () => void;
   onUnfreeze: (reason: string) => void;
-  onDecideReopen: (approve: boolean) => void;
 }
 
 const OPEN_FINDING = new Set(OPEN_FINDING_STATUSES);
@@ -63,7 +62,6 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
   openComments,
   onFreeze,
   onUnfreeze,
-  onDecideReopen,
 }) => {
   const { t, lang } = useTranslation('review');
   const [noteFor, setNoteFor] = useState<{ id: string; decision: FindingDecision } | null>(null);
@@ -291,37 +289,6 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
           >
             SHA-256 {chapter.scriptContentHash}
           </p>
-        )}
-
-        {chapter.scriptReopenStatus === 'Requested' && (
-          <div className='mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3'>
-            <p className='text-xs font-semibold text-amber-900'>
-              {t('scriptReview.checks.reopenRequested')}
-            </p>
-            {chapter.scriptReopenReason && (
-              <p className='mt-1 text-xs text-amber-900'>{chapter.scriptReopenReason}</p>
-            )}
-            {isProducer && (
-              <div className='mt-2 flex gap-2'>
-                <button
-                  type='button'
-                  disabled={busy === 'reopen'}
-                  onClick={() => onDecideReopen(true)}
-                  className='rounded-full bg-[#EA580C] px-3 py-1 text-xs font-semibold text-white hover:bg-[#C2410C] disabled:opacity-50'
-                >
-                  {t('scriptReview.checks.approveReopen')}
-                </button>
-                <button
-                  type='button'
-                  disabled={busy === 'reopen'}
-                  onClick={() => onDecideReopen(false)}
-                  className='rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-100 disabled:opacity-50'
-                >
-                  {t('scriptReview.checks.rejectReopen')}
-                </button>
-              </div>
-            )}
-          </div>
         )}
 
         {isProducer && !isFrozen && (

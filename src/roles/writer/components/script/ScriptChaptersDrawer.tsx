@@ -13,16 +13,16 @@ interface ScriptChaptersDrawerProps {
 
 function getStatusBadge(status?: ChapterStatus) {
   switch (status) {
+    case 'PreProduction':
+      return { label: 'Tiền kỳ', className: 'bg-stone-50 text-stone-700 border-stone-200' };
     case 'InProduction':
       return { label: 'Đang sản xuất', className: 'bg-stone-100 text-stone-600 border-stone-200' };
-    case 'Approved':
-      return { label: 'Đã duyệt', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
-    case 'Locked':
-      return { label: 'Đã khóa', className: 'bg-amber-50 text-amber-700 border-amber-200' };
-    case 'Published':
-      return { label: 'Xuất bản', className: 'bg-purple-50 text-purple-700 border-purple-200' };
+    case 'ChapterApproved':
+      return { label: 'Đã nghiệm thu (Gate 3)', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    case 'HandedOffAndPublished':
+      return { label: 'Đã phát hành', className: 'bg-purple-50 text-purple-700 border-purple-200' };
     default:
-      return { label: 'Đang sản xuất', className: 'bg-stone-100 text-stone-600 border-stone-200' };
+      return { label: 'Tiền kỳ', className: 'bg-stone-50 text-stone-700 border-stone-200' };
   }
 }
 

@@ -11,6 +11,7 @@ import { assignmentService } from '@/services/assignment.service';
 import { workspaceService } from '@/services/workspace.service';
 import { pageService } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
+import { chapterCastService } from '@/services/chapterCast.service';
 
 vi.mock('@/services/page.service', () => ({
   pageService: {
@@ -368,7 +369,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
   it('khóa kịch bản khi Chapter ở trạng thái Approved theo BR-12', async () => {
     vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
-      items: [{ ...mockChapters[0], status: 'Approved' }],
+      items: [{ ...mockChapters[0], status: 'ChapterApproved' }],
       totalCount: 1,
       pageIndex: 1,
       pageSize: 50,
@@ -572,7 +573,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       'se-1',
       'Khám phá bí mật trung tâm điều khiển.',
     );
-  });
+  }, 15000);
 
   it('cho phép Writer sửa và lưu Outline của Chapter, và bắt lỗi 409 khi chương khoá / xung đột', async () => {
     const conflictErr = new Error(
@@ -983,5 +984,37 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       'Cảnh báo tham chiếu Series Bible',
       'Trang 2 đã có artwork nên được giữ lại dù không còn trong kịch bản.',
     );
+  });
+
+  it('hiển thị link "Mở Series Bible để duyệt Canon" trên Gate 1 blocker banner (F#24)', async () => {
+    vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
+      items: [
+        {
+          ...mockChapters[0],
+          status: 'PreProduction',
+          isScriptFrozen: false,
+          scriptStatus: 'InReview',
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 50,
+      totalPages: 1,
+    });
+    vi.mocked(chapterCastService.getChapterCast).mockResolvedValue({
+      chapterId: 'chap-1',
+      entries: [],
+      submitGate: { isPassed: true, blockers: [] },
+      gate: {
+        isPassed: false,
+        canStart: false,
+        blockers: [{ entryName: 'Hero Sword', reason: 'Chưa khoá Canon' } as any],
+      },
+    } as any);
+
+    renderView();
+
+    expect(await screen.findByTestId('start-blocked-banner')).toBeInTheDocument();
+    expect(screen.getByText('Mở Series Bible để duyệt Canon')).toBeInTheDocument();
   });
 });
