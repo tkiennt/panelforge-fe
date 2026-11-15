@@ -854,6 +854,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return formatChapterLabel(activeChapter.chapterNumber, activeChapter.title);
   }, [activeChapter]);
 
+  const scriptCoverage = useMemo(() => {
+    const dialogueLines = (rawScriptLines || initialScriptLines || []).filter((line) =>
+      Boolean(line.dialogueText?.trim()),
+    );
+    const covered = dialogueLines.filter((line) => Boolean(line.panelId)).length;
+    const total = dialogueLines.length;
+    return {
+      covered,
+      total,
+      percent: total === 0 ? 100 : Math.round((covered / total) * 100),
+    };
+  }, [rawScriptLines, initialScriptLines]);
+
   const handleSelectChapter = useCallback(
     (chapId: string) => {
       setCurrentChapterId(chapId);
@@ -885,46 +898,59 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     const currentStage = artistStages[currentStageIndex];
     if (!currentStage) return;
 
+    if (currentStage.key === 'pencil' && scriptCoverage.percent < 100) {
+      toast.warning(
+        'Chưa thể nộp Pencil',
+        `Mới ánh xạ ${scriptCoverage.covered}/${scriptCoverage.total} dòng thoại vào khung. Cần đạt 100% Script Coverage trước khi nộp.`,
+      );
+      return;
+    }
+
+    const matchingAssignment = currentChapterId
+      ? (assignmentIdFromUrl
+          ? chapterAssignments.find(
+              (a) => a.id === assignmentIdFromUrl && a.pipelineStageId === currentStage.id,
+            )
+          : undefined) ||
+        chapterAssignments.find((a) => {
+          const st = String(a.status || '').toLowerCase();
+          return (
+            a.pipelineStageId === currentStage.id &&
+            (st === 'assigned' || st === 'inprogress' || st === 'reworkrequired')
+          );
+        })
+      : undefined;
+
+    if (!matchingAssignment) {
+      toast.warning(
+        'Không thể nộp công đoạn',
+        `Bạn chưa có phân công phù hợp cho công đoạn "${currentStage.label}" trong chương này.`,
+      );
+      return;
+    }
+
     setIsSubmittingStage(true);
     try {
       if (currentChapterId) {
-        const matchingAssignment =
-          (assignmentIdFromUrl
-            ? chapterAssignments.find(
-                (a) => a.id === assignmentIdFromUrl && a.pipelineStageId === currentStage.id,
-              )
-            : undefined) ||
-          chapterAssignments.find((a) => {
-            const st = String(a.status || '').toLowerCase();
-            return (
-              a.pipelineStageId === currentStage.id &&
-              (st === 'assigned' || st === 'inprogress' || st === 'reworkrequired')
-            );
-          });
-
-        if (matchingAssignment) {
-          try {
-            const statusLower = String(matchingAssignment.status || '').toLowerCase();
-            if (
-              (statusLower === 'assigned' || statusLower === 'reworkrequired') &&
-              assignmentService?.startAssignment
-            ) {
-              await assignmentService.startAssignment(currentChapterId, matchingAssignment.id);
-            }
-            if (assignmentService?.submitAssignment) {
-              const updated = await assignmentService.submitAssignment(
-                currentChapterId,
-                matchingAssignment.id,
-              );
-              if (updated) {
-                setChapterAssignments((prev) =>
-                  prev.map((a) => (a.id === updated.id ? updated : a)),
-                );
-              }
-            }
-          } catch {
-            // Không chặn luồng chuyển bước trên bàn vẽ nếu API phân công chưa sẵn sàng
+        try {
+          const statusLower = String(matchingAssignment.status || '').toLowerCase();
+          if (
+            (statusLower === 'assigned' || statusLower === 'reworkrequired') &&
+            assignmentService?.startAssignment
+          ) {
+            await assignmentService.startAssignment(currentChapterId, matchingAssignment.id);
           }
+          if (assignmentService?.submitAssignment) {
+            const updated = await assignmentService.submitAssignment(
+              currentChapterId,
+              matchingAssignment.id,
+            );
+            if (updated) {
+              setChapterAssignments((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+            }
+          }
+        } catch {
+          // Không chặn luồng chuyển bước trên bàn vẽ nếu API phân công chưa sẵn sàng
         }
       }
 
@@ -950,8 +976,24 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     currentChapterId,
     assignmentIdFromUrl,
     chapterAssignments,
+    scriptCoverage,
     toast,
   ]);
+
+  const handleSelectStage = useCallback(
+    (idx: number) => {
+      if (idx < 0 || idx >= artistStages.length) return;
+      if (idx > currentStageIndex) {
+        toast.warning(
+          'Công đoạn chưa mở khóa',
+          `Hãy nộp "${artistStages[currentStageIndex]?.label || 'công đoạn hiện tại'}" trước khi chuyển tiếp.`,
+        );
+        return;
+      }
+      setCurrentStageIndex(idx);
+    },
+    [artistStages, currentStageIndex, toast],
+  );
 
   const seriesPath = useMemo(() => {
     if (workspaceId && seriesId) {
@@ -982,11 +1024,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       isStageFlowCompleted,
       isSubmittingStage,
       onSubmitStage: handleSubmitStage,
-      onSelectStage: (idx: number) => {
-        if (idx >= 0 && idx < artistStages.length) {
-          setCurrentStageIndex(idx);
-        }
-      },
+      onSelectStage: handleSelectStage,
       submitButtonLabel: 'Nộp bản thảo',
     });
   }, [
@@ -1002,6 +1040,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     isStageFlowCompleted,
     isSubmittingStage,
     handleSubmitStage,
+    handleSelectStage,
   ]);
 
   useEffect(() => {
@@ -1720,15 +1759,31 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             isStageFlowCompleted,
             isSubmittingStage,
             onSubmitStage: handleSubmitStage,
-            onSelectStage: (idx: number) => {
-              if (idx >= 0 && idx < artistStages.length) {
-                setCurrentStageIndex(idx);
-              }
-            },
+            onSelectStage: handleSelectStage,
             submitButtonLabel: 'Nộp bản thảo',
           }}
           showFocusControls={false}
         />
+      )}
+
+      {!isStageFlowCompleted && artistStages[currentStageIndex]?.key === 'pencil' && (
+        <div
+          data-testid='artist-script-coverage'
+          role='status'
+          className={`shrink-0 border-b px-4 py-2 text-xs font-semibold ${
+            scriptCoverage.percent === 100
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-amber-200 bg-amber-50 text-amber-900'
+          }`}
+        >
+          Script Coverage: {scriptCoverage.covered}/{scriptCoverage.total} dòng thoại ·{' '}
+          {scriptCoverage.percent}%
+          {scriptCoverage.percent < 100 && (
+            <span className='ml-2 font-medium'>
+              — Submit Pencil bị khóa đến khi mọi dòng thoại được ánh xạ vào khung.
+            </span>
+          )}
+        </div>
       )}
 
       <div className='flex-1 min-h-0 w-full flex flex-row overflow-hidden relative'>

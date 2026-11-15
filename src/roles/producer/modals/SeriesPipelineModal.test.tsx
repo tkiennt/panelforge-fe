@@ -146,4 +146,26 @@ describe('SeriesPipelineModal - Bật/Tắt stage (Line 210)', () => {
     expect(await screen.findByLabelText(/Bật công đoạn này/i)).toBeInTheDocument();
     expect(screen.getByText(/Truyện trắng đen → tắt Color/i)).toBeInTheDocument();
   });
+
+  it('không có vai trò Writer trong danh sách vai trò cho phép của pipeline', async () => {
+    render(
+      <SeriesPipelineModal
+        isOpen={true}
+        seriesId='series-1'
+        seriesTitle='Bộ truyện Test'
+        onClose={vi.fn()}
+      />,
+    );
+
+    await screen.findByText('Color');
+    const editButtons = screen.getAllByTitle('Sửa công đoạn');
+    fireEvent.click(editButtons[1]);
+
+    const roleSelect = await screen.findByDisplayValue('Artist');
+    const options = Array.from((roleSelect as HTMLSelectElement).options)
+      .map((o) => o.value)
+      .filter(Boolean);
+    expect(options).not.toContain('Writer');
+    expect(options).toEqual(['Producer', 'Artist', 'Letterer', 'Editor']);
+  });
 });

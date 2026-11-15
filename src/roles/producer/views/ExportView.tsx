@@ -83,7 +83,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
       .getChaptersBySeries(seriesId, 1, 100)
       .then((res) => {
         const exportable = (res.items || []).filter(
-          (c) => c.status === 'Approved' || c.status === 'Published',
+          (c) => c.status === 'ChapterApproved' || c.status === 'HandedOffAndPublished',
         );
         setChapters(exportable);
         setChapterId((current) => current || exportable[0]?.id || '');

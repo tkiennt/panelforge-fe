@@ -106,7 +106,7 @@ describe('PreviewLinksModal', () => {
         chapterId='chap-101'
         chapterNumber={1}
         chapterTitle='The Letter in the Foam'
-        chapterStatus='Approved'
+        chapterStatus='ChapterApproved'
       />,
     );
 
@@ -135,7 +135,7 @@ describe('PreviewLinksModal', () => {
         chapterId='chap-101'
         chapterNumber={1}
         chapterTitle='The Letter in the Foam'
-        chapterStatus='Approved'
+        chapterStatus='ChapterApproved'
       />,
     );
 
@@ -182,7 +182,7 @@ describe('PreviewLinksModal', () => {
         onClose={vi.fn()}
         chapterId='chap-101'
         chapterNumber={1}
-        chapterStatus='Approved'
+        chapterStatus='ChapterApproved'
       />,
     );
 
@@ -211,7 +211,7 @@ describe('PreviewLinksModal', () => {
         onClose={vi.fn()}
         chapterId='chap-101'
         chapterNumber={1}
-        chapterStatus='Approved'
+        chapterStatus='ChapterApproved'
         onReopenChapter={mockReopen}
       />,
     );

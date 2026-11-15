@@ -28,6 +28,7 @@ interface GlobalModalsProps {
   provenanceLogs: any[];
   activeProjectRoles: string[];
   activeWorkspace?: { id?: string; name?: string; currentUserRole?: string } | null;
+  activeSeries?: MangaProject | { id?: string; title?: string } | null;
   currentRole?: SystemRole | string;
 
   // Callbacks
@@ -53,6 +54,7 @@ export const GlobalModals: React.FC<GlobalModalsProps> = ({
   provenanceLogs,
   activeProjectRoles,
   activeWorkspace,
+  activeSeries,
   currentRole,
   setCurrentView,
   showToast,
@@ -73,11 +75,17 @@ export const GlobalModals: React.FC<GlobalModalsProps> = ({
         onNavigateView={setCurrentView}
         onSelectCard={(c) => setSelectedCardForDetail(c)}
         onSelectEntity={(e) => {
-          setCurrentView('bible');
-          showToast('Entity Selected', `Navigated to ${e.name}`);
+          if (activeWorkspace?.id && activeSeries?.id) {
+            setCurrentView(`bible?search=${encodeURIComponent(e.name)}`);
+            showToast('Entity Selected', `Navigated to ${e.name}`);
+          } else {
+            showToast('Chưa chọn bộ truyện', 'Vui lòng mở một bộ truyện để xem Series Bible');
+          }
         }}
         cards={cards}
         entities={entities}
+        workspaceId={activeWorkspace?.id}
+        seriesId={activeSeries?.id}
       />
       <AuditLogModal
         isOpen={auditLogOpen}
