@@ -102,16 +102,19 @@ describe('FrameTemplateModal', () => {
 
   it('gọi applyFrameTemplate khi bấm nút Áp Dụng Mẫu Khung', async () => {
     vi.mocked(frameTemplateService.getFrameTemplates).mockResolvedValueOnce(mockTemplates);
-    vi.mocked(frameTemplateService.applyFrameTemplate).mockResolvedValueOnce([
-      {
-        id: 'p-1',
-        pageId: 'page-1',
-        panelNumber: 1,
-        boundingBox: '{"x": 10, "y": 5, "width": 80, "height": 20}',
-        readingOrder: 1,
-        createdAt: '2026-10-08T00:00:00Z',
-      },
-    ]);
+    vi.mocked(frameTemplateService.applyFrameTemplate).mockResolvedValueOnce({
+      panels: [
+        {
+          id: 'p-1',
+          pageId: 'page-1',
+          panelNumber: 1,
+          boundingBox: '{"x": 10, "y": 5, "width": 80, "height": 20}',
+          readingOrder: 1,
+          createdAt: '2026-10-08T00:00:00Z',
+        },
+      ],
+      unassignedArtworkCount: 0,
+    });
 
     const handleApplied = vi.fn();
     const handleClose = vi.fn();

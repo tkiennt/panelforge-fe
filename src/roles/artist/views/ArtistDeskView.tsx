@@ -1276,101 +1276,62 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       frameTemplates.find((t) => t.id === templateId) ||
       DEFAULT_FRAME_TEMPLATES.find((t) => t.id === templateId);
 
-    let savedPanels = currentPagePanels;
-    let didSave = !isGuid(targetPage.id) || Boolean(templateId?.startsWith('builtin-'));
-    if (
-      templateId &&
-      isGuid(targetPage.id) &&
-      !templateId.startsWith('builtin-') &&
-      frameTemplateService?.applyFrameTemplate
-    ) {
+    if (isGuid(targetPage.id)) {
       setIsApplyingTemplate(true);
       try {
-        const createdPanels = await frameTemplateService.applyFrameTemplate(
-          targetPage.id,
-          templateId,
+        const requestPanels = currentPagePanels.map((panel) => ({
+          panelNumber: panel.panelNumber,
+          readingOrder: panel.readingOrder,
+          boundingBox: panel.boundingBox,
+          direction: panel.direction,
+        }));
+        const result =
+          templateId && !templateId.startsWith('builtin-')
+            ? await frameTemplateService.applyFrameTemplate(targetPage.id, templateId)
+            : await panelService.replacePageLayout(targetPage.id, requestPanels);
+        const reloadedPanels = await panelService.getPanelsByPage(targetPage.id);
+        const savedPanels = [...reloadedPanels].sort(
+          (a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
         );
-        if (Array.isArray(createdPanels) && createdPanels.length > 0) {
-          const sorted = [...createdPanels].sort(
-            (a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
-          );
-          savedPanels = sorted;
-          didSave = true;
-          setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: sorted }));
-          setPersistedPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: sorted }));
-          setPanelPageMap((prev) => {
-            const next = { ...prev };
-            sorted.forEach((pnl) => {
-              next[pnl.id] = {
-                pageNumber: targetPage.pageNumber,
-                panelNumber: pnl.panelNumber || pnl.readingOrder || 1,
-                sceneId: pnl.sceneId,
-              };
-            });
-            return next;
+
+        setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: savedPanels }));
+        setPersistedPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: savedPanels }));
+        setPanelPageMap((prev) => {
+          const next = { ...prev };
+          currentPagePanels.forEach((panel) => {
+            delete next[panel.id];
           });
-          setPages((prev) =>
-            prev.map((pg) =>
-              pg.id === targetPage.id ? { ...pg, elementsCount: sorted.length } : pg,
-            ),
-          );
+          savedPanels.forEach((panel) => {
+            next[panel.id] = {
+              pageNumber: targetPage.pageNumber,
+              panelNumber: panel.panelNumber || panel.readingOrder || 1,
+              sceneId: panel.sceneId,
+            };
+          });
+          return next;
+        });
+        setPages((prev) =>
+          prev.map((page) =>
+            page.id === targetPage.id ? { ...page, elementsCount: savedPanels.length } : page,
+          ),
+        );
+        if (currentChapterId) {
+          await loadPageArtworks(currentChapterId, [targetPage], currentStageId, {
+            [targetPage.id]: savedPanels,
+          });
+        }
+        if (result.unassignedArtworkCount > 0) {
+          toast.warning(`${result.unassignedArtworkCount} tranh chưa có khung`, '');
         }
       } catch (err: any) {
-        setTemplateError(err?.message || 'Không thể lưu mẫu khung lên máy chủ.');
-        toast.error(
-          'Không thể lưu bố cục',
-          err?.message || 'Máy chủ chưa thể thay thế bố cục hiện có.',
-        );
+        setTemplateError(err?.message || 'Không thể lưu bố cục lên máy chủ.');
+        toast.error('Không thể lưu bố cục', err?.message || 'Không thể thay thế bố cục trang.');
+        return;
       } finally {
         setIsApplyingTemplate(false);
       }
     }
 
-    if (!templateId && isGuid(targetPage.id)) {
-      if ((persistedPanelsByPageId[targetPage.id] || []).length > 0) {
-        toast.error(
-          'Không thể lưu bố cục',
-          'Máy chủ chưa hỗ trợ thay thế các khung đã lưu mà vẫn giữ liên kết tranh.',
-        );
-      } else {
-        setIsApplyingTemplate(true);
-        try {
-          savedPanels = await Promise.all(
-            currentPagePanels.map((panel) =>
-              panelService.createPanel(targetPage.id, {
-                panelNumber: panel.panelNumber,
-                readingOrder: panel.readingOrder,
-                boundingBox: panel.boundingBox,
-                direction: panel.direction,
-              }),
-            ),
-          );
-          didSave = savedPanels.length > 0;
-          setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: savedPanels }));
-          setPersistedPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: savedPanels }));
-        } catch (err: any) {
-          toast.error(
-            'Không thể lưu bố cục',
-            err?.message || 'Không thể tạo các khung trên máy chủ.',
-          );
-        } finally {
-          setIsApplyingTemplate(false);
-        }
-      }
-    }
-
-    if (!didSave) return;
-
-    if (savedPanels !== currentPagePanels) {
-      const carried = carryArtworksByReadingOrder(
-        currentPagePanels,
-        savedPanels,
-        currentPageArtworks,
-        orphanedArtworksByPageId[targetPage.id] || [],
-      );
-      setPanelArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: carried.mapped }));
-      setOrphanedArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: carried.orphans }));
-    }
     setSavedLayoutByPageId((prev) => ({ ...prev, [targetPage.id]: true }));
     toast.success(
       'Đã lưu bố cục trang',
@@ -1378,12 +1339,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     );
   }, [
     activeTemplateByPageId,
-    currentPageArtworks,
     currentPagePanels,
+    currentChapterId,
+    currentStageId,
     frameTemplates,
     isCurrentPageLayoutSaved,
-    orphanedArtworksByPageId,
-    persistedPanelsByPageId,
+    loadPageArtworks,
     selectedPage,
     toast,
   ]);

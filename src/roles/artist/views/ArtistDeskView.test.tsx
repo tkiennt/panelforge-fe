@@ -679,25 +679,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
       },
     ]);
 
-    vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValueOnce([]);
-
-    vi.spyOn(frameTemplateService, 'getFrameTemplates').mockResolvedValueOnce([
-      {
-        id: tplGuid,
-        workspaceId: 'ws-real',
-        name: 'Mẫu 2 Khung API',
-        layoutFormat: 'StandardPage',
-        isBuiltIn: false,
-        panelCount: 2,
-        slots: [
-          { x: 0.05, y: 0.05, w: 0.9, h: 0.4, borderless: false },
-          { x: 0.05, y: 0.5, w: 0.9, h: 0.45, borderless: true },
-        ],
-        createdAt: '2026-01-01T00:00:00Z',
-      },
-    ]);
-
-    const applySpy = vi.spyOn(frameTemplateService, 'applyFrameTemplate').mockResolvedValueOnce([
+    const savedPanels = [
       {
         id: 'created-pnl-1',
         pageId: pageGuid,
@@ -717,17 +699,45 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         readingOrder: 2,
         createdAt: '2026-01-01T00:00:00Z',
       },
+    ];
+    vi.spyOn(panelService, 'getPanelsByPage')
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(savedPanels);
+
+    vi.spyOn(frameTemplateService, 'getFrameTemplates').mockResolvedValueOnce([
+      {
+        id: tplGuid,
+        workspaceId: 'ws-real',
+        name: 'Mẫu 2 Khung API',
+        layoutFormat: 'StandardPage',
+        isBuiltIn: false,
+        panelCount: 2,
+        slots: [
+          { x: 0.05, y: 0.05, w: 0.9, h: 0.4, borderless: false },
+          { x: 0.05, y: 0.5, w: 0.9, h: 0.45, borderless: true },
+        ],
+        createdAt: '2026-01-01T00:00:00Z',
+      },
     ]);
 
+    const getArtworksSpy = vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+
+    const applySpy = vi.spyOn(frameTemplateService, 'applyFrameTemplate').mockResolvedValueOnce({
+      panels: savedPanels,
+      unassignedArtworkCount: 2,
+    });
+
     render(
-      <MemoryRouter initialEntries={['/workspaces/ws-real/series/ser-real/artist']}>
-        <Routes>
-          <Route
-            path='/workspaces/:workspaceId/series/:seriesId/artist'
-            element={<ArtistDeskView workspaceRole='ARTIST' />}
-          />
-        </Routes>
-      </MemoryRouter>,
+      <ToastProvider>
+        <MemoryRouter initialEntries={['/workspaces/ws-real/series/ser-real/artist']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/artist'
+              element={<ArtistDeskView workspaceRole='ARTIST' />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>,
     );
 
     fireEvent.click(screen.getByTestId('canva-tab-templates'));
@@ -744,7 +754,10 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
 
     await waitFor(() => {
       expect(applySpy).toHaveBeenCalledWith(pageGuid, tplGuid);
+      expect(panelService.getPanelsByPage).toHaveBeenCalledTimes(2);
+      expect(getArtworksSpy).toHaveBeenCalledWith(chapGuid, pageGuid, undefined);
     });
+    expect(screen.getByText('2 tranh chưa có khung')).toBeInTheDocument();
     expect(screen.getByTestId('canvas-panel-frame-1')).toBeInTheDocument();
     expect(screen.getByTestId('canvas-panel-frame-2')).toBeInTheDocument();
   });

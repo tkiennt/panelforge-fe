@@ -484,6 +484,11 @@ export interface CreatePanelRequest {
   direction?: string | null;
 }
 
+export interface PageLayoutDto {
+  panels: PanelDto[];
+  unassignedArtworkCount: number;
+}
+
 export interface UpdatePanelCoordinatesRequest {
   boundingBox: string;
   readingOrder?: number;
