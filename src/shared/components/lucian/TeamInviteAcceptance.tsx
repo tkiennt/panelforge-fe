@@ -26,7 +26,7 @@ export interface TeamInviteAcceptanceProps {
   }>;
   availableRoles?: string[];
   onInvite?: (email: string, role: string) => Promise<void> | void;
-  onRoleChange?: (id: string, email: string, newRole: string) => void;
+  onRoleChange?: (id: string, email: string, newRole: string) => Promise<void> | void;
   className?: string;
 }
 
@@ -102,17 +102,22 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
   const roleOptions = (role: string) =>
     availableRoles.includes(role) ? availableRoles : [role, ...availableRoles];
 
-  const handleChangeMemberRole = (member: TeamMemberItem, nextRole: string) => {
+  const handleChangeMemberRole = async (member: TeamMemberItem, nextRole: string) => {
     if (member.isOwner || nextRole === member.role) return;
 
-    setAnimatingId(member.id);
-    setMembers((prev) => prev.map((m) => (m.id === member.id ? { ...m, role: nextRole } : m)));
-
-    onRoleChange?.(member.id, member.email, nextRole);
-
-    setTimeout(() => {
-      setAnimatingId(null);
-    }, 400);
+    setErrorMessage('');
+    try {
+      if (onRoleChange) {
+        await onRoleChange(member.id, member.email, nextRole);
+      }
+      setAnimatingId(member.id);
+      setMembers((prev) => prev.map((m) => (m.id === member.id ? { ...m, role: nextRole } : m)));
+      setTimeout(() => {
+        setAnimatingId(null);
+      }, 400);
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Không thể cập nhật vai trò.');
+    }
   };
 
   const handleSendInvite = async (e?: React.FormEvent) => {
@@ -133,15 +138,14 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
 
     setIsSubmitting(true);
     setErrorMessage('');
-    setMembers((prev) => [newMember, ...prev]);
-    setEmailInput('');
 
     try {
       if (onInvite) {
         await onInvite(trimmedEmail, currentRole);
       }
+      setMembers((prev) => [newMember, ...prev]);
+      setEmailInput('');
     } catch (err: any) {
-      setMembers((prev) => prev.filter((m) => m.id !== newId));
       setErrorMessage(err?.message || 'Không thể gửi lời mời. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);

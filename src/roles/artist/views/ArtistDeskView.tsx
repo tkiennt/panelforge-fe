@@ -137,8 +137,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [currentStageIndex, setCurrentStageIndex] = useState<number>(0);
   const [isStageFlowCompleted, setIsStageFlowCompleted] = useState<boolean>(false);
   const [isSubmittingStage, setIsSubmittingStage] = useState<boolean>(false);
+  const [isWithdrawingStage, setIsWithdrawingStage] = useState<boolean>(false);
   const [chapterAssignments, setChapterAssignments] = useState<AssignmentDto[]>([]);
   const [gridTasks, setGridTasks] = useState<StageTaskDto[]>([]);
+  const [gridStages, setGridStages] = useState<
+    Array<{ id: string; name: string; allowedRole?: string | null; isEnabled?: boolean }>
+  >([]);
 
   // Dữ liệu thực tế từ Backend cho Kịch bản & Hồ sơ truyện
   const [rawScriptLines, setRawScriptLines] = useState<ScriptLineItem[] | undefined>(
@@ -244,6 +248,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         const artistInk = enabledSorted.find(
           (s) => getArtistStageKind(s) === 'ink' || stageKindOf(s.name || '') === 'ink',
         );
+        const artistColor = enabledSorted.find((s) => getArtistStageKind(s) === 'color');
         const artistLetter = enabledSorted.find(
           (s) =>
             getArtistStageKind(s) === 'lettering' ||
@@ -263,6 +268,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             label: 'Ink',
             key: 'ink',
           },
+          ...(artistColor
+            ? [
+                {
+                  id: artistColor.id,
+                  label: 'Color',
+                  key: 'color',
+                },
+              ]
+            : []),
           {
             id: artistLetter?.id || 'stage-letter',
             label: 'Letter',
@@ -302,6 +316,35 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         if (typeof assignmentService?.getTaskGrid === 'function') {
           const grid = await assignmentService.getTaskGrid(currentChapterId).catch(() => null);
           const fetchedGridTasks = (grid?.tasks ?? []).filter((t) => t.status !== 'Cancelled');
+          if (alive) {
+            setGridStages(grid?.stages ?? []);
+            const enabledColorFromGrid = (grid?.stages ?? []).find(
+              (s) =>
+                s.isEnabled !== false &&
+                getArtistStageKind({
+                  name: s.name,
+                  slug: s.name.toLowerCase(),
+                  allowedRole: s.allowedRole,
+                }) === 'color',
+            );
+            if (enabledColorFromGrid) {
+              setArtistStages((prev) => {
+                if (prev.some((st) => st.key === 'color' || st.id === enabledColorFromGrid.id)) {
+                  return prev;
+                }
+                const letterIdx = prev.findIndex((st) => st.key === 'lettering');
+                const colorItem: FocusStageItem = {
+                  id: enabledColorFromGrid.id,
+                  label: 'Color',
+                  key: 'color',
+                };
+                if (letterIdx >= 0) {
+                  return [...prev.slice(0, letterIdx), colorItem, ...prev.slice(letterIdx)];
+                }
+                return [...prev, colorItem];
+              });
+            }
+          }
           if (alive && fetchedGridTasks.length > 0) {
             setGridTasks(fetchedGridTasks);
             setChapterAssignments([]);
@@ -424,7 +467,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   }, [currentChapterId, assignmentIdFromUrl, stageIdFromUrl, artistStages]);
 
   const isFallbackStageId = (id?: string | null): boolean =>
-    !id || id === 'stage-pencil' || id === 'stage-ink' || id === 'stage-letter';
+    !id ||
+    id === 'stage-pencil' ||
+    id === 'stage-ink' ||
+    id === 'stage-color' ||
+    id === 'stage-letter';
 
   // Tải danh sách tranh đã lưu trên R2 cho từng trang: nhóm theo panelId, lấy version mới nhất và xin link xem ảnh
   const loadPageArtworks = useCallback(
@@ -881,6 +928,33 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const currentStageId =
     currentStage?.id && !isFallbackStageId(currentStage.id) ? currentStage.id : undefined;
 
+  const isInkOrColorStage = useMemo(() => {
+    if (isStageFlowCompleted) return false;
+    if (currentStage?.key === 'ink' || currentStage?.key === 'color') return true;
+    const stageId = stageIdFromUrl || currentStage?.id;
+    if (!stageId) return false;
+    if (/ink|color|colour|mực|màu/i.test(stageId)) return true;
+    const matchedGridStage = gridStages.find((s) => s.id === stageId);
+    if (matchedGridStage) {
+      const kind = getArtistStageKind({
+        name: matchedGridStage.name,
+        slug: matchedGridStage.name.toLowerCase(),
+        allowedRole: matchedGridStage.allowedRole,
+      });
+      if (kind === 'ink' || kind === 'color') return true;
+    }
+    return false;
+  }, [isStageFlowCompleted, currentStage, stageIdFromUrl, gridStages]);
+
+  useEffect(() => {
+    if (isInkOrColorStage && activeSidebarTab === 'templates') {
+      setActiveSidebarTab('script');
+    }
+  }, [isInkOrColorStage, activeSidebarTab]);
+
+  // Tìm trang hiện tại đang được chọn
+  const selectedPage = pages.find((p) => p.id === selectedPageId) || pages[0] || null;
+
   const lastStageKeyRef = useRef<string | undefined>(`${currentStageIndex}:${currentStageId}`);
   useEffect(() => {
     const key = `${currentStageIndex}:${currentStageId}`;
@@ -1049,6 +1123,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             }
             if (typeof assignmentService.submitStageTasks === 'function') {
               await assignmentService.submitStageTasks(currentChapterId, [targetCell.id]);
+              const refreshedGrid = await assignmentService
+                .getTaskGrid(currentChapterId)
+                .catch(() => null);
+              if (refreshedGrid?.tasks) {
+                setGridTasks(refreshedGrid.tasks.filter((t) => t.status !== 'Cancelled'));
+              }
             }
           } catch (err: any) {
             const backendMsg =
@@ -1057,15 +1137,26 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               err?.data?.message ||
               err?.data?.error ||
               err?.message;
-            const isConflict409 =
-              err?.status === 409 ||
-              err?.response?.status === 409 ||
+            const status = err?.status || err?.response?.status;
+            const isDirectBackendErr =
+              status === 409 ||
+              status === 403 ||
+              status === 400 ||
               err?.code === 'CONFLICT' ||
+              err?.code === 'FORBIDDEN' ||
               /^Trang\s+\d+\s*:/i.test(backendMsg || '');
-            if (isConflict409 && backendMsg) {
+            if (isDirectBackendErr && backendMsg) {
               toast.error(backendMsg);
             } else {
               toast.error('Không nộp được công đoạn', backendMsg || 'Vui lòng thử lại sau.');
+            }
+            if (status === 409 && typeof assignmentService.getTaskGrid === 'function') {
+              const refreshedGrid = await assignmentService
+                .getTaskGrid(currentChapterId)
+                .catch(() => null);
+              if (refreshedGrid?.tasks) {
+                setGridTasks(refreshedGrid.tasks.filter((t) => t.status !== 'Cancelled'));
+              }
             }
             return;
           }
@@ -1188,7 +1279,75 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return seriesPath;
   }, [workspaceId, seriesId, currentChapterId, seriesPath]);
 
-  // Đồng bộ thông tin Header lên FocusWorkspaceLayout (đường dẫn Series/Chương + công đoạn + nút Nộp)
+  const withdrawableCell = useMemo(() => {
+    if (!currentChapterId || gridTasks.length === 0) return null;
+    const me = getStoredCurrentUserId();
+    const mySubmittedOnPage = gridTasks.filter(
+      (t) =>
+        t.status === 'Submitted' &&
+        (me ? t.assigneeUserId === me : Boolean(t.assigneeUserId)) &&
+        (!t.pageId || !selectedPage || t.pageId === selectedPage.id),
+    );
+    if (mySubmittedOnPage.length === 0) return null;
+    return (
+      (currentStage
+        ? mySubmittedOnPage.find((t) => t.pipelineStageId === currentStage.id)
+        : undefined) || mySubmittedOnPage[mySubmittedOnPage.length - 1]
+    );
+  }, [currentChapterId, gridTasks, selectedPage, currentStage]);
+
+  const handleWithdrawStage = useCallback(async () => {
+    if (
+      isWithdrawingStage ||
+      !currentChapterId ||
+      !withdrawableCell ||
+      typeof assignmentService?.withdrawStageTask !== 'function'
+    ) {
+      return;
+    }
+    setIsWithdrawingStage(true);
+    try {
+      await assignmentService.withdrawStageTask(currentChapterId, withdrawableCell.id);
+      if (typeof assignmentService.getTaskGrid === 'function') {
+        const refreshed = await assignmentService.getTaskGrid(currentChapterId).catch(() => null);
+        if (refreshed?.tasks) {
+          setGridTasks(refreshed.tasks.filter((t) => t.status !== 'Cancelled'));
+        }
+      }
+      const withdrawnStageIdx = artistStages.findIndex(
+        (s) => s.id === withdrawableCell.pipelineStageId,
+      );
+      if (withdrawnStageIdx >= 0) {
+        setCurrentStageIndex(withdrawnStageIdx);
+      }
+      setIsStageFlowCompleted(false);
+      toast.success(
+        'Đã rút bài',
+        'Ô công việc đã trở về trạng thái Đang làm để bạn tiếp tục chỉnh sửa.',
+      );
+    } catch (err: any) {
+      const backendMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.data?.message ||
+        err?.data?.error ||
+        err?.message;
+      toast.error(backendMsg || 'Không thể rút bài.');
+      if (
+        (err?.status === 409 || err?.response?.status === 409) &&
+        typeof assignmentService.getTaskGrid === 'function'
+      ) {
+        const refreshed = await assignmentService.getTaskGrid(currentChapterId).catch(() => null);
+        if (refreshed?.tasks) {
+          setGridTasks(refreshed.tasks.filter((t) => t.status !== 'Cancelled'));
+        }
+      }
+    } finally {
+      setIsWithdrawingStage(false);
+    }
+  }, [isWithdrawingStage, currentChapterId, withdrawableCell, artistStages, toast]);
+
+  // Đồng bộ thông tin Header lên FocusWorkspaceLayout (đường dẫn Series/Chương + công đoạn + nút Nộp / Rút bài)
   useEffect(() => {
     if (!focusHeader?.isInsideFocusLayout) return;
     focusHeader.setHeaderConfig({
@@ -1205,6 +1364,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       onSubmitStage: handleSubmitStage,
       onSelectStage: handleSelectStage,
       submitButtonLabel: 'Nộp bản thảo',
+      onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
+      isWithdrawingStage,
+      withdrawButtonLabel: 'Rút bài',
     });
   }, [
     focusHeader,
@@ -1220,6 +1382,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     isSubmittingStage,
     handleSubmitStage,
     handleSelectStage,
+    withdrawableCell,
+    handleWithdrawStage,
+    isWithdrawingStage,
   ]);
 
   useEffect(() => {
@@ -1283,9 +1448,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
     return { bibleEntities: adapted, characterById: charMap };
   }, [hasLoadedRealBible, rawBibleEntries, initialBibleEntities]);
-
-  // Tìm trang hiện tại đang được chọn
-  const selectedPage = pages.find((p) => p.id === selectedPageId) || pages[0] || null;
 
   // Đồng bộ các dòng kịch bản với Trang, Khung và Tên/Màu nhân vật từ Hồ sơ truyện
   const resolvedScriptLines = useMemo(() => {
@@ -1406,6 +1568,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const activeStageKey: PageStage = useMemo(() => {
     if (isStageFlowCompleted) return 'completed';
     const current = artistStages[currentStageIndex];
+    if (current?.key === 'color') return 'ink';
     if (current?.key === 'ink' || current?.key === 'lettering' || current?.key === 'completed') {
       return current.key;
     }
@@ -1433,10 +1596,28 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       elementsCount: 0,
     };
 
+    if (currentChapterId && isGuid(currentChapterId) && pageService?.createPage) {
+      try {
+        const created = await pageService.createPage(currentChapterId, {
+          pageNumber: nextNumber,
+          layoutFormat: newPage.layoutFormat,
+          widthPx: 1200,
+          heightPx: 1800,
+          dpi: 600,
+        });
+        const resolvedPage = created?.id ? created : newPage;
+        setPages((prev) => [...prev, resolvedPage]);
+        setSelectedPageId(resolvedPage.id);
+      } catch (err: any) {
+        toast.error(err?.message || 'Không thể thêm trang mới.');
+      }
+      return;
+    }
+
     setPages((prev) => [...prev, newPage]);
     setSelectedPageId(newPage.id);
 
-    if (currentChapterId) {
+    if (currentChapterId && pageService?.createPage) {
       try {
         const created = await pageService.createPage(currentChapterId, {
           pageNumber: nextNumber,
@@ -1450,7 +1631,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           setSelectedPageId(created.id);
         }
       } catch {
-        // Giữ lại trang mới ở trạng thái tạm thời
+        // Giữ lại trang mới ở chế độ thử nghiệm ngoại tuyến
       }
     }
   };
@@ -1562,6 +1743,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
   // Persist the current dirty layout. Saving never prevents later layout changes.
   const handleSaveLayout = useCallback(async () => {
+    if (isInkOrColorStage) {
+      toast.error('Chỉ công đoạn Pencil mới được sửa bố cục khung');
+      return;
+    }
     if (isPageReadOnly) {
       toast.error('Bạn không có ô đang mở cho trang này');
       return;
@@ -1621,13 +1806,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           toast.warning(`${result.unassignedArtworkCount} tranh chưa có khung`, '');
         }
       } catch (err: any) {
-        setTemplateError(err?.message || 'Không thể lưu bố cục lên máy chủ.');
-        const isForbidden =
-          err?.status === 403 || err?.response?.status === 403 || err?.code === 'FORBIDDEN';
-        if (isForbidden) {
-          toast.error('Bạn không có ô đang mở cho trang này', err?.message || '');
+        const backendMsg =
+          err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          err?.data?.message ||
+          err?.data?.error ||
+          err?.message;
+        setTemplateError(backendMsg || 'Không thể lưu bố cục lên máy chủ.');
+        const status = err?.status || err?.response?.status;
+        if (
+          (status === 403 ||
+            status === 409 ||
+            status === 400 ||
+            err?.code === 'FORBIDDEN' ||
+            err?.code === 'CONFLICT') &&
+          backendMsg
+        ) {
+          toast.error(backendMsg);
         } else {
-          toast.error('Không thể lưu bố cục', err?.message || 'Không thể thay thế bố cục trang.');
+          toast.error('Không thể lưu bố cục', backendMsg || 'Không thể thay thế bố cục trang.');
         }
         return;
       } finally {
@@ -1647,6 +1844,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     currentStageId,
     frameTemplates,
     isCurrentPageLayoutSaved,
+    isInkOrColorStage,
     isPageReadOnly,
     loadPageArtworks,
     selectedPage,
@@ -1665,7 +1863,50 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         toast.warning('Lưu bố cục trước khi nạp tranh', '');
         return;
       }
-      const previousArtwork = panelArtworksByPageId[selectedPage.id]?.[panelId];
+      const shouldPersistToServer = Boolean(
+        currentChapterId &&
+        isGuid(selectedPage.id) &&
+        isGuid(panelId) &&
+        artworkService?.uploadArtwork,
+      );
+
+      if (shouldPersistToServer) {
+        try {
+          const currentStg = artistStages[currentStageIndex];
+          const stageId = currentStg?.id && isGuid(currentStg.id) ? currentStg.id : undefined;
+          await artworkService.uploadArtwork(
+            currentChapterId!,
+            selectedPage.id,
+            file,
+            stageId,
+            undefined,
+            undefined,
+            panelId,
+          );
+        } catch (err: any) {
+          const errorMsg =
+            err?.response?.data?.error ||
+            err?.response?.data?.message ||
+            err?.data?.error ||
+            err?.data?.message ||
+            err?.message ||
+            'Không thể tải tranh lên máy chủ lưu trữ R2.';
+          const status = err?.status || err?.response?.status;
+          const isDirectBackendErr =
+            status === 403 ||
+            status === 409 ||
+            status === 400 ||
+            err?.code === 'FORBIDDEN' ||
+            err?.code === 'CONFLICT';
+          if (isDirectBackendErr) {
+            toast.error(errorMsg);
+          } else {
+            toast.error('Lỗi lưu tranh lên máy chủ', `Khung #${panelNum}: ${errorMsg}`);
+          }
+          return;
+        }
+      }
+
       const objectUrl = URL.createObjectURL(file);
       const newArtwork: PanelArtworkData = {
         id: `art-${panelId}-${Date.now()}`,
@@ -1685,51 +1926,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       }));
 
       toast.success('Đã nạp tranh vào ô', `Tệp "${file.name}" đã được tải vào Khung #${panelNum}.`);
-
-      if (
-        currentChapterId &&
-        isGuid(selectedPage.id) &&
-        isGuid(panelId) &&
-        artworkService?.uploadArtwork
-      ) {
-        try {
-          const currentStage = artistStages[currentStageIndex];
-          const stageId = currentStage?.id && isGuid(currentStage.id) ? currentStage.id : undefined;
-          await artworkService.uploadArtwork(
-            currentChapterId,
-            selectedPage.id,
-            file,
-            stageId,
-            undefined,
-            undefined,
-            panelId,
-          );
-        } catch (err: any) {
-          const errorMsg =
-            err?.response?.data?.error ||
-            err?.response?.data?.message ||
-            err?.data?.error ||
-            err?.data?.message ||
-            err?.message ||
-            'Không thể tải tranh lên máy chủ lưu trữ R2.';
-          const isForbidden =
-            err?.status === 403 || err?.response?.status === 403 || err?.code === 'FORBIDDEN';
-          if (isForbidden) {
-            setPanelArtworksByPageId((prev) => {
-              const pageArts = { ...(prev[selectedPage.id] || {}) };
-              if (previousArtwork) {
-                pageArts[panelId] = previousArtwork;
-              } else {
-                delete pageArts[panelId];
-              }
-              return { ...prev, [selectedPage.id]: pageArts };
-            });
-            toast.error(errorMsg);
-          } else {
-            toast.error('Lỗi lưu tranh lên máy chủ', `Khung #${panelNum}: ${errorMsg}`);
-          }
-        }
-      }
     },
     [
       selectedPage,
@@ -1738,7 +1934,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       artistStages,
       currentStageIndex,
       savedLayoutByPageId,
-      panelArtworksByPageId,
       toast,
     ],
   );
@@ -1764,6 +1959,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // Áp dụng mẫu khung tranh tham khảo vào TRANG HIỆN TẠI (chế độ nháp, chuyển đổi mượt mà)
   const handleSelectTemplate = async (template: FrameTemplateDto) => {
     if (!selectedPage) return;
+    if (isInkOrColorStage) {
+      toast.error('Chỉ công đoạn Pencil mới được sửa bố cục khung');
+      return;
+    }
     if (isPageReadOnly) {
       toast.error('Bạn không có ô đang mở cho trang này');
       return;
@@ -1827,6 +2026,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // Xoá khung tham khảo của trang hiện tại (trở về giấy trắng)
   const handleClearTemplate = async () => {
     if (!selectedPage) return;
+    if (isInkOrColorStage) {
+      toast.error('Chỉ công đoạn Pencil mới được sửa bố cục khung');
+      return;
+    }
     if (isPageReadOnly) {
       toast.error('Bạn không có ô đang mở cho trang này');
       return;
@@ -1881,6 +2084,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // ảnh từng khung, và tốn quota cho một bản không dùng tới.
   const handleUploadFullPageSketch = (file: File) => {
     if (!selectedPage) return;
+    if (isInkOrColorStage) {
+      toast.error('Chỉ công đoạn Pencil mới được sửa bố cục khung');
+      return;
+    }
     if (isPageReadOnly) {
       toast.error('Bạn không có ô đang mở cho trang này');
       return;
@@ -1919,6 +2126,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // Gỡ ảnh phác thảo
   const handleRemoveSketch = () => {
     if (!selectedPage) return;
+    if (isInkOrColorStage) {
+      toast.error('Chỉ công đoạn Pencil mới được sửa bố cục khung');
+      return;
+    }
     if (isPageReadOnly) {
       toast.error('Bạn không có ô đang mở cho trang này');
       return;
@@ -1935,6 +2146,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // Tự động tách panel từ ảnh phác thảo toàn trang (Chỉ nhận diện Panel, KHÔNG đụng đến thoại)
   const handleAutoDetectPanels = async () => {
     if (!selectedPage || !currentSketch) return;
+    if (isInkOrColorStage) {
+      toast.error('Chỉ công đoạn Pencil mới được sửa bố cục khung');
+      return;
+    }
     if (isPageReadOnly) {
       toast.error('Bạn không có ô đang mở cho trang này');
       return;
@@ -2085,6 +2300,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             onSubmitStage: handleSubmitStage,
             onSelectStage: handleSelectStage,
             submitButtonLabel: 'Nộp bản thảo',
+            onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
+            isWithdrawingStage,
+            withdrawButtonLabel: 'Rút bài',
           }}
           showFocusControls={false}
         />
@@ -2164,6 +2382,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           isLoadingTemplates={isLoadingTemplates}
           isApplyingTemplate={isApplyingTemplate}
           templateError={templateError}
+          layoutLocked={isInkOrColorStage}
           activeTab={activeSidebarTab}
           onTabChange={(tab) => setActiveSidebarTab(tab)}
           isDrawerOpen={isSidebarDrawerOpen}
@@ -2211,6 +2430,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             isDetectingPanels={isDetectingPanels}
             isSavingLayout={isApplyingTemplate}
             readOnly={isPageReadOnly}
+            layoutLockedReason={
+              isInkOrColorStage ? 'Chỉ công đoạn Pencil mới được sửa bố cục khung' : undefined
+            }
             onCanvasClick={() => {
               balloons.setSelectedElementId(null);
               handleSelectPanelById(null);

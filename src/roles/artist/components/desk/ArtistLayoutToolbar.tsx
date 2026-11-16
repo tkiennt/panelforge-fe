@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Check, LayoutTemplate, Loader2, Scissors, Upload } from 'lucide-react';
+import { Check, LayoutTemplate, Loader2, Lock, Scissors, Upload } from 'lucide-react';
 
 interface ArtistLayoutToolbarProps {
   currentStep: 1 | 2 | 3 | 4;
@@ -9,6 +9,7 @@ interface ArtistLayoutToolbarProps {
   isDetectingPanels: boolean;
   isSavingLayout: boolean;
   readOnly?: boolean;
+  layoutLockedReason?: string;
   onUploadSketch: (file: File) => void;
   onOpenTemplates: () => void;
   onSplitPanels: () => void;
@@ -25,24 +26,30 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
   isDetectingPanels,
   isSavingLayout,
   readOnly = false,
+  layoutLockedReason,
   onUploadSketch,
   onOpenTemplates,
   onSplitPanels,
   onSaveLayout,
 }) => {
   const sketchInputRef = useRef<HTMLInputElement | null>(null);
-  const splitReason = readOnly
-    ? 'Bạn không có ô đang mở cho trang này'
-    : !hasSketch
-      ? 'Cần tải phác thảo trước'
-      : undefined;
-  const saveReason = readOnly
-    ? 'Bạn không có ô đang mở cho trang này'
-    : !hasPanels
-      ? 'Cần chọn mẫu khung hoặc tách khung trước'
-      : !isLayoutDirty
-        ? 'Chưa có thay đổi để lưu'
+  const isLayoutDisabled = readOnly || Boolean(layoutLockedReason);
+  const splitReason = layoutLockedReason
+    ? layoutLockedReason
+    : readOnly
+      ? 'Bạn không có ô đang mở cho trang này'
+      : !hasSketch
+        ? 'Cần tải phác thảo trước'
         : undefined;
+  const saveReason = layoutLockedReason
+    ? layoutLockedReason
+    : readOnly
+      ? 'Bạn không có ô đang mở cho trang này'
+      : !hasPanels
+        ? 'Cần chọn mẫu khung hoặc tách khung trước'
+        : !isLayoutDirty
+          ? 'Chưa có thay đổi để lưu'
+          : undefined;
   const buttonClass = (step: number) =>
     `${currentStep === step ? 'btn-cta-primary' : 'btn-cta-secondary'} focus-ring min-h-9 px-3 text-xs font-bold inline-flex items-center justify-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-50`;
 
@@ -72,10 +79,20 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
           })}
         </ol>
         <div className='flex flex-wrap items-center justify-end gap-2'>
+          {layoutLockedReason && (
+            <span
+              data-testid='artist-layout-locked-notice'
+              className='inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900'
+            >
+              <Lock className='h-3.5 w-3.5 shrink-0 text-amber-700' aria-hidden='true' />
+              {layoutLockedReason}
+            </span>
+          )}
           <button
             type='button'
-            disabled={readOnly}
-            onClick={() => !readOnly && sketchInputRef.current?.click()}
+            disabled={isLayoutDisabled}
+            title={layoutLockedReason}
+            onClick={() => !isLayoutDisabled && sketchInputRef.current?.click()}
             data-testid='btn-upload-sketch-simple'
             className={buttonClass(1)}
           >
@@ -84,8 +101,9 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
           </button>
           <button
             type='button'
-            disabled={readOnly}
-            onClick={() => !readOnly && onOpenTemplates()}
+            disabled={isLayoutDisabled}
+            title={layoutLockedReason}
+            onClick={() => !isLayoutDisabled && onOpenTemplates()}
             data-testid='btn-open-templates-simple'
             className={buttonClass(2)}
           >

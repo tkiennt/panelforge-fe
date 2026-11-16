@@ -125,6 +125,7 @@ export interface ArtistCanvaSidebarProps {
   isLoadingTemplates?: boolean;
   isApplyingTemplate?: boolean;
   templateError?: string | null;
+  layoutLocked?: boolean;
   // Controlled tab & drawer props
   activeTab?: CanvaSidebarTab;
   onTabChange?: (tab: CanvaSidebarTab) => void;
@@ -896,6 +897,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   isLoadingTemplates = false,
   isApplyingTemplate = false,
   templateError = null,
+  layoutLocked = false,
   activeTab: activeTabProp,
   onTabChange,
   isDrawerOpen: isDrawerOpenProp,
@@ -1196,9 +1198,15 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
           {/* Nút Tab 4: Mẫu Khung Tranh */}
           <button
             type='button'
-            onClick={() => handleTabClick('templates')}
+            disabled={layoutLocked}
+            title={
+              layoutLocked ? 'Chỉ công đoạn Pencil mới được sửa bố cục khung' : 'Mẫu khung tranh'
+            }
+            onClick={() => !layoutLocked && handleTabClick('templates')}
             data-testid='canva-tab-templates'
-            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+              layoutLocked ? 'cursor-not-allowed' : 'cursor-pointer'
+            } ${
               activeTab === 'templates' && isDrawerOpen
                 ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
                 : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
@@ -1767,7 +1775,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   </p>
                 </div>
 
-                {(hasPagePanels || activeTemplateId) && onClearTemplate && (
+                {(hasPagePanels || activeTemplateId) && onClearTemplate && !layoutLocked && (
                   <button
                     type='button'
                     onClick={onClearTemplate}
@@ -1886,9 +1894,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       <button
                         key={tpl.id}
                         type='button'
-                        disabled={isApplyingTemplate}
+                        disabled={isApplyingTemplate || layoutLocked}
                         onClick={() => {
-                          onSelectTemplate?.(tpl);
+                          if (!layoutLocked) onSelectTemplate?.(tpl);
                         }}
                         data-testid={`canva-template-card-${tpl.id}`}
                         title={tpl.description || tpl.name}
