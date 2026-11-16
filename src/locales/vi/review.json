@@ -430,6 +430,11 @@
     "gate2GridSubmitChapterReview": "Nộp kết quả Gate 2",
     "gate2GridSelfReviewLocked": "Không thể tự duyệt ô của mình (BR-06)",
     "gate2GridLastComment": "Nhận xét duyệt gần nhất",
-    "openDetailReview": "Mở màn duyệt"
+    "openDetailReview": "Mở màn duyệt",
+    "underReviewBy": "Đang được duyệt bởi {name}",
+    "underReviewByYou": "Bạn đang giữ khoá duyệt",
+    "releaseReviewBtn": "Nhả khoá duyệt",
+    "forceReleaseReviewBtn": "Gỡ khoá duyệt",
+    "releaseReviewToast": "Đã nhả khoá duyệt"
   }
 }

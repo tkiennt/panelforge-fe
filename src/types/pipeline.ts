@@ -732,6 +732,7 @@ export interface StageTaskDto {
   isInputOutdated: boolean;
   outdatedReason?: string | null;
   lastDecisionComment?: string | null;
+  attemptCount?: number;
   reviewerUserId?: string | null;
   isStartable: boolean;
   startedAt?: string | null;
@@ -777,6 +778,13 @@ export interface StageTaskLotRequest {
 export interface AssignStageTaskLotsRequest {
   lots: StageTaskLotRequest[];
   dryRun?: boolean;
+  reassign?: boolean;
+}
+
+export interface UpdateStageTaskLotRequest {
+  brief?: string | null;
+  dueDate?: string | null;
+  clearDueDate?: boolean;
 }
 
 export interface AssignStageTaskLotsResultDto {
@@ -895,6 +903,7 @@ export interface MyTaskCellDto {
   isInputOutdated: boolean;
   outdatedReason?: string | null;
   lastDecisionComment?: string | null;
+  attemptCount?: number;
 }
 
 /** Một lô công việc của người gọi xuyên chương (thay my-assignments V2). */

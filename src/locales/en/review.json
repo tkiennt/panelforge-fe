@@ -430,6 +430,11 @@
     "gate2GridSubmitChapterReview": "Submit Gate 2 Review",
     "gate2GridSelfReviewLocked": "Cannot review your own cell (BR-06)",
     "gate2GridLastComment": "Latest review comment",
-    "openDetailReview": "Open Review"
+    "openDetailReview": "Open Review",
+    "underReviewBy": "Being reviewed by {name}",
+    "underReviewByYou": "Locked by you for review",
+    "releaseReviewBtn": "Release review",
+    "forceReleaseReviewBtn": "Force release review",
+    "releaseReviewToast": "Review lock released"
   }
 }

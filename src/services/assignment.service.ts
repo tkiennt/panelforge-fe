@@ -46,6 +46,7 @@ import {
   StageTaskLotRequest,
   AssignStageTaskLotsRequest,
   AssignStageTaskLotsResultDto,
+  UpdateStageTaskLotRequest,
   SubmitStageTasksRequest,
   UnassignStageTasksRequest,
   ReopenStageTaskRequest,
@@ -100,6 +101,7 @@ export type {
   StageTaskLotRequest,
   AssignStageTaskLotsRequest,
   AssignStageTaskLotsResultDto,
+  UpdateStageTaskLotRequest,
   SubmitStageTasksRequest,
   UnassignStageTasksRequest,
   ReopenStageTaskRequest,
@@ -828,13 +830,37 @@ export const assignmentService = {
     request: AssignStageTaskLotsRequest,
   ): Promise<AssignStageTaskLotsResultDto> => {
     try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/task-grid/lots`, {
+      const payload: AssignStageTaskLotsRequest = {
         lots: request.lots,
         dryRun: request.dryRun ?? false,
-      });
+        ...(request.reassign !== undefined ? { reassign: request.reassign } : {}),
+      };
+      const response = await axiosClient.post(`/chapters/${chapterId}/task-grid/lots`, payload);
       return response.data;
     } catch (error: any) {
       const err: any = new Error(extractError(error, 'Không thể giao lô công việc'));
+      err.status = error?.response?.status;
+      err.code = error?.response?.data?.code;
+      err.data = error?.response?.data;
+      throw err;
+    }
+  },
+
+  /** Sửa brief / hạn hoàn thành của lô trên lưới V3 (PATCH /api/chapters/{chapterId}/task-grid/lots/{lotId}) — chỉ Producer */
+  updateStageTaskLot: async (
+    chapterId: string,
+    lotId: string,
+    request: UpdateStageTaskLotRequest,
+  ): Promise<StageTaskLotDto> => {
+    try {
+      const response = await axiosClient.patch(`/chapters/${chapterId}/task-grid/lots/${lotId}`, {
+        brief: request.brief ?? null,
+        dueDate: request.dueDate ?? null,
+        clearDueDate: request.clearDueDate ?? false,
+      });
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(extractError(error, 'Không thể cập nhật lô công việc'));
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -867,6 +893,54 @@ export const assignmentService = {
       return response.data || [];
     } catch (error: any) {
       const err: any = new Error(extractError(error, 'Không thể nộp ô công việc'));
+      err.status = error?.response?.status;
+      err.code = error?.response?.data?.code;
+      err.data = error?.response?.data;
+      throw err;
+    }
+  },
+
+  /** Người giữ ô rút bài đã nộp khi ô còn Submitted (POST /api/chapters/{chapterId}/task-grid/tasks/{taskId}/withdraw) */
+  withdrawStageTask: async (chapterId: string, taskId: string): Promise<StageTaskDto> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/task-grid/tasks/${taskId}/withdraw`,
+      );
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(extractError(error, 'Không thể rút bài đã nộp'));
+      err.status = error?.response?.status;
+      err.code = error?.response?.data?.code;
+      err.data = error?.response?.data;
+      throw err;
+    }
+  },
+
+  /** Editor/Producer mở khoá duyệt một ô Submitted → UnderReview (POST /api/chapters/{chapterId}/task-grid/tasks/{taskId}/open-review) */
+  openStageTaskReview: async (chapterId: string, taskId: string): Promise<StageTaskDto> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/task-grid/tasks/${taskId}/open-review`,
+      );
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(extractError(error, 'Không thể mở duyệt ô công việc'));
+      err.status = error?.response?.status;
+      err.code = error?.response?.data?.code;
+      err.data = error?.response?.data;
+      throw err;
+    }
+  },
+
+  /** Người đang duyệt hoặc Producer nhả khoá duyệt UnderReview → Submitted (POST /api/chapters/{chapterId}/task-grid/tasks/{taskId}/release-review) */
+  releaseStageTaskReview: async (chapterId: string, taskId: string): Promise<StageTaskDto> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/task-grid/tasks/${taskId}/release-review`,
+      );
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(extractError(error, 'Không thể nhả khoá duyệt ô công việc'));
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
