@@ -472,8 +472,8 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
   const isSelfSubmission = Boolean(currentUserId && item.assigneeUserId === currentUserId);
   const isLockedByOtherReviewer = Boolean(
     item.status === 'UnderReview' &&
-      item.reviewerUserId &&
-      (!currentUserId || item.reviewerUserId !== currentUserId),
+    item.reviewerUserId &&
+    (!currentUserId || item.reviewerUserId !== currentUserId),
   );
   const resolvedReviewerName =
     reviewerName || (item.reviewerUserId ? item.reviewerUserId.slice(0, 8) : 'Editor');

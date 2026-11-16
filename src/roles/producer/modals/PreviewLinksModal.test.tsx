@@ -339,22 +339,96 @@ describe('PreviewLinksModal', () => {
       (assignmentService.getTaskGrid as any).mockResolvedValue({
         chapterId: 'chap-101',
         stages: [
-          { id: 'stg-ink', name: 'Ink', stageOrder: 2, granularity: 'Page', isEnabled: true, isApprovalGate: true, prerequisiteStageIds: [] },
-          { id: 'stg-letter', name: 'Lettering', stageOrder: 3, granularity: 'Page', isEnabled: true, isApprovalGate: true, prerequisiteStageIds: [] },
+          {
+            id: 'stg-ink',
+            name: 'Ink',
+            stageOrder: 2,
+            granularity: 'Page',
+            isEnabled: true,
+            isApprovalGate: true,
+            prerequisiteStageIds: [],
+          },
+          {
+            id: 'stg-letter',
+            name: 'Lettering',
+            stageOrder: 3,
+            granularity: 'Page',
+            isEnabled: true,
+            isApprovalGate: true,
+            prerequisiteStageIds: [],
+          },
         ],
         pages: [
           { id: 'page-1', pageNumber: 1 },
           { id: 'page-2', pageNumber: 2 },
         ],
         lots: [
-          { id: 'lot-1', pipelineStageId: 'stg-ink', assigneeUserId: 'u-1', assignedRole: 'Artist', status: 'Active', isOverdue: false, taskCount: 2, approvedCount: 1, rowVersion: 1 },
-          { id: 'lot-2', pipelineStageId: 'stg-letter', assigneeUserId: 'u-2', assignedRole: 'Letterer', status: 'Active', isOverdue: false, taskCount: 1, approvedCount: 0, rowVersion: 1 },
+          {
+            id: 'lot-1',
+            pipelineStageId: 'stg-ink',
+            assigneeUserId: 'u-1',
+            assignedRole: 'Artist',
+            status: 'Active',
+            isOverdue: false,
+            taskCount: 2,
+            approvedCount: 1,
+            rowVersion: 1,
+          },
+          {
+            id: 'lot-2',
+            pipelineStageId: 'stg-letter',
+            assigneeUserId: 'u-2',
+            assignedRole: 'Letterer',
+            status: 'Active',
+            isOverdue: false,
+            taskCount: 1,
+            approvedCount: 0,
+            rowVersion: 1,
+          },
         ],
         tasks: [
-          { id: 'task-unassigned', pipelineStageId: 'stg-ink', pageId: 'page-1', status: 'Unassigned', isInputOutdated: false, isStartable: false, rowVersion: 1 },
-          { id: 'task-page2', pipelineStageId: 'stg-ink', pageId: 'page-2', lotId: 'lot-1', assigneeUserId: 'u-1', status: 'InProgress', isInputOutdated: false, isStartable: false, rowVersion: 1 },
-          { id: 'task-submitted', pipelineStageId: 'stg-letter', pageId: 'page-1', lotId: 'lot-2', assigneeUserId: 'u-2', status: 'Submitted', isInputOutdated: false, isStartable: false, rowVersion: 1 },
-          { id: 'task-approved-p1', pipelineStageId: 'stg-ink', pageId: 'page-1', lotId: 'lot-1', assigneeUserId: 'u-1', status: 'Approved', isInputOutdated: false, isStartable: false, rowVersion: 1 },
+          {
+            id: 'task-unassigned',
+            pipelineStageId: 'stg-ink',
+            pageId: 'page-1',
+            status: 'Unassigned',
+            isInputOutdated: false,
+            isStartable: false,
+            rowVersion: 1,
+          },
+          {
+            id: 'task-page2',
+            pipelineStageId: 'stg-ink',
+            pageId: 'page-2',
+            lotId: 'lot-1',
+            assigneeUserId: 'u-1',
+            status: 'InProgress',
+            isInputOutdated: false,
+            isStartable: false,
+            rowVersion: 1,
+          },
+          {
+            id: 'task-submitted',
+            pipelineStageId: 'stg-letter',
+            pageId: 'page-1',
+            lotId: 'lot-2',
+            assigneeUserId: 'u-2',
+            status: 'Submitted',
+            isInputOutdated: false,
+            isStartable: false,
+            rowVersion: 1,
+          },
+          {
+            id: 'task-approved-p1',
+            pipelineStageId: 'stg-ink',
+            pageId: 'page-1',
+            lotId: 'lot-1',
+            assigneeUserId: 'u-1',
+            status: 'Approved',
+            isInputOutdated: false,
+            isStartable: false,
+            rowVersion: 1,
+          },
         ],
       });
       (previewLinkService.createChangeRequestFromFeedback as any).mockResolvedValueOnce({
@@ -370,7 +444,9 @@ describe('PreviewLinksModal', () => {
       const options = Array.from(select.querySelectorAll('option'));
       // Ô đúng page-1 lên đầu (Ink trước Lettering theo stageOrder), ô Submitted bị khoá, ô Unassigned bị loại
       expect(options[1]).toHaveValue('task-approved-p1');
-      expect(options[1]).toHaveTextContent('[Lưới V3] Artist · 2. Ink · Trang 1 (Đã duyệt → mở lại)');
+      expect(options[1]).toHaveTextContent(
+        '[Lưới V3] Artist · 2. Ink · Trang 1 (Đã duyệt → mở lại)',
+      );
       expect(options[2]).toHaveValue('task-submitted');
       expect(options[2]).toBeDisabled();
       expect(options[3]).toHaveValue('task-page2');

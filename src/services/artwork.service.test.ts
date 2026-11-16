@@ -147,7 +147,8 @@ describe('artworkService', () => {
         status: 403,
         data: {
           code: 'FORBIDDEN',
-          error: 'Đầu vào của ô việc đã lỗi thời, chờ Producer xử lý Impact Review trước khi sửa tiếp.',
+          error:
+            'Đầu vào của ô việc đã lỗi thời, chờ Producer xử lý Impact Review trước khi sửa tiếp.',
         },
       },
     });

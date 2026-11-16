@@ -132,9 +132,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             : Promise.resolve(null),
           chapterService.getChapterById(chapterId).catch(() => null),
           effectiveWsId && typeof workspaceService?.getMembers === 'function'
-            ? workspaceService
-                .getMembers(effectiveWsId)
-                .catch(() => [] as WorkspaceMemberDto[])
+            ? workspaceService.getMembers(effectiveWsId).catch(() => [] as WorkspaceMemberDto[])
             : Promise.resolve([] as WorkspaceMemberDto[]),
         ]);
         let cell = grid?.tasks.find((item) => item.id === taskId && item.status !== 'Cancelled');
@@ -339,29 +337,29 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const isProducer = normalizeWorkspaceRole(workspaceRole) === 'PRODUCER';
   const isLockedByOtherReviewer = Boolean(
     isGridTask &&
-      String(assignment?.status) === 'UnderReview' &&
-      gridReviewerUserId &&
-      gridReviewerUserId !== currentUserId,
+    String(assignment?.status) === 'UnderReview' &&
+    gridReviewerUserId &&
+    gridReviewerUserId !== currentUserId,
   );
   const canDecide = isGridTask
     ? Boolean(
         assignment &&
-          (String(assignment.status) === 'Submitted' ||
-            String(assignment.status) === 'UnderReview') &&
-          !isLockedByOtherReviewer &&
-          !work?.isAssignee &&
-          work?.isReviewer &&
-          !assignment.impactReviewReason,
+        (String(assignment.status) === 'Submitted' ||
+          String(assignment.status) === 'UnderReview') &&
+        !isLockedByOtherReviewer &&
+        !work?.isAssignee &&
+        work?.isReviewer &&
+        !assignment.impactReviewReason,
       )
     : (work?.canDecide ?? false) && !assignment?.impactReviewReason;
   const showDecisionBar =
     canDecide ||
     Boolean(
       isGridTask &&
-        isLockedByOtherReviewer &&
-        !work?.isAssignee &&
-        work?.isReviewer &&
-        !assignment?.impactReviewReason,
+      isLockedByOtherReviewer &&
+      !work?.isAssignee &&
+      work?.isReviewer &&
+      !assignment?.impactReviewReason,
     );
 
   // ── Vùng khoanh: yêu cầu sửa nằm trên đúng phiên bản đã khoanh (ảnh thật hoặc ảnh ghép của lần nộp) ──
@@ -898,20 +896,18 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             </div>
           )}
 
-          {isGridTask &&
-            String(assignment.status) === 'ReworkRequired' &&
-            gridLatestComment && (
-              <div
-                data-testid='review-view-last-decision-comment'
-                className='mx-4 mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-900'
-              >
-                💬{' '}
-                <span className='font-semibold'>
-                  {t('chapterReview.gate2GridLastComment', 'Nhận xét lần duyệt gần nhất')}:
-                </span>{' '}
-                {gridLatestComment}
-              </div>
-            )}
+          {isGridTask && String(assignment.status) === 'ReworkRequired' && gridLatestComment && (
+            <div
+              data-testid='review-view-last-decision-comment'
+              className='mx-4 mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-900'
+            >
+              💬{' '}
+              <span className='font-semibold'>
+                {t('chapterReview.gate2GridLastComment', 'Nhận xét lần duyệt gần nhất')}:
+              </span>{' '}
+              {gridLatestComment}
+            </div>
+          )}
 
           {isLockedByOtherReviewer && lockedByOtherText && (
             <div

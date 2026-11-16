@@ -37,10 +37,13 @@ describe('pickPanelArtwork (Bàn vẽ chọn ảnh khung theo công đoạn)', (
   });
 
   it('pickApprovedPanelArtwork bỏ qua ảnh Ink nháp chưa duyệt và lấy ảnh Pencil đã duyệt', () => {
-    const draftInkAndApprovedPencil = [art('ink-draft', 'ink', 1), art('pencil-approved', 'pencil', 1)];
-    expect(
-      pickApprovedPanelArtwork(draftInkAndApprovedPencil, 'k1', stages, ['pencil'])?.id,
-    ).toBe('pencil-approved');
+    const draftInkAndApprovedPencil = [
+      art('ink-draft', 'ink', 1),
+      art('pencil-approved', 'pencil', 1),
+    ];
+    expect(pickApprovedPanelArtwork(draftInkAndApprovedPencil, 'k1', stages, ['pencil'])?.id).toBe(
+      'pencil-approved',
+    );
   });
 });
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
@@ -185,12 +188,16 @@ describe('loadPreviousStageArtworks', () => {
 
   it('chương dùng lưới: bỏ ảnh Ink nháp (ô chưa duyệt), lấy Pencil đã duyệt làm nền', async () => {
     vi.mocked(artworkService.getArtworks).mockImplementation(async (_chap, _page, stageId) => {
-      if (stageId === 'stg-ink') return [{ id: 'ink-draft', pipelineStageId: 'stg-ink' } as AssetReferenceDto];
-      if (stageId === 'stg-pencil') return [{ id: 'pencil-ok', pipelineStageId: 'stg-pencil' } as AssetReferenceDto];
+      if (stageId === 'stg-ink')
+        return [{ id: 'ink-draft', pipelineStageId: 'stg-ink' } as AssetReferenceDto];
+      if (stageId === 'stg-pencil')
+        return [{ id: 'pencil-ok', pipelineStageId: 'stg-pencil' } as AssetReferenceDto];
       return [];
     });
 
-    const result = await loadPreviousStageArtworks('c-grid', 's1', 'p1', 'stg-letter', { stages: mockStages });
+    const result = await loadPreviousStageArtworks('c-grid', 's1', 'p1', 'stg-letter', {
+      stages: mockStages,
+    });
 
     expect(result.map((a) => a.id)).toEqual(['pencil-ok']);
   });

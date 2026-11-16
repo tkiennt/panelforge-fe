@@ -251,7 +251,10 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     const taskId = item.taskId || item.assignmentId;
     setGridBusyTaskId(`open:${taskId}`);
     try {
-      if (item.status === 'Submitted' && typeof assignmentService.openStageTaskReview === 'function') {
+      if (
+        item.status === 'Submitted' &&
+        typeof assignmentService.openStageTaskReview === 'function'
+      ) {
         await assignmentService.openStageTaskReview(item.chapterId, taskId);
       }
       navigate(getReviewUrl(item));
@@ -623,15 +626,15 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
               const isOpening = openingReviewId === item.assignmentId;
               const isLockedByOther = Boolean(
                 item.isGridItem &&
-                  isUnderReview &&
-                  item.reviewerUserId &&
-                  item.reviewerUserId !== currentUserId,
+                isUnderReview &&
+                item.reviewerUserId &&
+                item.reviewerUserId !== currentUserId,
               );
               const isLockedBySelf = Boolean(
                 item.isGridItem &&
-                  isUnderReview &&
-                  currentUserId &&
-                  item.reviewerUserId === currentUserId,
+                isUnderReview &&
+                currentUserId &&
+                item.reviewerUserId === currentUserId,
               );
 
               return (
@@ -745,7 +748,9 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                     {isLockedBySelf && (
                       <div className='mt-1 mb-2 p-2 rounded-lg bg-sky-50 border border-sky-200 text-sky-900 text-xs flex items-center gap-1.5 font-medium'>
                         <Eye className='w-3.5 h-3.5 text-sky-600 shrink-0' />
-                        <span>{t('chapterReview.underReviewByYou', 'Bạn đang giữ khoá duyệt')}</span>
+                        <span>
+                          {t('chapterReview.underReviewByYou', 'Bạn đang giữ khoá duyệt')}
+                        </span>
                       </div>
                     )}
                   </div>

@@ -747,13 +747,13 @@ describe('ProductionBoard (Quy trình sản xuất: lưới + bộ lọc)', () =
     expect(within(matrix).getByText('Trang 1')).toBeInTheDocument();
     expect(within(matrix).getByText('Trang 2')).toBeInTheDocument();
     // Ô Cancelled được làm mờ
-    expect(within(matrix).getByTestId('matrix-cancelled-cell-page:page-1-stage-2')).toHaveTextContent(
-      'Đã huỷ',
-    );
-    // Hiện lastDecisionComment ngay trong ô ReworkRequired trên ma trận
     expect(
-      await within(matrix).findByTestId('matrix-rework-comment-lot-multi'),
-    ).toHaveTextContent('Chỉnh lại giải phẫu tay nhân vật chính');
+      within(matrix).getByTestId('matrix-cancelled-cell-page:page-1-stage-2'),
+    ).toHaveTextContent('Đã huỷ');
+    // Hiện lastDecisionComment ngay trong ô ReworkRequired trên ma trận
+    expect(await within(matrix).findByTestId('matrix-rework-comment-lot-multi')).toHaveTextContent(
+      'Chỉnh lại giải phẫu tay nhân vật chính',
+    );
 
     // Mở chi tiết lô từ ô Trang 2 -> thấy cả lastDecisionComment và nút "Nộp cả lô"
     fireEvent.click(within(matrix).getByText('Đang làm'));

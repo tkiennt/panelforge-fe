@@ -56,27 +56,24 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const showToast = useCallback(
-    (title: string, description = '', options: ToastOptions = {}) => {
-      const type = options.tone ?? options.type ?? inferType(title, description);
-      const tone = normalizeTone(type);
-      const key = options.id ?? `${tone}:${title}:${description}`;
-      const now = Date.now();
-      if (now - (timestamps.current.get(key) ?? 0) < 2500) return;
-      timestamps.current.set(key, now);
-      const item: ToastData = {
-        id: options.id ?? `toast-${now}-${Math.random().toString(36).slice(2, 9)}`,
-        title,
-        description,
-        tone,
-        type,
-        duration: options.duration ?? 5000,
-        action: options.action,
-      };
-      setToasts((current) => [...current, item].slice(-3));
-    },
-    [],
-  );
+  const showToast = useCallback((title: string, description = '', options: ToastOptions = {}) => {
+    const type = options.tone ?? options.type ?? inferType(title, description);
+    const tone = normalizeTone(type);
+    const key = options.id ?? `${tone}:${title}:${description}`;
+    const now = Date.now();
+    if (now - (timestamps.current.get(key) ?? 0) < 2500) return;
+    timestamps.current.set(key, now);
+    const item: ToastData = {
+      id: options.id ?? `toast-${now}-${Math.random().toString(36).slice(2, 9)}`,
+      title,
+      description,
+      tone,
+      type,
+      duration: options.duration ?? 5000,
+      action: options.action,
+    };
+    setToasts((current) => [...current, item].slice(-3));
+  }, []);
 
   const method = useCallback(
     (tone: AlertTone): ToastMethod =>

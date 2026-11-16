@@ -820,7 +820,10 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                           fb.status === 'NeedsChange' &&
                           isInProduction && (
                             <div className='p-2.5 bg-orange-50/70 border border-orange-200 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 text-orange-950'>
-                              <label htmlFor={`cr-assignment-${fb.id}`} className='text-xs shrink-0'>
+                              <label
+                                htmlFor={`cr-assignment-${fb.id}`}
+                                className='text-xs shrink-0'
+                              >
                                 Giao sửa cho việc:
                               </label>
                               <select

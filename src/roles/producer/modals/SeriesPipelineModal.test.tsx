@@ -17,7 +17,9 @@ vi.mock('@/services/pipeline.service', () => ({
 
 vi.mock('@/services/assignment.service', () => ({
   assignmentService: {
-    getTaskGrid: vi.fn().mockResolvedValue({ chapterId: 'chap-1', stages: [], pages: [], lots: [], tasks: [] }),
+    getTaskGrid: vi
+      .fn()
+      .mockResolvedValue({ chapterId: 'chap-1', stages: [], pages: [], lots: [], tasks: [] }),
   },
 }));
 

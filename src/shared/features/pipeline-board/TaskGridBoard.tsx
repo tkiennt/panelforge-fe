@@ -1029,8 +1029,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     const canWithdraw = isStageEnabled && task.status === 'Submitted' && isMine;
     const isLockedByOtherReviewer = Boolean(
       task.status === 'UnderReview' &&
-        task.reviewerUserId &&
-        (!currentUserId || task.reviewerUserId !== currentUserId),
+      task.reviewerUserId &&
+      (!currentUserId || task.reviewerUserId !== currentUserId),
     );
     const canReview =
       isStageEnabled &&

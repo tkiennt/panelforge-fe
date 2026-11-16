@@ -714,9 +714,10 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
       setDirty(false);
       setSaveMsg(`Đã lưu ${savedPanels} panel vào trang ${page.pageNumber}.`);
       if (failedCrops > 0) {
-        setError((prev) =>
-          prev ||
-          `${failedCrops} khung chưa có tranh (cắt hoặc tải ảnh lỗi). Hãy nạp tranh cho các khung đó ở bàn vẽ.`,
+        setError(
+          (prev) =>
+            prev ||
+            `${failedCrops} khung chưa có tranh (cắt hoặc tải ảnh lỗi). Hãy nạp tranh cho các khung đó ở bàn vẽ.`,
         );
       }
       await onApplied();

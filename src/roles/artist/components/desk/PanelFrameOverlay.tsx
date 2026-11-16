@@ -216,9 +216,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                 onClick={openPicker}
                 data-testid={`panel-dropzone-${panelNum}`}
                 title={
-                  canUploadArtwork
-                    ? undefined
-                    : 'Bạn không giữ ô đang mở cho trang × công đoạn này'
+                  canUploadArtwork ? undefined : 'Bạn không giữ ô đang mở cho trang × công đoạn này'
                 }
                 className='focus-ring w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-50/50 cursor-pointer transition-colors border border-dashed border-stone-300 hover:border-stone-500 disabled:opacity-40 disabled:cursor-not-allowed'
               >

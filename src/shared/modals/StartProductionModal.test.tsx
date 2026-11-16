@@ -264,7 +264,10 @@ describe('StartProductionModal Component', () => {
       expect(screen.getByTestId('gate1-submit-error')).toBeInTheDocument();
       expect(screen.getByText('Lỗi xung đột khi bắt đầu sản xuất')).toBeInTheDocument();
       expect(screen.getByText(/Nhân vật Y/)).toBeInTheDocument();
-      expect(defaultProps.onShowToast).toHaveBeenCalledWith('Lỗi xung đột khi bắt đầu sản xuất', '');
+      expect(defaultProps.onShowToast).toHaveBeenCalledWith(
+        'Lỗi xung đột khi bắt đầu sản xuất',
+        '',
+      );
     });
   });
 

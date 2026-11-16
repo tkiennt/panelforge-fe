@@ -1170,15 +1170,15 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   const isApproved = String(effectiveReviewStatus) === 'Approved';
   const isSelfGate2Review = Boolean(
     isGridMode &&
-      gridReviewTask &&
-      currentUserId &&
-      gridReviewTask.assigneeUserId === currentUserId,
+    gridReviewTask &&
+    currentUserId &&
+    gridReviewTask.assigneeUserId === currentUserId,
   );
   const canSubmitGate2Grid = Boolean(
     isGridMode &&
-      gridReviewTask &&
-      String(effectiveReviewStatus) === 'InProgress' &&
-      isSelfGate2Review,
+    gridReviewTask &&
+    String(effectiveReviewStatus) === 'InProgress' &&
+    isSelfGate2Review,
   );
   const canApprove = isGridMode
     ? !isApproved &&
@@ -1817,8 +1817,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       );
                       const isCellLockedByOther = Boolean(
                         cell.status === 'UnderReview' &&
-                          cell.reviewerUserId &&
-                          cell.reviewerUserId !== currentUserId,
+                        cell.reviewerUserId &&
+                        cell.reviewerUserId !== currentUserId,
                       );
                       const reviewerMember = cell.reviewerUserId
                         ? memberMap.get(cell.reviewerUserId)

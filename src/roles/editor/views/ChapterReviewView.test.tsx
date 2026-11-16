@@ -454,7 +454,9 @@ describe('ChapterReviewView Component', () => {
         },
       ],
     });
-    const approveStageTaskMock = vi.fn().mockResolvedValue({ id: 'grid-cell-ink-p1', status: 'Approved' });
+    const approveStageTaskMock = vi
+      .fn()
+      .mockResolvedValue({ id: 'grid-cell-ink-p1', status: 'Approved' });
     const requestStageTaskChangesMock = vi
       .fn()
       .mockResolvedValue({ id: 'grid-cell-ink-p1', status: 'ReworkRequired' });

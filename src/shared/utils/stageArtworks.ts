@@ -119,7 +119,10 @@ const gridCache = new Map<string, { at: number; grid: Promise<TaskGridDto | null
  * Chương dùng lưới V3: các công đoạn có ô Approved của trang này. Ảnh nháp của công đoạn chưa duyệt
  * (vd. Ink đang vẽ dở) không được làm nền cho Letterer / Gate 2. Chương chưa dùng lưới → null (giữ hành vi cũ).
  */
-async function approvedStagesOnGrid(chapterId: string, pageId: string): Promise<ReadonlySet<string> | null> {
+async function approvedStagesOnGrid(
+  chapterId: string,
+  pageId: string,
+): Promise<ReadonlySet<string> | null> {
   const hit = gridCache.get(chapterId);
   const grid =
     hit && Date.now() - hit.at < 5000
@@ -127,7 +130,8 @@ async function approvedStagesOnGrid(chapterId: string, pageId: string): Promise<
       : assignmentService.getTaskGrid(chapterId).catch(() => null);
   if (!hit || hit.grid !== grid) gridCache.set(chapterId, { at: Date.now(), grid });
 
-  const tasks = (await grid)?.tasks.filter((t) => t.pageId === pageId && t.status !== 'Cancelled') ?? [];
+  const tasks =
+    (await grid)?.tasks.filter((t) => t.pageId === pageId && t.status !== 'Cancelled') ?? [];
   if (tasks.length === 0) return null;
   return new Set(tasks.filter((t) => t.status === 'Approved').map((t) => t.pipelineStageId));
 }

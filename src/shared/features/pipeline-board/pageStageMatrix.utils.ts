@@ -55,9 +55,7 @@ export const buildPageStageMatrix = (
     onlyScope?: string;
   },
 ): { columns: MatrixColumn[]; rows: MatrixRow[] } => {
-  const disabledStageIds = new Set(
-    stages.filter((s) => s.isEnabled === false).map((s) => s.id),
-  );
+  const disabledStageIds = new Set(stages.filter((s) => s.isEnabled === false).map((s) => s.id));
   const pagesMap = new Map(pages.map((p) => [p.id, p]));
 
   // Cột: chỉ công đoạn đang bật của pipeline theo thứ tự, cộng công đoạn cũ chưa bị tắt
@@ -173,7 +171,8 @@ export const buildPageStageMatrix = (
     if (options.onlyScope && rowKey !== options.onlyScope) return;
     if (!rows.has(rowKey) && !options.includeEmptyPages) return;
     const page = t.pageId ? pagesMap.get(t.pageId) : undefined;
-    const label = rowKey === 'chapter' ? 'Toàn chương' : page ? `Trang ${page.pageNumber}` : 'Trang';
+    const label =
+      rowKey === 'chapter' ? 'Toàn chương' : page ? `Trang ${page.pageNumber}` : 'Trang';
     const sort = rowKey === 'chapter' ? -1 : (page?.pageNumber ?? Number.MAX_SAFE_INTEGER - 1);
     ensure(rowKey, label, sort).cancelledStages.add(t.pipelineStageId);
   });

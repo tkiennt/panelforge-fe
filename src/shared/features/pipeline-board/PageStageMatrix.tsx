@@ -139,7 +139,9 @@ export const PageStageMatrix: React.FC<{
                       </span>
                       <span className='flex shrink-0 items-center gap-1'>
                         {cards.length > 1 && (
-                          <span className='text-xs font-mono tabular-nums'>+{cards.length - 1}</span>
+                          <span className='text-xs font-mono tabular-nums'>
+                            +{cards.length - 1}
+                          </span>
                         )}
                         <span
                           className='flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-xs font-bold text-landing-ink ring-1 ring-black/10'
