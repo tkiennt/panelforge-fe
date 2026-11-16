@@ -1133,22 +1133,44 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               }
             }
             if (typeof assignmentService.submitStageTasks === 'function') {
-              const submittedCells = await assignmentService.submitStageTasks(currentChapterId, [
-                targetCell.id,
-              ]);
+              const lotInProgress = targetCell.lotId
+                ? latestGridTasks.filter(
+                    (t) =>
+                      t.pipelineStageId === currentStage.id &&
+                      t.lotId === targetCell.lotId &&
+                      (!me || !t.assigneeUserId || t.assigneeUserId === me) &&
+                      !t.isInputOutdated &&
+                      (t.id === targetCell.id || t.status === 'InProgress'),
+                  )
+                : [targetCell];
+              const taskIdsToSubmit =
+                lotInProgress.length > 0 ? lotInProgress.map((c) => c.id) : [targetCell.id];
+              const submittedCells = await assignmentService.submitStageTasks(
+                currentChapterId,
+                taskIdsToSubmit,
+              );
               if (
                 Array.isArray(submittedCells) &&
                 submittedCells.length > 0 &&
                 !submittedCells.some((c) => c.status === 'Approved')
               ) {
                 const byId = new Map(
-                  submittedCells.map((c, idx) => [c.id || (idx === 0 ? targetCell.id : ''), c]),
+                  submittedCells.map((c, idx) => [
+                    c.id || taskIdsToSubmit[idx] || targetCell.id,
+                    c,
+                  ]),
                 );
                 setGridTasks((prev) =>
                   prev.map((t) => {
                     const patch = byId.get(t.id);
                     return patch
-                      ? { ...t, ...patch, id: t.id, status: patch.status ?? 'Submitted' }
+                      ? {
+                          ...t,
+                          ...patch,
+                          id: t.id,
+                          status: patch.status ?? 'Submitted',
+                          reopenReason: patch.reopenReason ?? null,
+                        }
                       : t;
                   }),
                 );
@@ -1777,9 +1799,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   }, [gridTasks, selectedPage, workspaceRole, currentStage?.id]);
 
   const activeReworkDisplay = useMemo(() => {
-    if (gridTasks.length === 0 || !selectedPage) return null;
+    if (gridTasks.length === 0) return null;
     const me = getStoredCurrentUserId();
-    const pageCells = gridTasks.filter((cell) => !cell.pageId || cell.pageId === selectedPage.id);
+    const pageCells = gridTasks.filter(
+      (cell) => !cell.pageId || !selectedPage || cell.pageId === selectedPage.id,
+    );
     const hasStageMatchInGrid = Boolean(
       currentStage?.id && pageCells.some((cell) => cell.pipelineStageId === currentStage.id),
     );
@@ -2395,7 +2419,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         <div
           data-testid='artist-rework-banner'
           role='status'
-          className='shrink-0 border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-900'
+          className='shrink-0 border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-900 whitespace-pre-line break-words'
         >
           {activeReworkDisplay.kind === 'reopen' ? (
             <>

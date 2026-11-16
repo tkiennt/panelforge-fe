@@ -148,6 +148,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
             ...(updated[idx] || {}),
             id,
             status: updated[idx]?.status ?? 'Submitted',
+            reopenReason: updated[idx]?.reopenReason ?? null,
             isStartable: false,
           })),
         );
@@ -320,10 +321,22 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
       {error && (
         <div
           role='alert'
-          className='p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2'
+          className='p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2'
         >
-          <AlertTriangle className='w-4 h-4 shrink-0 text-rose-600' />
-          <span>{error}</span>
+          <AlertTriangle className='w-4 h-4 shrink-0 text-rose-600 mt-0.5' />
+          {error.includes('\n') ? (
+            <ul className='list-disc pl-4 space-y-0.5 whitespace-pre-line break-words'>
+              {error
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line, idx) => (
+                  <li key={idx}>{line}</li>
+                ))}
+            </ul>
+          ) : (
+            <span className='whitespace-pre-line break-words'>{error}</span>
+          )}
         </div>
       )}
 
@@ -680,10 +693,22 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
       {error && (
         <div
           role='alert'
-          className='p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2'
+          className='p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2'
         >
-          <AlertTriangle className='w-4 h-4 shrink-0 text-rose-600' />
-          <span>{error}</span>
+          <AlertTriangle className='w-4 h-4 shrink-0 text-rose-600 mt-0.5' />
+          {error.includes('\n') ? (
+            <ul className='list-disc pl-4 space-y-0.5 whitespace-pre-line break-words'>
+              {error
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line, idx) => (
+                  <li key={idx}>{line}</li>
+                ))}
+            </ul>
+          ) : (
+            <span className='whitespace-pre-line break-words'>{error}</span>
+          )}
         </div>
       )}
 

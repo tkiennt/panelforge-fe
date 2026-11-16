@@ -841,10 +841,22 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                 <div
                   role='alert'
                   data-testid='side-drawer-lot-submit-error'
-                  className='rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800 flex items-center gap-2'
+                  className='rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800 flex items-start gap-2'
                 >
-                  <AlertTriangle className='w-4 h-4 shrink-0 text-rose-600' />
-                  <span>{lotSubmitError}</span>
+                  <AlertTriangle className='w-4 h-4 shrink-0 text-rose-600 mt-0.5' />
+                  {lotSubmitError.includes('\n') ? (
+                    <ul className='list-disc pl-4 space-y-0.5 whitespace-pre-line break-words'>
+                      {lotSubmitError
+                        .split(/\r?\n/)
+                        .map((line) => line.trim())
+                        .filter(Boolean)
+                        .map((line, idx) => (
+                          <li key={idx}>{line}</li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <span className='whitespace-pre-line break-words'>{lotSubmitError}</span>
+                  )}
                 </div>
               )}
               <div className='space-y-2'>{(card.lotTasks ?? []).map(renderGridCellRow)}</div>

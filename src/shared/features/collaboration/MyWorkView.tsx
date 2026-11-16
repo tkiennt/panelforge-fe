@@ -117,206 +117,213 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     };
   }, [seriesId, workspaceId]);
 
-  const loadWork = useCallback(async () => {
-    if (!chapterId) return;
-    setLoadingWork(true);
-    try {
-      if (chapterId === 'ALL_STUDIO') {
-        if (!workspaceId) return;
-        const [myLotsRes, reviewQueueRes, legacyList] = await Promise.all([
-          typeof assignmentService.getMyTaskLots === 'function'
-            ? assignmentService.getMyTaskLots(workspaceId, {
-                seriesId: seriesId || undefined,
-                includeCompleted: true,
-              })
-            : Promise.resolve([]),
-          reviewer && typeof assignmentService.getTaskGridReviewQueue === 'function'
-            ? assignmentService.getTaskGridReviewQueue(workspaceId, {
-                seriesId: seriesId || undefined,
-              })
-            : Promise.resolve([]),
-          typeof assignmentService.getMyWorkspaceAssignments === 'function'
-            ? assignmentService
-                .getMyWorkspaceAssignments(workspaceId, {
+  const loadWork = useCallback(
+    async (silent = false) => {
+      if (!chapterId) return;
+      if (!silent) setLoadingWork(true);
+      try {
+        if (chapterId === 'ALL_STUDIO') {
+          if (!workspaceId) return;
+          const [myLotsRes, reviewQueueRes, legacyList] = await Promise.all([
+            typeof assignmentService.getMyTaskLots === 'function'
+              ? assignmentService.getMyTaskLots(workspaceId, {
+                  seriesId: seriesId || undefined,
+                  includeCompleted: true,
+                })
+              : Promise.resolve([]),
+            reviewer && typeof assignmentService.getTaskGridReviewQueue === 'function'
+              ? assignmentService.getTaskGridReviewQueue(workspaceId, {
                   seriesId: seriesId || undefined,
                 })
-                .catch(() => [])
-            : Promise.resolve([]),
-        ]);
-        setGridLots(
-          (myLotsRes || []).map((lot) => ({
-            ...lot,
-            assigneeUserId: currentUserId ?? undefined,
-          })),
-        );
-        setGridReviewItems(reviewQueueRes || []);
-        setAssignments(legacyList || []);
-        setProgress([]);
-        setScenes([]);
-        setPages([]);
-        setPanels([]);
-        setSelectedSceneId('ALL');
-      } else {
-        const grid =
-          typeof assignmentService.getTaskGrid === 'function'
-            ? await assignmentService.getTaskGrid(chapterId).catch(() => null)
-            : null;
-        const activeGridTasks = (grid?.tasks ?? []).filter((t) => t.status !== 'Cancelled');
-
-        if (grid && activeGridTasks.length > 0) {
-          const chapMeta = chaptersRef.current.find((c) => c.id === chapterId);
-          const pageMap = new Map<string, number>(
-            (grid.pages ?? []).map((p) => [p.id, p.pageNumber] as const),
+              : Promise.resolve([]),
+            typeof assignmentService.getMyWorkspaceAssignments === 'function'
+              ? assignmentService
+                  .getMyWorkspaceAssignments(workspaceId, {
+                    seriesId: seriesId || undefined,
+                  })
+                  .catch(() => [])
+              : Promise.resolve([]),
+          ]);
+          setGridLots(
+            (myLotsRes || []).map((lot) => ({
+              ...lot,
+              assigneeUserId: currentUserId ?? undefined,
+            })),
           );
-          const stageMap = new Map<string, TaskGridStageDto>(
-            (grid.stages ?? []).map((s) => [s.id, s] as [string, TaskGridStageDto]),
-          );
-
-          const lotsFromGrid: MyTaskLotViewItem[] = (grid.lots ?? [])
-            .filter((l) => l.status !== 'Closed')
-            .sort((a, b) => {
-              if (a.status !== b.status) return a.status === 'Active' ? -1 : 1;
-              const da = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
-              const db = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
-              return da - db;
-            })
-            .map((lot) => {
-              const stg = stageMap.get(lot.pipelineStageId);
-              const cells = activeGridTasks
-                .filter((t) => t.lotId === lot.id)
-                .map((t) => ({
-                  id: t.id,
-                  pageId: t.pageId,
-                  pageNumber: t.pageId ? (pageMap.get(t.pageId) ?? null) : null,
-                  status: t.status,
-                  isStartable: t.isStartable,
-                  isInputOutdated: t.isInputOutdated,
-                  outdatedReason: t.outdatedReason,
-                  lastDecisionComment: t.lastDecisionComment ?? null,
-                  reopenReason: t.reopenReason ?? null,
-                  attemptCount: t.attemptCount ?? 0,
-                }))
-                .sort((a, b) => (a.pageNumber ?? -1) - (b.pageNumber ?? -1));
-
-              return {
-                id: lot.id,
-                seriesId: seriesId || '',
-                seriesTitle: 'Series hiện tại',
-                chapterId,
-                chapterNumber: chapMeta?.chapterNumber ?? 0,
-                chapterTitle: chapMeta?.title ?? null,
-                pipelineStageId: lot.pipelineStageId,
-                stageName: stg?.name || 'Công đoạn',
-                stageOrder: stg?.stageOrder ?? 0,
-                stageColorCode: null,
-                assignedRole: lot.assignedRole,
-                brief: lot.brief,
-                dueDate: lot.dueDate,
-                status: lot.status === 'Completed' ? 'Completed' : 'Active',
-                isOverdue: lot.isOverdue,
-                tasks: cells,
-                assigneeUserId: lot.assigneeUserId,
-              };
-            })
-            .filter((lot) => lot.tasks.length > 0);
-
-          const reviewsFromGrid: TaskGridReviewItemDto[] = activeGridTasks
-            .filter((t) => {
-              const stg = stageMap.get(t.pipelineStageId);
-              return (
-                stg?.isEnabled !== false && (t.status === 'Submitted' || t.status === 'UnderReview')
-              );
-            })
-            .map((t) => {
-              const stg = stageMap.get(t.pipelineStageId);
-              return {
-                taskId: t.id,
-                seriesId: seriesId || '',
-                seriesTitle: 'Series hiện tại',
-                chapterId,
-                chapterNumber: chapMeta?.chapterNumber ?? 0,
-                chapterTitle: chapMeta?.title ?? null,
-                pipelineStageId: t.pipelineStageId,
-                stageName: stg?.name || 'Công đoạn',
-                pageId: t.pageId,
-                pageNumber: t.pageId ? (pageMap.get(t.pageId) ?? null) : null,
-                status: t.status === 'UnderReview' ? 'UnderReview' : 'Submitted',
-                assigneeUserId: t.assigneeUserId,
-                reviewerUserId: t.reviewerUserId,
-                reviewerName: null,
-                isInputOutdated: t.isInputOutdated,
-                attemptNumber: t.attemptCount && t.attemptCount > 0 ? t.attemptCount : null,
-                submittedAt: null,
-              };
-            });
-
-          setGridLots(lotsFromGrid);
-          setGridReviewItems(reviewsFromGrid);
-          setAssignments([]);
+          setGridReviewItems(reviewQueueRes || []);
+          setAssignments(legacyList || []);
           setProgress([]);
           setScenes([]);
           setPages([]);
           setPanels([]);
           setSelectedSceneId('ALL');
         } else {
-          setGridLots([]);
-          setGridReviewItems([]);
-          const [list, prog, sceneList, pageList] = await Promise.all([
-            assignmentService.getAssignments(chapterId),
-            assignmentService.getStageProgress(chapterId),
-            scriptLineService.getScenesByChapter(chapterId).catch(() => [] as SceneDto[]),
-            pageService.getPagesByChapter(chapterId).catch(() => [] as PageDto[]),
-          ]);
-          // Cảnh gắn trên Panel (Page không có sceneId), nên cần panel của từng trang để quy việc vào cảnh
-          const panelLists = await Promise.all(
-            (pageList || []).map((p) =>
-              panelService.getPanelsByPage(p.id).catch(() => [] as PanelDto[]),
-            ),
-          );
-          setAssignments(list);
-          setProgress(prog);
-          setScenes(sceneList || []);
-          setPages(pageList || []);
-          setPanels(panelLists.flat());
+          const grid =
+            typeof assignmentService.getTaskGrid === 'function'
+              ? await assignmentService.getTaskGrid(chapterId).catch(() => null)
+              : null;
+          const activeGridTasks = (grid?.tasks ?? []).filter((t) => t.status !== 'Cancelled');
+
+          if (grid && activeGridTasks.length > 0) {
+            const chapMeta = chaptersRef.current.find((c) => c.id === chapterId);
+            const pageMap = new Map<string, number>(
+              (grid.pages ?? []).map((p) => [p.id, p.pageNumber] as const),
+            );
+            const stageMap = new Map<string, TaskGridStageDto>(
+              (grid.stages ?? []).map((s) => [s.id, s] as [string, TaskGridStageDto]),
+            );
+
+            const lotsFromGrid: MyTaskLotViewItem[] = (grid.lots ?? [])
+              .filter((l) => l.status !== 'Closed')
+              .sort((a, b) => {
+                if (a.status !== b.status) return a.status === 'Active' ? -1 : 1;
+                const da = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+                const db = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+                return da - db;
+              })
+              .map((lot) => {
+                const stg = stageMap.get(lot.pipelineStageId);
+                const cells = activeGridTasks
+                  .filter((t) => t.lotId === lot.id)
+                  .map((t) => ({
+                    id: t.id,
+                    pageId: t.pageId,
+                    pageNumber: t.pageId ? (pageMap.get(t.pageId) ?? null) : null,
+                    status: t.status,
+                    isStartable: t.isStartable,
+                    isInputOutdated: t.isInputOutdated,
+                    outdatedReason: t.outdatedReason,
+                    lastDecisionComment: t.lastDecisionComment ?? null,
+                    reopenReason: t.reopenReason ?? null,
+                    attemptCount: t.attemptCount ?? 0,
+                  }))
+                  .sort((a, b) => (a.pageNumber ?? -1) - (b.pageNumber ?? -1));
+
+                return {
+                  id: lot.id,
+                  seriesId: seriesId || '',
+                  seriesTitle: 'Series hiện tại',
+                  chapterId,
+                  chapterNumber: chapMeta?.chapterNumber ?? 0,
+                  chapterTitle: chapMeta?.title ?? null,
+                  pipelineStageId: lot.pipelineStageId,
+                  stageName: stg?.name || 'Công đoạn',
+                  stageOrder: stg?.stageOrder ?? 0,
+                  stageColorCode: null,
+                  assignedRole: lot.assignedRole,
+                  brief: lot.brief,
+                  dueDate: lot.dueDate,
+                  status: lot.status === 'Completed' ? 'Completed' : 'Active',
+                  isOverdue: lot.isOverdue,
+                  tasks: cells,
+                  assigneeUserId: lot.assigneeUserId,
+                };
+              })
+              .filter((lot) => lot.tasks.length > 0);
+
+            const reviewsFromGrid: TaskGridReviewItemDto[] = activeGridTasks
+              .filter((t) => {
+                const stg = stageMap.get(t.pipelineStageId);
+                return (
+                  stg?.isEnabled !== false &&
+                  (t.status === 'Submitted' || t.status === 'UnderReview')
+                );
+              })
+              .map((t) => {
+                const stg = stageMap.get(t.pipelineStageId);
+                return {
+                  taskId: t.id,
+                  seriesId: seriesId || '',
+                  seriesTitle: 'Series hiện tại',
+                  chapterId,
+                  chapterNumber: chapMeta?.chapterNumber ?? 0,
+                  chapterTitle: chapMeta?.title ?? null,
+                  pipelineStageId: t.pipelineStageId,
+                  stageName: stg?.name || 'Công đoạn',
+                  pageId: t.pageId,
+                  pageNumber: t.pageId ? (pageMap.get(t.pageId) ?? null) : null,
+                  status: t.status === 'UnderReview' ? 'UnderReview' : 'Submitted',
+                  assigneeUserId: t.assigneeUserId,
+                  reviewerUserId: t.reviewerUserId,
+                  reviewerName: null,
+                  isInputOutdated: t.isInputOutdated,
+                  attemptNumber: t.attemptCount && t.attemptCount > 0 ? t.attemptCount : null,
+                  submittedAt: null,
+                };
+              });
+
+            setGridLots(lotsFromGrid);
+            setGridReviewItems(reviewsFromGrid);
+            setAssignments([]);
+            setProgress([]);
+            setScenes([]);
+            setPages([]);
+            setPanels([]);
+            setSelectedSceneId('ALL');
+          } else {
+            setGridLots([]);
+            setGridReviewItems([]);
+            const [list, prog, sceneList, pageList] = await Promise.all([
+              assignmentService.getAssignments(chapterId),
+              assignmentService.getStageProgress(chapterId),
+              scriptLineService.getScenesByChapter(chapterId).catch(() => [] as SceneDto[]),
+              pageService.getPagesByChapter(chapterId).catch(() => [] as PageDto[]),
+            ]);
+            // Cảnh gắn trên Panel (Page không có sceneId), nên cần panel của từng trang để quy việc vào cảnh
+            const panelLists = await Promise.all(
+              (pageList || []).map((p) =>
+                panelService.getPanelsByPage(p.id).catch(() => [] as PanelDto[]),
+              ),
+            );
+            setAssignments(list);
+            setProgress(prog);
+            setScenes(sceneList || []);
+            setPages(pageList || []);
+            setPanels(panelLists.flat());
+          }
         }
+      } catch (err) {
+        setError(errorMessage(err, 'Không thể tải danh sách công việc.'));
+      } finally {
+        if (!silent) setLoadingWork(false);
       }
-    } catch (err) {
-      setError(errorMessage(err, 'Không thể tải danh sách công việc.'));
-    } finally {
-      setLoadingWork(false);
-    }
-  }, [chapterId, workspaceId, seriesId, reviewer, currentUserId]);
+    },
+    [chapterId, workspaceId, seriesId, reviewer, currentUserId],
+  );
 
   useEffect(() => {
     void loadWork();
   }, [loadWork]);
 
   // Việc cá nhân xuyên chương/series của cả Studio (CF2 Cross-Chapter Worklist - ưu tiên Lưới V3)
-  const loadStudioWork = useCallback(async () => {
-    if (!workspaceId) return;
-    setLoadingStudio(true);
-    try {
-      const [lotsRes, legacyStudio] = await Promise.all([
-        typeof assignmentService.getMyTaskLots === 'function'
-          ? assignmentService.getMyTaskLots(workspaceId, { includeCompleted: true })
-          : Promise.resolve([]),
-        typeof assignmentService.getMyAssignments === 'function'
-          ? assignmentService.getMyAssignments(workspaceId).catch(() => [])
-          : Promise.resolve([]),
-      ]);
-      setStudioLots(
-        (lotsRes || []).map((lot) => ({
-          ...lot,
-          assigneeUserId: currentUserId ?? undefined,
-        })),
-      );
-      setStudioWork(legacyStudio || []);
-    } catch (err) {
-      setError(errorMessage(err, 'Không thể tải việc toàn Studio.'));
-    } finally {
-      setLoadingStudio(false);
-    }
-  }, [workspaceId, currentUserId]);
+  const loadStudioWork = useCallback(
+    async (silent = false) => {
+      if (!workspaceId) return;
+      if (!silent) setLoadingStudio(true);
+      try {
+        const [lotsRes, legacyStudio] = await Promise.all([
+          typeof assignmentService.getMyTaskLots === 'function'
+            ? assignmentService.getMyTaskLots(workspaceId, { includeCompleted: true })
+            : Promise.resolve([]),
+          typeof assignmentService.getMyAssignments === 'function'
+            ? assignmentService.getMyAssignments(workspaceId).catch(() => [])
+            : Promise.resolve([]),
+        ]);
+        setStudioLots(
+          (lotsRes || []).map((lot) => ({
+            ...lot,
+            assigneeUserId: currentUserId ?? undefined,
+          })),
+        );
+        setStudioWork(legacyStudio || []);
+      } catch (err) {
+        setError(errorMessage(err, 'Không thể tải việc toàn Studio.'));
+      } finally {
+        if (!silent) setLoadingStudio(false);
+      }
+    },
+    [workspaceId, currentUserId],
+  );
 
   useEffect(() => {
     if (tab === 'studio') void loadStudioWork();
@@ -887,7 +894,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       )}
 
       {error && (
-        <Alert tone='danger' className='text-xs'>
+        <Alert tone='danger' className='text-xs whitespace-pre-line'>
           {error}
         </Alert>
       )}
@@ -939,7 +946,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 isOwner={true}
                 highlightedId={highlightedId}
                 showSeriesHeader={true}
-                onChanged={() => void loadStudioWork()}
+                onChanged={() => void loadStudioWork(true)}
                 onCellsUpdated={applyLotCellUpdates}
                 onToast={onShowToast}
               />
@@ -1020,7 +1027,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   currentUserId={currentUserId}
                   isProducer={String(workspaceRole || '').toUpperCase() === 'PRODUCER'}
                   highlighted={item.taskId === highlightedId}
-                  onChanged={() => void loadWork()}
+                  onChanged={() => void loadWork(true)}
                   onToast={onShowToast}
                 />
               ))}
@@ -1041,7 +1048,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     assigneeName={lot.assigneeUserId ? memberName(lot.assigneeUserId) : undefined}
                     highlightedId={highlightedId}
                     showSeriesHeader={chapterId === 'ALL_STUDIO'}
-                    onChanged={() => void loadWork()}
+                    onChanged={() => void loadWork(true)}
                     onCellsUpdated={applyLotCellUpdates}
                     onToast={onShowToast}
                   />

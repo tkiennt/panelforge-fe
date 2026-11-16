@@ -1458,7 +1458,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         >
           <div className='flex items-center gap-2'>
             <AlertTriangle className='w-4 h-4 text-red-600 shrink-0' />
-            <span>{backendBlockError}</span>
+            <span className='whitespace-pre-line break-words'>{backendBlockError}</span>
           </div>
           <button
             type='button'

@@ -195,33 +195,36 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     }
   }, [effectiveIsProducer]);
 
-  const loadGrid = useCallback(async () => {
-    if (!chapterId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [gridRes, membersRes] = await Promise.all([
-        assignmentService.getTaskGrid(chapterId),
-        workspaceId
-          ? workspaceService.getMembers(workspaceId).catch(() => [] as WorkspaceMemberDto[])
-          : Promise.resolve([] as WorkspaceMemberDto[]),
-      ]);
-      setGrid(gridRes);
-      setMembers(membersRes || []);
-      const comments = await resolveReworkDecisionComments(
-        chapterId,
-        gridRes?.tasks ?? [],
-        typeof assignmentService.getStageTaskSubmissions === 'function'
-          ? (cId, tId) => assignmentService.getStageTaskSubmissions(cId, tId)
-          : undefined,
-      );
-      setReworkCommentsByTask(comments);
-    } catch (err: any) {
-      setError(err.message || 'Không thể tải lưới giao việc V3.');
-    } finally {
-      setLoading(false);
-    }
-  }, [chapterId, workspaceId]);
+  const loadGrid = useCallback(
+    async (preserveError = false) => {
+      if (!chapterId) return;
+      setLoading(true);
+      if (!preserveError) setError(null);
+      try {
+        const [gridRes, membersRes] = await Promise.all([
+          assignmentService.getTaskGrid(chapterId),
+          workspaceId
+            ? workspaceService.getMembers(workspaceId).catch(() => [] as WorkspaceMemberDto[])
+            : Promise.resolve([] as WorkspaceMemberDto[]),
+        ]);
+        setGrid(gridRes);
+        setMembers(membersRes || []);
+        const comments = await resolveReworkDecisionComments(
+          chapterId,
+          gridRes?.tasks ?? [],
+          typeof assignmentService.getStageTaskSubmissions === 'function'
+            ? (cId, tId) => assignmentService.getStageTaskSubmissions(cId, tId)
+            : undefined,
+        );
+        setReworkCommentsByTask(comments);
+      } catch (err: any) {
+        setError(err.message || 'Không thể tải lưới giao việc V3.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [chapterId, workspaceId],
+  );
 
   useEffect(() => {
     loadGrid();
@@ -625,7 +628,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     } catch (err: any) {
       setError(err.message || 'Không thể bắt đầu ô công việc.');
       onShowToast?.('Không thể bắt đầu', err.message || 'Không thể bắt đầu ô công việc.');
-      if (err?.status === 409) loadGrid();
+      if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -655,6 +658,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             ...u,
             id: u.id || taskIds[idx],
             status: u.status ?? 'Submitted',
+            reopenReason: u.reopenReason ?? null,
           })),
         );
       } else {
@@ -663,7 +667,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     } catch (err: any) {
       setError(err.message || 'Không thể nộp ô công việc.');
       onShowToast?.('Lỗi nộp bài', err.message || 'Không thể nộp ô công việc.');
-      if (err?.status === 409) loadGrid();
+      if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -682,7 +686,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     } catch (err: any) {
       setError(err.message || 'Không thể duyệt ô công việc.');
       onShowToast?.('Lỗi duyệt ô việc', err.message || 'Không thể duyệt ô công việc.');
-      if (err?.status === 409) loadGrid();
+      if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -708,7 +712,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       const msg = err?.message || 'Không thể rút bài đã nộp.';
       setError(msg);
       onShowToast?.(t('taskGridV3.withdrawErrorTitle', 'Không thể rút bài'), msg);
-      if (err?.status === 409) loadGrid();
+      if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -735,7 +739,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       const msg = err?.message || 'Không thể nhả khoá duyệt ô công việc.';
       setError(msg);
       onShowToast?.('Lỗi nhả khoá duyệt', msg);
-      if (err?.status === 409) loadGrid();
+      if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -787,7 +791,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       const msg = err?.message || 'Không thể đổi người nhận ô công việc.';
       setError(msg);
       onShowToast?.('Lỗi đổi người nhận', msg);
-      if (err?.status === 409) loadGrid();
+      if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -833,7 +837,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       const msg = err?.message || 'Không thể cập nhật lô công việc.';
       setError(msg);
       onShowToast?.('Lỗi cập nhật lô', msg);
-      if (err?.status === 409) loadGrid();
+      if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -867,7 +871,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     } catch (err: any) {
       setError(err.message || 'Không thể yêu cầu sửa ô công việc.');
       onShowToast?.('Lỗi yêu cầu sửa', err.message || 'Không thể yêu cầu sửa ô công việc.');
-      if (err?.status === 409) loadGrid();
+      if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -1033,7 +1037,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     } catch (err: any) {
       setError(err.message || 'Không thể mở lại ô công việc.');
       onShowToast?.('Lỗi mở lại ô việc', err.message || 'Không thể mở lại ô công việc.');
-      if (err?.status === 409) loadGrid();
+      if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -1065,7 +1069,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     } catch (err: any) {
       setError(err.message || 'Không thể xử lý Impact Review cho ô công việc.');
       onShowToast?.('Lỗi Impact Review', err.message || 'Không thể xử lý Impact Review.');
-      if (err?.status === 409) loadGrid();
+      if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -1090,7 +1094,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     } catch (err: any) {
       setError(err.message || 'Không thể bỏ gán ô công việc.');
       onShowToast?.('Lỗi bỏ gán', err.message || 'Không thể bỏ gán ô công việc.');
-      if (err?.status === 409) loadGrid();
+      if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -1941,7 +1945,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
           <button
             type='button'
-            onClick={loadGrid}
+            onClick={() => void loadGrid()}
             disabled={loading}
             className='inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 px-2.5 py-1.5 text-xs font-semibold cursor-pointer'
           >
@@ -1954,10 +1958,22 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       {error && (
         <div
           role='alert'
-          className='flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800'
+          className='flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800'
         >
-          <AlertCircle className='h-4 w-4 shrink-0 text-rose-600' />
-          <span>{error}</span>
+          <AlertCircle className='h-4 w-4 shrink-0 text-rose-600 mt-0.5' />
+          {error.includes('\n') ? (
+            <ul className='list-disc pl-4 space-y-0.5 whitespace-pre-line break-words'>
+              {error
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line, idx) => (
+                  <li key={idx}>{line}</li>
+                ))}
+            </ul>
+          ) : (
+            <span className='whitespace-pre-line break-words'>{error}</span>
+          )}
         </div>
       )}
 
