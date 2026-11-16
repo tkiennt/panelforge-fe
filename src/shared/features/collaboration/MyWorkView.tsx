@@ -193,6 +193,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   isInputOutdated: t.isInputOutdated,
                   outdatedReason: t.outdatedReason,
                   lastDecisionComment: t.lastDecisionComment ?? null,
+                  reopenReason: t.reopenReason ?? null,
                   attemptCount: t.attemptCount ?? 0,
                 }))
                 .sort((a, b) => (a.pageNumber ?? -1) - (b.pageNumber ?? -1));
@@ -347,6 +348,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                       patch.lastDecisionComment !== undefined
                         ? patch.lastDecisionComment
                         : cell.lastDecisionComment,
+                    reopenReason:
+                      patch.reopenReason !== undefined ? patch.reopenReason : cell.reopenReason,
                     attemptCount:
                       patch.attemptCount !== undefined ? patch.attemptCount : cell.attemptCount,
                   };

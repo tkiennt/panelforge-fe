@@ -18,6 +18,7 @@ export interface BoardLotCellItem {
   isInputOutdated: boolean;
   outdatedReason?: string | null;
   lastDecisionComment?: string | null;
+  reopenReason?: string | null;
   prerequisitesApproved: boolean;
 }
 

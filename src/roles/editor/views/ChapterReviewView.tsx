@@ -75,6 +75,7 @@ import {
 } from './chapterReviewViewUtils';
 import {
   resolveReworkDecisionComments,
+  resolveReworkReasonDisplay,
   type AssignmentDto,
   type ChangeRequestDto,
   type ConsistencyFindingDto,
@@ -1916,10 +1917,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       const reviewerLabel = gridReviewerNames[cell.id] || cell.reviewerUserId || '';
                       const isProducerViewer =
                         String(effectiveRole || '').toUpperCase() === 'PRODUCER';
-                      const lastComment =
-                        cell.status === 'ReworkRequired'
-                          ? cell.lastDecisionComment?.trim() || gridCommentsByTask[cell.id] || null
-                          : null;
+                      const reworkDisplay = resolveReworkReasonDisplay(
+                        cell,
+                        gridCommentsByTask[cell.id],
+                      );
 
                       return (
                         <div
@@ -1955,21 +1956,41 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                             </div>
                           </div>
 
-                          {lastComment && (
+                          {reworkDisplay && (
                             <div
-                              data-testid={`gate2-cell-last-comment-${cell.id}`}
-                              title={`${t('chapterReview.gate2GridLastComment', 'Nhận xét lần duyệt gần nhất')}: ${lastComment}`}
+                              data-testid={
+                                reworkDisplay.kind === 'reopen'
+                                  ? `gate2-cell-reopen-reason-${cell.id}`
+                                  : `gate2-cell-last-comment-${cell.id}`
+                              }
+                              title={
+                                reworkDisplay.kind === 'reopen'
+                                  ? `${t('chapterReview.reopenReasonPrefix', 'Producer mở lại:')} ${reworkDisplay.text}`
+                                  : `${t('chapterReview.gate2GridLastComment', 'Nhận xét lần duyệt gần nhất')}: ${reworkDisplay.text}`
+                              }
                               className='rounded border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] text-rose-900'
                             >
-                              💬{' '}
-                              <span className='font-semibold'>
-                                {t(
-                                  'chapterReview.gate2GridLastComment',
-                                  'Nhận xét lần duyệt gần nhất',
-                                )}
-                                :
-                              </span>{' '}
-                              {lastComment}
+                              {reworkDisplay.kind === 'reopen' ? (
+                                <>
+                                  🔄{' '}
+                                  <span className='font-semibold'>
+                                    {t('chapterReview.reopenReasonPrefix', 'Producer mở lại:')}
+                                  </span>{' '}
+                                  {reworkDisplay.text}
+                                </>
+                              ) : (
+                                <>
+                                  💬{' '}
+                                  <span className='font-semibold'>
+                                    {t(
+                                      'chapterReview.gate2GridLastComment',
+                                      'Nhận xét lần duyệt gần nhất',
+                                    )}
+                                    :
+                                  </span>{' '}
+                                  {reworkDisplay.text}
+                                </>
+                              )}
                             </div>
                           )}
 

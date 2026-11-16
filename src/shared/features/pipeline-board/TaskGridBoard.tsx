@@ -40,6 +40,7 @@ import {
   parseStageTaskPanelLayout,
   pickLatestDecisionComment,
   resolveReworkDecisionComments,
+  resolveReworkReasonDisplay,
 } from '@/types';
 import { formatPageRangeLabel } from './productionBoard.utils';
 import { useTranslation } from '@/lib/i18n';
@@ -587,9 +588,19 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         const next = { ...prev };
         for (const u of updates) {
           const comment = u.lastDecisionComment?.trim();
-          if (comment && next[u.id] !== comment) {
-            next[u.id] = comment;
-            changed = true;
+          if (comment) {
+            if (next[u.id] !== comment) {
+              next[u.id] = comment;
+              changed = true;
+            }
+          } else if (
+            u.lastDecisionComment === null ||
+            (u.status && u.status !== 'ReworkRequired')
+          ) {
+            if (u.id in next) {
+              delete next[u.id];
+              changed = true;
+            }
           }
         }
         return changed ? next : prev;
@@ -1162,21 +1173,20 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       reopeningTaskId === task.id ||
       reassigningTaskId === task.id;
     const attemptCount = task.attemptCount ?? 0;
-    const latestDecisionComment =
-      task.status === 'ReworkRequired'
-        ? task.lastDecisionComment?.trim() ||
-          reworkCommentsByTask[task.id] ||
-          pickLatestDecisionComment(submissionsByTaskId[task.id])
-        : null;
+    const reworkDisplay = resolveReworkReasonDisplay(
+      task,
+      reworkCommentsByTask[task.id] || pickLatestDecisionComment(submissionsByTaskId[task.id]),
+    );
+    const reworkTooltip = reworkDisplay
+      ? reworkDisplay.kind === 'reopen'
+        ? `${t('taskGridV3.reopenReasonPrefix', 'Producer mở lại:')} ${reworkDisplay.text}`
+        : `${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${reworkDisplay.text}`
+      : undefined;
 
     return (
       <div
         data-testid={`task-cell-${stage.id}-${pageId ?? 'chapter'}`}
-        title={
-          latestDecisionComment
-            ? `${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${latestDecisionComment}`
-            : undefined
-        }
+        title={reworkTooltip}
         className={`w-full min-w-0 box-border p-2.5 rounded-lg border text-xs flex flex-col gap-1.5 transition-all ${
           hasOpenInlineForm ? 'min-w-[230px]' : ''
         } ${
@@ -1260,17 +1270,33 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           </div>
         )}
 
-        {task.status === 'ReworkRequired' && latestDecisionComment && (
+        {reworkDisplay && (
           <div
-            data-testid={`rework-decision-comment-${task.id}`}
-            title={`${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${latestDecisionComment}`}
+            data-testid={
+              reworkDisplay.kind === 'reopen'
+                ? `rework-reopen-reason-${task.id}`
+                : `rework-decision-comment-${task.id}`
+            }
+            title={reworkTooltip}
             className='rounded border border-rose-200 bg-rose-50/80 px-1.5 py-1 text-[10px] leading-snug text-rose-800 line-clamp-2'
           >
-            💬{' '}
-            <span className='font-semibold'>
-              {t('taskGridV3.lastDecisionPrefix', 'Nhận xét gần nhất:')}
-            </span>{' '}
-            {latestDecisionComment}
+            {reworkDisplay.kind === 'reopen' ? (
+              <>
+                🔄{' '}
+                <span className='font-semibold'>
+                  {t('taskGridV3.reopenReasonPrefix', 'Producer mở lại:')}
+                </span>{' '}
+                {reworkDisplay.text}
+              </>
+            ) : (
+              <>
+                💬{' '}
+                <span className='font-semibold'>
+                  {t('taskGridV3.lastDecisionPrefix', 'Nhận xét gần nhất:')}
+                </span>{' '}
+                {reworkDisplay.text}
+              </>
+            )}
           </div>
         )}
 

@@ -732,6 +732,7 @@ export interface StageTaskDto {
   isInputOutdated: boolean;
   outdatedReason?: string | null;
   lastDecisionComment?: string | null;
+  reopenReason?: string | null;
   attemptCount?: number;
   reviewerUserId?: string | null;
   isStartable: boolean;
@@ -903,6 +904,7 @@ export interface MyTaskCellDto {
   isInputOutdated: boolean;
   outdatedReason?: string | null;
   lastDecisionComment?: string | null;
+  reopenReason?: string | null;
   attemptCount?: number;
 }
 
@@ -974,18 +976,49 @@ export function pickLatestDecisionComment(
   return anyComment?.decisionComment?.trim() ?? null;
 }
 
+export interface ReworkReasonDisplay {
+  kind: 'reopen' | 'decision';
+  text: string;
+}
+
+/**
+ * Xác định lý do hiển thị cho ô ReworkRequired: ưu tiên reopenReason (Producer mở lại / sửa thoại),
+ * sau đó mới tới lastDecisionComment (hoặc nhận xét lấy từ lịch sử nộp).
+ */
+export function resolveReworkReasonDisplay(
+  cell: {
+    status?: string | null;
+    reopenReason?: string | null;
+    lastDecisionComment?: string | null;
+  },
+  fallbackComment?: string | null,
+): ReworkReasonDisplay | null {
+  if (String(cell.status) !== 'ReworkRequired') return null;
+  const reopen = cell.reopenReason?.trim();
+  if (reopen) return { kind: 'reopen', text: reopen };
+  const decision = cell.lastDecisionComment?.trim() || fallbackComment?.trim();
+  if (decision) return { kind: 'decision', text: decision };
+  return null;
+}
+
 /**
  * Bổ sung lastDecisionComment cho các ô đang ReworkRequired khi DTO lưới chưa trả sẵn.
  */
 export async function resolveReworkDecisionComments(
   chapterId: string,
-  cells: Array<{ id: string; status?: string | null; lastDecisionComment?: string | null }>,
+  cells: Array<{
+    id: string;
+    status?: string | null;
+    lastDecisionComment?: string | null;
+    reopenReason?: string | null;
+  }>,
   fetchSubmissions?: (chapterId: string, taskId: string) => Promise<StageTaskSubmissionDto[]>,
 ): Promise<Record<string, string>> {
   const result: Record<string, string> = {};
   const missing: string[] = [];
   for (const c of cells) {
     if (String(c.status) !== 'ReworkRequired') continue;
+    if (c.reopenReason?.trim()) continue;
     const inline = c.lastDecisionComment?.trim();
     if (inline) result[c.id] = inline;
     else missing.push(c.id);

@@ -282,6 +282,7 @@
     "unassignedCell": "unassigned",
     "lastDecisionPrefix": "Feedback",
     "lastDecisionLabel": "Latest review feedback",
+    "reopenReasonPrefix": "Reopened by Producer:",
     "attemptBadge": "Submission #{count}",
     "withdrawBtn": "Withdraw",
     "withdrawSuccessTitle": "Submission withdrawn",

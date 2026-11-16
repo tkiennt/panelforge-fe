@@ -35,7 +35,7 @@ import { StatusBadge, StageLabel } from './ProductionTaskCard';
 import { useTaskThumbnail } from './useTaskThumbnail';
 import { DependencyGraphModal } from './DependencyGraphModal';
 import { Modal } from '@/shared/ui';
-import { pickLatestDecisionComment } from '@/types';
+import { pickLatestDecisionComment, resolveReworkReasonDisplay } from '@/types';
 import { useTranslation } from '@/lib/i18n';
 
 export interface SideDrawerProps {
@@ -274,10 +274,12 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
     const cellAssigneeId = cell.assigneeUserId || card.assigneeUserId;
     const isCellMine = Boolean(currentUserId && cellAssigneeId === currentUserId);
     const isStageEnabled = card.isStageEnabled !== false;
-    const cellLastComment =
-      cell.status === 'ReworkRequired'
-        ? cell.lastDecisionComment?.trim() || latestCommentByCellId[cell.id] || null
-        : null;
+    const reworkDisplay = resolveReworkReasonDisplay(cell, latestCommentByCellId[cell.id]);
+    const reworkTooltip = reworkDisplay
+      ? reworkDisplay.kind === 'reopen'
+        ? `${t('taskGridV3.reopenReasonPrefix', 'Producer mở lại:')} ${reworkDisplay.text}`
+        : `${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${reworkDisplay.text}`
+      : undefined;
 
     const canStartCell =
       isStageEnabled &&
@@ -303,11 +305,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
       <div
         key={cell.id}
         data-testid={`lot-cell-row-${cell.id}`}
-        title={
-          cellLastComment
-            ? `${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${cellLastComment}`
-            : undefined
-        }
+        title={reworkTooltip}
         className='rounded-xl border border-landing-border bg-[#FCFBF8] p-3 space-y-2'
       >
         <div className='flex flex-wrap items-center justify-between gap-2'>
@@ -479,16 +477,32 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
           </div>
         </div>
 
-        {cellLastComment && (
+        {reworkDisplay && (
           <div
-            data-testid={`cell-last-decision-comment-${cell.id}`}
+            data-testid={
+              reworkDisplay.kind === 'reopen'
+                ? `cell-reopen-reason-${cell.id}`
+                : `cell-last-decision-comment-${cell.id}`
+            }
             className='rounded-lg border border-rose-200 bg-rose-50/80 px-2.5 py-1.5 text-xs text-rose-900'
           >
-            💬{' '}
-            <span className='font-semibold'>
-              {t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}:
-            </span>{' '}
-            {cellLastComment}
+            {reworkDisplay.kind === 'reopen' ? (
+              <>
+                🔄{' '}
+                <span className='font-semibold'>
+                  {t('taskGridV3.reopenReasonPrefix', 'Producer mở lại:')}
+                </span>{' '}
+                {reworkDisplay.text}
+              </>
+            ) : (
+              <>
+                💬{' '}
+                <span className='font-semibold'>
+                  {t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}:
+                </span>{' '}
+                {reworkDisplay.text}
+              </>
+            )}
           </div>
         )}
 

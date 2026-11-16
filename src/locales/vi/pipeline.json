@@ -282,6 +282,7 @@
     "unassignedCell": "chưa giao",
     "lastDecisionPrefix": "Nhận xét",
     "lastDecisionLabel": "Nhận xét lần duyệt gần nhất",
+    "reopenReasonPrefix": "Producer mở lại:",
     "attemptBadge": "Lần nộp #{count}",
     "withdrawBtn": "Rút bài",
     "withdrawSuccessTitle": "Đã rút bài",

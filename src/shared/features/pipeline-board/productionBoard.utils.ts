@@ -578,6 +578,7 @@ export const mapTaskGridToCards = (
       outdatedReason: t.outdatedReason ?? null,
       lastDecisionComment:
         t.lastDecisionComment?.trim() || decisionCommentsByTaskId?.[t.id] || null,
+      reopenReason: t.reopenReason ?? null,
       prerequisitesApproved: areCellPrereqsApproved(t),
     };
   };

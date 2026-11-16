@@ -54,6 +54,8 @@ import {
 } from '../lib/artistDeskHelpers';
 import { resolveChangeRequestLocation } from '../utils/changeRequestLocation';
 import { getStoredCurrentUserId } from '@/types/workspace';
+import { resolveReworkReasonDisplay } from '@/types';
+import { useTranslation } from '@/lib/i18n';
 
 export type { PanelArtworkData };
 
@@ -120,6 +122,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const toast = useToast();
   const confirm = useConfirm();
   const focusHeader = useFocusHeaderContext();
+  const { t } = useTranslation('pipeline');
 
   const chapterIdFromUrl = chapterIdFromParam || searchParams.get('chapterId');
   const assignmentIdFromUrl = searchParams.get('assignmentId');
@@ -1773,6 +1776,24 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     };
   }, [gridTasks, selectedPage, workspaceRole, currentStage?.id]);
 
+  const activeReworkDisplay = useMemo(() => {
+    if (gridTasks.length === 0 || !selectedPage) return null;
+    const me = getStoredCurrentUserId();
+    const pageCells = gridTasks.filter((cell) => !cell.pageId || cell.pageId === selectedPage.id);
+    const hasStageMatchInGrid = Boolean(
+      currentStage?.id && pageCells.some((cell) => cell.pipelineStageId === currentStage.id),
+    );
+    const stagePageCells = hasStageMatchInGrid
+      ? pageCells.filter((cell) => cell.pipelineStageId === currentStage?.id)
+      : pageCells;
+    const reworkCell = stagePageCells.find(
+      (cell) =>
+        cell.status === 'ReworkRequired' &&
+        (me ? cell.assigneeUserId === me : Boolean(cell.assigneeUserId)),
+    );
+    return reworkCell ? resolveReworkReasonDisplay(reworkCell) : null;
+  }, [gridTasks, selectedPage, currentStage?.id]);
+
   // Persist the current dirty layout. Saving never prevents later layout changes.
   const handleSaveLayout = useCallback(async () => {
     if (isInkOrColorStage) {
@@ -2367,6 +2388,32 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           className='shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900'
         >
           Chế độ chỉ đọc — Bạn không có ô đang mở cho trang này
+        </div>
+      )}
+
+      {activeReworkDisplay && (
+        <div
+          data-testid='artist-rework-banner'
+          role='status'
+          className='shrink-0 border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-900'
+        >
+          {activeReworkDisplay.kind === 'reopen' ? (
+            <>
+              🔄{' '}
+              <span className='font-semibold'>
+                {t('taskGridV3.reopenReasonPrefix', 'Producer mở lại:')}
+              </span>{' '}
+              <span>{activeReworkDisplay.text}</span>
+            </>
+          ) : (
+            <>
+              💬{' '}
+              <span className='font-semibold'>
+                {t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}:
+              </span>{' '}
+              <span>{activeReworkDisplay.text}</span>
+            </>
+          )}
         </div>
       )}
 

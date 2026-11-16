@@ -26,7 +26,11 @@ import {
   type StageTaskSubmissionDto,
   type TaskGridReviewItemDto,
 } from '@/services/assignment.service';
-import { parseStageTaskPanelLayout, resolveReworkDecisionComments } from '@/types';
+import {
+  parseStageTaskPanelLayout,
+  resolveReworkDecisionComments,
+  resolveReworkReasonDisplay,
+} from '@/types';
 import { useTranslation } from '@/lib/i18n';
 import { describeStartError, errorMessage } from './collaborationRules';
 
@@ -335,21 +339,19 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
           const canWithdraw = isOwner && cell.status === 'Submitted';
           const attemptCount = cell.attemptCount ?? 0;
           const isHighlighted = highlightedId === cell.id;
-          const cellReworkComment =
-            cell.status === 'ReworkRequired'
-              ? cell.lastDecisionComment?.trim() || reworkComments[cell.id] || null
-              : null;
+          const reworkDisplay = resolveReworkReasonDisplay(cell, reworkComments[cell.id]);
+          const reworkTooltip = reworkDisplay
+            ? reworkDisplay.kind === 'reopen'
+              ? `${t('taskGridV3.reopenReasonPrefix', 'Producer mở lại:')} ${reworkDisplay.text}`
+              : `${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${reworkDisplay.text}`
+            : undefined;
 
           return (
             <div
               key={cell.id}
               id={`assignment-${cell.id}`}
               data-testid={`lot-cell-${cell.id}`}
-              title={
-                cellReworkComment
-                  ? `${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${cellReworkComment}`
-                  : undefined
-              }
+              title={reworkTooltip}
               className={`rounded-xl border p-2.5 text-xs flex flex-col justify-between gap-2 ${
                 isHighlighted
                   ? 'border-[#F97316] bg-[#FFF7ED] ring-2 ring-[#F97316]/30'
@@ -381,16 +383,32 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                   </div>
                 </div>
 
-                {cellReworkComment && (
+                {reworkDisplay && (
                   <div
-                    data-testid={`lot-cell-rework-comment-${cell.id}`}
+                    data-testid={
+                      reworkDisplay.kind === 'reopen'
+                        ? `lot-cell-rework-reopen-${cell.id}`
+                        : `lot-cell-rework-comment-${cell.id}`
+                    }
                     className='rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-[11px] text-rose-900'
                   >
-                    💬{' '}
-                    <span className='font-semibold'>
-                      {t('taskGridV3.lastDecisionPrefix', 'Nhận xét gần nhất:')}
-                    </span>{' '}
-                    {cellReworkComment}
+                    {reworkDisplay.kind === 'reopen' ? (
+                      <>
+                        🔄{' '}
+                        <span className='font-semibold'>
+                          {t('taskGridV3.reopenReasonPrefix', 'Producer mở lại:')}
+                        </span>{' '}
+                        {reworkDisplay.text}
+                      </>
+                    ) : (
+                      <>
+                        💬{' '}
+                        <span className='font-semibold'>
+                          {t('taskGridV3.lastDecisionPrefix', 'Nhận xét gần nhất:')}
+                        </span>{' '}
+                        {reworkDisplay.text}
+                      </>
+                    )}
                   </div>
                 )}
 

@@ -83,6 +83,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const [isGridTask, setIsGridTask] = useState(false);
   const [gridIsInputOutdated, setGridIsInputOutdated] = useState(false);
   const [gridLatestComment, setGridLatestComment] = useState<string | null>(null);
+  const [gridReopenReason, setGridReopenReason] = useState<string | null>(null);
   const [gridReviewerUserId, setGridReviewerUserId] = useState<string | null>(null);
   const [gridReviewerName, setGridReviewerName] = useState<string | null>(null);
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
@@ -137,6 +138,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           setIsGridTask(false);
           setGridIsInputOutdated(false);
           setGridLatestComment(null);
+          setGridReopenReason(null);
           setGridReviewerUserId(null);
           setGridReviewerName(null);
           heldReviewLockRef.current = false;
@@ -240,6 +242,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         setGridLatestComment(
           cell.lastDecisionComment?.trim() || pickLatestDecisionComment(rawSubs) || null,
         );
+        setGridReopenReason(cell.reopenReason?.trim() || null);
         setAssignment({
           id: cell.id,
           seriesId: seriesId || '',
@@ -279,6 +282,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       setIsGridTask(false);
       setGridIsInputOutdated(false);
       setGridLatestComment(null);
+      setGridReopenReason(null);
       setGridReviewerUserId(null);
       setGridReviewerName(null);
       heldReviewLockRef.current = false;
@@ -506,6 +510,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         if (released?.lastDecisionComment !== undefined) {
           setGridLatestComment(released.lastDecisionComment?.trim() || null);
         }
+        if (released?.reopenReason !== undefined) {
+          setGridReopenReason(released.reopenReason?.trim() || null);
+        }
         if (released?.isInputOutdated !== undefined) {
           setGridIsInputOutdated(Boolean(released.isInputOutdated));
         }
@@ -545,6 +552,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           setGridReviewerUserId(updated?.reviewerUserId ?? null);
           setGridReviewerName(null);
           setGridLatestComment(updated?.lastDecisionComment?.trim() || commentText || null);
+          if (updated?.reopenReason !== undefined) {
+            setGridReopenReason(updated.reopenReason?.trim() || null);
+          }
           if (updated?.isInputOutdated !== undefined) {
             setGridIsInputOutdated(Boolean(updated.isInputOutdated));
           }
@@ -662,6 +672,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           setGridIsInputOutdated(Boolean(updated?.isInputOutdated));
           if (updated?.lastDecisionComment !== undefined) {
             setGridLatestComment(updated.lastDecisionComment?.trim() || null);
+          }
+          if (updated?.reopenReason !== undefined) {
+            setGridReopenReason(updated.reopenReason?.trim() || null);
           }
           setAssignment((prev) =>
             prev
@@ -959,18 +972,36 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             </div>
           )}
 
-          {isGridTask && String(assignment.status) === 'ReworkRequired' && gridLatestComment && (
-            <div
-              data-testid='review-view-last-decision-comment'
-              className='mx-4 mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-900'
-            >
-              💬{' '}
-              <span className='font-semibold'>
-                {t('chapterReview.gate2GridLastComment', 'Nhận xét lần duyệt gần nhất')}:
-              </span>{' '}
-              {gridLatestComment}
-            </div>
-          )}
+          {isGridTask &&
+            String(assignment.status) === 'ReworkRequired' &&
+            (gridReopenReason || gridLatestComment) && (
+              <div
+                data-testid={
+                  gridReopenReason
+                    ? 'review-view-reopen-reason'
+                    : 'review-view-last-decision-comment'
+                }
+                className='mx-4 mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-900'
+              >
+                {gridReopenReason ? (
+                  <>
+                    🔄{' '}
+                    <span className='font-semibold'>
+                      {t('chapterReview.reopenReasonPrefix', 'Producer mở lại:')}
+                    </span>{' '}
+                    {gridReopenReason}
+                  </>
+                ) : (
+                  <>
+                    💬{' '}
+                    <span className='font-semibold'>
+                      {t('chapterReview.gate2GridLastComment', 'Nhận xét lần duyệt gần nhất')}:
+                    </span>{' '}
+                    {gridLatestComment}
+                  </>
+                )}
+              </div>
+            )}
 
           {isLockedByOtherReviewer && lockedByOtherText && (
             <div
