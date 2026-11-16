@@ -6,14 +6,9 @@ import { ReviewView } from './ReviewView';
 import { assignmentService } from '@/services/assignment.service';
 import { artworkService } from '@/services/artwork.service';
 import { panelService } from '@/services/panel.service';
-import { workspaceService } from '@/services/workspace.service';
 
 vi.mock('@/services/panel.service', () => ({
   panelService: { getPanelsByPage: vi.fn() },
-}));
-
-vi.mock('@/services/workspace.service', () => ({
-  workspaceService: { getMembers: vi.fn().mockResolvedValue([]) },
 }));
 
 vi.mock('@/services/chapter.service', () => ({
@@ -47,6 +42,7 @@ vi.mock('@/services/assignment.service', () => ({
     runVisualConsistencyCheck: vi.fn(),
     resolveImpactReview: vi.fn(),
     getTaskGrid: vi.fn(),
+    getTaskGridReviewQueue: vi.fn(),
     getStageTaskSubmissions: vi.fn(),
     openStageTaskReview: vi.fn(),
     releaseStageTaskReview: vi.fn(),
@@ -551,8 +547,13 @@ describe('ReviewView (CF3: duyệt bản nộp tranh)', () => {
   it('V3 Grid: locks decision buttons when UnderReview by another Editor and lets Producer force-release', async () => {
     const user = userEvent.setup();
     vi.mocked(assignmentService.getAssignmentById).mockRejectedValue(new Error('404'));
-    vi.mocked(workspaceService.getMembers).mockResolvedValue([
-      { userId: 'editor-other', fullName: 'Editor Lan', email: 'lan@panelforge.local' },
+    vi.mocked(assignmentService.getTaskGridReviewQueue).mockResolvedValue([
+      {
+        taskId: 'a1',
+        reviewerUserId: 'editor-other',
+        reviewerName: 'Editor Lan',
+        isInputOutdated: false,
+      },
     ] as any);
     vi.mocked(assignmentService.getTaskGrid).mockResolvedValue({
       stages: [{ id: 'st1', name: 'Ink', stageOrder: 2, allowedRole: 'Artist', isEnabled: true }],

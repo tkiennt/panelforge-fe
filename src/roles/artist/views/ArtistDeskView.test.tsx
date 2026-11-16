@@ -1827,13 +1827,13 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         expect(screen.queryByText('Đã rút bài')).not.toBeInTheDocument();
         expect(getGridSpy).toHaveBeenCalledTimes(2);
 
-        // Lần 2: 200 OK -> rút bài thành công, tải lại lưới, ẩn nút Rút bài
+        // Lần 2: 200 OK -> rút bài thành công, cập nhật ô trực tiếp từ DTO trả về, ẩn nút Rút bài
         fireEvent.click(screen.getByTestId('artist-withdraw-btn'));
         await waitFor(() => {
           expect(withdrawSpy).toHaveBeenCalledWith('chap-1', 'cell-p1-pencil');
-          expect(getGridSpy).toHaveBeenCalledTimes(3);
           expect(screen.getByText('Đã rút bài')).toBeInTheDocument();
         });
+        expect(getGridSpy).toHaveBeenCalledTimes(2);
         expect(screen.queryByTestId('artist-withdraw-btn')).not.toBeInTheDocument();
       } finally {
         localStorage.removeItem('user');

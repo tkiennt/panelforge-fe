@@ -457,9 +457,11 @@ describe('ChapterReviewView Component', () => {
     const approveStageTaskMock = vi
       .fn()
       .mockResolvedValue({ id: 'grid-cell-ink-p1', status: 'Approved' });
-    const requestStageTaskChangesMock = vi
-      .fn()
-      .mockResolvedValue({ id: 'grid-cell-ink-p1', status: 'ReworkRequired' });
+    const requestStageTaskChangesMock = vi.fn().mockResolvedValue({
+      id: 'grid-cell-ink-p1',
+      status: 'ReworkRequired',
+      lastDecisionComment: 'Nét mực khung 2 bị đứt nét',
+    });
 
     (assignmentService as any).getTaskGrid = getTaskGridMock;
     (assignmentService as any).approveStageTask = approveStageTaskMock;
@@ -504,8 +506,11 @@ describe('ChapterReviewView Component', () => {
           'grid-cell-ink-p1',
           'Nét mực khung 2 bị đứt nét',
         );
-        expect(getTaskGridMock).toHaveBeenCalledTimes(3);
+        expect(screen.getByTestId('gate2-cell-last-comment-grid-cell-ink-p1')).toHaveTextContent(
+          'Nét mực khung 2 bị đứt nét',
+        );
       });
+      expect(getTaskGridMock).toHaveBeenCalledTimes(2);
       expect(assignmentService.returnWorkFromReview).not.toHaveBeenCalled();
     } finally {
       delete (assignmentService as any).getTaskGrid;

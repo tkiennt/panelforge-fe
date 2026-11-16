@@ -435,6 +435,7 @@
     "underReviewByYou": "Bạn đang giữ khoá duyệt",
     "releaseReviewBtn": "Nhả khoá duyệt",
     "forceReleaseReviewBtn": "Gỡ khoá duyệt",
-    "releaseReviewToast": "Đã nhả khoá duyệt"
+    "releaseReviewToast": "Đã nhả khoá duyệt",
+    "inputOutdatedBadge": "Đầu vào đã đổi"
   }
 }

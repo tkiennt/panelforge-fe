@@ -342,7 +342,7 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       expect(assignmentService.startStageTask).toHaveBeenCalledWith('chap-1', 'task-p2-pencil');
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Nộp' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Nộp' })[0]);
     await waitFor(() => {
       expect(assignmentService.submitStageTasks).toHaveBeenCalledWith('chap-1', ['task-p1-ink']);
     });
@@ -358,7 +358,7 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       />,
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Duyệt' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Duyệt' }))[1]);
     await waitFor(() => {
       expect(assignmentService.approveStageTask).toHaveBeenCalledWith('chap-1', 'task-p2-ink');
     });
@@ -972,6 +972,7 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     vi.mocked(assignmentService.withdrawStageTask).mockResolvedValueOnce({
       id: 'task-p2-ink',
       status: 'InProgress',
+      attemptCount: 3,
     } as any);
 
     const { unmount } = render(
@@ -989,8 +990,10 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     fireEvent.click(screen.getByTestId('withdraw-task-btn-task-p2-ink'));
     await waitFor(() => {
       expect(assignmentService.withdrawStageTask).toHaveBeenCalledWith('chap-1', 'task-p2-ink');
-      expect(assignmentService.getTaskGrid).toHaveBeenCalledTimes(2);
+      expect(screen.queryByTestId('withdraw-task-btn-task-p2-ink')).not.toBeInTheDocument();
     });
+    expect(screen.getByTestId('task-attempt-count-task-p2-ink')).toHaveTextContent('Lần nộp #3');
+    expect(assignmentService.getTaskGrid).toHaveBeenCalledTimes(1);
     unmount();
 
     // Producer thấy "Đang được duyệt bởi..." và nút Gỡ khoá duyệt khi Editor khác đang giữ khoá

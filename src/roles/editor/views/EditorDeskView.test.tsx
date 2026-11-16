@@ -413,13 +413,6 @@ describe('EditorDeskView Component', () => {
 
   it('locks UnderReview cells held by another Editor and lets Producer force-release lock', async () => {
     vi.spyOn(assignmentService, 'getEditorReviewQueue').mockResolvedValue([]);
-    vi.spyOn(workspaceService, 'getMembers').mockResolvedValue([
-      {
-        userId: 'usr-editor-2',
-        fullName: 'Biên tập Minh',
-        email: 'minh@panelforge.local',
-      },
-    ] as any);
     vi.spyOn(assignmentService, 'getTaskGridReviewQueue').mockResolvedValue([
       {
         taskId: 'grid-task-locked',
@@ -434,6 +427,8 @@ describe('EditorDeskView Component', () => {
         status: 'UnderReview',
         assigneeUserId: 'usr-artist-1',
         reviewerUserId: 'usr-editor-2',
+        reviewerName: 'Biên tập Minh',
+        isInputOutdated: false,
         attemptNumber: 1,
         submittedAt: '2026-11-14T10:30:00Z',
       },

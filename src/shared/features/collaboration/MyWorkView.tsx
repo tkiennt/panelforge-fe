@@ -25,6 +25,7 @@ import type {
   AssignmentDto,
   PanelDto,
   StageProgressDto,
+  StageTaskDto,
   TaskGridReviewItemDto,
   TaskGridStageDto,
   WorkspaceAssignmentDto,
@@ -219,7 +220,12 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             .filter((lot) => lot.tasks.length > 0);
 
           const reviewsFromGrid: TaskGridReviewItemDto[] = activeGridTasks
-            .filter((t) => t.status === 'Submitted' || t.status === 'UnderReview')
+            .filter((t) => {
+              const stg = stageMap.get(t.pipelineStageId);
+              return (
+                stg?.isEnabled !== false && (t.status === 'Submitted' || t.status === 'UnderReview')
+              );
+            })
             .map((t) => {
               const stg = stageMap.get(t.pipelineStageId);
               return {
@@ -236,6 +242,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 status: t.status === 'UnderReview' ? 'UnderReview' : 'Submitted',
                 assigneeUserId: t.assigneeUserId,
                 reviewerUserId: t.reviewerUserId,
+                reviewerName: null,
+                isInputOutdated: t.isInputOutdated,
                 attemptNumber: t.attemptCount && t.attemptCount > 0 ? t.attemptCount : null,
                 submittedAt: null,
               };
@@ -312,6 +320,51 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   useEffect(() => {
     if (tab === 'studio') void loadStudioWork();
   }, [tab, loadStudioWork]);
+
+  const applyLotCellUpdates = useCallback(
+    (targetChapterId: string, updates: Array<Partial<StageTaskDto> & { id: string }>) => {
+      if (!updates.length) return;
+      const byId = new Map(updates.map((u) => [u.id, u]));
+      const patchLots = (lots: MyTaskLotViewItem[]): MyTaskLotViewItem[] =>
+        lots.map((lot) =>
+          lot.chapterId !== targetChapterId
+            ? lot
+            : {
+                ...lot,
+                tasks: lot.tasks.map((cell) => {
+                  const patch = byId.get(cell.id);
+                  if (!patch) return cell;
+                  return {
+                    ...cell,
+                    status: patch.status ?? cell.status,
+                    isStartable: patch.isStartable ?? cell.isStartable,
+                    isInputOutdated: patch.isInputOutdated ?? cell.isInputOutdated,
+                    outdatedReason:
+                      patch.outdatedReason !== undefined
+                        ? patch.outdatedReason
+                        : cell.outdatedReason,
+                    lastDecisionComment:
+                      patch.lastDecisionComment !== undefined
+                        ? patch.lastDecisionComment
+                        : cell.lastDecisionComment,
+                    attemptCount:
+                      patch.attemptCount !== undefined ? patch.attemptCount : cell.attemptCount,
+                  };
+                }),
+              },
+        );
+      setGridLots(patchLots);
+      setStudioLots(patchLots);
+      setGridReviewItems((prev) =>
+        prev.filter((item) => {
+          const patch = byId.get(item.taskId);
+          if (!patch || !patch.status) return true;
+          return patch.status === 'Submitted' || patch.status === 'UnderReview';
+        }),
+      );
+    },
+    [],
+  );
 
   const stageName = (id: string, a?: AssignmentDto) => {
     if ((a as any)?.stageName) {
@@ -884,6 +937,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 highlightedId={highlightedId}
                 showSeriesHeader={true}
                 onChanged={() => void loadStudioWork()}
+                onCellsUpdated={applyLotCellUpdates}
                 onToast={onShowToast}
               />
             ))}
@@ -956,7 +1010,10 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   assigneeName={
                     item.assigneeUserId ? memberName(item.assigneeUserId) : 'Chưa rõ người nộp'
                   }
-                  reviewerName={item.reviewerUserId ? memberName(item.reviewerUserId) : null}
+                  reviewerName={
+                    item.reviewerName ??
+                    (item.reviewerUserId ? memberName(item.reviewerUserId) : null)
+                  }
                   currentUserId={currentUserId}
                   isProducer={String(workspaceRole || '').toUpperCase() === 'PRODUCER'}
                   highlighted={item.taskId === highlightedId}
@@ -982,6 +1039,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     highlightedId={highlightedId}
                     showSeriesHeader={chapterId === 'ALL_STUDIO'}
                     onChanged={() => void loadWork()}
+                    onCellsUpdated={applyLotCellUpdates}
                     onToast={onShowToast}
                   />
                 );

@@ -305,6 +305,7 @@
     "submitWholeLot": "Nộp cả lô",
     "submitWholeLotCount": "Nộp cả lô ({count} ô)",
     "submitWholeLotSuccessTitle": "Đã nộp cả lô",
-    "submitWholeLotErrorTitle": "Không thể nộp cả lô"
+    "submitWholeLotErrorTitle": "Không thể nộp cả lô",
+    "inputOutdatedBadge": "Đầu vào đã đổi"
   }
 }

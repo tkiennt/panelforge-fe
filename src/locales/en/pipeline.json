@@ -305,6 +305,7 @@
     "submitWholeLot": "Submit whole lot",
     "submitWholeLotCount": "Submit whole lot ({count} cells)",
     "submitWholeLotSuccessTitle": "Submitted whole lot",
-    "submitWholeLotErrorTitle": "Could not submit lot"
+    "submitWholeLotErrorTitle": "Could not submit lot",
+    "inputOutdatedBadge": "Input changed"
   }
 }

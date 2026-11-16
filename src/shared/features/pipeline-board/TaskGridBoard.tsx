@@ -544,13 +544,73 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     }
   };
 
+  const applyUpdatedTasks = useCallback(
+    (updates: Array<Partial<StageTaskDto> & { id: string }>) => {
+      if (!updates.length) return;
+      const byId = new Map(updates.map((u) => [u.id, u]));
+      setGrid((prev) => {
+        if (!prev) return prev;
+        const stagesById = new Map(prev.stages.map((s) => [s.id, s]));
+        const mergedTasks = prev.tasks.map((existing) => {
+          const patch = byId.get(existing.id);
+          if (!patch) return existing;
+          return { ...existing, ...patch, id: existing.id };
+        });
+        const recomputedTasks = mergedTasks.map((cell) => {
+          if (!byId.has(cell.id)) return cell;
+          if (cell.status !== 'Assigned' && cell.status !== 'ReworkRequired') {
+            return { ...cell, isStartable: false };
+          }
+          if (cell.isInputOutdated) {
+            return { ...cell, isStartable: false };
+          }
+          const stg = stagesById.get(cell.pipelineStageId);
+          const prereqIds = stg?.prerequisiteStageIds || [];
+          const prereqsOk = prereqIds.every((prereqId) => {
+            const cells = mergedTasks.filter(
+              (t) => t.pipelineStageId === prereqId && t.status !== 'Cancelled',
+            );
+            const needed = cell.pageId
+              ? cells.filter((t) => t.pageId === cell.pageId || !t.pageId)
+              : cells;
+            return (
+              needed.length > 0 &&
+              needed.every((t) => t.status === 'Approved' && !t.isInputOutdated)
+            );
+          });
+          return { ...cell, isStartable: prereqsOk };
+        });
+        return { ...prev, tasks: recomputedTasks };
+      });
+      setReworkCommentsByTask((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const u of updates) {
+          const comment = u.lastDecisionComment?.trim();
+          if (comment && next[u.id] !== comment) {
+            next[u.id] = comment;
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    },
+    [],
+  );
+
   const handleStartTask = async (task: StageTaskDto) => {
     setActionLoading(`start:${task.id}`);
     setError(null);
     try {
-      await assignmentService.startStageTask(chapterId, task.id);
+      const updated = await assignmentService.startStageTask(chapterId, task.id);
+      applyUpdatedTasks([
+        {
+          ...updated,
+          id: task.id,
+          status: updated?.status ?? 'InProgress',
+        },
+      ]);
       onShowToast?.('Đã bắt đầu ô việc', 'Trạng thái đã chuyển sang Đang làm (InProgress).');
-      await loadGrid();
     } catch (err: any) {
       setError(err.message || 'Không thể bắt đầu ô công việc.');
       onShowToast?.('Không thể bắt đầu', err.message || 'Không thể bắt đầu ô công việc.');
@@ -571,14 +631,24 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         taskIds.forEach((id) => next.delete(id));
         return next;
       });
-      const autoApproved = updated.every((t) => t.status === 'Approved');
+      const autoApproved = updated.length > 0 && updated.every((t) => t.status === 'Approved');
       onShowToast?.(
         'Đã nộp ô công việc',
         autoApproved
           ? `Đã nộp ${updated.length} ô (tự động Duyệt do công đoạn không qua cổng duyệt).`
-          : `Đã nộp ${updated.length} ô chờ Editor/Producer duyệt.`,
+          : `Đã nộp ${updated.length || taskIds.length} ô chờ Editor/Producer duyệt.`,
       );
-      await loadGrid();
+      if (updated.length > 0 && !updated.some((t) => t.status === 'Approved')) {
+        applyUpdatedTasks(
+          updated.map((u, idx) => ({
+            ...u,
+            id: u.id || taskIds[idx],
+            status: u.status ?? 'Submitted',
+          })),
+        );
+      } else {
+        await loadGrid();
+      }
     } catch (err: any) {
       setError(err.message || 'Không thể nộp ô công việc.');
       onShowToast?.('Lỗi nộp bài', err.message || 'Không thể nộp ô công việc.');
@@ -611,12 +681,18 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     setActionLoading(`withdraw:${task.id}`);
     setError(null);
     try {
-      await assignmentService.withdrawStageTask(chapterId, task.id);
+      const updated = await assignmentService.withdrawStageTask(chapterId, task.id);
+      applyUpdatedTasks([
+        {
+          ...updated,
+          id: task.id,
+          status: updated?.status ?? 'InProgress',
+        },
+      ]);
       onShowToast?.(
         t('taskGridV3.withdrawSuccessTitle', 'Đã rút bài'),
         'Ô công việc đã chuyển về trạng thái Đang làm (InProgress).',
       );
-      await loadGrid();
     } catch (err: any) {
       const msg = err?.message || 'Không thể rút bài đã nộp.';
       setError(msg);
@@ -631,12 +707,19 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     setActionLoading(`releaseReview:${task.id}`);
     setError(null);
     try {
-      await assignmentService.releaseStageTaskReview(chapterId, task.id);
+      const updated = await assignmentService.releaseStageTaskReview(chapterId, task.id);
+      applyUpdatedTasks([
+        {
+          ...updated,
+          id: task.id,
+          status: updated?.status ?? 'Submitted',
+          reviewerUserId: updated?.reviewerUserId ?? null,
+        },
+      ]);
       onShowToast?.(
         t('taskGridV3.releaseReviewSuccessTitle', 'Đã nhả khoá duyệt'),
         'Ô công việc đã trở về trạng thái Chờ duyệt (Submitted).',
       );
-      await loadGrid();
     } catch (err: any) {
       const msg = err?.message || 'Không thể nhả khoá duyệt ô công việc.';
       setError(msg);
@@ -754,14 +837,22 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     setActionLoading(`requestChanges:${task.id}`);
     setError(null);
     try {
-      await assignmentService.requestStageTaskChanges(chapterId, task.id, trimmed);
+      const updated = await assignmentService.requestStageTaskChanges(chapterId, task.id, trimmed);
       setRequestingChangesTaskId(null);
       setRequestChangesComment('');
+      applyUpdatedTasks([
+        {
+          ...updated,
+          id: task.id,
+          status: updated?.status ?? 'ReworkRequired',
+          reviewerUserId: updated?.reviewerUserId ?? null,
+          lastDecisionComment: updated?.lastDecisionComment ?? trimmed,
+        },
+      ]);
       onShowToast?.(
         'Đã yêu cầu sửa',
         'Ô công việc đã chuyển sang trạng thái Cần sửa (ReworkRequired).',
       );
-      await loadGrid();
     } catch (err: any) {
       setError(err.message || 'Không thể yêu cầu sửa ô công việc.');
       onShowToast?.('Lỗi yêu cầu sửa', err.message || 'Không thể yêu cầu sửa ô công việc.');
@@ -941,14 +1032,25 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     setActionLoading(`resolveImpact:${task.id}:${keep ? 'keep' : 'rework'}`);
     setError(null);
     try {
-      await assignmentService.resolveStageTaskImpact(chapterId, task.id, keep);
+      const updated = await assignmentService.resolveStageTaskImpact(chapterId, task.id, keep);
       onShowToast?.(
         'Đã xử lý Impact Review',
         keep
           ? 'Đã giữ kết quả hiện tại và gỡ cờ đầu vào lỗi thời.'
           : 'Đã chuyển ô về Cần sửa (ReworkRequired) và gỡ cờ lỗi thời.',
       );
-      await loadGrid();
+      if (keep && task.status !== 'Approved') {
+        applyUpdatedTasks([
+          {
+            ...updated,
+            id: task.id,
+            isInputOutdated: updated?.isInputOutdated ?? false,
+            outdatedReason: updated?.outdatedReason ?? null,
+          },
+        ]);
+      } else {
+        await loadGrid();
+      }
     } catch (err: any) {
       setError(err.message || 'Không thể xử lý Impact Review cho ô công việc.');
       onShowToast?.('Lỗi Impact Review', err.message || 'Không thể xử lý Impact Review.');

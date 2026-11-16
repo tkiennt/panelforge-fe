@@ -311,12 +311,13 @@ describe('MyWorkView – Lát cắt 4 (Clean Cutover)', () => {
     );
     expect(assignmentService.getMyTaskLots).toHaveBeenCalledTimes(2);
 
-    // Lần 2: BE trả 200 OK -> báo Đã rút bài và refetch lại danh sách
+    // Lần 2: BE trả 200 OK -> báo Đã rút bài và cập nhật ô trực tiếp từ DTO trả về
     fireEvent.click(screen.getByTestId('withdraw-lot-cell-cell-submitted'));
     await waitFor(() => {
       expect(onShowToast).toHaveBeenCalledWith('Đã rút bài', 'Pencil · Trang 2');
-      expect(assignmentService.getMyTaskLots).toHaveBeenCalledTimes(3);
+      expect(screen.queryByTestId('withdraw-lot-cell-cell-submitted')).not.toBeInTheDocument();
     });
+    expect(assignmentService.getMyTaskLots).toHaveBeenCalledTimes(2);
   });
 
   it('Khoá nút trên thẻ review đang UnderReview bởi người khác và cho Producer bấm Gỡ khoá duyệt', async () => {

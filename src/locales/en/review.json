@@ -435,6 +435,7 @@
     "underReviewByYou": "Locked by you for review",
     "releaseReviewBtn": "Release review",
     "forceReleaseReviewBtn": "Force release review",
-    "releaseReviewToast": "Review lock released"
+    "releaseReviewToast": "Review lock released",
+    "inputOutdatedBadge": "Input changed"
   }
 }

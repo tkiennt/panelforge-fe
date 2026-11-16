@@ -83,6 +83,7 @@ import {
   type StageTaskDto,
   type SubmissionDto,
   type TaskGridDto,
+  type TaskGridReviewItemDto,
   type VisualConsistencyReportDto,
 } from '@/types';
 
@@ -146,6 +147,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   const [chapterNumber, setChapterNumber] = useState<number>(1);
   const [taskGrid, setTaskGrid] = useState<TaskGridDto | null>(null);
   const [gridCommentsByTask, setGridCommentsByTask] = useState<Record<string, string>>({});
+  const [gridReviewerNames, setGridReviewerNames] = useState<Record<string, string>>({});
   const [gridCellBusyId, setGridCellBusyId] = useState<string | null>(null);
   const [rejectingGridCellId, setRejectingGridCellId] = useState<string | null>(null);
   const [rejectGridCellComment, setRejectGridCellComment] = useState<string>('');
@@ -249,6 +251,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         changeRequestsRes,
         submissionsRes,
         membersRes,
+        reviewQueueRes,
         findingsRes,
         visualRes,
       ] = await Promise.all([
@@ -265,12 +268,24 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         effectiveWsId
           ? workspaceService.getMembers(effectiveWsId).catch(() => [] as WorkspaceMemberDto[])
           : Promise.resolve([]),
+        effectiveWsId && typeof assignmentService.getTaskGridReviewQueue === 'function'
+          ? assignmentService
+              .getTaskGridReviewQueue(effectiveWsId, seriesId ? { seriesId } : undefined)
+              .catch(() => [] as TaskGridReviewItemDto[])
+          : Promise.resolve([] as TaskGridReviewItemDto[]),
         assignmentService
           .getConsistencyFindings(chapterId)
           .catch(() => [] as ConsistencyFindingDto[]),
         assignmentService.getVisualConsistencyReport(chapterId, visualThreshold).catch(() => null),
       ]);
       const gridRes = await gridPromise;
+      const reviewerNamesMap: Record<string, string> = {};
+      for (const item of reviewQueueRes || []) {
+        if (item.taskId && item.reviewerName) {
+          reviewerNamesMap[item.taskId] = item.reviewerName;
+        }
+      }
+      setGridReviewerNames(reviewerNamesMap);
 
       const sortedPages = [...pagesRes].sort((a, b) => a.pageNumber - b.pageNumber);
       setPages(sortedPages);
@@ -792,6 +807,42 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       );
   }, [isGridMode, taskGrid, currentPage, stages, stageMap]);
 
+  const applyUpdatedGridCell = useCallback(
+    (cellId: string, updated?: Partial<StageTaskDto> | null) => {
+      if (!updated) return;
+      setTaskGrid((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tasks: prev.tasks.map((t) => (t.id === cellId ? { ...t, ...updated, id: t.id } : t)),
+        };
+      });
+      if (updated.status) {
+        setChapterAssignments((prev) =>
+          prev.map((a) => (a.id === cellId ? { ...a, status: updated.status as any } : a)),
+        );
+        setStageProgressList((prev) =>
+          prev.map((p) =>
+            p.id.startsWith(`prog-${cellId}-`) ? { ...p, status: updated.status as any } : p,
+          ),
+        );
+      }
+      const inlineComment = updated.lastDecisionComment?.trim();
+      if (inlineComment) {
+        setGridCommentsByTask((prev) => ({ ...prev, [cellId]: inlineComment }));
+      }
+      if (updated.reviewerUserId === null) {
+        setGridReviewerNames((prev) => {
+          if (!(cellId in prev)) return prev;
+          const next = { ...prev };
+          delete next[cellId];
+          return next;
+        });
+      }
+    },
+    [],
+  );
+
   const handleApproveGridCell = async (cell: StageTaskDto) => {
     setGridCellBusyId(`approve:${cell.id}`);
     setBackendBlockError(null);
@@ -819,15 +870,20 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     setGridCellBusyId(`reject:${cell.id}`);
     setBackendBlockError(null);
     try {
-      await assignmentService.requestStageTaskChanges(chapterId, cell.id, trimmed);
+      const updated = await assignmentService.requestStageTaskChanges(chapterId, cell.id, trimmed);
       setRejectingGridCellId(null);
       setRejectGridCellComment('');
+      applyUpdatedGridCell(cell.id, {
+        ...updated,
+        status: updated?.status ?? 'ReworkRequired',
+        lastDecisionComment: updated?.lastDecisionComment ?? trimmed,
+        reviewerUserId: updated?.reviewerUserId ?? null,
+      });
       const st = stageMap.get(cell.pipelineStageId);
       toast(
         'Đã yêu cầu sửa lại',
         `${st?.name || 'Stage'} · Trang ${currentPage?.pageNumber ?? ''}`,
       );
-      await loadChapterData();
     } catch (err: any) {
       const msg = extractError(err, 'Không thể gửi yêu cầu sửa ô công việc.');
       setBackendBlockError(msg);
@@ -842,13 +898,17 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     setGridCellBusyId(`release:${cell.id}`);
     setBackendBlockError(null);
     try {
-      await assignmentService.releaseStageTaskReview(chapterId, cell.id);
+      const updated = await assignmentService.releaseStageTaskReview(chapterId, cell.id);
+      applyUpdatedGridCell(cell.id, {
+        ...updated,
+        status: updated?.status ?? 'Submitted',
+        reviewerUserId: updated?.reviewerUserId ?? null,
+      });
       const st = stageMap.get(cell.pipelineStageId);
       toast(
         t('chapterReview.releaseReviewToast', 'Đã nhả khoá duyệt'),
         `${st?.name || 'Stage'}${currentPage ? ` · Trang ${currentPage.pageNumber}` : ''}`,
       );
-      await loadChapterData();
     } catch (err: any) {
       const msg = extractError(err, 'Không thể gỡ khoá duyệt ô công việc.');
       setBackendBlockError(msg);
@@ -874,21 +934,33 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       try {
         const targetCell = taskGrid?.tasks.find((item) => item.id === targetAssignmentId);
         const trimmed = returnDescription.trim();
-        if (
+        const reopened =
           targetCell?.status === 'Approved' &&
           String(effectiveRole || '').toUpperCase() === 'PRODUCER' &&
-          typeof assignmentService.reopenStageTask === 'function'
-        ) {
+          typeof assignmentService.reopenStageTask === 'function';
+        if (reopened) {
           await assignmentService.reopenStageTask(chapterId, targetAssignmentId, trimmed);
           toast('Đã mở lại ô công việc', 'Đã chuyển ô đã duyệt về trạng thái Cần sửa.');
         } else {
-          await assignmentService.requestStageTaskChanges(chapterId, targetAssignmentId, trimmed);
+          const updated = await assignmentService.requestStageTaskChanges(
+            chapterId,
+            targetAssignmentId,
+            trimmed,
+          );
+          applyUpdatedGridCell(targetAssignmentId, {
+            ...updated,
+            status: updated?.status ?? 'ReworkRequired',
+            lastDecisionComment: updated?.lastDecisionComment ?? trimmed,
+            reviewerUserId: updated?.reviewerUserId ?? null,
+          });
           toast('Đã trả việc thành công', 'Đã chuyển yêu cầu sửa cho ô trên Lưới V3.');
         }
         setReturnDescription('');
         setReturnDueDate('');
         setDraftRegion(null);
-        await loadChapterData();
+        if (reopened) {
+          await loadChapterData();
+        }
       } catch (err: any) {
         const msg = extractError(err, 'Không thể gửi yêu cầu sửa.');
         setFormError(msg);
@@ -982,12 +1054,16 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     setBackendBlockError(null);
     try {
       if (isGridMode && gridReviewTask) {
-        await assignmentService.startStageTask(chapterId, gridReviewTask.id);
+        const updated = await assignmentService.startStageTask(chapterId, gridReviewTask.id);
+        applyUpdatedGridCell(gridReviewTask.id, {
+          ...updated,
+          status: updated?.status ?? 'InProgress',
+        });
       } else {
         await assignmentService.startAssignment(chapterId, assignment.id);
+        await loadChapterData();
       }
       toast('Đã bắt đầu', 'Bắt đầu kiểm duyệt Gate 2.');
-      await loadChapterData();
     } catch (err: any) {
       const msg = extractError(err, 'Không thể bắt đầu kiểm duyệt Gate 2.');
       setBackendBlockError(msg);
@@ -1002,9 +1078,17 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     setActionBusy(true);
     setBackendBlockError(null);
     try {
-      await assignmentService.submitStageTasks(chapterId, [gridReviewTask.id]);
+      const updatedList = await assignmentService.submitStageTasks(chapterId, [gridReviewTask.id]);
       toast('Đã nộp Gate 2', 'Đã nộp kết quả thẩm định Gate 2 lên Lưới V3.');
-      await loadChapterData();
+      if (
+        Array.isArray(updatedList) &&
+        updatedList.length > 0 &&
+        !updatedList.some((u) => u.status === 'Approved')
+      ) {
+        applyUpdatedGridCell(gridReviewTask.id, updatedList[0]);
+      } else {
+        await loadChapterData();
+      }
     } catch (err: any) {
       const msg = extractError(err, 'Không thể nộp kết quả Gate 2.');
       setBackendBlockError(msg);
@@ -1237,6 +1321,15 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               >
                 {effectiveReviewStatus}
               </span>
+              {gridReviewTask?.isInputOutdated && (
+                <span
+                  data-testid='chapter-review-input-outdated-badge'
+                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-xs font-semibold text-amber-900'
+                >
+                  <AlertTriangle className='w-3 h-3 text-amber-700 shrink-0' />
+                  <span>{t('chapterReview.inputOutdatedBadge', 'Đầu vào đã đổi')}</span>
+                </span>
+              )}
             </div>
             <p className='text-[11px] text-[#57534E] font-medium'>
               Vai trò:{' '}
@@ -1820,14 +1913,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                         cell.reviewerUserId &&
                         cell.reviewerUserId !== currentUserId,
                       );
-                      const reviewerMember = cell.reviewerUserId
-                        ? memberMap.get(cell.reviewerUserId)
-                        : undefined;
-                      const reviewerLabel =
-                        reviewerMember?.fullName ||
-                        reviewerMember?.email ||
-                        cell.reviewerUserId ||
-                        '';
+                      const reviewerLabel = gridReviewerNames[cell.id] || cell.reviewerUserId || '';
                       const isProducerViewer =
                         String(effectiveRole || '').toUpperCase() === 'PRODUCER';
                       const lastComment =
@@ -1851,9 +1937,22 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                 👤 {assigneeLabel}
                               </div>
                             </div>
-                            <span className='px-2 py-0.5 rounded border border-zinc-300 bg-white text-[11px] font-semibold text-zinc-800'>
-                              {cell.status}
-                            </span>
+                            <div className='flex items-center gap-1.5 flex-wrap'>
+                              {cell.isInputOutdated && (
+                                <span
+                                  data-testid={`gate2-cell-input-outdated-${cell.id}`}
+                                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded border border-amber-300 bg-amber-100 text-[11px] font-semibold text-amber-900'
+                                >
+                                  <AlertTriangle className='w-3 h-3 text-amber-700 shrink-0' />
+                                  <span>
+                                    {t('chapterReview.inputOutdatedBadge', 'Đầu vào đã đổi')}
+                                  </span>
+                                </span>
+                              )}
+                              <span className='px-2 py-0.5 rounded border border-zinc-300 bg-white text-[11px] font-semibold text-zinc-800'>
+                                {cell.status}
+                              </span>
+                            </div>
                           </div>
 
                           {lastComment && (

@@ -941,6 +941,8 @@ export interface TaskGridReviewItemDto {
   status: StageTaskStatus;
   assigneeUserId?: string | null;
   reviewerUserId?: string | null;
+  reviewerName?: string | null;
+  isInputOutdated?: boolean;
   attemptNumber?: number | null;
   submittedAt?: string | null;
 }

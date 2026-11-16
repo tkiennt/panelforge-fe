@@ -22,6 +22,7 @@ import {
   assignmentService,
   type MyTaskCellDto,
   type MyTaskLotDto,
+  type StageTaskDto,
   type StageTaskSubmissionDto,
   type TaskGridReviewItemDto,
 } from '@/services/assignment.service';
@@ -54,6 +55,10 @@ interface TaskLotWorkCardProps {
   highlightedId?: string | null;
   showSeriesHeader?: boolean;
   onChanged: () => void;
+  onCellsUpdated?: (
+    chapterId: string,
+    updates: Array<Partial<StageTaskDto> & { id: string }>,
+  ) => void;
   onToast?: (title: string, desc: string) => void;
 }
 
@@ -65,6 +70,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
   highlightedId,
   showSeriesHeader = false,
   onChanged,
+  onCellsUpdated,
   onToast,
 }) => {
   const { t } = useTranslation('pipeline');
@@ -99,12 +105,18 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
     setBusyKey(`start:${cell.id}`);
     setError(null);
     try {
-      await assignmentService.startStageTask(lot.chapterId, cell.id);
+      const updated = await assignmentService.startStageTask(lot.chapterId, cell.id);
       onToast?.(
         cell.status === 'ReworkRequired' ? 'Đã bắt đầu sửa' : 'Đã bắt đầu làm',
         `${lot.stageName} · ${cellScopeLabel(cell.pageNumber)}`,
       );
-      onChanged();
+      if (onCellsUpdated) {
+        onCellsUpdated(lot.chapterId, [
+          { ...updated, id: cell.id, status: updated?.status ?? 'InProgress', isStartable: false },
+        ]);
+      } else {
+        onChanged();
+      }
     } catch (err) {
       const { title, message } = describeStartError(err);
       setError(message);
@@ -119,9 +131,25 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
     setBusyKey(taskIds.length === 1 ? `submit:${taskIds[0]}` : 'submitAll');
     setError(null);
     try {
-      await assignmentService.submitStageTasks(lot.chapterId, taskIds);
+      const updated = await assignmentService.submitStageTasks(lot.chapterId, taskIds);
       onToast?.('Đã nộp bài lên Lưới V3', `${lot.stageName} · ${scopeDesc}`);
-      onChanged();
+      if (
+        onCellsUpdated &&
+        Array.isArray(updated) &&
+        !updated.some((c) => c.status === 'Approved')
+      ) {
+        onCellsUpdated(
+          lot.chapterId,
+          taskIds.map((id, idx) => ({
+            ...(updated[idx] || {}),
+            id,
+            status: updated[idx]?.status ?? 'Submitted',
+            isStartable: false,
+          })),
+        );
+      } else {
+        onChanged();
+      }
     } catch (err: any) {
       const msg = errorMessage(err, 'Không thể nộp ô công việc.');
       setError(msg);
@@ -138,12 +166,18 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
     setBusyKey(`withdraw:${cell.id}`);
     setError(null);
     try {
-      await assignmentService.withdrawStageTask(lot.chapterId, cell.id);
+      const updated = await assignmentService.withdrawStageTask(lot.chapterId, cell.id);
       onToast?.(
         t('taskGridV3.withdrawSuccessTitle', 'Đã rút bài'),
         `${lot.stageName} · ${cellScopeLabel(cell.pageNumber)}`,
       );
-      onChanged();
+      if (onCellsUpdated) {
+        onCellsUpdated(lot.chapterId, [
+          { ...updated, id: cell.id, status: updated?.status ?? 'InProgress', isStartable: false },
+        ]);
+      } else {
+        onChanged();
+      }
     } catch (err: any) {
       const msg = errorMessage(err, 'Không thể rút bài đã nộp.');
       setError(msg);
@@ -476,7 +510,9 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
     (!currentUserId || item.reviewerUserId !== currentUserId),
   );
   const resolvedReviewerName =
-    reviewerName || (item.reviewerUserId ? item.reviewerUserId.slice(0, 8) : 'Editor');
+    item.reviewerName ||
+    reviewerName ||
+    (item.reviewerUserId ? item.reviewerUserId.slice(0, 8) : 'Editor');
   const scope = cellScopeLabel(item.pageNumber);
   const meta = CELL_STATUS_META[item.status] ?? CELL_STATUS_META.Submitted;
 
@@ -582,6 +618,15 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             <span className={`px-2 py-0.5 rounded-full border text-xs font-semibold ${meta.cls}`}>
               {meta.label}
             </span>
+            {item.isInputOutdated && (
+              <span
+                data-testid={`grid-review-input-outdated-${item.taskId}`}
+                className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300 bg-amber-100 text-xs font-semibold text-amber-900'
+              >
+                <AlertTriangle className='w-3 h-3 text-amber-700 shrink-0' />
+                <span>{t('taskGridV3.inputOutdatedBadge', 'Đầu vào đã đổi')}</span>
+              </span>
+            )}
             {item.attemptNumber != null && (
               <span className='text-xs font-mono text-[#57534E]'>
                 Lần nộp #{item.attemptNumber}
@@ -671,7 +716,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             <button
               type='button'
               data-testid={`approve-grid-task-${item.taskId}`}
-              disabled={busy !== null || isLockedByOtherReviewer}
+              disabled={busy !== null || isLockedByOtherReviewer || Boolean(item.isInputOutdated)}
               onClick={() => void handleApprove()}
               className='inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
             >

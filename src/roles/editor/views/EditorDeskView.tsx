@@ -41,6 +41,7 @@ type DeskQueueItem = EditorReviewQueueItemDto & {
   taskId?: string;
   reviewerUserId?: string | null;
   reviewerName?: string | null;
+  isInputOutdated?: boolean;
 };
 
 const inferGateFromStage = (stageName: string): 'gate1' | 'gate2' => {
@@ -100,15 +101,12 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
       setLoading(true);
       setError(null);
 
-      const [gridItems, memberList, legacyItems, series, bible, chapterPage] = await Promise.all([
+      const [gridItems, legacyItems, series, bible, chapterPage] = await Promise.all([
         workspaceId && typeof assignmentService.getTaskGridReviewQueue === 'function'
           ? assignmentService
               .getTaskGridReviewQueue(workspaceId, { seriesId })
               .catch(() => [] as TaskGridReviewItemDto[])
           : Promise.resolve([] as TaskGridReviewItemDto[]),
-        workspaceId
-          ? workspaceService.getMembers(workspaceId).catch(() => [])
-          : Promise.resolve([]),
         typeof assignmentService.getEditorReviewQueue === 'function'
           ? assignmentService
               .getEditorReviewQueue(seriesId, {
@@ -122,16 +120,15 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
         chapterService.getChaptersBySeries(seriesId, 1, 100).catch(() => null),
       ]);
 
+      const memberList =
+        workspaceId && (gridItems || []).some((g) => Boolean(g.assigneeUserId))
+          ? await workspaceService.getMembers(workspaceId).catch(() => [])
+          : [];
+
       const mappedGridItems: DeskQueueItem[] = (gridItems || []).map((g) => {
         const m = (memberList || []).find((x) => x.userId === g.assigneeUserId);
-        const reviewer = g.reviewerUserId
-          ? (memberList || []).find((x) => x.userId === g.reviewerUserId)
-          : undefined;
-        const reviewerName = reviewer
-          ? reviewer.fullName || reviewer.email.split('@')[0]
-          : g.reviewerUserId
-            ? g.reviewerUserId.slice(0, 8)
-            : null;
+        const reviewerName =
+          g.reviewerName || (g.reviewerUserId ? g.reviewerUserId.slice(0, 8) : null);
         const gate = inferGateFromStage(g.stageName);
         return {
           isGridItem: true,
@@ -139,6 +136,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
           assignmentId: g.taskId,
           reviewerUserId: g.reviewerUserId ?? null,
           reviewerName,
+          isInputOutdated: Boolean(g.isInputOutdated),
           chapterId: g.chapterId,
           chapterNumber: g.chapterNumber,
           chapterTitle: g.chapterTitle ?? null,
@@ -270,12 +268,27 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     const taskId = item.taskId || item.assignmentId;
     setGridBusyTaskId(`release:${taskId}`);
     try {
-      await assignmentService.releaseStageTaskReview(item.chapterId, taskId);
+      const released = await assignmentService.releaseStageTaskReview(item.chapterId, taskId);
       onShowToast?.(
         t('chapterReview.releaseReviewToast', 'Đã nhả khoá duyệt'),
         `Chương ${item.chapterNumber} · ${item.stageName} (${item.scopeLabel})`,
       );
-      await loadData();
+      setQueueItems((prev) =>
+        prev
+          .map((q) =>
+            q.assignmentId === item.assignmentId
+              ? {
+                  ...q,
+                  status: (released?.status === 'UnderReview' ? 'UnderReview' : 'Submitted') as any,
+                  reviewerUserId: released?.reviewerUserId ?? null,
+                  reviewerName: null,
+                  submissionAttempt: released?.attemptCount || q.submissionAttempt,
+                  isInputOutdated: released?.isInputOutdated ?? q.isInputOutdated,
+                }
+              : q,
+          )
+          .filter((q) => statusFilter === 'all' || q.status === statusFilter),
+      );
     } catch (err: any) {
       onShowToast?.('Lỗi nhả khoá duyệt', err?.message || 'Không thể nhả khoá duyệt.');
       if (err?.status === 409) await loadData();
@@ -290,9 +303,6 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     setGridBusyTaskId(`approve:${taskId}`);
     try {
       await assignmentService.approveStageTask(item.chapterId, taskId);
-      if (typeof assignmentService.getTaskGrid === 'function') {
-        await assignmentService.getTaskGrid(item.chapterId).catch(() => null);
-      }
       onShowToast?.(
         'Đã duyệt ô công việc',
         `Chương ${item.chapterNumber} · ${item.stageName} (${item.scopeLabel})`,
@@ -313,9 +323,6 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     setGridBusyTaskId(`reject:${taskId}`);
     try {
       await assignmentService.requestStageTaskChanges(item.chapterId, taskId, trimmed);
-      if (typeof assignmentService.getTaskGrid === 'function') {
-        await assignmentService.getTaskGrid(item.chapterId).catch(() => null);
-      }
       setRejectingGridTaskId(null);
       setRejectComment('');
       onShowToast?.(
@@ -672,10 +679,21 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
                     {/* Main Title: Chapter & Scope */}
                     <div className='mb-2'>
-                      <h3 className='text-sm font-bold text-[#1C1917] leading-snug'>
-                        Chương {item.chapterNumber} ·{' '}
-                        <span className='text-[#C2410C]'>{item.scopeLabel}</span>
-                      </h3>
+                      <div className='flex items-center justify-between gap-2 flex-wrap'>
+                        <h3 className='text-sm font-bold text-[#1C1917] leading-snug'>
+                          Chương {item.chapterNumber} ·{' '}
+                          <span className='text-[#C2410C]'>{item.scopeLabel}</span>
+                        </h3>
+                        {item.isInputOutdated && (
+                          <span
+                            data-testid={`editor-input-outdated-${item.assignmentId}`}
+                            className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-semibold'
+                          >
+                            <AlertCircle className='w-3 h-3 text-amber-700 shrink-0' />
+                            <span>{t('chapterReview.inputOutdatedBadge', 'Đầu vào đã đổi')}</span>
+                          </span>
+                        )}
+                      </div>
                       <p className='text-xs text-[#57534E] mt-0.5 truncate'>
                         {item.chapterTitle || 'Chưa đặt tên'} ·{' '}
                         <span className='font-medium text-[#1C1917]'>{item.stageName}</span>
@@ -840,7 +858,11 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                           <button
                             type='button'
                             data-testid={`editor-approve-grid-${item.assignmentId}`}
-                            disabled={isLockedByOther || gridBusyTaskId !== null}
+                            disabled={
+                              isLockedByOther ||
+                              Boolean(item.isInputOutdated) ||
+                              gridBusyTaskId !== null
+                            }
                             onClick={() => void handleApproveGridItem(item)}
                             className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                           >

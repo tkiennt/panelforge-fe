@@ -1119,15 +1119,43 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               targetCell.isStartable &&
               typeof assignmentService.startStageTask === 'function'
             ) {
-              await assignmentService.startStageTask(currentChapterId, targetCell.id);
+              const started = await assignmentService.startStageTask(
+                currentChapterId,
+                targetCell.id,
+              );
+              if (started) {
+                setGridTasks((prev) =>
+                  prev.map((t) => (t.id === targetCell.id ? { ...t, ...started, id: t.id } : t)),
+                );
+              }
             }
             if (typeof assignmentService.submitStageTasks === 'function') {
-              await assignmentService.submitStageTasks(currentChapterId, [targetCell.id]);
-              const refreshedGrid = await assignmentService
-                .getTaskGrid(currentChapterId)
-                .catch(() => null);
-              if (refreshedGrid?.tasks) {
-                setGridTasks(refreshedGrid.tasks.filter((t) => t.status !== 'Cancelled'));
+              const submittedCells = await assignmentService.submitStageTasks(currentChapterId, [
+                targetCell.id,
+              ]);
+              if (
+                Array.isArray(submittedCells) &&
+                submittedCells.length > 0 &&
+                !submittedCells.some((c) => c.status === 'Approved')
+              ) {
+                const byId = new Map(
+                  submittedCells.map((c, idx) => [c.id || (idx === 0 ? targetCell.id : ''), c]),
+                );
+                setGridTasks((prev) =>
+                  prev.map((t) => {
+                    const patch = byId.get(t.id);
+                    return patch
+                      ? { ...t, ...patch, id: t.id, status: patch.status ?? 'Submitted' }
+                      : t;
+                  }),
+                );
+              } else {
+                const refreshedGrid = await assignmentService
+                  .getTaskGrid(currentChapterId)
+                  .catch(() => null);
+                if (refreshedGrid?.tasks) {
+                  setGridTasks(refreshedGrid.tasks.filter((t) => t.status !== 'Cancelled'));
+                }
               }
             }
           } catch (err: any) {
@@ -1307,13 +1335,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
     setIsWithdrawingStage(true);
     try {
-      await assignmentService.withdrawStageTask(currentChapterId, withdrawableCell.id);
-      if (typeof assignmentService.getTaskGrid === 'function') {
-        const refreshed = await assignmentService.getTaskGrid(currentChapterId).catch(() => null);
-        if (refreshed?.tasks) {
-          setGridTasks(refreshed.tasks.filter((t) => t.status !== 'Cancelled'));
-        }
-      }
+      const withdrawn = await assignmentService.withdrawStageTask(
+        currentChapterId,
+        withdrawableCell.id,
+      );
+      setGridTasks((prev) =>
+        prev.map((t) =>
+          t.id === withdrawableCell.id
+            ? { ...t, ...withdrawn, id: t.id, status: withdrawn?.status ?? 'InProgress' }
+            : t,
+        ),
+      );
       const withdrawnStageIdx = artistStages.findIndex(
         (s) => s.id === withdrawableCell.pipelineStageId,
       );
