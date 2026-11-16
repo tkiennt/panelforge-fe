@@ -35,6 +35,8 @@ import { StatusBadge, StageLabel } from './ProductionTaskCard';
 import { useTaskThumbnail } from './useTaskThumbnail';
 import { DependencyGraphModal } from './DependencyGraphModal';
 import { Modal } from '@/shared/ui';
+import { pickLatestDecisionComment } from '@/types';
+import { useTranslation } from '@/lib/i18n';
 
 export interface SideDrawerProps {
   isOpen: boolean;
@@ -61,10 +63,13 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
   onImpactResolved,
   onGridUpdated,
 }) => {
+  const { t } = useTranslation('pipeline');
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams();
 
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
+  const [latestCommentByCellId, setLatestCommentByCellId] = useState<Record<string, string>>({});
+  const [lotSubmitError, setLotSubmitError] = useState<string | null>(null);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
   const [chapterAssignments, setChapterAssignments] = useState<AssignmentDto[]>([]);
   const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
@@ -85,6 +90,11 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
   // Artwork thumbnail
   const thumbnail = useTaskThumbnail(card);
+
+  useEffect(() => {
+    setLotSubmitError(null);
+    setLatestCommentByCellId({});
+  }, [isOpen, card?.id]);
 
   useEffect(() => {
     setConfirmDelete(false);
@@ -119,6 +129,12 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
       )
         .then((lists) => {
           if (!isMounted) return;
+          const perCellComments: Record<string, string> = {};
+          targetCellIds.forEach((cellId, idx) => {
+            const comment = pickLatestDecisionComment(lists[idx]);
+            if (comment) perCellComments[cellId] = comment;
+          });
+          setLatestCommentByCellId(perCellComments);
           const merged = lists
             .flat()
             .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
@@ -201,6 +217,34 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
   const canResolveImpact = card.isGridTask
     ? !isAssignee && isProducerRole
     : !isAssignee && (!normalizedRole || isProducerRole || normalizedRole === 'EDITOR');
+  const submittableLotCells =
+    card.isGridLot && card.isStageEnabled !== false && isAssignee
+      ? (card.lotTasks ?? []).filter((c) => c.status === 'InProgress' && !c.isInputOutdated)
+      : [];
+
+  const handleSubmitWholeLot = async () => {
+    if (submittableLotCells.length === 0) return;
+    setCellActionLoading('submitWholeLot');
+    setLotSubmitError(null);
+    try {
+      const taskIds = submittableLotCells.map((c) => c.id);
+      await assignmentService.submitStageTasks(card.chapterId, taskIds);
+      onShowToast?.(
+        t('taskGridV3.submitWholeLotSuccessTitle', 'Đã nộp cả lô'),
+        `${card.stageName} – ${taskIds.length} ô`,
+      );
+      await onGridUpdated?.();
+    } catch (err: any) {
+      const msg = err?.message || 'Không thể nộp cả lô công việc.';
+      setLotSubmitError(msg);
+      onShowToast?.(t('taskGridV3.submitWholeLotErrorTitle', 'Không thể nộp lô'), msg);
+      if (err?.status === 409) {
+        await onGridUpdated?.();
+      }
+    } finally {
+      setCellActionLoading(null);
+    }
+  };
 
   const runCellAction = async (
     loadingKey: string,
@@ -209,12 +253,18 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
     successDesc: string,
   ) => {
     setCellActionLoading(loadingKey);
+    if (loadingKey.startsWith('submit:')) setLotSubmitError(null);
     try {
       await fn();
       onShowToast?.(successTitle, successDesc);
       await onGridUpdated?.();
     } catch (err: any) {
-      onShowToast?.('Thao tác thất bại', err?.message || 'Không thể thực hiện thao tác trên ô.');
+      const msg = err?.message || 'Không thể thực hiện thao tác trên ô.';
+      if (loadingKey.startsWith('submit:')) setLotSubmitError(msg);
+      onShowToast?.('Thao tác thất bại', msg);
+      if (err?.status === 409) {
+        await onGridUpdated?.();
+      }
     } finally {
       setCellActionLoading(null);
     }
@@ -224,6 +274,10 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
     const cellAssigneeId = cell.assigneeUserId || card.assigneeUserId;
     const isCellMine = Boolean(currentUserId && cellAssigneeId === currentUserId);
     const isStageEnabled = card.isStageEnabled !== false;
+    const cellLastComment =
+      cell.status === 'ReworkRequired'
+        ? cell.lastDecisionComment?.trim() || latestCommentByCellId[cell.id] || null
+        : null;
 
     const canStartCell =
       isStageEnabled &&
@@ -248,6 +302,11 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
       <div
         key={cell.id}
         data-testid={`lot-cell-row-${cell.id}`}
+        title={
+          cellLastComment
+            ? `${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${cellLastComment}`
+            : undefined
+        }
         className='rounded-xl border border-landing-border bg-[#FCFBF8] p-3 space-y-2'
       >
         <div className='flex flex-wrap items-center justify-between gap-2'>
@@ -392,6 +451,19 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
             )}
           </div>
         </div>
+
+        {cellLastComment && (
+          <div
+            data-testid={`cell-last-decision-comment-${cell.id}`}
+            className='rounded-lg border border-rose-200 bg-rose-50/80 px-2.5 py-1.5 text-xs text-rose-900'
+          >
+            💬{' '}
+            <span className='font-semibold'>
+              {t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}:
+            </span>{' '}
+            {cellLastComment}
+          </div>
+        )}
 
         {cell.isInputOutdated && (
           <div className='rounded-lg border border-amber-300 bg-amber-50/80 p-2 text-xs text-amber-950 space-y-1.5'>
@@ -693,7 +765,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
               data-testid='side-drawer-lot-cells'
               className='space-y-2.5'
             >
-              <div className='flex items-center justify-between gap-2'>
+              <div className='flex flex-wrap items-center justify-between gap-2'>
                 <h3 className='text-xs font-bold uppercase tracking-wider text-landing-ink flex items-center gap-1.5'>
                   <Layers className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
                   <span>
@@ -702,7 +774,38 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                       : 'Ô công việc cấp Chương'}
                   </span>
                 </h3>
+                {submittableLotCells.length > 0 && (
+                  <button
+                    type='button'
+                    data-testid='submit-whole-lot-btn'
+                    disabled={cellActionLoading !== null}
+                    onClick={() => void handleSubmitWholeLot()}
+                    className='inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50'
+                  >
+                    {cellActionLoading === 'submitWholeLot' ? (
+                      <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                    ) : (
+                      <Send className='w-3.5 h-3.5' />
+                    )}
+                    <span>
+                      {t('taskGridV3.submitWholeLotCount', {
+                        count: submittableLotCells.length,
+                        defaultValue: `Nộp cả lô (${submittableLotCells.length} ô)`,
+                      })}
+                    </span>
+                  </button>
+                )}
               </div>
+              {lotSubmitError && (
+                <div
+                  role='alert'
+                  data-testid='side-drawer-lot-submit-error'
+                  className='rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800 flex items-center gap-2'
+                >
+                  <AlertTriangle className='w-4 h-4 shrink-0 text-rose-600' />
+                  <span>{lotSubmitError}</span>
+                </div>
+              )}
               <div className='space-y-2'>{(card.lotTasks ?? []).map(renderGridCellRow)}</div>
             </section>
           )}

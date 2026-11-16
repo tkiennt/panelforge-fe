@@ -62,9 +62,16 @@ import {
   MigrateAssignmentsResultDto,
   parseStageTaskPanelLayout,
   parseStageTaskCanvasVersions,
+  pickLatestDecisionComment,
+  resolveReworkDecisionComments,
 } from '@/types';
 
-export { parseStageTaskPanelLayout, parseStageTaskCanvasVersions };
+export {
+  parseStageTaskPanelLayout,
+  parseStageTaskCanvasVersions,
+  pickLatestDecisionComment,
+  resolveReworkDecisionComments,
+};
 
 export type {
   AssignmentDto,

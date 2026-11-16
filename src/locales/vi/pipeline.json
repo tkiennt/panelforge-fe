@@ -276,5 +276,15 @@
     "submitPlanBtn": "Giao Kế Hoạch Toàn Chương",
     "submitBulkBtn": "Giao việc hàng loạt ({count} trang)",
     "submitBtn": "Tạo & Giao Việc"
+  },
+  "taskGridV3": {
+    "cancelledCell": "Đã huỷ",
+    "unassignedCell": "chưa giao",
+    "lastDecisionPrefix": "Nhận xét",
+    "lastDecisionLabel": "Nhận xét lần duyệt gần nhất",
+    "submitWholeLot": "Nộp cả lô",
+    "submitWholeLotCount": "Nộp cả lô ({count} ô)",
+    "submitWholeLotSuccessTitle": "Đã nộp cả lô",
+    "submitWholeLotErrorTitle": "Không thể nộp cả lô"
   }
 }

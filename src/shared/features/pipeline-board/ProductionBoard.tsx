@@ -58,7 +58,7 @@ import { assignmentService } from '@/services/assignment.service';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { pageService, type PageDto } from '@/services/page.service';
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
-import type { WorkspaceRole } from '@/types';
+import { resolveReworkDecisionComments, type StageTaskDto, type WorkspaceRole } from '@/types';
 import { useTranslation } from '@/lib/i18n';
 
 export interface ProductionBoardProps {
@@ -110,6 +110,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
   // ── Dữ liệu ──
   const [cards, setCards] = useState<BoardCard[] | null>(null);
   const [isGridBacked, setIsGridBacked] = useState(false);
+  const [gridTasks, setGridTasks] = useState<StageTaskDto[]>([]);
   const [pages, setPages] = useState<PageDto[]>([]);
   const [stages, setStages] = useState<PipelineStageDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -122,6 +123,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
     if (!chapterId || !seriesId || !workspaceId) {
       setCards(null);
       setIsGridBacked(false);
+      setGridTasks([]);
       setPages([]);
       loadedChapterRef.current = null;
       return;
@@ -130,6 +132,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
     if (loadedChapterRef.current !== chapterId) {
       setCards(null);
       setIsGridBacked(false);
+      setGridTasks([]);
       setPages([]);
     }
     setLoading(true);
@@ -150,18 +153,53 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
       ]);
       if (requestId !== requestRef.current) return;
 
-      const activeGridTasks = (taskGrid?.tasks ?? []).filter((t) => t.status !== 'Cancelled');
-      if (taskGrid && activeGridTasks.length > 0) {
+      const allGridTasks = taskGrid?.tasks ?? [];
+      const activeGridTasks = allGridTasks.filter((t) => t.status !== 'Cancelled');
+      let effectiveStages = pipeline?.stages ?? [];
+      if (effectiveStages.length === 0 && (taskGrid?.stages ?? []).length > 0) {
+        effectiveStages = (taskGrid?.stages ?? []).map((s) => ({
+          id: s.id,
+          name: s.name,
+          slug: s.name.toLowerCase(),
+          stageOrder: s.stageOrder,
+          allowedRole: s.allowedRole ?? undefined,
+          isApprovalGate: s.isApprovalGate,
+          isInitial: false,
+          isTerminal: false,
+          isEnabled: s.isEnabled,
+        })) as PipelineStageDto[];
+      }
+
+      if (taskGrid && allGridTasks.length > 0) {
+        const reworkComments = await resolveReworkDecisionComments(
+          chapterId,
+          activeGridTasks,
+          typeof assignmentService.getStageTaskSubmissions === 'function'
+            ? (cId, tId) => assignmentService.getStageTaskSubmissions(cId, tId)
+            : undefined,
+        );
+        if (requestId !== requestRef.current) return;
         setIsGridBacked(true);
-        setCards(mapTaskGridToCards(taskGrid, pipeline?.stages ?? [], pagesRes, members, seriesId));
+        setGridTasks(allGridTasks);
+        setCards(
+          mapTaskGridToCards(
+            taskGrid,
+            effectiveStages,
+            pagesRes,
+            members,
+            seriesId,
+            reworkComments,
+          ),
+        );
       } else {
         setIsGridBacked(false);
+        setGridTasks([]);
         const assignments = await assignmentService.getAssignmentsStrict(chapterId);
         if (requestId !== requestRef.current) return;
-        setCards(mapAssignmentsToCards(assignments, pipeline?.stages ?? [], pagesRes, members));
+        setCards(mapAssignmentsToCards(assignments, effectiveStages, pagesRes, members));
       }
       setPages(pagesRes);
-      setStages(pipeline?.stages ?? []);
+      setStages(effectiveStages);
       loadedChapterRef.current = chapterId;
       setNow(Date.now());
     } catch (err) {
@@ -324,7 +362,13 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
           }),
         );
       } else if (role === 'EDITOR') {
-        navigate(buildScriptReviewUrl(workspaceId, seriesId, card.chapterId));
+        if (card.isGridTask) {
+          navigate(
+            `/workspaces/${workspaceId}/series/${seriesId}/chapters/${card.chapterId}/review/${card.id}?chapterId=${card.chapterId}`,
+          );
+        } else {
+          navigate(buildScriptReviewUrl(workspaceId, seriesId, card.chapterId));
+        }
       } else {
         // ARTIST and other production roles
         navigate(
@@ -668,6 +712,8 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
         <PageStageMatrix
           {...buildPageStageMatrix(filteredCards, pages, stages, {
             includeEmptyPages: !anyFilterActive,
+            gridTasks: isGridBacked ? gridTasks : undefined,
+            onlyScope: effectiveFilters.scope || undefined,
           })}
           now={now}
           onOpen={(card, trigger) => openDetails(card, trigger)}

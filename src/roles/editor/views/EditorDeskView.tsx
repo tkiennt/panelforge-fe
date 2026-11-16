@@ -234,6 +234,9 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
     setGridBusyTaskId(`approve:${taskId}`);
     try {
       await assignmentService.approveStageTask(item.chapterId, taskId);
+      if (typeof assignmentService.getTaskGrid === 'function') {
+        await assignmentService.getTaskGrid(item.chapterId).catch(() => null);
+      }
       onShowToast?.(
         'Đã duyệt ô công việc',
         `Chương ${item.chapterNumber} · ${item.stageName} (${item.scopeLabel})`,
@@ -253,6 +256,9 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
     setGridBusyTaskId(`reject:${taskId}`);
     try {
       await assignmentService.requestStageTaskChanges(item.chapterId, taskId, trimmed);
+      if (typeof assignmentService.getTaskGrid === 'function') {
+        await assignmentService.getTaskGrid(item.chapterId).catch(() => null);
+      }
       setRejectingGridTaskId(null);
       setRejectComment('');
       onShowToast?.(
@@ -670,6 +676,15 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
                         </button>
                       ) : item.isGridItem ? (
                         <>
+                          <button
+                            type='button'
+                            data-testid={`editor-open-grid-review-${item.assignmentId}`}
+                            onClick={() => navigate(getReviewUrl(item))}
+                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] transition-colors cursor-pointer'
+                          >
+                            <Eye className='w-3.5 h-3.5 text-[#F97316]' />
+                            <span>{t('chapterReview.openDetailReview', 'Mở màn duyệt')}</span>
+                          </button>
                           <button
                             type='button'
                             onClick={() =>

@@ -731,6 +731,7 @@ export interface StageTaskDto {
   assigneeUserId?: string | null;
   isInputOutdated: boolean;
   outdatedReason?: string | null;
+  lastDecisionComment?: string | null;
   reviewerUserId?: string | null;
   isStartable: boolean;
   startedAt?: string | null;
@@ -893,6 +894,7 @@ export interface MyTaskCellDto {
   isStartable: boolean;
   isInputOutdated: boolean;
   outdatedReason?: string | null;
+  lastDecisionComment?: string | null;
 }
 
 /** Một lô công việc của người gọi xuyên chương (thay my-assignments V2). */
@@ -945,4 +947,51 @@ export interface MigrateAssignmentsResultDto {
   migrated: number;
   cellsAssigned: number;
   skipped: MigrateSkippedDto[];
+}
+
+/** Lấy nhận xét lần duyệt gần nhất từ danh sách lịch sử nộp của ô (mới nhất trước). */
+export function pickLatestDecisionComment(
+  submissions?: StageTaskSubmissionDto[] | null,
+): string | null {
+  if (!Array.isArray(submissions) || submissions.length === 0) return null;
+  const ordered = [...submissions].sort((a, b) => b.attemptNumber - a.attemptNumber);
+  const rejected = ordered.find(
+    (s) => String(s.status) === 'Rejected' && Boolean(s.decisionComment?.trim()),
+  );
+  if (rejected?.decisionComment?.trim()) return rejected.decisionComment.trim();
+  const anyComment = ordered.find((s) => Boolean(s.decisionComment?.trim()));
+  return anyComment?.decisionComment?.trim() ?? null;
+}
+
+/**
+ * Bổ sung lastDecisionComment cho các ô đang ReworkRequired khi DTO lưới chưa trả sẵn.
+ */
+export async function resolveReworkDecisionComments(
+  chapterId: string,
+  cells: Array<{ id: string; status?: string | null; lastDecisionComment?: string | null }>,
+  fetchSubmissions?: (chapterId: string, taskId: string) => Promise<StageTaskSubmissionDto[]>,
+): Promise<Record<string, string>> {
+  const result: Record<string, string> = {};
+  const missing: string[] = [];
+  for (const c of cells) {
+    if (String(c.status) !== 'ReworkRequired') continue;
+    const inline = c.lastDecisionComment?.trim();
+    if (inline) result[c.id] = inline;
+    else missing.push(c.id);
+  }
+  if (missing.length === 0 || typeof fetchSubmissions !== 'function') {
+    return result;
+  }
+  await Promise.all(
+    missing.map(async (taskId) => {
+      try {
+        const subs = await fetchSubmissions(chapterId, taskId);
+        const comment = pickLatestDecisionComment(subs);
+        if (comment) result[taskId] = comment;
+      } catch {
+        // Bỏ qua lỗi lẻ để lưới vẫn hiển thị bình thường
+      }
+    }),
+  );
+  return result;
 }

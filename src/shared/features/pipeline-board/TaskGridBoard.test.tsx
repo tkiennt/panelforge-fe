@@ -899,4 +899,53 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       );
     });
   });
+
+  it('Làm mờ ô Cancelled, hiện đủ phạm vi trang của lô và hiện lastDecisionComment ở ô ReworkRequired + tooltip', async () => {
+    const gridWithReworkAndCancelled = {
+      ...mockGrid,
+      tasks: mockGrid.tasks.map((t) => {
+        if (t.id === 'task-p1-pencil') return { ...t, status: 'Cancelled' as const };
+        if (t.id === 'task-p2-pencil') {
+          return {
+            ...t,
+            status: 'ReworkRequired' as const,
+            lotId: 'lot-1',
+          };
+        }
+        return t;
+      }),
+    };
+    vi.mocked(assignmentService.getTaskGrid).mockResolvedValueOnce(
+      gridWithReworkAndCancelled as any,
+    );
+    vi.mocked(assignmentService.getStageTaskSubmissions).mockResolvedValueOnce([
+      {
+        id: 'sub-rework-1',
+        attemptNumber: 1,
+        status: 'Rejected',
+        submittedByUserId: 'user-artist-1',
+        submittedAt: '2026-11-15T10:00:00Z',
+        decisionComment: 'Bố cục khung 3 bị lệch đường chân trời',
+        artworkReferenceIds: [],
+      },
+    ] as any);
+
+    render(
+      <TaskGridBoard
+        chapterId='chap-1'
+        workspaceId='ws-1'
+        currentUserId='user-producer'
+        isProducer={true}
+      />,
+    );
+
+    await screen.findByText('1. Pencil');
+    expect(screen.getByTestId('cancelled-task-cell-task-p1-pencil')).toHaveTextContent('Đã huỷ');
+    const commentEl = await screen.findByTestId('rework-decision-comment-task-p2-pencil');
+    expect(commentEl).toHaveTextContent('Bố cục khung 3 bị lệch đường chân trời');
+    expect(screen.getByTestId('task-cell-stg-pencil-page-2')).toHaveAttribute(
+      'title',
+      expect.stringContaining('Bố cục khung 3 bị lệch đường chân trời'),
+    );
+  });
 });

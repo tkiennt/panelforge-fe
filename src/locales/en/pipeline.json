@@ -276,5 +276,15 @@
     "submitPlanBtn": "Submit Full Chapter Plan",
     "submitBulkBtn": "Bulk Assign ({count} pages)",
     "submitBtn": "Create & Assign Task"
+  },
+  "taskGridV3": {
+    "cancelledCell": "Cancelled",
+    "unassignedCell": "unassigned",
+    "lastDecisionPrefix": "Feedback",
+    "lastDecisionLabel": "Latest review feedback",
+    "submitWholeLot": "Submit whole lot",
+    "submitWholeLotCount": "Submit whole lot ({count} cells)",
+    "submitWholeLotSuccessTitle": "Submitted whole lot",
+    "submitWholeLotErrorTitle": "Could not submit lot"
   }
 }

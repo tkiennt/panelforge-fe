@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '@/lib/i18n';
 import type { BoardCard } from './pipelineBoard.types';
 import { isCardOverdue, statusKey, statusLabel, type StatusKey } from './productionBoard.utils';
 import { cellLead, type MatrixColumn, type MatrixRow } from './pageStageMatrix.utils';
@@ -22,102 +23,139 @@ export const PageStageMatrix: React.FC<{
   rows: MatrixRow[];
   now: number;
   onOpen: (card: BoardCard, trigger: HTMLElement) => void;
-}> = ({ columns, rows, now, onOpen }) => (
-  <div
-    className='min-w-0 overflow-x-auto rounded-xl border border-landing-border bg-white shadow-2xs'
-    data-testid='page-stage-matrix'
-  >
-    <table className='w-full border-collapse text-sm'>
-      <caption className='sr-only'>
-        Bảng trang: tiến độ từng trang qua các công đoạn sản xuất
-      </caption>
-      <thead>
-        <tr className='border-b border-landing-border bg-[#FAF8F5]'>
-          <th
-            scope='col'
-            className='sticky left-0 z-10 bg-[#FAF8F5] px-4 py-2.5 text-left font-semibold text-landing-ink'
-          >
-            Trang
-          </th>
-          {columns.map((col, i) => (
+}> = ({ columns, rows, now, onOpen }) => {
+  const { t } = useTranslation('pipeline');
+  const cancelledText = t('taskGridV3.cancelledCell', 'Đã huỷ');
+  const unassignedText = t('taskGridV3.unassignedCell', 'chưa giao');
+  const feedbackPrefix = t('taskGridV3.lastDecisionPrefix', 'Nhận xét');
+
+  return (
+    <div
+      className='min-w-0 overflow-x-auto rounded-xl border border-landing-border bg-white shadow-2xs'
+      data-testid='page-stage-matrix'
+    >
+      <table className='w-full border-collapse text-sm'>
+        <caption className='sr-only'>
+          Bảng trang: tiến độ từng trang qua các công đoạn sản xuất
+        </caption>
+        <thead>
+          <tr className='border-b border-landing-border bg-[#FAF8F5]'>
             <th
-              key={col.id}
               scope='col'
-              className='min-w-28 px-2 py-2.5 text-left font-semibold text-landing-ink whitespace-nowrap'
+              className='sticky left-0 z-10 bg-[#FAF8F5] px-4 py-2.5 text-left font-semibold text-landing-ink'
             >
-              <span className='mr-1.5 font-mono text-xs text-landing-ink-muted'>{i + 1}</span>
-              {col.name}
+              Trang
             </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr key={row.key} className='border-b border-stone-100 last:border-b-0'>
-            <th
-              scope='row'
-              className='sticky left-0 z-10 bg-white px-4 py-2 text-left align-middle whitespace-nowrap'
-            >
-              <span className='block font-serif text-base font-bold text-landing-ink'>
-                {row.label}
-              </span>
-              <span className='block text-xs text-landing-ink-muted tabular-nums'>
-                {row.total > 0 ? `${row.done}/${row.total} công đoạn xong` : 'Chưa giao việc'}
-              </span>
-            </th>
-            {columns.map((col) => {
-              const cards = row.cells[col.id] ?? [];
-              const lead = cellLead(cards);
-              if (!lead) {
+            {columns.map((col, i) => (
+              <th
+                key={col.id}
+                scope='col'
+                className='min-w-28 px-2 py-2.5 text-left font-semibold text-landing-ink whitespace-nowrap'
+              >
+                <span className='mr-1.5 font-mono text-xs text-landing-ink-muted'>{i + 1}</span>
+                {col.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.key} className='border-b border-stone-100 last:border-b-0'>
+              <th
+                scope='row'
+                className='sticky left-0 z-10 bg-white px-4 py-2 text-left align-middle whitespace-nowrap'
+              >
+                <span className='block font-serif text-base font-bold text-landing-ink'>
+                  {row.label}
+                </span>
+                <span className='block text-xs text-landing-ink-muted tabular-nums'>
+                  {row.total > 0 ? `${row.done}/${row.total} công đoạn xong` : 'Chưa giao việc'}
+                </span>
+              </th>
+              {columns.map((col) => {
+                const cards = row.cells[col.id] ?? [];
+                const lead = cellLead(cards);
+                const isCancelled = !lead && Boolean(row.cancelledStageIds?.includes(col.id));
+                if (isCancelled) {
+                  const cancelledAria = `${row.label}, ${col.name}: ${cancelledText}`;
+                  return (
+                    <td key={col.id} className='px-2 py-2 align-middle'>
+                      <span
+                        data-testid={`matrix-cancelled-cell-${row.key}-${col.id}`}
+                        className='flex h-11 items-center justify-center rounded-lg border border-dashed border-stone-200 bg-stone-50/80 px-2 text-xs text-stone-400 opacity-55 select-none'
+                        aria-label={cancelledAria}
+                        title={cancelledAria}
+                      >
+                        {cancelledText}
+                      </span>
+                    </td>
+                  );
+                }
+                if (!lead) {
+                  return (
+                    <td key={col.id} className='px-2 py-2 align-middle'>
+                      <span
+                        className='block h-11 rounded-lg border border-dashed border-stone-200'
+                        aria-label={`${row.label}, ${col.name}: ${unassignedText}`}
+                      />
+                    </td>
+                  );
+                }
+                const key = (statusKey(lead.status) ?? 'Assigned') as StatusKey;
+                const overdue = isCardOverdue(lead, now);
+                const reworkComment =
+                  key === 'ReworkRequired' && lead.lastFeedbackComment?.trim()
+                    ? lead.lastFeedbackComment.trim()
+                    : null;
+                const label = `${row.label}, ${col.name}: ${statusLabel(lead.status)}, ${lead.assigneeName}${
+                  overdue ? ', quá hạn' : ''
+                }${reworkComment ? `, ${feedbackPrefix}: ${reworkComment}` : ''}${
+                  cards.length > 1 ? `, và ${cards.length - 1} việc khác` : ''
+                }`;
                 return (
                   <td key={col.id} className='px-2 py-2 align-middle'>
-                    <span
-                      className='block h-11 rounded-lg border border-dashed border-stone-200'
-                      aria-label={`${row.label}, ${col.name}: chưa giao`}
-                    />
+                    <button
+                      type='button'
+                      onClick={(e) => onOpen(lead, e.currentTarget)}
+                      aria-label={label}
+                      title={label}
+                      className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors duration-150 hover:border-landing-ink cursor-pointer ${CELL_TONE[key]} ${focusRing}`}
+                    >
+                      <span className='min-w-0'>
+                        <span className='block truncate text-xs font-semibold'>
+                          {statusLabel(lead.status)}
+                        </span>
+                        {reworkComment && (
+                          <span
+                            data-testid={`matrix-rework-comment-${lead.id}`}
+                            className='block max-w-44 truncate text-[11px] font-medium text-rose-800'
+                          >
+                            💬 {reworkComment}
+                          </span>
+                        )}
+                        {overdue && (
+                          <span className='block text-xs font-medium text-rose-700'>Quá hạn</span>
+                        )}
+                      </span>
+                      <span className='flex shrink-0 items-center gap-1'>
+                        {cards.length > 1 && (
+                          <span className='text-xs font-mono tabular-nums'>+{cards.length - 1}</span>
+                        )}
+                        <span
+                          className='flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-xs font-bold text-landing-ink ring-1 ring-black/10'
+                          aria-hidden='true'
+                        >
+                          {lead.assigneeAvatarInitials}
+                        </span>
+                      </span>
+                    </button>
                   </td>
                 );
-              }
-              const key = (statusKey(lead.status) ?? 'Assigned') as StatusKey;
-              const overdue = isCardOverdue(lead, now);
-              const label = `${row.label}, ${col.name}: ${statusLabel(lead.status)}, ${lead.assigneeName}${
-                overdue ? ', quá hạn' : ''
-              }${cards.length > 1 ? `, và ${cards.length - 1} việc khác` : ''}`;
-              return (
-                <td key={col.id} className='px-2 py-2 align-middle'>
-                  <button
-                    type='button'
-                    onClick={(e) => onOpen(lead, e.currentTarget)}
-                    aria-label={label}
-                    title={label}
-                    className={`flex h-11 w-full items-center justify-between gap-2 rounded-lg border px-2.5 text-left transition-colors duration-150 hover:border-landing-ink cursor-pointer ${CELL_TONE[key]} ${focusRing}`}
-                  >
-                    <span className='min-w-0'>
-                      <span className='block truncate text-xs font-semibold'>
-                        {statusLabel(lead.status)}
-                      </span>
-                      {overdue && (
-                        <span className='block text-xs font-medium text-rose-700'>Quá hạn</span>
-                      )}
-                    </span>
-                    <span className='flex shrink-0 items-center gap-1'>
-                      {cards.length > 1 && (
-                        <span className='text-xs font-mono tabular-nums'>+{cards.length - 1}</span>
-                      )}
-                      <span
-                        className='flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-xs font-bold text-landing-ink ring-1 ring-black/10'
-                        aria-hidden='true'
-                      >
-                        {lead.assigneeAvatarInitials}
-                      </span>
-                    </span>
-                  </button>
-                </td>
-              );
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};

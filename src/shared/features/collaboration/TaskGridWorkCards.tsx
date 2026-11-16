@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -18,12 +18,13 @@ import {
 } from 'lucide-react';
 import {
   assignmentService,
-  parseStageTaskPanelLayout,
   type MyTaskCellDto,
   type MyTaskLotDto,
   type StageTaskSubmissionDto,
   type TaskGridReviewItemDto,
 } from '@/services/assignment.service';
+import { parseStageTaskPanelLayout, resolveReworkDecisionComments } from '@/types';
+import { useTranslation } from '@/lib/i18n';
 import { describeStartError, errorMessage } from './collaborationRules';
 
 export interface MyTaskLotViewItem extends MyTaskLotDto {
@@ -64,8 +65,26 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
   onChanged,
   onToast,
 }) => {
+  const { t } = useTranslation('pipeline');
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reworkComments, setReworkComments] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let alive = true;
+    resolveReworkDecisionComments(
+      lot.chapterId,
+      lot.tasks,
+      typeof assignmentService.getStageTaskSubmissions === 'function'
+        ? (cId, tId) => assignmentService.getStageTaskSubmissions(cId, tId)
+        : undefined,
+    ).then((map) => {
+      if (alive) setReworkComments(map);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [lot.chapterId, lot.tasks]);
 
   const roleUpper = String(lot.assignedRole || '').toUpperCase();
   const inProgressCells = lot.tasks.filter((c) => c.status === 'InProgress' && !c.isInputOutdated);
@@ -152,9 +171,10 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
         </div>
 
         <div className='flex flex-wrap items-center gap-2'>
-          {isOwner && inProgressCells.length > 1 && (
+          {isOwner && inProgressCells.length > 0 && lot.tasks.length > 1 && (
             <button
               type='button'
+              data-testid='submit-whole-lot-btn'
               disabled={busyKey !== null}
               onClick={() =>
                 void handleSubmitCells(
@@ -164,12 +184,17 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
               }
               className='inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50'
             >
-              {busyKey === 'submitAll' ? (
+              {busyKey === 'submitAll' || busyKey?.startsWith('submit:') ? (
                 <Loader2 className='w-3.5 h-3.5 animate-spin' />
               ) : (
                 <Send className='w-3.5 h-3.5' />
               )}
-              <span>Nộp tất cả ({inProgressCells.length} ô)</span>
+              <span>
+                {t('taskGridV3.submitWholeLotCount', {
+                  count: inProgressCells.length,
+                  defaultValue: `Nộp cả lô (${inProgressCells.length} ô)`,
+                })}
+              </span>
             </button>
           )}
 
@@ -247,12 +272,21 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
             isOwner && (cell.status === 'Assigned' || cell.status === 'ReworkRequired');
           const canSubmit = isOwner && cell.status === 'InProgress';
           const isHighlighted = highlightedId === cell.id;
+          const cellReworkComment =
+            cell.status === 'ReworkRequired'
+              ? cell.lastDecisionComment?.trim() || reworkComments[cell.id] || null
+              : null;
 
           return (
             <div
               key={cell.id}
               id={`assignment-${cell.id}`}
               data-testid={`lot-cell-${cell.id}`}
+              title={
+                cellReworkComment
+                  ? `${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${cellReworkComment}`
+                  : undefined
+              }
               className={`rounded-xl border p-2.5 text-xs flex flex-col justify-between gap-2 ${
                 isHighlighted
                   ? 'border-[#F97316] bg-[#FFF7ED] ring-2 ring-[#F97316]/30'
@@ -270,6 +304,19 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                     {meta.label}
                   </span>
                 </div>
+
+                {cellReworkComment && (
+                  <div
+                    data-testid={`lot-cell-rework-comment-${cell.id}`}
+                    className='rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-[11px] text-rose-900'
+                  >
+                    💬{' '}
+                    <span className='font-semibold'>
+                      {t('taskGridV3.lastDecisionPrefix', 'Nhận xét gần nhất:')}
+                    </span>{' '}
+                    {cellReworkComment}
+                  </div>
+                )}
 
                 {cell.isInputOutdated && (
                   <div className='rounded-lg bg-amber-50 border border-amber-300 px-2 py-1 text-[11px] text-amber-900'>

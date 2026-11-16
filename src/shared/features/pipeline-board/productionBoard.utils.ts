@@ -192,6 +192,23 @@ export const buildScopeOptions = (cards: BoardCard[]): ScopeOption[] => {
   let hasChapter = false;
   let hasPanel = false;
   cards.forEach((c) => {
+    if (c.isGridLot && c.lotTasks && c.lotTasks.length > 0) {
+      c.lotTasks.forEach((cell) => {
+        if (cell.status === 'Cancelled' || cell.status === 'Unassigned') return;
+        if (!cell.pageId) {
+          hasChapter = true;
+          return;
+        }
+        const cellKey = `page:${cell.pageId}`;
+        if (!pages.has(cellKey)) {
+          pages.set(cellKey, {
+            label: cell.targetLabel,
+            n: cell.pageNumber ?? Number.MAX_SAFE_INTEGER,
+          });
+        }
+      });
+      return;
+    }
     const key = scopeKeyOf(c);
     if (key === 'chapter') hasChapter = true;
     else if (key === 'panel') hasPanel = true;
@@ -243,7 +260,17 @@ export const normalizeText = (value: string): string =>
 export const matchesDetailFilters = (card: BoardCard, f: DetailFilters, now: number): boolean => {
   if (f.assignee && card.assigneeUserId !== f.assignee) return false;
   if (f.stage && card.pipelineStageId !== f.stage) return false;
-  if (f.scope && scopeKeyOf(card) !== f.scope) return false;
+  if (f.scope) {
+    const matchesLotCell =
+      card.isGridLot &&
+      card.lotTasks?.some(
+        (cell) =>
+          cell.status !== 'Cancelled' &&
+          cell.status !== 'Unassigned' &&
+          (cell.pageId ? `page:${cell.pageId}` : 'chapter') === f.scope,
+      );
+    if (!matchesLotCell && scopeKeyOf(card) !== f.scope) return false;
+  }
   if (f.overdueOnly && !isCardOverdue(card, now)) return false;
   const q = normalizeText(f.search);
   if (q) {
@@ -499,6 +526,7 @@ export const mapTaskGridToCards = (
   pages: PageDto[],
   members: WorkspaceMemberDto[],
   seriesId: string,
+  decisionCommentsByTaskId?: Record<string, string>,
 ): BoardCard[] => {
   const gridStagesMap = new Map((grid.stages ?? []).map((s) => [s.id, s]));
   const stagesMap = new Map(stages.map((s) => [s.id, s]));
@@ -548,6 +576,8 @@ export const mapTaskGridToCards = (
       isStartable: t.isStartable,
       isInputOutdated: t.isInputOutdated,
       outdatedReason: t.outdatedReason ?? null,
+      lastDecisionComment:
+        t.lastDecisionComment?.trim() || decisionCommentsByTaskId?.[t.id] || null,
       prerequisitesApproved: areCellPrereqsApproved(t),
     };
   };
@@ -621,7 +651,8 @@ export const mapTaskGridToCards = (
       dependsOnAssignmentIds: [],
       startedAt: t.startedAt ?? null,
       completedAt: null,
-      lastFeedbackComment: null,
+      lastFeedbackComment:
+        t.status === 'ReworkRequired' ? (cellItem.lastDecisionComment ?? null) : null,
       impactReviewReason: t.isInputOutdated
         ? t.outdatedReason || 'Đầu vào từ công đoạn trước đã thay đổi'
         : null,
@@ -678,6 +709,9 @@ export const mapTaskGridToCards = (
     const pageRangeLabel = formatPageRangeLabel(pageNumbers);
     const firstCell = sortedCells[0];
     const outdatedCell = sortedCells.find((c) => c.isInputOutdated);
+    const reworkCell = sortedCells.find(
+      (c) => c.status === 'ReworkRequired' && Boolean(c.lastDecisionComment),
+    );
     const earliestStarted = rawCells
       .map((c) => c.startedAt)
       .filter((s): s is string => Boolean(s))
@@ -710,7 +744,7 @@ export const mapTaskGridToCards = (
       dependsOnAssignmentIds: [],
       startedAt: earliestStarted ?? null,
       completedAt: null,
-      lastFeedbackComment: null,
+      lastFeedbackComment: reworkCell?.lastDecisionComment ?? null,
       impactReviewReason: outdatedCell
         ? outdatedCell.outdatedReason || 'Đầu vào từ công đoạn trước đã thay đổi'
         : null,

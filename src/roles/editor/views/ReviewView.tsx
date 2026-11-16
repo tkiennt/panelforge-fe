@@ -2,17 +2,20 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, Minus, Plus } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import type {
-  AssignmentDto,
-  ChangeRequestDto,
-  SubmissionDto,
-  VisualConsistencyReportDto,
-  VisualDeviationDto,
+import {
+  normalizeWorkspaceRole,
+  parseStageTaskCanvasVersions,
+  parseStageTaskPanelLayout,
+  pickLatestDecisionComment,
+  type AssignmentDto,
+  type ChangeRequestDto,
+  type SubmissionDto,
+  type VisualConsistencyReportDto,
+  type VisualDeviationDto,
 } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
 import { chapterService } from '@/services/chapter.service';
 import { pageService } from '@/services/page.service';
-import { normalizeWorkspaceRole } from '@/types';
 import {
   countUnclosed,
   errorMessage,
@@ -77,6 +80,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [assignment, setAssignment] = useState<AssignmentDto | null>(null);
+  const [isGridTask, setIsGridTask] = useState(false);
+  const [gridLatestComment, setGridLatestComment] = useState<string | null>(null);
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
   const [visualReport, setVisualReport] = useState<VisualConsistencyReportDto | null>(null);
@@ -97,14 +102,96 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     setLoading(true);
     setLoadError(null);
     try {
-      const [a, crs, subs, report, chapter] = await Promise.all([
-        assignmentService.getAssignmentById(taskId, chapterId),
+      const hasTaskGridApi = typeof assignmentService.getTaskGrid === 'function';
+      const v2Assign =
+        typeof assignmentService.getAssignmentById === 'function'
+          ? await assignmentService.getAssignmentById(taskId, chapterId).catch((err) => {
+              if (!hasTaskGridApi) throw err;
+              return null;
+            })
+          : null;
+
+      if (!v2Assign && hasTaskGridApi) {
+        const [grid, report, chapter] = await Promise.all([
+          assignmentService.getTaskGrid(chapterId),
+          typeof assignmentService.getVisualConsistencyReport === 'function'
+            ? assignmentService.getVisualConsistencyReport(chapterId).catch(() => null)
+            : Promise.resolve(null),
+          chapterService.getChapterById(chapterId).catch(() => null),
+        ]);
+        const cell = grid?.tasks.find((item) => item.id === taskId && item.status !== 'Cancelled');
+        if (!cell) {
+          setIsGridTask(false);
+          setGridLatestComment(null);
+          setAssignment(null);
+          return;
+        }
+        const stg = grid.stages.find((s) => s.id === cell.pipelineStageId);
+        const lot = cell.lotId ? grid.lots.find((l) => l.id === cell.lotId) : undefined;
+        const pg = cell.pageId ? grid.pages.find((p) => p.id === cell.pageId) : undefined;
+        const rawSubs =
+          typeof assignmentService.getStageTaskSubmissions === 'function'
+            ? await assignmentService.getStageTaskSubmissions(chapterId, cell.id).catch(() => [])
+            : [];
+        const mappedSubs: SubmissionDto[] = rawSubs.map((s) => ({
+          id: s.id,
+          assignmentId: cell.id,
+          chapterId,
+          submittedByUserId: s.submittedByUserId,
+          attemptNumber: s.attemptNumber,
+          status: s.status as SubmissionDto['status'],
+          submittedAt: s.submittedAt,
+          decidedByUserId: s.decidedByUserId ?? undefined,
+          decidedAt: s.decidedAt ?? undefined,
+          decisionComment: s.decisionComment ?? undefined,
+          artworkReferenceIds: s.artworkReferenceIds ?? [],
+          panelLayout: parseStageTaskPanelLayout(s.panelLayoutJson),
+          canvasVersions: parseStageTaskCanvasVersions(s.canvasVersionsJson),
+        }));
+
+        setIsGridTask(true);
+        setGridLatestComment(
+          cell.lastDecisionComment?.trim() || pickLatestDecisionComment(rawSubs) || null,
+        );
+        setAssignment({
+          id: cell.id,
+          seriesId: seriesId || '',
+          chapterId,
+          entityType: cell.pageId ? 'Page' : 'Chapter',
+          targetEntityId: cell.pageId ?? chapterId,
+          pipelineStageId: cell.pipelineStageId,
+          stageName: stg?.name ?? 'Stage',
+          stageOrder: stg?.stageOrder ?? 99,
+          assigneeUserId: cell.assigneeUserId ?? lot?.assigneeUserId ?? '',
+          assignedRole: (lot?.assignedRole || stg?.allowedRole || 'Artist') as any,
+          brief:
+            lot?.brief?.trim() ||
+            `${stg?.name ?? 'Stage'} · ${pg ? `Trang ${pg.pageNumber}` : 'Toàn chương'}`,
+          dueDate: lot?.dueDate ?? null,
+          priority: 'Medium' as any,
+          status: cell.status as any,
+          impactReviewReason: cell.isInputOutdated
+            ? cell.outdatedReason || 'Đầu vào từ công đoạn trước đã thay đổi'
+            : null,
+          createdAt: cell.startedAt ?? new Date().toISOString(),
+        });
+        setChangeRequests([]);
+        setSubmissions(mappedSubs);
+        setVisualReport(report);
+        setChapterNumber(chapter?.chapterNumber ?? null);
+        if (pg?.pageNumber != null) setPageNumber(pg.pageNumber);
+        return;
+      }
+
+      const [crs, subs, report, chapter] = await Promise.all([
         assignmentService.getChangeRequests(chapterId, { assignmentId: taskId }),
         assignmentService.getSubmissions(chapterId, taskId),
         assignmentService.getVisualConsistencyReport(chapterId).catch(() => null),
         chapterService.getChapterById(chapterId).catch(() => null),
       ]);
-      setAssignment(a);
+      setIsGridTask(false);
+      setGridLatestComment(null);
+      setAssignment(v2Assign);
       setChangeRequests(crs);
       setSubmissions(subs);
       setVisualReport(report);
@@ -114,7 +201,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [chapterId, taskId, t]);
+  }, [chapterId, seriesId, taskId, t]);
 
   useEffect(() => {
     loadData();
@@ -168,7 +255,16 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         : null,
     [assignment, currentUserId, workspaceRole, changeRequests],
   );
-  const canDecide = (work?.canDecide ?? false) && !assignment?.impactReviewReason;
+  const canDecide = isGridTask
+    ? Boolean(
+        assignment &&
+          (String(assignment.status) === 'Submitted' ||
+            String(assignment.status) === 'UnderReview') &&
+          !work?.isAssignee &&
+          work?.isReviewer &&
+          !assignment.impactReviewReason,
+      )
+    : (work?.canDecide ?? false) && !assignment?.impactReviewReason;
 
   // ── Vùng khoanh: yêu cầu sửa nằm trên đúng phiên bản đã khoanh (ảnh thật hoặc ảnh ghép của lần nộp) ──
   const isOnArtwork = useCallback(
@@ -261,6 +357,32 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     run(
       'return',
       async () => {
+        if (isGridTask) {
+          const commentParts = [
+            summary.trim(),
+            ...drafts
+              .map((d, idx) => (d.text.trim() ? `[M${idx + 1}] ${d.text.trim()}` : ''))
+              .filter(Boolean),
+          ].filter(Boolean);
+          await assignmentService.requestStageTaskChanges(
+            chapterId,
+            taskId,
+            commentParts.join('\n'),
+          );
+          updateDrafts([]);
+          setSummary('');
+          onShowToast?.(
+            t('artworkReview.toast.returnedTitle'),
+            t('scriptReview.toast.returnedBody', {
+              count: Math.max(
+                drafts.reduce((count, draft) => count + Math.max(draft.panelIds.length, 1), 0),
+                1,
+              ),
+            }),
+          );
+          await loadData();
+          return;
+        }
         await assignmentService.requestChanges(chapterId, taskId, {
           comment: summary.trim(),
           expectedSubmissionId: pendingSub?.id,
@@ -300,6 +422,15 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     run(
       'approve',
       async () => {
+        if (isGridTask) {
+          await assignmentService.approveStageTask(chapterId, taskId);
+          if (typeof assignmentService.getTaskGrid === 'function') {
+            await assignmentService.getTaskGrid(chapterId).catch(() => null);
+          }
+          onShowToast?.(t('artworkReview.toast.approvedTitle'), assignment?.brief ?? '');
+          backToDesk();
+          return;
+        }
         await assignmentService.approveAssignment(chapterId, taskId, pendingSub?.id);
         onShowToast?.(t('artworkReview.toast.approvedTitle'), assignment?.brief ?? '');
         backToDesk();
@@ -339,10 +470,18 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       'impact',
       async () => {
         if (!impactDecision) return;
-        await assignmentService.resolveImpactReview(chapterId, taskId, {
-          decision: impactDecision,
-          reason,
-        });
+        if (isGridTask) {
+          await assignmentService.resolveStageTaskImpact(
+            chapterId,
+            taskId,
+            impactDecision === 'Keep',
+          );
+        } else {
+          await assignmentService.resolveImpactReview(chapterId, taskId, {
+            decision: impactDecision,
+            reason,
+          });
+        }
         setImpactDecision(null);
         await loadData();
       },
@@ -443,7 +582,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     if (canDecide) return null;
     if (work?.isAssignee) return t('scriptReview.notice.selfReview');
     if (!work?.isReviewer) return t('artworkReview.notice.notReviewer');
-    if (work.canOpenReview) return t('scriptReview.notice.notOpened');
+    if (!isGridTask && work.canOpenReview) return t('scriptReview.notice.notOpened');
     return t('scriptReview.notice.status', {
       status: t(`scriptReview.assignmentStatus.${assignment.status}`, String(assignment.status)),
     });
@@ -580,10 +719,25 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             </div>
           )}
 
+          {isGridTask &&
+            String(assignment.status) === 'ReworkRequired' &&
+            gridLatestComment && (
+              <div
+                data-testid='review-view-last-decision-comment'
+                className='mx-4 mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-900'
+              >
+                💬{' '}
+                <span className='font-semibold'>
+                  {t('chapterReview.gate2GridLastComment', 'Nhận xét lần duyệt gần nhất')}:
+                </span>{' '}
+                {gridLatestComment}
+              </div>
+            )}
+
           {notice && (
             <div className='mx-4 mt-4 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5'>
               <p className='text-xs leading-normal text-amber-900'>{notice}</p>
-              {work?.canOpenReview && (
+              {!isGridTask && work?.canOpenReview && (
                 <button
                   type='button'
                   onClick={handleOpenReview}

@@ -29,7 +29,14 @@ import {
   type TaskGridStageDto,
   type StageTaskLotRequest,
 } from '@/services/assignment.service';
-import { parseStageTaskCanvasVersions, parseStageTaskPanelLayout } from '@/types';
+import {
+  parseStageTaskCanvasVersions,
+  parseStageTaskPanelLayout,
+  pickLatestDecisionComment,
+  resolveReworkDecisionComments,
+} from '@/types';
+import { formatPageRangeLabel } from './productionBoard.utils';
+import { useTranslation } from '@/lib/i18n';
 import { chapterService } from '@/services/chapter.service';
 import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
 import { panelService } from '@/services/panel.service';
@@ -100,7 +107,9 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   refreshKey = 0,
   onShowToast,
 }) => {
+  const { t } = useTranslation('pipeline');
   const [grid, setGrid] = useState<TaskGridDto | null>(null);
+  const [reworkCommentsByTask, setReworkCommentsByTask] = useState<Record<string, string>>({});
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -178,6 +187,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       ]);
       setGrid(gridRes);
       setMembers(membersRes || []);
+      const comments = await resolveReworkDecisionComments(
+        chapterId,
+        gridRes?.tasks ?? [],
+        typeof assignmentService.getStageTaskSubmissions === 'function'
+          ? (cId, tId) => assignmentService.getStageTaskSubmissions(cId, tId)
+          : undefined,
+      );
+      setReworkCommentsByTask(comments);
     } catch (err: any) {
       setError(err.message || 'Không thể tải lưới giao việc V3.');
     } finally {
@@ -251,6 +268,17 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     }
     return map;
   }, [grid]);
+
+  const cancelledTaskMap = useMemo(() => {
+    const map = new Map<string, StageTaskDto>();
+    if (!grid) return map;
+    for (const t of grid.tasks) {
+      if (t.status !== 'Cancelled') continue;
+      const key = `${t.pipelineStageId}:${t.pageId ?? '__CHAPTER__'}`;
+      if (!taskMap.has(key)) map.set(key, t);
+    }
+    return map;
+  }, [grid, taskMap]);
 
   const hasChapterRow = useMemo(() => {
     if (!grid) return false;
@@ -595,6 +623,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     try {
       const list = await assignmentService.getStageTaskSubmissions(chapterId, task.id);
       setSubmissionsByTaskId((prev) => ({ ...prev, [task.id]: list }));
+      const latestComment = pickLatestDecisionComment(list);
+      if (latestComment) {
+        setReworkCommentsByTask((prev) => ({ ...prev, [task.id]: latestComment }));
+      }
       if (
         list.some((s) => Boolean(s.scriptVersionId)) &&
         scriptVersionsLoadedForRef.current !== chapterId
@@ -797,7 +829,22 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     const key = `${stage.id}:${pageId ?? '__CHAPTER__'}`;
     const task = taskMap.get(key);
     if (!task) {
-      return <div className='p-2 text-center text-[11px] text-stone-400 italic'>Chưa sinh ô</div>;
+      const cancelled = cancelledTaskMap.get(key);
+      if (cancelled) {
+        return (
+          <div
+            data-testid={`cancelled-task-cell-${cancelled.id}`}
+            className='w-full min-w-0 box-border p-2 rounded-lg border border-dashed border-stone-200 bg-stone-50/80 text-center text-[11px] text-stone-400 opacity-55 line-through'
+          >
+            {t('taskGridV3.cancelledCell', 'Đã huỷ')}
+          </div>
+        );
+      }
+      return (
+        <div className='p-2 text-center text-[11px] text-stone-400 italic'>
+          {t('taskGridV3.unassignedCell', 'Chưa sinh ô')}
+        </div>
+      );
     }
 
     const meta = STATUS_STYLE[task.status] ?? {
@@ -829,10 +876,21 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     const isSelectedForSubmit = selectedSubmitIds.has(task.id);
     const isSelectedForUnassign = selectedUnassignIds.has(task.id);
     const hasOpenInlineForm = requestingChangesTaskId === task.id || reopeningTaskId === task.id;
+    const latestDecisionComment =
+      task.status === 'ReworkRequired'
+        ? task.lastDecisionComment?.trim() ||
+          reworkCommentsByTask[task.id] ||
+          pickLatestDecisionComment(submissionsByTaskId[task.id])
+        : null;
 
     return (
       <div
         data-testid={`task-cell-${stage.id}-${pageId ?? 'chapter'}`}
+        title={
+          latestDecisionComment
+            ? `${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${latestDecisionComment}`
+            : undefined
+        }
         className={`w-full min-w-0 box-border p-2.5 rounded-lg border text-xs flex flex-col gap-1.5 transition-all ${
           hasOpenInlineForm ? 'min-w-[230px]' : ''
         } ${
@@ -885,6 +943,20 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             title={getMemberName(task.assigneeUserId)}
           >
             👤 <span className='font-medium'>{getMemberName(task.assigneeUserId)}</span>
+          </div>
+        )}
+
+        {task.status === 'ReworkRequired' && latestDecisionComment && (
+          <div
+            data-testid={`rework-decision-comment-${task.id}`}
+            title={`${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${latestDecisionComment}`}
+            className='rounded border border-rose-200 bg-rose-50/80 px-1.5 py-1 text-[10px] leading-snug text-rose-800 line-clamp-2'
+          >
+            💬{' '}
+            <span className='font-semibold'>
+              {t('taskGridV3.lastDecisionPrefix', 'Nhận xét gần nhất:')}
+            </span>{' '}
+            {latestDecisionComment}
           </div>
         )}
 
@@ -1527,9 +1599,23 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               const stg = grid.stages.find((s) => s.id === lot.pipelineStageId);
               const isLotStageDisabled =
                 stg?.isEnabled === false || !enabledStageIds.has(lot.pipelineStageId);
+              const lotCells = grid.tasks.filter(
+                (t) => t.lotId === lot.id && t.status !== 'Cancelled',
+              );
+              const lotPageNums = lotCells
+                .map((t) => sortedPages.find((p) => p.id === t.pageId)?.pageNumber)
+                .filter((n): n is number => n !== undefined)
+                .sort((a, b) => a - b);
+              const lotScopeText =
+                lotCells.length > 0 && lotCells.every((t) => !t.pageId)
+                  ? 'Toàn chương'
+                  : lotPageNums.length > 0
+                    ? formatPageRangeLabel(lotPageNums)
+                    : null;
               return (
                 <div
                   key={lot.id}
+                  data-testid={`grid-lot-pill-${lot.id}`}
                   className={`rounded-lg border px-2.5 py-1.5 text-[11px] flex items-center gap-2 ${
                     isLotStageDisabled
                       ? 'border-dashed border-stone-300 bg-stone-100/60 text-stone-400 opacity-50'
@@ -1548,6 +1634,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   )}
                   <span>•</span>
                   <span>{getMemberName(lot.assigneeUserId)}</span>
+                  {lotScopeText && <span className='font-medium'>{`• ${lotScopeText}`}</span>}
                   <span className='font-mono font-semibold'>
                     ({lot.approvedCount}/{lot.taskCount})
                   </span>
