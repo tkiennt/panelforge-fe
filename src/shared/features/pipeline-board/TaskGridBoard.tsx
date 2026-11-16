@@ -1848,7 +1848,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           <div className='flex items-center gap-2'>
             <Grid className='h-4 w-4 text-[#F97316]' />
             <span className='font-bold text-sm text-stone-900'>
-              Lưới Giao Việc V3 (Trang × Công đoạn)
+              Lưới Giao Việc
             </span>
           </div>
           {grid && (
