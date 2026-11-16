@@ -165,6 +165,10 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
         track: stage.track ?? undefined,
       };
       const updated = await pipelineService.updateStage(seriesId, stage.id, payload);
+      // BE tự chuyển cổng duyệt sang bước liền trước cùng nhánh khi tắt bước cuối có cổng (vd. Color → Ink)
+      const newlyGated = updated.stages.filter(
+        (s) => s.isApprovalGate && !pipeline?.stages.find((p) => p.id === s.id)?.isApprovalGate,
+      );
       setPipeline(updated);
       onPipelineChanged?.();
       if (chapterId && typeof assignmentService?.getTaskGrid === 'function') {
@@ -175,7 +179,10 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
       }
       onShowToast?.(
         newEnabled ? 'Đã bật công đoạn' : 'Đã tắt công đoạn',
-        `Công đoạn "${stage.name}" hiện đã ${newEnabled ? 'được bật' : 'tắt'}.`,
+        `Công đoạn "${stage.name}" hiện đã ${newEnabled ? 'được bật' : 'tắt'}.` +
+          (newlyGated.length > 0
+            ? ` Cổng duyệt đã chuyển sang ${newlyGated.map((s) => `"${s.name}"`).join(', ')}.`
+            : ''),
       );
     } catch (err: any) {
       setPipeline(prevPipeline);
