@@ -10,27 +10,6 @@ vi.mock('@/services/chapter.service', () => ({
   },
 }));
 
-vi.mock('@/shared/features/pipeline-board/ProductionBoard', () => ({
-  ProductionBoard: ({
-    chapterId,
-    refreshKey,
-    isProducer,
-    currentUserId,
-  }: {
-    chapterId?: string;
-    refreshKey?: number;
-    isProducer?: boolean;
-    currentUserId?: string;
-  }) => (
-    <div data-testid='production-board-mock'>
-      <span>Board chapter: {chapterId}</span>
-      <span>Refresh: {refreshKey}</span>
-      <span>Producer: {String(isProducer)}</span>
-      <span>User: {currentUserId}</span>
-    </div>
-  ),
-}));
-
 // Đã chọn chương thì chỉ còn Lưới Trang × Công đoạn
 vi.mock('@/shared/features/pipeline-board/TaskGridBoard', () => ({
   TaskGridBoard: ({

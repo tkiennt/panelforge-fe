@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
-import { ProductionBoard } from '@/shared/features/pipeline-board/ProductionBoard';
 import { TaskGridBoard } from '@/shared/features/pipeline-board/TaskGridBoard';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
 import { SystemRole, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
@@ -336,14 +335,12 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             onShowToast={onShowToast}
           />
         ) : (
-          <ProductionBoard
-            chapterId={currentChapterId}
-            refreshKey={refreshKey}
-            currentUserRole={currentUserRole}
-            isProducer={isProducer}
-            currentUserId={currentUserId}
-            onShowToast={onShowToast}
-          />
+          <div className='rounded-xl border border-dashed border-landing-border bg-[#FCFBF8] p-10 text-center'>
+            <div className='font-semibold text-landing-ink'>Chưa chọn chương</div>
+            <p className='mt-1 text-sm text-landing-ink-muted'>
+              Chọn một chương ở phía trên để xem Lưới Giao Việc.
+            </p>
+          </div>
         )}
       </div>
     </div>
