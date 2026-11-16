@@ -28,6 +28,7 @@ import {
   UpdatePipelineStageRequest,
 } from '@/services/pipeline.service';
 import { assignmentService } from '@/services/assignment.service';
+import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { Modal } from '@/shared/ui';
 
@@ -59,6 +60,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
   onShowToast,
   onPipelineChanged,
 }) => {
+  const { t } = useTranslation('pipeline');
   const confirm = useConfirm();
   const [pipeline, setPipeline] = useState<SeriesPipelineDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -177,12 +179,27 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('pipeline:changed', { detail: { seriesId } }));
       }
+      const toggleStatusText = newEnabled
+        ? t('pipelineConfig.toastStatusEnabled', 'được bật')
+        : t('pipelineConfig.toastStatusDisabled', 'tắt');
+      const toggleDesc = t('pipelineConfig.toastToggleDesc', {
+        name: stage.name,
+        status: toggleStatusText,
+        defaultValue: `Công đoạn "${stage.name}" hiện đã ${toggleStatusText}.`,
+      });
+      const gateMovedStages = newlyGated.map((s) => `"${s.name}"`).join(', ');
+      const gateMovedSuffix =
+        newlyGated.length > 0
+          ? ` ${t('pipelineConfig.toastGateMoved', {
+              stages: gateMovedStages,
+              defaultValue: `Cổng duyệt đã chuyển sang ${gateMovedStages}.`,
+            })}`
+          : '';
       onShowToast?.(
-        newEnabled ? 'Đã bật công đoạn' : 'Đã tắt công đoạn',
-        `Công đoạn "${stage.name}" hiện đã ${newEnabled ? 'được bật' : 'tắt'}.` +
-          (newlyGated.length > 0
-            ? ` Cổng duyệt đã chuyển sang ${newlyGated.map((s) => `"${s.name}"`).join(', ')}.`
-            : ''),
+        newEnabled
+          ? t('pipelineConfig.toastEnabledTitle', 'Đã bật công đoạn')
+          : t('pipelineConfig.toastDisabledTitle', 'Đã tắt công đoạn'),
+        `${toggleDesc}${gateMovedSuffix}`,
       );
     } catch (err: any) {
       setPipeline(prevPipeline);

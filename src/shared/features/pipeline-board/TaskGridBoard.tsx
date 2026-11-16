@@ -1820,7 +1820,9 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         <div className='flex flex-wrap items-center gap-3'>
           <div className='flex items-center gap-2'>
             <Grid className='h-4 w-4 text-[#F97316]' />
-            <span className='font-bold text-sm text-stone-900'>Lưới Giao Việc</span>
+            <span className='font-bold text-sm text-stone-900'>
+              {t('taskGridV3.boardTitle', 'Lưới Giao Việc')}
+            </span>
           </div>
           {grid && (
             <span className='rounded-lg bg-stone-100 border border-stone-200 px-2.5 py-1 text-xs font-mono font-semibold text-stone-700'>
@@ -2054,8 +2056,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       {/* Trang do Writer chia trong Kịch bản tạo ra; chưa có trang thì lưới chỉ có hàng Toàn chương */}
       {grid && grid.pages.length === 0 && (
         <div className='rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-900'>
-          <span className='font-bold'>Chương chưa có trang nào.</span> Trang được tạo khi Writer
-          chia trang trong Kịch bản; lưu xong lưới tự thêm ô cho từng trang (Pencil, Ink, Letter…).
+          <span className='font-bold'>
+            {t('taskGridV3.noPagesTitle', 'Chương chưa có trang nào.')}
+          </span>{' '}
+          {t(
+            'taskGridV3.noPagesDesc',
+            'Trang được tạo khi Writer chia trang trong Kịch bản; lưu xong lưới tự thêm ô cho từng trang (Pencil, Ink, Letter…).',
+          )}
           {workspaceId && seriesId && (
             <>
               {' '}
@@ -2063,7 +2070,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 to={`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${encodeURIComponent(chapterId)}`}
                 className='font-semibold underline hover:text-sky-700'
               >
-                Mở Kịch bản
+                {t('taskGridV3.openScriptLink', 'Mở Kịch bản')}
               </Link>
             </>
           )}
@@ -2074,7 +2081,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       {grid && grid.lots.some((l) => l.status !== 'Closed') && (
         <div className='rounded-xl border border-stone-200 bg-white p-3.5 space-y-2'>
           <div className='text-xs font-bold text-stone-800'>
-            Lô công việc đã giao ({grid.lots.filter((l) => l.status !== 'Closed').length} lô)
+            {t('taskGridV3.assignedLotsTitle', {
+              count: grid.lots.filter((l) => l.status !== 'Closed').length,
+              defaultValue: `Lô công việc đã giao (${grid.lots.filter((l) => l.status !== 'Closed').length} lô)`,
+            })}
           </div>
           <div className='flex flex-wrap gap-2'>
             {grid.lots

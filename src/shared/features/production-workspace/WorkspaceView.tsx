@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
+import { useTranslation } from '@/lib/i18n';
 import { TaskGridBoard } from '@/shared/features/pipeline-board/TaskGridBoard';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
 import { SystemRole, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
@@ -44,6 +45,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   onShowToast,
   isReaderMode = false,
 }) => {
+  const { t } = useTranslation('pipeline');
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -342,9 +344,14 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           />
         ) : (
           <div className='rounded-xl border border-dashed border-landing-border bg-[#FCFBF8] p-10 text-center'>
-            <div className='font-semibold text-landing-ink'>Chưa chọn chương</div>
+            <div className='font-semibold text-landing-ink'>
+              {t('taskGridV3.noChapterSelectedTitle', 'Chưa chọn chương')}
+            </div>
             <p className='mt-1 text-sm text-landing-ink-muted'>
-              Chọn một chương ở phía trên để xem Lưới Giao Việc.
+              {t(
+                'taskGridV3.noChapterSelectedDesc',
+                'Chọn một chương ở phía trên để xem Lưới Giao Việc.',
+              )}
             </p>
           </div>
         )}

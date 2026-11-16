@@ -39,14 +39,7 @@
   },
   "board": {
     "overdueOnly": "Overdue only",
-    "clearFilters": "Clear filters",
-    "groupBy": "Group by",
-    "viewMode": "View mode",
-    "loadingTasks": "Loading tasks…",
-    "refreshing": "Refreshing…",
-    "quickFilterAria": "Quick filter by status",
-    "showingTasks": "Showing {count} / {total} chapter tasks",
-    "filtered": "(filtered)"
+    "clearFilters": "Clear filters"
   },
   "modal": {
     "title": "Pipeline Configuration",
@@ -99,6 +92,9 @@
     "toastEnabledTitle": "Stage Enabled",
     "toastDisabledTitle": "Stage Disabled",
     "toastToggleDesc": "Stage \"{name}\" is now {status}.",
+    "toastStatusEnabled": "enabled",
+    "toastStatusDisabled": "disabled",
+    "toastGateMoved": "Approval gate moved to {stages}.",
     "toastUpdateSuccess": "Update Successful",
     "toastUpdateDesc": "Updated stage \"{name}\".",
     "toastAddSuccess": "Stage Added Successfully",
@@ -303,10 +299,14 @@
     "saveLotBtn": "Save lot changes",
     "updateLotSuccessTitle": "Task lot updated",
     "layoutLockedInkColor": "Panel layout can only be edited in the Pencil stage",
-    "submitWholeLot": "Submit whole lot",
     "submitWholeLotCount": "Submit whole lot ({count} cells)",
-    "submitWholeLotSuccessTitle": "Submitted whole lot",
-    "submitWholeLotErrorTitle": "Could not submit lot",
-    "inputOutdatedBadge": "Input changed"
+    "inputOutdatedBadge": "Input changed",
+    "boardTitle": "Task Grid",
+    "assignedLotsTitle": "Assigned task lots ({count} lots)",
+    "noPagesTitle": "This chapter has no pages yet.",
+    "noPagesDesc": "Pages are created when the Writer splits pages in the Script; once saved, the grid automatically adds cells for each page (Pencil, Ink, Letter…).",
+    "openScriptLink": "Open Script",
+    "noChapterSelectedTitle": "No chapter selected",
+    "noChapterSelectedDesc": "Select a chapter above to view the Task Grid."
   }
 }
