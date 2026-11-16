@@ -4,7 +4,10 @@ import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { EditorDeskView } from './EditorDeskView';
 import { assignmentService } from '@/services/assignment.service';
+import { bibleService } from '@/services/bible.service';
+import { chapterService } from '@/services/chapter.service';
 import { seriesService } from '@/services/series.service';
+import { workspaceService } from '@/services/workspace.service';
 import { EditorReviewQueueItemDto } from '@/types';
 
 const mockNavigate = vi.fn();
@@ -66,6 +69,15 @@ describe('EditorDeskView Component', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     mockNavigate.mockClear();
+    vi.spyOn(assignmentService, 'getTaskGridReviewQueue').mockResolvedValue([]);
+    vi.spyOn(workspaceService, 'getMembers').mockResolvedValue([]);
+    vi.spyOn(bibleService, 'getSeriesBible').mockResolvedValue(null as any);
+    vi.spyOn(chapterService, 'getChaptersBySeries').mockResolvedValue({
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 100,
+    } as any);
   });
 
   it('renders loading state initially and then displays queue items', async () => {
@@ -256,6 +268,86 @@ describe('EditorDeskView Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Hàng Đợi Thẩm Định Đang Sạch (Inbox Zero)')).toBeInTheDocument();
+    });
+  });
+
+  it('Lát cắt 4 (Clean Cutover): đọc hàng đợi từ getTaskGridReviewQueue, khoá tự duyệt BR-06 và cho Duyệt / Yêu cầu sửa ô Lưới V3', async () => {
+    vi.spyOn(assignmentService, 'getEditorReviewQueue').mockResolvedValue([]);
+    vi.spyOn(assignmentService, 'getTaskGridReviewQueue').mockResolvedValue([
+      {
+        taskId: 'grid-task-1',
+        seriesId: 'series-001',
+        seriesTitle: 'Đại Chiến Thần Binh',
+        chapterId: 'chap-101',
+        chapterNumber: 12,
+        chapterTitle: 'Trận Chiến Ở Đền Thờ',
+        pipelineStageId: 'stg-pencil',
+        stageName: 'Pencil',
+        pageId: 'page-007',
+        pageNumber: 7,
+        status: 'Submitted',
+        assigneeUserId: 'usr-artist-1',
+        attemptNumber: 2,
+        submittedAt: '2026-11-14T09:00:00Z',
+      },
+      {
+        taskId: 'grid-task-self',
+        seriesId: 'series-001',
+        seriesTitle: 'Đại Chiến Thần Binh',
+        chapterId: 'chap-101',
+        chapterNumber: 12,
+        pipelineStageId: 'stg-ink',
+        stageName: 'Ink',
+        pageId: 'page-008',
+        pageNumber: 8,
+        status: 'Submitted',
+        assigneeUserId: 'usr-editor-self',
+        attemptNumber: 1,
+        submittedAt: '2026-11-14T09:30:00Z',
+      },
+    ]);
+    const approveSpy = vi
+      .spyOn(assignmentService, 'approveStageTask')
+      .mockResolvedValue({ id: 'grid-task-1', status: 'Approved' } as any);
+    const rejectSpy = vi
+      .spyOn(assignmentService, 'requestStageTaskChanges')
+      .mockResolvedValue({ id: 'grid-task-1', status: 'ReworkRequired' } as any);
+    vi.spyOn(seriesService, 'getSeriesById').mockResolvedValue({ id: 'series-001' } as any);
+
+    renderView({ currentUserId: 'usr-editor-self', onShowToast: vi.fn() });
+
+    await waitFor(() => {
+      expect(screen.getByText('Trang 7')).toBeInTheDocument();
+      expect(screen.getByText('Trang 8')).toBeInTheDocument();
+    });
+
+    // Ô do chính Editor nộp bị khoá theo BR-06
+    expect(screen.queryByTestId('editor-approve-grid-grid-task-self')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Khóa: Cần Editor khác duyệt/i })).toBeDisabled();
+
+    // Yêu cầu sửa bắt buộc phải nhập nhận xét (BR-06)
+    fireEvent.click(screen.getByTestId('editor-reject-toggle-grid-task-1'));
+    const confirmRejectBtn = screen.getByTestId('editor-confirm-reject-grid-task-1');
+    expect(confirmRejectBtn).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Nhận xét yêu cầu sửa'), {
+      target: { value: 'Chỉnh lại tỉ lệ bàn tay ở khung 2' },
+    });
+    expect(confirmRejectBtn).not.toBeDisabled();
+    fireEvent.click(confirmRejectBtn);
+
+    await waitFor(() => {
+      expect(rejectSpy).toHaveBeenCalledWith(
+        'chap-101',
+        'grid-task-1',
+        'Chỉnh lại tỉ lệ bàn tay ở khung 2',
+      );
+    });
+
+    // Duyệt trực tiếp ô Lưới V3
+    fireEvent.click(screen.getByTestId('editor-approve-grid-grid-task-1'));
+    await waitFor(() => {
+      expect(approveSpy).toHaveBeenCalledWith('chap-101', 'grid-task-1');
     });
   });
 });

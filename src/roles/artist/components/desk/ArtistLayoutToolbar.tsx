@@ -8,6 +8,7 @@ interface ArtistLayoutToolbarProps {
   isLayoutDirty: boolean;
   isDetectingPanels: boolean;
   isSavingLayout: boolean;
+  readOnly?: boolean;
   onUploadSketch: (file: File) => void;
   onOpenTemplates: () => void;
   onSplitPanels: () => void;
@@ -23,18 +24,25 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
   isLayoutDirty,
   isDetectingPanels,
   isSavingLayout,
+  readOnly = false,
   onUploadSketch,
   onOpenTemplates,
   onSplitPanels,
   onSaveLayout,
 }) => {
   const sketchInputRef = useRef<HTMLInputElement | null>(null);
-  const splitReason = !hasSketch ? 'Cần tải phác thảo trước' : undefined;
-  const saveReason = !hasPanels
-    ? 'Cần chọn mẫu khung hoặc tách khung trước'
-    : !isLayoutDirty
-      ? 'Chưa có thay đổi để lưu'
+  const splitReason = readOnly
+    ? 'Bạn không có ô đang mở cho trang này'
+    : !hasSketch
+      ? 'Cần tải phác thảo trước'
       : undefined;
+  const saveReason = readOnly
+    ? 'Bạn không có ô đang mở cho trang này'
+    : !hasPanels
+      ? 'Cần chọn mẫu khung hoặc tách khung trước'
+      : !isLayoutDirty
+        ? 'Chưa có thay đổi để lưu'
+        : undefined;
   const buttonClass = (step: number) =>
     `${currentStep === step ? 'btn-cta-primary' : 'btn-cta-secondary'} focus-ring min-h-9 px-3 text-xs font-bold inline-flex items-center justify-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-50`;
 
@@ -66,7 +74,8 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
         <div className='flex flex-wrap items-center justify-end gap-2'>
           <button
             type='button'
-            onClick={() => sketchInputRef.current?.click()}
+            disabled={readOnly}
+            onClick={() => !readOnly && sketchInputRef.current?.click()}
             data-testid='btn-upload-sketch-simple'
             className={buttonClass(1)}
           >
@@ -75,7 +84,8 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
           </button>
           <button
             type='button'
-            onClick={onOpenTemplates}
+            disabled={readOnly}
+            onClick={() => !readOnly && onOpenTemplates()}
             data-testid='btn-open-templates-simple'
             className={buttonClass(2)}
           >

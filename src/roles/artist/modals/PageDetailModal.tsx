@@ -22,13 +22,12 @@ interface PageDetailModalProps {
 
 const STAGES: { key: KanbanStageKey; label: string }[] = [
   { key: 'script', label: '1. Script' },
-  { key: 'thumbnail', label: '2. Thumbnail' },
-  { key: 'pencil', label: '3. Pencil' },
-  { key: 'ink', label: '4. Ink' },
-  { key: 'color', label: '5. Color' },
-  { key: 'letter', label: '6. Letter' },
-  { key: 'review', label: '7. Review' },
-  { key: 'approved', label: '8. Approved' },
+  { key: 'pencil', label: '2. Pencil' },
+  { key: 'ink', label: '3. Ink' },
+  { key: 'color', label: '4. Color' },
+  { key: 'letter', label: '5. Letter' },
+  { key: 'review', label: '6. Review' },
+  { key: 'approved', label: '7. Approved' },
 ];
 
 export const PageDetailModal: React.FC<PageDetailModalProps> = ({

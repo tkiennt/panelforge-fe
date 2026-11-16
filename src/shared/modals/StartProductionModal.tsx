@@ -16,6 +16,7 @@ import { Modal } from '@/shared/ui';
 import {
   chapterService,
   StartChapterProductionRequest,
+  StartChapterProductionResultDto,
   ProductionPageAssignmentRequest,
 } from '@/services/chapter.service';
 import {
@@ -35,7 +36,7 @@ export interface StartProductionModalProps {
   chapterNumber?: number | string;
   chapterTitle?: string;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (result?: StartChapterProductionResultDto) => void;
   onShowToast?: (title: string, desc: string) => void;
 }
 
@@ -312,7 +313,9 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
         lettererAssignments,
       };
 
-      await chapterService.startProduction(chapterId, body);
+      const result = await chapterService.startProduction(chapterId, body);
+      const createdLots = Array.isArray(result?.lots) ? result.lots : [];
+      void createdLots;
 
       onShowToast?.(
         t('seriesChaptersModal.startProductionModal.toastSuccessTitle', 'Đã bắt đầu sản xuất'),
@@ -322,13 +325,22 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
         }),
       );
 
-      onSuccess?.();
+      onSuccess?.(result);
       onClose();
     } catch (err: any) {
       const blockers = err.blockers || err.response?.data?.blockers || [];
-      const msg = err.message || 'Không thể bắt đầu sản xuất chương.';
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.data?.message ||
+        err?.data?.error ||
+        err?.message ||
+        'Không thể bắt đầu sản xuất chương.';
       setSubmitError(msg);
       setSubmitBlockers(Array.isArray(blockers) ? blockers : []);
+      if (err?.status === 409 || err?.response?.status === 409 || err?.code === 'CONFLICT') {
+        onShowToast?.(msg, '');
+      }
     } finally {
       setSubmitting(false);
     }

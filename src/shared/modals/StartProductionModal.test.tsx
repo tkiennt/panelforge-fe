@@ -103,6 +103,7 @@ describe('StartProductionModal Component', () => {
     vi.mocked(chapterService.startProduction).mockResolvedValueOnce({
       chapter: { id: 'chap-1', status: 'InProduction' } as any,
       assignments: [],
+      lots: [],
     });
 
     fireEvent.click(submitBtn);
@@ -221,6 +222,7 @@ describe('StartProductionModal Component', () => {
     vi.mocked(chapterService.startProduction).mockResolvedValueOnce({
       chapter: { id: 'chap-1', status: 'InProduction' } as any,
       assignments: [],
+      lots: [],
     });
 
     fireEvent.click(screen.getByTestId('gate1-submit-btn'));
@@ -262,6 +264,64 @@ describe('StartProductionModal Component', () => {
       expect(screen.getByTestId('gate1-submit-error')).toBeInTheDocument();
       expect(screen.getByText('Lỗi xung đột khi bắt đầu sản xuất')).toBeInTheDocument();
       expect(screen.getByText(/Nhân vật Y/)).toBeInTheDocument();
+      expect(defaultProps.onShowToast).toHaveBeenCalledWith('Lỗi xung đột khi bắt đầu sản xuất', '');
+    });
+  });
+
+  it('forwards lots in StartChapterProductionResultDto to onSuccess and surfaces exact 409 message when page range is already assigned', async () => {
+    render(<StartProductionModal {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('gate1-artist-select')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByTestId('gate1-artist-select'), {
+      target: { value: 'user-artist-1' },
+    });
+
+    const conflictRangeErr: any = new Error('Khoảng trang 1-3 đã được giao cho thành viên khác.');
+    conflictRangeErr.status = 409;
+    conflictRangeErr.code = 'CONFLICT';
+    vi.mocked(chapterService.startProduction).mockRejectedValueOnce(conflictRangeErr);
+
+    fireEvent.click(screen.getByTestId('gate1-submit-btn'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Khoảng trang 1-3 đã được giao cho thành viên khác.'),
+      ).toBeInTheDocument();
+      expect(defaultProps.onShowToast).toHaveBeenCalledWith(
+        'Khoảng trang 1-3 đã được giao cho thành viên khác.',
+        '',
+      );
+    });
+
+    const mockLotsResult = {
+      chapter: { id: 'chap-1', status: 'InProduction' } as any,
+      assignments: [],
+      lots: [
+        {
+          id: 'lot-1',
+          chapterId: 'chap-1',
+          pipelineStageId: 'st-pencil',
+          assigneeUserId: 'user-artist-1',
+          assignedRole: 'Artist',
+          status: 'InProgress',
+          isOverdue: false,
+          taskCount: 3,
+          approvedCount: 0,
+          rowVersion: 1,
+          createdAt: '2026-01-01T00:00:00Z',
+          taskIds: ['t-1', 't-2', 't-3'],
+        } as any,
+      ],
+    };
+    vi.mocked(chapterService.startProduction).mockResolvedValueOnce(mockLotsResult);
+
+    fireEvent.click(screen.getByTestId('gate1-submit-btn'));
+
+    await waitFor(() => {
+      expect(defaultProps.onSuccess).toHaveBeenCalledWith(mockLotsResult);
     });
   });
 });

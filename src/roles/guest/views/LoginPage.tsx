@@ -78,6 +78,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }
 
     // Default standalone auth handling if not provided by App wrapper
+    localStorage.removeItem('activeWorkspace');
+    localStorage.removeItem('workspaceRole');
+    localStorage.removeItem('activeProject');
     const role: SystemRole = normalizeSystemRole(response.user?.role);
     localStorage.setItem('userRole', role);
     localStorage.setItem('pf_has_session', 'true');

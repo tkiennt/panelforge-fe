@@ -16,6 +16,7 @@ interface ArtistCanvasViewportProps {
   isLayoutSaved: boolean;
   isDetectingPanels: boolean;
   isSavingLayout: boolean;
+  readOnly?: boolean;
   onCanvasClick: () => void;
   onUploadSketch: (file: File) => void;
   onSplitPanels: () => void;
@@ -39,6 +40,7 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
   isLayoutSaved,
   isDetectingPanels,
   isSavingLayout,
+  readOnly = false,
   onCanvasClick,
   onUploadSketch,
   onSplitPanels,
@@ -61,6 +63,7 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
         isLayoutDirty={hasPanels && !isLayoutSaved}
         isDetectingPanels={isDetectingPanels}
         isSavingLayout={isSavingLayout}
+        readOnly={readOnly}
         onUploadSketch={onUploadSketch}
         onOpenTemplates={onOpenTemplates}
         onSplitPanels={onSplitPanels}

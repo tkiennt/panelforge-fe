@@ -9,6 +9,15 @@ import { workspaceService } from '@/services/workspace.service';
 
 vi.mock('@/services/assignment.service', () => ({
   assignmentService: {
+    getTaskGrid: vi.fn(),
+    getStageTaskSubmissions: vi.fn(),
+    startStageTask: vi.fn(),
+    submitStageTasks: vi.fn(),
+    approveStageTask: vi.fn(),
+    requestStageTaskChanges: vi.fn(),
+    reopenStageTask: vi.fn(),
+    unassignStageTasks: vi.fn(),
+    resolveStageTaskImpact: vi.fn(),
     getAssignmentsStrict: vi.fn(),
     getSubmissions: vi.fn(),
     getChangeRequests: vi.fn(),
@@ -105,6 +114,14 @@ const quick = (name: RegExp) =>
 describe('ProductionBoard (Quy trình sản xuất: lưới + bộ lọc)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(assignmentService.getTaskGrid).mockResolvedValue({
+      chapterId: 'chap-1',
+      stages: [],
+      pages: [],
+      tasks: [],
+      lots: [],
+    } as any);
+    vi.mocked(assignmentService.getStageTaskSubmissions).mockResolvedValue([]);
     vi.mocked(assignmentService.getAssignmentsStrict).mockResolvedValue(mockAssignments as any);
     vi.mocked(assignmentService.getSubmissions).mockResolvedValue([
       {
@@ -363,5 +380,251 @@ describe('ProductionBoard (Quy trình sản xuất: lưới + bộ lọc)', () =
     const rowHeaders = within(matrix).getAllByRole('rowheader');
     expect(rowHeaders).toHaveLength(1);
     expect(rowHeaders[0].textContent).toContain('Toàn chương');
+  });
+
+  it('Lát cắt 4 (Clean Cutover): khi chương đã có ô lưới V3 thì đọc trực tiếp từ getTaskGrid (không gọi getAssignmentsStrict) và điều hướng sang Lưới khi trống', async () => {
+    vi.mocked(assignmentService.getTaskGrid).mockResolvedValueOnce({
+      chapterId: 'chap-1',
+      stages: [
+        {
+          id: 'stage-2',
+          name: 'Vẽ nét (Pencil)',
+          stageOrder: 1,
+          track: null,
+          allowedRole: 'Artist',
+          isApprovalGate: true,
+          granularity: 'Page',
+          isEnabled: true,
+          prerequisiteStageIds: [],
+        },
+      ],
+      pages: [
+        { id: 'page-1', pageNumber: 1 },
+        { id: 'page-2', pageNumber: 2 },
+      ],
+      lots: [
+        {
+          id: 'lot-1',
+          pipelineStageId: 'stage-2',
+          assigneeUserId: 'user-2',
+          assignedRole: 'Artist',
+          brief: 'Lô vẽ nét trang 1-2',
+          dueDate: '2099-11-20T00:00:00Z',
+          status: 'Active',
+          isOverdue: false,
+          taskCount: 1,
+          approvedCount: 0,
+          rowVersion: 1,
+        },
+      ],
+      tasks: [
+        {
+          id: 'cell-1',
+          pipelineStageId: 'stage-2',
+          pageId: 'page-1',
+          status: 'InProgress',
+          lotId: 'lot-1',
+          assigneeUserId: 'user-2',
+          isInputOutdated: false,
+          outdatedReason: null,
+          reviewerUserId: null,
+          isStartable: true,
+          startedAt: '2026-11-14T08:00:00Z',
+          rowVersion: 1,
+        },
+        {
+          id: 'cell-2',
+          pipelineStageId: 'stage-2',
+          pageId: 'page-2',
+          status: 'Unassigned',
+          lotId: null,
+          assigneeUserId: null,
+          isInputOutdated: false,
+          outdatedReason: null,
+          reviewerUserId: null,
+          isStartable: true,
+          startedAt: null,
+          rowVersion: 1,
+        },
+      ],
+    } as any);
+
+    renderBoard({ isProducer: true, currentUserRole: 'PRODUCER', currentUserId: 'producer-1' });
+
+    await waitFor(() => expect(screen.getAllByTestId('production-task-card')).toHaveLength(1));
+    expect(assignmentService.getAssignmentsStrict).not.toHaveBeenCalled();
+    expect(
+      screen.getByText('Vẽ nét (Pencil) – Trần Thị Artist – Trang 1 (0/1)'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Lô vẽ nét trang 1-2')).toBeInTheDocument();
+  });
+
+  it('LỖI 3 & LỖI 2: Bảng công việc gom các ô cấp Trang theo từng Lô, giữ riêng ô cấp Chương, bỏ ảnh giả "Toàn chương (Kịch bản/Kế hoạch)" và mở thẻ hiện danh sách ô đúng quyền', async () => {
+    const richGrid = {
+      chapterId: 'chap-1',
+      stages: [
+        {
+          id: 'stg-pencil',
+          name: 'Pencil',
+          stageOrder: 1,
+          track: null,
+          allowedRole: 'Artist',
+          isApprovalGate: false,
+          granularity: 'Page',
+          isEnabled: true,
+          prerequisiteStageIds: [],
+        },
+        {
+          id: 'stg-review',
+          name: 'Review',
+          stageOrder: 5,
+          track: null,
+          allowedRole: 'Editor',
+          isApprovalGate: true,
+          granularity: 'Chapter',
+          isEnabled: true,
+          prerequisiteStageIds: ['stg-pencil'],
+        },
+      ],
+      pages: [
+        { id: 'page-1', pageNumber: 1 },
+        { id: 'page-2', pageNumber: 2 },
+      ],
+      lots: [
+        {
+          id: 'lot-pencil-1',
+          pipelineStageId: 'stg-pencil',
+          assigneeUserId: 'user-2',
+          assignedRole: 'Artist',
+          brief: null,
+          dueDate: '2099-11-20T00:00:00Z',
+          status: 'Active',
+          isOverdue: false,
+          taskCount: 2,
+          approvedCount: 1,
+          rowVersion: 1,
+        },
+        {
+          id: 'lot-review-1',
+          pipelineStageId: 'stg-review',
+          assigneeUserId: 'user-1',
+          assignedRole: 'Editor',
+          brief: null,
+          dueDate: null,
+          status: 'Active',
+          isOverdue: false,
+          taskCount: 1,
+          approvedCount: 0,
+          rowVersion: 1,
+        },
+      ],
+      tasks: [
+        {
+          id: 'cell-p1',
+          pipelineStageId: 'stg-pencil',
+          pageId: 'page-1',
+          status: 'Approved',
+          lotId: 'lot-pencil-1',
+          assigneeUserId: 'user-2',
+          isInputOutdated: false,
+          outdatedReason: null,
+          reviewerUserId: null,
+          isStartable: true,
+          startedAt: '2026-11-14T08:00:00Z',
+          rowVersion: 2,
+        },
+        {
+          id: 'cell-p2',
+          pipelineStageId: 'stg-pencil',
+          pageId: 'page-2',
+          status: 'InProgress',
+          lotId: 'lot-pencil-1',
+          assigneeUserId: 'user-2',
+          isInputOutdated: false,
+          outdatedReason: null,
+          reviewerUserId: null,
+          isStartable: true,
+          startedAt: '2026-11-14T08:15:00Z',
+          rowVersion: 1,
+        },
+        {
+          id: 'cell-chap-review',
+          pipelineStageId: 'stg-review',
+          pageId: null,
+          status: 'Submitted',
+          lotId: 'lot-review-1',
+          assigneeUserId: 'user-1',
+          isInputOutdated: false,
+          outdatedReason: null,
+          reviewerUserId: null,
+          isStartable: true,
+          startedAt: '2026-11-14T09:00:00Z',
+          rowVersion: 1,
+        },
+      ],
+    };
+    vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(richGrid as any);
+
+    // 1) Artist mở bảng (filter=all): thấy đúng 2 thẻ (1 thẻ Lô Pencil + 1 thẻ cấp Chương Review), KHÔNG có ảnh giả
+    const { unmount } = renderBoard(
+      { currentUserRole: 'ARTIST', currentUserId: 'user-2', isProducer: false },
+      '/workspaces/ws-1/series/series-1/workspace?chapterId=chap-1&filter=all&view=grid',
+    );
+
+    await waitFor(() => expect(screen.getAllByTestId('production-task-card')).toHaveLength(2));
+    expect(screen.getByText('Pencil – Trần Thị Artist – Trang 1–2 (1/2)')).toBeInTheDocument();
+    expect(screen.getByText('Review – Nguyễn Văn Writer – Toàn chương')).toBeInTheDocument();
+    expect(screen.queryByText(/Toàn chương \(Kịch bản\/Kế hoạch\)/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Toàn chương \(Kế hoạch\)/i)).not.toBeInTheDocument();
+
+    // Artist bấm mở thẻ Lô Pencil -> thấy danh sách 2 ô (Trang 1, Trang 2), chỉ thấy nút "Nộp" trên Trang 2, KHÔNG thấy "Mở lại" hay "Bỏ gán"
+    fireEvent.click(screen.getByText('Pencil – Trần Thị Artist – Trang 1–2 (1/2)'));
+    const lotSection = await screen.findByTestId('side-drawer-lot-cells');
+    expect(within(lotSection).getByText('Trang 1')).toBeInTheDocument();
+    expect(within(lotSection).getByText('Trang 2')).toBeInTheDocument();
+    expect(within(lotSection).getByRole('button', { name: 'Nộp' })).toBeInTheDocument();
+    expect(within(lotSection).queryByRole('button', { name: 'Mở lại' })).not.toBeInTheDocument();
+    expect(within(lotSection).queryByRole('button', { name: 'Bỏ gán' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Bỏ gán lô/i })).not.toBeInTheDocument();
+    unmount();
+
+    // 2) Producer mở cùng thẻ Lô -> thấy nút "Mở lại" (cho Trang 1 Approved) và "Bỏ gán" (cho Trang 2 InProgress)
+    renderBoard(
+      { currentUserRole: 'PRODUCER', currentUserId: 'producer-1', isProducer: true },
+      '/workspaces/ws-1/series/series-1/workspace?chapterId=chap-1&view=grid',
+    );
+    await waitFor(() => expect(screen.getAllByTestId('production-task-card')).toHaveLength(2));
+    fireEvent.click(screen.getByText('Pencil – Trần Thị Artist – Trang 1–2 (1/2)'));
+    const producerLotSection = await screen.findByTestId('side-drawer-lot-cells');
+    expect(within(producerLotSection).getByRole('button', { name: 'Mở lại' })).toBeInTheDocument();
+    expect(within(producerLotSection).getByRole('button', { name: 'Bỏ gán' })).toBeInTheDocument();
+  });
+
+  it('Lát cắt 4: khi chương trống và có onOpenTaskGrid thì hiển thị nút Mở Lưới để giao việc thay vì tạo việc V2', async () => {
+    vi.mocked(assignmentService.getTaskGrid).mockResolvedValueOnce({
+      chapterId: 'chap-1',
+      stages: [],
+      pages: [{ id: 'page-1', pageNumber: 1 }],
+      lots: [],
+      tasks: [
+        {
+          id: 'cell-unassigned',
+          pipelineStageId: 'stage-2',
+          pageId: 'page-1',
+          status: 'Unassigned',
+          lotId: null,
+          assigneeUserId: null,
+          isInputOutdated: false,
+          isStartable: true,
+          rowVersion: 1,
+        },
+      ],
+    } as any);
+    const onOpenTaskGrid = vi.fn();
+
+    renderBoard({ isProducer: true, onOpenTaskGrid });
+    const btn = await screen.findByRole('button', { name: /Mở Lưới để giao việc/i });
+    fireEvent.click(btn);
+    expect(onOpenTaskGrid).toHaveBeenCalledTimes(1);
   });
 });

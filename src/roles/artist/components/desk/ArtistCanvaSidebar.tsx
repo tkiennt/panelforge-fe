@@ -55,11 +55,15 @@ export interface ScriptLineItem {
   sceneNumber?: number;
   sceneTitle?: string;
   sceneSlugline?: string;
+  speakerCharacterId?: string | null;
+  speakerLabel?: string | null;
   characterName?: string;
   characterColor?: string;
   dialogueText?: string;
   stageDirection?: string;
   narrationMode?: string;
+  kind?: string | number | null;
+  text?: string | null;
   panelId?: string;
   lineOrder?: number;
 }
@@ -103,12 +107,13 @@ export interface ArtistCanvaSidebarProps {
   selectedChapterId?: string | null;
   onSelectChapter?: (chapterId: string) => void;
   isLoadingScript?: boolean;
+  selectedPanelId?: string | null;
+  selectedPanelNumber?: number | null;
+  onSelectPanelId?: (panelId: string | null) => void;
   // Bible props
   bibleEntities?: BibleEntityItem[];
   seriesTitle?: string;
   isLoadingBible?: boolean;
-  selectedPanelId?: string | null;
-  selectedPanelNumber?: number | null;
   artworkPanelKeys?: Set<string | number>;
   onSelectPanel?: (pageNumber: number, panelNumber: number) => void;
   // Panel Template props (Áp dụng tức thì vào trang hiện tại)
@@ -163,7 +168,88 @@ function formatNarrationMode(mode?: string): string | null {
   return null;
 }
 
-const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
+export type ResolvedLineKind = 'action' | 'dialogue' | 'thought' | 'narration' | 'sfx';
+
+export function resolveScriptLineMeta(line: ScriptLineItem): {
+  kind: ResolvedLineKind;
+  typeLabel: string;
+  speaker?: string;
+  text: string;
+  secondaryAction?: string;
+} {
+  const rawKind = String(line.kind ?? line.narrationMode ?? '').toLowerCase();
+  const hasDialogue = Boolean(line.dialogueText && line.dialogueText.trim());
+  const hasStage = Boolean(line.stageDirection && line.stageDirection.trim());
+  const fallbackText = (line.text || line.dialogueText || line.stageDirection || '').trim();
+  const speakerName = (line.characterName || line.speakerLabel || '').trim();
+
+  if (rawKind === '5' || rawKind === 'sfx' || /^sfx\b/i.test(fallbackText)) {
+    return {
+      kind: 'sfx',
+      typeLabel: 'SFX',
+      text: (line.dialogueText || line.text || line.stageDirection || '').trim(),
+    };
+  }
+
+  if (
+    rawKind === '4' ||
+    rawKind === 'narration' ||
+    rawKind.includes('voice') ||
+    rawKind.includes('narrat') ||
+    /^(Người dẫn|Lời dẫn|Dẫn chuyện|Caption)$/i.test(speakerName)
+  ) {
+    return {
+      kind: 'narration',
+      typeLabel: 'Narration',
+      text: (line.dialogueText || line.text || line.stageDirection || '').trim(),
+      secondaryAction:
+        hasDialogue && hasStage && line.dialogueText !== line.stageDirection
+          ? line.stageDirection?.trim()
+          : undefined,
+    };
+  }
+
+  if (
+    rawKind === '3' ||
+    rawKind === 'thought' ||
+    rawKind.includes('inner') ||
+    rawKind.includes('monologue')
+  ) {
+    const spk = speakerName && speakerName !== 'Người dẫn' ? speakerName : 'Nhân vật';
+    return {
+      kind: 'thought',
+      typeLabel: `Suy nghĩ · ${spk}`,
+      speaker: spk,
+      text: (line.dialogueText || line.text || line.stageDirection || '').trim(),
+      secondaryAction:
+        hasDialogue && hasStage && line.dialogueText !== line.stageDirection
+          ? line.stageDirection?.trim()
+          : undefined,
+    };
+  }
+
+  if (rawKind === '2' || rawKind === 'dialogue' || hasDialogue) {
+    const spk = speakerName && speakerName !== 'Người dẫn' ? speakerName : 'Nhân vật';
+    return {
+      kind: 'dialogue',
+      typeLabel: `Thoại · ${spk}`,
+      speaker: spk,
+      text: (line.dialogueText || line.text || '').trim(),
+      secondaryAction:
+        hasStage && line.stageDirection !== line.dialogueText
+          ? line.stageDirection?.trim()
+          : undefined,
+    };
+  }
+
+  return {
+    kind: 'action',
+    typeLabel: 'Mô tả cảnh',
+    text: (line.stageDirection || line.text || line.dialogueText || '').trim(),
+  };
+}
+
+export const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
   {
     id: 'line-1',
     pageNumber: 1,
@@ -794,11 +880,12 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   selectedChapterId,
   onSelectChapter,
   isLoadingScript = false,
+  selectedPanelId = null,
+  selectedPanelNumber = null,
+  onSelectPanelId,
   bibleEntities = DEFAULT_BIBLE_ENTITIES,
   seriesTitle = 'Huyết Thống Viễn Cổ',
   isLoadingBible = false,
-  selectedPanelId = null,
-  selectedPanelNumber = null,
   artworkPanelKeys = new Set<string | number>(),
   onSelectPanel,
   templates = DEFAULT_FRAME_TEMPLATES,
@@ -980,7 +1067,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const selectedPage = pages[selectedPageIndex] || null;
   const activePageNumber = selectedPage?.pageNumber || 1;
 
-  // Danh sách câu thoại hiển thị trong Tab Lettering (theo trang hiện tại hoặc toàn bộ)
   const displayedLetteringScriptLines = useMemo(() => {
     if (!letteringFilterCurrentPage) return scriptLines;
     const pageLines = scriptLines.filter((l) => (l.pageNumber ?? 1) === activePageNumber);

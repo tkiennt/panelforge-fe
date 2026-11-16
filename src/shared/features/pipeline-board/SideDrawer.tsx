@@ -16,8 +16,15 @@ import {
   CheckCircle2,
   Network,
   ExternalLink,
+  Play,
+  Send,
+  RotateCcw,
+  UserMinus,
+  XCircle,
+  Check,
+  AlertTriangle,
 } from 'lucide-react';
-import { BoardCard } from './pipelineBoard.types';
+import { BoardCard, BoardLotCellItem } from './pipelineBoard.types';
 import {
   assignmentService,
   SubmissionDto,
@@ -33,22 +40,26 @@ export interface SideDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   card: BoardCard | null;
+  chapterCards?: BoardCard[];
   currentUserId?: string | null;
   currentUserRole?: string | null;
   onShowToast?: (title: string, desc: string) => void;
   onDeleted?: (cardId: string) => void;
   onImpactResolved?: (card: BoardCard) => void;
+  onGridUpdated?: () => Promise<void> | void;
 }
 
 export const SideDrawer: React.FC<SideDrawerProps> = ({
   isOpen,
   onClose,
   card,
+  chapterCards = [],
   currentUserId,
   currentUserRole,
   onShowToast,
   onDeleted,
   onImpactResolved,
+  onGridUpdated,
 }) => {
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams();
@@ -65,6 +76,13 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
   const [impactReason, setImpactReason] = useState('');
   const [isResolvingImpact, setIsResolvingImpact] = useState(false);
 
+  // State thao tác từng ô trong Lô (Lưới V3)
+  const [cellActionLoading, setCellActionLoading] = useState<string | null>(null);
+  const [requestChangesCellId, setRequestChangesCellId] = useState<string | null>(null);
+  const [requestChangesText, setRequestChangesText] = useState('');
+  const [reopenCellId, setReopenCellId] = useState<string | null>(null);
+  const [reopenReasonText, setReopenReasonText] = useState('');
+
   // Artwork thumbnail
   const thumbnail = useTaskThumbnail(card);
 
@@ -75,29 +93,75 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
     setImpactDecision(null);
     setImpactReason('');
     setIsResolvingImpact(false);
+    setCellActionLoading(null);
+    setRequestChangesCellId(null);
+    setRequestChangesText('');
+    setReopenCellId(null);
+    setReopenReasonText('');
     if (!isOpen || !card) return;
 
     let isMounted = true;
     setLoadingData(true);
 
-    Promise.all([
-      assignmentService.getSubmissions(card.chapterId, card.id).catch(() => []),
-      assignmentService
-        .getChangeRequests(card.chapterId, { assignmentId: card.id })
-        .catch(() => []),
-      card.chapterId && typeof assignmentService.getAssignments === 'function'
-        ? assignmentService.getAssignments(card.chapterId).catch(() => [])
-        : Promise.resolve([]),
-    ])
-      .then(([subList, crList, assignList]) => {
-        if (!isMounted) return;
-        setSubmissions(subList);
-        setChangeRequests(crList);
-        setChapterAssignments(assignList);
-      })
-      .finally(() => {
-        if (isMounted) setLoadingData(false);
-      });
+    if (card.isGridTask) {
+      const targetCellIds =
+        card.lotTasks && card.lotTasks.length > 0
+          ? card.lotTasks
+              .filter((c) => c.status !== 'Assigned' && c.status !== 'Unassigned')
+              .map((c) => c.id)
+          : [card.id];
+      Promise.all(
+        typeof assignmentService.getStageTaskSubmissions === 'function'
+          ? targetCellIds.map((cellId) =>
+              assignmentService.getStageTaskSubmissions(card.chapterId, cellId).catch(() => []),
+            )
+          : [],
+      )
+        .then((lists) => {
+          if (!isMounted) return;
+          const merged = lists
+            .flat()
+            .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+          setSubmissions(
+            merged.map((s) => ({
+              id: s.id,
+              assignmentId: card.id,
+              chapterId: card.chapterId,
+              submittedByUserId: s.submittedByUserId,
+              attemptNumber: s.attemptNumber,
+              status: s.status as SubmissionDto['status'],
+              submittedAt: s.submittedAt,
+              decidedByUserId: s.decidedByUserId ?? undefined,
+              decidedAt: s.decidedAt ?? undefined,
+              decisionComment: s.decisionComment ?? undefined,
+            })),
+          );
+          setChangeRequests([]);
+          setChapterAssignments([]);
+        })
+        .finally(() => {
+          if (isMounted) setLoadingData(false);
+        });
+    } else {
+      Promise.all([
+        assignmentService.getSubmissions(card.chapterId, card.id).catch(() => []),
+        assignmentService
+          .getChangeRequests(card.chapterId, { assignmentId: card.id })
+          .catch(() => []),
+        card.chapterId && typeof assignmentService.getAssignments === 'function'
+          ? assignmentService.getAssignments(card.chapterId).catch(() => [])
+          : Promise.resolve([]),
+      ])
+        .then(([subList, crList, assignList]) => {
+          if (!isMounted) return;
+          setSubmissions(subList);
+          setChangeRequests(crList);
+          setChapterAssignments(assignList);
+        })
+        .finally(() => {
+          if (isMounted) setLoadingData(false);
+        });
+    }
 
     return () => {
       isMounted = false;
@@ -108,9 +172,11 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
   const handleOpenMyWork = () => {
     if (workspaceId && seriesId) {
-      navigate(
-        `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${card.chapterId}&assignmentId=${card.id}`,
-      );
+      const targetTaskId = card.lotTasks?.[0]?.id ?? card.id;
+      const targetQuery = card.isGridTask
+        ? `chapterId=${card.chapterId}&taskId=${targetTaskId}`
+        : `chapterId=${card.chapterId}&assignmentId=${card.id}`;
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/my-work?${targetQuery}`);
       onClose();
     } else {
       onShowToast?.('Không tìm thấy thông tin Series', 'Vui lòng kiểm tra lại đường dẫn');
@@ -118,20 +184,404 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
   };
 
   const isAssignee = !!currentUserId && !!card && card.assigneeUserId === currentUserId;
-  const canResolveImpact =
-    !isAssignee &&
-    (!currentUserRole ||
-      currentUserRole.toString().toUpperCase() === 'PRODUCER' ||
-      currentUserRole.toString().toUpperCase() === 'EDITOR');
+  const normalizedRole = currentUserRole ? currentUserRole.toString().trim().toUpperCase() : '';
+  const isProducerRole = normalizedRole === 'PRODUCER';
+  const isReviewerRole = isProducerRole || normalizedRole === 'EDITOR';
+  const hasGridCellList = Boolean(card.isGridTask && card.lotTasks && card.lotTasks.length > 0);
+  const unassignableGridCellIds = hasGridCellList
+    ? (card.lotTasks ?? [])
+        .filter(
+          (c) =>
+            c.status === 'Assigned' || c.status === 'InProgress' || c.status === 'ReworkRequired',
+        )
+        .map((c) => c.id)
+    : card.isGridTask && ['Assigned', 'InProgress', 'ReworkRequired'].includes(String(card.status))
+      ? [card.id]
+      : [];
+  const canResolveImpact = card.isGridTask
+    ? !isAssignee && isProducerRole
+    : !isAssignee && (!normalizedRole || isProducerRole || normalizedRole === 'EDITOR');
+
+  const runCellAction = async (
+    loadingKey: string,
+    fn: () => Promise<void>,
+    successTitle: string,
+    successDesc: string,
+  ) => {
+    setCellActionLoading(loadingKey);
+    try {
+      await fn();
+      onShowToast?.(successTitle, successDesc);
+      await onGridUpdated?.();
+    } catch (err: any) {
+      onShowToast?.('Thao tác thất bại', err?.message || 'Không thể thực hiện thao tác trên ô.');
+    } finally {
+      setCellActionLoading(null);
+    }
+  };
+
+  const renderGridCellRow = (cell: BoardLotCellItem) => {
+    const cellAssigneeId = cell.assigneeUserId || card.assigneeUserId;
+    const isCellMine = Boolean(currentUserId && cellAssigneeId === currentUserId);
+    const isStageEnabled = card.isStageEnabled !== false;
+
+    const canStartCell =
+      isStageEnabled &&
+      isCellMine &&
+      (cell.status === 'Assigned' || cell.status === 'ReworkRequired');
+    const canSubmitCell = isStageEnabled && isCellMine && cell.status === 'InProgress';
+    const canReviewCell =
+      isStageEnabled &&
+      isReviewerRole &&
+      (cell.status === 'Submitted' || cell.status === 'UnderReview') &&
+      Boolean(!cellAssigneeId || (currentUserId && cellAssigneeId !== currentUserId));
+    const canUnassignCell =
+      isProducerRole &&
+      (cell.status === 'Assigned' ||
+        cell.status === 'InProgress' ||
+        cell.status === 'ReworkRequired');
+    const canReopenCell =
+      isStageEnabled && isProducerRole && cell.status === 'Approved' && !cell.isInputOutdated;
+    const canResolveCellImpact = isStageEnabled && isProducerRole && cell.isInputOutdated;
+
+    return (
+      <div
+        key={cell.id}
+        data-testid={`lot-cell-row-${cell.id}`}
+        className='rounded-xl border border-landing-border bg-[#FCFBF8] p-3 space-y-2'
+      >
+        <div className='flex flex-wrap items-center justify-between gap-2'>
+          <div className='flex items-center gap-2'>
+            <span className='font-mono text-xs font-bold text-landing-ink'>{cell.targetLabel}</span>
+            <StatusBadge
+              status={
+                cell.status === 'Assigned' && !cell.isStartable ? 'Blocked' : (cell.status as any)
+              }
+            />
+          </div>
+
+          <div className='flex flex-wrap items-center gap-1.5'>
+            {canStartCell && (
+              <button
+                type='button'
+                disabled={!cell.isStartable || cellActionLoading === `start:${cell.id}`}
+                onClick={() =>
+                  void runCellAction(
+                    `start:${cell.id}`,
+                    async () => {
+                      await assignmentService.startStageTask(card.chapterId, cell.id);
+                    },
+                    'Đã bắt đầu ô việc',
+                    `${card.stageName} – ${cell.targetLabel}`,
+                  )
+                }
+                className='inline-flex items-center gap-1 rounded-lg bg-[#171717] hover:bg-black text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+              >
+                {cellActionLoading === `start:${cell.id}` ? (
+                  <Loader2 className='w-3 h-3 animate-spin' />
+                ) : (
+                  <Play className='w-3 h-3 text-[#F97316]' />
+                )}
+                <span>{cell.isStartable ? 'Bắt đầu' : 'Chờ tiền đề'}</span>
+              </button>
+            )}
+
+            {canSubmitCell && (
+              <button
+                type='button'
+                disabled={cell.isInputOutdated || cellActionLoading === `submit:${cell.id}`}
+                onClick={() =>
+                  void runCellAction(
+                    `submit:${cell.id}`,
+                    async () => {
+                      await assignmentService.submitStageTasks(card.chapterId, [cell.id]);
+                    },
+                    'Đã nộp ô việc',
+                    `${card.stageName} – ${cell.targetLabel}`,
+                  )
+                }
+                className='inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+              >
+                {cellActionLoading === `submit:${cell.id}` ? (
+                  <Loader2 className='w-3 h-3 animate-spin' />
+                ) : (
+                  <Send className='w-3 h-3' />
+                )}
+                <span>Nộp</span>
+              </button>
+            )}
+
+            {canReviewCell && (
+              <>
+                <button
+                  type='button'
+                  disabled={cell.isInputOutdated || cellActionLoading === `approve:${cell.id}`}
+                  onClick={() =>
+                    void runCellAction(
+                      `approve:${cell.id}`,
+                      async () => {
+                        await assignmentService.approveStageTask(card.chapterId, cell.id);
+                      },
+                      'Đã duyệt ô việc',
+                      `${card.stageName} – ${cell.targetLabel}`,
+                    )
+                  }
+                  className='inline-flex items-center gap-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                >
+                  {cellActionLoading === `approve:${cell.id}` ? (
+                    <Loader2 className='w-3 h-3 animate-spin' />
+                  ) : (
+                    <CheckCircle2 className='w-3 h-3' />
+                  )}
+                  <span>Duyệt</span>
+                </button>
+
+                {requestChangesCellId !== cell.id && (
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setRequestChangesCellId(cell.id);
+                      setRequestChangesText('');
+                    }}
+                    className='inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2.5 py-1 text-xs font-semibold cursor-pointer'
+                  >
+                    <XCircle className='w-3 h-3' />
+                    <span>Yêu cầu sửa</span>
+                  </button>
+                )}
+              </>
+            )}
+
+            {canReopenCell && reopenCellId !== cell.id && (
+              <button
+                type='button'
+                onClick={() => {
+                  setReopenCellId(cell.id);
+                  setReopenReasonText('');
+                }}
+                className='inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2.5 py-1 text-xs font-semibold cursor-pointer'
+              >
+                <RotateCcw className='w-3 h-3' />
+                <span>Mở lại</span>
+              </button>
+            )}
+
+            {canUnassignCell && (
+              <button
+                type='button'
+                disabled={cellActionLoading === `unassign:${cell.id}`}
+                onClick={() =>
+                  void runCellAction(
+                    `unassign:${cell.id}`,
+                    async () => {
+                      await assignmentService.unassignStageTasks(card.chapterId, [cell.id]);
+                    },
+                    'Đã bỏ gán ô',
+                    `${card.stageName} – ${cell.targetLabel}`,
+                  )
+                }
+                className='inline-flex items-center gap-1 rounded-lg border border-stone-300 bg-white hover:bg-stone-100 text-stone-700 px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+              >
+                {cellActionLoading === `unassign:${cell.id}` ? (
+                  <Loader2 className='w-3 h-3 animate-spin' />
+                ) : (
+                  <UserMinus className='w-3 h-3' />
+                )}
+                <span>Bỏ gán</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {cell.isInputOutdated && (
+          <div className='rounded-lg border border-amber-300 bg-amber-50/80 p-2 text-xs text-amber-950 space-y-1.5'>
+            <div className='flex items-center gap-1.5 font-semibold text-amber-900'>
+              <AlertTriangle className='w-3.5 h-3.5 shrink-0 text-amber-700' />
+              <span>
+                Đầu vào lỗi thời
+                {cell.outdatedReason ? `: ${cell.outdatedReason}` : ''}
+              </span>
+            </div>
+            {canResolveCellImpact && (
+              <div className='flex flex-wrap items-center gap-1.5 pt-0.5'>
+                <button
+                  type='button'
+                  disabled={
+                    !cell.prerequisitesApproved || cellActionLoading === `impact:${cell.id}:keep`
+                  }
+                  onClick={() =>
+                    void runCellAction(
+                      `impact:${cell.id}:keep`,
+                      async () => {
+                        await assignmentService.resolveStageTaskImpact(
+                          card.chapterId,
+                          cell.id,
+                          true,
+                        );
+                      },
+                      'Đã giữ kết quả',
+                      `${card.stageName} – ${cell.targetLabel}`,
+                    )
+                  }
+                  className='inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                >
+                  <Check className='w-3 h-3' />
+                  <span>Giữ kết quả</span>
+                </button>
+                <button
+                  type='button'
+                  disabled={
+                    !cell.prerequisitesApproved || cellActionLoading === `impact:${cell.id}:rework`
+                  }
+                  onClick={() =>
+                    void runCellAction(
+                      `impact:${cell.id}:rework`,
+                      async () => {
+                        await assignmentService.resolveStageTaskImpact(
+                          card.chapterId,
+                          cell.id,
+                          false,
+                        );
+                      },
+                      'Đã yêu cầu làm lại',
+                      `${card.stageName} – ${cell.targetLabel}`,
+                    )
+                  }
+                  className='inline-flex items-center gap-1 rounded bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                >
+                  <RotateCcw className='w-3 h-3' />
+                  <span>Làm lại</span>
+                </button>
+                {!cell.prerequisitesApproved && (
+                  <span className='text-[11px] text-amber-800 italic'>
+                    (Chờ tiền đề được duyệt lại)
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {requestChangesCellId === cell.id && (
+          <div className='rounded-lg border border-rose-300 bg-rose-50 p-2.5 space-y-2'>
+            <textarea
+              rows={2}
+              value={requestChangesText}
+              onChange={(e) => setRequestChangesText(e.target.value)}
+              placeholder='Nhập nhận xét yêu cầu sửa (bắt buộc)...'
+              aria-label='Nhận xét yêu cầu sửa'
+              className='block w-full min-w-0 box-border resize-y rounded border border-rose-300 bg-white px-2.5 py-1.5 text-xs text-stone-900'
+            />
+            <div className='flex flex-wrap items-center justify-end gap-1.5'>
+              <button
+                type='button'
+                onClick={() => {
+                  setRequestChangesCellId(null);
+                  setRequestChangesText('');
+                }}
+                className='rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 cursor-pointer'
+              >
+                Huỷ
+              </button>
+              <button
+                type='button'
+                disabled={
+                  !requestChangesText.trim() || cellActionLoading === `requestChanges:${cell.id}`
+                }
+                onClick={() =>
+                  void runCellAction(
+                    `requestChanges:${cell.id}`,
+                    async () => {
+                      await assignmentService.requestStageTaskChanges(
+                        card.chapterId,
+                        cell.id,
+                        requestChangesText.trim(),
+                      );
+                      setRequestChangesCellId(null);
+                      setRequestChangesText('');
+                    },
+                    'Đã gửi yêu cầu sửa',
+                    `${card.stageName} – ${cell.targetLabel}`,
+                  )
+                }
+                className='rounded bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+              >
+                {cellActionLoading === `requestChanges:${cell.id}`
+                  ? 'Đang gửi...'
+                  : 'Xác nhận trả về'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {reopenCellId === cell.id && (
+          <div className='rounded-lg border border-amber-300 bg-amber-50 p-2.5 space-y-2'>
+            <textarea
+              rows={2}
+              value={reopenReasonText}
+              onChange={(e) => setReopenReasonText(e.target.value)}
+              placeholder='Nhập lý do mở lại (bắt buộc)...'
+              aria-label='Lý do mở lại'
+              className='block w-full min-w-0 box-border resize-y rounded border border-amber-300 bg-white px-2.5 py-1.5 text-xs text-stone-900'
+            />
+            <div className='flex flex-wrap items-center justify-end gap-1.5'>
+              <button
+                type='button'
+                onClick={() => {
+                  setReopenCellId(null);
+                  setReopenReasonText('');
+                }}
+                className='rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 cursor-pointer'
+              >
+                Huỷ
+              </button>
+              <button
+                type='button'
+                disabled={!reopenReasonText.trim() || cellActionLoading === `reopen:${cell.id}`}
+                onClick={() =>
+                  void runCellAction(
+                    `reopen:${cell.id}`,
+                    async () => {
+                      await assignmentService.reopenStageTask(
+                        card.chapterId,
+                        cell.id,
+                        reopenReasonText.trim(),
+                      );
+                      setReopenCellId(null);
+                      setReopenReasonText('');
+                    },
+                    'Đã mở lại ô việc',
+                    `${card.stageName} – ${cell.targetLabel}`,
+                  )
+                }
+                className='rounded bg-amber-700 hover:bg-amber-800 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+              >
+                {cellActionLoading === `reopen:${cell.id}` ? 'Đang mở...' : 'Xác nhận mở lại'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const handleResolveImpact = async () => {
-    if (!card || !impactDecision || !impactReason.trim()) return;
+    if (!card || !impactDecision) return;
+    if (!card.isGridTask && !impactReason.trim()) return;
     setIsResolvingImpact(true);
     try {
-      await assignmentService.resolveImpactReview(card.chapterId, card.id, {
-        decision: impactDecision,
-        reason: impactReason.trim(),
-      });
+      if (card.isGridTask) {
+        await assignmentService.resolveStageTaskImpact(
+          card.chapterId,
+          card.id,
+          impactDecision === 'Keep',
+        );
+      } else {
+        await assignmentService.resolveImpactReview(card.chapterId, card.id, {
+          decision: impactDecision,
+          reason: impactReason.trim(),
+        });
+      }
       onShowToast?.(
         impactDecision === 'Keep' ? 'Đã giữ kết quả' : 'Đã yêu cầu làm lại',
         `Đã giải quyết yêu cầu kiểm tra ảnh hưởng cho nhiệm vụ "${card.brief}".`,
@@ -160,16 +610,30 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
       setConfirmDelete(true);
       return;
     }
-    if (!cancelReason.trim()) return;
+    if (!card.isGridTask && !cancelReason.trim()) return;
 
     setIsDeleting(true);
     try {
-      await assignmentService.deleteAssignment(card.chapterId, card.id, cancelReason.trim());
-      onShowToast?.('Đã huỷ nhiệm vụ', `Nhiệm vụ "${card.brief}" đã được gỡ khỏi chương.`);
-      onDeleted?.(card.id);
+      if (card.isGridTask) {
+        const idsToUnassign =
+          unassignableGridCellIds.length > 0 ? unassignableGridCellIds : [card.id];
+        await assignmentService.unassignStageTasks(card.chapterId, idsToUnassign);
+        onShowToast?.(
+          card.isGridLot ? 'Đã bỏ gán lô' : 'Đã bỏ gán ô',
+          `Đã đưa ${idsToUnassign.length} ô của "${card.brief}" về trạng thái chưa gán.`,
+        );
+        await onGridUpdated?.();
+      } else {
+        await assignmentService.deleteAssignment(card.chapterId, card.id, cancelReason.trim());
+        onShowToast?.('Đã huỷ nhiệm vụ', `Nhiệm vụ "${card.brief}" đã được gỡ khỏi chương.`);
+        onDeleted?.(card.id);
+      }
       onClose();
     } catch (err: any) {
-      onShowToast?.('Lỗi khi huỷ nhiệm vụ', err.message || 'Không thể huỷ nhiệm vụ này');
+      onShowToast?.(
+        card.isGridTask ? 'Lỗi khi bỏ gán ô' : 'Lỗi khi huỷ nhiệm vụ',
+        err.message || 'Không thể thực hiện thao tác này',
+      );
     } finally {
       setIsDeleting(false);
       setConfirmDelete(false);
@@ -222,8 +686,29 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
         {/* Thân Modal cuộn được, phân chia các nhóm thông tin rõ ràng */}
         <div className='flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 custom-scrollbar'>
-          {/* Nhóm 0: Cảnh báo cần kiểm tra ảnh hưởng */}
-          {card.impactReviewReason && (
+          {/* Danh sách ô công việc trong Lô / Ô cấp Chương (Lưới V3) kèm nút theo đúng quyền */}
+          {hasGridCellList && (
+            <section
+              aria-label='Danh sách ô công việc'
+              data-testid='side-drawer-lot-cells'
+              className='space-y-2.5'
+            >
+              <div className='flex items-center justify-between gap-2'>
+                <h3 className='text-xs font-bold uppercase tracking-wider text-landing-ink flex items-center gap-1.5'>
+                  <Layers className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
+                  <span>
+                    {card.isGridLot
+                      ? `Danh sách ô trong lô (${card.lotApprovedCount ?? 0}/${card.lotTasks?.length ?? 0} đã duyệt)`
+                      : 'Ô công việc cấp Chương'}
+                  </span>
+                </h3>
+              </div>
+              <div className='space-y-2'>{(card.lotTasks ?? []).map(renderGridCellRow)}</div>
+            </section>
+          )}
+
+          {/* Nhóm 0: Cảnh báo cần kiểm tra ảnh hưởng (dành cho Assignment V2) */}
+          {!hasGridCellList && card.impactReviewReason && (
             <section
               aria-label='Cần kiểm tra ảnh hưởng'
               className='space-y-1.5'
@@ -287,14 +772,16 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                             ? 'Xác nhận giữ kết quả:'
                             : 'Xác nhận yêu cầu làm lại:'}
                         </p>
-                        <input
-                          type='text'
-                          aria-label='Lý do xử lý ảnh hưởng'
-                          placeholder='Nhập lý do bắt buộc...'
-                          value={impactReason}
-                          onChange={(e) => setImpactReason(e.target.value)}
-                          className='w-full px-2.5 py-1.5 text-xs border border-stone-300 rounded-lg'
-                        />
+                        {!card.isGridTask && (
+                          <input
+                            type='text'
+                            aria-label='Lý do xử lý ảnh hưởng'
+                            placeholder='Nhập lý do bắt buộc...'
+                            value={impactReason}
+                            onChange={(e) => setImpactReason(e.target.value)}
+                            className='w-full px-2.5 py-1.5 text-xs border border-stone-300 rounded-lg'
+                          />
+                        )}
                         <div className='flex items-center gap-2 justify-end'>
                           <button
                             type='button'
@@ -305,7 +792,9 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                           </button>
                           <button
                             type='button'
-                            disabled={isResolvingImpact || !impactReason.trim()}
+                            disabled={
+                              isResolvingImpact || (!card.isGridTask && !impactReason.trim())
+                            }
                             onClick={handleResolveImpact}
                             className='inline-flex items-center gap-1.5 px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg cursor-pointer'
                           >
@@ -320,43 +809,42 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
               </div>
             </section>
           )}
-          {/* Nhóm 1: Bản vẽ bản thảo / Artwork liên quan */}
-          <section aria-label='Bản vẽ bản thảo' className='space-y-2'>
-            <h3 className='text-xs font-bold uppercase tracking-wider text-landing-ink-muted flex items-center gap-1.5'>
-              <ImageIcon className='w-3.5 h-3.5 text-stone-500' aria-hidden='true' />
-              <span>Bản vẽ bản thảo</span>
-            </h3>
+          {/* Nhóm 1: Bản vẽ bản thảo / Artwork liên quan (ẩn cho cấp Chương vì không có trang vẽ bản thảo) */}
+          {card.entityType !== 'Chapter' && (
+            <section aria-label='Bản vẽ bản thảo' className='space-y-2'>
+              <h3 className='text-xs font-bold uppercase tracking-wider text-landing-ink-muted flex items-center gap-1.5'>
+                <ImageIcon className='w-3.5 h-3.5 text-stone-500' aria-hidden='true' />
+                <span>Bản vẽ bản thảo</span>
+              </h3>
 
-            {thumbnail.status === 'success' && thumbnail.url ? (
-              <div className='relative rounded-xl border border-landing-border bg-[#F3F0E9] p-3 flex flex-col items-center justify-center overflow-hidden shadow-2xs'>
-                <div className='w-full max-h-72 flex items-center justify-center'>
-                  <img
-                    src={thumbnail.url}
-                    alt={card.brief}
-                    className='max-h-64 max-w-full object-contain rounded drop-shadow-xs'
-                  />
+              {thumbnail.status === 'success' && thumbnail.url ? (
+                <div className='relative rounded-xl border border-landing-border bg-[#F3F0E9] p-3 flex flex-col items-center justify-center overflow-hidden shadow-2xs'>
+                  <div className='w-full max-h-72 flex items-center justify-center'>
+                    <img
+                      src={thumbnail.url}
+                      alt={card.brief}
+                      className='max-h-64 max-w-full object-contain rounded drop-shadow-xs'
+                    />
+                  </div>
+                  <div className='mt-2 w-full flex items-center justify-between text-xs text-landing-ink-muted pt-2 border-t border-landing-border'>
+                    <span className='font-mono font-medium'>{thumbnail.label}</span>
+                    {thumbnail.isPreviousStage && (
+                      <span className='text-[11px] text-amber-800 font-medium'>
+                        (Bản vẽ stage trước)
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className='mt-2 w-full flex items-center justify-between text-xs text-landing-ink-muted pt-2 border-t border-landing-border'>
-                  <span className='font-mono font-medium'>{thumbnail.label}</span>
-                  {thumbnail.isPreviousStage && (
-                    <span className='text-[11px] text-amber-800 font-medium'>
-                      (Bản vẽ stage trước)
-                    </span>
-                  )}
+              ) : (
+                <div className='rounded-xl border border-dashed border-landing-border bg-[#F3F0E9]/50 p-6 flex flex-col items-center justify-center text-center gap-2'>
+                  <ImageIcon className='w-6 h-6 text-stone-400' aria-hidden='true' />
+                  <span className='text-xs text-landing-ink-muted font-medium'>
+                    {thumbnail.label || 'Chưa có bản vẽ cho công việc này'}
+                  </span>
                 </div>
-              </div>
-            ) : (
-              <div className='rounded-xl border border-dashed border-landing-border bg-[#F3F0E9]/50 p-6 flex flex-col items-center justify-center text-center gap-2'>
-                <ImageIcon className='w-6 h-6 text-stone-400' aria-hidden='true' />
-                <span className='text-xs text-landing-ink-muted font-medium'>
-                  {thumbnail.label ||
-                    (card.entityType === 'Chapter'
-                      ? 'Kế hoạch chương (không có trang vẽ)'
-                      : 'Chưa có bản vẽ cho công việc này')}
-                </span>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          )}
 
           {/* Nhóm 2: Nhận xét phản hồi cần sửa (nổi bật nếu ReworkRequired) */}
           {card.lastFeedbackComment && (
@@ -433,7 +921,19 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
                 const resolvedDeps = depIds.map((id) => {
                   const found = chapterAssignments.find((a) => a.id === id);
-                  return { id, assignment: found };
+                  if (found) return { id, assignment: found };
+                  const cardMatch = chapterCards?.find((c) => c.id === id);
+                  return {
+                    id,
+                    assignment: cardMatch
+                      ? {
+                          id: cardMatch.id,
+                          brief: cardMatch.brief,
+                          status: cardMatch.status,
+                          stageName: cardMatch.stageName,
+                        }
+                      : undefined,
+                  };
                 });
 
                 const approvedCount = resolvedDeps.filter(
@@ -550,7 +1050,9 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                               <button
                                 type='button'
                                 onClick={() => {
-                                  const url = `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${card.chapterId}&assignmentId=${id}`;
+                                  const url = card.isGridTask
+                                    ? `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${card.chapterId}&board=grid-v3`
+                                    : `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${card.chapterId}&assignmentId=${id}`;
                                   window.open(url, '_blank', 'noopener,noreferrer');
                                 }}
                                 className='p-1 rounded text-stone-400 hover:text-[#F97316] transition-colors cursor-pointer'
@@ -652,11 +1154,13 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
           )}
         </div>
 
-        {/* Footer cố định: Huỷ việc, Mở bàn làm việc & Đóng */}
+        {/* Footer cố định: Huỷ việc / Bỏ gán ô, Mở bàn làm việc & Đóng */}
         <div className='p-4 border-t border-landing-border bg-[#F3F0E9]/90 flex items-center justify-between gap-2.5 flex-wrap shrink-0'>
-          {card.status !== 'Approved' && (
+          {(card.isGridTask
+            ? isProducerRole && unassignableGridCellIds.length > 0
+            : card.status !== 'Approved') && (
             <div className='flex items-center gap-1.5'>
-              {confirmDelete && (
+              {confirmDelete && !card.isGridTask && (
                 <input
                   type='text'
                   aria-label='Lý do huỷ việc'
@@ -669,20 +1173,40 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
               <button
                 type='button'
                 onClick={handleDeleteAssignment}
-                disabled={isDeleting || (confirmDelete && !cancelReason.trim())}
+                disabled={isDeleting || (confirmDelete && !card.isGridTask && !cancelReason.trim())}
                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   confirmDelete
                     ? 'bg-rose-700 hover:bg-rose-800 text-white shadow-xs'
                     : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300'
                 }`}
-                title={confirmDelete ? 'Bấm để xác nhận xoá nhiệm vụ' : 'Huỷ / Xoá phân công này'}
+                title={
+                  card.isGridTask
+                    ? confirmDelete
+                      ? 'Bấm để xác nhận bỏ gán ô'
+                      : 'Bỏ gán ô này về trạng thái chưa giao'
+                    : confirmDelete
+                      ? 'Bấm để xác nhận xoá nhiệm vụ'
+                      : 'Huỷ / Xoá phân công này'
+                }
               >
                 {isDeleting ? (
                   <Loader2 className='w-3.5 h-3.5 animate-spin' />
                 ) : (
                   <Trash2 className='w-3.5 h-3.5' />
                 )}
-                <span>{confirmDelete ? 'Xác nhận xoá?' : 'Huỷ việc'}</span>
+                <span>
+                  {card.isGridTask
+                    ? confirmDelete
+                      ? card.isGridLot
+                        ? 'Xác nhận bỏ gán lô?'
+                        : 'Xác nhận bỏ gán?'
+                      : card.isGridLot
+                        ? 'Bỏ gán lô'
+                        : 'Bỏ gán ô'
+                    : confirmDelete
+                      ? 'Xác nhận xoá?'
+                      : 'Huỷ việc'}
+                </span>
               </button>
               {confirmDelete && (
                 <button
@@ -734,12 +1258,13 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
               : []
           ).map((id) => {
             const a = chapterAssignments.find((item) => item.id === id);
+            const c = !a ? chapterCards?.find((item) => item.id === id) : undefined;
             return {
               id,
-              brief: a?.brief || `Nhiệm vụ #${id.slice(0, 8)}`,
-              status: a?.status || 'Assigned',
-              stageName: a?.stageName || 'Pipeline',
-              contextText: a ? 'Chương này' : undefined,
+              brief: a?.brief || c?.brief || `Nhiệm vụ #${id.slice(0, 8)}`,
+              status: a?.status || c?.status || 'Assigned',
+              stageName: a?.stageName || c?.stageName || 'Pipeline',
+              contextText: a || c ? 'Chương này' : undefined,
             };
           })}
         />

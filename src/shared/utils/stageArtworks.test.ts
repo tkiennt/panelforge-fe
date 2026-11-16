@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { loadPreviousStageArtworks, pickPanelArtwork } from './stageArtworks';
+import {
+  loadPreviousStageArtworks,
+  pickApprovedPanelArtwork,
+  pickPanelArtwork,
+} from './stageArtworks';
 
 describe('pickPanelArtwork (Bàn vẽ chọn ảnh khung theo công đoạn)', () => {
   const stages = [
@@ -31,6 +35,13 @@ describe('pickPanelArtwork (Bàn vẽ chọn ảnh khung theo công đoạn)', (
   it('chỉ có ảnh ở công đoạn đã tắt thì vẫn hiện ảnh đó', () => {
     expect(pickPanelArtwork([art('c', 'color', 1)], 'k1', stages)?.id).toBe('c');
   });
+
+  it('pickApprovedPanelArtwork bỏ qua ảnh Ink nháp chưa duyệt và lấy ảnh Pencil đã duyệt', () => {
+    const draftInkAndApprovedPencil = [art('ink-draft', 'ink', 1), art('pencil-approved', 'pencil', 1)];
+    expect(
+      pickApprovedPanelArtwork(draftInkAndApprovedPencil, 'k1', stages, ['pencil'])?.id,
+    ).toBe('pencil-approved');
+  });
 });
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { artworkService } from '@/services/artwork.service';
@@ -45,6 +56,22 @@ vi.mock('@/services/pipeline.service', () => ({
 vi.mock('@/services/artwork.service', () => ({
   artworkService: {
     getArtworks: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/assignment.service', () => ({
+  assignmentService: {
+    // Mặc định: chương chưa dùng lưới (V2)
+    getTaskGrid: vi.fn(async (chapterId: string) =>
+      chapterId === 'c-grid'
+        ? {
+            tasks: [
+              { pageId: 'p1', pipelineStageId: 'stg-pencil', status: 'Approved' },
+              { pageId: 'p1', pipelineStageId: 'stg-ink', status: 'InProgress' },
+            ],
+          }
+        : Promise.reject(new Error('no grid')),
+    ),
   },
 }));
 
@@ -156,6 +183,18 @@ describe('loadPreviousStageArtworks', () => {
     expect(artworkService.getArtworks).toHaveBeenCalledWith('c1', 'p1', 'stg-ink');
   });
 
+  it('chương dùng lưới: bỏ ảnh Ink nháp (ô chưa duyệt), lấy Pencil đã duyệt làm nền', async () => {
+    vi.mocked(artworkService.getArtworks).mockImplementation(async (_chap, _page, stageId) => {
+      if (stageId === 'stg-ink') return [{ id: 'ink-draft', pipelineStageId: 'stg-ink' } as AssetReferenceDto];
+      if (stageId === 'stg-pencil') return [{ id: 'pencil-ok', pipelineStageId: 'stg-pencil' } as AssetReferenceDto];
+      return [];
+    });
+
+    const result = await loadPreviousStageArtworks('c-grid', 's1', 'p1', 'stg-letter', { stages: mockStages });
+
+    expect(result.map((a) => a.id)).toEqual(['pencil-ok']);
+  });
+
   it('tự nạp pipeline từ server nếu không truyền options.stages', async () => {
     vi.mocked(pipelineService.getSeriesPipeline).mockResolvedValue({
       id: 'pipe-1',
@@ -203,5 +242,49 @@ describe('loadPreviousStageArtworks', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('art-ink-2');
+  });
+
+  it('lùi theo từng panel: khi Ink mới có 1/3 panel thì giữ 1 panel Ink và bù 2 panel còn lại từ Pencil', async () => {
+    vi.mocked(artworkService.getArtworks).mockImplementation(async (_chap, _page, stageId) => {
+      if (stageId === 'stg-ink') {
+        return [
+          {
+            id: 'art-ink-p1',
+            pipelineStageId: 'stg-ink',
+            panelId: 'panel-1',
+            versionNumber: 1,
+          } as AssetReferenceDto,
+        ];
+      }
+      if (stageId === 'stg-pencil') {
+        return [
+          {
+            id: 'art-pencil-p1',
+            pipelineStageId: 'stg-pencil',
+            panelId: 'panel-1',
+            versionNumber: 2,
+          } as AssetReferenceDto,
+          {
+            id: 'art-pencil-p2',
+            pipelineStageId: 'stg-pencil',
+            panelId: 'panel-2',
+            versionNumber: 1,
+          } as AssetReferenceDto,
+          {
+            id: 'art-pencil-p3',
+            pipelineStageId: 'stg-pencil',
+            panelId: 'panel-3',
+            versionNumber: 1,
+          } as AssetReferenceDto,
+        ];
+      }
+      return [];
+    });
+
+    const result = await loadPreviousStageArtworks('c1', 's1', 'p1', 'stg-letter', {
+      stages: mockStages,
+    });
+
+    expect(result.map((a) => a.id)).toEqual(['art-ink-p1', 'art-pencil-p2', 'art-pencil-p3']);
   });
 });

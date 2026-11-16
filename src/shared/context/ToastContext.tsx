@@ -19,12 +19,12 @@ export interface ToastOptions {
 
 type ToastMethod = (
   title: string,
-  description: string,
+  description?: string,
   options?: Omit<ToastOptions, 'type' | 'tone'>,
 ) => void;
 export interface ToastContextType {
   toast: (title: string, description: string, options: ToastOptions & { tone: AlertTone }) => void;
-  showToast: (title: string, description: string, options?: ToastOptions) => void;
+  showToast: (title: string, description?: string, options?: ToastOptions) => void;
   success: ToastMethod;
   warning: ToastMethod;
   danger: ToastMethod;
@@ -57,7 +57,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 
   const showToast = useCallback(
-    (title: string, description: string, options: ToastOptions = {}) => {
+    (title: string, description = '', options: ToastOptions = {}) => {
       const type = options.tone ?? options.type ?? inferType(title, description);
       const tone = normalizeTone(type);
       const key = options.id ?? `${tone}:${title}:${description}`;
@@ -80,7 +80,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const method = useCallback(
     (tone: AlertTone): ToastMethod =>
-      (title, description, options) => {
+      (title, description = '', options) => {
         showToast(title, description, { ...options, tone });
       },
     [showToast],
@@ -114,7 +114,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 export function useToast(): ToastContextType {
   const context = useContext(ToastContext);
   if (context) return context;
-  const log = (title: string, description: string) => console.info('[Toast]', title, description);
+  const log = (title: string, description = '') => console.info('[Toast]', title, description);
   return {
     toast: log,
     showToast: log,

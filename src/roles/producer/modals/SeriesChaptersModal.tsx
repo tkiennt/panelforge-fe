@@ -31,6 +31,7 @@ import {
 import {
   chapterService,
   ChapterDto,
+  ChapterLockGateDto,
   CreateChapterRequest,
   UpdateChapterRequest,
 } from '@/services/chapter.service';
@@ -56,6 +57,18 @@ interface SeriesChaptersModalProps {
   onShowToast?: (title: string, desc: string) => void;
   onRefreshKanban?: () => void;
 }
+
+const LOCK_GATE_CODE_LABELS: Record<string, string> = {
+  NO_PAGES: 'Chưa có trang',
+  ASSIGNMENTS_NOT_APPROVED: 'Việc chưa duyệt',
+  TASK_GRID_NOT_APPROVED: 'Lưới V3 chưa duyệt hết',
+  OPEN_CHANGE_REQUESTS: 'Yêu cầu sửa chưa đóng',
+  BLOCKING_FINDINGS: 'Lỗi nhất quán Blocking',
+  IMPACT_FLAGS: 'Cờ ảnh hưởng / Đầu vào lỗi thời',
+  PAGES_WITHOUT_WORK: 'Trang chưa giao việc',
+  SCRIPT_NOT_FROZEN: 'Kịch bản chưa đóng băng',
+  PENDING_AI_SUGGESTIONS: 'Đề xuất AI chờ duyệt',
+};
 
 export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   isOpen,
@@ -90,6 +103,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [startProductionChapter, setStartProductionChapter] = useState<ChapterDto | null>(null);
   const [assigningChapter, setAssigningChapter] = useState<ChapterDto | null>(null);
+  const [assigningInitialTab, setAssigningInitialTab] = useState<'assignments' | 'task-grid'>(
+    'assignments',
+  );
+  const [blockedGateReport, setBlockedGateReport] = useState<{
+    chapter: ChapterDto;
+    gate: ChapterLockGateDto;
+  } | null>(null);
   const [reviewingChapter, setReviewingChapter] = useState<ChapterDto | null>(null);
   const [previewChapter, setPreviewChapter] = useState<ChapterDto | null>(null);
   const [provenanceChapter, setProvenanceChapter] = useState<ChapterDto | null>(null);
@@ -310,33 +330,47 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     }
   };
 
+  // Gate 1 (BE) đóng băng kịch bản và giao lô trên Lưới V3, kể cả với chương đã sinh lưới trước đó.
   const handleStartProduction = (chap: ChapterDto) => {
     setStartProductionChapter(chap);
   };
 
   const handleApproveChapter = async (chap: ChapterDto) => {
     setActionLoading(true);
+    let gateWarnings: string[] = [];
     try {
       try {
-        const gate = await chapterService.getChapterLockGate(chap.id);
-        if (!gate.canApprove) {
-          const blocking = gate.items.filter((i) => i.blocking);
-          const msg =
-            blocking.map((b) => b.message).join('; ') ||
-            t(
-              'seriesChaptersModal.toastApproveGateDefault',
-              'Chương chưa hoàn thành đủ các điều kiện phê duyệt (còn công đoạn chờ Editor thẩm định).',
+        if (chapterService.getChapterLockGate) {
+          const gate = await chapterService.getChapterLockGate(chap.id);
+          if (!gate.canApprove) {
+            setBlockedGateReport({ chapter: chap, gate });
+            const blocking = gate.items.filter((i) => i.blocking);
+            const msg =
+              blocking.map((b) => b.message).join('; ') ||
+              t(
+                'seriesChaptersModal.toastApproveGateDefault',
+                'Chương chưa hoàn thành đủ các điều kiện phê duyệt (còn công đoạn chờ Editor thẩm định).',
+              );
+            onShowToast?.(
+              t('seriesChaptersModal.toastApproveGateTitle', 'Chưa đủ điều kiện duyệt chương'),
+              msg,
             );
-          onShowToast?.(
-            t('seriesChaptersModal.toastApproveGateTitle', 'Chưa đủ điều kiện duyệt chương'),
-            msg,
-          );
-          setActionLoading(false);
-          return;
+            setActionLoading(false);
+            return;
+          }
+          setBlockedGateReport(null);
+          gateWarnings = gate.items.filter((i) => !i.blocking).map((i) => i.message);
         }
       } catch (gateErr) {
         console.warn('Lỗi kiểm tra lock-gate:', gateErr);
       }
+
+      const baseDesc = t('seriesChaptersModal.confirmApproveDesc', {
+        title: chap.title || t('seriesChaptersModal.untitled', 'Không tiêu đề'),
+        defaultValue: `Chương "${chap.title || 'Không tiêu đề'}" sẽ chuyển sang trạng thái đã nghiệm thu (Gate 3). Producer hoàn tất nghiệm thu và bàn giao cho Publisher để phát hành.`,
+      });
+      const fullDesc =
+        gateWarnings.length > 0 ? `${baseDesc}\n\nLưu ý: ${gateWarnings.join(' · ')}` : baseDesc;
 
       if (
         !(await confirm({
@@ -344,10 +378,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
             number: chap.chapterNumber,
             defaultValue: `Phê duyệt hoàn tất Chương ${chap.chapterNumber}?`,
           }),
-          description: t('seriesChaptersModal.confirmApproveDesc', {
-            title: chap.title || t('seriesChaptersModal.untitled', 'Không tiêu đề'),
-            defaultValue: `Chương "${chap.title || 'Không tiêu đề'}" sẽ chuyển sang trạng thái đã nghiệm thu (Gate 3). Producer hoàn tất nghiệm thu và bàn giao cho Publisher để phát hành.`,
-          }),
+          description: fullDesc,
           confirmText: t('seriesChaptersModal.confirmApproveBtn', 'Phê duyệt hoàn tất'),
           cancelText: t('seriesChaptersModal.confirmApproveCancel', 'Xem lại'),
           variant: 'info',
@@ -358,6 +389,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       }
 
       await chapterService.approveChapter(chap.id);
+      setBlockedGateReport(null);
       onShowToast?.(
         t('seriesChaptersModal.toastApproveSuccess', 'Đã duyệt chương'),
         t('seriesChaptersModal.toastApproveSuccessDesc', {
@@ -838,6 +870,68 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
               </form>
             )}
 
+            {blockedGateReport && (
+              <div
+                data-testid='lock-gate-blocked-banner'
+                className='p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-950 text-xs space-y-2'
+              >
+                <div className='flex items-center justify-between gap-2'>
+                  <div className='font-bold flex items-center gap-1.5 text-rose-800'>
+                    <AlertCircle className='w-4 h-4 shrink-0 text-rose-600' />
+                    <span>
+                      Chương #{blockedGateReport.chapter.chapterNumber} chưa đủ điều kiện phê duyệt
+                    </span>
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    {blockedGateReport.gate.items.some((i) =>
+                      ['TASK_GRID_NOT_APPROVED', 'IMPACT_FLAGS', 'PAGES_WITHOUT_WORK'].includes(
+                        i.code,
+                      ),
+                    ) && (
+                      <button
+                        type='button'
+                        data-testid='lock-gate-open-grid-btn'
+                        onClick={() => {
+                          setAssigningInitialTab('task-grid');
+                          setAssigningChapter(blockedGateReport.chapter);
+                        }}
+                        className='px-2.5 py-1 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-[11px] cursor-pointer'
+                      >
+                        Mở Lưới V3
+                      </button>
+                    )}
+                    <button
+                      type='button'
+                      onClick={() => setBlockedGateReport(null)}
+                      className='text-rose-700 hover:text-rose-950 font-semibold underline cursor-pointer'
+                    >
+                      Đóng
+                    </button>
+                  </div>
+                </div>
+                <ul className='space-y-1'>
+                  {blockedGateReport.gate.items.map((item) => (
+                    <li
+                      key={item.code}
+                      data-testid={`lock-gate-item-${item.code}`}
+                      className='flex items-start gap-2'
+                    >
+                      <span
+                        className={`px-1.5 py-0.5 rounded font-mono text-[10px] font-bold shrink-0 border ${
+                          item.blocking
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : 'bg-amber-50 text-amber-800 border-amber-300'
+                        }`}
+                      >
+                        {LOCK_GATE_CODE_LABELS[item.code] || item.code}
+                      </span>
+                      <span className='text-stone-800'>{item.message}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Chapters Table */}
             <div className='border border-[#E7E7E7] rounded-xl overflow-x-auto'>
               <table className='w-full min-w-[880px] text-left border-collapse'>
@@ -1045,7 +1139,10 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                           <div className='inline-flex items-center gap-1.5 whitespace-nowrap'>
                             <button
                               type='button'
-                              onClick={() => setAssigningChapter(chap)}
+                              onClick={() => {
+                                setAssigningInitialTab('assignments');
+                                setAssigningChapter(chap);
+                              }}
                               className='px-2.5 py-1 rounded-lg bg-[#FFF7ED] hover:bg-[#FFEDD5] border border-[#FDBA74] text-[#EA580C] hover:text-[#C2410C] transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs'
                               title={t(
                                 'seriesChaptersModal.assignTooltip',
@@ -1313,6 +1410,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           chapterId={assigningChapter.id}
           chapterNumber={assigningChapter.chapterNumber}
           chapterTitle={assigningChapter.title}
+          initialTab={assigningInitialTab}
           onClose={() => setAssigningChapter(null)}
           onShowToast={onShowToast}
         />
