@@ -54,9 +54,9 @@ describe('ChapterReaderModal Component', () => {
       expect(screen.getByAltText('Trang 1')).toBeInTheDocument();
     });
 
-    // Image is rendered inside zoom-pan-pinch container
+    // Image is rendered inside zoom-pan-pinch container with language query
     const img = screen.getByAltText('Trang 1');
-    expect(img).toHaveAttribute('src', 'https://cdn.example.com/page1.jpg');
+    expect(img).toHaveAttribute('src', 'https://cdn.example.com/page1.jpg?lang=vi');
     expect(document.querySelector('.react-transform-wrapper')).toBeInTheDocument();
   });
 });

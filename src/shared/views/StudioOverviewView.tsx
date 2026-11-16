@@ -113,6 +113,8 @@ export const StudioOverviewView: React.FC = () => {
   const [editSeriesDirection, setEditSeriesDirection] = useState(1);
   const [editSeriesSchedule, setEditSeriesSchedule] = useState('');
   const [editSeriesCompleted, setEditSeriesCompleted] = useState(false);
+  const [editSeriesOriginalLanguage, setEditSeriesOriginalLanguage] = useState('vi');
+  const [editSeriesReleaseLanguages, setEditSeriesReleaseLanguages] = useState<string[]>(['vi', 'en', 'ja']);
   const [updatingSeries, setUpdatingSeries] = useState(false);
 
   // Workspace Usage (NFR Resource Governance - Storage & AI Tokens)
@@ -433,6 +435,10 @@ export const StudioOverviewView: React.FC = () => {
     );
     setEditSeriesSchedule(s.releaseScheduleJson || '');
     setEditSeriesCompleted(Boolean(s.isCompleted));
+    setEditSeriesOriginalLanguage(s.originalLanguage || 'vi');
+    setEditSeriesReleaseLanguages(
+      s.releaseLanguages && s.releaseLanguages.length > 0 ? s.releaseLanguages : ['vi', 'en', 'ja'],
+    );
   };
 
   const handleUpdateSeries = async (e: React.FormEvent) => {
@@ -450,9 +456,26 @@ export const StudioOverviewView: React.FC = () => {
         releaseScheduleJson: editSeriesSchedule || undefined,
         isCompleted: editSeriesCompleted,
       });
-      setSeriesList((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+
+      let finalSeries = updated;
+      try {
+        const langUpdated = await seriesService.updateSeriesLanguages(
+          editingSeries.id,
+          editSeriesOriginalLanguage,
+          editSeriesReleaseLanguages,
+        );
+        finalSeries = {
+          ...updated,
+          originalLanguage: langUpdated.originalLanguage,
+          releaseLanguages: langUpdated.releaseLanguages,
+        };
+      } catch (langErr) {
+        console.warn('Lỗi cập nhật cấu hình ngôn ngữ series:', langErr);
+      }
+
+      setSeriesList((prev) => prev.map((s) => (s.id === finalSeries.id ? finalSeries : s)));
       setEditingSeries(null);
-      showToast('Cập nhật thành công', `Đã cập nhật thông tin Series "${updated.title}".`);
+      showToast('Cập nhật thành công', `Đã cập nhật thông tin Series "${finalSeries.title}".`);
     } catch (err: any) {
       showToast('Lỗi cập nhật Series', err.message);
     } finally {
@@ -1004,6 +1027,10 @@ export const StudioOverviewView: React.FC = () => {
         onScheduleChange={setEditSeriesSchedule}
         isCompleted={editSeriesCompleted}
         onCompletedChange={setEditSeriesCompleted}
+        originalLanguage={editSeriesOriginalLanguage}
+        onOriginalLanguageChange={setEditSeriesOriginalLanguage}
+        releaseLanguages={editSeriesReleaseLanguages}
+        onReleaseLanguagesChange={setEditSeriesReleaseLanguages}
         updating={updatingSeries}
       />
 

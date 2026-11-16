@@ -11,8 +11,6 @@ import {
   Loader2,
   AlertTriangle,
   ImageOff,
-  Upload,
-  Trash2,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -331,7 +329,6 @@ const PagesSection: React.FC<{
   const [preview, setPreview] = useState<ContentLanguage>('vi');
   const [draft, setDraft] = useState<Set<string>>(() => previewIdsOf(manage));
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState<string | null>(null);
 
   useEffect(() => setDraft(previewIdsOf(manage)), [manage]);
 
@@ -349,15 +346,24 @@ const PagesSection: React.FC<{
       return next;
     });
 
-  const run = async (key: string | null, fn: () => Promise<ChapterManageDto>) => {
-    if (key) setUploading(key);
-    else setSaving(true);
+  const save = async () => {
+    setSaving(true);
     try {
-      onSaved(await fn());
+      onSaved(await monetizationService.setPreviewPages(manage.chapterId, [...draft]));
     } catch (err) {
       onError(err);
     } finally {
-      setUploading(null);
+      setSaving(false);
+    }
+  };
+
+  const reset = async () => {
+    setSaving(true);
+    try {
+      onSaved(await monetizationService.resetPreviewPages(manage.chapterId));
+    } catch (err) {
+      onError(err);
+    } finally {
       setSaving(false);
     }
   };
@@ -382,7 +388,8 @@ const PagesSection: React.FC<{
         {manage.previewPagesCustomized && (
           <button
             type='button'
-            onClick={() => run(null, () => monetizationService.resetPreviewPages(manage.chapterId))}
+            disabled={saving}
+            onClick={reset}
             className='px-2.5 py-1 rounded-lg border border-[#E7E7E7] bg-white font-medium cursor-pointer'
           >
             {t('manage.resetToDefault')}
@@ -473,60 +480,6 @@ const PagesSection: React.FC<{
                   )}
                 </button>
                 <span className='text-[11px] font-medium text-[#555555]'>{p.pageNumber}</span>
-                {isTranslation && (
-                  <div className='flex items-center gap-1'>
-                    <label
-                      title={uploadLabel}
-                      className='inline-flex items-center justify-center p-1 rounded-md border border-[#D6D3CE] bg-white hover:bg-[#FAF8F4] cursor-pointer'
-                    >
-                      {uploading === key ? (
-                        <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                      ) : (
-                        <Upload className='w-3.5 h-3.5' />
-                      )}
-                      <span className='sr-only'>{uploadLabel}</span>
-                      <input
-                        type='file'
-                        accept='image/png,image/jpeg,image/webp'
-                        className='sr-only'
-                        disabled={uploading !== null}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          e.target.value = '';
-                          if (file)
-                            void run(key, () =>
-                              monetizationService.uploadPageTranslation(
-                                manage.chapterId,
-                                p.pageId,
-                                preview,
-                                file,
-                              ),
-                            );
-                        }}
-                      />
-                    </label>
-                    {url && (
-                      <button
-                        type='button'
-                        aria-label={t('manage.removeTranslation')}
-                        title={t('manage.removeTranslation')}
-                        disabled={uploading !== null}
-                        onClick={() =>
-                          run(key, () =>
-                            monetizationService.deletePageTranslation(
-                              manage.chapterId,
-                              p.pageId,
-                              preview,
-                            ),
-                          )
-                        }
-                        className='p-1 rounded-md border border-[#D6D3CE] bg-white text-[#888888] hover:text-rose-600 hover:bg-rose-50 cursor-pointer'
-                      >
-                        <Trash2 className='w-3.5 h-3.5' />
-                      </button>
-                    )}
-                  </div>
-                )}
               </li>
             );
           })}
@@ -555,9 +508,7 @@ const PagesSection: React.FC<{
           <SaveButton
             saving={saving}
             disabled={!changed}
-            onClick={() =>
-              run(null, () => monetizationService.setPreviewPages(manage.chapterId, [...draft]))
-            }
+            onClick={save}
             label={t('manage.savePreview')}
           />
         </div>

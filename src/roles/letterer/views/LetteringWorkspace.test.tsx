@@ -12,6 +12,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { LetteringWorkspace } from './LetteringWorkspace';
 import { elementService } from '@/services/element.service';
+import { chapterEditionService } from '@/services/chapter-edition.service';
 import { pageService } from '@/services/page.service';
 import { scriptLineService } from '@/services/scriptLine.service';
 import { offlineQueueService } from '@/services/offlineQueue.service';
@@ -34,6 +35,7 @@ vi.mock('@/services/element.service', async (importOriginal) => {
       moveElement: vi.fn(),
       removeElement: vi.fn(),
       updateElementText: vi.fn(),
+      updateElementTranslation: vi.fn(),
       setReadingOrder: vi.fn(),
       acknowledgeOverflow: vi.fn(),
       updateElementStyle: vi.fn(),
@@ -45,6 +47,21 @@ vi.mock('@/services/scriptLine.service');
 vi.mock('@/services/chapter.service', () => ({
   chapterService: {
     getChapterById: vi.fn(),
+  },
+}));
+vi.mock('@/services/series.service', () => ({
+  seriesService: {
+    getSeriesById: vi.fn().mockResolvedValue({
+      id: 'ser-1',
+      title: 'Bộ truyện test',
+      originalLanguage: 'vi',
+      releaseLanguages: ['vi', 'en', 'ja'],
+    }),
+  },
+}));
+vi.mock('@/services/chapter-edition.service', () => ({
+  chapterEditionService: {
+    submitEditionTranslation: vi.fn(),
   },
 }));
 vi.mock('@/services/aiAgents.service', () => ({
@@ -197,7 +214,7 @@ describe('LetteringWorkspace', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(elementService.getPageSnapshot).toHaveBeenCalledWith('page-101');
+      expect(elementService.getPageSnapshot).toHaveBeenCalledWith('page-101', false, undefined, 'vi');
       expect(screen.getByText('Lời thoại ban đầu')).toBeInTheDocument();
       expect(screen.getByText('Chào bạn!')).toBeInTheDocument();
     });
@@ -295,6 +312,72 @@ describe('LetteringWorkspace', () => {
     });
 
     Object.defineProperty(navigator, 'onLine', { value: originalOnline, configurable: true });
+  });
+
+  it('lưu bản dịch qua updateElementTranslation khi soạn ở ngôn ngữ khác bản gốc (BR-34)', async () => {
+    vi.mocked(elementService.updateElementTranslation).mockResolvedValueOnce({
+      elementId: 'elem-1',
+      version: 2,
+    } as any);
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Lời thoại ban đầu')).toBeInTheDocument();
+    });
+
+    // Switch to EN
+    const enButton = screen.getByTitle(/English/i);
+    fireEvent.click(enButton);
+
+    // Click balloon element to open editor in property panel
+    const balloon = await screen.findByTestId('letterer-element-elem-1');
+    fireEvent.click(balloon);
+
+    const editor = await screen.findByTestId('element-text-editor');
+    fireEvent.change(editor, { target: { value: 'Hello translated!' } });
+    fireEvent.blur(editor);
+
+    await waitFor(() => {
+      expect(elementService.updateElementTranslation).toHaveBeenCalledWith(
+        'page-101',
+        'elem-1',
+        'en',
+        'Hello translated!',
+        1,
+      );
+      expect(elementService.updateElementText).not.toHaveBeenCalled();
+    });
+  });
+
+  it('cho phép nộp ấn bản dịch khi ở ngôn ngữ dịch (BR-34)', async () => {
+    vi.mocked(chapterEditionService.submitEditionTranslation).mockResolvedValueOnce({
+      id: 'ed-en',
+      chapterId: 'chap-1',
+      languageCode: 'en',
+      status: 'InReview',
+    } as any);
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Lời thoại ban đầu')).toBeInTheDocument();
+    });
+
+    // Switch to EN
+    const enButton = screen.getByTitle(/English/i);
+    fireEvent.click(enButton);
+
+    const submitBtn = await screen.findByTestId('submit-edition-translation-btn');
+    expect(submitBtn).toBeInTheDocument();
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(chapterEditionService.submitEditionTranslation).toHaveBeenCalledWith(
+        'chap-1',
+        'en',
+      );
+    });
   });
 
   it('tạo balloon mới gửi kích thước px chuẩn (width=280, height=160) lên máy chủ (Lỗi 1)', async () => {

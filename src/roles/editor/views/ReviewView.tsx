@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, Minus, Plus } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Minus, Plus, Globe } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import type {
   AssignmentDto,
@@ -10,6 +10,7 @@ import type {
   VisualDeviationDto,
 } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
+import { chapterEditionService } from '@/services/chapter-edition.service';
 import { chapterService } from '@/services/chapter.service';
 import { pageService } from '@/services/page.service';
 import { normalizeWorkspaceRole } from '@/types';
@@ -70,6 +71,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   }>();
   const [search] = useSearchParams();
   const chapterId = paramChapterId || search.get('chapterId') || '';
+  const langParam = search.get('lang') || undefined;
   const effectiveWsId = workspaceId || wsId || null;
   const navigate = useNavigate();
   const { t, lang } = useTranslation('review');
@@ -260,19 +262,27 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     run(
       'return',
       async () => {
-        await assignmentService.requestChanges(chapterId, taskId, {
-          comment: summary.trim(),
-          expectedSubmissionId: pendingSub?.id,
-          changes:
-            drafts.length > 0
-              ? drafts.map((d) => ({
-                  description: d.text.trim(),
-                  regionJson: JSON.stringify(d.box),
-                  assetReferenceId: d.assetReferenceId,
-                  panelId: d.panelId,
-                }))
-              : undefined,
-        });
+        if (langParam) {
+          // BR-34: Editor trả bản dịch ấn bản kèm yêu cầu sửa
+          await chapterEditionService.reviewEdition(chapterId, langParam, {
+            action: 'RequestChange',
+            comment: summary.trim(),
+          });
+        } else {
+          await assignmentService.requestChanges(chapterId, taskId, {
+            comment: summary.trim(),
+            expectedSubmissionId: pendingSub?.id,
+            changes:
+              drafts.length > 0
+                ? drafts.map((d) => ({
+                    description: d.text.trim(),
+                    regionJson: JSON.stringify(d.box),
+                    assetReferenceId: d.assetReferenceId,
+                    panelId: d.panelId,
+                  }))
+                : undefined,
+          });
+        }
         updateDrafts([]);
         setSummary('');
         onShowToast?.(
@@ -288,7 +298,14 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     run(
       'approve',
       async () => {
-        await assignmentService.approveAssignment(chapterId, taskId, pendingSub?.id);
+        if (langParam) {
+          // BR-34: Editor duyệt ấn bản dịch -> EditorApproved
+          await chapterEditionService.reviewEdition(chapterId, langParam, {
+            action: 'Approve',
+          });
+        } else {
+          await assignmentService.approveAssignment(chapterId, taskId, pendingSub?.id);
+        }
         onShowToast?.(t('artworkReview.toast.approvedTitle'), assignment?.brief ?? '');
         await loadData();
       },
@@ -451,17 +468,28 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       <header className='flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3'>
         <div className='flex min-w-0 items-center gap-3'>
           <div className='min-w-0'>
-            <h1 className='truncate font-serif text-lg font-bold tracking-tight text-stone-900'>
-              {[
-                chapterNumber !== null
-                  ? t('scriptReview.header.title', { number: chapterNumber })
-                  : null,
-                pageNumber !== null ? t('artworkReview.header.page', { number: pageNumber }) : null,
-                assignment.stageName,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </h1>
+            <div className='flex items-center gap-2'>
+              <h1 className='truncate font-serif text-lg font-bold tracking-tight text-stone-900'>
+                {[
+                  chapterNumber !== null
+                    ? t('scriptReview.header.title', { number: chapterNumber })
+                    : null,
+                  pageNumber !== null ? t('artworkReview.header.page', { number: pageNumber }) : null,
+                  assignment.stageName,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </h1>
+              {langParam && (
+                <span
+                  data-testid='edition-review-badge'
+                  className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-900 border border-orange-300 font-bold text-xs'
+                >
+                  <Globe className='w-3.5 h-3.5 text-orange-600' />
+                  Ấn bản {langParam.toUpperCase()}
+                </span>
+              )}
+            </div>
             <p className='text-xs text-stone-500'>
               {latestSub
                 ? t('scriptReview.header.submission', {

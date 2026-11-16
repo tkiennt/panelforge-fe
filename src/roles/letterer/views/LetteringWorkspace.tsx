@@ -37,6 +37,7 @@ import {
   Split,
   Compass,
   Globe,
+  Send,
 } from 'lucide-react';
 import {
   elementService,
@@ -49,6 +50,9 @@ import {
 } from '@/services/element.service';
 import { pageService } from '@/services/page.service';
 import { chapterService } from '@/services/chapter.service';
+import { seriesService } from '@/services/series.service';
+import { chapterEditionService } from '@/services/chapter-edition.service';
+import { LanguageSelector } from '@/shared/components/LanguageSelector';
 import { panelService } from '@/services/panel.service';
 import { bibleService } from '@/services/bible.service';
 import { artworkService, resolveArtworkUrl, toThumbnailUrl } from '@/services/artwork.service';
@@ -422,11 +426,84 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   // Ngôn ngữ soạn thảo bóng thoại (BR-34: balloon localization): 'vi' (ngôn ngữ gốc), 'en', 'ja', 'ko'...
   const [activeLang, setActiveLang] = useState<string>('vi');
+  const [releaseLanguages, setReleaseLanguages] = useState<string[]>(['vi', 'en', 'ja']);
+  const [originalLang, setOriginalLang] = useState<string>('vi');
+  const [isSubmittingEdition, setIsSubmittingEdition] = useState(false);
+  const [editionErrorModal, setEditionErrorModal] = useState<{ title: string; message: string } | null>(null);
 
-  const getElementText = useCallback((el: ElementSnapshotDto, lang: string) => {
-    if (lang === 'vi') return el.content || el.renderedText || '';
-    return el.texts?.[lang] ?? el.content ?? el.renderedText ?? '';
-  }, []);
+  // Nạp danh sách ngôn ngữ phát hành từ bộ truyện (BR-34)
+  useEffect(() => {
+    const sId = activeSeriesId || seriesId;
+    if (!sId) return;
+    let alive = true;
+    seriesService
+      .getSeriesById(sId)
+      .then((ser) => {
+        if (!alive || !ser) return;
+        if (ser.releaseLanguages && ser.releaseLanguages.length > 0) {
+          setReleaseLanguages(ser.releaseLanguages);
+        }
+        if (ser.originalLanguage) {
+          setOriginalLang(ser.originalLanguage);
+          if (!ser.releaseLanguages?.includes(activeLang)) {
+            setActiveLang(ser.originalLanguage);
+          }
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [activeSeriesId, seriesId]);
+
+  const getElementText = useCallback(
+    (el: ElementSnapshotDto, lang: string) => {
+      const isOrig = originalLang && lang.toLowerCase() === originalLang.toLowerCase();
+      if (isOrig) return el.content || el.renderedText || '';
+      return el.texts?.[lang] ?? '';
+    },
+    [originalLang],
+  );
+
+  // Đếm số lượng bóng thoại chưa dịch theo từng ngôn ngữ phát hành (BR-34)
+  const missingCounts = useMemo(() => {
+    const textElements = elements.filter(
+      (e) => !e.isRemoved && !IMAGE_LAYER_TYPES.includes(e.elementType as any),
+    );
+    const counts: Record<string, number> = {};
+    for (const lang of releaseLanguages) {
+      if (lang.toLowerCase() === originalLang.toLowerCase()) continue;
+      const missing = textElements.filter((e) => {
+        const txt = e.texts?.[lang];
+        return !txt || txt.trim() === '';
+      }).length;
+      counts[lang] = missing;
+    }
+    return counts;
+  }, [elements, releaseLanguages, originalLang]);
+
+  // Nộp ấn bản dịch sang cổng kiểm duyệt của Editor (BR-34)
+  const handleSubmitEditionTranslation = async () => {
+    if (!activeChapterId) {
+      showToast('Lỗi', 'Không tìm thấy mã chương để nộp bản dịch.');
+      return;
+    }
+    setIsSubmittingEdition(true);
+    try {
+      await chapterEditionService.submitEditionTranslation(activeChapterId, activeLang);
+      showToast(
+        'Đã nộp bản dịch thành công',
+        `Ấn bản ${activeLang.toUpperCase()} đã được gửi đến Biên tập viên kiểm duyệt.`,
+      );
+    } catch (err: any) {
+      setEditionErrorModal({
+        title: `Không thể nộp ấn bản ${activeLang.toUpperCase()}`,
+        message: err.message || 'Chưa hoàn thành đầy đủ yêu cầu của ấn bản dịch.',
+      });
+    } finally {
+      setIsSubmittingEdition(false);
+    }
+  };
 
   // Kích thước canvas thực tế (px) từ cấu hình Page (Lỗi 1)
   const [pageDim, setPageDim] = useState<{ width: number; height: number }>({
@@ -771,7 +848,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     };
   }, []);
 
-  // Nạp Elements của trang
+  // Nạp Elements của trang theo ngôn ngữ đang soạn (BR-34)
   const loadElements = useCallback(async () => {
     if (!activePageId) {
       setPageSnapshot(null);
@@ -780,7 +857,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     }
     setLoading(true);
     try {
-      const snap = await elementService.getPageSnapshot(activePageId);
+      const snap = await elementService.getPageSnapshot(activePageId, false, undefined, activeLang);
       setPageSnapshot(snap);
       setElements(snap.elements.filter((e) => !e.isRemoved));
     } catch (err: any) {
@@ -789,7 +866,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [activePageId, showToast]);
+  }, [activePageId, activeLang, showToast]);
 
   useEffect(() => {
     loadElements();
@@ -1399,53 +1476,35 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     window.addEventListener('pointerup', onUp);
   };
 
-  // Cập nhật văn bản Element (PUT /api/pages/{pageId}/elements/{elementId}/text)
+  // Cập nhật văn bản Element (BR-34: bản gốc gọi /text, bản dịch gọi /translations/{lang})
   const updateBalloonText = async (elementId: string, text: string) => {
     if (isReadOnly) return;
     const target = elements.find((e) => e.elementId === elementId);
     if (!target) return;
 
-    const nextTexts = { ...(target.texts || {}), [activeLang]: text };
-    setElements((prev) =>
-      prev.map((b) =>
-        b.elementId === elementId
-          ? {
-              ...b,
-              content: activeLang === 'vi' ? text : (b.content || text),
-              texts: nextTexts,
-            }
-          : b,
-      ),
-    );
+    const isOriginal = activeLang.toLowerCase() === originalLang.toLowerCase();
 
-    const payload = {
-      content: activeLang === 'vi' ? text : (target.content || text),
-      languageCode: activeLang,
-      scriptLineId: target.scriptLineId || undefined,
-      expectedElementVersion: target.version,
-    };
-
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      offlineQueueService.enqueue({
-        type: 'UPDATE_ELEMENT_TEXT',
-        endpoint: `/pages/${activePageId}/elements/${elementId}/text`,
-        method: 'PUT',
-        payload,
-        clientRefId: elementId,
-      });
-      return;
-    }
-
-    try {
-      await sendVersioned(elementId, (v) =>
-        elementService.updateElementText(activePageId, elementId, {
-          ...payload,
-          expectedElementVersion: v,
-        }),
+    if (isOriginal) {
+      setElements((prev) =>
+        prev.map((b) =>
+          b.elementId === elementId
+            ? {
+                ...b,
+                content: text,
+                renderedText: text,
+              }
+            : b,
+        ),
       );
-    } catch (err: any) {
-      const isNetworkError = checkIsNetworkError(err);
-      if (isNetworkError) {
+
+      const payload = {
+        content: text,
+        languageCode: activeLang,
+        scriptLineId: target.scriptLineId || undefined,
+        expectedElementVersion: target.version,
+      };
+
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
         offlineQueueService.enqueue({
           type: 'UPDATE_ELEMENT_TEXT',
           endpoint: `/pages/${activePageId}/elements/${elementId}/text`,
@@ -1453,8 +1512,51 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
           payload,
           clientRefId: elementId,
         });
-        showToast('Đã lưu ngoại tuyến', 'Mất mạng: Đã lưu tạm nội dung bóng thoại.');
-      } else {
+        return;
+      }
+
+      try {
+        await sendVersioned(elementId, (v) =>
+          elementService.updateElementText(activePageId, elementId, {
+            ...payload,
+            expectedElementVersion: v,
+          }),
+        );
+      } catch (err: any) {
+        const isNetworkError = checkIsNetworkError(err);
+        if (isNetworkError) {
+          offlineQueueService.enqueue({
+            type: 'UPDATE_ELEMENT_TEXT',
+            endpoint: `/pages/${activePageId}/elements/${elementId}/text`,
+            method: 'PUT',
+            payload,
+            clientRefId: elementId,
+          });
+          showToast('Đã lưu ngoại tuyến', 'Mất mạng: Đã lưu tạm nội dung bóng thoại.');
+        } else {
+          handleConcurrencyError(err, elementId);
+        }
+      }
+    } else {
+      // Ngôn ngữ dịch: lưu qua PUT /api/pages/{pageId}/elements/{elementId}/translations/{lang}
+      // Tuyệt đối KHÔNG ghi đè content của bóng thoại gốc
+      const nextTexts = { ...(target.texts || {}), [activeLang]: text };
+      setElements((prev) =>
+        prev.map((b) =>
+          b.elementId === elementId
+            ? {
+                ...b,
+                texts: nextTexts,
+              }
+            : b,
+        ),
+      );
+
+      try {
+        await sendVersioned(elementId, (v) =>
+          elementService.updateElementTranslation(activePageId, elementId, activeLang, text, v),
+        );
+      } catch (err: any) {
         handleConcurrencyError(err, elementId);
       }
     }
@@ -3125,32 +3227,26 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
             </button>
             <div className='w-px h-4 bg-[#D8D2C5] mx-1'></div>
             {/* Bộ chọn ngôn ngữ đang soạn (BR-34: Balloon Localization) */}
-            <div
-              data-testid='lettering-language-selector'
-              className='flex items-center gap-1 bg-[#F3F0E9] px-2 py-0.5 rounded-xl border border-[#D8D2C5] text-xs font-semibold'
-            >
-              <Globe className='w-3 h-3 text-[#C2410C]' />
-              <span className='text-[10px] text-[#78716C] font-mono'>Ngôn ngữ:</span>
-              {[
-                { code: 'vi', label: 'VI (Gốc)' },
-                { code: 'en', label: 'EN' },
-                { code: 'ja', label: 'JA' },
-              ].map((l) => (
-                <button
-                  key={l.code}
-                  type='button'
-                  onClick={() => setActiveLang(l.code)}
-                  className={`px-1.5 py-0.5 rounded-lg text-[11px] transition-colors cursor-pointer ${
-                    activeLang === l.code
-                      ? 'bg-[#1C1917] text-white font-bold shadow-2xs'
-                      : 'text-[#57534E] hover:bg-[#E7E2D7]'
-                  }`}
-                  title={`Soạn bóng thoại ở ấn bản: ${l.label} (BR-34)`}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
+            <LanguageSelector
+              languages={releaseLanguages}
+              activeLang={activeLang}
+              onChange={setActiveLang}
+              originalLang={originalLang}
+              counts={missingCounts}
+            />
+            {activeLang.toLowerCase() !== originalLang.toLowerCase() && (
+              <button
+                type='button'
+                onClick={handleSubmitEditionTranslation}
+                disabled={isSubmittingEdition}
+                data-testid='submit-edition-translation-btn'
+                className='px-2.5 py-1 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
+                title={`Nộp ấn bản dịch ${activeLang.toUpperCase()} cho Biên tập viên kiểm duyệt`}
+              >
+                <Send className='w-3.5 h-3.5' />
+                <span>Nộp ấn bản ({activeLang.toUpperCase()})</span>
+              </button>
+            )}
             <button
               onClick={() => setReaderMode((v) => !v)}
               aria-pressed={readerMode}
@@ -4117,8 +4213,13 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     <div className='space-y-1.5'>
                       <label className='block font-semibold text-[#1C1917]'>Nội dung chữ</label>
                       <CommitTextarea
-                        key={selectedElement.elementId}
-                        value={selectedElement.content || ''}
+                        key={`${selectedElement.elementId}-${activeLang}`}
+                        value={getElementText(selectedElement, activeLang)}
+                        placeholder={
+                          activeLang.toLowerCase() !== originalLang.toLowerCase()
+                            ? selectedElement.content || 'Nhập bản dịch...'
+                            : undefined
+                        }
                         readOnly={isReadOnly}
                         onCommit={(text) => updateBalloonText(selectedElement.elementId, text)}
                         rows={4}
@@ -4811,6 +4912,32 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
           }}
           onShowToast={onShowToast}
         />
+      )}
+      {/* Lỗi nộp ấn bản dịch (BR-34 Gate Validation) */}
+      {editionErrorModal && (
+        <div
+          data-testid='edition-error-modal'
+          className='fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 p-4'
+        >
+          <div className='bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-stone-200 space-y-4'>
+            <div className='flex items-center gap-2 text-rose-600'>
+              <AlertTriangle className='w-5 h-5 shrink-0' />
+              <h3 className='font-bold text-base text-stone-900'>{editionErrorModal.title}</h3>
+            </div>
+            <p className='text-sm text-stone-600 leading-relaxed whitespace-pre-wrap'>
+              {editionErrorModal.message}
+            </p>
+            <div className='flex justify-end pt-2'>
+              <button
+                type='button'
+                onClick={() => setEditionErrorModal(null)}
+                className='px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer'
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

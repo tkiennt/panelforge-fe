@@ -211,11 +211,15 @@ export const elementService = {
     pageId: string,
     includeRemoved = false,
     version?: number,
+    lang?: string,
   ): Promise<PageSnapshotDto> => {
     const validPageId = toValidPageGuid(pageId);
     try {
+      const params: Record<string, any> = { includeRemoved };
+      if (version !== undefined) params.version = version;
+      if (lang) params.lang = lang;
       const response = await axiosClient.get(`/pages/${validPageId}/elements`, {
-        params: version ? { includeRemoved, version } : { includeRemoved },
+        params,
       });
       return response.data;
     } catch (error: any) {
@@ -279,6 +283,27 @@ export const elementService = {
       return response.data;
     } catch (error) {
       throw extractError(error, 'Cập nhật văn bản Element thất bại.');
+    }
+  },
+
+  /** PUT /pages/{pageId}/elements/{elementId}/translations/{lang} — BR-34: cập nhật bản dịch */
+  updateElementTranslation: async (
+    pageId: string,
+    elementId: string,
+    lang: string,
+    text: string,
+    expectedVersion?: number,
+  ): Promise<{ message: string; elementVersion?: number }> => {
+    const validPageId = toValidPageGuid(pageId);
+    const validElemId = toValidElementGuid(elementId);
+    try {
+      const response = await axiosClient.put(
+        `/pages/${validPageId}/elements/${validElemId}/translations/${lang}`,
+        { text, expectedVersion },
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Cập nhật bản dịch thất bại.');
     }
   },
 

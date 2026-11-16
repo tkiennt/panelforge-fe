@@ -13,6 +13,8 @@ export interface UserProfileDto {
   createdAt: string;
   /** ID bìa hồ sơ mẫu (null/thiếu = bìa mặc định). Đổi qua PUT /api/users/me/profile-cover. */
   profileCoverPresetId?: string | null;
+  /** BR-34: Ngôn ngữ đọc ưa thích (null = mặc định). */
+  preferredReadingLanguage?: string | null;
 }
 
 export interface UpdateUserProfileRequest {
@@ -62,6 +64,20 @@ export const userService = {
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Không thể lưu ảnh bìa hồ sơ.'));
+    }
+  },
+
+  /**
+   * BR-34: Cập nhật ngôn ngữ đọc ưa thích (PUT /api/users/me/reading-language).
+   */
+  updateReadingLanguage: async (languageCode: string | null): Promise<string | null> => {
+    try {
+      const response = await axiosClient.put<{ preferredReadingLanguage: string | null }>('/Users/me/reading-language', {
+        languageCode,
+      });
+      return response.data?.preferredReadingLanguage ?? null;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể cập nhật ngôn ngữ đọc ưa thích.'));
     }
   },
 
