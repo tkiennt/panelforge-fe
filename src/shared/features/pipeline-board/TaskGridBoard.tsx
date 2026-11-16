@@ -67,6 +67,8 @@ export interface TaskGridBoardProps {
   isEditor?: boolean;
   refreshKey?: number;
   onShowToast?: (title: string, desc: string) => void;
+  /** Chương đã qua Gate 3 (khoá): ẩn mọi thao tác sửa lưới, Backend cũng trả 409 */
+  isChapterLocked?: boolean;
 }
 
 const STATUS_STYLE: Record<StageTaskStatus, { label: string; cls: string }> = {
@@ -114,6 +116,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   isEditor = false,
   refreshKey = 0,
   onShowToast,
+  isChapterLocked = false,
 }) => {
   const { t } = useTranslation('pipeline');
   const [grid, setGrid] = useState<TaskGridDto | null>(null);
@@ -178,9 +181,9 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
   // LỖI 2: Khi đã xác định currentUserRole từ API, phân quyền nghiêm ngặt theo role đó (tránh lộ nút Producer cho Artist/Letterer)
   const normalizedUserRole = currentUserRole ? String(currentUserRole).trim().toUpperCase() : '';
-  const effectiveIsProducer = normalizedUserRole
-    ? normalizedUserRole === 'PRODUCER'
-    : Boolean(isProducer);
+  const effectiveIsProducer =
+    !isChapterLocked &&
+    (normalizedUserRole ? normalizedUserRole === 'PRODUCER' : Boolean(isProducer));
   const effectiveIsReviewer = normalizedUserRole
     ? normalizedUserRole === 'PRODUCER' || normalizedUserRole === 'EDITOR'
     : Boolean(isProducer || isEditor);

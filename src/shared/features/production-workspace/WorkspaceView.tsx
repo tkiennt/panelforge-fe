@@ -333,6 +333,12 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             isEditor={isEditor}
             refreshKey={refreshKey}
             onShowToast={onShowToast}
+            isChapterLocked={[
+              'ChapterApproved',
+              'Approved',
+              'HandedOffAndPublished',
+              'Published',
+            ].includes(String(currentChapter?.status))}
           />
         ) : (
           <div className='rounded-xl border border-dashed border-landing-border bg-[#FCFBF8] p-10 text-center'>
