@@ -1,4 +1,5 @@
 // src/shared/features/pipeline-board/TaskGridBoard.tsx
+import { Link } from 'react-router-dom';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
@@ -2047,6 +2048,25 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       )}
 
       {/* Danh sách Lô công việc (Lots) hiện có */}
+      {/* Trang do Writer chia trong Kịch bản tạo ra; chưa có trang thì lưới chỉ có hàng Toàn chương */}
+      {grid && grid.pages.length === 0 && (
+        <div className='rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-900'>
+          <span className='font-bold'>Chương chưa có trang nào.</span> Trang được tạo khi Writer
+          chia trang trong Kịch bản; lưu xong lưới tự thêm ô cho từng trang (Pencil, Ink, Letter…).
+          {workspaceId && seriesId && (
+            <>
+              {' '}
+              <Link
+                to={`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${encodeURIComponent(chapterId)}`}
+                className='font-semibold underline hover:text-sky-700'
+              >
+                Mở Kịch bản
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Lô Closed (mọi ô đã bỏ gán / huỷ) không còn việc gì: ẩn khỏi danh sách */}
       {grid && grid.lots.some((l) => l.status !== 'Closed') && (
         <div className='rounded-xl border border-stone-200 bg-white p-3.5 space-y-2'>
