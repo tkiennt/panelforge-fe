@@ -2047,86 +2047,89 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       )}
 
       {/* Danh sách Lô công việc (Lots) hiện có */}
-      {grid && grid.lots.length > 0 && (
+      {/* Lô Closed (mọi ô đã bỏ gán / huỷ) không còn việc gì: ẩn khỏi danh sách */}
+      {grid && grid.lots.some((l) => l.status !== 'Closed') && (
         <div className='rounded-xl border border-stone-200 bg-white p-3.5 space-y-2'>
           <div className='text-xs font-bold text-stone-800'>
-            Lô công việc đã giao ({grid.lots.length} lô)
+            Lô công việc đã giao ({grid.lots.filter((l) => l.status !== 'Closed').length} lô)
           </div>
           <div className='flex flex-wrap gap-2'>
-            {grid.lots.map((lot) => {
-              const stg = grid.stages.find((s) => s.id === lot.pipelineStageId);
-              const isLotStageDisabled =
-                stg?.isEnabled === false || !enabledStageIds.has(lot.pipelineStageId);
-              const lotCells = grid.tasks.filter(
-                (t) => t.lotId === lot.id && t.status !== 'Cancelled',
-              );
-              const lotPageNums = lotCells
-                .map((t) => sortedPages.find((p) => p.id === t.pageId)?.pageNumber)
-                .filter((n): n is number => n !== undefined)
-                .sort((a, b) => a - b);
-              const lotScopeText =
-                lotCells.length > 0 && lotCells.every((t) => !t.pageId)
-                  ? 'Toàn chương'
-                  : lotPageNums.length > 0
-                    ? formatPageRangeLabel(lotPageNums)
-                    : null;
-              return (
-                <div
-                  key={lot.id}
-                  data-testid={`grid-lot-pill-${lot.id}`}
-                  className={`rounded-lg border px-2.5 py-1.5 text-[11px] flex items-center gap-2 ${
-                    isLotStageDisabled
-                      ? 'border-dashed border-stone-300 bg-stone-100/60 text-stone-400 opacity-50'
-                      : lot.isOverdue
-                        ? 'border-rose-300 bg-rose-50 text-rose-900'
-                        : lot.status === 'Completed'
-                          ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                          : 'border-stone-200 bg-stone-50 text-stone-700'
-                  }`}
-                >
-                  <span className='font-bold'>{stg?.name || 'Stage'}</span>
-                  {isLotStageDisabled && (
-                    <span className='rounded bg-stone-200 px-1 py-0.2 text-[9px] font-mono text-stone-600'>
-                      Đã tắt
+            {grid.lots
+              .filter((l) => l.status !== 'Closed')
+              .map((lot) => {
+                const stg = grid.stages.find((s) => s.id === lot.pipelineStageId);
+                const isLotStageDisabled =
+                  stg?.isEnabled === false || !enabledStageIds.has(lot.pipelineStageId);
+                const lotCells = grid.tasks.filter(
+                  (t) => t.lotId === lot.id && t.status !== 'Cancelled',
+                );
+                const lotPageNums = lotCells
+                  .map((t) => sortedPages.find((p) => p.id === t.pageId)?.pageNumber)
+                  .filter((n): n is number => n !== undefined)
+                  .sort((a, b) => a - b);
+                const lotScopeText =
+                  lotCells.length > 0 && lotCells.every((t) => !t.pageId)
+                    ? 'Toàn chương'
+                    : lotPageNums.length > 0
+                      ? formatPageRangeLabel(lotPageNums)
+                      : null;
+                return (
+                  <div
+                    key={lot.id}
+                    data-testid={`grid-lot-pill-${lot.id}`}
+                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] flex items-center gap-2 ${
+                      isLotStageDisabled
+                        ? 'border-dashed border-stone-300 bg-stone-100/60 text-stone-400 opacity-50'
+                        : lot.isOverdue
+                          ? 'border-rose-300 bg-rose-50 text-rose-900'
+                          : lot.status === 'Completed'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                            : 'border-stone-200 bg-stone-50 text-stone-700'
+                    }`}
+                  >
+                    <span className='font-bold'>{stg?.name || 'Stage'}</span>
+                    {isLotStageDisabled && (
+                      <span className='rounded bg-stone-200 px-1 py-0.2 text-[9px] font-mono text-stone-600'>
+                        Đã tắt
+                      </span>
+                    )}
+                    <span>•</span>
+                    <span>{getMemberName(lot.assigneeUserId)}</span>
+                    {lotScopeText && <span className='font-medium'>{`• ${lotScopeText}`}</span>}
+                    <span className='font-mono font-semibold'>
+                      ({lot.approvedCount}/{lot.taskCount})
                     </span>
-                  )}
-                  <span>•</span>
-                  <span>{getMemberName(lot.assigneeUserId)}</span>
-                  {lotScopeText && <span className='font-medium'>{`• ${lotScopeText}`}</span>}
-                  <span className='font-mono font-semibold'>
-                    ({lot.approvedCount}/{lot.taskCount})
-                  </span>
-                  {lot.dueDate && (
-                    <span className='inline-flex items-center gap-0.5 text-[10px] text-stone-500'>
-                      <Clock className='h-3 w-3' />
-                      {new Date(lot.dueDate).toLocaleDateString('vi-VN')}
-                    </span>
-                  )}
-                  {lot.brief && (
-                    <span
-                      className='max-w-[160px] truncate text-[10px] italic text-stone-500'
-                      title={lot.brief}
-                    >
-                      “{lot.brief}”
-                    </span>
-                  )}
-                  {effectiveIsProducer && lot.status !== 'Closed' && (
-                    <button
-                      type='button'
-                      data-testid={`edit-lot-btn-${lot.id}`}
-                      onClick={() =>
-                        editingLotId === lot.id ? setEditingLotId(null) : openEditLotForm(lot)
-                      }
-                      title='Sửa hạn hoàn thành và ghi chú (Brief) của lô'
-                      className='inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold text-stone-700 cursor-pointer'
-                    >
-                      <Pencil className='h-2.5 w-2.5' />
-                      <span>{t('taskGridV3.editLotBtn', 'Sửa lô')}</span>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+                    {lot.dueDate && (
+                      <span className='inline-flex items-center gap-0.5 text-[10px] text-stone-500'>
+                        <Clock className='h-3 w-3' />
+                        {new Date(lot.dueDate).toLocaleDateString('vi-VN')}
+                      </span>
+                    )}
+                    {lot.brief && (
+                      <span
+                        className='max-w-[160px] truncate text-[10px] italic text-stone-500'
+                        title={lot.brief}
+                      >
+                        “{lot.brief}”
+                      </span>
+                    )}
+                    {effectiveIsProducer && lot.status !== 'Closed' && (
+                      <button
+                        type='button'
+                        data-testid={`edit-lot-btn-${lot.id}`}
+                        onClick={() =>
+                          editingLotId === lot.id ? setEditingLotId(null) : openEditLotForm(lot)
+                        }
+                        title='Sửa hạn hoàn thành và ghi chú (Brief) của lô'
+                        className='inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold text-stone-700 cursor-pointer'
+                      >
+                        <Pencil className='h-2.5 w-2.5' />
+                        <span>{t('taskGridV3.editLotBtn', 'Sửa lô')}</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
           </div>
 
           {effectiveIsProducer &&
