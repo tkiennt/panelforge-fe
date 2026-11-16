@@ -426,10 +426,13 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   // Ngôn ngữ soạn thảo bóng thoại (BR-34: balloon localization): 'vi' (ngôn ngữ gốc), 'en', 'ja', 'ko'...
   const [activeLang, setActiveLang] = useState<string>('vi');
-  const [releaseLanguages, setReleaseLanguages] = useState<string[]>(['vi', 'en', 'ja']);
+  const [releaseLanguages, setReleaseLanguages] = useState<string[]>(['vi']);
   const [originalLang, setOriginalLang] = useState<string>('vi');
   const [isSubmittingEdition, setIsSubmittingEdition] = useState(false);
-  const [editionErrorModal, setEditionErrorModal] = useState<{ title: string; message: string } | null>(null);
+  const [editionErrorModal, setEditionErrorModal] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
 
   // Nạp danh sách ngôn ngữ phát hành từ bộ truyện (BR-34)
   useEffect(() => {
@@ -440,9 +443,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
       .getSeriesById(sId)
       .then((ser) => {
         if (!alive || !ser) return;
-        if (ser.releaseLanguages && ser.releaseLanguages.length > 0) {
-          setReleaseLanguages(ser.releaseLanguages);
-        }
+        // Chỉ cho chọn ngôn ngữ gốc + ngôn ngữ phát hành thật của Series (BR-34)
+        const original = ser.originalLanguage || 'vi';
+        setReleaseLanguages(Array.from(new Set([original, ...(ser.releaseLanguages || [])])));
         if (ser.originalLanguage) {
           setOriginalLang(ser.originalLanguage);
           if (!ser.releaseLanguages?.includes(activeLang)) {

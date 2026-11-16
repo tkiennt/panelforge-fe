@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PageDto } from '@/services/page.service';
 import {
   elementService,
@@ -92,8 +92,10 @@ export function useLetteringBalloons(
     [selectedPage, elementsByPageId],
   );
 
+  const reloadSeq = useRef(0);
   const reloadElements = useCallback(async () => {
     if (!selectedPage?.id) return;
+    const seq = ++reloadSeq.current;
     try {
       const snapshot = await elementService.getPageSnapshot(
         selectedPage.id,
@@ -104,6 +106,8 @@ export function useLetteringBalloons(
       const letterElements = (snapshot.elements || []).filter(
         (el) => !el.isRemoved && !IMAGE_LAYER_TYPES.includes(el.elementType as any),
       );
+      // Bỏ kết quả cũ nếu đã đổi trang/ngôn ngữ trong lúc chờ
+      if (seq !== reloadSeq.current) return;
       setElementsByPageId((prev) => ({ ...prev, [selectedPage.id]: letterElements }));
     } catch (err) {
       console.warn('Không thể nạp bóng thoại từ server:', err);
@@ -443,7 +447,10 @@ export function useLetteringBalloons(
       if (isOriginal) {
         // Nếu bóng đã gắn kịch bản (BR-05), không cho sửa chữ gốc tự do
         if (target.scriptLineId) {
-          console.warn('Bóng gắn script không cho sửa chữ gốc tự do (BR-05)');
+          toast.info(
+            'Không sửa được chữ gốc',
+            'Bóng này gắn với dòng kịch bản đã duyệt (BR-05). Hãy sửa trong kịch bản, hoặc chọn ngôn ngữ dịch để nhập bản dịch.',
+          );
           return;
         }
 
@@ -468,7 +475,8 @@ export function useLetteringBalloons(
             reloadElements();
             toast.info('Đã tải lại', 'Phần tử vừa được chỉnh sửa từ nơi khác.');
           } else {
-            console.warn('Cập nhật nội dung bóng thoại thất bại:', err);
+            reloadElements();
+            toast.error?.('Không lưu được nội dung', err?.message || 'Vui lòng thử lại.');
           }
         }
       } else {
@@ -496,7 +504,8 @@ export function useLetteringBalloons(
             reloadElements();
             toast.info('Đã tải lại', 'Bản dịch vừa được chỉnh sửa từ nơi khác.');
           } else {
-            console.warn('Cập nhật bản dịch thất bại:', err);
+            reloadElements();
+            toast.error?.('Không lưu được bản dịch', err?.message || 'Vui lòng thử lại.');
           }
         }
       }
@@ -537,7 +546,8 @@ export function useLetteringBalloons(
           reloadElements();
           toast.info('Đã tải lại', 'Kiểu chữ vừa được chỉnh sửa từ nơi khác.');
         } else {
-          console.warn('Cập nhật kiểu chữ thất bại:', err);
+          reloadElements();
+          toast.error?.('Không lưu được kiểu chữ', err?.message || 'Vui lòng thử lại.');
         }
       }
     },
