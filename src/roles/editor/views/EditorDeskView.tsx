@@ -20,6 +20,7 @@ import {
 import {
   EditorQualityGate,
   EditorReviewQueueItemDto,
+  normalizeWorkspaceRole,
   TaskGridReviewItemDto,
   WorkspaceRole,
 } from '@/types';
@@ -38,6 +39,8 @@ export interface EditorDeskViewProps {
 type DeskQueueItem = EditorReviewQueueItemDto & {
   isGridItem?: boolean;
   taskId?: string;
+  reviewerUserId?: string | null;
+  reviewerName?: string | null;
 };
 
 const inferGateFromStage = (stageName: string): 'gate1' | 'gate2' => {
@@ -55,9 +58,14 @@ const inferGateFromStage = (stageName: string): 'gate1' | 'gate2' => {
   return 'gate2';
 };
 
-export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, onShowToast }) => {
+export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
+  currentUserId,
+  workspaceRole,
+  onShowToast,
+}) => {
   const { t } = useTranslation('review');
   const navigate = useNavigate();
+  const isProducer = normalizeWorkspaceRole(workspaceRole) === 'PRODUCER';
   const {
     workspaceId,
     seriesId,
@@ -116,11 +124,21 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
 
       const mappedGridItems: DeskQueueItem[] = (gridItems || []).map((g) => {
         const m = (memberList || []).find((x) => x.userId === g.assigneeUserId);
+        const reviewer = g.reviewerUserId
+          ? (memberList || []).find((x) => x.userId === g.reviewerUserId)
+          : undefined;
+        const reviewerName = reviewer
+          ? reviewer.fullName || reviewer.email.split('@')[0]
+          : g.reviewerUserId
+            ? g.reviewerUserId.slice(0, 8)
+            : null;
         const gate = inferGateFromStage(g.stageName);
         return {
           isGridItem: true,
           taskId: g.taskId,
           assignmentId: g.taskId,
+          reviewerUserId: g.reviewerUserId ?? null,
+          reviewerName,
           chapterId: g.chapterId,
           chapterNumber: g.chapterNumber,
           chapterTitle: g.chapterTitle ?? null,
@@ -228,6 +246,41 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
     navigate(getReviewUrl(item));
   };
 
+  const handleOpenGridReview = async (item: DeskQueueItem) => {
+    if (!workspaceId || !seriesId || item.isSelfSubmission) return;
+    const taskId = item.taskId || item.assignmentId;
+    setGridBusyTaskId(`open:${taskId}`);
+    try {
+      if (item.status === 'Submitted' && typeof assignmentService.openStageTaskReview === 'function') {
+        await assignmentService.openStageTaskReview(item.chapterId, taskId);
+      }
+      navigate(getReviewUrl(item));
+    } catch (err: any) {
+      onShowToast?.('Lỗi mở duyệt', err?.message || 'Không thể mở phiên duyệt ô công việc.');
+      if (err?.status === 409) await loadData();
+    } finally {
+      setGridBusyTaskId(null);
+    }
+  };
+
+  const handleReleaseGridReview = async (item: DeskQueueItem) => {
+    const taskId = item.taskId || item.assignmentId;
+    setGridBusyTaskId(`release:${taskId}`);
+    try {
+      await assignmentService.releaseStageTaskReview(item.chapterId, taskId);
+      onShowToast?.(
+        t('chapterReview.releaseReviewToast', 'Đã nhả khoá duyệt'),
+        `Chương ${item.chapterNumber} · ${item.stageName} (${item.scopeLabel})`,
+      );
+      await loadData();
+    } catch (err: any) {
+      onShowToast?.('Lỗi nhả khoá duyệt', err?.message || 'Không thể nhả khoá duyệt.');
+      if (err?.status === 409) await loadData();
+    } finally {
+      setGridBusyTaskId(null);
+    }
+  };
+
   const handleApproveGridItem = async (item: DeskQueueItem) => {
     const taskId = item.taskId || item.assignmentId;
     if (item.isSelfSubmission) return;
@@ -244,6 +297,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
       await loadData();
     } catch (err: any) {
       onShowToast?.('Lỗi duyệt ô việc', err?.message || 'Không thể duyệt ô công việc này.');
+      if (err?.status === 409) await loadData();
     } finally {
       setGridBusyTaskId(null);
     }
@@ -268,6 +322,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
       await loadData();
     } catch (err: any) {
       onShowToast?.('Lỗi yêu cầu sửa', err?.message || 'Không thể gửi yêu cầu sửa lại.');
+      if (err?.status === 409) await loadData();
     } finally {
       setGridBusyTaskId(null);
     }
@@ -566,6 +621,18 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
               const isGate1 = item.gate === 'gate1';
               const isUnderReview = item.status === 'UnderReview';
               const isOpening = openingReviewId === item.assignmentId;
+              const isLockedByOther = Boolean(
+                item.isGridItem &&
+                  isUnderReview &&
+                  item.reviewerUserId &&
+                  item.reviewerUserId !== currentUserId,
+              );
+              const isLockedBySelf = Boolean(
+                item.isGridItem &&
+                  isUnderReview &&
+                  currentUserId &&
+                  item.reviewerUserId === currentUserId,
+              );
 
               return (
                 <div
@@ -659,6 +726,28 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
                         </div>
                       </div>
                     )}
+
+                    {isLockedByOther && (
+                      <div
+                        data-testid={`editor-locked-by-other-${item.assignmentId}`}
+                        className='mt-1 mb-2 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-1.5 font-medium'
+                      >
+                        <Lock className='w-3.5 h-3.5 text-amber-600 shrink-0' />
+                        <span>
+                          {t('chapterReview.underReviewBy', {
+                            name: item.reviewerName || item.reviewerUserId,
+                            defaultValue: `Đang được duyệt bởi ${item.reviewerName || item.reviewerUserId}`,
+                          })}
+                        </span>
+                      </div>
+                    )}
+
+                    {isLockedBySelf && (
+                      <div className='mt-1 mb-2 p-2 rounded-lg bg-sky-50 border border-sky-200 text-sky-900 text-xs flex items-center gap-1.5 font-medium'>
+                        <Eye className='w-3.5 h-3.5 text-sky-600 shrink-0' />
+                        <span>{t('chapterReview.underReviewByYou', 'Bạn đang giữ khoá duyệt')}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Footer & Action Button */}
@@ -676,14 +765,45 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
                         </button>
                       ) : item.isGridItem ? (
                         <>
+                          {isProducer && isLockedByOther && (
+                            <button
+                              type='button'
+                              data-testid={`editor-force-release-${item.assignmentId}`}
+                              disabled={gridBusyTaskId !== null}
+                              onClick={() => void handleReleaseGridReview(item)}
+                              className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 transition-colors cursor-pointer disabled:opacity-50'
+                            >
+                              <RotateCcw className='w-3.5 h-3.5' />
+                              <span>
+                                {t('chapterReview.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}
+                              </span>
+                            </button>
+                          )}
+                          {isLockedBySelf && (
+                            <button
+                              type='button'
+                              data-testid={`editor-release-own-${item.assignmentId}`}
+                              disabled={gridBusyTaskId !== null}
+                              onClick={() => void handleReleaseGridReview(item)}
+                              className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-stone-700 bg-white hover:bg-stone-100 border border-stone-300 transition-colors cursor-pointer disabled:opacity-50'
+                            >
+                              <RotateCcw className='w-3.5 h-3.5' />
+                              <span>{t('chapterReview.releaseReviewBtn', 'Nhả khoá duyệt')}</span>
+                            </button>
+                          )}
                           <button
                             type='button'
                             data-testid={`editor-open-grid-review-${item.assignmentId}`}
-                            onClick={() => navigate(getReviewUrl(item))}
-                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] transition-colors cursor-pointer'
+                            disabled={isLockedByOther || gridBusyTaskId !== null}
+                            onClick={() => void handleOpenGridReview(item)}
+                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                           >
                             <Eye className='w-3.5 h-3.5 text-[#F97316]' />
-                            <span>{t('chapterReview.openDetailReview', 'Mở màn duyệt')}</span>
+                            <span>
+                              {gridBusyTaskId === `open:${item.assignmentId}`
+                                ? 'Đang mở...'
+                                : t('chapterReview.openDetailReview', 'Mở màn duyệt')}
+                            </span>
                           </button>
                           <button
                             type='button'
@@ -700,14 +820,14 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
                           <button
                             type='button'
                             data-testid={`editor-reject-toggle-${item.assignmentId}`}
-                            disabled={gridBusyTaskId !== null}
+                            disabled={isLockedByOther || gridBusyTaskId !== null}
                             onClick={() => {
                               setRejectingGridTaskId((prev) =>
                                 prev === item.assignmentId ? null : item.assignmentId,
                               );
                               setRejectComment('');
                             }}
-                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition-colors cursor-pointer disabled:opacity-50'
+                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                           >
                             <RotateCcw className='w-3.5 h-3.5' />
                             <span>Yêu cầu sửa</span>
@@ -715,9 +835,9 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ currentUserId, o
                           <button
                             type='button'
                             data-testid={`editor-approve-grid-${item.assignmentId}`}
-                            disabled={gridBusyTaskId !== null}
+                            disabled={isLockedByOther || gridBusyTaskId !== null}
                             onClick={() => void handleApproveGridItem(item)}
-                            className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50'
+                            className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                           >
                             <CheckCircle2 className='w-3.5 h-3.5' />
                             <span>

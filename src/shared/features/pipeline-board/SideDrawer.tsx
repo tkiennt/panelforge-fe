@@ -284,6 +284,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
       isCellMine &&
       (cell.status === 'Assigned' || cell.status === 'ReworkRequired');
     const canSubmitCell = isStageEnabled && isCellMine && cell.status === 'InProgress';
+    const canWithdrawCell = isStageEnabled && isCellMine && cell.status === 'Submitted';
     const canReviewCell =
       isStageEnabled &&
       isReviewerRole &&
@@ -367,6 +368,32 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                   <Send className='w-3 h-3' />
                 )}
                 <span>Nộp</span>
+              </button>
+            )}
+
+            {canWithdrawCell && (
+              <button
+                type='button'
+                data-testid={`side-drawer-withdraw-${cell.id}`}
+                disabled={cellActionLoading === `withdraw:${cell.id}`}
+                onClick={() =>
+                  void runCellAction(
+                    `withdraw:${cell.id}`,
+                    async () => {
+                      await assignmentService.withdrawStageTask(card.chapterId, cell.id);
+                    },
+                    t('taskGridV3.withdrawSuccessTitle', 'Đã rút bài'),
+                    `${card.stageName} – ${cell.targetLabel}`,
+                  )
+                }
+                className='inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+              >
+                {cellActionLoading === `withdraw:${cell.id}` ? (
+                  <Loader2 className='w-3 h-3 animate-spin' />
+                ) : (
+                  <RotateCcw className='w-3 h-3' />
+                )}
+                <span>{t('taskGridV3.withdrawBtn', 'Rút bài')}</span>
               </button>
             )}
 

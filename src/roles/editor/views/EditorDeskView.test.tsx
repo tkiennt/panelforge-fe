@@ -350,4 +350,118 @@ describe('EditorDeskView Component', () => {
       expect(approveSpy).toHaveBeenCalledWith('chap-101', 'grid-task-1');
     });
   });
+
+  it('calls openStageTaskReview before navigating to V3 detail review and blocks navigation on 409', async () => {
+    vi.spyOn(assignmentService, 'getEditorReviewQueue').mockResolvedValue([]);
+    const queueSpy = vi.spyOn(assignmentService, 'getTaskGridReviewQueue').mockResolvedValue([
+      {
+        taskId: 'grid-task-open',
+        seriesId: 'series-001',
+        seriesTitle: 'Đại Chiến Thần Binh',
+        chapterId: 'chap-101',
+        chapterNumber: 12,
+        pipelineStageId: 'stg-pencil',
+        stageName: 'Pencil',
+        pageId: 'page-009',
+        pageNumber: 9,
+        status: 'Submitted',
+        assigneeUserId: 'usr-artist-1',
+        attemptNumber: 1,
+        submittedAt: '2026-11-14T10:00:00Z',
+      },
+    ]);
+    vi.spyOn(seriesService, 'getSeriesById').mockResolvedValue({ id: 'series-001' } as any);
+    const conflictErr = Object.assign(new Error('Ô này vừa được Editor khác mở duyệt.'), {
+      status: 409,
+    });
+    const openSpy = vi
+      .spyOn(assignmentService, 'openStageTaskReview')
+      .mockRejectedValueOnce(conflictErr)
+      .mockResolvedValueOnce({
+        id: 'grid-task-open',
+        status: 'UnderReview',
+        reviewerUserId: 'usr-editor-1',
+      } as any);
+
+    const onShowToast = vi.fn();
+    renderView({ currentUserId: 'usr-editor-1', onShowToast });
+
+    await waitFor(() => {
+      expect(screen.getByText('Trang 9')).toBeInTheDocument();
+    });
+
+    // Lần 1: 409 -> báo đúng message BE, không điều hướng, nạp lại hàng đợi
+    fireEvent.click(screen.getByTestId('editor-open-grid-review-grid-task-open'));
+    await waitFor(() => {
+      expect(openSpy).toHaveBeenCalledWith('chap-101', 'grid-task-open');
+      expect(onShowToast).toHaveBeenCalledWith(
+        'Lỗi mở duyệt',
+        'Ô này vừa được Editor khác mở duyệt.',
+      );
+      expect(queueSpy).toHaveBeenCalledTimes(2);
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    // Lần 2: 200 OK -> điều hướng vào màn duyệt chi tiết
+    fireEvent.click(screen.getByTestId('editor-open-grid-review-grid-task-open'));
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/workspaces/ws-1/series/series-001/chapters/chap-101/review/grid-task-open?chapterId=chap-101',
+      );
+    });
+  });
+
+  it('locks UnderReview cells held by another Editor and lets Producer force-release lock', async () => {
+    vi.spyOn(assignmentService, 'getEditorReviewQueue').mockResolvedValue([]);
+    vi.spyOn(workspaceService, 'getMembers').mockResolvedValue([
+      {
+        userId: 'usr-editor-2',
+        fullName: 'Biên tập Minh',
+        email: 'minh@panelforge.local',
+      },
+    ] as any);
+    vi.spyOn(assignmentService, 'getTaskGridReviewQueue').mockResolvedValue([
+      {
+        taskId: 'grid-task-locked',
+        seriesId: 'series-001',
+        seriesTitle: 'Đại Chiến Thần Binh',
+        chapterId: 'chap-101',
+        chapterNumber: 12,
+        pipelineStageId: 'stg-ink',
+        stageName: 'Ink',
+        pageId: 'page-010',
+        pageNumber: 10,
+        status: 'UnderReview',
+        assigneeUserId: 'usr-artist-1',
+        reviewerUserId: 'usr-editor-2',
+        attemptNumber: 1,
+        submittedAt: '2026-11-14T10:30:00Z',
+      },
+    ]);
+    vi.spyOn(seriesService, 'getSeriesById').mockResolvedValue({ id: 'series-001' } as any);
+    const releaseSpy = vi
+      .spyOn(assignmentService, 'releaseStageTaskReview')
+      .mockResolvedValue({ id: 'grid-task-locked', status: 'Submitted' } as any);
+
+    const { unmount } = renderView({ currentUserId: 'usr-editor-1', workspaceRole: 'EDITOR' });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-locked-by-other-grid-task-locked')).toHaveTextContent(
+        /Đang được duyệt bởi Biên tập Minh/i,
+      );
+    });
+    expect(screen.getByTestId('editor-open-grid-review-grid-task-locked')).toBeDisabled();
+    expect(screen.getByTestId('editor-reject-toggle-grid-task-locked')).toBeDisabled();
+    expect(screen.getByTestId('editor-approve-grid-grid-task-locked')).toBeDisabled();
+    expect(screen.queryByTestId('editor-force-release-grid-task-locked')).not.toBeInTheDocument();
+
+    unmount();
+
+    renderView({ currentUserId: 'usr-producer-1', workspaceRole: 'PRODUCER' });
+    const forceReleaseBtn = await screen.findByTestId('editor-force-release-grid-task-locked');
+    fireEvent.click(forceReleaseBtn);
+    await waitFor(() => {
+      expect(releaseSpy).toHaveBeenCalledWith('chap-101', 'grid-task-locked');
+    });
+  });
 });

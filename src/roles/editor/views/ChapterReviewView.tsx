@@ -94,6 +94,8 @@ export interface ChapterReviewViewProps {
   effectiveRole?: string | null;
   currentUserId?: string | null;
   onShowToast?: (title: string, desc: string) => void;
+  onDecisionMade?: () => void;
+  onCloseWithoutDecision?: () => Promise<void> | void;
 }
 
 type ReviewTab = 'changes' | 'checklist' | 'consistency';
@@ -124,6 +126,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   effectiveRole,
   currentUserId,
   onShowToast,
+  onDecisionMade,
+  onCloseWithoutDecision,
 }) => {
   const { t } = useTranslation('review');
   const navigate = useNavigate();
@@ -834,6 +838,27 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     }
   };
 
+  const handleReleaseGridCellReview = async (cell: StageTaskDto) => {
+    setGridCellBusyId(`release:${cell.id}`);
+    setBackendBlockError(null);
+    try {
+      await assignmentService.releaseStageTaskReview(chapterId, cell.id);
+      const st = stageMap.get(cell.pipelineStageId);
+      toast(
+        t('chapterReview.releaseReviewToast', 'Đã nhả khoá duyệt'),
+        `${st?.name || 'Stage'}${currentPage ? ` · Trang ${currentPage.pageNumber}` : ''}`,
+      );
+      await loadChapterData();
+    } catch (err: any) {
+      const msg = extractError(err, 'Không thể gỡ khoá duyệt ô công việc.');
+      setBackendBlockError(msg);
+      toast('Không thể gỡ khoá duyệt', msg);
+      if (err?.status === 409) await loadChapterData();
+    } finally {
+      setGridCellBusyId(null);
+    }
+  };
+
   // Handle Submit Return Work
   const handleSubmitReturnWork = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -995,6 +1020,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     try {
       if (isGridMode && gridReviewTask) {
         await assignmentService.approveStageTask(chapterId, gridReviewTask.id);
+        onDecisionMade?.();
       } else {
         await assignmentService.approveAssignment(chapterId, assignment.id);
       }
@@ -1177,7 +1203,9 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
           <button
             type='button'
             onClick={() => {
-              if (effectiveWsId && seriesId) {
+              if (onCloseWithoutDecision) {
+                void onCloseWithoutDecision();
+              } else if (effectiveWsId && seriesId) {
                 navigate(`/workspaces/${effectiveWsId}/series/${seriesId}/editor/desk`);
               } else {
                 navigate(-1);
@@ -1787,6 +1815,21 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       const isSelfCell = Boolean(
                         currentUserId && cell.assigneeUserId === currentUserId,
                       );
+                      const isCellLockedByOther = Boolean(
+                        cell.status === 'UnderReview' &&
+                          cell.reviewerUserId &&
+                          cell.reviewerUserId !== currentUserId,
+                      );
+                      const reviewerMember = cell.reviewerUserId
+                        ? memberMap.get(cell.reviewerUserId)
+                        : undefined;
+                      const reviewerLabel =
+                        reviewerMember?.fullName ||
+                        reviewerMember?.email ||
+                        cell.reviewerUserId ||
+                        '';
+                      const isProducerViewer =
+                        String(effectiveRole || '').toUpperCase() === 'PRODUCER';
                       const lastComment =
                         cell.status === 'ReworkRequired'
                           ? cell.lastDecisionComment?.trim() || gridCommentsByTask[cell.id] || null
@@ -1831,6 +1874,35 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                             </div>
                           )}
 
+                          {isCellLockedByOther && (
+                            <div
+                              data-testid={`gate2-cell-locked-by-other-${cell.id}`}
+                              className='rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-900 flex items-center justify-between gap-1.5 flex-wrap'
+                            >
+                              <span className='inline-flex items-center gap-1'>
+                                <Lock className='w-3 h-3 text-amber-600 shrink-0' />
+                                {t('chapterReview.underReviewBy', {
+                                  name: reviewerLabel,
+                                  defaultValue: `Đang được duyệt bởi ${reviewerLabel}`,
+                                })}
+                              </span>
+                              {isProducerViewer && (
+                                <button
+                                  type='button'
+                                  data-testid={`gate2-force-release-cell-${cell.id}`}
+                                  disabled={gridCellBusyId !== null}
+                                  onClick={() => void handleReleaseGridCellReview(cell)}
+                                  className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 text-[11px] font-semibold text-amber-950 cursor-pointer disabled:opacity-50'
+                                >
+                                  <RotateCcw className='w-3 h-3' />
+                                  <span>
+                                    {t('chapterReview.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}
+                                  </span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+
                           {isReviewable && (
                             <div className='flex flex-wrap items-center gap-1.5 pt-0.5'>
                               {isSelfCell ? (
@@ -1851,9 +1923,13 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   <button
                                     type='button'
                                     data-testid={`gate2-approve-cell-${cell.id}`}
-                                    disabled={gridCellBusyId !== null || cell.isInputOutdated}
+                                    disabled={
+                                      gridCellBusyId !== null ||
+                                      cell.isInputOutdated ||
+                                      isCellLockedByOther
+                                    }
                                     onClick={() => void handleApproveGridCell(cell)}
-                                    className='inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-xs font-semibold cursor-pointer disabled:opacity-50'
+                                    className='inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                                   >
                                     {gridCellBusyId === `approve:${cell.id}` ? (
                                       <Loader2 className='w-3 h-3 animate-spin' />
@@ -1867,14 +1943,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   <button
                                     type='button'
                                     data-testid={`gate2-request-changes-toggle-${cell.id}`}
-                                    disabled={gridCellBusyId !== null}
+                                    disabled={gridCellBusyId !== null || isCellLockedByOther}
                                     onClick={() => {
                                       setRejectingGridCellId((prev) =>
                                         prev === cell.id ? null : cell.id,
                                       );
                                       setRejectGridCellComment('');
                                     }}
-                                    className='inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2.5 py-1 text-xs font-semibold cursor-pointer disabled:opacity-50'
+                                    className='inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2.5 py-1 text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                                   >
                                     <XCircle className='w-3 h-3' />
                                     <span>
