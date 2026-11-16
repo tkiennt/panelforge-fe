@@ -740,37 +740,6 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     expect(screen.queryByTestId('grid-cell-task-p1-pencil')).not.toBeInTheDocument();
   });
 
-  it('Lát cắt 4 (Clean Cutover): Producer có thể bấm nút chuyển việc V2 sang Lưới V3 và hiện toast kết quả', async () => {
-    const onShowToast = vi.fn();
-    vi.mocked(assignmentService.migrateAssignmentsToGrid).mockResolvedValueOnce({
-      migrated: 3,
-      cellsAssigned: 9,
-      skipped: [{ assignmentId: 'asg-skip', chapterId: 'chap-1', reason: 'Công đoạn đã tắt' }],
-    });
-
-    render(
-      <TaskGridBoard
-        chapterId='chap-1'
-        seriesId='se-1'
-        workspaceId='ws-1'
-        currentUserId='user-producer'
-        isProducer={true}
-        onShowToast={onShowToast}
-      />,
-    );
-
-    await screen.findByText('1. Pencil');
-    fireEvent.click(screen.getByTestId('migrate-v2-assignments-btn'));
-
-    await waitFor(() => {
-      expect(assignmentService.migrateAssignmentsToGrid).toHaveBeenCalledWith('se-1');
-      expect(onShowToast).toHaveBeenCalledWith(
-        'Đã chuyển việc cũ sang Lưới V3',
-        'Đã chuyển 3 việc cũ (9 ô), bỏ qua 1 mục.',
-      );
-    });
-  });
-
   it('LỖI 2: Artist / Letterer tuyệt đối không thấy các nút chỉ dành cho Producer (Sinh ô, Chuyển việc cũ, Giao lô, Bỏ gán, Mở lại, Giữ kết quả/Làm lại) và không thấy Duyệt/Yêu cầu sửa', async () => {
     const gridWithAllStates = {
       ...mockGrid,
@@ -811,7 +780,6 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     expect(
       screen.queryByRole('button', { name: /Sinh \/ Đồng bộ ô việc/i }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('migrate-v2-assignments-btn')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Chọn cột/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Bỏ gán$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Mở lại$/i })).not.toBeInTheDocument();

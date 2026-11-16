@@ -476,37 +476,6 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     }
   };
 
-  const handleMigrateAssignments = async () => {
-    setActionLoading('migrateAssignments');
-    setError(null);
-    try {
-      let targetSeriesId = seriesId || '';
-      if (!targetSeriesId && chapterId) {
-        const chap = await chapterService.getChapterById(chapterId).catch(() => null);
-        targetSeriesId = chap?.seriesId || '';
-      }
-      if (!targetSeriesId) {
-        throw new Error('Không xác định được Series để chuyển việc cũ sang Lưới V3.');
-      }
-      const res = await assignmentService.migrateAssignmentsToGrid(targetSeriesId);
-      const skippedSuffix =
-        res.skipped && res.skipped.length > 0 ? `, bỏ qua ${res.skipped.length} mục` : '';
-      onShowToast?.(
-        'Đã chuyển việc cũ sang Lưới V3',
-        `Đã chuyển ${res.migrated} việc cũ (${res.cellsAssigned} ô)${skippedSuffix}.`,
-      );
-      await loadGrid();
-    } catch (err: any) {
-      setError(err.message || 'Không thể chuyển việc cũ sang Lưới V3.');
-      onShowToast?.(
-        'Lỗi chuyển việc V2 → Lưới',
-        err.message || 'Không thể chuyển việc cũ sang Lưới V3.',
-      );
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   const handleAssignLots = async (dryRun: boolean) => {
     const lots = buildLotRequests();
     if (lots.length === 0) {
@@ -1847,9 +1816,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         <div className='flex flex-wrap items-center gap-3'>
           <div className='flex items-center gap-2'>
             <Grid className='h-4 w-4 text-[#F97316]' />
-            <span className='font-bold text-sm text-stone-900'>
-              Lưới Giao Việc
-            </span>
+            <span className='font-bold text-sm text-stone-900'>Lưới Giao Việc</span>
           </div>
           {grid && (
             <span className='rounded-lg bg-stone-100 border border-stone-200 px-2.5 py-1 text-xs font-mono font-semibold text-stone-700'>
@@ -1911,22 +1878,6 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
           {effectiveIsProducer && (
             <>
-              <button
-                type='button'
-                data-testid='migrate-v2-assignments-btn'
-                disabled={actionLoading === 'migrateAssignments'}
-                onClick={handleMigrateAssignments}
-                title='Chuyển các phân công V2 còn sống của toàn Series thành lô trên Lưới V3'
-                className='inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 px-3 py-1.5 text-xs font-semibold cursor-pointer shadow-2xs disabled:opacity-50'
-              >
-                {actionLoading === 'migrateAssignments' ? (
-                  <Loader2 className='h-3.5 w-3.5 animate-spin' />
-                ) : (
-                  <RotateCcw className='h-3.5 w-3.5 text-[#F97316]' />
-                )}
-                <span>Chuyển việc cũ (V2 → Lưới)</span>
-              </button>
-
               <button
                 type='button'
                 disabled={actionLoading === 'generate'}
