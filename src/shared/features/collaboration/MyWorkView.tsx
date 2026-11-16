@@ -191,6 +191,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   isStartable: t.isStartable,
                   isInputOutdated: t.isInputOutdated,
                   outdatedReason: t.outdatedReason,
+                  lastDecisionComment: t.lastDecisionComment ?? null,
+                  attemptCount: t.attemptCount ?? 0,
                 }))
                 .sort((a, b) => (a.pageNumber ?? -1) - (b.pageNumber ?? -1));
 
@@ -234,7 +236,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 status: t.status === 'UnderReview' ? 'UnderReview' : 'Submitted',
                 assigneeUserId: t.assigneeUserId,
                 reviewerUserId: t.reviewerUserId,
-                attemptNumber: null,
+                attemptNumber: t.attemptCount && t.attemptCount > 0 ? t.attemptCount : null,
                 submittedAt: null,
               };
             });
@@ -954,7 +956,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   assigneeName={
                     item.assigneeUserId ? memberName(item.assigneeUserId) : 'Chưa rõ người nộp'
                   }
+                  reviewerName={item.reviewerUserId ? memberName(item.reviewerUserId) : null}
                   currentUserId={currentUserId}
+                  isProducer={String(workspaceRole || '').toUpperCase() === 'PRODUCER'}
                   highlighted={item.taskId === highlightedId}
                   onChanged={() => void loadWork()}
                   onToast={onShowToast}

@@ -14,8 +14,12 @@ vi.mock('@/services/assignment.service', () => ({
     getTaskGrid: vi.fn(),
     generateTaskGrid: vi.fn(),
     assignTaskGridLots: vi.fn(),
+    updateStageTaskLot: vi.fn(),
     startStageTask: vi.fn(),
     submitStageTasks: vi.fn(),
+    withdrawStageTask: vi.fn(),
+    openStageTaskReview: vi.fn(),
+    releaseStageTaskReview: vi.fn(),
     approveStageTask: vi.fn(),
     requestStageTaskChanges: vi.fn(),
     getStageTaskSubmissions: vi.fn(),
@@ -947,5 +951,194 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       'title',
       expect.stringContaining('Bố cục khung 3 bị lệch đường chân trời'),
     );
+  });
+
+  it('Hiện "Lần nộp #N", cho người giữ ô Rút bài, và khoá nút khi UnderReview của người khác kèm nút Gỡ khoá duyệt cho Producer', async () => {
+    const gridData = {
+      ...mockGrid,
+      tasks: mockGrid.tasks.map((t) => {
+        if (t.id === 'task-p2-ink') {
+          return {
+            ...t,
+            status: 'Submitted' as const,
+            assigneeUserId: 'user-artist-1',
+            attemptCount: 3,
+          };
+        }
+        return t;
+      }),
+    };
+    vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(gridData as any);
+    vi.mocked(assignmentService.withdrawStageTask).mockResolvedValueOnce({
+      id: 'task-p2-ink',
+      status: 'InProgress',
+    } as any);
+
+    const { unmount } = render(
+      <TaskGridBoard
+        chapterId='chap-1'
+        workspaceId='ws-1'
+        currentUserId='user-artist-1'
+        currentUserRole='Artist'
+      />,
+    );
+
+    expect(await screen.findByTestId('task-attempt-count-task-p2-ink')).toHaveTextContent(
+      'Lần nộp #3',
+    );
+    fireEvent.click(screen.getByTestId('withdraw-task-btn-task-p2-ink'));
+    await waitFor(() => {
+      expect(assignmentService.withdrawStageTask).toHaveBeenCalledWith('chap-1', 'task-p2-ink');
+      expect(assignmentService.getTaskGrid).toHaveBeenCalledTimes(2);
+    });
+    unmount();
+
+    // Producer thấy "Đang được duyệt bởi..." và nút Gỡ khoá duyệt khi Editor khác đang giữ khoá
+    const underReviewGrid = {
+      ...mockGrid,
+      tasks: mockGrid.tasks.map((t) =>
+        t.id === 'task-p2-ink'
+          ? {
+              ...t,
+              status: 'UnderReview' as const,
+              reviewerUserId: 'user-editor-1',
+              attemptCount: 1,
+            }
+          : t,
+      ),
+    };
+    vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(underReviewGrid as any);
+    vi.mocked(assignmentService.releaseStageTaskReview).mockResolvedValueOnce({
+      id: 'task-p2-ink',
+      status: 'Submitted',
+    } as any);
+
+    render(
+      <TaskGridBoard
+        chapterId='chap-1'
+        workspaceId='ws-1'
+        currentUserId='user-producer'
+        currentUserRole='Producer'
+        isProducer={true}
+      />,
+    );
+
+    expect(await screen.findByTestId('under-review-by-task-p2-ink')).toHaveTextContent(
+      'Đang được duyệt bởi',
+    );
+    expect(screen.getByRole('button', { name: 'Duyệt' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Yêu cầu sửa/i })).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('force-release-review-btn-task-p2-ink'));
+    await waitFor(() => {
+      expect(assignmentService.releaseStageTaskReview).toHaveBeenCalledWith(
+        'chap-1',
+        'task-p2-ink',
+      );
+    });
+  });
+
+  it('Producer có thể Đổi người (reassign: true) cho ô chưa nộp và Sửa hạn/brief lô (PATCH)', async () => {
+    vi.mocked(workspaceService.getMembers).mockResolvedValue([
+      {
+        userId: 'user-artist-1',
+        fullName: 'Artist Một',
+        email: 'a1@test.com',
+        role: 'Artist',
+        status: 'Active',
+      },
+      {
+        userId: 'user-artist-2',
+        fullName: 'Artist Hai',
+        email: 'a2@test.com',
+        role: 'Artist',
+        status: 'Active',
+      },
+      {
+        userId: 'user-writer-1',
+        fullName: 'Writer Một',
+        email: 'w1@test.com',
+        role: 'Writer',
+        status: 'Active',
+      },
+    ] as any);
+    vi.mocked(assignmentService.assignTaskGridLots).mockResolvedValueOnce({
+      dryRun: false,
+      taskCount: 1,
+      lots: [],
+    });
+    vi.mocked(assignmentService.updateStageTaskLot).mockResolvedValueOnce({
+      id: 'lot-1',
+      pipelineStageId: 'stg-pencil',
+      assigneeUserId: 'user-artist-1',
+      assignedRole: 'Artist',
+      brief: 'Brief đã cập nhật',
+      dueDate: '2026-12-01T23:59:59.000Z',
+      status: 'Active',
+      isOverdue: false,
+      taskCount: 1,
+      approvedCount: 0,
+      rowVersion: 2,
+    });
+
+    render(
+      <TaskGridBoard
+        chapterId='chap-1'
+        workspaceId='ws-1'
+        currentUserId='user-producer'
+        currentUserRole='Producer'
+        isProducer={true}
+      />,
+    );
+
+    await screen.findByText('1. Pencil');
+
+    // Ô đang isInputOutdated (task-p1-ink) khoá nút Đổi người
+    expect(screen.getByTestId('reassign-task-btn-task-p1-ink')).toBeDisabled();
+
+    // Đổi người cho task-p2-pencil (Assigned, cùng vai trò Artist, loại bỏ Writer)
+    fireEvent.click(screen.getByTestId('reassign-task-btn-task-p2-pencil'));
+    const select = screen.getByLabelText('Người nhận mới') as HTMLSelectElement;
+    expect(select.value).toBe('user-artist-2');
+    expect(screen.queryByText(/Writer Một/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('confirm-reassign-task-task-p2-pencil'));
+    await waitFor(() => {
+      expect(assignmentService.assignTaskGridLots).toHaveBeenCalledWith(
+        'chap-1',
+        expect.objectContaining({
+          reassign: true,
+          dryRun: false,
+          lots: [
+            expect.objectContaining({
+              pipelineStageId: 'stg-pencil',
+              assigneeUserId: 'user-artist-2',
+              taskIds: ['task-p2-pencil'],
+            }),
+          ],
+        }),
+      );
+    });
+
+    // Sửa brief & hạn lô lot-1 (PATCH)
+    fireEvent.click(screen.getByTestId('edit-lot-btn-lot-1'));
+    fireEvent.change(screen.getByLabelText('Brief của lô'), {
+      target: { value: 'Brief đã cập nhật' },
+    });
+    fireEvent.change(screen.getByLabelText('Hạn hoàn thành lô'), {
+      target: { value: '2026-12-01' },
+    });
+    fireEvent.click(screen.getByTestId('save-lot-btn-lot-1'));
+
+    await waitFor(() => {
+      expect(assignmentService.updateStageTaskLot).toHaveBeenCalledWith(
+        'chap-1',
+        'lot-1',
+        expect.objectContaining({
+          brief: 'Brief đã cập nhật',
+          clearDueDate: false,
+        }),
+      );
+    });
   });
 });

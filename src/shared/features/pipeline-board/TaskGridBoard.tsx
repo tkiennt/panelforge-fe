@@ -10,12 +10,17 @@ import {
   Grid,
   History,
   Loader2,
+  Lock,
+  Pencil,
   Play,
   RefreshCw,
   RotateCcw,
   Send,
   Shield,
   Sparkles,
+  Undo2,
+  Unlock,
+  UserCheck,
   UserMinus,
   Users,
   XCircle,
@@ -23,6 +28,7 @@ import {
 import {
   assignmentService,
   type StageTaskDto,
+  type StageTaskLotDto,
   type StageTaskStatus,
   type StageTaskSubmissionDto,
   type TaskGridDto,
@@ -156,6 +162,18 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     lotCount: number;
   } | null>(null);
 
+  // Trạng thái Đổi người cho ô chưa nộp (Producer — POST lots với reassign: true)
+  const [reassigningTaskId, setReassigningTaskId] = useState<string | null>(null);
+  const [reassignUserId, setReassignUserId] = useState('');
+  const [reassignBrief, setReassignBrief] = useState('');
+  const [reassignDueDate, setReassignDueDate] = useState('');
+
+  // Trạng thái Sửa hạn & brief lô (Producer — PATCH lots/{lotId})
+  const [editingLotId, setEditingLotId] = useState<string | null>(null);
+  const [editLotBrief, setEditLotBrief] = useState('');
+  const [editLotDueDate, setEditLotDueDate] = useState('');
+  const [editLotClearDueDate, setEditLotClearDueDate] = useState(false);
+
   // LỖI 2: Khi đã xác định currentUserRole từ API, phân quyền nghiêm ngặt theo role đó (tránh lộ nút Producer cho Artist/Letterer)
   const normalizedUserRole = currentUserRole ? String(currentUserRole).trim().toUpperCase() : '';
   const effectiveIsProducer = normalizedUserRole
@@ -170,6 +188,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       setSelectedUnassignedIds(new Set());
       setSelectedUnassignIds(new Set());
       setReopeningTaskId(null);
+      setReassigningTaskId(null);
+      setEditingLotId(null);
       setDryRunPreview(null);
     }
   }, [effectiveIsProducer]);
@@ -587,6 +607,144 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     }
   };
 
+  const handleWithdrawTask = async (task: StageTaskDto) => {
+    setActionLoading(`withdraw:${task.id}`);
+    setError(null);
+    try {
+      await assignmentService.withdrawStageTask(chapterId, task.id);
+      onShowToast?.(
+        t('taskGridV3.withdrawSuccessTitle', 'Đã rút bài'),
+        'Ô công việc đã chuyển về trạng thái Đang làm (InProgress).',
+      );
+      await loadGrid();
+    } catch (err: any) {
+      const msg = err?.message || 'Không thể rút bài đã nộp.';
+      setError(msg);
+      onShowToast?.(t('taskGridV3.withdrawErrorTitle', 'Không thể rút bài'), msg);
+      if (err?.status === 409) loadGrid();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReleaseReview = async (task: StageTaskDto) => {
+    setActionLoading(`releaseReview:${task.id}`);
+    setError(null);
+    try {
+      await assignmentService.releaseStageTaskReview(chapterId, task.id);
+      onShowToast?.(
+        t('taskGridV3.releaseReviewSuccessTitle', 'Đã nhả khoá duyệt'),
+        'Ô công việc đã trở về trạng thái Chờ duyệt (Submitted).',
+      );
+      await loadGrid();
+    } catch (err: any) {
+      const msg = err?.message || 'Không thể nhả khoá duyệt ô công việc.';
+      setError(msg);
+      onShowToast?.('Lỗi nhả khoá duyệt', msg);
+      if (err?.status === 409) loadGrid();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const openReassignForm = (task: StageTaskDto, stage: TaskGridStageDto) => {
+    const allowedUpper = stage.allowedRole ? String(stage.allowedRole).toUpperCase() : null;
+    const candidates = activeMembers.filter(
+      (m) => !allowedUpper || String(m.role || '').toUpperCase() === allowedUpper,
+    );
+    const defaultCandidate =
+      candidates.find((m) => m.userId !== task.assigneeUserId) ?? candidates[0];
+    const currentLot = task.lotId ? grid?.lots.find((l) => l.id === task.lotId) : undefined;
+    setReassigningTaskId(task.id);
+    setReassignUserId(defaultCandidate?.userId ?? '');
+    setReassignBrief(currentLot?.brief ?? '');
+    setReassignDueDate(currentLot?.dueDate ? currentLot.dueDate.slice(0, 10) : '');
+  };
+
+  const handleReassignTask = async (task: StageTaskDto, stage: TaskGridStageDto) => {
+    if (!reassignUserId) {
+      setError('Vui lòng chọn thành viên nhận việc mới.');
+      return;
+    }
+    setActionLoading(`reassign:${task.id}`);
+    setError(null);
+    try {
+      const dueIso = reassignDueDate ? new Date(`${reassignDueDate}T23:59:59`).toISOString() : null;
+      await assignmentService.assignTaskGridLots(chapterId, {
+        lots: [
+          {
+            pipelineStageId: stage.id,
+            assigneeUserId: reassignUserId,
+            taskIds: [task.id],
+            brief: reassignBrief.trim() || null,
+            dueDate: dueIso,
+          },
+        ],
+        dryRun: false,
+        reassign: true,
+      });
+      setReassigningTaskId(null);
+      onShowToast?.(
+        t('taskGridV3.reassignSuccessTitle', 'Đã đổi người nhận'),
+        `Đã chuyển ô sang ${getMemberName(reassignUserId)}.`,
+      );
+      await loadGrid();
+    } catch (err: any) {
+      const msg = err?.message || 'Không thể đổi người nhận ô công việc.';
+      setError(msg);
+      onShowToast?.('Lỗi đổi người nhận', msg);
+      if (err?.status === 409) loadGrid();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const openEditLotForm = (lot: StageTaskLotDto) => {
+    setEditingLotId(lot.id);
+    setEditLotBrief(lot.brief ?? '');
+    setEditLotDueDate(lot.dueDate ? lot.dueDate.slice(0, 10) : '');
+    setEditLotClearDueDate(false);
+  };
+
+  const handleUpdateLot = async (lot: StageTaskLotDto) => {
+    setActionLoading(`updateLot:${lot.id}`);
+    setError(null);
+    try {
+      const origBrief = lot.brief ?? '';
+      const origDate = lot.dueDate ? lot.dueDate.slice(0, 10) : '';
+      const briefPayload = editLotBrief !== origBrief ? editLotBrief : null;
+
+      let dueDatePayload: string | null = null;
+      let clearDueDate = false;
+      if (editLotClearDueDate || (!editLotDueDate && Boolean(origDate))) {
+        dueDatePayload = null;
+        clearDueDate = true;
+      } else if (editLotDueDate && editLotDueDate !== origDate) {
+        dueDatePayload = new Date(`${editLotDueDate}T23:59:59`).toISOString();
+        clearDueDate = false;
+      }
+
+      await assignmentService.updateStageTaskLot(chapterId, lot.id, {
+        brief: briefPayload,
+        dueDate: dueDatePayload,
+        clearDueDate,
+      });
+      setEditingLotId(null);
+      onShowToast?.(
+        t('taskGridV3.updateLotSuccessTitle', 'Đã cập nhật lô công việc'),
+        `Đã lưu thông tin lô công việc.`,
+      );
+      await loadGrid();
+    } catch (err: any) {
+      const msg = err?.message || 'Không thể cập nhật lô công việc.';
+      setError(msg);
+      onShowToast?.('Lỗi cập nhật lô', msg);
+      if (err?.status === 409) loadGrid();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleRequestChanges = async (task: StageTaskDto) => {
     const trimmed = requestChangesComment.trim();
     if (!trimmed) {
@@ -859,14 +1017,36 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       (task.status === 'Assigned' ||
         task.status === 'InProgress' ||
         task.status === 'ReworkRequired');
+    const canReassign =
+      isStageEnabled &&
+      effectiveIsProducer &&
+      (task.status === 'Assigned' ||
+        task.status === 'InProgress' ||
+        task.status === 'ReworkRequired');
     const canStart =
       isStageEnabled && (task.status === 'Assigned' || task.status === 'ReworkRequired') && isMine;
     const canSubmit = isStageEnabled && task.status === 'InProgress' && isMine;
+    const canWithdraw = isStageEnabled && task.status === 'Submitted' && isMine;
+    const isLockedByOtherReviewer = Boolean(
+      task.status === 'UnderReview' &&
+        task.reviewerUserId &&
+        (!currentUserId || task.reviewerUserId !== currentUserId),
+    );
     const canReview =
       isStageEnabled &&
       effectiveIsReviewer &&
       (task.status === 'Submitted' || task.status === 'UnderReview') &&
       Boolean(!task.assigneeUserId || (currentUserId && task.assigneeUserId !== currentUserId));
+    const canForceReleaseReview =
+      isStageEnabled &&
+      effectiveIsProducer &&
+      task.status === 'UnderReview' &&
+      Boolean(task.reviewerUserId && task.reviewerUserId !== currentUserId);
+    const canReleaseOwnReview =
+      isStageEnabled &&
+      effectiveIsReviewer &&
+      task.status === 'UnderReview' &&
+      Boolean(currentUserId && task.reviewerUserId === currentUserId);
     const canReopen =
       isStageEnabled && effectiveIsProducer && task.status === 'Approved' && !task.isInputOutdated;
     const canResolveImpact = isStageEnabled && effectiveIsProducer && task.isInputOutdated;
@@ -875,7 +1055,11 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     const isSelectedForLot = selectedUnassignedIds.has(task.id);
     const isSelectedForSubmit = selectedSubmitIds.has(task.id);
     const isSelectedForUnassign = selectedUnassignIds.has(task.id);
-    const hasOpenInlineForm = requestingChangesTaskId === task.id || reopeningTaskId === task.id;
+    const hasOpenInlineForm =
+      requestingChangesTaskId === task.id ||
+      reopeningTaskId === task.id ||
+      reassigningTaskId === task.id;
+    const attemptCount = task.attemptCount ?? 0;
     const latestDecisionComment =
       task.status === 'ReworkRequired'
         ? task.lastDecisionComment?.trim() ||
@@ -900,9 +1084,22 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         }`}
       >
         <div className='flex items-center justify-between gap-1.5'>
-          <span className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold ${meta.cls}`}>
-            {meta.label}
-          </span>
+          <div className='flex items-center gap-1 flex-wrap'>
+            <span className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold ${meta.cls}`}>
+              {meta.label}
+            </span>
+            {attemptCount > 0 && (
+              <span
+                data-testid={`task-attempt-count-${task.id}`}
+                className='px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-[10px] font-mono font-semibold text-stone-700'
+              >
+                {t('taskGridV3.attemptBadge', {
+                  count: attemptCount,
+                  defaultValue: `Lần nộp #${attemptCount}`,
+                })}
+              </span>
+            )}
+          </div>
 
           <div className='flex items-center gap-1'>
             {canSelectForLot && (
@@ -943,6 +1140,21 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             title={getMemberName(task.assigneeUserId)}
           >
             👤 <span className='font-medium'>{getMemberName(task.assigneeUserId)}</span>
+          </div>
+        )}
+
+        {isLockedByOtherReviewer && task.reviewerUserId && (
+          <div
+            data-testid={`under-review-by-${task.id}`}
+            className='rounded border border-indigo-200 bg-indigo-50 px-1.5 py-1 text-[10px] font-semibold text-indigo-900 flex items-center gap-1'
+          >
+            <Lock className='h-2.5 w-2.5 shrink-0 text-indigo-600' />
+            <span className='truncate'>
+              {t('taskGridV3.underReviewBy', {
+                name: getMemberName(task.reviewerUserId),
+                defaultValue: `Đang được duyệt bởi ${getMemberName(task.reviewerUserId)}`,
+              })}
+            </span>
           </div>
         )}
 
@@ -1019,16 +1231,40 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             </button>
           )}
 
+          {canWithdraw && (
+            <button
+              type='button'
+              data-testid={`withdraw-task-btn-${task.id}`}
+              disabled={actionLoading === `withdraw:${task.id}`}
+              onClick={() => void handleWithdrawTask(task)}
+              title='Rút bài đã nộp khi Editor chưa mở duyệt'
+              className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+            >
+              {actionLoading === `withdraw:${task.id}` ? (
+                <Loader2 className='h-3 w-3 animate-spin' />
+              ) : (
+                <Undo2 className='h-2.5 w-2.5' />
+              )}
+              <span>{t('taskGridV3.withdrawBtn', 'Rút bài')}</span>
+            </button>
+          )}
+
           {canReview && (
             <>
               <button
                 type='button'
-                disabled={task.isInputOutdated || actionLoading === `approve:${task.id}`}
+                disabled={
+                  task.isInputOutdated ||
+                  isLockedByOtherReviewer ||
+                  actionLoading === `approve:${task.id}`
+                }
                 onClick={() => handleApproveTask(task)}
                 title={
-                  task.isInputOutdated
-                    ? 'Đầu vào lỗi thời — cần xử lý Impact Review trước khi duyệt'
-                    : 'Duyệt ô công việc này'
+                  isLockedByOtherReviewer
+                    ? `Đang được duyệt bởi ${getMemberName(task.reviewerUserId)}`
+                    : task.isInputOutdated
+                      ? 'Đầu vào lỗi thời — cần xử lý Impact Review trước khi duyệt'
+                      : 'Duyệt ô công việc này'
                 }
                 className='inline-flex items-center gap-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
               >
@@ -1043,19 +1279,61 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               {requestingChangesTaskId !== task.id && (
                 <button
                   type='button'
-                  disabled={actionLoading === `requestChanges:${task.id}`}
+                  disabled={
+                    isLockedByOtherReviewer || actionLoading === `requestChanges:${task.id}`
+                  }
                   onClick={() => {
                     setRequestingChangesTaskId(task.id);
                     setRequestChangesComment('');
                   }}
-                  title='Yêu cầu sửa kèm nhận xét bắt buộc (BR-06)'
-                  className='inline-flex items-center gap-1 rounded border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+                  title={
+                    isLockedByOtherReviewer
+                      ? `Đang được duyệt bởi ${getMemberName(task.reviewerUserId)}`
+                      : 'Yêu cầu sửa kèm nhận xét bắt buộc (BR-06)'
+                  }
+                  className='inline-flex items-center gap-1 rounded border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                 >
                   <XCircle className='h-2.5 w-2.5' />
                   <span>Yêu cầu sửa</span>
                 </button>
               )}
             </>
+          )}
+
+          {canReleaseOwnReview && (
+            <button
+              type='button'
+              data-testid={`release-review-btn-${task.id}`}
+              disabled={actionLoading === `releaseReview:${task.id}`}
+              onClick={() => void handleReleaseReview(task)}
+              title='Nhả khoá duyệt để trả ô về hàng đợi Chờ duyệt'
+              className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+            >
+              {actionLoading === `releaseReview:${task.id}` ? (
+                <Loader2 className='h-3 w-3 animate-spin' />
+              ) : (
+                <Unlock className='h-2.5 w-2.5' />
+              )}
+              <span>{t('taskGridV3.releaseReviewBtn', 'Nhả khoá duyệt')}</span>
+            </button>
+          )}
+
+          {canForceReleaseReview && (
+            <button
+              type='button'
+              data-testid={`force-release-review-btn-${task.id}`}
+              disabled={actionLoading === `releaseReview:${task.id}`}
+              onClick={() => void handleReleaseReview(task)}
+              title='Producer gỡ khoá duyệt đang giữ bởi Editor khác'
+              className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-white hover:bg-indigo-50 text-indigo-900 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+            >
+              {actionLoading === `releaseReview:${task.id}` ? (
+                <Loader2 className='h-3 w-3 animate-spin' />
+              ) : (
+                <Unlock className='h-2.5 w-2.5' />
+              )}
+              <span>{t('taskGridV3.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}</span>
+            </button>
           )}
 
           {canReopen && reopeningTaskId !== task.id && (
@@ -1070,6 +1348,24 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             >
               <RotateCcw className='h-2.5 w-2.5' />
               <span>Mở lại</span>
+            </button>
+          )}
+
+          {canReassign && reassigningTaskId !== task.id && (
+            <button
+              type='button'
+              data-testid={`reassign-task-btn-${task.id}`}
+              disabled={task.isInputOutdated || actionLoading === `reassign:${task.id}`}
+              onClick={() => openReassignForm(task, stage)}
+              title={
+                task.isInputOutdated
+                  ? 'Đầu vào lỗi thời — cần xử lý Impact Review trước khi đổi người'
+                  : 'Đổi người nhận cho ô chưa nộp (reassign: true)'
+              }
+              className='inline-flex items-center gap-1 rounded border border-orange-300 bg-orange-50 hover:bg-orange-100 text-[#C2410C] px-2 py-1 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+            >
+              <UserCheck className='h-2.5 w-2.5' />
+              <span>{t('taskGridV3.reassignBtn', 'Đổi người')}</span>
             </button>
           )}
 
@@ -1285,6 +1581,73 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               >
                 <RotateCcw className='h-2.5 w-2.5' />
                 <span>Làm lại</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Form Đổi người cho ô chưa nộp (Producer — reassign: true) */}
+        {reassigningTaskId === task.id && (
+          <div
+            data-testid={`reassign-task-form-${task.id}`}
+            className='mt-1 w-full min-w-0 box-border rounded border border-orange-300 bg-orange-50/80 p-2 space-y-1.5'
+          >
+            <div className='text-[10px] font-bold text-stone-900'>
+              {t('taskGridV3.reassignTitle', 'Đổi người nhận ô việc')}
+            </div>
+            <select
+              aria-label={t('taskGridV3.reassignSelectLabel', 'Người nhận mới')}
+              value={reassignUserId}
+              onChange={(e) => setReassignUserId(e.target.value)}
+              className='block w-full min-w-0 rounded border border-orange-300 bg-white px-2 py-1 text-[11px] text-stone-900'
+            >
+              <option value=''>-- Chọn thành viên --</option>
+              {activeMembers
+                .filter(
+                  (m) =>
+                    !stage.allowedRole ||
+                    String(m.role || '').toUpperCase() === String(stage.allowedRole).toUpperCase(),
+                )
+                .map((m) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.fullName || m.email.split('@')[0]} ({m.role})
+                    {m.userId === task.assigneeUserId ? ' – Hiện tại' : ''}
+                  </option>
+                ))}
+            </select>
+            <input
+              type='text'
+              aria-label='Brief lô mới'
+              value={reassignBrief}
+              onChange={(e) => setReassignBrief(e.target.value)}
+              placeholder='Brief lô mới (tuỳ chọn)...'
+              className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1 text-[11px] text-stone-900'
+            />
+            <input
+              type='date'
+              aria-label='Hạn lô mới'
+              value={reassignDueDate}
+              onChange={(e) => setReassignDueDate(e.target.value)}
+              className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1 text-[11px] text-stone-900'
+            />
+            <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
+              <button
+                type='button'
+                onClick={() => setReassigningTaskId(null)}
+                className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-[10px] font-medium text-stone-700 cursor-pointer'
+              >
+                Huỷ
+              </button>
+              <button
+                type='button'
+                data-testid={`confirm-reassign-task-${task.id}`}
+                disabled={!reassignUserId || actionLoading === `reassign:${task.id}`}
+                onClick={() => void handleReassignTask(task, stage)}
+                className='shrink-0 whitespace-nowrap rounded bg-[#EA580C] hover:bg-[#C2410C] text-white px-2.5 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+              >
+                {actionLoading === `reassign:${task.id}`
+                  ? 'Đang đổi...'
+                  : t('taskGridV3.reassignConfirmBtn', 'Xác nhận đổi người')}
               </button>
             </div>
           </div>
@@ -1644,10 +2007,109 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       {new Date(lot.dueDate).toLocaleDateString('vi-VN')}
                     </span>
                   )}
+                  {lot.brief && (
+                    <span
+                      className='max-w-[160px] truncate text-[10px] italic text-stone-500'
+                      title={lot.brief}
+                    >
+                      “{lot.brief}”
+                    </span>
+                  )}
+                  {effectiveIsProducer && lot.status !== 'Closed' && (
+                    <button
+                      type='button'
+                      data-testid={`edit-lot-btn-${lot.id}`}
+                      onClick={() =>
+                        editingLotId === lot.id ? setEditingLotId(null) : openEditLotForm(lot)
+                      }
+                      title='Sửa hạn hoàn thành và ghi chú (Brief) của lô'
+                      className='inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold text-stone-700 cursor-pointer'
+                    >
+                      <Pencil className='h-2.5 w-2.5' />
+                      <span>{t('taskGridV3.editLotBtn', 'Sửa lô')}</span>
+                    </button>
+                  )}
                 </div>
               );
             })}
           </div>
+
+          {effectiveIsProducer &&
+            editingLotId &&
+            (() => {
+              const editingLot = grid.lots.find((l) => l.id === editingLotId);
+              if (!editingLot) return null;
+              const stg = grid.stages.find((s) => s.id === editingLot.pipelineStageId);
+              return (
+                <div
+                  data-testid={`edit-lot-form-${editingLot.id}`}
+                  className='mt-2 rounded-xl border border-[#FDBA74] bg-[#FFF7ED] p-3 space-y-2.5 text-xs'
+                >
+                  <div className='font-bold text-stone-900'>
+                    {t('taskGridV3.editLotTitle', 'Sửa hạn & ghi chú lô')} — {stg?.name || 'Stage'}{' '}
+                    ({getMemberName(editingLot.assigneeUserId)})
+                  </div>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                    <div>
+                      <label className='block text-[11px] font-semibold text-stone-700 mb-1'>
+                        Yêu cầu lô việc (Brief)
+                      </label>
+                      <input
+                        type='text'
+                        aria-label='Brief của lô'
+                        value={editLotBrief}
+                        onChange={(e) => setEditLotBrief(e.target.value)}
+                        placeholder='Nhập yêu cầu / hướng dẫn cho lô...'
+                        className='w-full rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs text-stone-900'
+                      />
+                    </div>
+                    <div className='space-y-1.5'>
+                      <label className='block text-[11px] font-semibold text-stone-700'>
+                        Hạn hoàn thành (Due Date)
+                      </label>
+                      <input
+                        type='date'
+                        aria-label='Hạn hoàn thành lô'
+                        disabled={editLotClearDueDate}
+                        value={editLotDueDate}
+                        onChange={(e) => setEditLotDueDate(e.target.value)}
+                        className='w-full rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs text-stone-900 disabled:opacity-50'
+                      />
+                      <label className='inline-flex items-center gap-1.5 text-[11px] text-stone-700 cursor-pointer'>
+                        <input
+                          type='checkbox'
+                          aria-label={t('taskGridV3.clearDueDateLabel', 'Xoá hạn hoàn thành')}
+                          checked={editLotClearDueDate}
+                          onChange={(e) => setEditLotClearDueDate(e.target.checked)}
+                          className='h-3.5 w-3.5 accent-[#F97316]'
+                        />
+                        <span>{t('taskGridV3.clearDueDateLabel', 'Xoá hạn hoàn thành')}</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div className='flex items-center justify-end gap-2'>
+                    <button
+                      type='button'
+                      onClick={() => setEditingLotId(null)}
+                      className='rounded-lg border border-stone-300 bg-white hover:bg-stone-50 px-3 py-1.5 text-xs font-semibold text-stone-700 cursor-pointer'
+                    >
+                      Huỷ
+                    </button>
+                    <button
+                      type='button'
+                      data-testid={`save-lot-btn-${editingLot.id}`}
+                      disabled={actionLoading === `updateLot:${editingLot.id}`}
+                      onClick={() => void handleUpdateLot(editingLot)}
+                      className='rounded-lg bg-[#171717] hover:bg-black text-white px-3.5 py-1.5 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+                    >
+                      {actionLoading === `updateLot:${editingLot.id}`
+                        ? 'Đang lưu...'
+                        : t('taskGridV3.saveLotBtn', 'Lưu thay đổi lô')}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
         </div>
       )}
 

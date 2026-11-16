@@ -14,6 +14,8 @@ import {
   RotateCcw,
   Send,
   Type,
+  Unlock,
+  Undo2,
   User,
 } from 'lucide-react';
 import {
@@ -120,10 +122,35 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
       await assignmentService.submitStageTasks(lot.chapterId, taskIds);
       onToast?.('Đã nộp bài lên Lưới V3', `${lot.stageName} · ${scopeDesc}`);
       onChanged();
-    } catch (err) {
+    } catch (err: any) {
       const msg = errorMessage(err, 'Không thể nộp ô công việc.');
       setError(msg);
       onToast?.('Không thể nộp bài', msg);
+      if (err?.status === 409 || err?.response?.status === 409) {
+        onChanged();
+      }
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const handleWithdrawCell = async (cell: MyTaskCellDto) => {
+    setBusyKey(`withdraw:${cell.id}`);
+    setError(null);
+    try {
+      await assignmentService.withdrawStageTask(lot.chapterId, cell.id);
+      onToast?.(
+        t('taskGridV3.withdrawSuccessTitle', 'Đã rút bài'),
+        `${lot.stageName} · ${cellScopeLabel(cell.pageNumber)}`,
+      );
+      onChanged();
+    } catch (err: any) {
+      const msg = errorMessage(err, 'Không thể rút bài đã nộp.');
+      setError(msg);
+      onToast?.(t('taskGridV3.withdrawErrorTitle', 'Không thể rút bài'), msg);
+      if (err?.status === 409 || err?.response?.status === 409) {
+        onChanged();
+      }
     } finally {
       setBusyKey(null);
     }
@@ -271,6 +298,8 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
           const canStart =
             isOwner && (cell.status === 'Assigned' || cell.status === 'ReworkRequired');
           const canSubmit = isOwner && cell.status === 'InProgress';
+          const canWithdraw = isOwner && cell.status === 'Submitted';
+          const attemptCount = cell.attemptCount ?? 0;
           const isHighlighted = highlightedId === cell.id;
           const cellReworkComment =
             cell.status === 'ReworkRequired'
@@ -294,15 +323,28 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
               }`}
             >
               <div className='space-y-1'>
-                <div className='flex items-center justify-between gap-2'>
+                <div className='flex items-center justify-between gap-2 flex-wrap'>
                   <span className='font-bold text-[#1C1917]'>
                     {cellScopeLabel(cell.pageNumber)}
                   </span>
-                  <span
-                    className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${meta.cls}`}
-                  >
-                    {meta.label}
-                  </span>
+                  <div className='flex items-center gap-1'>
+                    {attemptCount > 0 && (
+                      <span
+                        data-testid={`lot-cell-attempt-${cell.id}`}
+                        className='px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-[10px] font-mono font-semibold text-stone-700'
+                      >
+                        {t('taskGridV3.attemptBadge', {
+                          count: attemptCount,
+                          defaultValue: `Lần nộp #${attemptCount}`,
+                        })}
+                      </span>
+                    )}
+                    <span
+                      className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${meta.cls}`}
+                    >
+                      {meta.label}
+                    </span>
+                  </div>
                 </div>
 
                 {cellReworkComment && (
@@ -333,8 +375,8 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                 )}
               </div>
 
-              {(canStart || canSubmit) && (
-                <div className='flex items-center gap-1.5 pt-1'>
+              {(canStart || canSubmit || canWithdraw) && (
+                <div className='flex items-center gap-1.5 pt-1 flex-wrap'>
                   {canStart && (
                     <button
                       type='button'
@@ -369,6 +411,22 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                       <span>Nộp</span>
                     </button>
                   )}
+                  {canWithdraw && (
+                    <button
+                      type='button'
+                      data-testid={`withdraw-lot-cell-${cell.id}`}
+                      disabled={busyKey !== null}
+                      onClick={() => void handleWithdrawCell(cell)}
+                      className='inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2.5 py-1 text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'
+                    >
+                      {busyKey === `withdraw:${cell.id}` ? (
+                        <Loader2 className='w-3 h-3 animate-spin' />
+                      ) : (
+                        <Undo2 className='w-3 h-3' />
+                      )}
+                      <span>{t('taskGridV3.withdrawBtn', 'Rút bài')}</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -383,7 +441,9 @@ interface TaskGridReviewCardProps {
   workspaceId?: string;
   item: TaskGridReviewItemDto;
   assigneeName: string;
+  reviewerName?: string | null;
   currentUserId?: string | null;
+  isProducer?: boolean;
   highlighted?: boolean;
   onChanged: () => void;
   onToast?: (title: string, desc: string) => void;
@@ -393,12 +453,15 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
   workspaceId,
   item,
   assigneeName,
+  reviewerName,
   currentUserId,
+  isProducer = false,
   highlighted = false,
   onChanged,
   onToast,
 }) => {
-  const [busy, setBusy] = useState<'approve' | 'reject' | null>(null);
+  const { t } = useTranslation('pipeline');
+  const [busy, setBusy] = useState<'approve' | 'reject' | 'release' | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [comment, setComment] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -407,6 +470,13 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const isSelfSubmission = Boolean(currentUserId && item.assigneeUserId === currentUserId);
+  const isLockedByOtherReviewer = Boolean(
+    item.status === 'UnderReview' &&
+      item.reviewerUserId &&
+      (!currentUserId || item.reviewerUserId !== currentUserId),
+  );
+  const resolvedReviewerName =
+    reviewerName || (item.reviewerUserId ? item.reviewerUserId.slice(0, 8) : 'Editor');
   const scope = cellScopeLabel(item.pageNumber);
   const meta = CELL_STATUS_META[item.status] ?? CELL_STATUS_META.Submitted;
 
@@ -417,10 +487,11 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
       await assignmentService.approveStageTask(item.chapterId, item.taskId);
       onToast?.('Đã duyệt ô công việc', `${item.stageName} · ${scope}`);
       onChanged();
-    } catch (err) {
+    } catch (err: any) {
       const msg = errorMessage(err, 'Không thể duyệt ô công việc.');
       setError(msg);
       onToast?.('Không thể duyệt', msg);
+      if (err?.status === 409 || err?.response?.status === 409) onChanged();
     } finally {
       setBusy(null);
     }
@@ -437,10 +508,31 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
       setComment('');
       onToast?.('Đã yêu cầu sửa lại', `${item.stageName} · ${scope}`);
       onChanged();
-    } catch (err) {
+    } catch (err: any) {
       const msg = errorMessage(err, 'Không thể gửi yêu cầu sửa.');
       setError(msg);
       onToast?.('Không thể yêu cầu sửa', msg);
+      if (err?.status === 409 || err?.response?.status === 409) onChanged();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleReleaseReview = async () => {
+    setBusy('release');
+    setError(null);
+    try {
+      await assignmentService.releaseStageTaskReview(item.chapterId, item.taskId);
+      onToast?.(
+        t('taskGridV3.releaseReviewSuccessTitle', 'Đã nhả khoá duyệt'),
+        `${item.stageName} · ${scope}`,
+      );
+      onChanged();
+    } catch (err: any) {
+      const msg = errorMessage(err, 'Không thể nhả khoá duyệt ô công việc.');
+      setError(msg);
+      onToast?.('Không thể nhả khoá duyệt', msg);
+      if (err?.status === 409 || err?.response?.status === 409) onChanged();
     } finally {
       setBusy(null);
     }
@@ -532,6 +624,39 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
         </div>
       )}
 
+      {isLockedByOtherReviewer && (
+        <div
+          data-testid={`locked-by-reviewer-${item.taskId}`}
+          className='p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs flex items-center justify-between gap-2 flex-wrap'
+        >
+          <span className='inline-flex items-center gap-1.5 font-semibold'>
+            <Lock className='w-3.5 h-3.5 text-indigo-600 shrink-0' />
+            <span>
+              {t('taskGridV3.underReviewBy', {
+                name: resolvedReviewerName,
+                defaultValue: `Đang được duyệt bởi ${resolvedReviewerName}`,
+              })}
+            </span>
+          </span>
+          {isProducer && (
+            <button
+              type='button'
+              data-testid={`force-release-review-${item.taskId}`}
+              disabled={busy !== null}
+              onClick={() => void handleReleaseReview()}
+              className='inline-flex items-center gap-1 rounded-lg border border-indigo-300 bg-white hover:bg-indigo-100 text-indigo-900 px-2.5 py-1 text-xs font-semibold cursor-pointer disabled:opacity-50'
+            >
+              {busy === 'release' ? (
+                <Loader2 className='w-3 h-3 animate-spin' />
+              ) : (
+                <Unlock className='w-3 h-3' />
+              )}
+              <span>{t('taskGridV3.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}</span>
+            </button>
+          )}
+        </div>
+      )}
+
       <div className='flex flex-wrap items-center gap-2 pt-1'>
         {isSelfSubmission ? (
           <span
@@ -546,9 +671,9 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             <button
               type='button'
               data-testid={`approve-grid-task-${item.taskId}`}
-              disabled={busy !== null}
+              disabled={busy !== null || isLockedByOtherReviewer}
               onClick={() => void handleApprove()}
-              className='inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50'
+              className='inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
             >
               {busy === 'approve' ? (
                 <Loader2 className='w-3.5 h-3.5 animate-spin' />
@@ -560,13 +685,46 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             <button
               type='button'
               data-testid={`reject-grid-task-toggle-${item.taskId}`}
-              disabled={busy !== null}
+              disabled={busy !== null || isLockedByOtherReviewer}
               onClick={() => setRejectOpen((v) => !v)}
-              className='inline-flex items-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50'
+              className='inline-flex items-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
             >
               <RotateCcw className='w-3.5 h-3.5' />
               <span>Yêu cầu sửa</span>
             </button>
+            {item.status === 'UnderReview' &&
+              Boolean(currentUserId && item.reviewerUserId === currentUserId) && (
+                <button
+                  type='button'
+                  data-testid={`release-own-review-${item.taskId}`}
+                  disabled={busy !== null}
+                  onClick={() => void handleReleaseReview()}
+                  className='inline-flex items-center gap-1.5 rounded-xl border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 px-3 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50'
+                >
+                  {busy === 'release' ? (
+                    <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                  ) : (
+                    <Unlock className='w-3.5 h-3.5' />
+                  )}
+                  <span>{t('taskGridV3.releaseReviewBtn', 'Nhả khoá duyệt')}</span>
+                </button>
+              )}
+            {isProducer &&
+              item.status === 'UnderReview' &&
+              item.reviewerUserId &&
+              !isLockedByOtherReviewer &&
+              item.reviewerUserId !== currentUserId && (
+                <button
+                  type='button'
+                  data-testid={`force-release-review-${item.taskId}`}
+                  disabled={busy !== null}
+                  onClick={() => void handleReleaseReview()}
+                  className='inline-flex items-center gap-1.5 rounded-xl border border-indigo-300 bg-white hover:bg-indigo-100 text-indigo-900 px-3 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50'
+                >
+                  <Unlock className='w-3.5 h-3.5' />
+                  <span>{t('taskGridV3.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}</span>
+                </button>
+              )}
           </>
         )}
 
