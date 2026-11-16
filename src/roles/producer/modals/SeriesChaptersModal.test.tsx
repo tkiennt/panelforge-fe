@@ -358,10 +358,14 @@ describe('SeriesChaptersModal Component', () => {
       expect(screen.getByTestId('lock-gate-item-TASK_GRID_NOT_APPROVED')).toHaveTextContent(
         'Lưới V3 chưa duyệt hết',
       );
+      expect(screen.getByTestId('lock-gate-item-TASK_GRID_NOT_APPROVED')).toHaveTextContent(
+        'Còn 3 ô trên lưới giao việc chưa được duyệt, chưa thể duyệt Chapter.',
+      );
       expect(screen.getByTestId('lock-gate-item-IMPACT_FLAGS')).toHaveTextContent(
         'Cờ ảnh hưởng / Đầu vào lỗi thời',
       );
       expect(screen.getByTestId('lock-gate-open-grid-btn')).toBeInTheDocument();
+      expect(approveBtn).toBeDisabled();
     });
     expect(chapterService.approveChapter).not.toHaveBeenCalled();
   });

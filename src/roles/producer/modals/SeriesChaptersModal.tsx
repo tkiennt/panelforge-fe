@@ -335,6 +335,23 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     setStartProductionChapter(chap);
   };
 
+  const refreshBlockedGateForChapter = async (chap: ChapterDto) => {
+    if (!chapterService.getChapterLockGate) {
+      setBlockedGateReport(null);
+      return;
+    }
+    try {
+      const gate = await chapterService.getChapterLockGate(chap.id);
+      if (!gate.canApprove || gate.items.some((i) => i.blocking)) {
+        setBlockedGateReport({ chapter: chap, gate });
+      } else {
+        setBlockedGateReport(null);
+      }
+    } catch {
+      setBlockedGateReport(null);
+    }
+  };
+
   const handleApproveChapter = async (chap: ChapterDto) => {
     setActionLoading(true);
     let gateWarnings: string[] = [];
@@ -342,9 +359,9 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       try {
         if (chapterService.getChapterLockGate) {
           const gate = await chapterService.getChapterLockGate(chap.id);
-          if (!gate.canApprove) {
+          const blocking = gate.items.filter((i) => i.blocking);
+          if (!gate.canApprove || blocking.length > 0) {
             setBlockedGateReport({ chapter: chap, gate });
-            const blocking = gate.items.filter((i) => i.blocking);
             const msg =
               blocking.map((b) => b.message).join('; ') ||
               t(
@@ -1175,24 +1192,36 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               </button>
                             )}
 
-                            {chap.status === 'InProduction' && (
-                              <button
-                                type='button'
-                                onClick={() => handleApproveChapter(chap)}
-                                disabled={actionLoading}
-                                className='px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer flex items-center gap-1.5 font-bold text-xs shadow-xs disabled:opacity-50 active:scale-98'
-                                title={t(
-                                  'seriesChaptersModal.approveTooltip',
-                                  'Producer duyệt hoàn tất sản xuất -> chuyển sang Approved',
-                                )}
-                                data-testid={`producer-approve-chapter-${chap.id}`}
-                              >
-                                <CheckCircle2 className='w-3.5 h-3.5 text-emerald-200' />
-                                <span>
-                                  {t('seriesChaptersModal.approve', 'Nghiệm thu & Duyệt')}
-                                </span>
-                              </button>
-                            )}
+                            {chap.status === 'InProduction' &&
+                              (() => {
+                                const blockingItems =
+                                  blockedGateReport?.chapter.id === chap.id
+                                    ? blockedGateReport.gate.items.filter((i) => i.blocking)
+                                    : [];
+                                const isGateBlocked = blockingItems.length > 0;
+                                return (
+                                  <button
+                                    type='button'
+                                    onClick={() => handleApproveChapter(chap)}
+                                    disabled={actionLoading || isGateBlocked}
+                                    className='px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer flex items-center gap-1.5 font-bold text-xs shadow-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-98'
+                                    title={
+                                      isGateBlocked
+                                        ? blockingItems.map((i) => i.message).join('; ')
+                                        : t(
+                                            'seriesChaptersModal.approveTooltip',
+                                            'Producer duyệt hoàn tất sản xuất -> chuyển sang Approved',
+                                          )
+                                    }
+                                    data-testid={`producer-approve-chapter-${chap.id}`}
+                                  >
+                                    <CheckCircle2 className='w-3.5 h-3.5 text-emerald-200' />
+                                    <span>
+                                      {t('seriesChaptersModal.approve', 'Nghiệm thu & Duyệt')}
+                                    </span>
+                                  </button>
+                                );
+                              })()}
 
                             {chap.status === 'ChapterApproved' && (
                               <>
@@ -1411,7 +1440,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           chapterNumber={assigningChapter.chapterNumber}
           chapterTitle={assigningChapter.title}
           initialTab={assigningInitialTab}
-          onClose={() => setAssigningChapter(null)}
+          onClose={() => {
+            const closedChapter = assigningChapter;
+            setAssigningChapter(null);
+            if (closedChapter && blockedGateReport?.chapter.id === closedChapter.id) {
+              void refreshBlockedGateForChapter(closedChapter);
+            }
+          }}
           onShowToast={onShowToast}
         />
       )}
@@ -1447,7 +1482,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           chapterNumber={previewChapter.chapterNumber}
           chapterTitle={previewChapter.title}
           chapterStatus={previewChapter.status}
-          onClose={() => setPreviewChapter(null)}
+          onClose={() => {
+            const closedChapter = previewChapter;
+            setPreviewChapter(null);
+            if (closedChapter && blockedGateReport?.chapter.id === closedChapter.id) {
+              void refreshBlockedGateForChapter(closedChapter);
+            }
+          }}
           onReopenChapter={async () => {
             // Giữ modal mở ở trạng thái mới để chuyển ngay phản hồi thành yêu cầu sửa (5.7)
             if (await handleReopenChapter(previewChapter))
