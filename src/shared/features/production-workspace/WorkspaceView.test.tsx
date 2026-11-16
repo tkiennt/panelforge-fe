@@ -31,6 +31,28 @@ vi.mock('@/shared/features/pipeline-board/ProductionBoard', () => ({
   ),
 }));
 
+// Đã chọn chương thì chỉ còn Lưới Trang × Công đoạn
+vi.mock('@/shared/features/pipeline-board/TaskGridBoard', () => ({
+  TaskGridBoard: ({
+    chapterId,
+    refreshKey,
+    isProducer,
+    currentUserId,
+  }: {
+    chapterId?: string;
+    refreshKey?: number;
+    isProducer?: boolean;
+    currentUserId?: string;
+  }) => (
+    <div data-testid='production-board-mock'>
+      <span>Board chapter: {chapterId}</span>
+      <span>Refresh: {refreshKey}</span>
+      <span>Producer: {String(isProducer)}</span>
+      <span>User: {currentUserId}</span>
+    </div>
+  ),
+}));
+
 describe('WorkspaceView (Quy trình sản xuất)', () => {
   const mockChapters = [
     {

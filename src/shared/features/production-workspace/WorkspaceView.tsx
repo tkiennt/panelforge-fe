@@ -50,7 +50,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [searchParams, setSearchParams] = useSearchParams();
 
   const chapterIdFromUrl = searchParams.get('chapterId');
-  const boardFromUrl = searchParams.get('board');
 
   const normalizedWsRole = useMemo(
     () => normalizeWorkspaceRole(currentUserRole),
@@ -68,15 +67,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [currentChapterId, setCurrentChapterId] = useState<string>('');
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [boardMode, setBoardMode] = useState<'legacy' | 'grid-v3'>(() =>
-    boardFromUrl === 'grid-v3' ? 'grid-v3' : 'legacy',
-  );
-
-  useEffect(() => {
-    if (boardFromUrl === 'grid-v3') {
-      setBoardMode('grid-v3');
-    }
-  }, [boardFromUrl]);
 
   // Metadata cho breadcrumb Studio / Series
   const [workspaceName, setWorkspaceName] = useState<string>('');
@@ -298,51 +288,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
           {/* Nhóm hành động: tối đa 1 CTA chính nổi bật */}
           <div className='flex flex-wrap items-center gap-2.5'>
-            <div
-              role='group'
-              aria-label='Chế độ bảng điều phối'
-              className='inline-flex rounded-lg border border-landing-border bg-[#FCFBF8] p-0.5 shadow-2xs'
-            >
-              <button
-                type='button'
-                aria-pressed={boardMode === 'legacy'}
-                onClick={() => {
-                  setBoardMode('legacy');
-                  setSearchParams((prev) => {
-                    const next = new URLSearchParams(prev);
-                    next.delete('board');
-                    return next;
-                  });
-                }}
-                className={`min-h-9 rounded-md px-3 text-xs font-semibold transition-colors cursor-pointer ${
-                  boardMode === 'legacy'
-                    ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]/40 font-bold'
-                    : 'text-landing-ink-muted hover:text-landing-ink'
-                }`}
-              >
-                Bảng công việc
-              </button>
-              <button
-                type='button'
-                aria-pressed={boardMode === 'grid-v3'}
-                onClick={() => {
-                  setBoardMode('grid-v3');
-                  setSearchParams((prev) => {
-                    const next = new URLSearchParams(prev);
-                    next.set('board', 'grid-v3');
-                    return next;
-                  });
-                }}
-                className={`min-h-9 rounded-md px-3 text-xs font-semibold transition-colors cursor-pointer ${
-                  boardMode === 'grid-v3'
-                    ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]/40 font-bold'
-                    : 'text-landing-ink-muted hover:text-landing-ink'
-                }`}
-              >
-                Lưới Trang × Công đoạn (V3)
-              </button>
-            </div>
-
             <button
               type='button'
               onClick={() => {
@@ -377,7 +322,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         </header>
 
         {/* Bàn điều phối sản xuất */}
-        {boardMode === 'grid-v3' && currentChapterId ? (
+        {/* Chỉ còn Lưới Trang × Công đoạn; chưa chọn chương thì bảng cũ lo phần chọn chương */}
+        {currentChapterId ? (
           <TaskGridBoard
             chapterId={currentChapterId}
             seriesId={seriesId}
@@ -397,14 +343,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             isProducer={isProducer}
             currentUserId={currentUserId}
             onShowToast={onShowToast}
-            onOpenTaskGrid={() => {
-              setBoardMode('grid-v3');
-              setSearchParams((prev) => {
-                const next = new URLSearchParams(prev);
-                next.set('board', 'grid-v3');
-                return next;
-              });
-            }}
           />
         )}
       </div>
