@@ -121,12 +121,30 @@
    ========================================================================== */
 
 /* Floor 6: Instant focus-visible ring on all interactive elements */
+:focus-visible {
+  outline: 2px solid var(--studio-focus-ring, var(--studio-focus-outline, #f97316));
+  outline-offset: 2px;
+}
+
 .focus-ring {
   outline: none;
 }
 .focus-ring:focus-visible {
   outline: 2px solid var(--studio-focus-outline);
   outline-offset: 2px;
+}
+
+/* Google Modern Web Guidance: Native modal dialog scroll containment & backdrop */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+html:has(dialog:modal) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
 }
 
 /* Floor 2: Safe targeted micro-interactions (Never transition: all) */

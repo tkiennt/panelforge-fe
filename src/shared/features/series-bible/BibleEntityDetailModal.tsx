@@ -2310,6 +2310,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                       }
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter' && !e.shiftKey) {
+                                          if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
                                           e.preventDefault();
                                           void handleReplyComment(c.id);
                                         }
@@ -2347,6 +2348,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           onChange={(e) => setNewCommentText(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
+                              if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
                               e.preventDefault();
                               void handleCreateComment();
                             }

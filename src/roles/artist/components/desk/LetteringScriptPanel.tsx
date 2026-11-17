@@ -199,6 +199,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                       onClick={() => onAddElement?.(type, line)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
+                          if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
                           e.preventDefault();
                           onAddElement?.(type, line);
                         }

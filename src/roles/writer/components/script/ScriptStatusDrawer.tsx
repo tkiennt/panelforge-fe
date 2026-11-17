@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { formatDateTime } from '@/lib/format';
 import {
   AlertTriangle,
   Bell,
@@ -163,13 +164,7 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
                   n: currentChapter?.chapterNumber ?? '',
                   defaultValue: `Đề cương Chương ${currentChapter?.chapterNumber ?? ''}`,
                 });
-          const formattedTime = new Date(draft.savedAt).toLocaleString(
-            lang === 'vi' ? 'vi-VN' : 'en-US',
-            {
-              dateStyle: 'short',
-              timeStyle: 'short',
-            },
-          );
+          const formattedTime = formatDateTime(draft.savedAt);
           return (
             <div
               key={kind}

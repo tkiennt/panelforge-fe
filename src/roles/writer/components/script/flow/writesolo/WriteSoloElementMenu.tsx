@@ -74,6 +74,7 @@ export const WriteSoloElementMenu: React.FC<WriteSoloElementMenuProps> = ({
       }
 
       if (e.key === 'Enter') {
+        if (e.isComposing || (e as any).keyCode === 229) return;
         e.preventDefault();
         const item = ELEMENT_MENU_ITEMS[selectedIndex];
         if (item) {

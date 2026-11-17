@@ -38,6 +38,7 @@ const ChapterRow: React.FC<{
       aria-pressed={isSelected}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
+          if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
           e.preventDefault();
           onSelect();
         }

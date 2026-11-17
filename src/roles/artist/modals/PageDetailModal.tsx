@@ -212,7 +212,12 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
               placeholder='Nhập hướng dẫn biên tập hoặc phản hồi chỉnh sửa...'
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
+                  handleAddComment();
+                }
+              }}
               className='flex-1 px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-xs text-[#1C1917] placeholder-[#57534E]/60 focus:outline-none focus:border-[#F97316]'
             />
             <button

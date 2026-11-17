@@ -114,10 +114,38 @@ export function ToastStack({
   regionLabel: string;
   onClose: (id: string) => void;
 }) {
+  const stackRef = useRef<HTMLDivElement>(null);
+
+  // Modern Web Guidance (MWG-10): Promotes Toast container to Top Layer using popover="manual"
+  // so toasts remain visible and interactive above native modal dialogs without backdrop interception.
+  useEffect(() => {
+    const el = stackRef.current;
+    if (!el) return;
+    if (toasts.length > 0) {
+      if (typeof el.showPopover === 'function') {
+        try {
+          el.showPopover();
+        } catch {
+          // ignore
+        }
+      }
+    } else {
+      if (typeof el.hidePopover === 'function') {
+        try {
+          el.hidePopover();
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [toasts.length]);
+
   if (!toasts.length) return null;
   return (
     <div
-      className='u070-zone !bottom-5 !top-auto !z-[var(--studio-z-toast)] flex flex-col gap-3'
+      ref={stackRef}
+      popover='manual'
+      className='u070-zone !bottom-5 !top-auto !z-[var(--studio-z-toast)] flex flex-col gap-3 border-none bg-transparent p-0 m-0 overflow-visible'
       role='region'
       aria-label={regionLabel}
     >

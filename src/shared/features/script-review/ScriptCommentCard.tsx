@@ -124,7 +124,11 @@ export const ScriptCommentComposer: React.FC<ScriptCommentComposerProps> = ({
           placeholder='Nhập nhận xét...'
           className='w-full rounded-2xl border-2 border-[#1976D2] bg-white px-3.5 py-2 text-sm text-stone-800 outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-stone-400 select-text'
           onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSave();
+            if (e.key === 'Enter') {
+              if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
+              e.preventDefault();
+              handleSave();
+            }
             if (e.key === 'Escape') onCancel();
           }}
         />

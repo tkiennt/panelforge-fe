@@ -22,21 +22,10 @@ export function useEscapeKey(enabled: boolean, onEscape: () => void) {
   }, [enabled, onEscape]);
 }
 
-export function useBodyScrollLock(locked: boolean) {
-  useEffect(() => {
-    if (!locked) return;
-    const { overflow, paddingRight } = document.body.style;
-    const scrollbarWidth =
-      document.documentElement.clientWidth > 0
-        ? window.innerWidth - document.documentElement.clientWidth
-        : 0;
-    document.body.style.overflow = 'hidden';
-    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
-    return () => {
-      document.body.style.overflow = overflow;
-      document.body.style.paddingRight = paddingRight;
-    };
-  }, [locked]);
+export function useBodyScrollLock(_locked: boolean) {
+  // Modern Web Guidance (MWG-03): Body scroll lock is handled declaratively via CSS
+  // html:has(dialog:modal) { overflow: hidden; scrollbar-gutter: stable; }
+  // to avoid root layout shifts and mobile browser scroll desyncs.
 }
 
 export function useFocusTrap<T extends HTMLElement>(
