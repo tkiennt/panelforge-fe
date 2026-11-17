@@ -15,6 +15,7 @@ export interface ScriptRailMenuItem {
 export interface ScriptRailItem {
   id: string;
   label: string;
+  tooltip?: string;
   icon: LucideIcon;
   active?: boolean;
   badge?: number;
@@ -87,6 +88,8 @@ export const ScriptStudioRail: React.FC<ScriptStudioRailProps> = ({
           type='button'
           data-testid={item.testId}
           disabled={item.disabled}
+          title={item.tooltip || item.label}
+          aria-label={item.tooltip || item.label}
           aria-pressed={item.menu ? undefined : Boolean(item.active)}
           aria-expanded={item.menu ? isMenuOpen : undefined}
           aria-haspopup={item.menu ? 'menu' : undefined}

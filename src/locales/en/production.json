@@ -121,6 +121,7 @@
       "outline": "Outline",
       "characters": "Cast",
       "consistency": "Consistency",
+      "comments": "Comments",
       "import": "Import",
       "ai": "AI assist",
       "history": "History",
@@ -128,6 +129,18 @@
       "bibleGate": "Bible Gate",
       "status": "Notifications",
       "label": "Writer tools"
+    },
+    "railTooltip": {
+      "chapters": "Chapters list in series",
+      "scenes": "Scenes list in chapter",
+      "outline": "Story outline & narrative context",
+      "characters": "Bible characters & chapter cast",
+      "consistency": "Check narrative consistency",
+      "comments": "Script feedback and comments",
+      "status": "Alerts and script status",
+      "import": "Import script from file",
+      "ai": "AI assistant for drafting and storyboard",
+      "history": "Script version history"
     },
     "statusDrawer": {
       "title": "Notifications & Status",

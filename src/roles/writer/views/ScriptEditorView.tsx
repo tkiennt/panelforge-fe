@@ -2115,14 +2115,25 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     {
       id: 'chapters',
       label: t('scriptStudio.rail.chapters', 'Chương'),
+      tooltip: t('scriptStudio.railTooltip.chapters', 'Danh sách chương trong bộ truyện'),
       icon: BookOpen,
       active: activeLeftDrawer === 'chapters',
       testId: 'rail-chapters-btn',
       onClick: () => toggleLeftDrawer('chapters'),
     },
     {
+      id: 'scenes',
+      label: t('scriptStudio.rail.scenes', 'Phân cảnh'),
+      tooltip: t('scriptStudio.railTooltip.scenes', 'Danh sách phân cảnh trong chương'),
+      icon: Clapperboard,
+      active: activeLeftDrawer === 'scenes',
+      testId: 'rail-scenes-btn',
+      onClick: () => toggleLeftDrawer('scenes'),
+    },
+    {
       id: 'outline',
       label: t('scriptStudio.rail.outline'),
+      tooltip: t('scriptStudio.railTooltip.outline', 'Đề cương & Ngữ cảnh cốt truyện'),
       icon: Compass,
       active: activeRightDrawer === 'narrative',
       testId: 'toggle-narrative-context-btn',
@@ -2131,6 +2142,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     {
       id: 'characters',
       label: t('scriptStudio.rail.characters'),
+      tooltip: t('scriptStudio.railTooltip.characters', 'Nhân vật Bible & Phân vai chương'),
       icon: Users,
       active: activeRightDrawer === 'characters',
       badge: chapterCast?.entities?.length,
@@ -2141,6 +2153,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     {
       id: 'consistency',
       label: t('scriptStudio.rail.consistency'),
+      tooltip: t('scriptStudio.railTooltip.consistency', 'Kiểm tra nhất quán cốt truyện'),
       icon: ShieldCheck,
       active: activeRightDrawer === 'consistency',
       badge: openFindingsCount,
@@ -2153,7 +2166,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       ? [
           {
             id: 'comments',
-            label: 'Góp ý',
+            label: t('scriptStudio.rail.comments', 'Góp ý'),
+            tooltip: t('scriptStudio.railTooltip.comments', 'Góp ý và phản hồi kịch bản'),
             icon: MessageSquare,
             active: activeRightDrawer === 'comments',
             badge: openScriptComments.length > 0 ? openScriptComments.length : undefined,
@@ -2165,6 +2179,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     {
       id: 'status',
       label: t('scriptStudio.rail.status', 'Thông báo'),
+      tooltip: t('scriptStudio.railTooltip.status', 'Thông báo và trạng thái kịch bản'),
       icon: Bell,
       active: activeRightDrawer === 'status',
       badge: activeNoticeCount > 0 ? activeNoticeCount : undefined,
@@ -2177,6 +2192,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           {
             id: 'import',
             label: t('scriptStudio.rail.import'),
+            tooltip: t('scriptStudio.railTooltip.import', 'Nhập kịch bản từ tệp bên ngoài'),
             icon: FileInput,
             testId: 'rail-import-btn',
             onClick: () => {
@@ -2187,6 +2203,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           {
             id: 'ai',
             label: t('scriptStudio.rail.ai'),
+            tooltip: t('scriptStudio.railTooltip.ai', 'Trợ lý AI viết nháp và phân khung'),
             icon: Sparkles,
             tone: 'ai',
             testId: 'rail-ai-btn',
@@ -2218,6 +2235,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     {
       id: 'history',
       label: t('scriptStudio.rail.history'),
+      tooltip: t('scriptStudio.railTooltip.history', 'Lịch sử các phiên bản kịch bản'),
       icon: History,
       active: activeRightDrawer === 'versions',
       tone: hasUnpushedChanges ? 'warn' : 'default',
@@ -2226,16 +2244,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     },
   ];
 
-  const railFooterItems: ScriptRailItem[] = [
-    {
-      id: 'scenes',
-      label: t('scriptStudio.rail.scenes'),
-      icon: Clapperboard,
-      active: activeLeftDrawer === 'scenes',
-      testId: 'rail-scenes-btn',
-      onClick: () => toggleLeftDrawer('scenes'),
-    },
-  ];
+  const railFooterItems: ScriptRailItem[] = [];
 
   const viewModes = [
     { mode: 'flow', icon: FileText, label: t('scriptStudio.views.paper'), testId: 'tab-flow' },

@@ -121,6 +121,7 @@
       "outline": "Đề cương",
       "characters": "Nhân vật",
       "consistency": "Nhất quán",
+      "comments": "Góp ý",
       "import": "Nhập",
       "ai": "Trợ lý AI",
       "history": "Lịch sử",
@@ -128,6 +129,18 @@
       "bibleGate": "Bible Gate",
       "status": "Thông báo",
       "label": "Công cụ biên kịch"
+    },
+    "railTooltip": {
+      "chapters": "Danh sách chương trong bộ truyện",
+      "scenes": "Danh sách phân cảnh trong chương",
+      "outline": "Đề cương & Ngữ cảnh cốt truyện",
+      "characters": "Nhân vật Bible & Phân vai chương",
+      "consistency": "Kiểm tra nhất quán cốt truyện",
+      "comments": "Góp ý và phản hồi kịch bản",
+      "status": "Thông báo và trạng thái kịch bản",
+      "import": "Nhập kịch bản từ tệp bên ngoài",
+      "ai": "Trợ lý AI viết nháp và phân khung",
+      "history": "Lịch sử các phiên bản kịch bản"
     },
     "statusDrawer": {
       "title": "Thông báo & Trạng thái",
