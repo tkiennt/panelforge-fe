@@ -55,6 +55,9 @@ import {
   UpdateSceneRequest,
   NarrationMode,
   ScriptLineKind,
+  SCRIPT_WORKING_COPY_CHANGED_EVENT,
+  type ScriptWorkingCopyChangedDetail,
+  type RestoreScriptRevisionResult,
 } from '@/services/scriptLine.service';
 import {
   chapterService,
@@ -63,7 +66,9 @@ import {
   ScriptStatus,
   ScriptCommentDto,
   ScriptVersionDetailDto,
+  type ScriptWorkingCopyDto,
 } from '@/services/chapter.service';
+import { createsScriptVersionOnAccept, type AiSuggestionKind } from '@/services/aiAgents.service';
 import { pageService, PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { PanelDto } from '@/types/pipeline';
@@ -128,6 +133,177 @@ const getBibleEntryNameWithStage = (entry?: BibleEntryDto | null): string => {
   const variant = entry.effectiveRevision?.variantLabel?.trim() || entry.subtitle?.trim();
   return variant ? `${entry.name} (${variant})` : entry.name;
 };
+
+function mergeWorkingCopyIntoState(
+  chapterId: string,
+  workingCopy: ScriptWorkingCopyDto,
+  basePages: PageDto[],
+  basePanels: PanelDto[],
+  baseScenesDetail: SceneDetailDto[],
+  fallbackSceneId?: string | null,
+): {
+  pages: PageDto[];
+  panels: PanelDto[];
+  scenesDetail: SceneDetailDto[];
+} {
+  const rows = workingCopy.rows ?? [];
+  const pageNumbers = new Set<number>(basePages.map((p) => p.pageNumber));
+  for (const r of rows) {
+    if (r.type === 'page' && r.page > 0) pageNumbers.add(r.page);
+    if (r.page > 0) pageNumbers.add(r.page);
+  }
+
+  const pageByNum = new Map<number, PageDto>();
+  for (const p of basePages) pageByNum.set(p.pageNumber, p);
+  for (const num of Array.from(pageNumbers).sort((a, b) => a - b)) {
+    if (!pageByNum.has(num)) {
+      pageByNum.set(num, {
+        id: `wc-page-${chapterId}-${num}`,
+        chapterId,
+        pageNumber: num,
+        layoutFormat: 'Default',
+        widthPx: 1200,
+        heightPx: 1800,
+        dpi: 300,
+        elementsCount: 0,
+      });
+    }
+  }
+  const pages = Array.from(pageByNum.values()).sort((a, b) => a.pageNumber - b.pageNumber);
+
+  const panelRowsByKey = new Map<string, (typeof rows)[number]>();
+  const neededPanels = new Set<string>();
+  for (const r of rows) {
+    if (r.type === 'panel' && r.page > 0 && r.panel > 0) {
+      const k = `${r.page}.${r.panel}`;
+      panelRowsByKey.set(k, r);
+      neededPanels.add(k);
+    } else if (r.page > 0 && r.panel > 0) {
+      neededPanels.add(`${r.page}.${r.panel}`);
+    }
+  }
+
+  const pageNumById = new Map<string, number>(pages.map((p) => [p.id, p.pageNumber]));
+  const panelByKey = new Map<string, PanelDto>();
+  for (const pan of basePanels) {
+    const pNo = (pan as any).pageNumber ?? pageNumById.get(pan.pageId);
+    if (!pNo) continue;
+    const k = `${pNo}.${pan.panelNumber}`;
+    const pRow = panelRowsByKey.get(k);
+    const nextPan: PanelDto = pRow
+      ? ({
+          ...pan,
+          direction: pRow.text || null,
+          ...(pRow.castRevisions?.length
+            ? {
+                castRevisions: pRow.castRevisions.map((c) => ({
+                  bibleEntryId: c.entryId,
+                  entryId: c.entryId,
+                  revisionId: c.revisionId,
+                })),
+              }
+            : {}),
+        } as PanelDto)
+      : pan;
+    (nextPan as any).pageNumber = pNo;
+    panelByKey.set(k, nextPan);
+  }
+
+  for (const k of neededPanels) {
+    if (panelByKey.has(k)) continue;
+    const [pStr, panStr] = k.split('.');
+    const pNo = Number(pStr);
+    const panNo = Number(panStr);
+    const pageObj = pageByNum.get(pNo);
+    if (!pageObj) continue;
+    const pRow = panelRowsByKey.get(k);
+    const synth: any = {
+      id: `wc-panel-${chapterId}-${pNo}-${panNo}`,
+      pageId: pageObj.id,
+      pageNumber: pNo,
+      panelNumber: panNo,
+      direction: pRow?.text || null,
+      boundingBox: '{}',
+      readingOrder: panNo,
+      createdAt: '',
+    };
+    if (pRow?.castRevisions?.length) {
+      synth.castRevisions = pRow.castRevisions.map((c) => ({
+        bibleEntryId: c.entryId,
+        entryId: c.entryId,
+        revisionId: c.revisionId,
+      }));
+    }
+    panelByKey.set(k, synth as PanelDto);
+  }
+
+  const panels = Array.from(panelByKey.values());
+
+  const existingById = new Map<string, { line: SceneScriptLineSummaryDto; sceneId: string }>();
+  for (const sc of baseScenesDetail) {
+    for (const l of sc.scriptLines ?? []) {
+      existingById.set(l.id, { line: l, sceneId: sc.id });
+    }
+  }
+
+  const defaultSceneId = fallbackSceneId || baseScenesDetail[0]?.id || 'wc-scene';
+  const linesByScene = new Map<string, SceneScriptLineSummaryDto[]>();
+  for (const sc of baseScenesDetail) {
+    linesByScene.set(sc.id, []);
+  }
+
+  for (const r of rows) {
+    if (!r.key.startsWith('line:')) continue;
+    const lineId = r.key.slice(5);
+    const prev = existingById.get(lineId);
+    const isDialogueOrThought = r.type === 'Dialogue' || r.type === 'Thought';
+    const matchedPanel =
+      r.page > 0 && r.panel > 0 ? panelByKey.get(`${r.page}.${r.panel}`) : undefined;
+    const targetScene = prev?.sceneId ?? defaultSceneId;
+    const list = linesByScene.get(targetScene) ?? [];
+    const lineDto: any = {
+      id: lineId,
+      lineOrder: list.length + 1,
+      kind: r.type,
+      speakerLabel: r.label ?? null,
+      text: r.text,
+      dialogueText: isDialogueOrThought ? r.text : null,
+      stageDirection: !isDialogueOrThought ? r.text : null,
+      panelId: r.page > 0 && r.panel > 0 ? (matchedPanel?.id ?? prev?.line.panelId ?? null) : null,
+      narrationMode: prev?.line.narrationMode ?? 'Present',
+    };
+    if (r.refs?.length) {
+      lineDto.refs = r.refs.map((ref) => ({
+        bibleEntryId: ref.entryId,
+        surfaceText: ref.surfaceText,
+      }));
+    } else if (prev?.line && (prev.line as any).refs) {
+      lineDto.refs = (prev.line as any).refs;
+    }
+    list.push(lineDto);
+    linesByScene.set(targetScene, list);
+  }
+
+  const scenesDetail: SceneDetailDto[] =
+    baseScenesDetail.length > 0
+      ? baseScenesDetail.map((sc) => ({
+          ...sc,
+          scriptLines: linesByScene.get(sc.id) ?? [],
+        }))
+      : [
+          {
+            id: defaultSceneId,
+            chapterId,
+            sceneNumber: 1,
+            heading: null,
+            summary: null,
+            createdAt: '',
+            scriptLines: linesByScene.get(defaultSceneId) ?? [],
+          },
+        ];
+
+  return { pages, panels, scenesDetail };
+}
 
 export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   onShowToast,
@@ -195,6 +371,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Phiên bản mới nhất và bản đang gửi duyệt: khác mã băm = có thay đổi chưa gửi duyệt lại
   const [versionsTick, setVersionsTick] = useState(0);
+  const [drawerRefreshTick, setDrawerRefreshTick] = useState(0);
+  const [workingCopySyncTick, setWorkingCopySyncTick] = useState(0);
+  const flowDirtyRef = useRef(false);
+  const reloadInFlightRef = useRef<{ chapterId: string; promise: Promise<void> } | null>(null);
   const [hasUnpushedChanges, setHasUnpushedChanges] = useState(false);
   const [expectedRevisionId, setExpectedRevisionId] = useState<string | null>(null);
   const expectedRevisionIdRef = useRef<string | null>(null);
@@ -789,6 +969,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
       try {
         const res = await chapterService.saveChapterScript(chapterId, body);
+        setConcurrencyError(null);
         setExpectedRevisionId(res.revisionId);
         expectedRevisionIdRef.current = res.revisionId;
 
@@ -829,11 +1010,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         } catch (refreshErr) {
           console.error('Lỗi làm mới kịch bản sau khi lưu:', refreshErr);
         }
+        return true;
       } catch (err: any) {
         // 409 do kịch bản bỏ bớt trang còn việc / ô lưới: hiện đúng lý do của BE, không phải lỗi sửa đồng thời.
         if (err?.message?.startsWith('Không thể xoá')) {
           notify(t('scriptStudio.save.deleteBlocked', 'Không xoá được trang'), err.message);
-          return;
+          return false;
         }
         if (
           err?.status === 409 ||
@@ -841,14 +1023,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           err?.message?.includes('409') ||
           err?.message?.includes('phiên bản khác')
         ) {
-          notify(
-            t(
-              'scriptStudio.save.conflict',
-              'Kịch bản đã được người khác thay đổi — vui lòng tải lại',
-            ),
-            '',
+          const conflictMsg = t(
+            'scriptStudio.save.conflict',
+            'Kịch bản vừa được thay đổi (khôi phục / AI / người khác). Tải lại để xem bản mới nhất.',
           );
-          return;
+          setConcurrencyError(conflictMsg);
+          notify(conflictMsg, '');
+          return false;
         }
         notify(t('scriptStudio.gn.saveFailed', 'Chưa lưu được kịch bản'), err?.message ?? '');
         throw err;
@@ -1213,6 +1394,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       const res = await chapterService.updateOutline(
         currentChapter.id,
         outlineInput.trim() || null,
+        currentChapter.versionVector,
       );
       setOutlineInput(res.value || '');
       clearDraft(`outline.${currentChapter.id}`);
@@ -1857,13 +2039,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         err?.message?.includes('409') ||
         err?.message?.includes('phiên bản khác')
       ) {
-        notify(
-          t(
-            'scriptStudio.save.conflict',
-            'Kịch bản đã được người khác thay đổi — vui lòng tải lại',
-          ),
-          '',
+        const conflictMsg = t(
+          'scriptStudio.save.conflict',
+          'Kịch bản vừa được thay đổi (khôi phục / AI / người khác). Tải lại để xem bản mới nhất.',
         );
+        setConcurrencyError(conflictMsg);
+        notify(conflictMsg, '');
         return;
       }
       notify(t('scriptStudio.lifecycle.submitFailed'), err?.message ?? '');
@@ -1921,11 +2102,213 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       ? 'RightToLeft'
       : 'LeftToRight';
 
-  const handleAiReload = async () => {
-    if (!currentChapter?.id || !selectedScene?.id) return;
-    await refreshChapterDetail(currentChapter.id);
-    await loadScenes();
-    await loadSceneDetail(selectedScene.id);
+  const reloadScriptWorkingCopy = useCallback(
+    (
+      chapId: string,
+      options?: { forceEditorSync?: boolean; targetSceneId?: string | null },
+    ): Promise<void> => {
+      if (!chapId) return Promise.resolve();
+      if (reloadInFlightRef.current?.chapterId === chapId) {
+        return reloadInFlightRef.current.promise;
+      }
+
+      const shouldSync = options?.forceEditorSync ?? !flowDirtyRef.current;
+      const run = (async () => {
+        const [workingCopy, versions] = await Promise.all([
+          typeof chapterService.getScriptWorkingCopy === 'function'
+            ? chapterService.getScriptWorkingCopy(chapId).catch(() => null)
+            : Promise.resolve(null),
+          chapterService.getScriptVersions(chapId).catch(() => null),
+          refreshChapterDetail(chapId),
+        ]);
+
+        if (shouldSync && versions) {
+          const latestId = versions[0]?.id ?? null;
+          setExpectedRevisionId(latestId);
+          expectedRevisionIdRef.current = latestId;
+          const pushedId = currentChapter?.lastSubmittedVersionId;
+          if (pushedId) {
+            const pushed = versions.find((v) => v.id === pushedId);
+            setHasUnpushedChanges(
+              !!pushed && !!versions[0] && versions[0].contentHash !== pushed.contentHash,
+            );
+          } else {
+            setHasUnpushedChanges(false);
+          }
+        }
+        setDrawerRefreshTick((n) => n + 1);
+
+        if (!shouldSync) return;
+
+        setConcurrencyError(null);
+
+        let loadedPages: PageDto[] = [];
+        let loadedPanels: PanelDto[] = [];
+        try {
+          const pList = (await pageService.getPagesByChapter(chapId)) || [];
+          loadedPages = pList;
+          if (pList.length > 0) {
+            const panelsByPages = await Promise.all(
+              pList.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
+            );
+            panelsByPages.forEach((list, idx) => {
+              list.forEach((p) => {
+                (p as any).pageNumber = pList[idx].pageNumber;
+                loadedPanels.push(p);
+              });
+            });
+          }
+        } catch {
+          loadedPages = [];
+          loadedPanels = [];
+        }
+
+        let loadedScenesDetail: SceneDetailDto[] = [];
+        try {
+          const freshScenes = await scriptLineService.getScenesByChapter(chapId);
+          freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
+          setScenes(freshScenes);
+          loadedScenesDetail = (
+            await Promise.all(
+              freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
+            )
+          ).filter((d): d is SceneDetailDto => d !== null);
+          loadedScenesDetail.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        } catch {
+          loadedScenesDetail = [];
+        }
+
+        if (workingCopy && Array.isArray(workingCopy.rows)) {
+          const applied = mergeWorkingCopyIntoState(
+            chapId,
+            workingCopy,
+            loadedPages,
+            loadedPanels,
+            loadedScenesDetail,
+            options?.targetSceneId ?? selectedScene?.id,
+          );
+          setChapterPages(applied.pages);
+          setChapterPanels(applied.panels);
+          setChapterScenesDetail(applied.scenesDetail);
+          setSelectedScene((prev) => {
+            const targetId = options?.targetSceneId ?? prev?.id;
+            return (
+              (targetId ? applied.scenesDetail.find((s) => s.id === targetId) : undefined) ??
+              applied.scenesDetail[0] ??
+              prev
+            );
+          });
+        } else {
+          setChapterPages(loadedPages);
+          setChapterPanels(loadedPanels);
+          setChapterScenesDetail(loadedScenesDetail);
+          setSelectedScene((prev) => {
+            const targetId = options?.targetSceneId ?? prev?.id;
+            return (
+              (targetId ? loadedScenesDetail.find((s) => s.id === targetId) : undefined) ??
+              loadedScenesDetail[0] ??
+              prev
+            );
+          });
+        }
+
+        flowDirtyRef.current = false;
+        setWorkingCopySyncTick((n) => n + 1);
+        void loadChapterCast(chapId);
+      })().finally(() => {
+        if (reloadInFlightRef.current?.chapterId === chapId) {
+          reloadInFlightRef.current = null;
+        }
+      });
+
+      reloadInFlightRef.current = { chapterId: chapId, promise: run };
+      return run;
+    },
+    [
+      currentChapter?.lastSubmittedVersionId,
+      refreshChapterDetail,
+      selectedScene?.id,
+      loadChapterCast,
+    ],
+  );
+
+  // Khôi phục / chấp nhận AI vừa tạo ScriptVersion mới. Đang có chữ chưa lưu thì KHÔNG đè (quy tắc 9): giữ nguyên editor
+  // và expectedRevisionId cũ, hiện banner 409 để người dùng tự bấm "Tải lại bản mới nhất" (có hỏi xác nhận).
+  const reloadAfterExternalChange = useCallback(
+    async (chapId: string, targetSceneId?: string | null) => {
+      const dirty = flowDirtyRef.current;
+      // Báo trước khi tải: dù tải lại lỗi, người dùng vẫn biết bản trên server đã đổi
+      if (dirty) {
+        setConcurrencyError(
+          t(
+            'scriptStudio.save.conflict',
+            'Kịch bản vừa được thay đổi (khôi phục / AI / người khác). Tải lại để xem bản mới nhất.',
+          ),
+        );
+      }
+      await reloadScriptWorkingCopy(chapId, { forceEditorSync: !dirty, targetSceneId });
+    },
+    [reloadScriptWorkingCopy, t],
+  );
+
+  useEffect(() => {
+    const chapId = currentChapter?.id;
+    if (!chapId) return;
+    const onWorkingCopyChanged = (e: Event) => {
+      const detail = (e as CustomEvent<ScriptWorkingCopyChangedDetail>).detail;
+      if (!detail || detail.chapterId !== chapId) return;
+      void reloadAfterExternalChange(chapId, detail.sceneId ?? selectedScene?.id);
+    };
+    window.addEventListener(SCRIPT_WORKING_COPY_CHANGED_EVENT, onWorkingCopyChanged);
+    return () => {
+      window.removeEventListener(SCRIPT_WORKING_COPY_CHANGED_EVENT, onWorkingCopyChanged);
+    };
+  }, [currentChapter?.id, selectedScene?.id, reloadAfterExternalChange]);
+
+  const handleScriptRestored = useCallback(
+    async (res: RestoreScriptRevisionResult) => {
+      if (!currentChapter?.id) return;
+      setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+      await reloadAfterExternalChange(currentChapter.id, selectedScene?.id);
+      notify(
+        t('scriptStudio.versions.restoredToastTitle'),
+        t('scriptStudio.versions.restoredToastBody', {
+          from: res.restoredFromVersionNumber,
+          to: res.versionNumber,
+        }),
+      );
+    },
+    [currentChapter?.id, selectedScene?.id, reloadAfterExternalChange, notify, t],
+  );
+
+  const handleReloadLatestWorkingCopy = useCallback(async () => {
+    if (!currentChapter?.id) return;
+    if (flowDirtyRef.current) {
+      const accepted = await confirm({
+        title: t('scriptStudio.save.reloadConfirmTitle'),
+        description: t('scriptStudio.save.reloadConfirmBody'),
+        confirmText: t('scriptStudio.save.reloadConfirmBtn'),
+        cancelText: t('scriptStudio.save.keepEditingBtn'),
+        variant: 'warning',
+      });
+      if (!accepted) return;
+    }
+    await reloadScriptWorkingCopy(currentChapter.id, {
+      forceEditorSync: true,
+      targetSceneId: selectedScene?.id,
+    });
+  }, [currentChapter?.id, selectedScene?.id, confirm, reloadScriptWorkingCopy, t]);
+
+  const handleAiReload = async (acceptedKind?: AiSuggestionKind) => {
+    if (!currentChapter?.id) return;
+    if (createsScriptVersionOnAccept(acceptedKind)) {
+      await reloadAfterExternalChange(currentChapter.id, selectedScene?.id);
+      return;
+    }
+    await reloadScriptWorkingCopy(currentChapter.id, {
+      forceEditorSync: !flowDirtyRef.current,
+      targetSceneId: selectedScene?.id,
+    });
   };
 
   const currentSceneDto = useMemo(
@@ -2324,20 +2707,32 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         <div className='px-4 py-2.5 bg-white border-b border-[#E7E2D9] shrink-0 text-xs space-y-2'>
           {concurrencyError && (
             <div
+              role='alert'
               data-testid='concurrency-error-banner'
-              className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-800'
+              className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex flex-wrap items-center justify-between gap-2 text-rose-800'
             >
-              <div className='flex items-center gap-2'>
+              <div className='flex items-center gap-2 min-w-0'>
                 <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
                 <span className='text-xs font-medium'>{concurrencyError}</span>
               </div>
-              <button
-                type='button'
-                onClick={() => setConcurrencyError(null)}
-                className='text-rose-500 hover:text-rose-700 cursor-pointer p-0.5'
-              >
-                <X className='w-4 h-4' />
-              </button>
+              <div className='flex items-center gap-2 shrink-0'>
+                <button
+                  type='button'
+                  data-testid='reload-working-copy-btn'
+                  onClick={() => void handleReloadLatestWorkingCopy()}
+                  className='inline-flex items-center gap-1 rounded-lg bg-rose-600 hover:bg-rose-700 px-2.5 py-1 text-xs font-semibold text-white cursor-pointer transition-colors'
+                >
+                  <RefreshCw className='w-3.5 h-3.5' />
+                  <span>{t('scriptStudio.save.reloadLatest')}</span>
+                </button>
+                <button
+                  type='button'
+                  onClick={() => setConcurrencyError(null)}
+                  className='text-rose-500 hover:text-rose-700 cursor-pointer p-0.5'
+                >
+                  <X className='w-4 h-4' />
+                </button>
+              </div>
             </div>
           )}
 
@@ -2626,6 +3021,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 setPanelStageRef.current = fn;
               }}
               onSave={handleSaveScript}
+              syncRevision={workingCopySyncTick}
+              onDirtyChange={(dirty) => {
+                flowDirtyRef.current = dirty;
+              }}
               registerSave={registerEditorSave}
               registerGetPayload={(fn) => {
                 editorGetPayloadRef.current = fn;
@@ -2806,8 +3205,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         {activeSideDrawer === 'versions' && currentChapter?.id && (
           <ScriptVersionsDrawer
             chapterId={currentChapter.id}
+            seriesId={seriesId || currentChapter.seriesId}
+            sceneId={selectedScene?.id}
+            chapterVersion={currentChapter.versionVector}
+            canRestore={canEditScript && !isChapterLocked}
             pushedVersionId={currentChapter.lastSubmittedVersionId}
-            refreshKey={versionsTick}
+            refreshKey={versionsTick + drawerRefreshTick}
+            onRestored={handleScriptRestored}
+            onConflict={async (msg) => {
+              setConcurrencyError(msg);
+              notify(msg, '');
+              await reloadScriptWorkingCopy(currentChapter.id, {
+                forceEditorSync: !flowDirtyRef.current,
+                targetSceneId: selectedScene?.id,
+              });
+            }}
             onClose={() => setActiveSideDrawer(null)}
           />
         )}

@@ -47,8 +47,12 @@ export interface ScreenplayFlowEditorProps {
   panels: PanelDto[];
   canEditScript: boolean;
   isChapterLocked: boolean;
-  onSave: (snapshot: ScriptDocSnapshot) => Promise<void>;
+  onSave: (snapshot: ScriptDocSnapshot) => Promise<boolean | void>;
   onShowToast?: (title: string, description?: string) => void;
+  /** Tăng giá trị để buộc đồng bộ nội dung mới từ máy chủ (sau khôi phục / duyệt AI / tải lại thủ công). */
+  syncRevision?: number;
+  /** Báo trạng thái có thay đổi chưa lưu lên màn cha để giữ thay đổi khi xung đột 409. */
+  onDirtyChange?: (dirty: boolean) => void;
   /** Nút chuyển chế độ xem của màn cha, đặt ở đầu thanh công cụ. */
   dockLeading?: React.ReactNode;
   manuscriptTitle?: string;
@@ -118,6 +122,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   isChapterLocked,
   onSave,
   onShowToast,
+  syncRevision,
+  onDirtyChange,
   dockLeading,
   manuscriptTitle,
   registerSave,
@@ -142,6 +148,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
   const dirtyRef = useRef(false);
   const loadingRef = useRef(false);
+  const savingRef = useRef(false);
 
   const bibleSpeakers = useMemo<BibleSpeakerRef[]>(() => {
     return (allBibleEntries || [])
@@ -220,10 +227,14 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   });
   const labels = labelsRef.current;
 
-  const markDirty = (value: boolean) => {
-    dirtyRef.current = value;
-    setIsDirty(value);
-  };
+  const markDirty = useCallback(
+    (value: boolean) => {
+      dirtyRef.current = value;
+      setIsDirty(value);
+      onDirtyChange?.(value);
+    },
+    [onDirtyChange],
+  );
 
   const editor = useEditor(
     {
@@ -404,7 +415,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     };
     registerSetPanelStage(fn);
     return () => registerSetPanelStage(null);
-  }, [editor, registerSetPanelStage]);
+  }, [editor, registerSetPanelStage, markDirty]);
 
   // Màn cha có thể truyền mảng mới mỗi lần render: chỉ nạp lại khi nội dung máy chủ thực sự đổi.
   const serverDocJson = useMemo(
@@ -412,9 +423,17 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     [scenes, pages, panels],
   );
 
-  // Nạp lại từ máy chủ khi dữ liệu đổi (sau khi lưu hoặc đổi chương) — chỉ khi không có chữ chưa lưu.
+  const lastSyncRevisionRef = useRef(syncRevision);
+
+  // Nạp lại từ máy chủ khi dữ liệu đổi (sau khi lưu, đổi chương, khôi phục hoặc duyệt AI) — giữ nguyên khi còn chữ chưa lưu trừ lúc buộc đồng bộ.
   useEffect(() => {
-    if (!editor || dirtyRef.current) return;
+    if (!editor) return;
+    const forced = syncRevision !== undefined && syncRevision !== lastSyncRevisionRef.current;
+    if (forced) {
+      lastSyncRevisionRef.current = syncRevision;
+      markDirty(false);
+    }
+    if (dirtyRef.current) return;
     if (JSON.stringify(editor.getJSON()) === serverDocJson) return;
     const keepPos = editor.state.selection.from;
     loadingRef.current = true;
@@ -430,16 +449,21 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     } catch {
       // Tài liệu mới ngắn hơn: giữ vị trí mặc định
     }
-  }, [editor, serverDocJson]);
+  }, [editor, serverDocJson, syncRevision, markDirty]);
 
   const handleSave = useCallback(async (): Promise<boolean> => {
     if (!editor || isReadOnly || !dirtyRef.current) return true;
-    if (isSaving) return false;
+    if (savingRef.current || isSaving) return false;
+    savingRef.current = true;
     setIsSaving(true);
     try {
       const snapshot = docToScript(editor.state.doc, scenes[0]?.id ?? '');
+      const saved = await onSave(snapshot);
+      if (saved === false) {
+        markDirty(true);
+        return false;
+      }
       markDirty(false);
-      await onSave(snapshot);
       setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
       return true;
     } catch (err: any) {
@@ -447,9 +471,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       onShowToast?.(t('scriptStudio.gn.saveFailed'), err?.message ?? '');
       return false;
     } finally {
+      savingRef.current = false;
       setIsSaving(false);
     }
-  }, [editor, isReadOnly, isSaving, scenes, onSave, onShowToast, t]);
+  }, [editor, isReadOnly, isSaving, scenes, onSave, onShowToast, t, markDirty]);
 
   useEffect(() => {
     if (!registerSave) return;

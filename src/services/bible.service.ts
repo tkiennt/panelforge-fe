@@ -7,7 +7,14 @@ export type BibleCategory =
 export type BiblePriority = 'Low' | 'Standard' | 'StrictCheck' | 'High' | 'CanonCritical' | number;
 
 export type BibleRevisionEventType =
-  'Created' | 'ConceptSubmitted' | 'ReworkRequested' | 'Endorsed' | 'Locked' | 'Superseded';
+  | 'Created'
+  | 'ConceptSubmitted'
+  | 'ReworkRequested'
+  | 'Endorsed'
+  | 'Locked'
+  | 'Superseded'
+  /** BE 2026-11-17: Writer định nghĩa lại bản nháp v1 tạo từ stub (không phải bước duyệt). */
+  | 'DraftOverwritten';
 
 export interface BibleRevisionEventDto {
   id: string;

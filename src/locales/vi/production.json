@@ -211,7 +211,12 @@
       "unlistedDesc": "Trang {pages} vẫn còn trên Bàn vẽ nhưng kịch bản không nhắc tới. Trang không bị xoá; báo Producer hoặc Artist nếu cần bỏ.",
       "structureFailed": "Đã lưu lời thoại, chưa lưu được khung Trang / Panel",
       "lostRefsWarning": "Cảnh báo tham chiếu Series Bible",
-      "conflict": "Kịch bản đã được người khác thay đổi — vui lòng tải lại",
+      "conflict": "Kịch bản vừa được thay đổi (khôi phục / AI / người khác). Tải lại để xem bản mới nhất.",
+      "reloadLatest": "Tải lại bản mới nhất",
+      "reloadConfirmTitle": "Tải lại bản mới nhất trên máy chủ?",
+      "reloadConfirmBody": "Bạn đang có thay đổi chưa lưu. Hãy sao chép phần cần giữ trước khi tải lại để tự gộp vào bản mới nhất.",
+      "reloadConfirmBtn": "Tải lại bản mới nhất",
+      "keepEditingBtn": "Giữ để tự gộp",
       "deleteBlocked": "Không xoá được trang"
     },
     "cast": {
@@ -367,7 +372,14 @@
       "unpushed": "Có thay đổi chưa gửi duyệt",
       "noMessage": "(không ghi chú)",
       "back": "Danh sách phiên bản",
-      "viewChanges": "Xem thay đổi của bản này"
+      "viewChanges": "Xem thay đổi của bản này",
+      "sceneRevisionsTitle": "Phiên bản phân cảnh (Khôi phục)",
+      "restoreBtn": "Khôi phục",
+      "restoring": "Đang khôi phục…",
+      "currentBadge": "HIỆN TẠI",
+      "restoredToastTitle": "Đã khôi phục kịch bản",
+      "restoredToastBody": "Đã khôi phục về v{from}; tạo phiên bản mới v{to}.",
+      "restoreConflict": "Kịch bản vừa được thay đổi. Đã tải lại dữ liệu mới nhất, vui lòng kiểm tra trước khi khôi phục."
     }
   },
   "createProjectModal": {

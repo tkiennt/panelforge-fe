@@ -857,6 +857,7 @@ export const assignmentService = {
         brief: request.brief ?? null,
         dueDate: request.dueDate ?? null,
         clearDueDate: request.clearDueDate ?? false,
+        expectedRowVersion: request.expectedRowVersion ?? null,
       });
       return response.data;
     } catch (error: any) {

@@ -8,6 +8,9 @@ import {
   PreviewFeedbackDto,
 } from '@/services/previewLink.service';
 import { assignmentService } from '@/services/assignment.service';
+import { pageService } from '@/services/page.service';
+import { panelService } from '@/services/panel.service';
+import { artworkService } from '@/services/artwork.service';
 
 vi.mock('@/services/previewLink.service', () => ({
   previewLinkService: {
@@ -22,6 +25,18 @@ vi.mock('@/services/previewLink.service', () => ({
 
 vi.mock('@/services/assignment.service', () => ({
   assignmentService: { getAssignments: vi.fn(), getTaskGrid: vi.fn() },
+}));
+
+vi.mock('@/services/page.service', () => ({
+  pageService: { getPagesByChapter: vi.fn() },
+}));
+
+vi.mock('@/services/panel.service', () => ({
+  panelService: { getPanelsByPage: vi.fn() },
+}));
+
+vi.mock('@/services/artwork.service', () => ({
+  artworkService: { getArtworks: vi.fn() },
 }));
 
 describe('PreviewLinksModal', () => {
@@ -88,6 +103,9 @@ describe('PreviewLinksModal', () => {
     vi.clearAllMocks();
     (previewLinkService.getPreviewLinks as any).mockResolvedValue(mockLinks);
     (previewLinkService.getPreviewFeedback as any).mockResolvedValue(mockFeedback);
+    (pageService.getPagesByChapter as any).mockResolvedValue([]);
+    (panelService.getPanelsByPage as any).mockResolvedValue([]);
+    (artworkService.getArtworks as any).mockResolvedValue([]);
     // Mock navigator.clipboard
     Object.assign(navigator, {
       clipboard: {
@@ -465,5 +483,136 @@ describe('PreviewLinksModal', () => {
       expect(screen.queryByTestId('triage-noted-btn-fb-1')).not.toBeInTheDocument();
       expect(screen.queryByTestId('cr-assignment-select-fb-1')).not.toBeInTheDocument();
     });
+  });
+
+  it('tự động tải lại danh sách phản hồi mỗi khi chuyển sang tab Phản Hồi Độc Giả', async () => {
+    // Lúc mở modal chưa có phản hồi nào
+    (previewLinkService.getPreviewFeedback as any).mockResolvedValueOnce([]);
+
+    render(
+      <PreviewLinksModal
+        isOpen={true}
+        onClose={vi.fn()}
+        chapterId='chap-101'
+        chapterNumber={1}
+        chapterStatus='ChapterApproved'
+      />,
+    );
+
+    await waitFor(() => {
+      expect(previewLinkService.getPreviewFeedback).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('tab-preview-feedback')).toHaveTextContent('Phản Hồi Độc Giả (0)');
+    });
+
+    // Người nhận gửi phản hồi mới trong lúc modal đang mở ở tab Link
+    const newlyArrived: PreviewFeedbackDto = {
+      id: 'fb-live-1',
+      previewLinkId: 'link-1',
+      chapterId: 'chap-101',
+      pageId: null,
+      panelId: null,
+      chapterVersion: 0,
+      recipientEmail: 'reviewer@editor.com',
+      message: 'Phản hồi vừa gửi khi modal đang mở',
+      status: 'New',
+      createdAt: '2026-10-08T16:00:00Z',
+    };
+    (previewLinkService.getPreviewFeedback as any).mockResolvedValueOnce([newlyArrived]);
+
+    // Chuyển sang tab Phản Hồi Độc Giả → tự nạp lại ngay mà không cần bấm lọc trạng thái
+    fireEvent.click(screen.getByTestId('tab-preview-feedback'));
+
+    await waitFor(() => {
+      expect(previewLinkService.getPreviewFeedback).toHaveBeenCalledTimes(2);
+      expect(previewLinkService.getPreviewFeedback).toHaveBeenLastCalledWith('chap-101', undefined);
+      expect(screen.getByTestId('tab-preview-feedback')).toHaveTextContent('Phản Hồi Độc Giả (1)');
+      expect(screen.getByTestId('feedback-item-fb-live-1')).toHaveTextContent(
+        'Phản hồi vừa gửi khi modal đang mở',
+      );
+    });
+  });
+
+  it('đọc số trang / số khung / version artwork từ DTO, trang thiếu số thì tra danh sách trang, rồi mới fallback ID rút gọn', async () => {
+    const pageUuid = '7c21fc99-1111-2222-3333-444444444444';
+    const panelUuid = '9a8b7c11-aaaa-bbbb-cccc-dddddddddddd';
+    const unknownPageUuid = 'f00baa99-0000-0000-0000-000000000000';
+    const unknownPanelUuid = 'deadbe99-0000-0000-0000-000000000000';
+
+    (pageService.getPagesByChapter as any).mockResolvedValue([
+      { id: pageUuid, chapterId: 'chap-101', pageNumber: 3 },
+    ]);
+    (previewLinkService.getPreviewFeedback as any).mockResolvedValue([
+      {
+        id: 'fb-panel',
+        previewLinkId: 'link-1',
+        chapterId: 'chap-101',
+        pageId: pageUuid,
+        panelId: panelUuid,
+        assetReferenceId: 'asset-ref-v1',
+        chapterVersion: 0,
+        // BE chiếu sẵn (PreviewFeedbackDto): FE đọc thẳng, không tra thêm
+        pageNumber: 3,
+        panelNumber: 2,
+        artworkVersionNumber: 1,
+        recipientEmail: 'reviewer@editor.com',
+        message: 'Sửa nét khung 2 trang 3',
+        status: 'New',
+        createdAt: '2026-10-08T14:00:00Z',
+      },
+      {
+        id: 'fb-page',
+        previewLinkId: 'link-1',
+        chapterId: 'chap-101',
+        pageId: pageUuid,
+        panelId: null,
+        assetReferenceId: 'asset-ref-v1',
+        chapterVersion: 0,
+        recipientEmail: 'reviewer@editor.com',
+        message: 'Bố cục trang 3 ổn',
+        status: 'New',
+        createdAt: '2026-10-08T14:05:00Z',
+      },
+      {
+        id: 'fb-fallback',
+        previewLinkId: 'link-1',
+        chapterId: 'chap-101',
+        pageId: unknownPageUuid,
+        panelId: unknownPanelUuid,
+        chapterVersion: 0,
+        recipientEmail: 'reviewer@editor.com',
+        message: 'Trang đã xoá',
+        status: 'New',
+        createdAt: '2026-10-08T14:10:00Z',
+      },
+    ]);
+
+    render(
+      <PreviewLinksModal
+        isOpen={true}
+        onClose={vi.fn()}
+        chapterId='chap-101'
+        chapterNumber={1}
+        chapterStatus='ChapterApproved'
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('tab-preview-feedback'));
+
+    await waitFor(() => {
+      const panelItem = screen.getByTestId('feedback-item-fb-panel');
+      expect(panelItem).toHaveTextContent('Khung #2 (Trang 3)');
+      expect(panelItem).toHaveTextContent('(Bản v1)');
+      expect(panelItem).not.toHaveTextContent('(Bản v0)');
+
+      const pageItem = screen.getByTestId('feedback-item-fb-page');
+      expect(pageItem).toHaveTextContent('Trang 3');
+      expect(pageItem).not.toHaveTextContent('Trang #7c21fc');
+
+      const fallbackItem = screen.getByTestId('feedback-item-fb-fallback');
+      expect(fallbackItem).toHaveTextContent('Khung #deadbe (Trang #f00baa)');
+    });
+    // Không còn request phụ theo từng trang
+    expect(panelService.getPanelsByPage).not.toHaveBeenCalled();
+    expect(artworkService.getArtworks).not.toHaveBeenCalled();
   });
 });

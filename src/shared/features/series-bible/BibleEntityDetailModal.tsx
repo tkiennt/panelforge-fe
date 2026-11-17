@@ -890,6 +890,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             actorDesc = t('bible.detailModal.actorSystem', 'Hệ thống');
             actionDesc = `${t('bible.detailModal.actionSuperseded', 'Thay thế bởi phiên bản mới')}${evt.comment ? `: "${evt.comment}"` : ''}`;
             break;
+          case 'DraftOverwritten':
+            actorDesc = t('bible.detailModal.actorWriterEditor', 'Biên kịch / Biên tập');
+            actionDesc = t(
+              'bible.detailModal.actionDraftOverwritten',
+              'Writer định nghĩa lại nội dung bản nháp',
+            );
+            break;
           default:
             actionDesc = t(
               'bible.detailModal.actionDefaultEvent',

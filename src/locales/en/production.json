@@ -211,7 +211,12 @@
       "unlistedDesc": "Page {pages} still exists on the Artist desk but the script no longer mentions it. It was not deleted; ask the Producer or Artist to remove it if needed.",
       "structureFailed": "Lines saved, but the Page / Panel structure was not",
       "lostRefsWarning": "Series Bible reference warning",
-      "conflict": "Script changed by someone else - please reload",
+      "conflict": "The script was just updated (restored / AI / someone else). Reload to view the latest version.",
+      "reloadLatest": "Reload latest",
+      "reloadConfirmTitle": "Reload the latest version from server?",
+      "reloadConfirmBody": "You have unsaved changes. Copy any text you want to keep before reloading so you can merge it into the latest version.",
+      "reloadConfirmBtn": "Reload latest",
+      "keepEditingBtn": "Keep to merge",
       "deleteBlocked": "Could not delete page"
     },
     "cast": {
@@ -367,7 +372,14 @@
       "unpushed": "Changes not yet submitted",
       "noMessage": "(no note)",
       "back": "All versions",
-      "viewChanges": "View changes in this version"
+      "viewChanges": "View changes in this version",
+      "sceneRevisionsTitle": "Scene revisions (Restore)",
+      "restoreBtn": "Restore",
+      "restoring": "Restoring…",
+      "currentBadge": "CURRENT",
+      "restoredToastTitle": "Script restored",
+      "restoredToastBody": "Restored to v{from}; created new revision v{to}.",
+      "restoreConflict": "The script was just modified. Reloaded the latest data; please review before restoring."
     }
   },
   "createProjectModal": {

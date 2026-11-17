@@ -78,6 +78,11 @@ export interface PreviewFeedbackDto {
   stageTaskId?: string | null;
   /** Tên người nhận xét tự khai trên trang review công khai (không bắt buộc). */
   reviewerName?: string | null;
+  /** Số trang / số khung BE chiếu sẵn; null nếu không tìm thấy. */
+  pageNumber?: number | null;
+  panelNumber?: number | null;
+  /** AssetReference.VersionNumber (1-based) của artwork gắn phản hồi — KHÁC chapterVersion (0-based). */
+  artworkVersionNumber?: number | null;
 }
 
 export interface CreatePreviewLinkRequest {
