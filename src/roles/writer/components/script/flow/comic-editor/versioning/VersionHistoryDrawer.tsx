@@ -1,5 +1,6 @@
 // src/roles/writer/components/script/flow/comic-editor/versioning/VersionHistoryDrawer.tsx
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   History,
   GitCompare,
@@ -37,6 +38,7 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
   onRestoreVersion,
   canRestore = true,
 }) => {
+  const { lang } = useTranslation();
   const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -136,14 +138,17 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
                       </span>
                     )}
                   </div>
-                  <span className='text-xs text-slate-400 font-mono'>
-                    {new Date(version.createdAt).toLocaleString('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                    })}
+                  <span className='text-xs text-stone-500 font-mono'>
+                    {new Date(version.createdAt).toLocaleString(
+                      lang === 'vi' ? 'vi-VN' : 'en-US',
+                      {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      },
+                    )}
                   </span>
                 </div>
 

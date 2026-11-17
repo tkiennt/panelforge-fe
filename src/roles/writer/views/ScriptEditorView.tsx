@@ -1115,11 +1115,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       setBarWarn(true);
       setTimeout(() => setBarWarn(false), 800);
       const confirmSwitch = await confirm({
-        title: 'Bỏ qua thay đổi chưa lưu?',
-        description:
+        title: t('scriptStudio.narrative.discardTitle', 'Bỏ qua thay đổi chưa lưu?'),
+        description: t(
+          'scriptStudio.narrative.discardSwitchDesc',
           'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để chuyển chương không?',
-        confirmLabel: 'Bỏ qua và chuyển chương',
-        cancelLabel: 'Ở lại',
+        ),
+        confirmLabel: t('scriptStudio.narrative.discardAndSwitch', 'Bỏ qua và chuyển chương'),
+        cancelLabel: t('scriptStudio.narrative.stay', 'Ở lại'),
       });
       if (!confirmSwitch) return;
     }
@@ -1147,11 +1149,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       setBarWarn(true);
       setTimeout(() => setBarWarn(false), 800);
       const confirmSwitch = await confirm({
-        title: 'Bỏ qua thay đổi chưa lưu?',
-        description:
+        title: t('scriptStudio.narrative.discardTitle', 'Bỏ qua thay đổi chưa lưu?'),
+        description: t(
+          'scriptStudio.narrative.discardBackDesc',
           'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để quay lại danh sách chọn chương không?',
-        confirmLabel: 'Bỏ qua và quay lại',
-        cancelLabel: 'Ở lại',
+        ),
+        confirmLabel: t('scriptStudio.narrative.discardAndBack', 'Bỏ qua và quay lại'),
+        cancelLabel: t('scriptStudio.narrative.stay', 'Ở lại'),
       });
       if (!confirmSwitch) return;
     }
@@ -1208,9 +1212,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       setStoryArcInput(res.value || '');
       clearDraft(`storyArc.${seriesId}`);
       setSeriesDetail((prev) => (prev ? { ...prev, storyArc: res.value } : null));
-      notify('Thành công', 'Đã cập nhật Story Arc của Series.');
+      notify(
+        t('common.success', 'Thành công'),
+        t('scriptStudio.narrative.updateSuccess', 'Đã cập nhật Story Arc của Series.'),
+      );
     } catch (err: any) {
-      notify('Lỗi cập nhật Story Arc', err.message);
+      notify(
+        t('scriptStudio.narrative.updateError', 'Lỗi cập nhật Story Arc'),
+        err.message,
+      );
       if (err.message?.includes('409') || err.message?.includes('xung đột')) {
         setConcurrencyError(err.message);
       }

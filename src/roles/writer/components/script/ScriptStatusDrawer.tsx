@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   AlertTriangle,
   Bell,
@@ -91,6 +92,7 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
   onOpenDrawer,
   t,
 }) => {
+  const { lang } = useTranslation('production');
   if (!isOpen) return null;
 
   const hasRestorable = Boolean(
@@ -156,8 +158,18 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
           if (!draft || !key) return null;
           const label =
             kind === 'storyArc'
-              ? 'Story Arc'
-              : `Đề cương Chương ${currentChapter?.chapterNumber ?? ''}`;
+              ? t('scriptStudio.narrative.storyArc', 'Story Arc')
+              : t('scriptStudio.narrative.outlineWithChapter', {
+                  n: currentChapter?.chapterNumber ?? '',
+                  defaultValue: `Đề cương Chương ${currentChapter?.chapterNumber ?? ''}`,
+                });
+          const formattedTime = new Date(draft.savedAt).toLocaleString(
+            lang === 'vi' ? 'vi-VN' : 'en-US',
+            {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            },
+          );
           return (
             <div
               key={kind}
@@ -168,12 +180,11 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
               <div className='flex items-start gap-2'>
                 <Clock className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
                 <span className='font-medium leading-relaxed'>
-                  Có bản nháp {label} chưa lưu lúc{' '}
-                  {new Date(draft.savedAt).toLocaleString('vi-VN', {
-                    dateStyle: 'short',
-                    timeStyle: 'short',
+                  {t('scriptStudio.statusDrawer.draftNotice', {
+                    label,
+                    time: formattedTime,
+                    defaultValue: `Có bản nháp ${label} chưa lưu lúc ${formattedTime}.`,
                   })}
-                  .
                 </span>
               </div>
               <div className='flex items-center gap-2 self-end'>
@@ -182,14 +193,14 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
                   onClick={() => onRestoreDraft?.(kind, draft.text)}
                   className='px-2.5 py-1 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 cursor-pointer transition-colors'
                 >
-                  Khôi phục
+                  {t('scriptStudio.statusDrawer.restore', 'Khôi phục')}
                 </button>
                 <button
                   type='button'
                   onClick={() => onDiscardDraft?.(kind)}
                   className='px-2.5 py-1 rounded-lg border border-amber-300 font-semibold hover:bg-amber-100 cursor-pointer transition-colors'
                 >
-                  Bỏ bản nháp
+                  {t('scriptStudio.statusDrawer.discard', 'Bỏ bản nháp')}
                 </button>
               </div>
             </div>
