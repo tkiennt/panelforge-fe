@@ -410,6 +410,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     | 'versions'
     | 'comments'
     | 'status'
+    | 'ai-draft'
+    | 'ai-storyboard'
     | null;
 
   const [activeLeftDrawer, setActiveLeftDrawer] = useState<LeftDrawer>(null);
@@ -477,10 +479,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
-
-  // Modals phụ trợ
-  const [aiPanelOpen, setAiPanelOpen] = useState(false);
-  const [storyboardPanelOpen, setStoryboardPanelOpen] = useState(false);
 
   // V2.5: Script Freeze Gate
   const [freezingScript, setFreezingScript] = useState(false);
@@ -2205,6 +2203,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             label: t('scriptStudio.rail.ai'),
             tooltip: t('scriptStudio.railTooltip.ai', 'Trợ lý AI viết nháp và phân khung'),
             icon: Sparkles,
+            active: activeRightDrawer === 'ai-draft' || activeRightDrawer === 'ai-storyboard',
             tone: 'ai',
             testId: 'rail-ai-btn',
             menu: [
@@ -2214,7 +2213,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 hint: selectedScene ? undefined : t('scriptStudio.ai.needScene'),
                 disabled: !selectedScene,
                 testId: 'open-ai-draft-btn',
-                onSelect: () => setAiPanelOpen(true),
+                onSelect: () => setActiveRightDrawer('ai-draft'),
               },
               {
                 id: 'storyboard',
@@ -2226,7 +2225,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     : undefined,
                 disabled: !selectedScene,
                 testId: 'open-ai-storyboard-btn',
-                onSelect: () => setStoryboardPanelOpen(true),
+                onSelect: () => setActiveRightDrawer('ai-storyboard'),
               },
             ],
           } satisfies ScriptRailItem,
@@ -2656,7 +2655,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       </div>
 
       {/* Trợ lý AI viết nháp kịch bản */}
-      {aiPanelOpen && seriesId && currentChapter?.id && selectedScene?.id && (
+      {activeRightDrawer === 'ai-draft' && seriesId && currentChapter?.id && selectedScene?.id && (
         <AiAssistPanel
           key={selectedScene.id}
           seriesId={seriesId}
@@ -2671,13 +2670,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           readingDirection={aiReadingDirection}
           chapterVersion={currentChapter.versionVector}
           nameById={aiNameById}
-          onClose={() => setAiPanelOpen(false)}
+          onClose={() => setActiveRightDrawer(null)}
           onReload={handleAiReload}
         />
       )}
 
       {/* Trợ lý AI Phân khung Storyboard */}
-      {storyboardPanelOpen && seriesId && currentChapter?.id && selectedScene?.id && (
+      {activeRightDrawer === 'ai-storyboard' && seriesId && currentChapter?.id && selectedScene?.id && (
         <AiAssistPanel
           key={`storyboard-${selectedScene.id}`}
           seriesId={seriesId}
@@ -2693,7 +2692,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           chapterVersion={currentChapter.versionVector}
           nameById={aiNameById}
           hasPanels={sceneHasPanels}
-          onClose={() => setStoryboardPanelOpen(false)}
+          onClose={() => setActiveRightDrawer(null)}
           onReload={handleAiReload}
         />
       )}
