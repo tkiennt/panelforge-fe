@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle2,
+  Clock,
+  Eye,
   X,
   Clapperboard,
   Layers,
@@ -2311,32 +2313,105 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }}
         isSaving={savingStoryArc || savingOutline}
       />
-      {/* Chỉ báo gọn tối đa 1 dòng trên header khi có lỗi nghiêm trọng (409 Conflict) */}
-      {concurrencyError && (
-        <div
-          data-testid='concurrency-error-banner'
-          className='px-4 py-2 bg-rose-50 border-b border-rose-200 flex items-center justify-between text-xs text-rose-800 shrink-0'
-        >
-          <div className='flex items-center gap-2 truncate'>
-            <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
-            <span className='font-semibold truncate'>{concurrencyError}</span>
+      {/* Thanh chỉ báo gom gọn tối đa 1 dòng trên header (Status chip, Blockers, Concurrency) */}
+      {(concurrencyError ||
+        isScriptFrozen ||
+        isScriptInReview ||
+        isChapterLocked ||
+        !canEditScript ||
+        isSubmitBlocked ||
+        isStartBlocked) && (
+        <div className='px-4 py-1.5 bg-white/95 border-b border-stone-200/80 flex items-center justify-between gap-3 text-xs shrink-0 flex-wrap shadow-2xs'>
+          {/* Trạng thái 409 hoặc trạng thái chương (1 chip duy nhất) */}
+          <div className='flex items-center gap-2 min-w-0'>
+            {concurrencyError ? (
+              <div
+                data-testid='concurrency-error-banner'
+                className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200'
+              >
+                <AlertTriangle className='w-3.5 h-3.5 text-rose-600 shrink-0' />
+                <span className='truncate'>{concurrencyError}</span>
+              </div>
+            ) : isScriptFrozen ? (
+              <div
+                data-testid='script-frozen-banner'
+                className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-stone-100 text-stone-700 border border-stone-300'
+              >
+                <Lock className='w-3.5 h-3.5 text-stone-500' />
+                <span>{t('scriptStudio.statusDrawer.frozen', 'Kịch bản đã đóng băng')}</span>
+              </div>
+            ) : isScriptInReview ? (
+              <div
+                data-testid='script-in-review-banner'
+                className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300'
+              >
+                <Clock className='w-3.5 h-3.5 text-amber-600' />
+                <span>{t('scriptStudio.statusDrawer.inReview', 'Kịch bản đang được Editor thẩm định')}</span>
+              </div>
+            ) : isChapterLocked ? (
+              <div
+                data-testid='chapter-locked-banner'
+                className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-stone-100 text-stone-600 border border-stone-200'
+              >
+                <Lock className='w-3.5 h-3.5 text-stone-400' />
+                <span>{t('scriptStudio.statusDrawer.locked', 'Chương đang sản xuất (khóa chỉnh sửa)')}</span>
+              </div>
+            ) : !canEditScript ? (
+              <div
+                data-testid='role-view-only-banner'
+                className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200'
+              >
+                <Eye className='w-3.5 h-3.5 text-blue-500' />
+                <span>{t('scriptStudio.statusDrawer.viewOnly', 'Chế độ chỉ xem')}</span>
+              </div>
+            ) : null}
           </div>
+
+          {/* Cụm lý do chặn cạnh nút Gửi duyệt (Submit-blocked / Start-blocked) */}
           <div className='flex items-center gap-2 shrink-0'>
+            {isSubmitBlocked && (
+              <div
+                data-testid='submit-blocked-banner'
+                className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-300'
+              >
+                <AlertTriangle className='w-3.5 h-3.5 text-rose-600 shrink-0' />
+                <span>{t('scriptStudio.statusDrawer.submitBlocked', 'Chặn gửi duyệt: nhân vật nháp chưa liên kết')}</span>
+                <button
+                  type='button'
+                  onClick={() => setActiveRightDrawer('characters')}
+                  className='underline text-rose-900 hover:text-rose-950 font-bold ml-1 cursor-pointer'
+                >
+                  {t('scriptStudio.statusDrawer.openCast', 'Mở Cast')}
+                </button>
+              </div>
+            )}
+            {isStartBlocked && !isSubmitBlocked && (
+              <div
+                data-testid='start-blocked-banner'
+                className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300'
+              >
+                <AlertTriangle className='w-3.5 h-3.5 text-amber-600 shrink-0' />
+                <span>{t('scriptStudio.statusDrawer.startBlocked', 'Chưa có phân cảnh nào để gửi duyệt')}</span>
+              </div>
+            )}
+
             <button
               type='button'
               onClick={() => setActiveRightDrawer('status')}
-              className='text-xs font-semibold text-rose-700 underline hover:text-rose-900 cursor-pointer'
+              className='text-xs font-semibold text-stone-600 hover:text-stone-900 underline cursor-pointer ml-1'
             >
               {t('scriptStudio.statusDrawer.viewDetails', 'Xem chi tiết')}
             </button>
-            <button
-              type='button'
-              onClick={() => setConcurrencyError(null)}
-              className='text-rose-400 hover:text-rose-700 cursor-pointer p-0.5'
-              title={t('common.close', 'Đóng')}
-            >
-              <X className='w-3.5 h-3.5' />
-            </button>
+            {concurrencyError && (
+              <button
+                type='button'
+                onClick={() => setConcurrencyError(null)}
+                className='text-rose-400 hover:text-rose-700 cursor-pointer p-0.5'
+                title={t('common.close', 'Đóng')}
+              >
+                <X className='w-3.5 h-3.5' />
+              </button>
+            )}
           </div>
         </div>
       )}

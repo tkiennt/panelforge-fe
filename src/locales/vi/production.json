@@ -162,7 +162,14 @@
       "viewDetails": "Xem chi tiết",
       "draftNotice": "Có bản nháp {{label}} chưa lưu lúc {{time}}.",
       "restore": "Khôi phục",
-      "discard": "Bỏ qua"
+      "discard": "Bỏ qua",
+      "frozen": "Kịch bản đã đóng băng",
+      "inReview": "Kịch bản đang được Editor thẩm định",
+      "locked": "Chương đang sản xuất (khóa chỉnh sửa)",
+      "viewOnly": "Chế độ chỉ xem",
+      "submitBlocked": "Chặn gửi duyệt: nhân vật nháp chưa liên kết Bible",
+      "startBlocked": "Chưa có phân cảnh nào để gửi duyệt",
+      "openCast": "Mở Cast"
     },
     "narrative": {
       "title": "Đề cương & Ngữ cảnh Cốt truyện",

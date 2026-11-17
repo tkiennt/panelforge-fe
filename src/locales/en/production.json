@@ -162,7 +162,14 @@
       "viewDetails": "View details",
       "draftNotice": "Unsaved draft for {{label}} found from {{time}}.",
       "restore": "Restore",
-      "discard": "Discard"
+      "discard": "Discard",
+      "frozen": "Script is frozen",
+      "inReview": "Script is under Editor review",
+      "locked": "Chapter in production (locked)",
+      "viewOnly": "View-only mode",
+      "submitBlocked": "Submission blocked: draft characters unlinked",
+      "startBlocked": "No scenes available to submit",
+      "openCast": "Open Cast"
     },
     "narrative": {
       "title": "Outline & Story Narrative",
