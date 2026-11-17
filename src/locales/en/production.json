@@ -118,6 +118,7 @@
     "rail": {
       "chapters": "Chapters",
       "scenes": "Scenes",
+      "structure": "Structure",
       "outline": "Outline",
       "characters": "Cast",
       "consistency": "Consistency",
@@ -133,6 +134,7 @@
     "railTooltip": {
       "chapters": "Chapters list in series",
       "scenes": "Scenes list in chapter",
+      "structure": "Manuscript structure: Chapters and Scenes",
       "outline": "Story outline & narrative context",
       "characters": "Bible characters & chapter cast",
       "consistency": "Check narrative consistency",

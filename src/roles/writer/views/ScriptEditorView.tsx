@@ -2360,6 +2360,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             }}
             onBackToSelection={handleBackToChapterSelection}
             onClose={() => setActiveLeftDrawer(null)}
+            scenes={filteredScenes}
+            selectedSceneId={selectedScene?.id}
+            canEdit={canEditScript && !isChapterLocked}
+            onSelectScene={handleSelectScene}
+            onAddScene={handleOpenCreateScene}
+            onRenameSelectedScene={handleOpenEditScene}
+            onDeleteScene={(s) => setSceneToDelete(s)}
+            onDeleteChapter={
+              isProducer && currentChapter && !isChapterLocked
+                ? () => setChapterToDelete(currentChapter)
+                : undefined
+            }
           />
         )}
 

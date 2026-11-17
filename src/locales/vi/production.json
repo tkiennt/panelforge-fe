@@ -118,6 +118,7 @@
     "rail": {
       "chapters": "Chương",
       "scenes": "Phân cảnh",
+      "structure": "Cấu trúc",
       "outline": "Đề cương",
       "characters": "Nhân vật",
       "consistency": "Nhất quán",
@@ -133,6 +134,7 @@
     "railTooltip": {
       "chapters": "Danh sách chương trong bộ truyện",
       "scenes": "Danh sách phân cảnh trong chương",
+      "structure": "Cấu trúc: Chương và Phân cảnh",
       "outline": "Đề cương & Ngữ cảnh cốt truyện",
       "characters": "Nhân vật Bible & Phân vai chương",
       "consistency": "Kiểm tra nhất quán cốt truyện",
