@@ -486,6 +486,8 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
       localStorage.removeItem('user');
       localStorage.removeItem('userRole');
       localStorage.removeItem('activeWorkspace');
+      localStorage.removeItem('workspaceRole');
+      localStorage.removeItem('activeProject');
       onLogout();
     } catch (error) {
       console.error('Lỗi khi đăng xuất:', error);

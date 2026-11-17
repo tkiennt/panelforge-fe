@@ -431,4 +431,362 @@ describe('assignmentService', () => {
     expect(axiosClient.get).toHaveBeenCalledWith('/chapters/chap-2/assignments/plan-template');
     expect(result).toEqual(mockTemplate);
   });
+
+  // ==========================================
+  // Assignment Grid V3 (Lát cắt 1)
+  // ==========================================
+  it('getTaskGrid gọi GET /chapters/{id}/task-grid và trả về TaskGridDto', async () => {
+    const mockGrid = {
+      chapterId: 'chap-1',
+      stages: [],
+      pages: [{ id: 'p-1', pageNumber: 1 }],
+      tasks: [],
+      lots: [],
+    };
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockGrid });
+
+    const result = await assignmentService.getTaskGrid('chap-1');
+    expect(axiosClient.get).toHaveBeenCalledWith('/chapters/chap-1/task-grid');
+    expect(result).toEqual(mockGrid);
+  });
+
+  it('generateTaskGrid gọi POST /chapters/{id}/task-grid/generate', async () => {
+    const mockRes = { created: 10, cancelled: 0, total: 10 };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockRes });
+
+    const result = await assignmentService.generateTaskGrid('chap-1');
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/task-grid/generate');
+    expect(result).toEqual(mockRes);
+  });
+
+  it('assignTaskGridLots gọi POST /chapters/{id}/task-grid/lots kèm dryRun', async () => {
+    const mockRes = { dryRun: true, taskCount: 2, lots: [] };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockRes });
+
+    const result = await assignmentService.assignTaskGridLots('chap-1', {
+      lots: [{ pipelineStageId: 'stg-1', assigneeUserId: 'u-1', taskIds: ['t-1', 't-2'] }],
+      dryRun: true,
+    });
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/task-grid/lots', {
+      lots: [{ pipelineStageId: 'stg-1', assigneeUserId: 'u-1', taskIds: ['t-1', 't-2'] }],
+      dryRun: true,
+    });
+    expect(result).toEqual(mockRes);
+  });
+
+  it('startStageTask, submitStageTasks và approveStageTask gọi đúng các route Lát cắt 1', async () => {
+    const mockTask = { id: 't-1', pipelineStageId: 'stg-1', status: 'InProgress' };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockTask });
+    await assignmentService.startStageTask('chap-1', 't-1');
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/task-grid/tasks/t-1/start');
+
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({
+      data: [{ ...mockTask, status: 'Submitted' }],
+    });
+    const submitted = await assignmentService.submitStageTasks('chap-1', ['t-1']);
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/task-grid/tasks/submit', {
+      taskIds: ['t-1'],
+    });
+    expect(submitted[0].status).toBe('Submitted');
+
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({
+      data: { ...mockTask, status: 'Approved' },
+    });
+    const approved = await assignmentService.approveStageTask('chap-1', 't-1');
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/task-grid/tasks/t-1/approve');
+    expect(approved.status).toBe('Approved');
+  });
+
+  // ==========================================
+  // Assignment Grid V3 (Lát cắt 2 & 2b)
+  // ==========================================
+  it('requestStageTaskChanges (kèm comment), getStageTaskSubmissions, reopenStageTask, resolveStageTaskImpact và unassignStageTasks gọi đúng các route Lát cắt 2/2b', async () => {
+    const mockTask = { id: 't-1', pipelineStageId: 'stg-1', status: 'ReworkRequired' };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockTask });
+    const reqChanges = await assignmentService.requestStageTaskChanges(
+      'chap-1',
+      't-1',
+      'Sửa lại bố cục khung 2',
+    );
+    expect(axiosClient.post).toHaveBeenCalledWith(
+      '/chapters/chap-1/task-grid/tasks/t-1/request-changes',
+      { comment: 'Sửa lại bố cục khung 2' },
+    );
+    expect(reqChanges.status).toBe('ReworkRequired');
+
+    const mockSubs = [
+      {
+        id: 'sub-1',
+        attemptNumber: 1,
+        status: 'Rejected',
+        submittedByUserId: 'u-1',
+        submittedAt: '2026-11-14T09:00:00Z',
+        artworkReferenceIds: ['art-1'],
+        decidedByUserId: 'u-editor',
+        decidedAt: '2026-11-14T09:30:00Z',
+        decisionComment: 'Sửa lại bố cục khung 2',
+      },
+    ];
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockSubs });
+    const subs = await assignmentService.getStageTaskSubmissions('chap-1', 't-1');
+    expect(axiosClient.get).toHaveBeenCalledWith(
+      '/chapters/chap-1/task-grid/tasks/t-1/submissions',
+    );
+    expect(subs).toEqual(mockSubs);
+
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({
+      data: { task: mockTask, outdatedTaskIds: ['t-2'] },
+    });
+    const reopened = await assignmentService.reopenStageTask('chap-1', 't-1', 'Sửa nét');
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/task-grid/tasks/t-1/reopen', {
+      reason: 'Sửa nét',
+    });
+    expect(reopened.outdatedTaskIds).toEqual(['t-2']);
+
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({
+      data: { ...mockTask, status: 'InProgress', isInputOutdated: false },
+    });
+    const resolved = await assignmentService.resolveStageTaskImpact('chap-1', 't-2', true);
+    expect(axiosClient.post).toHaveBeenCalledWith(
+      '/chapters/chap-1/task-grid/tasks/t-2/resolve-impact',
+      { keep: true },
+    );
+    expect(resolved.isInputOutdated).toBe(false);
+
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({
+      data: [{ ...mockTask, status: 'Unassigned', assigneeUserId: null }],
+    });
+    const unassigned = await assignmentService.unassignStageTasks('chap-1', ['t-1']);
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/task-grid/tasks/unassign', {
+      taskIds: ['t-1'],
+    });
+    expect(unassigned[0].status).toBe('Unassigned');
+  });
+
+  // ==========================================
+  // Assignment Grid V3 – Lát cắt 4 (Clean Cutover)
+  // ==========================================
+  it('getMyTaskLots, getTaskGridReviewQueue và migrateAssignmentsToGrid gọi đúng các route Lát cắt 4', async () => {
+    const mockLots = [
+      {
+        id: 'lot-1',
+        seriesId: 'se-1',
+        seriesTitle: 'Đốm Lửa Trường Sinh',
+        chapterId: 'chap-1',
+        chapterNumber: 1,
+        chapterTitle: 'Khởi đầu',
+        pipelineStageId: 'stg-pencil',
+        stageName: 'Pencil',
+        stageOrder: 1,
+        assignedRole: 'Artist',
+        status: 'Active',
+        isOverdue: false,
+        tasks: [
+          {
+            id: 'cell-1',
+            pageId: 'page-1',
+            pageNumber: 1,
+            status: 'InProgress',
+            isStartable: true,
+            isInputOutdated: false,
+          },
+        ],
+      },
+    ];
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockLots });
+    const lots = await assignmentService.getMyTaskLots('ws-1', {
+      seriesId: 'se-1',
+      includeCompleted: true,
+    });
+    expect(axiosClient.get).toHaveBeenCalledWith('/workspaces/ws-1/my-task-lots', {
+      params: { seriesId: 'se-1', includeCompleted: true },
+    });
+    expect(lots).toEqual(mockLots);
+
+    const mockQueue = [
+      {
+        taskId: 'cell-2',
+        seriesId: 'se-1',
+        seriesTitle: 'Đốm Lửa Trường Sinh',
+        chapterId: 'chap-1',
+        chapterNumber: 1,
+        pipelineStageId: 'stg-pencil',
+        stageName: 'Pencil',
+        pageId: 'page-2',
+        pageNumber: 2,
+        status: 'Submitted',
+        assigneeUserId: 'u-artist',
+        attemptNumber: 1,
+        submittedAt: '2026-11-14T10:00:00Z',
+      },
+    ];
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockQueue });
+    const queue = await assignmentService.getTaskGridReviewQueue('ws-1', { seriesId: 'se-1' });
+    expect(axiosClient.get).toHaveBeenCalledWith('/workspaces/ws-1/task-grid/review-queue', {
+      params: { seriesId: 'se-1' },
+    });
+    expect(queue).toEqual(mockQueue);
+
+    const mockMigrate = {
+      migrated: 3,
+      cellsAssigned: 12,
+      skipped: [{ assignmentId: 'asg-old', chapterId: 'chap-1', reason: 'Công đoạn đã tắt' }],
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockMigrate });
+    const migrated = await assignmentService.migrateAssignmentsToGrid('se-1');
+    expect(axiosClient.post).toHaveBeenCalledWith('/series/se-1/task-grid/migrate-assignments');
+    expect(migrated).toEqual(mockMigrate);
+  });
+
+  // ==========================================
+  // Assignment Grid V3 – Review Locks, Withdraw, Reassign & Update Lot
+  // ==========================================
+  it('withdrawStageTask gọi POST /chapters/{id}/task-grid/tasks/{taskId}/withdraw không body và giữ nguyên lỗi 409/403 từ BE', async () => {
+    const mockWithdrawn = {
+      id: 't-1',
+      pipelineStageId: 'stg-pencil',
+      status: 'InProgress',
+      attemptCount: 1,
+      rowVersion: 4,
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockWithdrawn });
+
+    const res = await assignmentService.withdrawStageTask('chap-1', 't-1');
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/task-grid/tasks/t-1/withdraw');
+    expect(res).toEqual(mockWithdrawn);
+
+    vi.mocked(axiosClient.post).mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: {
+          error:
+            'Editor đang mở duyệt ô này nên không rút được; nhờ Editor trả bài hoặc nhả khoá duyệt.',
+          code: 'CONFLICT',
+        },
+      },
+    });
+    await expect(assignmentService.withdrawStageTask('chap-1', 't-1')).rejects.toMatchObject({
+      message:
+        'Editor đang mở duyệt ô này nên không rút được; nhờ Editor trả bài hoặc nhả khoá duyệt.',
+      status: 409,
+      code: 'CONFLICT',
+    });
+  });
+
+  it('openStageTaskReview và releaseStageTaskReview gọi đúng POST open-review / release-review và giữ lỗi 403', async () => {
+    const mockOpened = {
+      id: 't-2',
+      pipelineStageId: 'stg-ink',
+      status: 'UnderReview',
+      reviewerUserId: 'editor-1',
+      rowVersion: 2,
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockOpened });
+    const opened = await assignmentService.openStageTaskReview('chap-1', 't-2');
+    expect(axiosClient.post).toHaveBeenCalledWith(
+      '/chapters/chap-1/task-grid/tasks/t-2/open-review',
+    );
+    expect(opened).toEqual(mockOpened);
+
+    vi.mocked(axiosClient.post).mockRejectedValueOnce({
+      response: {
+        status: 403,
+        data: {
+          error: 'Không được tự duyệt ô mình làm (BR-06).',
+          code: 'FORBIDDEN',
+        },
+      },
+    });
+    await expect(assignmentService.openStageTaskReview('chap-1', 't-self')).rejects.toMatchObject({
+      message: 'Không được tự duyệt ô mình làm (BR-06).',
+      status: 403,
+      code: 'FORBIDDEN',
+    });
+
+    const mockReleased = {
+      id: 't-2',
+      pipelineStageId: 'stg-ink',
+      status: 'Submitted',
+      reviewerUserId: null,
+      rowVersion: 3,
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockReleased });
+    const released = await assignmentService.releaseStageTaskReview('chap-1', 't-2');
+    expect(axiosClient.post).toHaveBeenCalledWith(
+      '/chapters/chap-1/task-grid/tasks/t-2/release-review',
+    );
+    expect(released).toEqual(mockReleased);
+  });
+
+  it('assignTaskGridLots gửi reassign: true khi đổi người và updateStageTaskLot gọi PATCH lots/{lotId}', async () => {
+    const mockReassignRes = {
+      dryRun: false,
+      taskCount: 1,
+      lots: [
+        {
+          id: 'lot-new',
+          pipelineStageId: 'stg-pencil',
+          assigneeUserId: 'artist-2',
+          assignedRole: 'Artist',
+          status: 'Active',
+          isOverdue: false,
+          taskCount: 1,
+          approvedCount: 0,
+          rowVersion: 1,
+        },
+      ],
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockReassignRes });
+    const reassignRes = await assignmentService.assignTaskGridLots('chap-1', {
+      lots: [{ pipelineStageId: 'stg-pencil', assigneeUserId: 'artist-2', taskIds: ['t-1'] }],
+      reassign: true,
+    });
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/task-grid/lots', {
+      lots: [{ pipelineStageId: 'stg-pencil', assigneeUserId: 'artist-2', taskIds: ['t-1'] }],
+      dryRun: false,
+      reassign: true,
+    });
+    expect(reassignRes).toEqual(mockReassignRes);
+
+    const mockUpdatedLot = {
+      id: 'lot-1',
+      pipelineStageId: 'stg-pencil',
+      assigneeUserId: 'artist-1',
+      assignedRole: 'Artist',
+      brief: 'Gia hạn thêm 2 ngày',
+      dueDate: '2026-11-25T23:59:59.000Z',
+      status: 'Active',
+      isOverdue: false,
+      taskCount: 2,
+      approvedCount: 0,
+      rowVersion: 2,
+    };
+    vi.mocked(axiosClient.patch).mockResolvedValueOnce({ data: mockUpdatedLot });
+    const updatedLot = await assignmentService.updateStageTaskLot('chap-1', 'lot-1', {
+      brief: 'Gia hạn thêm 2 ngày',
+      dueDate: '2026-11-25T23:59:59.000Z',
+      clearDueDate: false,
+    });
+    expect(axiosClient.patch).toHaveBeenCalledWith('/chapters/chap-1/task-grid/lots/lot-1', {
+      brief: 'Gia hạn thêm 2 ngày',
+      dueDate: '2026-11-25T23:59:59.000Z',
+      clearDueDate: false,
+    });
+    expect(updatedLot).toEqual(mockUpdatedLot);
+
+    vi.mocked(axiosClient.patch).mockRejectedValueOnce({
+      response: {
+        status: 400,
+        data: { error: 'Hạn mới phải ở tương lai.' },
+      },
+    });
+    await expect(
+      assignmentService.updateStageTaskLot('chap-1', 'lot-1', {
+        dueDate: '2020-01-01T00:00:00.000Z',
+      }),
+    ).rejects.toMatchObject({
+      message: 'Hạn mới phải ở tương lai.',
+      status: 400,
+    });
+  });
 });

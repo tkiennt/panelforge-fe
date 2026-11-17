@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
-import { ProductionBoard } from '@/shared/features/pipeline-board/ProductionBoard';
+import { useTranslation } from '@/lib/i18n';
+import { TaskGridBoard } from '@/shared/features/pipeline-board/TaskGridBoard';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
-import { CreateAssignmentModal } from '@/roles/producer/modals/CreateAssignmentModal';
-import { SystemRole, WorkspaceRole } from '@/types';
+import { SystemRole, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { BookOpen, RefreshCw, ArrowUpRight, ShieldAlert, Lock, ChevronRight } from 'lucide-react';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { workspaceService } from '@/services/workspace.service';
@@ -45,22 +45,28 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   onShowToast,
   isReaderMode = false,
 }) => {
+  const { t } = useTranslation('pipeline');
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const chapterIdFromUrl = searchParams.get('chapterId');
 
+  const normalizedWsRole = useMemo(
+    () => normalizeWorkspaceRole(currentUserRole),
+    [currentUserRole],
+  );
+
   const effectiveRoles = useMemo(() => {
-    return userRoles.length > 0
-      ? userRoles
-      : [...(systemRole ? [systemRole] : []), ...(currentUserRole ? [currentUserRole] : [])];
-  }, [userRoles, systemRole, currentUserRole]);
+    if (normalizedWsRole) {
+      return [normalizedWsRole, ...(systemRole ? [systemRole] : [])];
+    }
+    return userRoles.length > 0 ? userRoles : systemRole ? [systemRole] : [];
+  }, [normalizedWsRole, userRoles, systemRole]);
 
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [currentChapterId, setCurrentChapterId] = useState<string>('');
   const [loadingChapters, setLoadingChapters] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Metadata cho breadcrumb Studio / Series
@@ -69,8 +75,13 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
   const isReaderOnly = effectiveRoles.length === 1 && effectiveRoles[0] === 'READER';
   const isProducer = useMemo(() => {
-    return effectiveRoles.some((r) => r.toUpperCase() === 'PRODUCER');
-  }, [effectiveRoles]);
+    if (normalizedWsRole) return normalizedWsRole === 'PRODUCER';
+    return userRoles.some((r) => r.toUpperCase() === 'PRODUCER');
+  }, [normalizedWsRole, userRoles]);
+  const isEditor = useMemo(() => {
+    if (normalizedWsRole) return normalizedWsRole === 'EDITOR';
+    return userRoles.some((r) => r.toUpperCase() === 'EDITOR');
+  }, [normalizedWsRole, userRoles]);
 
   // Nạp metadata ngữ cảnh Studio và Series
   useEffect(() => {
@@ -312,34 +323,39 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         </header>
 
         {/* Bàn điều phối sản xuất */}
-        <ProductionBoard
-          chapterId={currentChapterId}
-          refreshKey={refreshKey}
-          currentUserRole={currentUserRole}
-          isProducer={isProducer}
-          currentUserId={currentUserId}
-          onShowToast={onShowToast}
-          onOpenCreateAssignment={() => setIsCreateModalOpen(true)}
-        />
+        {/* Chỉ còn Lưới Trang × Công đoạn; chưa chọn chương thì bảng cũ lo phần chọn chương */}
+        {currentChapterId ? (
+          <TaskGridBoard
+            chapterId={currentChapterId}
+            seriesId={seriesId}
+            workspaceId={workspaceId}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            isProducer={isProducer}
+            isEditor={isEditor}
+            refreshKey={refreshKey}
+            onShowToast={onShowToast}
+            isChapterLocked={[
+              'ChapterApproved',
+              'Approved',
+              'HandedOffAndPublished',
+              'Published',
+            ].includes(String(currentChapter?.status))}
+          />
+        ) : (
+          <div className='rounded-xl border border-dashed border-landing-border bg-[#FCFBF8] p-10 text-center'>
+            <div className='font-semibold text-landing-ink'>
+              {t('taskGridV3.noChapterSelectedTitle', 'Chưa chọn chương')}
+            </div>
+            <p className='mt-1 text-sm text-landing-ink-muted'>
+              {t(
+                'taskGridV3.noChapterSelectedDesc',
+                'Chọn một chương ở phía trên để xem Lưới Giao Việc.',
+              )}
+            </p>
+          </div>
+        )}
       </div>
-
-      {/* Modal giao việc trực tiếp */}
-      {workspaceId && seriesId && currentChapterId && isCreateModalOpen && (
-        <CreateAssignmentModal
-          isOpen={isCreateModalOpen}
-          workspaceId={workspaceId}
-          seriesId={seriesId}
-          chapterId={currentChapterId}
-          chapterNumber={currentChapter?.chapterNumber}
-          onClose={() => setIsCreateModalOpen(false)}
-          onSuccess={() => {
-            setIsCreateModalOpen(false);
-            setRefreshKey((k) => k + 1);
-            onShowToast('Giao việc thành công', 'Nhiệm vụ mới đã được thêm vào bảng tiến độ');
-          }}
-          onShowToast={onShowToast}
-        />
-      )}
     </div>
   );
 };

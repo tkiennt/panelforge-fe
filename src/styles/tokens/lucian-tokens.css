@@ -45,13 +45,16 @@
   overflow-wrap: break-word;
 }
 
-:where(.ux) :is(button, input, textarea, select) {
-  font: inherit;
-  color: inherit;
-}
+/* Reset trong layer base: nếu để ngoài layer, nó thắng mọi utility Tailwind v4 (vd. text-white trên nút nền đen thành chữ đen, mất chữ). */
+@layer base {
+  :where(.ux) :is(button, input, textarea, select) {
+    font: inherit;
+    color: inherit;
+  }
 
-:where(.ux) button {
-  cursor: pointer;
+  :where(.ux) button {
+    cursor: pointer;
+  }
 }
 
 .ux :focus-visible {

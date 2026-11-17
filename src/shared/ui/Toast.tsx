@@ -83,8 +83,8 @@ export function Toast({ toast, closeLabel, onClose }: ToastProps) {
         <Icon className='size-4' />
       </span>
       <div className='u070-tx'>
-        <b>{toast.title}</b>
-        <small>{toast.description}</small>
+        <b className='whitespace-pre-line break-words'>{toast.title}</b>
+        <small className='whitespace-pre-line break-words'>{toast.description}</small>
         {toast.action && (
           <button type='button' className='u070-act' onClick={toast.action.onClick}>
             {toast.action.label}

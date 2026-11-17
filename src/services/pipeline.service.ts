@@ -8,6 +8,8 @@ export interface PipelineStageDto {
   name: string;
   slug: string;
   stageOrder: number; // 1..n
+  /** Nhánh song song (BR-19): "A" = Ink → Color, "B" = Lettering, null = bước chung. */
+  track?: string | null;
   colorCode?: string | null;
   allowedRole?: PipelineRole | null;
   isApprovalGate: boolean;
@@ -76,6 +78,8 @@ export interface UpdatePipelineStageRequest {
   isApprovalGate: boolean;
   estimatedDurationDays?: number | null;
   isEnabled?: boolean;
+  /** null/undefined = giữ nguyên, "" = bỏ nhánh (bước chung), "A" | "B" = đặt nhánh song song. */
+  track?: string | null;
 }
 
 export interface ReorderPipelineStagesRequest {

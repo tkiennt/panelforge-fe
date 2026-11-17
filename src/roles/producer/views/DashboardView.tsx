@@ -7,7 +7,6 @@ import type { ChapterProgressDto } from '@/services/series.service';
 import { MangaProject, AssistantRosterItem, ProvenanceLogItem } from '@/types';
 import { SeriesChaptersModal } from '../modals/SeriesChaptersModal';
 import { SeriesMembersModal } from '../modals/SeriesMembersModal';
-import { CreateAssignmentModal } from '../modals/CreateAssignmentModal';
 import { SeriesBurndownCard } from '../components/SeriesBurndownCard';
 import { useSeriesDashboard } from '../hooks/useSeriesDashboard';
 import { SeriesHeaderBanner } from '../components/dashboard/SeriesHeaderBanner';
@@ -57,10 +56,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [activeTab, setActiveTab] = useState<DashboardTab>('all');
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
-  const [assignChapter, setAssignChapter] = useState<{
-    id: string;
-    number?: number | string;
-  } | null>(null);
   const [sendingReminders, setSendingReminders] = useState(false);
 
   const seriesTitle = seriesDetail?.title || activeProject?.title || 'Bộ truyện';
@@ -72,10 +67,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterId ? `?chapterId=${chapterId}` : ''}`,
     );
 
-  const openAssign = (chapter: ChapterProgressDto) =>
-    setAssignChapter({ id: chapter.chapterId, number: chapter.chapterNumber });
-
-  const closeAssign = () => setAssignChapter(null);
+  const openAssign = (chapter: ChapterProgressDto) => {
+    if (!canRoute) return;
+    navigate(
+      `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${chapter.chapterId}&board=grid-v3`,
+    );
+  };
 
   const handleSendReminders = async () => {
     setSendingReminders(true);
@@ -177,7 +174,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               canRoute
                 ? (chapterId, assignmentId) =>
                     navigate(
-                      `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${chapterId}&assignmentId=${assignmentId}`,
+                      `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${chapterId}&assignmentId=${assignmentId}&taskId=${assignmentId}`,
                     )
                 : null
             }
@@ -238,22 +235,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           seriesTitle={seriesDetail?.title || activeProject?.title || 'Series'}
           onClose={() => {
             setIsChapterModalOpen(false);
-            void dashboard.fetchProgress();
-          }}
-          onShowToast={onShowToast}
-        />
-      )}
-
-      {seriesId && assignChapter && (
-        <CreateAssignmentModal
-          isOpen
-          workspaceId={workspaceId || ''}
-          seriesId={seriesId}
-          chapterId={assignChapter.id}
-          chapterNumber={assignChapter.number}
-          onClose={closeAssign}
-          onSuccess={() => {
-            closeAssign();
             void dashboard.fetchProgress();
           }}
           onShowToast={onShowToast}

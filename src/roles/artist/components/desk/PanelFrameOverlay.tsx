@@ -23,6 +23,9 @@ interface PanelFrameOverlayProps {
   templateCode?: string;
   artworks: Record<string, PanelArtworkData>;
   isLayoutSaved: boolean;
+  canUploadArtwork?: boolean;
+  selectedPanelId?: string | null;
+  onSelectPanel?: (panelId: string | null) => void;
   onUploadArtwork: (panelId: string, panelNumber: number, file: File) => void;
   onRemoveArtwork: (panelId: string, panelNumber: number) => void;
   onPreviewArtwork: (preview: { imageUrl: string; title: string }) => void;
@@ -46,6 +49,9 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
   templateCode,
   artworks,
   isLayoutSaved,
+  canUploadArtwork = true,
+  selectedPanelId = null,
+  onSelectPanel,
   onUploadArtwork,
   onRemoveArtwork,
   onPreviewArtwork,
@@ -69,15 +75,25 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
           (box.percentW < 50 &&
             box.percentH < 50 &&
             boxes.some((b, i) => i !== idx && b.percentW > 80));
-        const openPicker = () => fileInputs.current[pnl.id]?.click();
+        const openPicker = () => {
+          if (!canUploadArtwork) return;
+          fileInputs.current[pnl.id]?.click();
+        };
+
+        const isSelected = selectedPanelId === pnl.id;
 
         return (
           <div
             key={pnl.id}
             data-testid={`canvas-panel-frame-${panelNum}`}
+            data-panel-selected={isSelected ? 'true' : 'false'}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectPanel?.(isSelected ? null : pnl.id);
+            }}
             className={`absolute overflow-hidden ${isInset ? 'z-30 shadow-md bg-white' : 'z-20'} ${
               corners ? '' : frameClass(!!box.borderless, isLayoutSaved, isInset)
-            } pointer-events-auto`}
+            } ${isSelected ? 'ring-2 ring-[#F97316]' : ''} pointer-events-auto`}
             style={{
               left: `${box.percentX}%`,
               top: `${box.percentY}%`,
@@ -112,9 +128,22 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
               </svg>
             )}
 
-            <span className='absolute top-1 left-1.5 z-20 px-1 rounded text-xs font-mono font-bold bg-white/95 text-stone-800 border border-stone-300/80'>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectPanel?.(isSelected ? null : pnl.id);
+              }}
+              data-testid={`canvas-panel-badge-${panelNum}`}
+              title={`Chọn Khung #${panelNum} để làm nổi dòng kịch bản tương ứng`}
+              className={`absolute top-1 left-1.5 z-20 px-1 rounded text-xs font-mono font-bold border cursor-pointer transition-colors ${
+                isSelected
+                  ? 'bg-[#F97316] text-white border-[#EA580C]'
+                  : 'bg-white/95 text-stone-800 border-stone-300/80 hover:border-[#F97316]'
+              }`}
+            >
               #{panelNum}
-            </span>
+            </button>
 
             {artwork ? (
               <div className='relative w-full h-full group'>
@@ -141,20 +170,30 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                   </button>
                   <button
                     type='button'
+                    disabled={!canUploadArtwork}
                     onClick={openPicker}
                     data-testid={`panel-btn-replace-${panelNum}`}
-                    className={`${HOVER_ACTION} bg-white/90 hover:bg-white text-stone-800`}
-                    title='Thay đổi ảnh'
+                    className={`${HOVER_ACTION} bg-white/90 hover:bg-white text-stone-800 disabled:opacity-40 disabled:cursor-not-allowed`}
+                    title={
+                      canUploadArtwork
+                        ? 'Thay đổi ảnh'
+                        : 'Bạn không giữ ô đang mở cho trang × công đoạn này'
+                    }
                     aria-label={`Thay tranh khung ${panelNum}`}
                   >
                     <UploadCloud className='w-4 h-4' aria-hidden='true' />
                   </button>
                   <button
                     type='button'
-                    onClick={() => onRemoveArtwork(pnl.id, panelNum)}
+                    disabled={!canUploadArtwork}
+                    onClick={() => canUploadArtwork && onRemoveArtwork(pnl.id, panelNum)}
                     data-testid={`panel-btn-remove-${panelNum}`}
-                    className={`${HOVER_ACTION} bg-rose-600 hover:bg-rose-700 text-white`}
-                    title='Gỡ tranh'
+                    className={`${HOVER_ACTION} bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-40 disabled:cursor-not-allowed`}
+                    title={
+                      canUploadArtwork
+                        ? 'Gỡ tranh'
+                        : 'Bạn không giữ ô đang mở cho trang × công đoạn này'
+                    }
                     aria-label={`Gỡ tranh khung ${panelNum}`}
                   >
                     <Trash2 className='w-4 h-4' aria-hidden='true' />
@@ -164,15 +203,22 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
             ) : isLayoutSaved ? (
               <button
                 type='button'
-                onDragOver={(e) => e.preventDefault()}
+                disabled={!canUploadArtwork}
+                onDragOver={(e) => {
+                  if (canUploadArtwork) e.preventDefault();
+                }}
                 onDrop={(e) => {
                   e.preventDefault();
+                  if (!canUploadArtwork) return;
                   const file = e.dataTransfer.files?.[0];
                   if (file) onUploadArtwork(pnl.id, panelNum, file);
                 }}
                 onClick={openPicker}
                 data-testid={`panel-dropzone-${panelNum}`}
-                className='focus-ring w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-50/50 cursor-pointer transition-colors border border-dashed border-stone-300 hover:border-stone-500'
+                title={
+                  canUploadArtwork ? undefined : 'Bạn không giữ ô đang mở cho trang × công đoạn này'
+                }
+                className='focus-ring w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-50/50 cursor-pointer transition-colors border border-dashed border-stone-300 hover:border-stone-500 disabled:opacity-40 disabled:cursor-not-allowed'
               >
                 <span
                   className='p-2 rounded-full bg-white/80 border border-stone-200/80'
@@ -187,6 +233,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
 
             <input
               type='file'
+              disabled={!canUploadArtwork}
               ref={(el) => {
                 fileInputs.current[pnl.id] = el;
               }}
@@ -194,7 +241,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
               className='hidden'
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) {
+                if (file && canUploadArtwork) {
                   onUploadArtwork(pnl.id, panelNum, file);
                   e.target.value = '';
                 }

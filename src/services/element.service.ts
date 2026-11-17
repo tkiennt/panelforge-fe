@@ -164,6 +164,8 @@ function extractError(error: any, defaultMsg: string): any {
     msg = data.message;
   } else if (data?.error) {
     msg = data.error;
+  } else if (error.response?.status === 403 || data?.code === 'FORBIDDEN') {
+    msg = 'Phần này thuộc việc của người khác / đang chờ duyệt';
   } else if (error.response?.status === 409) {
     msg = 'Xung đột phiên bản (409 Conflict). Vui lòng tải lại dữ liệu.';
   } else if (error.response?.status === 404) {

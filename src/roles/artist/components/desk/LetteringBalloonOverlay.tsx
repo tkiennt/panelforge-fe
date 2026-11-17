@@ -29,6 +29,7 @@ interface LetteringBalloonOverlayProps {
   pageHeight: number;
   selectedId: string | null;
   activeGestureId: string | null;
+  readOnly?: boolean;
   onSelect: (elementId: string) => void;
   onScale: (elementId: string, factor: number) => void;
   onCopy: (element: ElementSnapshotDto) => void;
@@ -95,6 +96,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
   pageHeight,
   selectedId,
   activeGestureId,
+  readOnly = false,
   onSelect,
   onScale,
   onCopy,
@@ -119,10 +121,10 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
             e.stopPropagation();
             onSelect(b.elementId);
           }}
-          onPointerDown={(e) => onDragStart(e, b.elementId)}
-          onPointerMove={onDragMove}
-          onPointerUp={onDragEnd}
-          className={`absolute pointer-events-auto cursor-move select-none touch-none ${
+          onPointerDown={(e) => !readOnly && onDragStart(e, b.elementId)}
+          onPointerMove={!readOnly ? onDragMove : undefined}
+          onPointerUp={!readOnly ? onDragEnd : undefined}
+          className={`absolute pointer-events-auto ${readOnly ? 'cursor-default' : 'cursor-move'} select-none touch-none ${
             isActive ? 'z-40 shadow-lg' : 'transition-shadow'
           } ${isSelected ? 'ring-2 ring-orange-500 ring-offset-2 z-30' : 'z-20 hover:ring-1 hover:ring-orange-400'}`}
           style={{
@@ -132,7 +134,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
             height: `${(b.height / pageHeight) * 100}%`,
           }}
         >
-          {isSelected && (
+          {isSelected && !readOnly && (
             <div
               data-testid={`lettering-toolbar-${b.elementId}`}
               className='absolute -top-11 left-1/2 -translate-x-1/2 z-50 flex items-center gap-0.5 bg-stone-900 text-white px-1 py-0.5 rounded-lg shadow-lg border border-stone-700 select-none pointer-events-auto'
@@ -184,6 +186,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
           )}
 
           {isSelected &&
+            !readOnly &&
             HANDLES.map((h) => (
               <div
                 key={h.id}

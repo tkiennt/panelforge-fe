@@ -211,7 +211,8 @@
       "unlistedDesc": "Trang {pages} vẫn còn trên Bàn vẽ nhưng kịch bản không nhắc tới. Trang không bị xoá; báo Producer hoặc Artist nếu cần bỏ.",
       "structureFailed": "Đã lưu lời thoại, chưa lưu được khung Trang / Panel",
       "lostRefsWarning": "Cảnh báo tham chiếu Series Bible",
-      "conflict": "Kịch bản đã được người khác thay đổi — vui lòng tải lại"
+      "conflict": "Kịch bản đã được người khác thay đổi — vui lòng tải lại",
+      "deleteBlocked": "Không xoá được trang"
     },
     "cast": {
       "referenceTitle": "Tham chiếu Series Bible",

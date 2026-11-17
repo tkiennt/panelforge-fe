@@ -18,24 +18,55 @@ import {
   Palette,
 } from 'lucide-react';
 import {
-  AssignmentPriority,
   EditorQualityGate,
   EditorReviewQueueItemDto,
+  normalizeWorkspaceRole,
+  TaskGridReviewItemDto,
   WorkspaceRole,
 } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
 import { bibleService } from '@/services/bible.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
+import { workspaceService } from '@/services/workspace.service';
 
 export interface EditorDeskViewProps {
+  currentUserId?: string | null;
   workspaceRole?: WorkspaceRole | null;
   onShowToast?: (title: string, desc: string) => void;
 }
 
-export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, onShowToast }) => {
+type DeskQueueItem = EditorReviewQueueItemDto & {
+  isGridItem?: boolean;
+  taskId?: string;
+  reviewerUserId?: string | null;
+  reviewerName?: string | null;
+  isInputOutdated?: boolean;
+};
+
+const inferGateFromStage = (stageName: string): 'gate1' | 'gate2' => {
+  const n = (stageName || '').toLowerCase();
+  if (
+    n.includes('pencil') ||
+    n.includes('storyboard') ||
+    n.includes('layout') ||
+    n.includes('thumb') ||
+    n.includes('phác') ||
+    n.includes('chì')
+  ) {
+    return 'gate1';
+  }
+  return 'gate2';
+};
+
+export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
+  currentUserId,
+  workspaceRole,
+  onShowToast,
+}) => {
   const { t } = useTranslation('review');
   const navigate = useNavigate();
+  const isProducer = normalizeWorkspaceRole(workspaceRole) === 'PRODUCER';
   const {
     workspaceId,
     seriesId,
@@ -47,7 +78,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
   }>();
 
   // State
-  const [queueItems, setQueueItems] = useState<EditorReviewQueueItemDto[]>([]);
+  const [queueItems, setQueueItems] = useState<DeskQueueItem[]>([]);
   const [seriesInfo, setSeriesInfo] = useState<SeriesDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +86,9 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
   const [statusFilter, setStatusFilter] = useState<'all' | 'Submitted' | 'UnderReview'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [openingReviewId, setOpeningReviewId] = useState<string | null>(null);
+  const [gridBusyTaskId, setGridBusyTaskId] = useState<string | null>(null);
+  const [rejectingGridTaskId, setRejectingGridTaskId] = useState<string | null>(null);
+  const [rejectComment, setRejectComment] = useState('');
 
   // Load Queue & Series Detail
   const [pendingBibleConcepts, setPendingBibleConcepts] = useState(0);
@@ -67,18 +101,85 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
       setLoading(true);
       setError(null);
 
-      const [items, series, bible, chapterPage] = await Promise.all([
-        assignmentService.getEditorReviewQueue(seriesId, {
-          gate: activeGate !== 'all' ? activeGate : undefined,
-          status: statusFilter !== 'all' ? statusFilter : undefined,
-        }),
+      const [gridItems, legacyItems, series, bible, chapterPage] = await Promise.all([
+        workspaceId && typeof assignmentService.getTaskGridReviewQueue === 'function'
+          ? assignmentService
+              .getTaskGridReviewQueue(workspaceId, { seriesId })
+              .catch(() => [] as TaskGridReviewItemDto[])
+          : Promise.resolve([] as TaskGridReviewItemDto[]),
+        typeof assignmentService.getEditorReviewQueue === 'function'
+          ? assignmentService
+              .getEditorReviewQueue(seriesId, {
+                gate: activeGate !== 'all' ? activeGate : undefined,
+                status: statusFilter !== 'all' ? statusFilter : undefined,
+              })
+              .catch(() => [] as EditorReviewQueueItemDto[])
+          : Promise.resolve([] as EditorReviewQueueItemDto[]),
         seriesService.getSeriesById(seriesId).catch(() => null),
         bibleService.getSeriesBible(seriesId).catch(() => null),
         chapterService.getChaptersBySeries(seriesId, 1, 100).catch(() => null),
       ]);
 
+      const memberList =
+        workspaceId && (gridItems || []).some((g) => Boolean(g.assigneeUserId))
+          ? await workspaceService.getMembers(workspaceId).catch(() => [])
+          : [];
+
+      const mappedGridItems: DeskQueueItem[] = (gridItems || []).map((g) => {
+        const m = (memberList || []).find((x) => x.userId === g.assigneeUserId);
+        const reviewerName =
+          g.reviewerName || (g.reviewerUserId ? g.reviewerUserId.slice(0, 8) : null);
+        const gate = inferGateFromStage(g.stageName);
+        return {
+          isGridItem: true,
+          taskId: g.taskId,
+          assignmentId: g.taskId,
+          reviewerUserId: g.reviewerUserId ?? null,
+          reviewerName,
+          isInputOutdated: Boolean(g.isInputOutdated),
+          chapterId: g.chapterId,
+          chapterNumber: g.chapterNumber,
+          chapterTitle: g.chapterTitle ?? null,
+          seriesId: g.seriesId,
+          seriesTitle: g.seriesTitle,
+          pipelineStageId: g.pipelineStageId,
+          stageName: g.stageName,
+          stageSlug: g.stageName.toLowerCase(),
+          stageOrder: 0,
+          stageColorCode: null,
+          gate,
+          status: g.status === 'UnderReview' ? 'UnderReview' : 'Submitted',
+          entityType: g.pageId ? 'Page' : 'Chapter',
+          targetEntityId: g.pageId ?? g.chapterId,
+          scopeLabel: g.pageNumber != null ? `Trang ${g.pageNumber}` : 'Toàn chương',
+          assigneeUserId: g.assigneeUserId ?? '',
+          assigneeName: m
+            ? m.fullName || m.email.split('@')[0]
+            : g.assigneeUserId
+              ? g.assigneeUserId.slice(0, 8)
+              : 'Chưa rõ nghệ sĩ',
+          assigneeAvatarUrl: m?.avatarUrl ?? null,
+          latestSubmissionId: null,
+          submissionAttempt: g.attemptNumber ?? 1,
+          submittedAt: g.submittedAt ?? new Date().toISOString(),
+          isSelfSubmission: Boolean(currentUserId && g.assigneeUserId === currentUserId),
+          openChangeRequestsCount: 0,
+          dueDate: null,
+          priority: 'Medium',
+          createdAt: g.submittedAt ?? new Date().toISOString(),
+          artworkReferenceIds: [],
+        };
+      });
+
+      const filteredGrid = mappedGridItems.filter((item) => {
+        if (activeGate !== 'all' && item.gate !== activeGate) return false;
+        if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+        return true;
+      });
+
       // D12: duyệt kịch bản không còn đi qua Assignment — bỏ việc kịch bản cũ khỏi hàng đợi
-      setQueueItems(items.filter((i) => i.stageSlug !== 'script'));
+      const filteredLegacy = (legacyItems || []).filter((i) => i.stageSlug !== 'script');
+      setQueueItems([...filteredGrid, ...filteredLegacy]);
       setScriptsInReview(
         (chapterPage?.items ?? [])
           .filter((c) => c.scriptStatus === 'InReview')
@@ -99,7 +200,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
     } finally {
       setLoading(false);
     }
-  }, [seriesId, activeGate, statusFilter]);
+  }, [seriesId, workspaceId, activeGate, statusFilter, currentUserId]);
 
   useEffect(() => {
     loadData();
@@ -141,6 +242,100 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
   const handleContinueReview = (item: EditorReviewQueueItemDto) => {
     if (!workspaceId || !seriesId) return;
     navigate(getReviewUrl(item));
+  };
+
+  const handleOpenGridReview = async (item: DeskQueueItem) => {
+    if (!workspaceId || !seriesId || item.isSelfSubmission) return;
+    const taskId = item.taskId || item.assignmentId;
+    setGridBusyTaskId(`open:${taskId}`);
+    try {
+      if (
+        item.status === 'Submitted' &&
+        typeof assignmentService.openStageTaskReview === 'function'
+      ) {
+        await assignmentService.openStageTaskReview(item.chapterId, taskId);
+      }
+      navigate(getReviewUrl(item));
+    } catch (err: any) {
+      onShowToast?.('Lỗi mở duyệt', err?.message || 'Không thể mở phiên duyệt ô công việc.');
+      if (err?.status === 409) await loadData();
+    } finally {
+      setGridBusyTaskId(null);
+    }
+  };
+
+  const handleReleaseGridReview = async (item: DeskQueueItem) => {
+    const taskId = item.taskId || item.assignmentId;
+    setGridBusyTaskId(`release:${taskId}`);
+    try {
+      const released = await assignmentService.releaseStageTaskReview(item.chapterId, taskId);
+      onShowToast?.(
+        t('chapterReview.releaseReviewToast', 'Đã nhả khoá duyệt'),
+        `Chương ${item.chapterNumber} · ${item.stageName} (${item.scopeLabel})`,
+      );
+      setQueueItems((prev) =>
+        prev
+          .map((q) =>
+            q.assignmentId === item.assignmentId
+              ? {
+                  ...q,
+                  status: (released?.status === 'UnderReview' ? 'UnderReview' : 'Submitted') as any,
+                  reviewerUserId: released?.reviewerUserId ?? null,
+                  reviewerName: null,
+                  submissionAttempt: released?.attemptCount || q.submissionAttempt,
+                  isInputOutdated: released?.isInputOutdated ?? q.isInputOutdated,
+                }
+              : q,
+          )
+          .filter((q) => statusFilter === 'all' || q.status === statusFilter),
+      );
+    } catch (err: any) {
+      onShowToast?.('Lỗi nhả khoá duyệt', err?.message || 'Không thể nhả khoá duyệt.');
+      if (err?.status === 409) await loadData();
+    } finally {
+      setGridBusyTaskId(null);
+    }
+  };
+
+  const handleApproveGridItem = async (item: DeskQueueItem) => {
+    const taskId = item.taskId || item.assignmentId;
+    if (item.isSelfSubmission) return;
+    setGridBusyTaskId(`approve:${taskId}`);
+    try {
+      await assignmentService.approveStageTask(item.chapterId, taskId);
+      onShowToast?.(
+        'Đã duyệt ô công việc',
+        `Chương ${item.chapterNumber} · ${item.stageName} (${item.scopeLabel})`,
+      );
+      await loadData();
+    } catch (err: any) {
+      onShowToast?.('Lỗi duyệt ô việc', err?.message || 'Không thể duyệt ô công việc này.');
+      if (err?.status === 409) await loadData();
+    } finally {
+      setGridBusyTaskId(null);
+    }
+  };
+
+  const handleRejectGridItem = async (item: DeskQueueItem) => {
+    const taskId = item.taskId || item.assignmentId;
+    const trimmed = rejectComment.trim();
+    if (item.isSelfSubmission || !trimmed) return;
+    setGridBusyTaskId(`reject:${taskId}`);
+    try {
+      await assignmentService.requestStageTaskChanges(item.chapterId, taskId, trimmed);
+      setRejectingGridTaskId(null);
+      setRejectComment('');
+      onShowToast?.(
+        'Đã yêu cầu sửa lại',
+        `Chương ${item.chapterNumber} · ${item.stageName} (${item.scopeLabel})`,
+      );
+      await loadData();
+    } catch (err: any) {
+      onShowToast?.('Lỗi yêu cầu sửa', err?.message || 'Không thể gửi yêu cầu sửa lại.');
+      if (err?.status === 409) await loadData();
+    } finally {
+      setGridBusyTaskId(null);
+    }
   };
 
   // Metrics computation
@@ -436,6 +631,18 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
               const isGate1 = item.gate === 'gate1';
               const isUnderReview = item.status === 'UnderReview';
               const isOpening = openingReviewId === item.assignmentId;
+              const isLockedByOther = Boolean(
+                item.isGridItem &&
+                isUnderReview &&
+                item.reviewerUserId &&
+                item.reviewerUserId !== currentUserId,
+              );
+              const isLockedBySelf = Boolean(
+                item.isGridItem &&
+                isUnderReview &&
+                currentUserId &&
+                item.reviewerUserId === currentUserId,
+              );
 
               return (
                 <div
@@ -472,10 +679,21 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
 
                     {/* Main Title: Chapter & Scope */}
                     <div className='mb-2'>
-                      <h3 className='text-sm font-bold text-[#1C1917] leading-snug'>
-                        Chương {item.chapterNumber} ·{' '}
-                        <span className='text-[#C2410C]'>{item.scopeLabel}</span>
-                      </h3>
+                      <div className='flex items-center justify-between gap-2 flex-wrap'>
+                        <h3 className='text-sm font-bold text-[#1C1917] leading-snug'>
+                          Chương {item.chapterNumber} ·{' '}
+                          <span className='text-[#C2410C]'>{item.scopeLabel}</span>
+                        </h3>
+                        {item.isInputOutdated && (
+                          <span
+                            data-testid={`editor-input-outdated-${item.assignmentId}`}
+                            className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-semibold'
+                          >
+                            <AlertCircle className='w-3 h-3 text-amber-700 shrink-0' />
+                            <span>{t('chapterReview.inputOutdatedBadge', 'Đầu vào đã đổi')}</span>
+                          </span>
+                        )}
+                      </div>
                       <p className='text-xs text-[#57534E] mt-0.5 truncate'>
                         {item.chapterTitle || 'Chưa đặt tên'} ·{' '}
                         <span className='font-medium text-[#1C1917]'>{item.stageName}</span>
@@ -529,42 +747,194 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
                         </div>
                       </div>
                     )}
+
+                    {isLockedByOther && (
+                      <div
+                        data-testid={`editor-locked-by-other-${item.assignmentId}`}
+                        className='mt-1 mb-2 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-1.5 font-medium'
+                      >
+                        <Lock className='w-3.5 h-3.5 text-amber-600 shrink-0' />
+                        <span>
+                          {t('chapterReview.underReviewBy', {
+                            name: item.reviewerName || item.reviewerUserId,
+                            defaultValue: `Đang được duyệt bởi ${item.reviewerName || item.reviewerUserId}`,
+                          })}
+                        </span>
+                      </div>
+                    )}
+
+                    {isLockedBySelf && (
+                      <div className='mt-1 mb-2 p-2 rounded-lg bg-sky-50 border border-sky-200 text-sky-900 text-xs flex items-center gap-1.5 font-medium'>
+                        <Eye className='w-3.5 h-3.5 text-sky-600 shrink-0' />
+                        <span>
+                          {t('chapterReview.underReviewByYou', 'Bạn đang giữ khoá duyệt')}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Footer & Action Button */}
-                  <div className='pt-2.5 mt-2 border-t border-[#E5E0D8]/70 flex items-center justify-end gap-2'>
-                    {item.isSelfSubmission ? (
-                      <button
-                        type='button'
-                        disabled
-                        className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#A8A29E] bg-[#F3F0E9] border border-[#E5E0D8] cursor-not-allowed'
-                        title='Bạn không thể tự duyệt bài do chính mình nộp'
-                      >
-                        <Lock className='w-3 h-3' />
-                        <span>{t('desk.lockedSelfAction', 'Khóa: Cần Editor khác duyệt')}</span>
-                      </button>
-                    ) : isUnderReview ? (
-                      <button
-                        type='button'
-                        onClick={() => handleContinueReview(item)}
-                        className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] active:bg-[#0C0A09] shadow-soft-sm transition-colors cursor-pointer'
-                      >
-                        <Eye className='w-3.5 h-3.5' />
-                        <span>{t('desk.continueReviewAction', 'Tiếp tục thẩm định')}</span>
-                      </button>
-                    ) : (
-                      <button
-                        type='button'
-                        onClick={() => handleOpenReview(item)}
-                        disabled={isOpening}
-                        className='inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] active:bg-[#C2410C] shadow-soft-sm transition-colors cursor-pointer disabled:opacity-50'
-                      >
-                        <Eye className={`w-3.5 h-3.5 ${isOpening ? 'animate-spin' : ''}`} />
-                        <span>
-                          {isOpening ? 'Đang mở...' : t('desk.openReviewAction', 'Mở Thẩm Định')}
-                        </span>
-                      </button>
-                    )}
+                  <div className='pt-2.5 mt-2 border-t border-[#E5E0D8]/70 space-y-2'>
+                    <div className='flex flex-wrap items-center justify-end gap-2'>
+                      {item.isSelfSubmission ? (
+                        <button
+                          type='button'
+                          disabled
+                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#A8A29E] bg-[#F3F0E9] border border-[#E5E0D8] cursor-not-allowed'
+                          title='Bạn không thể tự duyệt bài do chính mình nộp'
+                        >
+                          <Lock className='w-3 h-3' />
+                          <span>{t('desk.lockedSelfAction', 'Khóa: Cần Editor khác duyệt')}</span>
+                        </button>
+                      ) : item.isGridItem ? (
+                        <>
+                          {isProducer && isLockedByOther && (
+                            <button
+                              type='button'
+                              data-testid={`editor-force-release-${item.assignmentId}`}
+                              disabled={gridBusyTaskId !== null}
+                              onClick={() => void handleReleaseGridReview(item)}
+                              className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 transition-colors cursor-pointer disabled:opacity-50'
+                            >
+                              <RotateCcw className='w-3.5 h-3.5' />
+                              <span>
+                                {t('chapterReview.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}
+                              </span>
+                            </button>
+                          )}
+                          {isLockedBySelf && (
+                            <button
+                              type='button'
+                              data-testid={`editor-release-own-${item.assignmentId}`}
+                              disabled={gridBusyTaskId !== null}
+                              onClick={() => void handleReleaseGridReview(item)}
+                              className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-stone-700 bg-white hover:bg-stone-100 border border-stone-300 transition-colors cursor-pointer disabled:opacity-50'
+                            >
+                              <RotateCcw className='w-3.5 h-3.5' />
+                              <span>{t('chapterReview.releaseReviewBtn', 'Nhả khoá duyệt')}</span>
+                            </button>
+                          )}
+                          <button
+                            type='button'
+                            data-testid={`editor-open-grid-review-${item.assignmentId}`}
+                            disabled={isLockedByOther || gridBusyTaskId !== null}
+                            onClick={() => void handleOpenGridReview(item)}
+                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                          >
+                            <Eye className='w-3.5 h-3.5 text-[#F97316]' />
+                            <span>
+                              {gridBusyTaskId === `open:${item.assignmentId}`
+                                ? 'Đang mở...'
+                                : t('chapterReview.openDetailReview', 'Mở màn duyệt')}
+                            </span>
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() =>
+                              navigate(
+                                `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${encodeURIComponent(item.chapterId)}&board=grid-v3`,
+                              )
+                            }
+                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#1C1917] bg-[#F3F0E9] hover:bg-[#E5E0D8] border border-[#D8D2C5] transition-colors cursor-pointer'
+                          >
+                            <Eye className='w-3.5 h-3.5 text-[#C2410C]' />
+                            <span>Mở Lưới V3</span>
+                          </button>
+                          <button
+                            type='button'
+                            data-testid={`editor-reject-toggle-${item.assignmentId}`}
+                            disabled={isLockedByOther || gridBusyTaskId !== null}
+                            onClick={() => {
+                              setRejectingGridTaskId((prev) =>
+                                prev === item.assignmentId ? null : item.assignmentId,
+                              );
+                              setRejectComment('');
+                            }}
+                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                          >
+                            <RotateCcw className='w-3.5 h-3.5' />
+                            <span>Yêu cầu sửa</span>
+                          </button>
+                          <button
+                            type='button'
+                            data-testid={`editor-approve-grid-${item.assignmentId}`}
+                            disabled={
+                              isLockedByOther ||
+                              Boolean(item.isInputOutdated) ||
+                              gridBusyTaskId !== null
+                            }
+                            onClick={() => void handleApproveGridItem(item)}
+                            className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                          >
+                            <CheckCircle2 className='w-3.5 h-3.5' />
+                            <span>
+                              {gridBusyTaskId === `approve:${item.assignmentId}`
+                                ? 'Đang duyệt...'
+                                : 'Duyệt'}
+                            </span>
+                          </button>
+                        </>
+                      ) : isUnderReview ? (
+                        <button
+                          type='button'
+                          onClick={() => handleContinueReview(item)}
+                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] active:bg-[#0C0A09] shadow-soft-sm transition-colors cursor-pointer'
+                        >
+                          <Eye className='w-3.5 h-3.5' />
+                          <span>{t('desk.continueReviewAction', 'Tiếp tục thẩm định')}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type='button'
+                          onClick={() => handleOpenReview(item)}
+                          disabled={isOpening}
+                          className='inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] active:bg-[#C2410C] shadow-soft-sm transition-colors cursor-pointer disabled:opacity-50'
+                        >
+                          <Eye className={`w-3.5 h-3.5 ${isOpening ? 'animate-spin' : ''}`} />
+                          <span>
+                            {isOpening ? 'Đang mở...' : t('desk.openReviewAction', 'Mở Thẩm Định')}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+
+                    {item.isGridItem &&
+                      !item.isSelfSubmission &&
+                      rejectingGridTaskId === item.assignmentId && (
+                        <div className='rounded-lg border border-rose-200 bg-rose-50/70 p-2.5 space-y-2'>
+                          <textarea
+                            rows={2}
+                            value={rejectComment}
+                            onChange={(e) => setRejectComment(e.target.value)}
+                            placeholder='Nhập nhận xét yêu cầu sửa bắt buộc (BR-06)...'
+                            aria-label='Nhận xét yêu cầu sửa'
+                            className='w-full rounded border border-rose-300 bg-white px-2.5 py-1.5 text-xs text-[#1C1917]'
+                          />
+                          <div className='flex items-center justify-end gap-1.5'>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setRejectingGridTaskId(null);
+                                setRejectComment('');
+                              }}
+                              className='px-2.5 py-1 rounded border border-stone-300 bg-white text-xs font-semibold text-stone-700 cursor-pointer'
+                            >
+                              Huỷ
+                            </button>
+                            <button
+                              type='button'
+                              data-testid={`editor-confirm-reject-${item.assignmentId}`}
+                              disabled={gridBusyTaskId !== null || !rejectComment.trim()}
+                              onClick={() => void handleRejectGridItem(item)}
+                              className='px-3 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50'
+                            >
+                              {gridBusyTaskId === `reject:${item.assignmentId}`
+                                ? 'Đang gửi...'
+                                : 'Gửi yêu cầu sửa'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                   </div>
                 </div>
               );

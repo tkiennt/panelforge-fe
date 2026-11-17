@@ -16,8 +16,6 @@ import {
   User,
   Filter,
   RefreshCw,
-  AlertTriangle,
-  Scissors,
 } from 'lucide-react';
 import {
   assignmentService,
@@ -27,7 +25,9 @@ import {
 } from '@/services/assignment.service';
 import { seriesService, SeriesMemberDto } from '@/services/series.service';
 import { pipelineService, PipelineStageDto } from '@/services/pipeline.service';
-import { CreateAssignmentModal } from './CreateAssignmentModal';
+import { workspaceService } from '@/services/workspace.service';
+import { getStoredCurrentUserId, normalizeWorkspaceRole, readCachedWorkspace } from '@/types';
+import { TaskGridBoard } from '@/shared/features/pipeline-board/TaskGridBoard';
 import {
   describeStartError,
   pendingDependencyCount,
@@ -41,6 +41,7 @@ interface ChapterAssignmentsModalProps {
   chapterId: string;
   chapterNumber?: number | string;
   chapterTitle?: string;
+  initialTab?: 'assignments' | 'task-grid';
   onClose: () => void;
   onShowToast?: (title: string, desc: string) => void;
 }
@@ -52,6 +53,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
   chapterId,
   chapterNumber,
   chapterTitle,
+  initialTab,
   onClose,
   onShowToast,
 }) => {
@@ -67,15 +69,29 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [stageFilter, setStageFilter] = useState<string>('ALL');
+  const [activeTab, setActiveTab] = useState<'assignments' | 'task-grid'>(
+    initialTab || 'task-grid',
+  );
+  const currentUserId = getStoredCurrentUserId() ?? undefined;
+  const [resolvedWorkspaceRole, setResolvedWorkspaceRole] = useState<string | null>(() =>
+    normalizeWorkspaceRole(readCachedWorkspace()?.currentUserRole),
+  );
 
-  // Sub-modal: Create Assignment & Carve-out Stage
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [carveOutStageId, setCarveOutStageId] = useState<string | undefined>(undefined);
-
-  const handleCarveOut = (a: AssignmentDto) => {
-    setCarveOutStageId(a.pipelineStageId);
-    setShowCreateModal(true);
-  };
+  useEffect(() => {
+    if (!isOpen || !workspaceId) return;
+    let cancelled = false;
+    workspaceService
+      .getWorkspaceById(workspaceId)
+      .then((ws) => {
+        if (cancelled || !ws) return;
+        const role = normalizeWorkspaceRole(ws.currentUserRole) || (ws.isOwner ? 'PRODUCER' : null);
+        if (role) setResolvedWorkspaceRole(role);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, workspaceId]);
 
   const fetchData = useCallback(async () => {
     if (!chapterId) return;
@@ -110,9 +126,10 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
 
   useEffect(() => {
     if (isOpen) {
+      if (initialTab) setActiveTab(initialTab);
       fetchData();
     }
-  }, [isOpen, fetchData]);
+  }, [isOpen, initialTab, fetchData]);
 
   if (!isOpen) return null;
 
@@ -328,396 +345,390 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
 
           {/* Body */}
           <div className='p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar text-xs'>
-            {error && (
-              <div className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-2'>
-                <AlertCircle className='w-4 h-4 shrink-0' />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Quick Stats & Progress Bar */}
-            <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
-              <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7]'>
-                <div className='text-[10px] font-mono text-[#888888] uppercase'>
-                  {t('chapterAssignmentsModal.totalTasks', 'Tổng số nhiệm vụ')}
-                </div>
-                <div className='text-lg font-bold text-[#171717] font-mono mt-0.5'>
-                  {assignments.length}
-                </div>
-              </div>
-              <div className='p-3 bg-amber-50/60 rounded-xl border border-amber-200'>
-                <div className='text-[10px] font-mono text-amber-700 uppercase'>
-                  {t('chapterAssignmentsModal.inProgressCount', 'Đang thực hiện (InProgress)')}
-                </div>
-                <div className='text-lg font-bold text-amber-900 font-mono mt-0.5'>
-                  {assignments.filter((a) => a.status === 'InProgress').length}
-                </div>
-              </div>
-              <div className='p-3 bg-purple-50/60 rounded-xl border border-purple-200'>
-                <div className='text-[10px] font-mono text-purple-700 uppercase'>
-                  {t('chapterAssignmentsModal.submittedCount', 'Đã nộp chờ duyệt')}
-                </div>
-                <div className='text-lg font-bold text-purple-900 font-mono mt-0.5'>
-                  {
-                    assignments.filter(
-                      (a) => a.status === 'Submitted' || a.status === 'UnderReview',
-                    ).length
-                  }
-                </div>
-              </div>
-              <div className='p-3 bg-emerald-50/60 rounded-xl border border-emerald-200'>
-                <div className='text-[10px] font-mono text-emerald-700 uppercase'>
-                  {t('chapterAssignmentsModal.panelProgress', 'Tiến độ panel (Approved)')}
-                </div>
-                <div className='text-lg font-bold text-emerald-900 font-mono mt-0.5'>
-                  {stageProgressList.filter((p) => p.status === 'Approved').length} /{' '}
-                  {stageProgressList.length || 0}
-                </div>
-              </div>
-            </div>
-
-            {/* Stage Progress Matrix Preview if panels exist */}
-            {stageProgressList.length > 0 && (
-              <div className='p-3.5 bg-zinc-50 border border-zinc-200 rounded-xl space-y-2'>
-                <div className='flex items-center justify-between'>
-                  <span className='font-bold text-[#171717] flex items-center gap-1.5'>
-                    <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
-                    <span>
-                      {t(
-                        'chapterAssignmentsModal.stageProgressMatrix',
-                        'Ma Trận Tiến Độ Khung Hình (StageProgress Matrix)',
-                      )}
-                    </span>
-                  </span>
-                  <span className='text-[10px] font-mono text-zinc-500'>
-                    {t('chapterAssignmentsModal.controlPoints', {
-                      count: stageProgressList.length,
-                      defaultValue: `${stageProgressList.length} điểm kiểm soát`,
-                    })}
-                  </span>
-                </div>
-                <div className='flex flex-wrap gap-2 pt-1'>
-                  {stageProgressList.map((prog) => (
-                    <div
-                      key={prog.id}
-                      className={`px-2 py-1 rounded border text-[10px] font-mono flex items-center gap-1.5 ${
-                        prog.status === 'Approved'
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                          : prog.status === 'Submitted'
-                            ? 'bg-purple-50 text-purple-800 border-purple-300'
-                            : prog.status === 'InProgress'
-                              ? 'bg-amber-50 text-amber-800 border-amber-300'
-                              : 'bg-white text-zinc-600 border-zinc-300'
-                      }`}
-                    >
-                      <span className='font-bold'>
-                        {prog.panelId ? `Panel #${prog.panelId.slice(0, 4)}` : 'Chapter'}
-                      </span>
-                      <span>•</span>
-                      <span>{getStageName(prog.pipelineStageId)}</span>
-                      <span>({String(prog.status)})</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Action Bar & Filters */}
-            <div className='flex flex-wrap items-center justify-between gap-3 pt-2'>
-              <div className='flex flex-wrap items-center gap-2'>
-                <div className='flex items-center gap-1 text-zinc-500'>
-                  <Filter className='w-3.5 h-3.5' />
-                  <span>{t('chapterAssignmentsModal.filterLabel', 'Bộ lọc:')}</span>
-                </div>
-
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className='px-2.5 py-1 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold'
-                >
-                  <option value='ALL'>
-                    {t('chapterAssignmentsModal.allStatus', 'Tất cả trạng thái')}
-                  </option>
-                  <option value='Assigned'>
-                    {t('chapterAssignmentsModal.statusBadges.assigned', 'Đã giao (Assigned)')}
-                  </option>
-                  <option value='InProgress'>
-                    {t('chapterAssignmentsModal.statusBadges.inProgress', 'Đang làm (InProgress)')}
-                  </option>
-                  <option value='Submitted'>
-                    {t('chapterAssignmentsModal.statusBadges.submitted', 'Đã nộp (Submitted)')}
-                  </option>
-                  <option value='UnderReview'>
-                    {t(
-                      'chapterAssignmentsModal.statusBadges.underReview',
-                      'Đang duyệt (UnderReview)',
-                    )}
-                  </option>
-                  <option value='Approved'>
-                    {t('chapterAssignmentsModal.statusBadges.approved', 'Đã duyệt (Approved)')}
-                  </option>
-                </select>
-
-                <select
-                  value={stageFilter}
-                  onChange={(e) => setStageFilter(e.target.value)}
-                  className='px-2.5 py-1 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold'
-                >
-                  <option value='ALL'>
-                    {t('chapterAssignmentsModal.allStages', 'Tất cả công đoạn')}
-                  </option>
-                  {stages.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.stageOrder}. {s.name}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  onClick={fetchData}
-                  className='p-1.5 text-zinc-500 hover:text-black rounded-lg hover:bg-zinc-100 transition-colors'
-                  title={t('chapterAssignmentsModal.reload', 'Tải lại')}
-                >
-                  <RefreshCw className='w-3.5 h-3.5' />
-                </button>
-              </div>
-
+            <div className='inline-flex rounded-xl border border-[#E7E7E7] bg-[#FAF8F5] p-1 gap-1'>
               <button
-                onClick={() => setShowCreateModal(true)}
-                className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs cursor-pointer'
+                type='button'
+                onClick={() => setActiveTab('assignments')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  activeTab === 'assignments'
+                    ? 'bg-[#171717] text-white shadow-2xs'
+                    : 'text-[#666666] hover:text-[#171717]'
+                }`}
               >
-                <Plus className='w-3.5 h-3.5' />
-                <span>{t('chapterAssignmentsModal.newAssignmentBtn', '+ Giao Việc Mới')}</span>
+                {t('chapterAssignmentsModal.tabAssignments', 'Danh sách phân công')}
+              </button>
+              <button
+                type='button'
+                onClick={() => setActiveTab('task-grid')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  activeTab === 'task-grid'
+                    ? 'bg-[#F97316] text-white shadow-2xs'
+                    : 'text-[#666666] hover:text-[#171717]'
+                }`}
+              >
+                {t('chapterAssignmentsModal.tabTaskGridV3', 'Lưới Trang × Công đoạn (V3)')}
               </button>
             </div>
 
-            {/* Assignments List */}
-            <div className='space-y-3'>
-              {loading ? (
-                <div className='py-12 text-center text-[#888888]'>
-                  <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
-                  <span>
-                    {t('chapterAssignmentsModal.loading', 'Đang nạp danh sách công việc...')}
-                  </span>
-                </div>
-              ) : filteredAssignments.length === 0 ? (
-                <div className='py-12 text-center text-[#888888] border border-dashed border-[#E7E7E7] rounded-xl space-y-2'>
-                  <Layers className='w-8 h-8 mx-auto text-[#CCCCCC]' />
-                  <div className='font-bold text-[#171717]'>
-                    {t('chapterAssignmentsModal.emptyTitle', 'Chưa có công việc nào')}
+            {activeTab === 'task-grid' ? (
+              <TaskGridBoard
+                chapterId={chapterId}
+                seriesId={seriesId}
+                workspaceId={workspaceId}
+                currentUserId={currentUserId}
+                currentUserRole={resolvedWorkspaceRole}
+                isProducer={resolvedWorkspaceRole ? resolvedWorkspaceRole === 'PRODUCER' : true}
+                isEditor={resolvedWorkspaceRole === 'EDITOR'}
+                onShowToast={onShowToast}
+              />
+            ) : (
+              <>
+                {error && (
+                  <div className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-2'>
+                    <AlertCircle className='w-4 h-4 shrink-0' />
+                    <span>{error}</span>
                   </div>
-                  <div className='text-[11px] text-[#737373]'>
-                    {t(
-                      'chapterAssignmentsModal.emptySubtitle',
-                      'Bấm "+ Giao Việc Mới" để phân công kịch bản, nét vẽ, thoại cho các thành viên.',
-                    )}
+                )}
+
+                {/* Quick Stats & Progress Bar */}
+                <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
+                  <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7]'>
+                    <div className='text-[10px] font-mono text-[#888888] uppercase'>
+                      {t('chapterAssignmentsModal.totalTasks', 'Tổng số nhiệm vụ')}
+                    </div>
+                    <div className='text-lg font-bold text-[#171717] font-mono mt-0.5'>
+                      {assignments.length}
+                    </div>
+                  </div>
+                  <div className='p-3 bg-amber-50/60 rounded-xl border border-amber-200'>
+                    <div className='text-[10px] font-mono text-amber-700 uppercase'>
+                      {t('chapterAssignmentsModal.inProgressCount', 'Đang thực hiện (InProgress)')}
+                    </div>
+                    <div className='text-lg font-bold text-amber-900 font-mono mt-0.5'>
+                      {assignments.filter((a) => a.status === 'InProgress').length}
+                    </div>
+                  </div>
+                  <div className='p-3 bg-purple-50/60 rounded-xl border border-purple-200'>
+                    <div className='text-[10px] font-mono text-purple-700 uppercase'>
+                      {t('chapterAssignmentsModal.submittedCount', 'Đã nộp chờ duyệt')}
+                    </div>
+                    <div className='text-lg font-bold text-purple-900 font-mono mt-0.5'>
+                      {
+                        assignments.filter(
+                          (a) => a.status === 'Submitted' || a.status === 'UnderReview',
+                        ).length
+                      }
+                    </div>
+                  </div>
+                  <div className='p-3 bg-emerald-50/60 rounded-xl border border-emerald-200'>
+                    <div className='text-[10px] font-mono text-emerald-700 uppercase'>
+                      {t('chapterAssignmentsModal.panelProgress', 'Tiến độ panel (Approved)')}
+                    </div>
+                    <div className='text-lg font-bold text-emerald-900 font-mono mt-0.5'>
+                      {stageProgressList.filter((p) => p.status === 'Approved').length} /{' '}
+                      {stageProgressList.length || 0}
+                    </div>
                   </div>
                 </div>
-              ) : (
-                filteredAssignments.map((assignment) => {
-                  const isLoadingThis = actionLoadingId === assignment.id;
-                  const canStart = assignment.status === 'Assigned';
-                  const canSubmit = assignment.status === 'InProgress';
 
-                  return (
-                    <div
-                      key={assignment.id}
-                      className='p-4 bg-white border border-[#E7E7E7] rounded-xl hover:border-zinc-400 transition-all space-y-3 shadow-2xs'
-                    >
-                      <div className='flex flex-wrap items-center justify-between gap-2'>
-                        <div className='flex items-center gap-2'>
-                          <span className='px-2 py-0.5 rounded bg-zinc-800 text-white font-mono text-[9px] font-bold'>
-                            {assignment.entityType}{' '}
-                            {assignment.targetEntityId ? `#${assignment.targetEntityId}` : ''}
-                          </span>
-                          <span className='font-bold text-sm text-[#171717]'>
-                            {getStageName(assignment.pipelineStageId)}
-                          </span>
-                          {renderPriorityBadge(assignment.priority)}
-                        </div>
-                        <div className='flex items-center gap-2'>
-                          {renderStatusBadge(assignment.status)}
-                        </div>
-                      </div>
-
-                      <div className='text-xs text-[#333333] font-medium leading-relaxed bg-[#FAF8F5] p-3 rounded-lg border border-[#F0ECE1]'>
-                        {assignment.brief}
-                      </div>
-
-                      {assignment.referenceNotes && (
-                        <div className='text-[11px] text-[#666666] flex items-center gap-1.5'>
-                          <span className='font-bold text-zinc-500 font-mono'>
-                            {t('chapterAssignmentsModal.reference', 'Tham chiếu:')}
-                          </span>
-                          <span>{assignment.referenceNotes}</span>
-                        </div>
-                      )}
-
-                      <div className='flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#F3F3F3] text-[11px] text-[#737373]'>
-                        <div className='flex items-center gap-4'>
-                          <span className='flex items-center gap-1'>
-                            <User className='w-3 h-3 text-[#F97316]' />
-                            <strong>
-                              {t('chapterAssignmentsModal.assignee', 'Người làm:')}
-                            </strong>{' '}
-                            {getAssigneeName(assignment.assigneeUserId)}
-                          </span>
-                          {assignment.dueDate && (
-                            <span className='flex items-center gap-1 font-mono'>
-                              <Calendar className='w-3 h-3 text-zinc-500' />
-                              <strong>{t('chapterAssignmentsModal.dueDate', 'Hạn:')}</strong>{' '}
-                              {new Date(assignment.dueDate).toLocaleDateString('vi-VN')}
-                            </span>
+                {/* Stage Progress Matrix Preview if panels exist */}
+                {stageProgressList.length > 0 && (
+                  <div className='p-3.5 bg-zinc-50 border border-zinc-200 rounded-xl space-y-2'>
+                    <div className='flex items-center justify-between'>
+                      <span className='font-bold text-[#171717] flex items-center gap-1.5'>
+                        <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
+                        <span>
+                          {t(
+                            'chapterAssignmentsModal.stageProgressMatrix',
+                            'Ma Trận Tiến Độ Khung Hình (StageProgress Matrix)',
                           )}
+                        </span>
+                      </span>
+                      <span className='text-[10px] font-mono text-zinc-500'>
+                        {t('chapterAssignmentsModal.controlPoints', {
+                          count: stageProgressList.length,
+                          defaultValue: `${stageProgressList.length} điểm kiểm soát`,
+                        })}
+                      </span>
+                    </div>
+                    <div className='flex flex-wrap gap-2 pt-1'>
+                      {stageProgressList.map((prog) => (
+                        <div
+                          key={prog.id}
+                          className={`px-2 py-1 rounded border text-[10px] font-mono flex items-center gap-1.5 ${
+                            prog.status === 'Approved'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                              : prog.status === 'Submitted'
+                                ? 'bg-purple-50 text-purple-800 border-purple-300'
+                                : prog.status === 'InProgress'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                  : 'bg-white text-zinc-600 border-zinc-300'
+                          }`}
+                        >
+                          <span className='font-bold'>
+                            {prog.panelId ? `Panel #${prog.panelId.slice(0, 4)}` : 'Chapter'}
+                          </span>
+                          <span>•</span>
+                          <span>{getStageName(prog.pipelineStageId)}</span>
+                          <span>({String(prog.status)})</span>
                         </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                        {/* Action Buttons: Start, Submit & Carve-out */}
-                        <div className='flex items-center gap-2'>
-                          {/* Carve-out: Tách trang/khung cho người khác từ việc cả chương của Artist/Letterer */}
-                          {(() => {
-                            const isChapter = assignment.entityType === 'Chapter';
-                            const stage = stages.find((s) => s.id === assignment.pipelineStageId);
-                            const isArtistOrLetterer =
-                              stage?.allowedRole === 'Artist' || stage?.allowedRole === 'Letterer';
-                            const canCarveOut =
-                              isChapter &&
-                              isArtistOrLetterer &&
-                              (assignment.status === 'Assigned' ||
-                                assignment.status === 'InProgress' ||
-                                assignment.status === 'ReworkRequired');
+                {/* Action Bar & Filters */}
+                <div className='flex flex-wrap items-center justify-between gap-3 pt-2'>
+                  <div className='flex flex-wrap items-center gap-2'>
+                    <div className='flex items-center gap-1 text-zinc-500'>
+                      <Filter className='w-3.5 h-3.5' />
+                      <span>{t('chapterAssignmentsModal.filterLabel', 'Bộ lọc:')}</span>
+                    </div>
 
-                            if (!canCarveOut) return null;
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className='px-2.5 py-1 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold'
+                    >
+                      <option value='ALL'>
+                        {t('chapterAssignmentsModal.allStatus', 'Tất cả trạng thái')}
+                      </option>
+                      <option value='Assigned'>
+                        {t('chapterAssignmentsModal.statusBadges.assigned', 'Đã giao (Assigned)')}
+                      </option>
+                      <option value='InProgress'>
+                        {t(
+                          'chapterAssignmentsModal.statusBadges.inProgress',
+                          'Đang làm (InProgress)',
+                        )}
+                      </option>
+                      <option value='Submitted'>
+                        {t('chapterAssignmentsModal.statusBadges.submitted', 'Đã nộp (Submitted)')}
+                      </option>
+                      <option value='UnderReview'>
+                        {t(
+                          'chapterAssignmentsModal.statusBadges.underReview',
+                          'Đang duyệt (UnderReview)',
+                        )}
+                      </option>
+                      <option value='Approved'>
+                        {t('chapterAssignmentsModal.statusBadges.approved', 'Đã duyệt (Approved)')}
+                      </option>
+                    </select>
 
-                            return (
-                              <button
-                                onClick={() => handleCarveOut(assignment)}
-                                className='px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold flex items-center gap-1.5 cursor-pointer text-[11px] shadow-2xs transition-colors'
-                                title={t(
-                                  'chapterAssignmentsModal.carveOutTooltip',
-                                  'Tách trang hoặc khung cho thành viên khác ở công đoạn này',
-                                )}
-                              >
-                                <Scissors className='w-3 h-3 text-amber-600' />
-                                <span>
-                                  {t(
-                                    'chapterAssignmentsModal.carveOutBtn',
-                                    'Tách trang/khung cho người khác',
-                                  )}
+                    <select
+                      value={stageFilter}
+                      onChange={(e) => setStageFilter(e.target.value)}
+                      className='px-2.5 py-1 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold'
+                    >
+                      <option value='ALL'>
+                        {t('chapterAssignmentsModal.allStages', 'Tất cả công đoạn')}
+                      </option>
+                      {stages.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.stageOrder}. {s.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      onClick={fetchData}
+                      className='p-1.5 text-zinc-500 hover:text-black rounded-lg hover:bg-zinc-100 transition-colors'
+                      title={t('chapterAssignmentsModal.reload', 'Tải lại')}
+                    >
+                      <RefreshCw className='w-3.5 h-3.5' />
+                    </button>
+                  </div>
+
+                  <button
+                    type='button'
+                    onClick={() => setActiveTab('task-grid')}
+                    className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs cursor-pointer'
+                  >
+                    <Plus className='w-3.5 h-3.5' />
+                    <span>
+                      {t('chapterAssignmentsModal.openTaskGridBtn', 'Giao việc trên Lưới V3')}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Assignments List */}
+                <div className='space-y-3'>
+                  {loading ? (
+                    <div className='py-12 text-center text-[#888888]'>
+                      <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
+                      <span>
+                        {t('chapterAssignmentsModal.loading', 'Đang nạp danh sách công việc...')}
+                      </span>
+                    </div>
+                  ) : filteredAssignments.length === 0 ? (
+                    <div className='py-12 text-center text-[#888888] border border-dashed border-[#E7E7E7] rounded-xl space-y-2'>
+                      <Layers className='w-8 h-8 mx-auto text-[#CCCCCC]' />
+                      <div className='font-bold text-[#171717]'>
+                        {t('chapterAssignmentsModal.emptyTitle', 'Chưa có công việc nào')}
+                      </div>
+                      <div className='text-[11px] text-[#737373]'>
+                        {t(
+                          'chapterAssignmentsModal.emptySubtitle',
+                          'Bấm "+ Giao Việc Mới" để phân công kịch bản, nét vẽ, thoại cho các thành viên.',
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    filteredAssignments.map((assignment) => {
+                      const isLoadingThis = actionLoadingId === assignment.id;
+                      const canStart = assignment.status === 'Assigned';
+                      const canSubmit = assignment.status === 'InProgress';
+
+                      return (
+                        <div
+                          key={assignment.id}
+                          className='p-4 bg-white border border-[#E7E7E7] rounded-xl hover:border-zinc-400 transition-all space-y-3 shadow-2xs'
+                        >
+                          <div className='flex flex-wrap items-center justify-between gap-2'>
+                            <div className='flex items-center gap-2'>
+                              <span className='px-2 py-0.5 rounded bg-zinc-800 text-white font-mono text-[9px] font-bold'>
+                                {assignment.entityType}{' '}
+                                {assignment.targetEntityId ? `#${assignment.targetEntityId}` : ''}
+                              </span>
+                              <span className='font-bold text-sm text-[#171717]'>
+                                {getStageName(assignment.pipelineStageId)}
+                              </span>
+                              {renderPriorityBadge(assignment.priority)}
+                            </div>
+                            <div className='flex items-center gap-2'>
+                              {renderStatusBadge(assignment.status)}
+                            </div>
+                          </div>
+
+                          <div className='text-xs text-[#333333] font-medium leading-relaxed bg-[#FAF8F5] p-3 rounded-lg border border-[#F0ECE1]'>
+                            {assignment.brief}
+                          </div>
+
+                          {assignment.referenceNotes && (
+                            <div className='text-[11px] text-[#666666] flex items-center gap-1.5'>
+                              <span className='font-bold text-zinc-500 font-mono'>
+                                {t('chapterAssignmentsModal.reference', 'Tham chiếu:')}
+                              </span>
+                              <span>{assignment.referenceNotes}</span>
+                            </div>
+                          )}
+
+                          <div className='flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#F3F3F3] text-[11px] text-[#737373]'>
+                            <div className='flex items-center gap-4'>
+                              <span className='flex items-center gap-1'>
+                                <User className='w-3 h-3 text-[#F97316]' />
+                                <strong>
+                                  {t('chapterAssignmentsModal.assignee', 'Người làm:')}
+                                </strong>{' '}
+                                {getAssigneeName(assignment.assigneeUserId)}
+                              </span>
+                              {assignment.dueDate && (
+                                <span className='flex items-center gap-1 font-mono'>
+                                  <Calendar className='w-3 h-3 text-zinc-500' />
+                                  <strong>
+                                    {t('chapterAssignmentsModal.dueDate', 'Hạn:')}
+                                  </strong>{' '}
+                                  {new Date(assignment.dueDate).toLocaleDateString('vi-VN')}
                                 </span>
-                              </button>
-                            );
-                          })()}
+                              )}
+                            </div>
 
-                          {canStart &&
-                            (() => {
-                              const pendingDeps = pendingDependencyCount(assignment, assignments);
-                              const lockedReason =
-                                pendingDeps > 0
-                                  ? t('chapterAssignmentsModal.startLockedPrefix', {
-                                      count: pendingDeps,
-                                      defaultValue: `Chờ ${pendingDeps} việc phụ thuộc được duyệt (Approved).`,
-                                    })
-                                  : null;
-                              return (
+                            {/* Action Buttons: Start & Submit */}
+                            <div className='flex items-center gap-2'>
+                              {canStart &&
+                                (() => {
+                                  const pendingDeps = pendingDependencyCount(
+                                    assignment,
+                                    assignments,
+                                  );
+                                  const lockedReason =
+                                    pendingDeps > 0
+                                      ? t('chapterAssignmentsModal.startLockedPrefix', {
+                                          count: pendingDeps,
+                                          defaultValue: `Chờ ${pendingDeps} việc phụ thuộc được duyệt (Approved).`,
+                                        })
+                                      : null;
+                                  return (
+                                    <button
+                                      onClick={() => handleStart(assignment)}
+                                      disabled={isLoadingThis || !!lockedReason}
+                                      className='px-3 py-1.5 rounded-lg bg-[#171717] hover:bg-black text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs'
+                                      title={
+                                        lockedReason ??
+                                        t(
+                                          'chapterAssignmentsModal.startWorkTooltip',
+                                          'Bắt đầu làm công việc này',
+                                        )
+                                      }
+                                    >
+                                      {isLoadingThis ? (
+                                        <Loader2 className='w-3 h-3 animate-spin' />
+                                      ) : (
+                                        <Play className='w-3 h-3 text-[#F97316]' />
+                                      )}
+                                      <span>
+                                        {lockedReason
+                                          ? t(
+                                              'chapterAssignmentsModal.waitingDeps',
+                                              'Chờ việc phụ thuộc',
+                                            )
+                                          : t('chapterAssignmentsModal.startWork', 'Bắt đầu làm')}
+                                      </span>
+                                    </button>
+                                  );
+                                })()}
+
+                              {canSubmit && (
                                 <button
-                                  onClick={() => handleStart(assignment)}
-                                  disabled={isLoadingThis || !!lockedReason}
-                                  className='px-3 py-1.5 rounded-lg bg-[#171717] hover:bg-black text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs'
-                                  title={
-                                    lockedReason ??
-                                    t(
-                                      'chapterAssignmentsModal.startWorkTooltip',
-                                      'Bắt đầu làm công việc này',
-                                    )
-                                  }
+                                  onClick={() => handleSubmit(assignment)}
+                                  disabled={isLoadingThis}
+                                  className='px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-xs'
+                                  title={t(
+                                    'chapterAssignmentsModal.submitTooltip',
+                                    'Nộp bài cho công đoạn này để Review',
+                                  )}
                                 >
                                   {isLoadingThis ? (
                                     <Loader2 className='w-3 h-3 animate-spin' />
                                   ) : (
-                                    <Play className='w-3 h-3 text-[#F97316]' />
+                                    <Send className='w-3 h-3' />
                                   )}
+                                  <span>{t('chapterAssignmentsModal.submitWork', 'Nộp bài')}</span>
+                                </button>
+                              )}
+
+                              {/* Disabled Submit Button with Tooltip when still Assigned */}
+                              {assignment.status === 'Assigned' && (
+                                <button
+                                  disabled
+                                  title={t(
+                                    'chapterAssignmentsModal.submitNotStartedTooltip',
+                                    'Phải bấm "Bắt đầu làm" (InProgress) trước khi nộp theo ràng buộc hệ thống!',
+                                  )}
+                                  className='px-2.5 py-1.5 rounded-lg bg-zinc-100 text-zinc-400 font-semibold flex items-center gap-1 cursor-not-allowed text-[11px]'
+                                >
+                                  <Send className='w-3 h-3' />
                                   <span>
-                                    {lockedReason
-                                      ? t(
-                                          'chapterAssignmentsModal.waitingDeps',
-                                          'Chờ việc phụ thuộc',
-                                        )
-                                      : t('chapterAssignmentsModal.startWork', 'Bắt đầu làm')}
+                                    {t(
+                                      'chapterAssignmentsModal.submitNotStarted',
+                                      'Nộp bài (Chưa bắt đầu)',
+                                    )}
                                   </span>
                                 </button>
-                              );
-                            })()}
-
-                          {canSubmit && (
-                            <button
-                              onClick={() => handleSubmit(assignment)}
-                              disabled={isLoadingThis}
-                              className='px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-xs'
-                              title={t(
-                                'chapterAssignmentsModal.submitTooltip',
-                                'Nộp bài cho công đoạn này để Review',
                               )}
-                            >
-                              {isLoadingThis ? (
-                                <Loader2 className='w-3 h-3 animate-spin' />
-                              ) : (
-                                <Send className='w-3 h-3' />
-                              )}
-                              <span>{t('chapterAssignmentsModal.submitWork', 'Nộp bài')}</span>
-                            </button>
-                          )}
-
-                          {/* Disabled Submit Button with Tooltip when still Assigned */}
-                          {assignment.status === 'Assigned' && (
-                            <button
-                              disabled
-                              title={t(
-                                'chapterAssignmentsModal.submitNotStartedTooltip',
-                                'Phải bấm "Bắt đầu làm" (InProgress) trước khi nộp theo ràng buộc hệ thống!',
-                              )}
-                              className='px-2.5 py-1.5 rounded-lg bg-zinc-100 text-zinc-400 font-semibold flex items-center gap-1 cursor-not-allowed text-[11px]'
-                            >
-                              <Send className='w-3 h-3' />
-                              <span>
-                                {t(
-                                  'chapterAssignmentsModal.submitNotStarted',
-                                  'Nộp bài (Chưa bắt đầu)',
-                                )}
-                              </span>
-                            </button>
-                          )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </Modal>
-
-      {/* Nested Create Assignment Modal */}
-      {showCreateModal && (
-        <CreateAssignmentModal
-          isOpen={showCreateModal}
-          workspaceId={workspaceId}
-          seriesId={seriesId}
-          chapterId={chapterId}
-          chapterNumber={chapterNumber}
-          initialPipelineStageId={carveOutStageId}
-          initialEntityType={carveOutStageId ? 'Page' : undefined}
-          onClose={() => {
-            setShowCreateModal(false);
-            setCarveOutStageId(undefined);
-          }}
-          onSuccess={() => {
-            fetchData();
-            setCarveOutStageId(undefined);
-          }}
-          onShowToast={onShowToast}
-        />
-      )}
     </>
   );
 };
