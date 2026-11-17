@@ -68,7 +68,10 @@
     "fontFamily": "Font Family",
     "fontSize": "Font Size",
     "lineHeight": "Line Height",
-    "tailDirection": "Tail Direction"
+    "tailDirection": "Tail Direction",
+    "originalBadge": "Original",
+    "languageLabel": "Language",
+    "missingCountTooltip": "{count} untranslated balloons"
   },
   "template": {
     "title": "Frame Templates",

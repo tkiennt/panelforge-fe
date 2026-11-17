@@ -15,8 +15,6 @@ vi.mock('@/services/payment.service', async (importOriginal) => {
       setPreviewPages: vi.fn(),
       resetPreviewPages: vi.fn(),
       setLanguagePrices: vi.fn(),
-      uploadPageTranslation: vi.fn(),
-      deletePageTranslation: vi.fn(),
       updateSeriesSettings: vi.fn(),
     },
   };
@@ -125,7 +123,7 @@ describe('PublisherChapterManageView', () => {
     expect(screen.queryByRole('button', { name: /Lưu trang xem trước/i })).not.toBeInTheDocument();
   });
 
-  it('bản dịch chưa đủ ảnh hiện tiến độ và nút upload theo ngôn ngữ', async () => {
+  it('bản dịch chưa đủ ảnh hiện tiến độ theo ngôn ngữ', async () => {
     const user = userEvent.setup();
     renderView();
 
@@ -133,7 +131,6 @@ describe('PublisherChapterManageView', () => {
     await user.click(screen.getByRole('button', { name: 'English' }));
 
     expect(screen.getByText('Chưa đủ ảnh (1/3 trang)')).toBeInTheDocument();
-    expect(screen.getAllByText('Upload ảnh EN')).toHaveLength(3);
   });
 
   it('giá theo ngôn ngữ: thiết lập giá thương mại theo từng ấn bản ngôn ngữ (không bị chặn bởi chapterIsLocked)', async () => {

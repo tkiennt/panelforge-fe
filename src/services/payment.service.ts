@@ -413,36 +413,7 @@ export const monetizationService = {
     return res.data;
   },
 
-  /** PUT /publisher/chapters/{chapterId}/pages/{pageId}/translations/{language} (multipart: file) */
-  async uploadPageTranslation(
-    chapterId: string,
-    pageId: string,
-    language: ContentLanguage,
-    file: File,
-  ): Promise<ChapterManageDto> {
-    const form = new FormData();
-    form.append('file', file);
-    const res = await axiosClient.put<ChapterManageDto>(
-      `/publisher/chapters/${chapterId}/pages/${pageId}/translations/${language}`,
-      form,
-      { headers: { 'Content-Type': 'multipart/form-data' } },
-    );
-    return res.data;
-  },
-
-  /** DELETE /publisher/chapters/{chapterId}/pages/{pageId}/translations/{language} */
-  async deletePageTranslation(
-    chapterId: string,
-    pageId: string,
-    language: ContentLanguage,
-  ): Promise<ChapterManageDto> {
-    const res = await axiosClient.delete<ChapterManageDto>(
-      `/publisher/chapters/${chapterId}/pages/${pageId}/translations/${language}`,
-    );
-    return res.data;
-  },
-
-  /** GET /publisher/revenue (Publisher/Admin) */
+  /** GET /api/publisher/revenue (Publisher/Admin) */
   async getPublisherRevenue(params?: {
     workspaceId?: string;
     search?: string;

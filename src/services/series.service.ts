@@ -30,6 +30,10 @@ export interface SeriesDto {
   bannerUrl?: string | null;
   /** Producer đánh dấu bộ truyện đã hoàn thành (Reader thấy "Hoàn thành"). */
   isCompleted?: boolean;
+  /** BR-34: Ngôn ngữ gốc của bộ truyện (mặc định 'vi') */
+  originalLanguage?: string;
+  /** BR-34: Các ngôn ngữ phát hành (mặc định ['vi', 'en', 'ja']) */
+  releaseLanguages?: string[];
 }
 
 export interface SeriesDetailDto extends SeriesDto {
@@ -375,6 +379,23 @@ export const seriesService = {
       return res.data;
     } catch (err: any) {
       throw new Error(extractError(err, 'Không thể cập nhật Series.'));
+    }
+  },
+
+  /** BR-34: Cập nhật cấu hình ngôn ngữ phát hành của Series (Producer) */
+  async updateSeriesLanguages(
+    seriesId: string,
+    originalLanguage: string,
+    releaseLanguages: string[],
+  ): Promise<SeriesDto> {
+    try {
+      const res = await axiosClient.put(`/series/${seriesId}/languages`, {
+        originalLanguage,
+        releaseLanguages,
+      });
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể cập nhật cấu hình ngôn ngữ Series.'));
     }
   },
 

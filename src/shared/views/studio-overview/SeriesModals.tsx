@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Sparkles, Edit2 } from 'lucide-react';
+import { X, Sparkles, Edit2, Globe } from 'lucide-react';
 import { PipelineTemplateDto } from '@/services/pipeline.service';
 import { SeriesDto } from '@/services/series.service';
 import { SYSTEM_COVERS, type SystemImage } from '@/shared/utils/systemImages';
@@ -300,6 +300,10 @@ export interface EditSeriesModalProps {
   onScheduleChange: (v: string) => void;
   isCompleted: boolean;
   onCompletedChange: (v: boolean) => void;
+  originalLanguage?: string;
+  onOriginalLanguageChange?: (v: string) => void;
+  releaseLanguages?: string[];
+  onReleaseLanguagesChange?: (v: string[]) => void;
   updating: boolean;
 }
 
@@ -323,6 +327,10 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
   onScheduleChange,
   isCompleted,
   onCompletedChange,
+  originalLanguage,
+  onOriginalLanguageChange,
+  releaseLanguages,
+  onReleaseLanguagesChange,
   updating,
 }) => {
   if (!series) return null;
@@ -459,6 +467,78 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
                 (độc giả thấy “Hoàn thành” thay vì “Đang ra”)
               </span>
             </label>
+          </div>
+
+          {/* Cấu hình ngôn ngữ Series (BR-34: Multilingual Lettering) */}
+          <div className='p-3 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-2.5'>
+            <div className='flex items-center gap-1.5 font-bold text-[#171717]'>
+              <Globe className='w-4 h-4 text-[#F97316]' />
+              <span>Ngôn Ngữ & Phát Hành Đa Ngữ (BR-34)</span>
+            </div>
+
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+              <div>
+                <label className='block font-semibold text-[#171717] mb-1'>
+                  Ngôn Ngữ Gốc (Original Language) *
+                </label>
+                <select
+                  value={originalLanguage || 'vi'}
+                  onChange={(e) => {
+                    const newOrig = e.target.value;
+                    onOriginalLanguageChange?.(newOrig);
+                    if (releaseLanguages && !releaseLanguages.includes(newOrig)) {
+                      onReleaseLanguagesChange?.([...releaseLanguages, newOrig]);
+                    }
+                  }}
+                  className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                >
+                  <option value='vi'>Tiếng Việt (VI)</option>
+                  <option value='en'>English (EN)</option>
+                  <option value='ja'>日本語 (JA)</option>
+                  <option value='ko'>한국어 (KO)</option>
+                  <option value='zh'>中文 (ZH)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className='block font-semibold text-[#171717] mb-1'>
+                  Các Ngôn Ngữ Phát Hành (Release Languages)
+                </label>
+                <div className='flex flex-wrap gap-2 pt-1'>
+                  {['vi', 'en', 'ja', 'ko', 'zh'].map((code) => {
+                    const isOrig = (originalLanguage || 'vi').toLowerCase() === code;
+                    const isChecked = isOrig || (releaseLanguages || ['vi', 'en', 'ja']).includes(code);
+                    return (
+                      <label
+                        key={code}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                          isChecked
+                            ? 'bg-orange-50 border-orange-300 text-orange-900 font-semibold'
+                            : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
+                        }`}
+                      >
+                        <input
+                          type='checkbox'
+                          disabled={isOrig}
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (isOrig) return;
+                            const current = releaseLanguages || ['vi', 'en', 'ja'];
+                            if (e.target.checked) {
+                              onReleaseLanguagesChange?.([...current, code]);
+                            } else {
+                              onReleaseLanguagesChange?.(current.filter((c) => c !== code));
+                            }
+                          }}
+                          className='w-3.5 h-3.5 accent-[#F97316]'
+                        />
+                        <span>{code.toUpperCase()}{isOrig ? ' (Gốc)' : ''}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className='flex justify-end gap-2 pt-2 border-t border-[#E7E7E7]'>

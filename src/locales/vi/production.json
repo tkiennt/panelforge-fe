@@ -68,7 +68,10 @@
     "fontFamily": "Phông chữ",
     "fontSize": "Cỡ chữ",
     "lineHeight": "Giãn dòng",
-    "tailDirection": "Hướng đuôi bóng thoại"
+    "tailDirection": "Hướng đuôi bóng thoại",
+    "originalBadge": "Gốc",
+    "languageLabel": "Ngôn ngữ",
+    "missingCountTooltip": "{count} bóng thoại chưa dịch"
   },
   "template": {
     "title": "Mẫu Khung Tranh (Frame Templates)",

@@ -6,6 +6,13 @@ import { ReviewView } from './ReviewView';
 import { assignmentService } from '@/services/assignment.service';
 import { artworkService } from '@/services/artwork.service';
 import { panelService } from '@/services/panel.service';
+import { chapterEditionService } from '@/services/chapter-edition.service';
+
+vi.mock('@/services/chapter-edition.service', () => ({
+  chapterEditionService: {
+    reviewEdition: vi.fn(),
+  },
+}));
 
 vi.mock('@/services/panel.service', () => ({
   panelService: { getPanelsByPage: vi.fn() },
@@ -417,23 +424,25 @@ describe('ReviewView (CF3: duyệt bản nộp tranh)', () => {
     );
   });
 
-  it('holds decisions until an impact review is resolved with a reason', async () => {
+  it('calls chapterEditionService.reviewEdition when lang query param is present', async () => {
     const user = userEvent.setup();
-    vi.mocked(assignmentService.getAssignmentById).mockResolvedValue({
-      ...assignment,
-      impactReviewReason: 'Kịch bản cảnh 2 đã mở lại',
-    } as any);
-    renderView();
+    render(
+      <MemoryRouter initialEntries={['/review/a1?chapterId=c1&lang=en']}>
+        <Routes>
+          <Route
+            path='/review/:taskId'
+            element={<ReviewView currentUserId='editor-1' workspaceRole='EDITOR' />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
 
-    expect(await screen.findByText('Kịch bản cảnh 2 đã mở lại')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Duyệt bản nộp' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Giữ kết quả' }));
-    await user.type(screen.getByLabelText(/Lý do/), 'Không đổi bố cục');
-    await user.click(screen.getAllByRole('button', { name: 'Giữ kết quả' }).at(-1)!);
+    expect(await screen.findByTestId('edition-review-badge')).toHaveTextContent('Ấn bản EN');
+    const approveBtn = await screen.findByRole('button', { name: 'Duyệt bản nộp' });
+    await user.click(approveBtn);
     await waitFor(() =>
-      expect(assignmentService.resolveImpactReview).toHaveBeenCalledWith('c1', 'a1', {
-        decision: 'Keep',
-        reason: 'Không đổi bố cục',
+      expect(chapterEditionService.reviewEdition).toHaveBeenCalledWith('c1', 'en', {
+        action: 'Approve',
       }),
     );
   });

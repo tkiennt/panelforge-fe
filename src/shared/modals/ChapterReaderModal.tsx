@@ -20,6 +20,8 @@ import {
   resolveCatalogImageUrl,
 } from '@/services/catalog.service';
 import { Modal } from '@/shared/ui';
+import { LanguageSelector } from '@/shared/components/LanguageSelector';
+import { userService } from '@/services/user.service';
 
 interface ChapterReaderModalProps {
   isOpen: boolean;
@@ -29,7 +31,13 @@ interface ChapterReaderModalProps {
   chapterTitle?: string | null;
 }
 
-const pageUrl = (url?: string | null) => (url && url.trim() ? resolveCatalogImageUrl(url) : null);
+const pageUrl = (url?: string | null, lang?: string) => {
+  if (!url || !url.trim()) return null;
+  const resolved = resolveCatalogImageUrl(url);
+  if (!lang) return resolved;
+  const separator = resolved.includes('?') ? '&' : '?';
+  return `${resolved}${separator}lang=${encodeURIComponent(lang)}`;
+};
 
 export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
   isOpen,
@@ -46,6 +54,23 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
   // Lật trang: 'height' = cả trang vừa màn hình; 'width' = rộng theo khung đọc, cuộn dọc để xem hết trang cao
   const [fitMode, setFitMode] = useState<'height' | 'width'>('height');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [readingLang, setReadingLang] = useState<string>(() => {
+    try {
+      return localStorage.getItem('preferred_reading_language') || 'vi';
+    } catch {
+      return 'vi';
+    }
+  });
+
+  const handleLanguageChange = (newLang: string) => {
+    setReadingLang(newLang);
+    try {
+      localStorage.setItem('preferred_reading_language', newLang);
+    } catch {
+      // ignore
+    }
+    userService.updateReadingLanguage(newLang).catch(() => {});
+  };
 
   useEffect(() => {
     if (!isOpen || !chapterId) return;
@@ -56,7 +81,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
     setCurrentPageIndex(0);
 
     catalogService
-      .getPublicChapter(chapterId)
+      .getPublicChapter(chapterId, readingLang)
       .then((res) => {
         if (mounted) {
           setData(res);
@@ -76,7 +101,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
     return () => {
       mounted = false;
     };
-  }, [isOpen, chapterId]);
+  }, [isOpen, chapterId, readingLang]);
 
   const totalPages = data?.pages.length || 0;
   const isRTL = data?.readingDirection === 'RightToLeft';
@@ -119,7 +144,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentPageUrl = pageUrl(data?.pages[currentPageIndex]?.imageUrl);
+  const currentPageUrl = pageUrl(data?.pages[currentPageIndex]?.imageUrl, readingLang);
   const ready = !loading && !error && data && totalPages > 0;
   const toolBtn =
     'h-8 px-2.5 rounded-lg border border-[#27272A] transition-colors cursor-pointer text-xs flex items-center gap-1.5';
@@ -194,6 +219,17 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
             >
               <ChevronRight className='w-4 h-4' />
             </button>
+          </div>
+        )}
+
+        {data?.availableLanguages && data.availableLanguages.length > 1 && (
+          <div className='flex items-center gap-1 shrink-0'>
+            <LanguageSelector
+              languages={data.availableLanguages.map((l) => l.language)}
+              activeLang={data.currentLanguage || readingLang}
+              onChange={handleLanguageChange}
+              size='sm'
+            />
           </div>
         )}
 
@@ -347,7 +383,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
         {ready && viewMode === 'vertical' && (
           <div className='mx-auto w-full max-w-3xl flex flex-col gap-2 py-4 px-2'>
             {data.pages.map((p) => {
-              const url = pageUrl(p.imageUrl);
+              const url = pageUrl(p.imageUrl, readingLang);
               return url ? (
                 <img
                   key={p.id}
@@ -375,7 +411,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
           <div className='flex-1 min-w-0 overflow-x-auto custom-scrollbar'>
             <div className={`flex gap-2 w-max mx-auto ${isRTL ? 'flex-row-reverse' : ''}`}>
               {data.pages.map((p, i) => {
-                const url = pageUrl(p.imageUrl);
+                const url = pageUrl(p.imageUrl, readingLang);
                 const active = i === currentPageIndex;
                 return (
                   <button

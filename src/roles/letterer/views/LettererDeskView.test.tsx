@@ -127,7 +127,8 @@ describe('LettererDeskView', () => {
     expect(screen.getByTestId('artist-desk')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText(/Chương 1: Khởi đầu/i)).toBeInTheDocument();
+      // Tên chương hiện ở bộ chọn chương và ở đầu cột "Script truyện" của tab Letter
+      expect(screen.getAllByText(/Chương 1: Khởi đầu/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByTestId('canva-page-card-1')).toBeInTheDocument();
     });
   });
