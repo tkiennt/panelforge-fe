@@ -62,10 +62,10 @@ A lower level never overrides a higher one. Ponytail must never override a manda
 | API contract with backend | `api-and-interface-design`, `panelforge-architecture`, `panelforge-cqrs`, `panelforge-business-rules` |
 | Versioning / provenance / canvas persistence | `panelforge-event-sourcing`, `panelforge-business-rules` |
 | Security | `security-and-hardening`, `panelforge-security` |
-| Frontend | `frontend-ui-engineering`, `incremental-implementation` |
+| Frontend | `modern-web-guidance` (first), `frontend-ui-engineering`, `incremental-implementation` |
 | Testing | `test-driven-development`, `browser-testing-with-devtools`, `panelforge-tooling` |
 | Debugging | `debugging-and-error-recovery` |
-| Performance | `performance-optimization` |
+| Performance | `modern-web-guidance` (CWV guides), `performance-optimization` |
 | Review | `code-review-and-quality`, `code-simplification`, Ponytail review (`/ponytail-review`) |
 | CI/CD | `git-workflow-and-versioning`, `ci-cd-and-automation` |
 
@@ -90,6 +90,22 @@ MCP servers configured for this machine (Claude Code user scope): `playwright` (
 - **`ci-cd-and-automation` examples (Vercel, Prisma)**: adapt to the existing `.github/workflows`; do not add deploy targets without asking.
 - **`.agents/skills/ponytail/`** (`SKILL.md` full skill, `ponytail.md` short Antigravity ruleset) and the Claude Ponytail plugin describe the same philosophy; the precedence above applies to both.
 
+## Modern Web Guidance (bắt buộc cho HTML/CSS/JS phía client)
+
+Skill `.claude/skills/modern-web-guidance/` là bản sao offline, cố định commit, của [GoogleChrome/modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance) (210 guide, Apache-2.0).
+
+- **Khi nào:** trước khi viết/sửa UI, CSS layout/animation, hoặc JS phía client (modal, drawer, popover/dropdown, tooltip, tabs, toast, form/validation, Enter-to-submit, bảng, cuộn, ảnh, Core Web Vitals, a11y, ngày giờ/locale, sanitize HTML). Không dùng cho test, tooling, i18n thuần, canvas Konva (trừ a11y/xuất ảnh).
+- **Cách:** Grep `INDEX.md` → đọc `guides/<category>/<id>.md` → áp dụng → ghi mục `### Modern Web Guidance` khi bàn giao. Không gọi `npx modern-web-guidance` trừ khi user cho phép.
+- **Mặc định bắt buộc** (đã rút từ guide, áp dụng cả khi chưa mở guide):
+  - Overlay chặn trang dùng `<dialog>` + `showModal()` qua primitive chung `shared/ui/Modal`/`Drawer`; không tự dựng `fixed inset-0` + `role="dialog"` mới (`dialog`, `prevent-page-scroll-under-modal-dialog`).
+  - Dropdown/menu/popover dùng Popover API (light-dismiss sẵn), không thêm listener `mousedown` "click outside" mới (`declarative-dialog-popover-control`, `menu`, `viewport-aware-dropdowns`).
+  - Mọi `onKeyDown` xử lý `Enter` phải bỏ qua khi `e.nativeEvent.isComposing` — người dùng gõ tiếng Việt bằng bộ gõ IME (`ime-safe-enter-submit`).
+  - Ngày/số định dạng bằng `Intl` theo ngôn ngữ i18n hiện hành, không ghi cứng `'vi-VN'`.
+  - `<img>` có `width`/`height` (hoặc `aspect-ratio`) và `loading="lazy"` khi dưới màn đầu; ảnh LCP dùng `fetchPriority="high"` (`optimize-image-priority`).
+- **Chính sách trình duyệt:** Baseline Widely available dùng tự do; Newly available cần feature detection + fallback ≤ 20 dòng, không thêm dependency; Limited availability chỉ làm progressive enhancement.
+- **Thứ bậc:** đứng ở mức 5 trong "Precedence" (cùng upstream skills): không được ghi đè BR, bảo mật, kiến trúc hiện có, `DESIGN_RULES.md`.
+- **Kế hoạch refactor theo guide:** `../panelforge-hub/docs/note/plans/09_MODERN_WEB_PLAN.md` (prefix `MWG`).
+
 ## Ponytail
 
 Installed as a Claude Code plugin at project scope (`.claude/settings.json`, marketplace pinned to `v4.10.0`). Default mode is **lite** (`PONYTAIL_DEFAULT_MODE=lite`). Do not switch the project default to `full` or `ultra`.
@@ -99,7 +115,9 @@ Installed as a Claude Code plugin at project scope (`.claude/settings.json`, mar
 - `.claude/skills/` – 16 upstream skills (addyosmani/agent-skills, MIT) + 6 `panelforge-*` skills. Upstream copies are unmodified; to update, re-copy from https://github.com/addyosmani/agent-skills (`skills/<name>`); a local clone lives in `../../Backend/PanelForge_FA26SE251/agent-tools/agent-skills` (git-ignored).
 - `.claude/references/` – checklists referenced by upstream skills as `../../references/*.md`.
 - `.claude/settings.json` – shared: Ponytail plugin, `PONYTAIL_DEFAULT_MODE`, deny rules for reading secret files.
+- `.claude/skills/modern-web-guidance/` – offline Modern Web Guidance (Google Chrome, Apache-2.0); `guides/` unmodified, pinned commit and update steps in `SOURCE.md`.
 - `.agents/skills/` – existing skills used by the Antigravity agent; left unchanged.
+- `.agents/rules/modern-web.md` – always-on rule pointing Antigravity to the same guidance.
 
 ## Git workflow (bắt buộc cho AI Agents)
 
