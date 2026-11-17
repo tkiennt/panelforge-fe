@@ -71,7 +71,25 @@
     "tailDirection": "Hướng đuôi bóng thoại",
     "originalBadge": "Gốc",
     "languageLabel": "Ngôn ngữ",
-    "missingCountTooltip": "{count} bóng thoại chưa dịch"
+    "missingCountTooltip": "{count} bóng thoại chưa dịch",
+    "translate": {
+      "translate": "Dịch",
+      "translating": "Đang dịch...",
+      "retranslate": "Dịch lại",
+      "translationLabel": "Bản dịch ({lang}):",
+      "previewPlaceholder": "Xem trước và chỉnh sửa bản dịch...",
+      "apply": "Đổ vào bóng thoại",
+      "applying": "Đang đổ...",
+      "applied": "Đã đổ",
+      "noBalloon": "Chưa có bóng thoại",
+      "needBalloon": "Cần liên kết hoặc chọn bóng thoại trước khi đổ chữ",
+      "batch": "Dịch toàn bộ thoại của trang",
+      "pageLabel": "Trang {page} ({from} → {to}):",
+      "error": "Lỗi khi dịch thoại",
+      "applyError": "Không thể đổ bản dịch vào bóng thoại.",
+      "batchPartial": "Một số dòng dịch không thành công, vui lòng kiểm tra lại.",
+      "batchFailed": "Không thể hoàn tất dịch toàn bộ trang."
+    }
   },
   "template": {
     "title": "Mẫu Khung Tranh (Frame Templates)",

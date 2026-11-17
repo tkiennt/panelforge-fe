@@ -21,6 +21,7 @@ import { BALLOON_TYPE_LABELS, suggestBalloonType } from '../../utils/letteringSc
 import type { BalloonType } from '../../hooks/useLetteringBalloons';
 import type { ScriptLineItem } from './ArtistCanvaSidebar';
 import { SpeakerAvatar } from './SpeakerAvatar';
+import { useTranslation } from '@/lib/i18n';
 
 const Avatar: React.FC<{ line: ScriptLineItem; size?: number }> = ({ line, size = 40 }) => (
   <SpeakerAvatar
@@ -82,6 +83,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   const [showAllElements, setShowAllElements] = useState(false);
 
   // Trạng thái dịch hội thoại
+  const { t } = useTranslation('production');
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [isTranslatingLine, setIsTranslatingLine] = useState<Record<string, boolean>>({});
   const [lineError, setLineError] = useState<Record<string, string | null>>({});
@@ -166,7 +168,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
-        'Lỗi khi dịch thoại';
+        t('lettering.translate.error');
       setLineError((prev) => ({ ...prev, [lineId]: msg }));
     } finally {
       setIsTranslatingLine((prev) => ({ ...prev, [lineId]: false }));
@@ -190,7 +192,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
               err?.response?.data?.message ||
               err?.response?.data?.error ||
               err?.message ||
-              'Lỗi dịch';
+              t('lettering.translate.error');
             return { id: line.id, text: null, error: msg };
           }
         }),
@@ -213,10 +215,10 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
       setTranslations(nextTranslations);
       setLineError(nextErrors);
       if (hasFailure) {
-        setBatchError('Một số dòng dịch không thành công, vui lòng kiểm tra lại.');
+        setBatchError(t('lettering.translate.batchPartial'));
       }
     } catch (err: any) {
-      setBatchError('Không thể hoàn tất dịch toàn bộ trang.');
+      setBatchError(t('lettering.translate.batchFailed'));
     } finally {
       setIsBatchTranslating(false);
     }
@@ -262,7 +264,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
-        'Không thể đổ bản dịch vào bóng thoại.';
+        t('lettering.translate.applyError');
       setLineError((prev) => ({ ...prev, [lineId]: msg }));
     } finally {
       setIsApplyingLine((prev) => ({ ...prev, [lineId]: false }));
@@ -284,7 +286,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
           </h3>
           <span
             data-testid='lettering-script-total'
-            className='px-2 py-0.5 rounded-full bg-stone-100 text-[11px] text-stone-600'
+            className='px-2 py-0.5 rounded-full bg-stone-100 text-xs text-stone-600'
           >
             Tổng: {lines.length} dòng
           </span>
@@ -294,9 +296,12 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         {isTranslating && (
           <div className='px-3 py-2 bg-orange-50/60 border-b border-stone-100 flex flex-col gap-1.5'>
             <div className='flex items-center justify-between gap-2'>
-              <span className='text-[11px] text-stone-600 font-medium'>
-                Trang {activePageNumber} ({originalLang.toUpperCase()} → {activeLang!.toUpperCase()}
-                ):
+              <span className='text-xs text-stone-600 font-medium'>
+                {t('lettering.translate.pageLabel', {
+                  page: activePageNumber,
+                  from: originalLang.toUpperCase(),
+                  to: activeLang!.toUpperCase(),
+                })}
               </span>
               <button
                 type='button'
@@ -308,12 +313,12 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                 {isBatchTranslating ? (
                   <>
                     <Loader2 className='w-3.5 h-3.5 animate-spin' aria-hidden='true' />
-                    <span>Đang dịch...</span>
+                    <span>{t('lettering.translate.translating')}</span>
                   </>
                 ) : (
                   <>
                     <Globe className='w-3.5 h-3.5' aria-hidden='true' />
-                    <span>Dịch toàn bộ thoại của trang</span>
+                    <span>{t('lettering.translate.batch')}</span>
                   </>
                 )}
               </button>
@@ -321,7 +326,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
             {batchError && (
               <p
                 data-testid='lettering-batch-translate-error'
-                className='text-[11px] text-red-600 bg-red-50 p-1.5 rounded border border-red-200'
+                className='text-xs text-red-600 bg-red-50 p-1.5 rounded border border-red-200'
               >
                 {batchError}
               </p>
@@ -362,7 +367,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                   data-testid={`lettering-link-filter-${key}`}
                   aria-pressed={linkFilter === key}
                   onClick={() => setLinkFilter(key)}
-                  className={`py-1 rounded-md text-[10px] font-semibold cursor-pointer transition-colors ${
+                  className={`py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
                     linkFilter === key
                       ? 'bg-white text-stone-900 shadow-2xs'
                       : 'text-stone-500 hover:text-stone-800'
@@ -415,7 +420,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                           : 'border-stone-200 bg-white hover:border-orange-300 hover:bg-orange-50/40'
                       }`}
                     >
-                      <span className='w-6 h-6 rounded-full border border-stone-300 bg-white text-[11px] font-bold text-stone-700 flex items-center justify-center shrink-0'>
+                      <span className='w-6 h-6 rounded-full border border-stone-300 bg-white text-xs font-bold text-stone-700 flex items-center justify-center shrink-0'>
                         {number}
                       </span>
                       {isNarration ? (
@@ -433,7 +438,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                           {isNarration ? 'Dẫn truyện' : line.characterName || 'Nhân vật'}
                           <span
                             data-testid={`lettering-script-kind-${line.id}`}
-                            className='ml-1.5 font-normal text-[10px] text-stone-400'
+                            className='ml-1.5 font-normal text-xs text-stone-400'
                           >
                             {BALLOON_TYPE_LABELS[type]} · Trang {line.pageNumber ?? '?'}
                           </span>
@@ -465,24 +470,24 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                                 handleTranslateLine(line.id, text);
                               }}
                               disabled={isTranslatingLine[line.id]}
-                              className='inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-md transition-colors cursor-pointer disabled:opacity-50'
+                              className='inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-md transition-colors cursor-pointer disabled:opacity-50'
                             >
                               {isTranslatingLine[line.id] ? (
                                 <>
                                   <Loader2 className='w-3 h-3 animate-spin' aria-hidden='true' />
-                                  <span>Đang dịch...</span>
+                                  <span>{t('lettering.translate.translating')}</span>
                                 </>
                               ) : (
                                 <>
                                   <Globe className='w-3 h-3' aria-hidden='true' />
-                                  <span>🌐 Dịch</span>
+                                  <span>{t('lettering.translate.translate')}</span>
                                 </>
                               )}
                             </button>
                             {lineError[line.id] && (
                               <span
                                 data-testid={`lettering-translate-error-${line.id}`}
-                                className='text-[10px] text-red-600 font-medium truncate'
+                                className='text-xs text-red-600 font-medium truncate'
                               >
                                 {lineError[line.id]}
                               </span>
@@ -490,8 +495,12 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                           </div>
                         ) : (
                           <div className='p-2 bg-stone-50 rounded-lg border border-stone-200 space-y-1.5'>
-                            <div className='flex items-center justify-between text-[10px] text-stone-500 font-medium'>
-                              <span>Bản dịch ({activeLang!.toUpperCase()}):</span>
+                            <div className='flex items-center justify-between text-xs text-stone-500 font-medium'>
+                              <span>
+                                {t('lettering.translate.translationLabel', {
+                                  lang: activeLang!.toUpperCase(),
+                                })}
+                              </span>
                               <button
                                 type='button'
                                 data-testid={`lettering-retranslate-line-${line.id}`}
@@ -500,13 +509,13 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                                   handleTranslateLine(line.id, text);
                                 }}
                                 disabled={isTranslatingLine[line.id]}
-                                className='hover:text-stone-800 text-[10px] flex items-center gap-1 cursor-pointer disabled:opacity-50'
-                                title='Dịch lại'
+                                className='hover:text-stone-800 text-xs flex items-center gap-1 cursor-pointer disabled:opacity-50'
+                                title={t('lettering.translate.retranslate')}
                               >
                                 <RefreshCw
                                   className={`w-2.5 h-2.5 ${isTranslatingLine[line.id] ? 'animate-spin' : ''}`}
                                 />
-                                <span>Dịch lại</span>
+                                <span>{t('lettering.translate.retranslate')}</span>
                               </button>
                             </div>
                             <textarea
@@ -518,7 +527,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                               }}
                               rows={2}
                               className='w-full text-xs p-1.5 border border-stone-300 rounded bg-white text-stone-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 resize-none'
-                              placeholder='Xem trước và chỉnh sửa bản dịch...'
+                              placeholder={t('lettering.translate.previewPlaceholder')}
                             />
                             <div className='flex items-center justify-between gap-2 pt-0.5'>
                               <button
@@ -530,42 +539,41 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                                 }}
                                 disabled={isApplyingLine[line.id] || !targetElement}
                                 title={
-                                  !targetElement
-                                    ? 'Cần liên kết hoặc chọn bóng thoại trước khi đổ chữ'
-                                    : undefined
+                                  !targetElement ? t('lettering.translate.needBalloon') : undefined
                                 }
-                                className='inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-white bg-orange-600 hover:bg-orange-700 disabled:bg-stone-300 disabled:text-stone-500 rounded-md transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs'
+                                className='inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 disabled:bg-stone-300 disabled:text-stone-500 rounded-md transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs'
                               >
                                 {isApplyingLine[line.id] ? (
                                   <>
                                     <Loader2 className='w-3 h-3 animate-spin' />
-                                    <span>Đang đổ...</span>
+                                    <span>{t('lettering.translate.applying')}</span>
                                   </>
                                 ) : (
                                   <>
                                     <Download className='w-3 h-3' />
-                                    <span>📥 Đổ vào bóng thoại</span>
+                                    <span>{t('lettering.translate.apply')}</span>
                                   </>
                                 )}
                               </button>
                               {applySuccessLine[line.id] && (
                                 <span
                                   data-testid={`lettering-apply-success-${line.id}`}
-                                  className='text-[10px] text-emerald-600 font-medium flex items-center gap-0.5'
+                                  className='text-xs text-emerald-600 font-medium flex items-center gap-0.5'
                                 >
-                                  <CheckCircle2 className='w-3 h-3' /> Đã đổ
+                                  <CheckCircle2 className='w-3 h-3' />{' '}
+                                  {t('lettering.translate.applied')}
                                 </span>
                               )}
                               {!targetElement && (
-                                <span className='text-[10px] text-amber-700 italic'>
-                                  Chưa có bóng thoại
+                                <span className='text-xs text-amber-700 italic'>
+                                  {t('lettering.translate.noBalloon')}
                                 </span>
                               )}
                             </div>
                             {lineError[line.id] && (
                               <p
                                 data-testid={`lettering-apply-error-${line.id}`}
-                                className='text-[10px] text-red-600'
+                                className='text-xs text-red-600'
                               >
                                 {lineError[line.id]}
                               </p>
@@ -579,7 +587,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
               })}
             </ul>
 
-            <p className='flex items-start gap-2 rounded-lg bg-orange-50 px-3 py-2 text-[11px] text-orange-900'>
+            <p className='flex items-start gap-2 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-900'>
               <Info className='w-3.5 h-3.5 mt-0.5 shrink-0' aria-hidden='true' />
               Chọn hoặc kéo dòng thoại để đặt vào bóng thoại trên trang truyện.
             </p>
@@ -598,7 +606,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
             <button
               type='button'
               onClick={() => setShowAllElements((v) => !v)}
-              className='text-[11px] font-semibold text-orange-600 hover:underline cursor-pointer'
+              className='text-xs font-semibold text-orange-600 hover:underline cursor-pointer'
             >
               {showAllElements ? 'Thu gọn' : 'Hiển thị tất cả'}
             </button>
@@ -608,7 +616,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         {isTranslating && (
           <p
             data-testid='lettering-missing-translations'
-            className='px-1 text-[11px] font-semibold text-amber-700'
+            className='px-1 text-xs font-semibold text-amber-700'
           >
             Thiếu bản dịch {activeLang!.toUpperCase()}: {missingTranslations}
           </p>
@@ -643,7 +651,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                         Thoại {el.readingOrder ?? idx + 1}
                       </span>
                       <span
-                        className={`block text-[11px] ${el.scriptLineId ? 'text-emerald-700' : 'text-stone-500'}`}
+                        className={`block text-xs ${el.scriptLineId ? 'text-emerald-700' : 'text-stone-500'}`}
                       >
                         {el.scriptLineId
                           ? `Đã liên kết với dòng ${lineNo ?? '?'}`
@@ -667,7 +675,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
         {/* Bóng không theo kịch bản (SFX, chữ tự do) */}
         <div className='pt-1'>
-          <p className='px-1 pb-1.5 text-[11px] font-semibold text-stone-500 flex items-center gap-1'>
+          <p className='px-1 pb-1.5 text-xs font-semibold text-stone-500 flex items-center gap-1'>
             <Plus className='w-3 h-3' aria-hidden='true' /> Thêm bóng trống
           </p>
           <div className='grid grid-cols-4 gap-1.5'>
@@ -689,7 +697,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                   e.dataTransfer.effectAllowed = 'copy';
                 }}
                 onClick={() => onAddElement?.(type)}
-                className='flex flex-col items-center gap-0.5 py-1.5 rounded-lg border border-stone-200 bg-white text-[10px] text-stone-700 hover:border-orange-400 cursor-pointer'
+                className='flex flex-col items-center gap-0.5 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-700 hover:border-orange-400 cursor-pointer'
               >
                 <Icon className='w-4 h-4' aria-hidden='true' />
                 {BALLOON_TYPE_LABELS[type]}
