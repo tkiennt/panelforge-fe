@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AlertTriangle,
   ShieldCheck,
@@ -30,6 +31,7 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
   onScrollToLine,
   disabledCheck = false,
 }) => {
+  const { t } = useTranslation('production');
   const [filterTab, setFilterTab] = useState<'all' | 'open' | 'stale'>('all');
 
   if (!isOpen) return null;
@@ -114,22 +116,28 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
         </div>
 
         <div className='flex items-center gap-1.5 shrink-0'>
-          {/* Re-run button */}
+          {/* Re-run button with testId */}
           <button
             type='button'
+            data-testid='run-consistency-check-btn'
             onClick={onRunCheck}
             disabled={loadingConsistency || disabledCheck}
-            className='p-1.5 text-[#C2410C] hover:bg-[#FFF2E6] rounded-lg cursor-pointer transition-colors disabled:opacity-40'
-            title='Chạy lại kiểm tra nhất quán'
+            className='inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-white bg-[#EA580C] hover:bg-[#C2410C] rounded-lg cursor-pointer transition-colors disabled:opacity-40 shadow-xs'
+            title={t('scriptStudio.consistency.reRunTooltip', 'Chạy lại kiểm tra nhất quán')}
           >
-            <RefreshCw className={`w-4 h-4 ${loadingConsistency ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingConsistency ? 'animate-spin' : ''}`} />
+            <span className='hidden sm:inline'>
+              {loadingConsistency
+                ? t('scriptStudio.consistency.running', 'Đang kiểm tra...')
+                : t('scriptStudio.consistency.runCheck', 'Chạy kiểm tra')}
+            </span>
           </button>
           {/* Close button */}
           <button
             type='button'
             onClick={onClose}
             className='p-1.5 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer transition-colors'
-            title='Đóng bảng cảnh báo'
+            title={t('scriptStudio.consistency.close', 'Đóng bảng cảnh báo')}
           >
             <X className='w-4 h-4' />
           </button>

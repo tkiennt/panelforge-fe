@@ -2156,9 +2156,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       active: activeRightDrawer === 'consistency',
       badge: openFindingsCount,
       busy: loadingConsistency,
-      disabled: loadingConsistency || !currentChapter?.id,
-      testId: 'run-consistency-check-btn',
-      onClick: handleRunConsistencyCheck,
+      disabled: !currentChapter?.id,
+      testId: 'rail-consistency-btn',
+      onClick: () => toggleRightDrawer('consistency'),
     },
     ...(scriptComments.length > 0
       ? [

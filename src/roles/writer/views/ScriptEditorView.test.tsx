@@ -627,6 +627,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     const user = userEvent.setup();
     renderView();
 
+    const railBtn = await screen.findByTestId('rail-consistency-btn');
+    await user.click(railBtn);
+
     const checkBtn = await screen.findByTestId('run-consistency-check-btn');
     await user.click(checkBtn);
 

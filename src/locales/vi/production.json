@@ -142,6 +142,13 @@
       "ai": "Trợ lý AI viết nháp và phân khung",
       "history": "Lịch sử các phiên bản kịch bản"
     },
+    "consistency": {
+      "title": "Vấn đề nhất quán",
+      "runCheck": "Chạy kiểm tra",
+      "running": "Đang kiểm tra...",
+      "reRunTooltip": "Chạy lại kiểm tra nhất quán kịch bản",
+      "close": "Đóng bảng cảnh báo"
+    },
     "statusDrawer": {
       "title": "Thông báo & Trạng thái",
       "desc": "Cảnh báo, trạng thái kịch bản và các cổng duyệt",

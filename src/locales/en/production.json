@@ -142,6 +142,13 @@
       "ai": "AI assistant for drafting and storyboard",
       "history": "Script version history"
     },
+    "consistency": {
+      "title": "Consistency Findings",
+      "runCheck": "Run check",
+      "running": "Checking...",
+      "reRunTooltip": "Re-run script consistency check",
+      "close": "Close findings drawer"
+    },
     "statusDrawer": {
       "title": "Notifications & Status",
       "desc": "Warnings, script status, and review gates",
