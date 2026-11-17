@@ -180,7 +180,7 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
     editorProps: {
       attributes: {
         class:
-          'focus:outline-none min-h-[550px] px-8 py-10 font-sans text-base leading-relaxed text-slate-900 bg-[#FCFBF8] selection:bg-orange-100 selection:text-orange-950 caret-[#C2410C]',
+          'focus:outline-none min-h-[550px] px-8 py-10 font-sans text-base leading-relaxed text-stone-900 bg-[#FCFBF8] selection:bg-orange-100 selection:text-orange-950 caret-[#C2410C]',
       },
     },
     onUpdate: ({ editor: ed }) => {
@@ -599,18 +599,18 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
               className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold rounded-lg transition-all ${
                 isLockedOrReadOnly
                   ? 'opacity-50 cursor-not-allowed bg-stone-100 text-stone-400'
-                  : 'text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 cursor-pointer'
+                  : 'text-stone-700 bg-white hover:bg-stone-50 border border-stone-200 cursor-pointer'
               }`}
               title='Chèn lời dẫn truyện (Gõ Caption: rồi Enter)'
             >
-              <Scroll className='w-3.5 h-3.5 text-slate-500' />
+              <Scroll className='w-3.5 h-3.5 text-stone-500' />
               <span className='hidden md:inline'>Lời dẫn</span>
             </button>
           </div>
 
           {/* Phản hồi trạng thái biến đổi O(1) Transaction */}
           {lastAction && (
-            <div className='flex items-center gap-1 text-[11px] font-mono text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-md animate-in fade-in slide-in-from-left-2'>
+            <div className='flex items-center gap-1 text-xs font-mono text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-md animate-in fade-in slide-in-from-left-2'>
               <Zap className='w-3 h-3 text-emerald-600' />
               <span>Đã chuyển thành {lastAction}</span>
             </div>
@@ -626,7 +626,7 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
             className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
               showCheatsheet
                 ? 'bg-[#C2410C] text-white border-transparent shadow-xs'
-                : 'bg-white text-slate-600 hover:text-slate-900 border-[#E5E0D8] hover:bg-[#F3F0E9]'
+                : 'bg-white text-stone-600 hover:text-stone-900 border-[#E5E0D8] hover:bg-[#F3F0E9]'
             }`}
             title='Xem danh sách phím tắt gõ kịch bản tức thì'
           >
@@ -639,10 +639,10 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
             type='button'
             disabled={isLockedOrReadOnly}
             onClick={handleResetSample}
-            className={`p-1.5 rounded-lg transition-colors border border-slate-200 bg-white ${
+            className={`p-1.5 rounded-lg transition-colors border border-stone-200 bg-white ${
               isLockedOrReadOnly
                 ? 'opacity-40 cursor-not-allowed'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 cursor-pointer'
             }`}
             title='Nạp lại kịch bản mẫu ban đầu'
           >
@@ -694,28 +694,28 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
 
             <div className='flex items-center gap-1.5'>
               <span className='font-bold'>3. Thoại Nhân vật:</span>
-              <span className='font-mono text-slate-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
+              <span className='font-mono text-stone-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
                 @Tên: "Thoại" + ↵
               </span>
             </div>
 
             <div className='flex items-center gap-1.5'>
               <span className='font-bold'>4. Âm thanh (SFX):</span>
-              <span className='font-mono text-slate-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
+              <span className='font-mono text-stone-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
                 * BÙM * hoặc SFX: TIẾNG NỔ + ↵
               </span>
             </div>
 
             <div className='flex items-center gap-1.5'>
               <span className='font-bold'>5. Lời dẫn:</span>
-              <span className='font-mono text-slate-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
+              <span className='font-mono text-stone-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
                 Caption: Lời dẫn + ↵
               </span>
             </div>
 
             <div className='flex items-center gap-1.5'>
               <span className='font-bold'>6. Hoàn nguyên:</span>
-              <kbd className='px-1.5 py-0.5 bg-white border border-[#FDBA74] rounded font-mono text-[11px] shadow-2xs'>
+              <kbd className='px-1.5 py-0.5 bg-white border border-[#FDBA74] rounded font-mono text-xs shadow-2xs'>
                 Backspace
               </kbd>
               <span>ở đầu dòng</span>
@@ -740,39 +740,39 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
       </div>
 
       {/* 4. BOTTOM METRIC FOOTER BAR (60 FPS REAL-TIME STATS) */}
-      <footer className='shrink-0 bg-[#FCFBF8] border-t border-[#EBE7DF] px-6 py-2.5 flex items-center justify-between text-xs text-slate-600 font-mono shadow-2xs'>
+      <footer className='shrink-0 bg-[#FCFBF8] border-t border-[#EBE7DF] px-6 py-2.5 flex items-center justify-between text-xs text-stone-600 font-mono shadow-2xs'>
         <div className='flex items-center gap-5'>
           <div className='flex items-center gap-1.5'>
             <span className='w-2 h-2 rounded-full bg-[#C2410C]' />
-            <span className='font-bold text-slate-800'>{stats.pages}</span>
-            <span className='text-slate-500'>Trang</span>
+            <span className='font-bold text-stone-800'>{stats.pages}</span>
+            <span className='text-stone-500'>Trang</span>
           </div>
 
           <div className='flex items-center gap-1.5'>
             <span className='w-2 h-2 rounded-full bg-indigo-600' />
-            <span className='font-bold text-slate-800'>{stats.panels}</span>
-            <span className='text-slate-500'>Panels</span>
+            <span className='font-bold text-stone-800'>{stats.panels}</span>
+            <span className='text-stone-500'>Panels</span>
           </div>
 
           <div className='flex items-center gap-1.5'>
             <span className='w-2 h-2 rounded-full bg-purple-500' />
-            <span className='font-bold text-slate-800'>{stats.dialogues}</span>
-            <span className='text-slate-500'>Thoại</span>
+            <span className='font-bold text-stone-800'>{stats.dialogues}</span>
+            <span className='text-stone-500'>Thoại</span>
           </div>
 
           <div className='flex items-center gap-1.5'>
             <span className='w-2 h-2 rounded-full bg-amber-500' />
-            <span className='font-bold text-slate-800'>{stats.sfx}</span>
-            <span className='text-slate-500'>SFX</span>
+            <span className='font-bold text-stone-800'>{stats.sfx}</span>
+            <span className='text-stone-500'>SFX</span>
           </div>
 
-          <div className='hidden sm:flex items-center gap-1.5 border-l border-slate-200 pl-4'>
-            <span className='font-semibold text-slate-700'>{stats.words}</span>
-            <span className='text-slate-500'>từ</span>
+          <div className='hidden sm:flex items-center gap-1.5 border-l border-stone-200 pl-4'>
+            <span className='font-semibold text-stone-700'>{stats.words}</span>
+            <span className='text-stone-500'>từ</span>
           </div>
         </div>
 
-        <div className='flex items-center gap-2 text-[11px] text-slate-400'>
+        <div className='flex items-center gap-2 text-xs text-stone-500'>
           <span className='inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse' />
           <span>Tiptap ProseMirror 60 FPS Engine · Keyboard-First</span>
         </div>

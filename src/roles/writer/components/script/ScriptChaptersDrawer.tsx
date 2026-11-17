@@ -68,7 +68,7 @@ export const ScriptChaptersDrawer: React.FC<ScriptChaptersDrawerProps> = ({
           <h2 className='font-serif text-base text-stone-900 truncate'>
             {t('scriptStudio.chapters.title', 'Danh Sách Chương')}
           </h2>
-          <span className='px-1.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-stone-100 text-stone-600 shrink-0'>
+          <span className='px-1.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-stone-100 text-stone-600 shrink-0'>
             {chapters.length}
           </span>
         </div>
@@ -162,7 +162,7 @@ export const ScriptChaptersDrawer: React.FC<ScriptChaptersDrawerProps> = ({
                       </span>
                     )}
                     <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${badge.className}`}
+                      className={`text-xs px-1.5 py-0.5 rounded border font-medium ${badge.className}`}
                     >
                       {badge.label}
                     </span>
@@ -173,7 +173,7 @@ export const ScriptChaptersDrawer: React.FC<ScriptChaptersDrawerProps> = ({
                   {chap.title ? chap.title : `Chương ${chap.chapterNumber}`}
                 </div>
 
-                <div className='flex items-center gap-2 text-[11px] text-stone-400 font-mono'>
+                <div className='flex items-center gap-2 text-xs text-stone-500 font-mono'>
                   <span>{chap.scenesCount ?? 0} cảnh</span>
                   <span>•</span>
                   <span>{chap.pagesCount ?? 0} trang</span>

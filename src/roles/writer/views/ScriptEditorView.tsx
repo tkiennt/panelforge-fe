@@ -2834,7 +2834,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     </option>
                   ))}
                 </select>
-                <p className='text-[11px] text-[#57534E] mt-1'>
+                <p className='text-xs text-stone-500 mt-1'>
                   Lấy từ Series Bible, giúp Letterer đặt đúng bóng thoại.
                 </p>
               </div>
@@ -2871,7 +2871,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     Người kể không đáng tin (Hạ cảnh báo xuống Warning)
                   </option>
                 </select>
-                <p className='text-[11px] text-[#57534E] mt-1'>
+                <p className='text-xs text-stone-500 mt-1'>
                   Ngoại lệ có chủ ý để Kiểm tra nhất quán không báo lỗi sai.
                 </p>
               </div>
