@@ -139,7 +139,11 @@
       "comments": "Script feedback and comments",
       "status": "Alerts and script status",
       "import": "Import script from file",
+      "importDisabledRole": "View only - cannot import script",
+      "importDisabledLocked": "Chapter is locked - cannot import script",
       "ai": "AI assistant for drafting and storyboard",
+      "aiDisabledRole": "View only - cannot use AI assistant",
+      "aiDisabledLocked": "Chapter is locked - cannot use AI assistant",
       "history": "Script version history"
     },
     "consistency": {

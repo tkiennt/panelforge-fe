@@ -2160,20 +2160,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       testId: 'rail-consistency-btn',
       onClick: () => toggleRightDrawer('consistency'),
     },
-    ...(scriptComments.length > 0
-      ? [
-          {
-            id: 'comments',
-            label: t('scriptStudio.rail.comments', 'Góp ý'),
-            tooltip: t('scriptStudio.railTooltip.comments', 'Góp ý và phản hồi kịch bản'),
-            icon: MessageSquare,
-            active: activeRightDrawer === 'comments',
-            badge: openScriptComments.length > 0 ? openScriptComments.length : undefined,
-            testId: 'rail-comments-btn',
-            onClick: () => toggleRightDrawer('comments'),
-          } satisfies ScriptRailItem,
-        ]
-      : []),
+    {
+      id: 'comments',
+      label: t('scriptStudio.rail.comments', 'Góp ý'),
+      tooltip: t('scriptStudio.railTooltip.comments', 'Góp ý và phản hồi kịch bản'),
+      icon: MessageSquare,
+      active: activeRightDrawer === 'comments',
+      badge: openScriptComments.length > 0 ? openScriptComments.length : undefined,
+      testId: 'rail-comments-btn',
+      onClick: () => toggleRightDrawer('comments'),
+    },
     {
       id: 'status',
       label: t('scriptStudio.rail.status', 'Thông báo'),
@@ -2185,28 +2181,39 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       testId: 'rail-status-btn',
       onClick: () => toggleRightDrawer('status'),
     },
-    ...(canEditScript && !isChapterLocked
-      ? [
-          {
-            id: 'import',
-            label: t('scriptStudio.rail.import'),
-            tooltip: t('scriptStudio.railTooltip.import', 'Nhập kịch bản từ tệp bên ngoài'),
-            icon: FileInput,
-            testId: 'rail-import-btn',
-            onClick: () => {
-              setEditorMode('flow');
-              setImportRequestKey((k) => k + 1);
-            },
-          } satisfies ScriptRailItem,
-          {
-            id: 'ai',
-            label: t('scriptStudio.rail.ai'),
-            tooltip: t('scriptStudio.railTooltip.ai', 'Trợ lý AI viết nháp và phân khung'),
-            icon: Sparkles,
-            active: activeRightDrawer === 'ai-draft' || activeRightDrawer === 'ai-storyboard',
-            tone: 'ai',
-            testId: 'rail-ai-btn',
-            menu: [
+    {
+      id: 'import',
+      label: t('scriptStudio.rail.import'),
+      tooltip: !canEditScript
+        ? t('scriptStudio.railTooltip.importDisabledRole', 'Chỉ xem - không có quyền nhập kịch bản')
+        : isChapterLocked
+          ? t('scriptStudio.railTooltip.importDisabledLocked', 'Chương đã đóng băng - không thể nhập kịch bản')
+          : t('scriptStudio.railTooltip.import', 'Nhập kịch bản từ tệp bên ngoài'),
+      icon: FileInput,
+      disabled: !canEditScript || isChapterLocked,
+      testId: 'rail-import-btn',
+      onClick: () => {
+        setEditorMode('flow');
+        setImportRequestKey((k) => k + 1);
+      },
+    },
+    {
+      id: 'ai',
+      label: t('scriptStudio.rail.ai'),
+      tooltip: !canEditScript
+        ? t('scriptStudio.railTooltip.aiDisabledRole', 'Chỉ xem - không có quyền dùng Trợ lý AI')
+        : isChapterLocked
+          ? t('scriptStudio.railTooltip.aiDisabledLocked', 'Chương đã đóng băng - không thể dùng Trợ lý AI')
+          : t('scriptStudio.railTooltip.ai', 'Trợ lý AI viết nháp và phân khung'),
+      icon: Sparkles,
+      active: activeRightDrawer === 'ai-draft' || activeRightDrawer === 'ai-storyboard',
+      tone: 'ai',
+      disabled: !canEditScript || isChapterLocked,
+      testId: 'rail-ai-btn',
+      menu:
+        !canEditScript || isChapterLocked
+          ? undefined
+          : [
               {
                 id: 'draft',
                 label: t('scriptStudio.ai.draft'),
@@ -2228,9 +2235,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 onSelect: () => setActiveRightDrawer('ai-storyboard'),
               },
             ],
-          } satisfies ScriptRailItem,
-        ]
-      : []),
+    },
     {
       id: 'history',
       label: t('scriptStudio.rail.history'),

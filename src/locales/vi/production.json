@@ -139,7 +139,11 @@
       "comments": "Góp ý và phản hồi kịch bản",
       "status": "Thông báo và trạng thái kịch bản",
       "import": "Nhập kịch bản từ tệp bên ngoài",
+      "importDisabledRole": "Chỉ xem - không có quyền nhập kịch bản",
+      "importDisabledLocked": "Chương đã đóng băng - không thể nhập kịch bản",
       "ai": "Trợ lý AI viết nháp và phân khung",
+      "aiDisabledRole": "Chỉ xem - không có quyền dùng Trợ lý AI",
+      "aiDisabledLocked": "Chương đã đóng băng - không thể dùng Trợ lý AI",
       "history": "Lịch sử các phiên bản kịch bản"
     },
     "consistency": {
