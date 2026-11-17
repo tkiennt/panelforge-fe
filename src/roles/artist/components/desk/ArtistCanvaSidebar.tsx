@@ -1081,11 +1081,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const selectedPage = pages[selectedPageIndex] || null;
   const activePageNumber = selectedPage?.pageNumber || 1;
 
-  const displayedLetteringScriptLines = useMemo(() => {
-    if (!letteringFilterCurrentPage) return scriptLines;
-    const pageLines = scriptLines.filter((l) => (l.pageNumber ?? 1) === activePageNumber);
-    return pageLines.length > 0 ? pageLines : scriptLines;
-  }, [scriptLines, letteringFilterCurrentPage, activePageNumber]);
   const filteredBible = useMemo(() => {
     return bibleEntities.filter((item) => {
       const matchCat = bibleCategory === 'all' || item.category === bibleCategory;

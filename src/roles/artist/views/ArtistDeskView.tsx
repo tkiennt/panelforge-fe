@@ -40,7 +40,7 @@ import { PageStage } from '../components/desk/ArtistPageSidebar';
 import { ArtistCanvasViewport, type PageSketch } from '../components/desk/ArtistCanvasViewport';
 import { PanelFrameOverlay, type PanelArtworkData } from '../components/desk/PanelFrameOverlay';
 import { LetteringBalloonOverlay } from '../components/desk/LetteringBalloonOverlay';
-import { ArtworkPreviewDialog, UnlockLayoutDialog } from '../components/desk/ArtistDeskDialogs';
+import { ArtworkPreviewDialog } from '../components/desk/ArtistDeskDialogs';
 import { useLetteringBalloons, type BalloonType } from '../hooks/useLetteringBalloons';
 import { LanguageSelector } from '@/shared/components/LanguageSelector';
 import { suggestBalloonType } from '../utils/letteringScript';

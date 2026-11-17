@@ -25,7 +25,6 @@ export function suggestBalloonType(line: ScriptLineItem): {
   const c = classifyScriptLine({
     dialogueText: line.dialogueText,
     stageDirection: line.stageDirection,
-    speakerCharacterId: line.speakerCharacterId,
     speakerName: line.characterName,
     narrationMode: line.narrationMode,
   });

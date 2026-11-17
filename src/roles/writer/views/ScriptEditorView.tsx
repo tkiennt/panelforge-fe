@@ -272,7 +272,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     };
   }, [currentChapter?.id, currentChapter?.scriptStatus]);
 
-  const [showCommentsSidePanel, setShowCommentsSidePanel] = useState(false);
   const [activeCommentLineId, setActiveCommentLineId] = useState<string | null>(null);
   const [pushedVersion, setPushedVersion] = useState<ScriptVersionDetailDto | null>(null);
 
@@ -297,7 +296,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   useEffect(() => {
     if (openScriptComments.length > 0) {
-      setShowCommentsSidePanel(true);
+      setActiveRightDrawer((prev) => prev ?? 'comments');
     }
   }, [currentChapter?.id, openScriptComments.length > 0]);
   const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
@@ -402,10 +401,24 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     (process.env?.NODE_ENV === 'test' ||
       typeof (globalThis as any).__vitest_worker__ !== 'undefined');
 
-  // Mặc định mở side drawer phù hợp môi trường
-  const [activeSideDrawer, setActiveSideDrawer] = useState<
-    'chapters' | 'scenes' | 'narrative' | 'consistency' | 'characters' | 'versions' | 'cast' | null
-  >(null);
+  type LeftDrawer = 'chapters' | 'scenes' | null;
+  type RightDrawer =
+    | 'narrative'
+    | 'consistency'
+    | 'characters'
+    | 'cast'
+    | 'versions'
+    | 'comments'
+    | null;
+
+  const [activeLeftDrawer, setActiveLeftDrawer] = useState<LeftDrawer>(null);
+  const [activeRightDrawer, setActiveRightDrawer] = useState<RightDrawer>(null);
+
+  const toggleLeftDrawer = (drawer: NonNullable<LeftDrawer>) =>
+    setActiveLeftDrawer((prev) => (prev === drawer ? null : drawer));
+
+  const toggleRightDrawer = (drawer: NonNullable<RightDrawer>) =>
+    setActiveRightDrawer((prev) => (prev === drawer ? null : drawer));
   const [importRequestKey, setImportRequestKey] = useState(0);
 
   // BIB-16: Nạp danh sách thực thể chương (Chapter Cast)
@@ -455,7 +468,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && (e.key === 'c' || e.key === 'C')) {
         e.preventDefault();
-        setActiveSideDrawer((prev) => (prev === 'chapters' ? null : 'chapters'));
+        setActiveLeftDrawer((prev) => (prev === 'chapters' ? null : 'chapters'));
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
@@ -1240,7 +1253,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       const res = await assignmentService.runConsistencyCheck(currentChapter.id);
       setConsistencyResult(res);
       setFindings(res.findings || []);
-      setActiveSideDrawer('consistency');
+      setActiveRightDrawer('consistency');
       notify(
         'Kiểm tra nhất quán hoàn tất',
         `Phát hiện ${res.openCount} vấn đề (${res.blockingOpenCount} lỗi chặn).`,
@@ -1791,7 +1804,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         t('scriptStudio.cast.submitBlockedTitle', 'Chặn Gửi duyệt do vướng mắc Bible'),
         chapterCast.submitGate.blockers.map((b) => `${b.entryName}: ${b.reason}`).join('\n'),
       );
-      setActiveSideDrawer('cast');
+      setActiveRightDrawer('cast');
       return;
     }
 
@@ -2083,49 +2096,46 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (detail) setSelectedScene(detail);
   };
 
-  const toggleDrawer = (drawer: NonNullable<typeof activeSideDrawer>) =>
-    setActiveSideDrawer((prev) => (prev === drawer ? null : drawer));
-
   const railItems: ScriptRailItem[] = [
     {
       id: 'chapters',
       label: t('scriptStudio.rail.chapters', 'Chương'),
       icon: BookOpen,
-      active: activeSideDrawer === 'chapters',
+      active: activeLeftDrawer === 'chapters',
       testId: 'rail-chapters-btn',
-      onClick: () => toggleDrawer('chapters'),
+      onClick: () => toggleLeftDrawer('chapters'),
     },
     {
       id: 'outline',
       label: t('scriptStudio.rail.outline'),
       icon: Compass,
-      active: activeSideDrawer === 'narrative',
+      active: activeRightDrawer === 'narrative',
       testId: 'toggle-narrative-context-btn',
-      onClick: () => toggleDrawer('narrative'),
+      onClick: () => toggleRightDrawer('narrative'),
     },
     {
       id: 'characters',
       label: t('scriptStudio.rail.characters'),
       icon: User,
-      active: activeSideDrawer === 'characters',
+      active: activeRightDrawer === 'characters',
       testId: 'rail-characters-btn',
-      onClick: () => toggleDrawer('characters'),
+      onClick: () => toggleRightDrawer('characters'),
     },
     {
       id: 'cast',
       label: t('scriptStudio.rail.chapterCast', 'Thực thể'),
       icon: Users,
-      active: activeSideDrawer === 'cast',
+      active: activeRightDrawer === 'cast',
       badge: chapterCast?.entities?.length,
       tone: isSubmitBlocked || isStartBlocked ? 'warn' : 'default',
       testId: 'rail-cast-btn',
-      onClick: () => toggleDrawer('cast'),
+      onClick: () => toggleRightDrawer('cast'),
     },
     {
       id: 'consistency',
       label: t('scriptStudio.rail.consistency'),
       icon: ShieldCheck,
-      active: activeSideDrawer === 'consistency',
+      active: activeRightDrawer === 'consistency',
       badge: openFindingsCount,
       busy: loadingConsistency,
       disabled: loadingConsistency || !currentChapter?.id,
@@ -2138,10 +2148,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             id: 'comments',
             label: 'Góp ý',
             icon: MessageSquare,
-            active: showCommentsSidePanel,
+            active: activeRightDrawer === 'comments',
             badge: openScriptComments.length > 0 ? openScriptComments.length : undefined,
             testId: 'rail-comments-btn',
-            onClick: () => setShowCommentsSidePanel((v) => !v),
+            onClick: () => toggleRightDrawer('comments'),
           } satisfies ScriptRailItem,
         ]
       : []),
@@ -2192,10 +2202,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       id: 'history',
       label: t('scriptStudio.rail.history'),
       icon: History,
-      active: activeSideDrawer === 'versions',
+      active: activeRightDrawer === 'versions',
       tone: hasUnpushedChanges ? 'warn' : 'default',
       testId: 'open-script-history-btn',
-      onClick: () => toggleDrawer('versions'),
+      onClick: () => toggleRightDrawer('versions'),
     },
   ];
 
@@ -2204,9 +2214,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       id: 'scenes',
       label: t('scriptStudio.rail.scenes'),
       icon: Clapperboard,
-      active: activeSideDrawer === 'scenes',
+      active: activeLeftDrawer === 'scenes',
       testId: 'rail-scenes-btn',
-      onClick: () => toggleDrawer('scenes'),
+      onClick: () => toggleLeftDrawer('scenes'),
     },
   ];
 
@@ -2292,7 +2302,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               type='button'
               onClick={() => {
                 (kind === 'storyArc' ? setStoryArcInput : setOutlineInput)(draft.text);
-                if (kind === 'outline') setActiveSideDrawer('narrative');
+                if (kind === 'outline') setActiveRightDrawer('narrative');
                 setRestorable((p) => ({ ...p, [kind]: undefined }));
               }}
               className='px-2.5 py-1 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 cursor-pointer'
@@ -2467,7 +2477,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               </div>
               <button
                 type='button'
-                onClick={() => setActiveSideDrawer('cast')}
+                onClick={() => setActiveRightDrawer('cast')}
                 className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer transition-colors'
               >
                 {t('scriptStudio.cast.viewCast', 'Xem thực thể')}
@@ -2502,7 +2512,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 </Link>
                 <button
                   type='button'
-                  onClick={() => setActiveSideDrawer('cast')}
+                  onClick={() => setActiveRightDrawer('cast')}
                   className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shrink-0 cursor-pointer transition-colors'
                 >
                   {t('scriptStudio.cast.viewCast', 'Xem thực thể')}
@@ -2561,7 +2571,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           footerItems={railFooterItems}
         />
 
-        {activeSideDrawer === 'chapters' && (
+        {activeLeftDrawer === 'chapters' && (
           <ScriptChaptersDrawer
             chapters={chapters}
             selectedChapterId={currentChapter?.id}
@@ -2569,11 +2579,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               handleSelectChapter(chapId);
             }}
             onBackToSelection={handleBackToChapterSelection}
-            onClose={() => setActiveSideDrawer(null)}
+            onClose={() => setActiveLeftDrawer(null)}
           />
         )}
 
-        {activeSideDrawer === 'scenes' && (
+        {activeLeftDrawer === 'scenes' && (
           <ScriptScenesDrawer
             scenes={filteredScenes}
             selectedSceneId={selectedScene?.id}
@@ -2582,7 +2592,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             onAdd={handleOpenCreateScene}
             onRenameSelected={handleOpenEditScene}
             onDelete={(s) => setSceneToDelete(s)}
-            onClose={() => setActiveSideDrawer(null)}
+            onClose={() => setActiveLeftDrawer(null)}
             onDeleteChapter={
               isProducer && currentChapter && !isChapterLocked
                 ? () => setChapterToDelete(currentChapter)
@@ -2617,8 +2627,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               comments={openScriptComments}
               canResolveComment={isWriterRole}
               onResolveComment={handleResolveComment}
-              isCommentsSidePanelOpen={showCommentsSidePanel}
-              onToggleCommentsSidePanel={() => setShowCommentsSidePanel((v) => !v)}
+              isCommentsSidePanelOpen={activeRightDrawer === 'comments'}
+              onToggleCommentsSidePanel={() => toggleRightDrawer('comments')}
               activeLineId={activeCommentLineId}
               activePanel={activePanelJump}
               allBibleEntries={allBibleEntries}
@@ -2733,7 +2743,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         </div>
 
         {/* Panel nhận xét / thay đổi / kiểm tra bên phải giống Editor */}
-        {showCommentsSidePanel && (
+        {activeRightDrawer === 'comments' && (
           <ScriptReviewSidePanel
             chapter={currentChapter}
             comments={scriptComments}
@@ -2747,76 +2757,82 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 handleScrollToLine(c.scriptLineId);
               }
             }}
-            onClose={() => setShowCommentsSidePanel(false)}
+            onClose={() => setActiveRightDrawer(null)}
             findings={findings}
             onRunCheck={handleRunConsistencyCheck}
             loadingCheck={loadingConsistency}
           />
         )}
 
-        {/* RIGHT: Secondary Panels (Drawers) */}
+        {/* RIGHT: Secondary Panels (Drawers) - Chỉ đúng 1 panel bên phải hiển thị tại mọi thời điểm */}
         {/* 1. Drawer Đề Cương & Bối Cảnh */}
-        <NarrativeContextDrawer
-          isOpen={activeSideDrawer === 'narrative'}
-          onClose={() => setActiveSideDrawer(null)}
-          storyArcInput={storyArcInput}
-          setStoryArcInput={setStoryArcInput}
-          outlineInput={outlineInput}
-          setOutlineInput={setOutlineInput}
-          currentChapter={currentChapter}
-          canEditScript={canEditScript}
-          isChapterLocked={isChapterLocked}
-          savingStoryArc={savingStoryArc}
-          savingOutline={savingOutline}
-          onSaveStoryArc={handleSaveStoryArc}
-          onSaveOutline={handleSaveOutline}
-          isStoryArcDirty={isStoryArcDirty}
-          isOutlineDirty={isOutlineDirty}
-        />
+        {activeRightDrawer === 'narrative' && (
+          <NarrativeContextDrawer
+            isOpen={true}
+            onClose={() => setActiveRightDrawer(null)}
+            storyArcInput={storyArcInput}
+            setStoryArcInput={setStoryArcInput}
+            outlineInput={outlineInput}
+            setOutlineInput={setOutlineInput}
+            currentChapter={currentChapter}
+            canEditScript={canEditScript}
+            isChapterLocked={isChapterLocked}
+            savingStoryArc={savingStoryArc}
+            savingOutline={savingOutline}
+            onSaveStoryArc={handleSaveStoryArc}
+            onSaveOutline={handleSaveOutline}
+            isStoryArcDirty={isStoryArcDirty}
+            isOutlineDirty={isOutlineDirty}
+          />
+        )}
 
         {/* 2. Drawer Kiểm Tra Nhất Quán */}
-        <ConsistencyFindingsDrawer
-          isOpen={activeSideDrawer === 'consistency'}
-          onClose={() => setActiveSideDrawer(null)}
-          findings={findings}
-          loadingConsistency={loadingConsistency}
-          onRunCheck={handleRunConsistencyCheck}
-          onScrollToLine={handleScrollToLine}
-          disabledCheck={!currentChapter?.id}
-        />
+        {activeRightDrawer === 'consistency' && (
+          <ConsistencyFindingsDrawer
+            isOpen={true}
+            onClose={() => setActiveRightDrawer(null)}
+            findings={findings}
+            loadingConsistency={loadingConsistency}
+            onRunCheck={handleRunConsistencyCheck}
+            onScrollToLine={handleScrollToLine}
+            disabledCheck={!currentChapter?.id}
+          />
+        )}
 
         {/* 3. Drawer Danh Mục Nhân Vật Series Bible */}
-        <BibleCharactersDrawer
-          isOpen={activeSideDrawer === 'characters'}
-          onClose={() => setActiveSideDrawer(null)}
-          characters={characters}
-          seriesId={seriesId || currentChapter?.seriesId}
-          canEditScript={canEditScript}
-          onRefreshBible={refreshBible}
-          onShowToast={notify}
-          chapterCast={chapterCast}
-          onJumpToLine={(lineId) => setActiveCommentLineId(lineId)}
-          onJumpToPanel={(pageNo, panNo) =>
-            setActivePanelJump({ pageNumber: pageNo, panelNumber: panNo })
-          }
-          t={t}
-        />
+        {activeRightDrawer === 'characters' && (
+          <BibleCharactersDrawer
+            isOpen={true}
+            onClose={() => setActiveRightDrawer(null)}
+            characters={characters}
+            seriesId={seriesId || currentChapter?.seriesId}
+            canEditScript={canEditScript}
+            onRefreshBible={refreshBible}
+            onShowToast={notify}
+            chapterCast={chapterCast}
+            onJumpToLine={(lineId) => setActiveCommentLineId(lineId)}
+            onJumpToPanel={(pageNo, panNo) =>
+              setActivePanelJump({ pageNumber: pageNo, panelNumber: panNo })
+            }
+            t={t}
+          />
+        )}
 
         {/* 4. Lịch sử commit (Lưu = commit, Gửi duyệt = push) và so với bản đã gửi duyệt */}
-        {activeSideDrawer === 'versions' && currentChapter?.id && (
+        {activeRightDrawer === 'versions' && currentChapter?.id && (
           <ScriptVersionsDrawer
             chapterId={currentChapter.id}
             pushedVersionId={currentChapter.lastSubmittedVersionId}
             refreshKey={versionsTick}
-            onClose={() => setActiveSideDrawer(null)}
+            onClose={() => setActiveRightDrawer(null)}
           />
         )}
 
         {/* 5. Danh sách thực thể chương (Chapter Cast) (BIB-16) */}
-        {currentChapter?.id && (
+        {activeRightDrawer === 'cast' && currentChapter?.id && (
           <ChapterCastDrawer
-            isOpen={activeSideDrawer === 'cast'}
-            onClose={() => setActiveSideDrawer(null)}
+            isOpen={true}
+            onClose={() => setActiveRightDrawer(null)}
             chapterId={currentChapter.id}
             seriesId={seriesId || currentChapter.seriesId}
             canEditScript={canEditScript}
