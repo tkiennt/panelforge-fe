@@ -323,7 +323,24 @@
       "draftSummaryDefault": "Cập nhật đặc tả từ kịch bản",
       "saveDraftSuccess": "Đã lưu bản nháp Series Bible",
       "saveDraftSuccessDesc": "Đặc tả đã được cập nhật thành phiên bản nháp mới.",
-      "saveDraftFailed": "Lưu bản nháp thất bại"
+      "saveDraftFailed": "Lưu bản nháp thất bại",
+      "inCastBadge": "Thuộc cast",
+      "notInCastBadge": "Chưa vào cast",
+      "addToCastBtn": "+ Thêm vào cast",
+      "removeFromCastBtn": "Bỏ khỏi cast",
+      "allFilter": "Tất cả",
+      "inCastFilter": "Trong cast",
+      "notInCastFilter": "Chưa vào cast",
+      "stubsFilter": "Mục nháp",
+      "removedFromCastSuccess": "Đã bỏ nhân vật khỏi cast",
+      "removedFromCastSuccessDesc": "Nhân vật đã được đưa về trạng thái ngoài cast chương.",
+      "addedToCastSuccess": "Đã thêm nhân vật vào cast",
+      "addedToCastSuccessDesc": "Nhân vật đã được gắn vào danh sách phân vai của chương.",
+      "toggleCastFailed": "Thao tác phân vai thất bại",
+      "noChapterSelected": "Chưa chọn chương",
+      "selectChapterHint": "Hãy chọn một chương trước khi thay đổi cast.",
+      "cancelReplacementConfirmTitle": "Huỷ bản thay thế",
+      "cancelReplacementConfirmBody": "Bạn có chắc muốn huỷ bản thay thế này không?"
     },
     "paper": {
       "hint": "Cứ viết. Enter xuống dòng · gõ \"Tên:\" để viết lời thoại · Tab đổi loại dòng"

@@ -323,7 +323,24 @@
       "draftSummaryDefault": "Updated specs from script",
       "saveDraftSuccess": "Saved Series Bible draft",
       "saveDraftSuccessDesc": "Specifications updated into a new draft revision.",
-      "saveDraftFailed": "Failed to save draft"
+      "saveDraftFailed": "Failed to save draft",
+      "inCastBadge": "In cast",
+      "notInCastBadge": "Not in cast",
+      "addToCastBtn": "+ Add to cast",
+      "removeFromCastBtn": "Remove from cast",
+      "allFilter": "All",
+      "inCastFilter": "In cast",
+      "notInCastFilter": "Not in cast",
+      "stubsFilter": "Stubs",
+      "removedFromCastSuccess": "Character removed from cast",
+      "removedFromCastSuccessDesc": "Character is now outside the chapter cast.",
+      "addedToCastSuccess": "Character added to cast",
+      "addedToCastSuccessDesc": "Character has been added to the chapter cast.",
+      "toggleCastFailed": "Cast operation failed",
+      "noChapterSelected": "No chapter selected",
+      "selectChapterHint": "Please select a chapter before modifying the cast.",
+      "cancelReplacementConfirmTitle": "Cancel replacement revision",
+      "cancelReplacementConfirmBody": "Are you sure you want to cancel this replacement revision?"
     },
     "paper": {
       "hint": "Just write. Enter for a new line · type \"Name:\" for dialogue · Tab changes the line type"

@@ -51,7 +51,7 @@ export interface ScriptStatusDrawerProps {
   outlineDraftKey?: string;
   onRestoreDraft?: (kind: 'storyArc' | 'outline', text: string) => void;
   onDiscardDraft?: (kind: 'storyArc' | 'outline') => void;
-  onOpenDrawer?: (drawer: 'characters' | 'cast' | 'narrative') => void;
+  onOpenDrawer?: (drawer: 'characters' | 'narrative') => void;
   t: (key: string, fallbackOrParams?: any, explicitFallback?: string) => string;
 }
 
@@ -350,7 +350,7 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
             </div>
             <button
               type='button'
-              onClick={() => onOpenDrawer?.('cast')}
+              onClick={() => onOpenDrawer?.('characters')}
               className='self-end px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer transition-colors'
             >
               {t('scriptStudio.cast.viewCast', 'Xem thực thể')}
@@ -386,7 +386,7 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
               </Link>
               <button
                 type='button'
-                onClick={() => onOpenDrawer?.('cast')}
+                onClick={() => onOpenDrawer?.('characters')}
                 className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shrink-0 cursor-pointer transition-colors'
               >
                 {t('scriptStudio.cast.viewCast', 'Xem thực thể')}

@@ -43,7 +43,6 @@ import {
   Users,
 } from 'lucide-react';
 import { ChapterCastDto, chapterCastService } from '@/services/chapterCast.service';
-import { ChapterCastDrawer } from '../components/script/ChapterCastDrawer';
 import { SetPanelStageModal } from '../components/script/SetPanelStageModal';
 import {
   scriptLineService,
@@ -408,7 +407,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     | 'narrative'
     | 'consistency'
     | 'characters'
-    | 'cast'
     | 'versions'
     | 'comments'
     | 'status'
@@ -1809,7 +1807,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         t('scriptStudio.cast.submitBlockedTitle', 'Chặn Gửi duyệt do vướng mắc Bible'),
         chapterCast.submitGate.blockers.map((b) => `${b.entryName}: ${b.reason}`).join('\n'),
       );
-      setActiveRightDrawer('cast');
+      setActiveRightDrawer('characters');
       return;
     }
 
@@ -2133,20 +2131,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     {
       id: 'characters',
       label: t('scriptStudio.rail.characters'),
-      icon: User,
-      active: activeRightDrawer === 'characters',
-      testId: 'rail-characters-btn',
-      onClick: () => toggleRightDrawer('characters'),
-    },
-    {
-      id: 'cast',
-      label: t('scriptStudio.rail.chapterCast', 'Thực thể'),
       icon: Users,
-      active: activeRightDrawer === 'cast',
+      active: activeRightDrawer === 'characters',
       badge: chapterCast?.entities?.length,
       tone: isSubmitBlocked || isStartBlocked ? 'warn' : 'default',
-      testId: 'rail-cast-btn',
-      onClick: () => toggleRightDrawer('cast'),
+      testId: 'rail-characters-btn',
+      onClick: () => toggleRightDrawer('characters'),
     },
     {
       id: 'consistency',
@@ -2566,21 +2556,31 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           />
         )}
 
-        {/* 3. Drawer Danh Mục Nhân Vật Series Bible */}
+        {/* 3. Drawer Danh Mục Nhân Vật & Phân Vai (Gộp Series Bible + Chapter Cast) */}
         {activeRightDrawer === 'characters' && (
           <BibleCharactersDrawer
             isOpen={true}
             onClose={() => setActiveRightDrawer(null)}
             characters={characters}
+            chapterId={currentChapter?.id}
             seriesId={seriesId || currentChapter?.seriesId}
             canEditScript={canEditScript}
-            onRefreshBible={refreshBible}
-            onShowToast={notify}
+            chapterNumber={currentChapter?.chapterNumber}
+            chapterTitle={currentChapter?.title}
             chapterCast={chapterCast}
+            isLoadingCast={loadingCast}
+            onRefreshCast={() => {
+              if (currentChapter?.id) return loadChapterCast(currentChapter.id);
+              return Promise.resolve();
+            }}
+            onRefreshBible={refreshBible}
+            allBibleEntries={allBibleEntries}
             onJumpToLine={(lineId) => setActiveCommentLineId(lineId)}
             onJumpToPanel={(pageNo, panNo) =>
               setActivePanelJump({ pageNumber: pageNo, panelNumber: panNo })
             }
+            onOpenPanelStageModal={() => setIsPanelStageModalOpen(true)}
+            onShowToast={notify}
             t={t}
           />
         )}
@@ -2592,31 +2592,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             pushedVersionId={currentChapter.lastSubmittedVersionId}
             refreshKey={versionsTick}
             onClose={() => setActiveRightDrawer(null)}
-          />
-        )}
-
-        {/* 5. Danh sách thực thể chương (Chapter Cast) (BIB-16) */}
-        {activeRightDrawer === 'cast' && currentChapter?.id && (
-          <ChapterCastDrawer
-            isOpen={true}
-            onClose={() => setActiveRightDrawer(null)}
-            chapterId={currentChapter.id}
-            seriesId={seriesId || currentChapter.seriesId}
-            canEditScript={canEditScript}
-            chapterNumber={currentChapter.chapterNumber}
-            chapterTitle={currentChapter.title}
-            chapterCast={chapterCast}
-            isLoading={loadingCast}
-            onRefreshCast={() => loadChapterCast(currentChapter.id)}
-            onRefreshBible={refreshBible}
-            allBibleEntries={allBibleEntries}
-            onJumpToLine={(lineId) => setActiveCommentLineId(lineId)}
-            onJumpToPanel={(pageNo, panNo) =>
-              setActivePanelJump({ pageNumber: pageNo, panelNumber: panNo })
-            }
-            onOpenPanelStageModal={() => setIsPanelStageModalOpen(true)}
-            onShowToast={notify}
-            t={t}
           />
         )}
 
