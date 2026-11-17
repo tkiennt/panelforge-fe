@@ -1,16 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PageDto } from '@/services/page.service';
 import {
   elementService,
   IMAGE_LAYER_TYPES,
   type ElementSnapshotDto,
   type MoveElementRequest,
+  type TextStyleDto,
 } from '@/services/element.service';
 import type { PanelDto } from '@/types/pipeline';
 import type { ScriptLineItem } from '../components/desk/ArtistCanvaSidebar';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
+import { classifyScriptLine, patchTextStyle, resolveTextStyle } from '@/shared/utils/textStyle';
 
-export type BalloonType = 'SPEECH_BALLOON' | 'THOUGHT_BALLOON' | 'NARRATION_BOX';
+export type BalloonType = 'SPEECH_BALLOON' | 'THOUGHT_BALLOON' | 'NARRATION_BOX' | 'SOUND_EFFECT';
 export type ResizeHandle = 'se' | 'sw' | 'ne' | 'nw';
 
 interface DragState {
@@ -38,7 +40,8 @@ const MIN_W = 90;
 const MIN_H = 50;
 const PASTE_OFFSET = 24;
 
-const newElementId = () => `elem-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+// BE nhận clientElementId là Guid (NFR-09) → phải là UUID, không phải chuỗi tự đặt
+const newElementId = (): string => crypto.randomUUID();
 
 const isTypingTarget = () => {
   const el = document.activeElement as HTMLElement | null;
@@ -76,6 +79,8 @@ export function useLetteringBalloons(
   zoomScale: number,
   toast: Toaster,
   readOnly = false,
+  activeLang?: string,
+  originalLang: string = 'vi',
 ) {
   const [elementsByPageId, setElementsByPageId] = useState<Record<string, ElementSnapshotDto[]>>(
     {},
@@ -92,29 +97,81 @@ export function useLetteringBalloons(
     [selectedPage, elementsByPageId],
   );
 
-  // Nạp danh sách phần tử bóng thoại từ Backend khi chọn / đổi trang
+  const reloadSeq = useRef(0);
+  const reloadElements = useCallback(async () => {
+    if (!selectedPage?.id) return;
+    const seq = ++reloadSeq.current;
+    try {
+      const snapshot = await elementService.getPageSnapshot(
+        selectedPage.id,
+        false,
+        undefined,
+        activeLang,
+      );
+      const letterElements = (snapshot.elements || []).filter(
+        (el) => !el.isRemoved && !IMAGE_LAYER_TYPES.includes(el.elementType as any),
+      );
+      // Bỏ kết quả cũ nếu đã đổi trang/ngôn ngữ trong lúc chờ
+      if (seq !== reloadSeq.current) return;
+      setElementsByPageId((prev) => ({ ...prev, [selectedPage.id]: letterElements }));
+    } catch (err) {
+      console.warn('Không thể nạp bóng thoại từ server:', err);
+    }
+  }, [selectedPage?.id, activeLang]);
+
+  // Nạp bóng của các trang khác trong chương (một lần) để biết dòng script nào đã gắn ở đâu:
+  // trạng thái Đã gắn/Chưa gắn toàn chương, chặn đặt trùng, kiểm tra đủ chữ trước khi nộp.
+  const prefetchPages = useCallback(
+    async (pageIds: string[]): Promise<Record<string, ElementSnapshotDto[]>> => {
+      const missing = pageIds.filter((id) => id && !(id in elementsByPageId));
+      if (missing.length === 0) return elementsByPageId;
+      const loaded = await Promise.all(
+        missing.map(async (id) => {
+          try {
+            const snap = await elementService.getPageSnapshot(id, false);
+            return [
+              id,
+              (snap.elements || []).filter(
+                (el) => !el.isRemoved && !IMAGE_LAYER_TYPES.includes(el.elementType as any),
+              ),
+            ] as const;
+          } catch {
+            return null;
+          }
+        }),
+      );
+      const fetched: Record<string, ElementSnapshotDto[]> = {};
+      for (const entry of loaded) if (entry) fetched[entry[0]] = [...entry[1]];
+      setElementsByPageId((prev) => ({ ...fetched, ...prev }));
+      return { ...fetched, ...elementsByPageId };
+    },
+    [elementsByPageId],
+  );
+
+  /** scriptLineId → bóng đang gắn (trang + phần tử), trên mọi trang đã nạp của chương. */
+  const linkedByScriptLine = useMemo(() => {
+    const map = new Map<string, { pageId: string; elementId: string }>();
+    for (const [pageId, list] of Object.entries(elementsByPageId)) {
+      for (const el of list) {
+        if (el.scriptLineId && !el.isRemoved && !map.has(el.scriptLineId)) {
+          map.set(el.scriptLineId, { pageId, elementId: el.elementId });
+        }
+      }
+    }
+    return map;
+  }, [elementsByPageId]);
+
+  /** Mọi bóng chữ đã nạp của chương (để kiểm tra bóng trống trước khi nộp). */
+  const allLoadedElements = useMemo(
+    () => Object.values(elementsByPageId).flat(),
+    [elementsByPageId],
+  );
+
+  // Nạp danh sách phần tử bóng thoại từ Backend khi chọn / đổi trang hoặc đổi ngôn ngữ
   useEffect(() => {
     if (!selectedPage?.id) return;
-    const pageId = selectedPage.id;
-    let cancelled = false;
-
-    elementService
-      .getPageSnapshot(pageId)
-      .then((snapshot) => {
-        if (cancelled) return;
-        const letterElements = (snapshot.elements || []).filter(
-          (el) => !el.isRemoved && !IMAGE_LAYER_TYPES.includes(el.elementType as any),
-        );
-        setElementsByPageId((prev) => ({ ...prev, [pageId]: letterElements }));
-      })
-      .catch((err) => {
-        console.warn('Không thể nạp bóng thoại từ server:', err);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedPage?.id]);
+    reloadElements();
+  }, [selectedPage?.id, activeLang, reloadElements]);
 
   // Balloons must sit fully inside the panel under their centre (or the nearest panel when dropped in a gutter).
   const clampToPanel = useCallback(
@@ -284,8 +341,8 @@ export function useLetteringBalloons(
           notifyForbidden(err);
           return;
         }
-        toast.success(successTitle, '');
-        console.warn('Nhân bản bóng thoại lên server thất bại:', err);
+        updatePageElements((list) => list.filter((item) => item.elementId !== id));
+        toast.error?.('Không lưu được bóng thoại', (err as Error)?.message || 'Vui lòng thử lại.');
       }
     },
     [
@@ -308,15 +365,41 @@ export function useLetteringBalloons(
     [toast],
   );
 
-  const addElement = async (type: BalloonType, scriptLine?: ScriptLineItem) => {
+  const addElement = async (
+    type: BalloonType,
+    scriptLine?: ScriptLineItem,
+    options?: { at?: { x: number; y: number }; allowDuplicate?: boolean },
+  ) => {
     if (!selectedPage) return;
     if (readOnly) {
       notifyForbidden();
       return;
     }
     const pageId = selectedPage.id;
-    const w = type === 'NARRATION_BOX' ? 320 : 260;
-    const h = type === 'NARRATION_BOX' ? 120 : 160;
+
+    // Trang giả lập (chương chưa có trang thật trên server) không lưu được bóng
+    if (pageId.startsWith('page-default-')) {
+      toast.error?.(
+        'Trang chưa được tạo',
+        'Chương chưa có trang thật. Hãy tạo trang (Thêm trang / chọn mẫu khung) trước khi đặt bóng thoại.',
+      );
+      return;
+    }
+
+    // Chặn đặt trùng ngoài ý muốn: dòng script đã có bóng → chọn bóng đó thay vì tạo thêm
+    const existing = scriptLine ? linkedByScriptLine.get(scriptLine.id) : undefined;
+    if (existing && !options?.allowDuplicate) {
+      if (existing.pageId === pageId) setSelectedElementId(existing.elementId);
+      toast.info(
+        'Dòng thoại đã có bóng',
+        existing.pageId === pageId
+          ? 'Đã chọn bóng đang gắn với dòng này.'
+          : 'Dòng này đã được đặt ở trang khác.',
+      );
+      return;
+    }
+    const w = type === 'NARRATION_BOX' ? 320 : type === 'SOUND_EFFECT' ? 240 : 260;
+    const h = type === 'NARRATION_BOX' ? 120 : type === 'SOUND_EFFECT' ? 100 : 160;
     const panelIndex = scriptLine?.panelNumber ? Math.max(0, scriptLine.panelNumber - 1) : 0;
     const panel = pagePanels[panelIndex] || pagePanels[0];
 
@@ -332,11 +415,29 @@ export function useLetteringBalloons(
       y = 80 + step * 180;
     }
 
+    // Thả vào canvas: đặt tâm bóng tại điểm thả
+    if (options?.at) {
+      x = Math.round(options.at.x - w / 2);
+      y = Math.round(options.at.y - h / 2);
+    }
+
     const id = newElementId();
     const pos = clampToPanel(x, y, w, h);
-    const content = scriptLine
-      ? scriptLine.dialogueText || scriptLine.stageDirection || ''
-      : 'Lời thoại mới...';
+
+    let content = 'Lời thoại mới...';
+    if (scriptLine) {
+      const classification = classifyScriptLine({
+        dialogueText: scriptLine.dialogueText,
+        stageDirection: scriptLine.stageDirection,
+        speakerName: scriptLine.characterName,
+      });
+      content =
+        classification.cleanText || scriptLine.dialogueText || scriptLine.stageDirection || '';
+    } else if (type === 'SOUND_EFFECT') {
+      content = 'BAM!';
+    }
+
+    const defaultStyle = resolveTextStyle({ elementType: type });
 
     const newElement: ElementSnapshotDto = {
       elementId: id,
@@ -346,6 +447,7 @@ export function useLetteringBalloons(
       height: h,
       zIndex: pageElements.length + 1,
       content,
+      style: defaultStyle,
       scriptLineId: scriptLine ? scriptLine.id : null,
       readingOrder: pageElements.length + 1,
       version: 1,
@@ -381,10 +483,131 @@ export function useLetteringBalloons(
         notifyForbidden(err);
         return;
       }
-      toast.success('Đã thêm bóng thoại', '');
-      console.warn('Lưu bóng thoại lên server thất bại (vẫn giữ cục bộ):', err);
+      updatePageElements((list) => list.filter((item) => item.elementId !== id));
+      setSelectedElementId((cur) => (cur === id ? null : cur));
+      toast.error?.('Không lưu được bóng thoại', (err as Error)?.message || 'Vui lòng thử lại.');
     }
   };
+
+  const updateElementText = useCallback(
+    async (elementId: string, text: string) => {
+      if (!selectedPage?.id) return;
+      const target = pageElements.find((item) => item.elementId === elementId);
+      if (!target) return;
+
+      const pageId = selectedPage.id;
+      const isOriginal =
+        !activeLang || !originalLang || activeLang.toLowerCase() === originalLang.toLowerCase();
+
+      if (isOriginal) {
+        // Nếu bóng đã gắn kịch bản (BR-05), không cho sửa chữ gốc tự do
+        if (target.scriptLineId) {
+          toast.info(
+            'Không sửa được chữ gốc',
+            'Bóng này gắn với dòng kịch bản đã duyệt (BR-05). Hãy sửa trong kịch bản, hoặc chọn ngôn ngữ dịch để nhập bản dịch.',
+          );
+          return;
+        }
+
+        updateElement(elementId, (el) => ({
+          ...el,
+          content: text,
+          renderedText: text,
+        }));
+
+        try {
+          const res = await elementService.updateElementText(pageId, elementId, {
+            content: text,
+            languageCode: activeLang,
+            scriptLineId: target.scriptLineId || undefined,
+            expectedElementVersion: target.version,
+          });
+          if (res?.elementVersion) {
+            updateElement(elementId, (item) => ({ ...item, version: res.elementVersion }));
+          }
+        } catch (err: any) {
+          if (err?.response?.status === 409) {
+            reloadElements();
+            toast.info('Đã tải lại', 'Phần tử vừa được chỉnh sửa từ nơi khác.');
+          } else {
+            reloadElements();
+            toast.error?.('Không lưu được nội dung', err?.message || 'Vui lòng thử lại.');
+          }
+        }
+      } else {
+        // BR-34: Ngôn ngữ dịch -> ghi vào bản dịch qua elementService.updateElementTranslation
+        // Tuyệt đối KHÔNG ghi đè content gốc
+        const nextTexts = { ...(target.texts || {}), [activeLang]: text };
+        updateElement(elementId, (el) => ({
+          ...el,
+          texts: nextTexts,
+        }));
+
+        try {
+          const res = await elementService.updateElementTranslation(
+            pageId,
+            elementId,
+            activeLang,
+            text,
+            target.version,
+          );
+          if (res?.elementVersion) {
+            updateElement(elementId, (item) => ({ ...item, version: res.elementVersion }));
+          }
+        } catch (err: any) {
+          if (err?.response?.status === 409) {
+            reloadElements();
+            toast.info('Đã tải lại', 'Bản dịch vừa được chỉnh sửa từ nơi khác.');
+          } else {
+            reloadElements();
+            toast.error?.('Không lưu được bản dịch', err?.message || 'Vui lòng thử lại.');
+          }
+        }
+      }
+    },
+    [
+      selectedPage?.id,
+      pageElements,
+      activeLang,
+      originalLang,
+      updateElement,
+      reloadElements,
+      toast,
+    ],
+  );
+
+  const updateElementStyle = useCallback(
+    async (elementId: string, patch: Partial<TextStyleDto> | null) => {
+      if (!selectedPage?.id) return;
+      const target = pageElements.find((item) => item.elementId === elementId);
+      if (!target) return;
+
+      const pageId = selectedPage.id;
+      const currentStyle = resolveTextStyle(target);
+      const newStyle = patch === null ? null : patchTextStyle(currentStyle, patch);
+
+      updateElement(elementId, (el) => ({ ...el, style: newStyle }));
+
+      try {
+        const res = await elementService.updateElementStyle(pageId, elementId, {
+          style: newStyle,
+          expectedElementVersion: target.version,
+        });
+        if (res?.elementVersion) {
+          updateElement(elementId, (item) => ({ ...item, version: res.elementVersion }));
+        }
+      } catch (err: any) {
+        if (err?.response?.status === 409) {
+          reloadElements();
+          toast.info('Đã tải lại', 'Kiểu chữ vừa được chỉnh sửa từ nơi khác.');
+        } else {
+          reloadElements();
+          toast.error?.('Không lưu được kiểu chữ', err?.message || 'Vui lòng thử lại.');
+        }
+      }
+    },
+    [selectedPage?.id, pageElements, updateElement, reloadElements, toast],
+  );
 
   const deleteElement = useCallback(
     async (elementId: string) => {
@@ -607,6 +830,12 @@ export function useLetteringBalloons(
     deleteElement,
     scaleElement,
     copyElement,
+    updateElementText,
+    updateElementStyle,
+    reloadElements,
+    prefetchPages,
+    linkedByScriptLine,
+    allLoadedElements,
     onDragStart,
     onDragMove,
     onDragEnd,

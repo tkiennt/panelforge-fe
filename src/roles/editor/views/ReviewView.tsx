@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, Lock, Minus, Plus, RotateCcw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Globe, Lock, Minus, Plus, RotateCcw } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import {
   normalizeWorkspaceRole,
@@ -14,6 +14,7 @@ import {
   type VisualDeviationDto,
 } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
+import { chapterEditionService } from '@/services/chapter-edition.service';
 import { chapterService } from '@/services/chapter.service';
 import { pageService } from '@/services/page.service';
 import {
@@ -73,6 +74,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   }>();
   const [search] = useSearchParams();
   const chapterId = paramChapterId || search.get('chapterId') || '';
+  const langParam = search.get('lang') || undefined;
   const effectiveWsId = workspaceId || wsId || null;
   const navigate = useNavigate();
   const { t, lang } = useTranslation('review');
@@ -531,7 +533,13 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     run(
       'return',
       async () => {
-        if (isGridTask) {
+        if (langParam) {
+          // BR-34: Editor trả bản dịch ấn bản kèm yêu cầu sửa
+          await chapterEditionService.reviewEdition(chapterId, langParam, {
+            action: 'RequestChange',
+            comment: summary.trim(),
+          });
+        } else if (isGridTask) {
           const commentParts = [
             summary.trim(),
             ...drafts
@@ -576,26 +584,27 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             }),
           );
           return;
+        } else {
+          await assignmentService.requestChanges(chapterId, taskId, {
+            comment: summary.trim(),
+            expectedSubmissionId: pendingSub?.id,
+            changes:
+              drafts.length > 0
+                ? drafts.flatMap((d) => {
+                    const panelIds = d.panelIds.length > 0 ? d.panelIds : [undefined];
+                    const groupId = panelIds.length > 1 ? newDraftId() : undefined;
+                    return panelIds.map((panelId) => ({
+                      description: d.text.trim(),
+                      regionJson: JSON.stringify(d.box),
+                      assetReferenceId: d.assetReferenceId,
+                      panelId,
+                      groupId,
+                      layer: d.layer,
+                    }));
+                  })
+                : undefined,
+          });
         }
-        await assignmentService.requestChanges(chapterId, taskId, {
-          comment: summary.trim(),
-          expectedSubmissionId: pendingSub?.id,
-          changes:
-            drafts.length > 0
-              ? drafts.flatMap((d) => {
-                  const panelIds = d.panelIds.length > 0 ? d.panelIds : [undefined];
-                  const groupId = panelIds.length > 1 ? newDraftId() : undefined;
-                  return panelIds.map((panelId) => ({
-                    description: d.text.trim(),
-                    regionJson: JSON.stringify(d.box),
-                    assetReferenceId: d.assetReferenceId,
-                    panelId,
-                    groupId,
-                    layer: d.layer,
-                  }));
-                })
-              : undefined,
-        });
         updateDrafts([]);
         setSummary('');
         onShowToast?.(
@@ -616,15 +625,21 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     run(
       'approve',
       async () => {
-        if (isGridTask) {
+        if (langParam) {
+          // BR-34: Editor duyệt ấn bản dịch -> EditorApproved
+          await chapterEditionService.reviewEdition(chapterId, langParam, {
+            action: 'Approve',
+          });
+        } else if (isGridTask) {
           await assignmentService.approveStageTask(chapterId, taskId);
           decisionMadeRef.current = true;
           heldReviewLockRef.current = false;
           onShowToast?.(t('artworkReview.toast.approvedTitle'), assignment?.brief ?? '');
           backToDesk();
           return;
+        } else {
+          await assignmentService.approveAssignment(chapterId, taskId, pendingSub?.id);
         }
-        await assignmentService.approveAssignment(chapterId, taskId, pendingSub?.id);
         onShowToast?.(t('artworkReview.toast.approvedTitle'), assignment?.brief ?? '');
         backToDesk();
       },
@@ -867,6 +882,15 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 >
                   <AlertTriangle className='h-3 w-3 shrink-0 text-amber-700' aria-hidden='true' />
                   {t('chapterReview.inputOutdatedBadge', 'Đầu vào đã đổi')}
+                </span>
+              )}
+              {langParam && (
+                <span
+                  data-testid='edition-review-badge'
+                  className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-900 border border-orange-300 font-bold text-xs'
+                >
+                  <Globe className='w-3.5 h-3.5 text-orange-600' />
+                  Ấn bản {langParam.toUpperCase()}
                 </span>
               )}
             </div>

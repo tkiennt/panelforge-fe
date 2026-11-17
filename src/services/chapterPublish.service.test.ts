@@ -231,8 +231,12 @@ describe('Chapter Publishing & Review Services', () => {
 
       const res = await catalogService.getPublicChapter('chap-100');
 
-      expect(get).toHaveBeenCalledWith('/catalog/chapters/chap-100');
+      expect(get).toHaveBeenCalledWith('/catalog/chapters/chap-100', { params: undefined });
       expect(res.readingDirection).toBe('RightToLeft');
+
+      // BR-34: chọn ngôn ngữ ấn bản → gửi ?lang=
+      await catalogService.getPublicChapter('chap-100', 'en');
+      expect(get).toHaveBeenLastCalledWith('/catalog/chapters/chap-100', { params: { lang: 'en' } });
       expect(res.pages.length).toBe(2);
     });
 

@@ -27,6 +27,7 @@ import {
   Lock,
   Play,
   Send,
+  Globe,
 } from 'lucide-react';
 import {
   chapterService,
@@ -38,6 +39,7 @@ import {
 import { chapterCastService } from '@/services/chapterCast.service';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
 import { ChapterAssignmentsModal } from './ChapterAssignmentsModal';
+import { ChapterEditionsModal } from './ChapterEditionsModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { PreviewLinksModal } from './PreviewLinksModal';
@@ -113,6 +115,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const [reviewingChapter, setReviewingChapter] = useState<ChapterDto | null>(null);
   const [previewChapter, setPreviewChapter] = useState<ChapterDto | null>(null);
   const [provenanceChapter, setProvenanceChapter] = useState<ChapterDto | null>(null);
+  const [editionsChapter, setEditionsChapter] = useState<ChapterDto | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize] = useState(10);
@@ -1282,6 +1285,17 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
                             <button
                               type='button'
+                              onClick={() => setEditionsChapter(chap)}
+                              className='px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-800 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs'
+                              title='Quản lý ấn bản đa ngôn ngữ (BR-34)'
+                              data-testid={`manage-editions-${chap.id}`}
+                            >
+                              <Globe className='w-3.5 h-3.5 text-orange-600' />
+                              <span>Ấn bản</span>
+                            </button>
+
+                            <button
+                              type='button'
                               onClick={() => setReviewingChapter(chap)}
                               className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer'
                               title={t(
@@ -1447,6 +1461,16 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
               void refreshBlockedGateForChapter(closedChapter);
             }
           }}
+          onShowToast={onShowToast}
+        />
+      )}
+
+      {/* BR-34: Chapter Editions Multi-language Modal */}
+      {editionsChapter && (
+        <ChapterEditionsModal
+          isOpen={!!editionsChapter}
+          chapter={editionsChapter}
+          onClose={() => setEditionsChapter(null)}
           onShowToast={onShowToast}
         />
       )}

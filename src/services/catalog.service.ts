@@ -32,6 +32,12 @@ export interface PublicSeriesDetailDto {
   chapters: PublicChapterDto[];
 }
 
+export interface PublicChapterLanguageDto {
+  language: string;
+  priceVnd: number;
+  unlocked: boolean;
+}
+
 export interface PublicPageReadDto {
   id: string;
   pageNumber: number;
@@ -48,6 +54,8 @@ export interface PublicChapterReadDto {
   publishedAt?: string | null;
   pages: PublicPageReadDto[];
   coverUrl?: string | null;
+  availableLanguages?: PublicChapterLanguageDto[];
+  currentLanguage?: string;
 }
 
 export interface PublicCatalogPagedResult {
@@ -120,9 +128,11 @@ export const catalogService = {
     return resolveCatalogImageUrl(`/api/catalog/chapters/${chapterId}/cover${vParam}`);
   },
 
-  getPublicChapter: async (chapterId: string): Promise<PublicChapterReadDto> => {
+  getPublicChapter: async (chapterId: string, lang?: string): Promise<PublicChapterReadDto> => {
     try {
-      const response = await axiosClient.get(`/catalog/chapters/${chapterId}`);
+      const response = await axiosClient.get(`/catalog/chapters/${chapterId}`, {
+        params: lang ? { lang } : undefined,
+      });
       return response.data;
     } catch (error) {
       throw new Error(
@@ -137,8 +147,9 @@ export const catalogService = {
   /**
    * Tạo URL tải ảnh trang chương truyện
    */
-  getPublicPageImageUrl: (chapterId: string, pageId: string): string => {
-    const relativeUrl = `/catalog/chapters/${chapterId}/pages/${pageId}/image`;
+  getPublicPageImageUrl: (chapterId: string, pageId: string, lang?: string): string => {
+    const langQuery = lang ? `?lang=${encodeURIComponent(lang)}` : '';
+    const relativeUrl = `/catalog/chapters/${chapterId}/pages/${pageId}/image${langQuery}`;
     const base = axiosClient.defaults.baseURL ?? '';
     const origin = /^https?:\/\//i.test(base) ? base : window.location.origin;
     // Nếu baseURL có đuôi /api, nối chính xác

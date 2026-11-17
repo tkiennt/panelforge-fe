@@ -40,8 +40,12 @@ import { PageStage } from '../components/desk/ArtistPageSidebar';
 import { ArtistCanvasViewport, type PageSketch } from '../components/desk/ArtistCanvasViewport';
 import { PanelFrameOverlay, type PanelArtworkData } from '../components/desk/PanelFrameOverlay';
 import { LetteringBalloonOverlay } from '../components/desk/LetteringBalloonOverlay';
-import { ArtworkPreviewDialog } from '../components/desk/ArtistDeskDialogs';
-import { useLetteringBalloons } from '../hooks/useLetteringBalloons';
+import { ArtworkPreviewDialog, UnlockLayoutDialog } from '../components/desk/ArtistDeskDialogs';
+import { useLetteringBalloons, type BalloonType } from '../hooks/useLetteringBalloons';
+import { LanguageSelector } from '@/shared/components/LanguageSelector';
+import { suggestBalloonType } from '../utils/letteringScript';
+import { LetteringPropertyPanel } from '../components/desk/LetteringPropertyPanel';
+import { classifyScriptLine } from '@/shared/utils/textStyle';
 import {
   DEFAULT_ARTIST_STAGES,
   DEFAULT_INITIAL_PAGES,
@@ -123,6 +127,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const confirm = useConfirm();
   const focusHeader = useFocusHeaderContext();
   const { t } = useTranslation('pipeline');
+  // Gán sau khi có hook bóng thoại (khai báo phía dưới); trả thông báo lỗi hoặc null nếu đủ chữ
+  const letteringCheckRef = useRef<(() => Promise<string | null>) | null>(null);
 
   const chapterIdFromUrl = chapterIdFromParam || searchParams.get('chapterId');
   const assignmentIdFromUrl = searchParams.get('assignmentId');
@@ -186,6 +192,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [previewArtwork, setPreviewArtwork] = useState<{ imageUrl: string; title: string } | null>(
     null,
   );
+  const [seriesLanguages, setSeriesLanguages] = useState<string[]>(['vi', 'en', 'ja']);
+  const [originalLang, setOriginalLang] = useState<string>('vi');
+  const [activeLang, setActiveLang] = useState<string>('vi');
 
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
   const [selectedPanelNumberOverride, setSelectedPanelNumberOverride] = useState<number | null>(
@@ -878,8 +887,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       seriesService
         .getSeriesById(seriesId)
         .then((ser) => {
-          if (alive && ser?.title) {
-            setSeriesTitle(ser.title);
+          if (alive && ser) {
+            if (ser.title) setSeriesTitle(ser.title);
+            if (ser.releaseLanguages && ser.releaseLanguages.length > 0) {
+              setSeriesLanguages(ser.releaseLanguages);
+            }
+            if (ser.originalLanguage) {
+              setOriginalLang(ser.originalLanguage);
+              setActiveLang(ser.originalLanguage);
+            }
           }
         })
         .catch(() => {});
@@ -1072,6 +1088,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         `Mới ánh xạ ${scriptCoverage.covered}/${scriptCoverage.total} dòng thoại vào khung. Cần đạt 100% Script Coverage trước khi nộp.`,
       );
       return;
+    }
+
+    // Công đoạn Letter: kiểm tra đủ chữ trước khi nộp (mọi dòng thoại đã có bóng, không bóng trống)
+    if (currentStage.label === 'Letter' && letteringCheckRef.current) {
+      const problem = await letteringCheckRef.current();
+      if (problem) {
+        toast.warning('Chưa đủ chữ để nộp', problem);
+        return;
+      }
     }
 
     if (!currentChapterId) {
@@ -1454,7 +1479,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
   // Chuyển đổi danh sách Hồ sơ truyện thực tế + bản đồ tra cứu tên nhân vật cho Kịch bản
   const { bibleEntities, characterById } = useMemo(() => {
-    const charMap = new Map<string, { name: string; color: string }>();
+    const charMap = new Map<string, { name: string; color: string; avatarUrl?: string }>();
 
     // Luôn nạp trước các thực thể từ props initialBibleEntities nếu có
     if (initialBibleEntities) {
@@ -1473,17 +1498,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       .map((e) => {
         const category = mapBibleCategory(e.category);
         const color = getDeterministicColor(e.id || e.name);
-        // Lưu tất cả thực thể vào charMap theo id và code để tra cứu người nói
-        charMap.set(e.id, { name: e.name, color });
-        if (e.code) {
-          charMap.set(e.code, { name: e.name, color });
-        }
-        const { visualNotes, gallery } = extractBibleVisualDetails(e);
         const resolvedImage =
           e.referenceImageUrl ||
           e.effectiveRevision?.referenceImageUrl ||
           e.effectiveRevision?.conceptImageUrl ||
           undefined;
+        // Lưu tất cả thực thể vào charMap theo id và code để tra cứu người nói (kèm ảnh đại diện)
+        charMap.set(e.id, { name: e.name, color, avatarUrl: resolvedImage });
+        if (e.code) {
+          charMap.set(e.code, { name: e.name, color, avatarUrl: resolvedImage });
+        }
+        const { visualNotes, gallery } = extractBibleVisualDetails(e);
 
         return {
           id: e.id,
@@ -1610,6 +1635,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         characterColor: resolvedCharColor,
         stageDirection: resolvedStageDirection,
         dialogueText: resolvedDialogueText,
+        characterAvatarUrl:
+          (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.avatarUrl) ||
+          undefined,
       };
     });
   }, [hasLoadedRealScript, rawScriptLines, initialScriptLines, pages, panelPageMap, characterById]);
@@ -2335,7 +2363,70 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     zoomScale,
     toast,
     isPageReadOnly,
+    activeLang,
+    originalLang,
   );
+  const selectedBalloon =
+    balloons.pageElements.find((el) => el.elementId === balloons.selectedElementId) ?? null;
+  // Số dòng của bóng đang chọn, đánh số giống cột "Script truyện" (chỉ dòng có chữ để đặt)
+  const selectedLineNumber = useMemo(() => {
+    if (!selectedBalloon?.scriptLineId) return undefined;
+    const letterable = (resolvedScriptLines ?? []).filter((l) => suggestBalloonType(l).letterable);
+    const idx = letterable.findIndex((l) => l.id === selectedBalloon.scriptLineId);
+    return idx >= 0 ? idx + 1 : undefined;
+  }, [selectedBalloon, resolvedScriptLines]);
+  const linkedScriptLineIds = useMemo(
+    () => new Set(balloons.linkedByScriptLine.keys()),
+    [balloons.linkedByScriptLine],
+  );
+
+  // Kéo loại bóng / dòng script từ tab Letter thả lên trang → tạo bóng tại điểm thả (BR-05)
+  const handleLetteringDrop = (e: React.DragEvent) => {
+    const raw = e.dataTransfer.getData('application/json');
+    if (!raw || !selectedPage) return;
+    let payload: { type?: BalloonType; scriptLine?: ScriptLineItem };
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (!payload.type) return;
+    e.preventDefault();
+    const surface = document.querySelector('[data-testid="artist-canvas-surface"]');
+    const rect = surface?.getBoundingClientRect();
+    const at =
+      rect && rect.width > 0
+        ? {
+            x: ((e.clientX - rect.left) / rect.width) * (selectedPage.widthPx || 1200),
+            y: ((e.clientY - rect.top) / rect.height) * (selectedPage.heightPx || 1800),
+          }
+        : undefined;
+    balloons.addElement(payload.type, payload.scriptLine, { at });
+  };
+
+  // Kiểm tra đủ chữ trước khi nộp Letter: mọi dòng thoại (không phải chỉ dẫn) đã có bóng, không bóng trống
+  letteringCheckRef.current = async () => {
+    const byPage = await balloons.prefetchPages(pages.map((p) => p.id));
+    const all = Object.values(byPage).flat();
+    const linked = new Set(all.map((el) => el.scriptLineId).filter(Boolean));
+    // Chỉ đối chiếu với kịch bản thật đã nạp (không dùng dữ liệu mẫu)
+    const unplaced = (hasLoadedRealScript ? (resolvedScriptLines ?? []) : []).filter(
+      (l) => classifyScriptLine(l).isLetterable && !linked.has(l.id),
+    );
+    const empty = all.filter((el) => !(el.content || el.renderedText || '').trim());
+    const issues: string[] = [];
+    if (unplaced.length > 0) issues.push(`${unplaced.length} dòng thoại chưa đặt bóng`);
+    if (empty.length > 0) issues.push(`${empty.length} bóng chưa có chữ`);
+    return issues.length > 0 ? `${issues.join(', ')}. Lọc "Chưa gắn" ở tab Letter để xem.` : null;
+  };
+
+  // Biết dòng nào đã gắn trên toàn chương: nạp bóng của mọi trang khi đang ở tab Letter
+  useEffect(() => {
+    if (activeSidebarTab === 'lettering' && pages.length > 0) {
+      balloons.prefetchPages(pages.map((p) => p.id));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSidebarTab, pages]);
 
   // Bật/tắt toàn màn hình
   const handleToggleFullscreen = () => {
@@ -2520,71 +2611,116 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             setSelectedPanelId(targetPanel?.id || null);
             setSelectedPanelNumberOverride(panelNumber);
           }}
+          activeLang={activeLang}
+          originalLang={originalLang}
+          onUpdateElementText={balloons.updateElementText}
+          linkedScriptLineIds={linkedScriptLineIds}
+          letteringHeaderSlot={
+            <LanguageSelector
+              languages={seriesLanguages}
+              activeLang={activeLang}
+              onChange={setActiveLang}
+              originalLang={originalLang}
+            />
+          }
           theme='paper'
         />
 
-        <div className='flex-1 min-h-0 min-w-0 h-full flex flex-col overflow-hidden relative'>
-          <ArtistCanvasViewport
-            pageKey={selectedPageId || 'default'}
-            zoomScale={zoomScale}
-            sketch={currentSketch}
-            hasPanels={currentPagePanels.length > 0}
-            isLayoutSaved={isCurrentPageLayoutSaved}
-            isDetectingPanels={isDetectingPanels}
-            isSavingLayout={isApplyingTemplate}
-            readOnly={isPageReadOnly}
-            layoutLockedReason={
-              isInkOrColorStage ? 'Chỉ công đoạn Pencil mới được sửa bố cục khung' : undefined
-            }
-            onCanvasClick={() => {
-              balloons.setSelectedElementId(null);
-              handleSelectPanelById(null);
-            }}
-            onUploadSketch={handleUploadFullPageSketch}
-            onSplitPanels={handleAutoDetectPanels}
-            onOpenTemplates={() => {
-              setActiveSidebarTab('templates');
-              setIsSidebarDrawerOpen(true);
-            }}
-            onSaveLayout={handleSaveLayout}
-          >
-            {currentPagePanels.length > 0 && (
-              <PanelFrameOverlay
-                panels={currentPagePanels}
-                pageWidth={selectedPage?.widthPx || 1200}
-                pageHeight={selectedPage?.heightPx || 1800}
-                templateCode={currentTemplate?.code}
-                artworks={currentPageArtworks}
-                isLayoutSaved={isCurrentPageLayoutSaved}
-                canUploadArtwork={canUploadCurrentPageArtwork}
-                selectedPanelId={selectedPanelId}
-                onSelectPanel={handleSelectPanelById}
-                onUploadArtwork={handleUploadPanelArtwork}
-                onRemoveArtwork={handleRemovePanelArtwork}
-                onPreviewArtwork={setPreviewArtwork}
+        <div
+          className='flex-1 min-h-0 min-w-0 h-full flex flex-col overflow-hidden relative'
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes('application/json')) e.preventDefault();
+          }}
+          onDrop={handleLetteringDrop}
+        >
+          <div className='flex-1 min-h-0 min-w-0 flex'>
+            <ArtistCanvasViewport
+              pageKey={selectedPageId || 'default'}
+              zoomScale={zoomScale}
+              sketch={currentSketch}
+              hasPanels={currentPagePanels.length > 0}
+              isLayoutSaved={isCurrentPageLayoutSaved}
+              isDetectingPanels={isDetectingPanels}
+              isSavingLayout={isApplyingTemplate}
+              readOnly={isPageReadOnly}
+              layoutLockedReason={
+                isInkOrColorStage ? 'Chỉ công đoạn Pencil mới được sửa bố cục khung' : undefined
+              }
+              onCanvasClick={() => {
+                balloons.setSelectedElementId(null);
+                handleSelectPanelById(null);
+              }}
+              onUploadSketch={handleUploadFullPageSketch}
+              onSplitPanels={handleAutoDetectPanels}
+              onOpenTemplates={() => {
+                setActiveSidebarTab('templates');
+                setIsSidebarDrawerOpen(true);
+              }}
+              onSaveLayout={handleSaveLayout}
+            >
+              {currentPagePanels.length > 0 && (
+                <PanelFrameOverlay
+                  panels={currentPagePanels}
+                  pageWidth={selectedPage?.widthPx || 1200}
+                  pageHeight={selectedPage?.heightPx || 1800}
+                  templateCode={currentTemplate?.code}
+                  artworks={currentPageArtworks}
+                  isLayoutSaved={isCurrentPageLayoutSaved}
+                  canUploadArtwork={canUploadCurrentPageArtwork}
+                  selectedPanelId={selectedPanelId}
+                  onSelectPanel={handleSelectPanelById}
+                  onUploadArtwork={handleUploadPanelArtwork}
+                  onRemoveArtwork={handleRemovePanelArtwork}
+                  onPreviewArtwork={setPreviewArtwork}
+                />
+              )}
+              {selectedPage && balloons.pageElements.length > 0 && (
+                <LetteringBalloonOverlay
+                  elements={balloons.pageElements}
+                  pageWidth={selectedPage.widthPx || 1200}
+                  pageHeight={selectedPage.heightPx || 1800}
+                  activeLang={activeLang}
+                  selectedId={balloons.selectedElementId}
+                  activeGestureId={balloons.draggingId || balloons.resizingId}
+                  readOnly={isPageReadOnly}
+                  onSelect={balloons.setSelectedElementId}
+                  onScale={balloons.scaleElement}
+                  onCopy={balloons.copyElement}
+                  onDelete={balloons.deleteElement}
+                  onDragStart={balloons.onDragStart}
+                  onDragMove={balloons.onDragMove}
+                  onDragEnd={balloons.onDragEnd}
+                  onResizeStart={balloons.onResizeStart}
+                  onResizeMove={balloons.onResizeMove}
+                  onResizeEnd={balloons.onResizeEnd}
+                />
+              )}
+            </ArtistCanvasViewport>
+            {selectedBalloon && (
+              <LetteringPropertyPanel
+                element={selectedBalloon}
+                scriptLine={resolvedScriptLines?.find((l) => l.id === selectedBalloon.scriptLineId)}
+                activeLang={activeLang}
+                originalLang={originalLang}
+                onCommitText={(text) => balloons.updateElementText(selectedBalloon.elementId, text)}
+                onChangeStyle={(patch) =>
+                  balloons.updateElementStyle(selectedBalloon.elementId, patch)
+                }
+                lineNumber={selectedLineNumber}
+                displayNumber={
+                  (selectedBalloon.readingOrder ??
+                    balloons.pageElements.indexOf(selectedBalloon) + 1) ||
+                  undefined
+                }
+                onDelete={() => balloons.deleteElement(selectedBalloon.elementId)}
+                onViewScript={() => {
+                  setActiveSidebarTab('script');
+                  setIsSidebarDrawerOpen(true);
+                }}
+                onClose={() => balloons.setSelectedElementId(null)}
               />
             )}
-            {selectedPage && balloons.pageElements.length > 0 && (
-              <LetteringBalloonOverlay
-                elements={balloons.pageElements}
-                pageWidth={selectedPage.widthPx || 1200}
-                pageHeight={selectedPage.heightPx || 1800}
-                selectedId={balloons.selectedElementId}
-                activeGestureId={balloons.draggingId || balloons.resizingId}
-                readOnly={isPageReadOnly}
-                onSelect={balloons.setSelectedElementId}
-                onScale={balloons.scaleElement}
-                onCopy={balloons.copyElement}
-                onDelete={balloons.deleteElement}
-                onDragStart={balloons.onDragStart}
-                onDragMove={balloons.onDragMove}
-                onDragEnd={balloons.onDragEnd}
-                onResizeStart={balloons.onResizeStart}
-                onResizeMove={balloons.onResizeMove}
-                onResizeEnd={balloons.onResizeEnd}
-              />
-            )}
-          </ArtistCanvasViewport>
+          </div>
 
           <ArtistBottomPageStrip
             pages={pages}

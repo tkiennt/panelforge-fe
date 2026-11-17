@@ -1,5 +1,13 @@
 import React from 'react';
-import { Copy, Trash2, ZoomIn, ZoomOut, AlertTriangle } from 'lucide-react';
+import {
+  Copy,
+  Trash2,
+  ZoomIn,
+  ZoomOut,
+  AlertTriangle,
+  MessageCircle,
+  MoreVertical,
+} from 'lucide-react';
 import type { ElementSnapshotDto } from '@/services/element.service';
 import {
   resolveAppearance,
@@ -20,13 +28,99 @@ const HANDLES: { id: ResizeHandle; position: string; cursor: string }[] = [
   { id: 'sw', position: '-bottom-2 -left-2', cursor: 'cursor-nesw-resize' },
 ];
 
-const TOOL_BTN =
-  'focus-ring w-8 h-8 flex items-center justify-center rounded-md transition-colors cursor-pointer';
+const MENU_ITEM =
+  'w-full flex items-center gap-2 px-3 py-1.5 text-left text-xs text-stone-700 hover:bg-stone-100 cursor-pointer';
+
+/** Nhãn "Thoại N" phía trên bóng đang chọn + nút ⋮ mở menu thao tác (phóng/thu, sao chép, xóa). */
+const SelectedChrome: React.FC<{
+  element: ElementSnapshotDto;
+  label: string;
+  /** Bóng sát mép trên / mép phải trang: lật nhãn xuống dưới, nút ⋮ sang trái để không bị cắt. */
+  nearTop?: boolean;
+  nearRight?: boolean;
+  onScale: (id: string, factor: number) => void;
+  onCopy: (el: ElementSnapshotDto) => void;
+  onDelete: (id: string) => void;
+}> = ({ element, label, nearTop, nearRight, onScale, onCopy, onDelete }) => {
+  const [open, setOpen] = React.useState(false);
+  const id = element.elementId;
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+  return (
+    <>
+      <span
+        data-testid={`lettering-label-${id}`}
+        className={`absolute ${nearTop ? '-bottom-8' : '-top-8'} left-0 z-50 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm whitespace-nowrap pointer-events-none`}
+      >
+        <MessageCircle className='w-3 h-3' aria-hidden='true' />
+        {label}
+      </span>
+      <div
+        className={`absolute -top-1 ${nearRight ? '-left-10' : '-right-10'} z-50 pointer-events-auto`}
+        onClick={stop}
+        onPointerDown={stop}
+      >
+        <button
+          type='button'
+          data-testid={`lettering-menu-${id}`}
+          aria-label='Thao tác bóng thoại'
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className='w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-stone-200 shadow-sm text-stone-600 hover:text-stone-900 cursor-pointer'
+        >
+          <MoreVertical className='w-4 h-4' aria-hidden='true' />
+        </button>
+        {open && (
+          <div
+            data-testid={`lettering-toolbar-${id}`}
+            className={`absolute ${nearRight ? 'left-0' : 'right-0'} top-9 w-40 py-1 rounded-lg bg-white border border-stone-200 shadow-lg`}
+          >
+            <button
+              type='button'
+              data-testid={`btn-zoom-in-${id}`}
+              className={MENU_ITEM}
+              onClick={() => onScale(id, 1.15)}
+            >
+              <ZoomIn className='w-3.5 h-3.5' aria-hidden='true' /> Phóng to
+            </button>
+            <button
+              type='button'
+              data-testid={`btn-zoom-out-${id}`}
+              className={MENU_ITEM}
+              onClick={() => onScale(id, 0.85)}
+            >
+              <ZoomOut className='w-3.5 h-3.5' aria-hidden='true' /> Thu nhỏ
+            </button>
+            <button
+              type='button'
+              data-testid={`btn-copy-${id}`}
+              className={MENU_ITEM}
+              onClick={() => {
+                onCopy(element);
+                setOpen(false);
+              }}
+            >
+              <Copy className='w-3.5 h-3.5' aria-hidden='true' /> Sao chép
+            </button>
+            <button
+              type='button'
+              data-testid={`btn-delete-${id}`}
+              className={`${MENU_ITEM} text-rose-600 hover:bg-rose-50`}
+              onClick={() => onDelete(id)}
+            >
+              <Trash2 className='w-3.5 h-3.5' aria-hidden='true' /> Xóa thoại
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
 
 interface LetteringBalloonOverlayProps {
   elements: ElementSnapshotDto[];
   pageWidth: number;
   pageHeight: number;
+  activeLang?: string;
   selectedId: string | null;
   activeGestureId: string | null;
   readOnly?: boolean;
@@ -42,13 +136,17 @@ interface LetteringBalloonOverlayProps {
   onResizeEnd: (e: React.PointerEvent) => void;
 }
 
-const BalloonShape: React.FC<{ element: ElementSnapshotDto }> = ({ element: b }) => {
+const BalloonShape: React.FC<{ element: ElementSnapshotDto; activeLang?: string }> = ({
+  element: b,
+  activeLang,
+}) => {
   const textStyle = resolveTextStyle(b);
   const appearance = resolveAppearance(b.elementType, appearanceFromStyle(b.style));
   const tail = tailFromStyle(b.style) ?? defaultTail(b.width, b.height);
   const path = balloonPath(appearance.shape, b.width, b.height, tail);
   const fill = fillRgba(appearance);
   const safeArea = textSafeArea(appearance.shape, b.width, b.height);
+  const displayText = activeLang && b.texts?.[activeLang] ? b.texts[activeLang] : b.content;
 
   return (
     <div className='relative w-full h-full flex items-center justify-center overflow-visible'>
@@ -83,7 +181,7 @@ const BalloonShape: React.FC<{ element: ElementSnapshotDto }> = ({ element: b })
             fontSize: `${Math.max(11, Math.min(22, textStyle.fontSize * 0.7))}px`,
           }}
         >
-          {b.content}
+          {displayText}
         </span>
       </div>
     </div>
@@ -94,6 +192,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
   elements,
   pageWidth,
   pageHeight,
+  activeLang,
   selectedId,
   activeGestureId,
   readOnly = false,
@@ -126,7 +225,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
           onPointerUp={!readOnly ? onDragEnd : undefined}
           className={`absolute pointer-events-auto ${readOnly ? 'cursor-default' : 'cursor-move'} select-none touch-none ${
             isActive ? 'z-40 shadow-lg' : 'transition-shadow'
-          } ${isSelected ? 'ring-2 ring-orange-500 ring-offset-2 z-30' : 'z-20 hover:ring-1 hover:ring-orange-400'}`}
+          } ${isSelected ? 'ring-2 ring-orange-500 z-30' : 'z-20 hover:ring-1 hover:ring-orange-400'}`}
           style={{
             left: `${(b.x / pageWidth) * 100}%`,
             top: `${(b.y / pageHeight) * 100}%`,
@@ -135,54 +234,15 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
           }}
         >
           {isSelected && !readOnly && (
-            <div
-              data-testid={`lettering-toolbar-${b.elementId}`}
-              className='absolute -top-11 left-1/2 -translate-x-1/2 z-50 flex items-center gap-0.5 bg-stone-900 text-white px-1 py-0.5 rounded-lg shadow-lg border border-stone-700 select-none pointer-events-auto'
-              onClick={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-            >
-              <button
-                type='button'
-                onClick={() => onScale(b.elementId, 1.15)}
-                className={`${TOOL_BTN} text-stone-200 hover:bg-stone-800 hover:text-white`}
-                title='Phóng to (Phím +)'
-                aria-label='Phóng to bóng thoại'
-                data-testid={`btn-zoom-in-${b.elementId}`}
-              >
-                <ZoomIn className='w-4 h-4' aria-hidden='true' />
-              </button>
-              <button
-                type='button'
-                onClick={() => onScale(b.elementId, 0.85)}
-                className={`${TOOL_BTN} text-stone-200 hover:bg-stone-800 hover:text-white`}
-                title='Thu nhỏ (Phím -)'
-                aria-label='Thu nhỏ bóng thoại'
-                data-testid={`btn-zoom-out-${b.elementId}`}
-              >
-                <ZoomOut className='w-4 h-4' aria-hidden='true' />
-              </button>
-              <span className='w-px h-4 bg-stone-700' aria-hidden='true' />
-              <button
-                type='button'
-                onClick={() => onCopy(b)}
-                className={`${TOOL_BTN} text-stone-200 hover:bg-stone-800 hover:text-white`}
-                title='Sao chép (Ctrl+C)'
-                aria-label='Sao chép bóng thoại'
-                data-testid={`btn-copy-${b.elementId}`}
-              >
-                <Copy className='w-4 h-4' aria-hidden='true' />
-              </button>
-              <button
-                type='button'
-                onClick={() => onDelete(b.elementId)}
-                className={`${TOOL_BTN} text-rose-300 hover:bg-rose-500/30 hover:text-rose-200`}
-                title='Xóa bóng (Del / Backspace)'
-                aria-label='Xóa bóng thoại'
-                data-testid={`btn-delete-${b.elementId}`}
-              >
-                <Trash2 className='w-4 h-4' aria-hidden='true' />
-              </button>
-            </div>
+            <SelectedChrome
+              element={b}
+              label={`Thoại ${b.readingOrder ?? idx + 1}`}
+              nearTop={b.y / pageHeight < 0.07}
+              nearRight={(b.x + b.width) / pageWidth > 0.9}
+              onScale={onScale}
+              onCopy={onCopy}
+              onDelete={onDelete}
+            />
           )}
 
           {isSelected &&
@@ -199,11 +259,13 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
               />
             ))}
 
-          <BalloonShape element={b} />
+          <BalloonShape element={b} activeLang={activeLang} />
 
-          <span className='absolute -top-2 -left-2 z-20 min-w-5 h-5 px-1 rounded-full bg-stone-900 text-white font-mono text-xs font-bold flex items-center justify-center'>
-            #{b.readingOrder ?? idx + 1}
-          </span>
+          {!isSelected && (
+            <span className='absolute -top-2 -left-2 z-20 min-w-5 h-5 px-1 rounded-full bg-stone-900 text-white font-mono text-xs font-bold flex items-center justify-center'>
+              #{b.readingOrder ?? idx + 1}
+            </span>
+          )}
 
           {b.isStale && (
             <span
