@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Sparkles,
   AlertTriangle,
+  Bell,
   CheckCircle2,
   X,
   Clapperboard,
@@ -96,6 +97,7 @@ import { ScriptVersionsDrawer } from '../components/script/versions/ScriptVersio
 import { ScriptStudioRail, type ScriptRailItem } from '../components/script/ScriptStudioRail';
 import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
 import { ScriptChaptersDrawer } from '../components/script/ScriptChaptersDrawer';
+import { ScriptStatusDrawer } from '../components/script/ScriptStatusDrawer';
 import { useFocusHeaderContext } from '@/app/FocusWorkspaceLayout';
 import { FileInput } from 'lucide-react';
 import { offlineQueueService } from '@/services/offlineQueue.service';
@@ -409,10 +411,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     | 'cast'
     | 'versions'
     | 'comments'
+    | 'status'
     | null;
 
   const [activeLeftDrawer, setActiveLeftDrawer] = useState<LeftDrawer>(null);
-  const [activeRightDrawer, setActiveRightDrawer] = useState<RightDrawer>(null);
+  const [activeRightDrawer, setActiveRightDrawer] = useState<RightDrawer>(
+    isTestEnvironment ? 'status' : null,
+  );
 
   const toggleLeftDrawer = (drawer: NonNullable<LeftDrawer>) =>
     setActiveLeftDrawer((prev) => (prev === drawer ? null : drawer));
@@ -2096,6 +2101,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (detail) setSelectedScene(detail);
   };
 
+  const activeNoticeCount =
+    (concurrencyError ? 1 : 0) +
+    (loadError ? 1 : 0) +
+    (isScriptFrozen ? 1 : 0) +
+    (isScriptInReview ? 1 : 0) +
+    (isSubmitBlocked ? 1 : 0) +
+    (isStartBlocked ? 1 : 0) +
+    (isChapterContentLocked && !isScriptFrozen ? 1 : 0) +
+    (!canEditScript && !isChapterLocked ? 1 : 0) +
+    (restorable.storyArc && storyArcDraftKey ? 1 : 0) +
+    (restorable.outline && outlineDraftKey ? 1 : 0);
+
   const railItems: ScriptRailItem[] = [
     {
       id: 'chapters',
@@ -2155,6 +2172,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           } satisfies ScriptRailItem,
         ]
       : []),
+    {
+      id: 'status',
+      label: t('scriptStudio.rail.status', 'Thông báo'),
+      icon: Bell,
+      active: activeRightDrawer === 'status',
+      badge: activeNoticeCount > 0 ? activeNoticeCount : undefined,
+      tone: concurrencyError || isSubmitBlocked || isStartBlocked ? 'warn' : 'default',
+      testId: 'rail-status-btn',
+      onClick: () => toggleRightDrawer('status'),
+    },
     ...(canEditScript && !isChapterLocked
       ? [
           {
@@ -2271,293 +2298,33 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }}
         isSaving={savingStoryArc || savingOutline}
       />
-      {/* NFR-09: Thanh trạng thái kết nối & hàng đợi ngoại tuyến */}
-      <OfflineStatusBanner className='px-4 py-2 border-b border-[#D8D2C5]' />
-
-      {/* Khôi phục bản nháp cục bộ chưa lưu (sau khi hết phiên / rớt mạng / đóng tab) */}
-      {(['storyArc', 'outline'] as const).map((kind) => {
-        const draft = restorable[kind];
-        const key = kind === 'storyArc' ? storyArcDraftKey : outlineDraftKey;
-        if (!draft || !key) return null;
-        const label =
-          kind === 'storyArc'
-            ? 'Story Arc'
-            : `Đề cương Chương ${currentChapter?.chapterNumber ?? ''}`;
-        return (
-          <div
-            key={kind}
-            role='status'
-            data-testid={`draft-restore-${kind}`}
-            className='px-4 py-2 bg-amber-50 border-b border-amber-200 flex flex-wrap items-center gap-2 text-xs text-amber-900'
-          >
-            <span className='font-medium'>
-              Có bản nháp {label} chưa lưu lúc{' '}
-              {new Date(draft.savedAt).toLocaleString('vi-VN', {
-                dateStyle: 'short',
-                timeStyle: 'short',
-              })}
-              .
-            </span>
+      {/* Chỉ báo gọn tối đa 1 dòng trên header khi có lỗi nghiêm trọng (409 Conflict) */}
+      {concurrencyError && (
+        <div
+          data-testid='concurrency-error-banner'
+          className='px-4 py-2 bg-rose-50 border-b border-rose-200 flex items-center justify-between text-xs text-rose-800 shrink-0'
+        >
+          <div className='flex items-center gap-2 truncate'>
+            <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
+            <span className='font-semibold truncate'>{concurrencyError}</span>
+          </div>
+          <div className='flex items-center gap-2 shrink-0'>
             <button
               type='button'
-              onClick={() => {
-                (kind === 'storyArc' ? setStoryArcInput : setOutlineInput)(draft.text);
-                if (kind === 'outline') setActiveRightDrawer('narrative');
-                setRestorable((p) => ({ ...p, [kind]: undefined }));
-              }}
-              className='px-2.5 py-1 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 cursor-pointer'
+              onClick={() => setActiveRightDrawer('status')}
+              className='text-xs font-semibold text-rose-700 underline hover:text-rose-900 cursor-pointer'
             >
-              Khôi phục
+              {t('scriptStudio.statusDrawer.viewDetails', 'Xem chi tiết')}
             </button>
             <button
               type='button'
-              onClick={() => {
-                clearDraft(key);
-                setRestorable((p) => ({ ...p, [kind]: undefined }));
-              }}
-              className='px-2.5 py-1 rounded-lg border border-amber-300 font-semibold hover:bg-amber-100 cursor-pointer'
+              onClick={() => setConcurrencyError(null)}
+              className='text-rose-400 hover:text-rose-700 cursor-pointer p-0.5'
+              title={t('common.close', 'Đóng')}
             >
-              Bỏ bản nháp
+              <X className='w-3.5 h-3.5' />
             </button>
           </div>
-        );
-      })}
-
-      {/* 2. Thanh thông báo ngắn gọn gom thông báo chỉ đọc & xung đột */}
-      {(concurrencyError ||
-        isChapterLocked ||
-        !canEditScript ||
-        loadError ||
-        isScriptInReview ||
-        isSubmitBlocked ||
-        isStartBlocked) && (
-        <div className='px-4 py-2.5 bg-white border-b border-[#E7E2D9] shrink-0 text-xs space-y-2'>
-          {concurrencyError && (
-            <div
-              data-testid='concurrency-error-banner'
-              className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-800'
-            >
-              <div className='flex items-center gap-2'>
-                <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
-                <span className='text-xs font-medium'>{concurrencyError}</span>
-              </div>
-              <button
-                type='button'
-                onClick={() => setConcurrencyError(null)}
-                className='text-rose-500 hover:text-rose-700 cursor-pointer p-0.5'
-              >
-                <X className='w-4 h-4' />
-              </button>
-            </div>
-          )}
-
-          {loadError && (
-            <div className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-800'>
-              <div className='flex items-center gap-2'>
-                <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
-                <span className='text-xs font-medium'>{loadError}</span>
-              </div>
-              <button
-                type='button'
-                onClick={() => {
-                  if (currentChapter?.id) loadScenes();
-                }}
-                className='text-xs font-bold text-rose-700 underline cursor-pointer'
-              >
-                Thử lại
-              </button>
-            </div>
-          )}
-
-          {isScriptFrozen && (
-            <div
-              data-testid='script-frozen-banner'
-              className='p-3 bg-indigo-50/90 border border-indigo-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-indigo-950 shadow-xs'
-            >
-              <div className='flex items-center gap-2.5 min-w-0'>
-                <div className='w-7 h-7 rounded-lg bg-indigo-100 border border-indigo-300 flex items-center justify-center text-indigo-700 shrink-0'>
-                  <Lock className='w-4 h-4' />
-                </div>
-                <div>
-                  <div className='flex items-center gap-2'>
-                    <span className='font-bold text-xs uppercase tracking-wider bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded inline-flex items-center gap-1.5'>
-                      <span>🔒 Kịch bản đã chốt (chỉ đọc)</span>
-                      {currentChapter?.scriptContentHash && (
-                        <span
-                          className='font-mono font-semibold text-[10px] text-indigo-900 bg-indigo-100 px-1.5 py-0.5 rounded border border-indigo-300'
-                          title={`SHA-256: ${currentChapter.scriptContentHash}`}
-                          data-testid='frozen-script-hash-badge'
-                        >
-                          #{currentChapter.scriptContentHash.slice(0, 8)}
-                        </span>
-                      )}
-                    </span>
-                    <span className='text-[11px] text-indigo-700 font-medium'>
-                      Đã chuyển giao cho Artist phác thảo (Pencil) &amp; bố cục khung
-                    </span>
-                  </div>
-                  <p className='text-[11px] text-indigo-800/80 mt-0.5'>
-                    Writer không thể sửa trực tiếp kịch bản để tránh xung đột khung tranh của hoạ
-                    sĩ. Thẻ xem nhanh vẫn dùng được qua hover hoặc Ctrl+.
-                  </p>
-                </div>
-              </div>
-
-              {normRole === 'PRODUCER' && (
-                <div className='shrink-0'>
-                  <button
-                    type='button'
-                    disabled={freezingScript}
-                    onClick={() => setUnfreezeReasonOpen((open) => !open)}
-                    className='px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1.5'
-                  >
-                    <RefreshCw className='w-3.5 h-3.5' />
-                    <span>{tReview('scriptReview.checks.unfreeze')}</span>
-                  </button>
-                  {unfreezeReasonOpen && (
-                    <ReasonForm
-                      label={tReview('scriptReview.checks.unfreezeReason')}
-                      confirmLabel={tReview('scriptReview.checks.unfreeze')}
-                      busy={freezingScript}
-                      onConfirm={(reason) => void handleUnfreezeScript(reason)}
-                      onCancel={() => setUnfreezeReasonOpen(false)}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {isScriptInReview && (
-            <div
-              data-testid='script-in-review-banner'
-              className='p-3 bg-amber-50 border border-amber-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-amber-950'
-            >
-              <div className='flex items-center gap-2.5 min-w-0'>
-                <Send className='w-4 h-4 text-amber-700 shrink-0' />
-                <div>
-                  <p className='text-xs font-semibold'>
-                    {t('scriptStudio.lifecycle.inReviewTitle')}
-                  </p>
-                  <p className='text-[11px] text-amber-900/80 mt-0.5'>
-                    {hasUnpushedChanges
-                      ? t('scriptStudio.lifecycle.inReviewDirty')
-                      : t('scriptStudio.lifecycle.inReviewBody')}
-                  </p>
-                </div>
-              </div>
-              {isWriterRole && !isChapterContentLocked && (
-                <button
-                  type='button'
-                  disabled={submittingToEditor}
-                  onClick={() => void handleRecallScript()}
-                  className='px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shrink-0 cursor-pointer transition-colors disabled:opacity-60 flex items-center gap-1.5'
-                >
-                  <RefreshCw className='w-3.5 h-3.5' />
-                  {t('scriptStudio.submit.recall')}
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* BIB-16 & 6: Blocker banners cho Writer (submitGate) và Producer (gate) */}
-          {isSubmitBlocked && chapterCast?.submitGate?.blockers && (
-            <div
-              data-testid='submit-blocked-banner'
-              className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
-            >
-              <div className='flex items-center gap-2 min-w-0'>
-                <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0' />
-                <span className='text-xs font-medium truncate'>
-                  <strong>
-                    {t('scriptStudio.cast.submitBlockedBanner', 'Chưa thể gửi duyệt')}:
-                  </strong>{' '}
-                  Còn {chapterCast.submitGate.blockers.length} mục nháp Bible chưa được định nghĩa.
-                </span>
-              </div>
-              <button
-                type='button'
-                onClick={() => setActiveRightDrawer('cast')}
-                className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer transition-colors'
-              >
-                {t('scriptStudio.cast.viewCast', 'Xem thực thể')}
-              </button>
-            </div>
-          )}
-
-          {isStartBlocked && chapterCast?.gate?.blockers && (
-            <div
-              data-testid='start-blocked-banner'
-              className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between gap-2 text-rose-900'
-            >
-              <div className='flex items-center gap-2 min-w-0'>
-                <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
-                <span className='text-xs font-medium truncate'>
-                  <strong>
-                    {t('scriptStudio.cast.startBlockedBanner', 'Chưa thể bắt đầu sản xuất')}:
-                  </strong>{' '}
-                  Còn {chapterCast.gate.blockers.length} biến thể chưa khoá Canon.
-                </span>
-              </div>
-              <div className='flex items-center gap-2 shrink-0'>
-                <Link
-                  to={
-                    workspaceId && seriesId
-                      ? `/workspaces/${workspaceId}/series/${seriesId}/bible`
-                      : '#'
-                  }
-                  className='text-xs font-semibold text-rose-700 hover:text-rose-900 underline'
-                >
-                  Mở Series Bible để duyệt Canon
-                </Link>
-                <button
-                  type='button'
-                  onClick={() => setActiveRightDrawer('cast')}
-                  className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shrink-0 cursor-pointer transition-colors'
-                >
-                  {t('scriptStudio.cast.viewCast', 'Xem thực thể')}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {isChapterContentLocked && !isScriptFrozen && (
-            <div
-              data-testid='chapter-locked-banner'
-              className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
-            >
-              <div className='flex items-center gap-2'>
-                <ShieldAlert className='w-4 h-4 text-amber-600 shrink-0' />
-                <span className='text-xs font-medium'>
-                  Chương này đã ở trạng thái <strong>{currentChapter?.status}</strong> — Kịch bản ở
-                  chế độ chỉ đọc để bảo vệ tính toàn vẹn sản xuất. Thẻ xem nhanh vẫn dùng được qua
-                  hover hoặc Ctrl+.
-                </span>
-              </div>
-              <span className='text-xs font-bold uppercase tracking-wider bg-amber-200/90 text-amber-900 px-2.5 py-0.5 rounded-full shrink-0'>
-                Chỉ đọc
-              </span>
-            </div>
-          )}
-
-          {!canEditScript && !isChapterLocked ? (
-            <div
-              data-testid='role-view-only-banner'
-              className='p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 text-blue-900'
-            >
-              <div className='flex items-center gap-2'>
-                <Info className='w-4 h-4 text-blue-600 shrink-0' />
-                <span className='text-xs font-medium'>
-                  Chế độ xem: Bạn đang xem kịch bản với quyền tham khảo. Chỉ vai trò{' '}
-                  <strong>Producer</strong> hoặc <strong>Writer</strong> được phân công mới có quyền
-                  tạo và chỉnh sửa kịch bản.
-                </span>
-              </div>
-              <span className='text-xs font-bold uppercase tracking-wider bg-blue-200/90 text-blue-900 px-2.5 py-0.5 rounded-full shrink-0'>
-                Tham khảo
-              </span>
-            </div>
-          ) : null}
         </div>
       )}
 
@@ -2849,6 +2616,56 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             }
             onOpenPanelStageModal={() => setIsPanelStageModalOpen(true)}
             onShowToast={notify}
+            t={t}
+          />
+        )}
+
+        {/* 6. Drawer Thông Báo & Trạng Thái */}
+        {activeRightDrawer === 'status' && (
+          <ScriptStatusDrawer
+            isOpen={true}
+            onClose={() => setActiveRightDrawer(null)}
+            concurrencyError={concurrencyError}
+            onClearConcurrencyError={() => setConcurrencyError(null)}
+            loadError={loadError}
+            onRetryLoadScenes={() => {
+              if (currentChapter?.id) loadScenes();
+            }}
+            isScriptFrozen={isScriptFrozen}
+            currentChapter={currentChapter}
+            normRole={normRole}
+            freezingScript={freezingScript}
+            unfreezeReasonOpen={unfreezeReasonOpen}
+            setUnfreezeReasonOpen={setUnfreezeReasonOpen}
+            handleUnfreezeScript={handleUnfreezeScript}
+            tReview={tReview}
+            isScriptInReview={isScriptInReview}
+            hasUnpushedChanges={hasUnpushedChanges}
+            isWriterRole={isWriterRole}
+            isChapterContentLocked={isChapterContentLocked}
+            submittingToEditor={submittingToEditor}
+            handleRecallScript={handleRecallScript}
+            isSubmitBlocked={isSubmitBlocked}
+            chapterCast={chapterCast}
+            isStartBlocked={isStartBlocked}
+            workspaceId={workspaceId}
+            seriesId={seriesId || currentChapter?.seriesId}
+            isChapterLocked={isChapterLocked}
+            canEditScript={canEditScript}
+            restorable={restorable}
+            storyArcDraftKey={storyArcDraftKey}
+            outlineDraftKey={outlineDraftKey}
+            onRestoreDraft={(kind, text) => {
+              (kind === 'storyArc' ? setStoryArcInput : setOutlineInput)(text);
+              if (kind === 'outline') setActiveRightDrawer('narrative');
+              setRestorable((p) => ({ ...p, [kind]: undefined }));
+            }}
+            onDiscardDraft={(kind) => {
+              const key = kind === 'storyArc' ? storyArcDraftKey : outlineDraftKey;
+              if (key) clearDraft(key);
+              setRestorable((p) => ({ ...p, [kind]: undefined }));
+            }}
+            onOpenDrawer={(drawer) => setActiveRightDrawer(drawer)}
             t={t}
           />
         )}

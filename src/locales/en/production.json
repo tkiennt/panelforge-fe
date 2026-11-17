@@ -126,7 +126,14 @@
       "history": "History",
       "chapterCast": "Cast",
       "bibleGate": "Bible Gate",
+      "status": "Notifications",
       "label": "Writer tools"
+    },
+    "statusDrawer": {
+      "title": "Notifications & Status",
+      "desc": "Warnings, script status, and review gates",
+      "empty": "All systems normal. No active notifications.",
+      "viewDetails": "View details"
     },
     "ai": {
       "draft": "Draft the selected scene",

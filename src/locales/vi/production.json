@@ -126,7 +126,14 @@
       "history": "Lịch sử",
       "chapterCast": "Thực thể",
       "bibleGate": "Bible Gate",
+      "status": "Thông báo",
       "label": "Công cụ biên kịch"
+    },
+    "statusDrawer": {
+      "title": "Thông báo & Trạng thái",
+      "desc": "Cảnh báo, trạng thái kịch bản và các cổng duyệt",
+      "empty": "Tất cả trạng thái bình thường. Không có thông báo cần xử lý.",
+      "viewDetails": "Xem chi tiết"
     },
     "ai": {
       "draft": "Viết nháp cảnh đang chọn",
