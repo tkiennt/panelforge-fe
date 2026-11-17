@@ -1,8 +1,14 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LetteringScriptPanel } from './LetteringScriptPanel';
 import type { ScriptLineItem } from './ArtistCanvaSidebar';
 import type { ElementSnapshotDto } from '@/services/element.service';
+import { translateText } from '@/services/translation.service';
+
+vi.mock('@/services/translation.service', () => ({
+  translateText: vi.fn(),
+  translationService: { translateText: vi.fn() },
+}));
 
 const LINES: ScriptLineItem[] = [
   {
@@ -46,6 +52,10 @@ const renderPanel = (props: Partial<React.ComponentProps<typeof LetteringScriptP
   );
 
 describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('đánh số dòng có chữ theo thứ tự kịch bản, bỏ dòng chỉ dẫn', () => {
     renderPanel();
     expect(screen.getByTestId('lettering-script-total')).toHaveTextContent('Tổng: 3 dòng');
@@ -106,5 +116,106 @@ describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)
       originalLang: 'vi',
     });
     expect(screen.getByTestId('lettering-missing-translations')).toHaveTextContent('1');
+  });
+
+  it('không hiển thị nút dịch khi activeLang trùng originalLang hoặc chưa chọn', () => {
+    renderPanel({ activeLang: 'vi', originalLang: 'vi' });
+    expect(screen.queryByTestId('lettering-batch-translate-page')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('lettering-translate-line-l-speech')).not.toBeInTheDocument();
+  });
+
+  it('hiển thị nút Dịch trên từng dòng và nút Dịch toàn bộ thoại của trang khi activeLang !== originalLang', () => {
+    renderPanel({ activeLang: 'en', originalLang: 'vi' });
+    expect(screen.getByTestId('lettering-batch-translate-page')).toBeInTheDocument();
+    expect(screen.getByTestId('lettering-translate-line-l-speech')).toBeInTheDocument();
+    expect(screen.getByTestId('lettering-translate-line-l-narr')).toBeInTheDocument();
+  });
+
+  it('bấm [🌐 Dịch] gọi translateText, hiển thị ô xem trước, sửa nội dung và bấm [📥 Đổ vào bóng thoại]', async () => {
+    vi.mocked(translateText).mockResolvedValueOnce('Add title!');
+    const onUpdate = vi.fn();
+
+    renderPanel({
+      activeLang: 'en',
+      originalLang: 'vi',
+      elements: [balloon({ scriptLineId: 'l-speech', elementId: 'el-speech-1' })],
+      onUpdateElementTranslation: onUpdate,
+      pageId: 'page-123',
+    });
+
+    const translateBtn = screen.getByTestId('lettering-translate-line-l-speech');
+    fireEvent.click(translateBtn);
+
+    await waitFor(() => {
+      expect(translateText).toHaveBeenCalledWith('Thêm tiêu đề!', 'vi', 'en');
+    });
+
+    // Sau khi dịch, ô preview input xuất hiện
+    const previewInput = await screen.findByTestId('lettering-preview-input-l-speech');
+    expect(previewInput).toHaveValue('Add title!');
+
+    // Sửa nội dung bản dịch trong input
+    fireEvent.change(previewInput, { target: { value: 'Add title edited!' } });
+    expect(previewInput).toHaveValue('Add title edited!');
+
+    // Bấm đổ vào bóng thoại
+    const applyBtn = screen.getByTestId('lettering-apply-line-l-speech');
+    fireEvent.click(applyBtn);
+
+    await waitFor(() => {
+      expect(onUpdate).toHaveBeenCalledWith('page-123', 'el-speech-1', 'en', 'Add title edited!');
+    });
+
+    // Hiển thị trạng thái đã đổ
+    expect(await screen.findByTestId('lettering-apply-success-l-speech')).toHaveTextContent(
+      'Đã đổ',
+    );
+  });
+
+  it('bấm Dịch toàn bộ thoại của trang dịch hàng loạt các dòng kịch bản thuộc trang hiện tại', async () => {
+    vi.mocked(translateText).mockImplementation(async (text) => {
+      if (text.includes('tiêu đề')) return 'Add title translated';
+      if (text.includes('Ba năm')) return 'Three years later translated';
+      return text;
+    });
+
+    renderPanel({
+      activeLang: 'en',
+      originalLang: 'vi',
+      activePageNumber: 1,
+    });
+
+    const batchBtn = screen.getByTestId('lettering-batch-translate-page');
+    fireEvent.click(batchBtn);
+
+    await waitFor(() => {
+      expect(translateText).toHaveBeenCalledWith('Thêm tiêu đề!', 'vi', 'en');
+      expect(translateText).toHaveBeenCalledWith('Ba năm sau…', 'vi', 'en');
+      // Dòng l-sfx ở trang 2 không được dịch trong batch của trang 1
+      expect(translateText).not.toHaveBeenCalledWith('SFX: RẦM', 'vi', 'en');
+    });
+
+    expect(await screen.findByTestId('lettering-preview-input-l-speech')).toHaveValue(
+      'Add title translated',
+    );
+    expect(await screen.findByTestId('lettering-preview-input-l-narr')).toHaveValue(
+      'Three years later translated',
+    );
+  });
+
+  it('hiển thị thông báo lỗi khi gọi translateText thất bại', async () => {
+    vi.mocked(translateText).mockRejectedValueOnce(new Error('Translation service unavailable'));
+
+    renderPanel({
+      activeLang: 'en',
+      originalLang: 'vi',
+    });
+
+    const translateBtn = screen.getByTestId('lettering-translate-line-l-speech');
+    fireEvent.click(translateBtn);
+
+    expect(await screen.findByTestId('lettering-translate-error-l-speech')).toHaveTextContent(
+      'Translation service unavailable',
+    );
   });
 });
