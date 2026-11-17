@@ -470,12 +470,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   }, [currentChapter?.id, loadChapterCast]);
 
-  // Phím tắt bàn phím Alt+C: Mở nhanh side tab chuyển chương
+  // Phím tắt bàn phím: Alt+C (mở chương), Alt+1 (chế độ Giấy), Alt+2 (chế độ Thẻ)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && (e.key === 'c' || e.key === 'C')) {
         e.preventDefault();
         setActiveLeftDrawer((prev) => (prev === 'chapters' ? null : 'chapters'));
+      } else if (e.altKey && e.key === '1') {
+        e.preventDefault();
+        setEditorMode('flow');
+      } else if (e.altKey && e.key === '2') {
+        e.preventDefault();
+        setEditorMode('cards');
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
@@ -2263,17 +2269,29 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const railFooterItems: ScriptRailItem[] = [];
 
   const viewModes = [
-    { mode: 'flow', icon: FileText, label: t('scriptStudio.views.paper'), testId: 'tab-flow' },
-    { mode: 'cards', icon: Layers, label: t('scriptStudio.views.cards'), testId: 'tab-cards' },
+    {
+      mode: 'flow',
+      icon: FileText,
+      label: t('scriptStudio.views.paper'),
+      shortcut: 'Alt+1',
+      testId: 'tab-flow',
+    },
+    {
+      mode: 'cards',
+      icon: Layers,
+      label: t('scriptStudio.views.cards'),
+      shortcut: 'Alt+2',
+      testId: 'tab-cards',
+    },
   ] as const;
 
   const viewSwitcher = (
     <div
       role='group'
       aria-label={t('scriptStudio.views.label')}
-      className='flex items-center gap-0.5 p-0.5 rounded-lg bg-stone-100 shrink-0'
+      className='flex items-center gap-1 p-0.5 rounded-lg bg-stone-100 border border-stone-200/80 shrink-0'
     >
-      {viewModes.map(({ mode, icon: Icon, label, testId }) => {
+      {viewModes.map(({ mode, icon: Icon, label, shortcut, testId }) => {
         const isActive = editorMode === mode;
         return (
           <button
@@ -2281,14 +2299,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             type='button'
             data-testid={testId}
             aria-pressed={isActive}
-            title={label}
+            title={`${label} (${shortcut})`}
             onClick={() => setEditorMode(mode)}
-            aria-label={label}
-            className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors cursor-pointer ${
-              isActive ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-900'
+            aria-label={`${label} (${shortcut})`}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+              isActive
+                ? 'bg-white text-stone-900 shadow-xs font-bold'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
             }`}
           >
-            <Icon className='w-4 h-4' />
+            <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#C2410C]' : 'text-stone-500'}`} />
+            <span>{label}</span>
           </button>
         );
       })}
