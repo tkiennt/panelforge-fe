@@ -169,6 +169,32 @@ describe('PageArtworkWorkflow', () => {
     expect(addElement).not.toHaveBeenCalled();
   });
 
+  it('ảnh trên máy: ghi rõ chưa lưu, xác nhận chỉ tải các khung đã cắt (không tải ảnh cả trang)', async () => {
+    const uploadArtworkSpy = vi.mocked(artworkService.uploadArtwork);
+    uploadArtworkSpy.mockResolvedValue({ id: 'uploaded-panel' } as never);
+    split.mockResolvedValue(result);
+    createPanel.mockResolvedValue({ id: '22222222-2222-2222-2222-222222222222' } as never);
+    const local = {
+      id: 'sketch-page-1',
+      versionNumber: 1,
+      url: 'blob:http://localhost/abc',
+      isLocal: true,
+    };
+
+    render(
+      <PageArtworkWorkflow {...baseProps} artwork={local} chapterId='chap-1' stageId='stage-1' />,
+    );
+    expect(screen.getByText('Ảnh trên máy · chưa lưu')).toBeTruthy();
+    await openAndDetect();
+    // Nhận diện gửi file đọc từ blob URL, không cần ảnh trên máy chủ
+    expect(split).toHaveBeenCalledWith('page-1', expect.any(File), false);
+    fireEvent.click(screen.getByTestId('split-confirm-btn'));
+
+    await waitFor(() => expect(uploadArtworkSpy).toHaveBeenCalledTimes(1));
+    // Lần tải duy nhất là ảnh của khung (có panelId), không có ảnh cả trang
+    expect(uploadArtworkSpy.mock.calls[0][6]).toBe('22222222-2222-2222-2222-222222222222');
+  });
+
   it('cắt tranh theo từng panel và upload lên R2 khi có chapterId', async () => {
     const uploadArtworkSpy = vi.mocked(artworkService.uploadArtwork);
     uploadArtworkSpy.mockResolvedValue({ id: 'uploaded-art-1' } as never);

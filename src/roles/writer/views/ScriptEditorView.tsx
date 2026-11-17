@@ -830,6 +830,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           console.error('Lỗi làm mới kịch bản sau khi lưu:', refreshErr);
         }
       } catch (err: any) {
+        // 409 do kịch bản bỏ bớt trang còn việc / ô lưới: hiện đúng lý do của BE, không phải lỗi sửa đồng thời.
+        if (err?.message?.startsWith('Không thể xoá')) {
+          notify(t('scriptStudio.save.deleteBlocked', 'Không xoá được trang'), err.message);
+          return;
+        }
         if (
           err?.status === 409 ||
           err?.code === 'CONFLICT' ||
@@ -2378,7 +2383,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       )}
                     </span>
                     <span className='text-[11px] text-indigo-700 font-medium'>
-                      Đã chuyển giao cho Artist dựng Thumbnail &amp; Layout
+                      Đã chuyển giao cho Artist phác thảo (Pencil) &amp; bố cục khung
                     </span>
                   </div>
                   <p className='text-[11px] text-indigo-800/80 mt-0.5'>

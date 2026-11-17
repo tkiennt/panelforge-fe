@@ -10,8 +10,9 @@ vi.mock('@/services/chapter.service', () => ({
   },
 }));
 
-vi.mock('@/shared/features/pipeline-board/ProductionBoard', () => ({
-  ProductionBoard: ({
+// Đã chọn chương thì chỉ còn Lưới Trang × Công đoạn
+vi.mock('@/shared/features/pipeline-board/TaskGridBoard', () => ({
+  TaskGridBoard: ({
     chapterId,
     refreshKey,
     isProducer,

@@ -1,4 +1,4 @@
-export type StageType = 'thumbnail' | 'pencil' | 'ink' | 'color' | 'letter' | 'review' | 'done';
+export type StageType = 'pencil' | 'ink' | 'color' | 'letter' | 'review' | 'done';
 
 export interface ArtworkVersion {
   id: string;

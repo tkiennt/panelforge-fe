@@ -39,7 +39,12 @@ function extractError(error: any, defaultMsg: string): any {
   const message = error.response?.data?.error || error.response?.data?.message || defaultMsg;
   const err: any = new Error(message);
   err.code =
-    error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+    error.response?.data?.code ||
+    (error.response?.status === 403
+      ? 'FORBIDDEN'
+      : error.response?.status === 409
+        ? 'CONFLICT'
+        : undefined);
   err.status = error.response?.status;
   return err;
 }

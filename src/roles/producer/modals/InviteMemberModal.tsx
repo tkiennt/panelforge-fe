@@ -113,6 +113,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
       onShowToast('Cập nhật vai trò', `Đã đổi vai trò của ${email} sang ${newRole}.`);
     } catch (err: any) {
       onShowToast('Lỗi cập nhật', err?.message || 'Không thể cập nhật vai trò.');
+      throw err;
     }
   };
 

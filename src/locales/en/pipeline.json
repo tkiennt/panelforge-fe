@@ -39,14 +39,7 @@
   },
   "board": {
     "overdueOnly": "Overdue only",
-    "clearFilters": "Clear filters",
-    "groupBy": "Group by",
-    "viewMode": "View mode",
-    "loadingTasks": "Loading tasks…",
-    "refreshing": "Refreshing…",
-    "quickFilterAria": "Quick filter by status",
-    "showingTasks": "Showing {count} / {total} chapter tasks",
-    "filtered": "(filtered)"
+    "clearFilters": "Clear filters"
   },
   "modal": {
     "title": "Pipeline Configuration",
@@ -99,6 +92,9 @@
     "toastEnabledTitle": "Stage Enabled",
     "toastDisabledTitle": "Stage Disabled",
     "toastToggleDesc": "Stage \"{name}\" is now {status}.",
+    "toastStatusEnabled": "enabled",
+    "toastStatusDisabled": "disabled",
+    "toastGateMoved": "Approval gate moved to {stages}.",
     "toastUpdateSuccess": "Update Successful",
     "toastUpdateDesc": "Updated stage \"{name}\".",
     "toastAddSuccess": "Stage Added Successfully",
@@ -167,7 +163,9 @@
       "underReview": "UnderReview",
       "approved": "Approved",
       "reworkRequired": "Rework Required"
-    }
+    },
+    "tabAssignments": "Assignment List",
+    "tabTaskGridV3": "Page × Stage Grid (V3)"
   },
   "createAssignmentModal": {
     "headerBadge": "Task Creation",
@@ -274,5 +272,41 @@
     "submitPlanBtn": "Submit Full Chapter Plan",
     "submitBulkBtn": "Bulk Assign ({count} pages)",
     "submitBtn": "Create & Assign Task"
+  },
+  "taskGridV3": {
+    "cancelledCell": "Cancelled",
+    "unassignedCell": "unassigned",
+    "lastDecisionPrefix": "Feedback",
+    "lastDecisionLabel": "Latest review feedback",
+    "reopenReasonPrefix": "Reopened by Producer:",
+    "attemptBadge": "Submission #{count}",
+    "withdrawBtn": "Withdraw",
+    "withdrawSuccessTitle": "Submission withdrawn",
+    "withdrawErrorTitle": "Could not withdraw submission",
+    "underReviewBy": "Being reviewed by {name}",
+    "underReviewByYou": "Locked by you for review",
+    "releaseReviewBtn": "Release review",
+    "forceReleaseReviewBtn": "Force release review",
+    "releaseReviewSuccessTitle": "Review lock released",
+    "reassignBtn": "Reassign",
+    "reassignTitle": "Reassign task cell",
+    "reassignSelectLabel": "New assignee",
+    "reassignConfirmBtn": "Confirm reassign",
+    "reassignSuccessTitle": "Task reassigned",
+    "editLotBtn": "Edit lot",
+    "editLotTitle": "Edit lot brief & due date",
+    "clearDueDateLabel": "Clear due date",
+    "saveLotBtn": "Save lot changes",
+    "updateLotSuccessTitle": "Task lot updated",
+    "layoutLockedInkColor": "Panel layout can only be edited in the Pencil stage",
+    "submitWholeLotCount": "Submit whole lot ({count} cells)",
+    "inputOutdatedBadge": "Input changed",
+    "boardTitle": "Task Grid",
+    "assignedLotsTitle": "Assigned task lots ({count} lots)",
+    "noPagesTitle": "This chapter has no pages yet.",
+    "noPagesDesc": "Pages are created when the Writer splits pages in the Script; once saved, the grid automatically adds cells for each page (Pencil, Ink, Letter…).",
+    "openScriptLink": "Open Script",
+    "noChapterSelectedTitle": "No chapter selected",
+    "noChapterSelectedDesc": "Select a chapter above to view the Task Grid."
   }
 }

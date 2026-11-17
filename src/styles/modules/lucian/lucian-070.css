@@ -132,6 +132,8 @@
 .u070-tx {
   flex: 1;
   min-width: 0;
+  max-height: min(65vh, 440px);
+  overflow-y: auto;
 }
 
 .u070-tx b {
@@ -141,6 +143,8 @@
   letter-spacing: -0.015em;
   color: #0f172a;
   line-height: 1.3;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .dark .u070-tx b {
@@ -155,6 +159,8 @@
   color: #475569;
   line-height: 1.45;
   text-wrap: pretty;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .dark .u070-tx small {

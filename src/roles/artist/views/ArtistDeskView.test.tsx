@@ -651,6 +651,114 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute('data-stage-state', 'current');
   });
 
+  it('Letterer desk opens on the grid cell assigned to the viewer and does not report success when submit is rejected', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 'letterer-1' }));
+    vi.spyOn(pipelineService, 'getSeriesPipeline').mockResolvedValue({
+      id: 'pipe-1',
+      seriesId: 'ser-1',
+      name: 'Quy trình chuẩn',
+      stages: [
+        {
+          id: 'st-pencil',
+          name: 'Pencil',
+          slug: 'pencil',
+          stageOrder: 1,
+          allowedRole: 'Artist',
+          isApprovalGate: false,
+          isInitial: true,
+          isTerminal: false,
+          isEnabled: true,
+        },
+        {
+          id: 'st-ink',
+          name: 'Ink',
+          slug: 'ink',
+          stageOrder: 2,
+          allowedRole: 'Artist',
+          isApprovalGate: false,
+          isInitial: false,
+          isTerminal: false,
+          isEnabled: true,
+        },
+        {
+          id: 'st-letter',
+          name: 'Lettering',
+          slug: 'lettering',
+          stageOrder: 3,
+          allowedRole: 'Letterer',
+          isApprovalGate: true,
+          isInitial: false,
+          isTerminal: true,
+          isEnabled: true,
+        },
+      ],
+      transitions: [],
+    } as any);
+    const cell = (id: string, stage: string, assignee: string, status: string) => ({
+      id,
+      pipelineStageId: stage,
+      pageId: null,
+      status,
+      lotId: `lot-${id}`,
+      assigneeUserId: assignee,
+      isInputOutdated: false,
+      isStartable: true,
+      rowVersion: 1,
+    });
+    vi.spyOn(assignmentService, 'getTaskGrid').mockResolvedValue({
+      chapterId: 'chap-1',
+      stages: [],
+      pages: [],
+      lots: [],
+      tasks: [
+        cell('c-pencil', 'st-pencil', 'artist-1', 'InProgress'),
+        cell('c-letter', 'st-letter', 'letterer-1', 'Assigned'),
+      ],
+    } as any);
+    vi.spyOn(assignmentService, 'startStageTask').mockResolvedValue(undefined as any);
+    const submitSpy = vi
+      .spyOn(assignmentService, 'submitStageTasks')
+      .mockRejectedValue(new Error('Bạn không phải người nhận ô này.'));
+
+    try {
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/letterer?chapterId=chap-1']}>
+          <ToastProvider>
+            <ConfirmProvider>
+              <Routes>
+                <Route
+                  path='/workspaces/:workspaceId/series/:seriesId/letterer'
+                  element={
+                    <ArtistDeskView
+                      workspaceRole='LETTERER'
+                      initialScriptLines={[]}
+                      initialSidebarTab='lettering'
+                    />
+                  }
+                />
+              </Routes>
+            </ConfirmProvider>
+          </ToastProvider>
+        </MemoryRouter>,
+      );
+
+      // Không bị kéo vào ô Pencil của Artist khác: Desk mở đúng ô Letter của người xem.
+      await waitFor(() =>
+        expect(screen.getByTestId('focus-stage-step-2')).toHaveAttribute(
+          'data-stage-state',
+          'current',
+        ),
+      );
+
+      fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
+      expect(await screen.findByText('Không nộp được công đoạn')).toBeInTheDocument();
+      expect(submitSpy).toHaveBeenCalledWith('chap-1', ['c-letter']);
+      expect(screen.queryByTestId('focus-stage-completed-badge')).not.toBeInTheDocument();
+    } finally {
+      localStorage.removeItem('user');
+    }
+  });
+
   it('shows script coverage and blocks Submit Pencil below 100%', async () => {
     vi.spyOn(assignmentService, 'getAssignments').mockResolvedValue([
       {
@@ -1301,6 +1409,567 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         expect(screen.getByAltText('ink-drawing.png')).toBeInTheDocument();
         expect(screen.queryByAltText('pencil-sketch.png')).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('ArtistDeskView - Collapsible Script Reference Sidebar (VIỆC 2)', () => {
+    it('renders collapsible script reference sidebar in line format with line kind labels and highlights lines when a panel is selected', () => {
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/artist'
+              element={<ArtistDeskView workspaceRole='ARTIST' />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      // Right script reference sidebar is open by default
+      const scriptRefSidebar = screen.getByTestId('artist-script-ref-sidebar');
+      expect(scriptRefSidebar).toBeInTheDocument();
+      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveTextContent('[Mô tả cảnh]');
+      expect(screen.getByTestId('artist-script-ref-line-line-2')).toHaveTextContent(
+        '[Thoại · Minh Triết]',
+      );
+
+      // Apply a 3-panel template so panels exist on Page 1
+      fireEvent.click(screen.getByTestId('canva-tab-templates'));
+      fireEvent.click(
+        screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-000000000004'),
+      );
+
+      // Click Panel #2 on the canvas -> highlights lines of Panel #2 (line-3)
+      fireEvent.click(screen.getByTestId('canvas-panel-badge-2'));
+      expect(screen.getByTestId('artist-script-ref-line-line-3')).toHaveAttribute(
+        'data-line-highlighted',
+        'true',
+      );
+      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveAttribute(
+        'data-line-highlighted',
+        'false',
+      );
+
+      // Click "Cả trang" button in script reference sidebar -> clears panel selection
+      fireEvent.click(screen.getByTestId('artist-script-ref-filter-all'));
+      expect(screen.getByTestId('artist-script-ref-line-line-3')).toHaveAttribute(
+        'data-line-highlighted',
+        'false',
+      );
+
+      // Collapse and re-expand the script reference sidebar
+      fireEvent.click(screen.getByTestId('artist-script-ref-toggle'));
+      expect(screen.queryByTestId('artist-script-ref-sidebar')).not.toBeInTheDocument();
+      expect(screen.getByTestId('artist-script-ref-collapsed')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('artist-script-ref-toggle'));
+      expect(screen.getByTestId('artist-script-ref-sidebar')).toBeInTheDocument();
+    });
+  });
+
+  describe('ArtistDeskView - Task Grid V3 Guards (Items A, B, C)', () => {
+    it('Item A: shows exact Backend 409 message when submitStageTasks fails with 409 and keeps stage unchanged', async () => {
+      localStorage.setItem('user', JSON.stringify({ id: 'artist-1' }));
+      const conflictErr: any = new Error('Trang 1: Chưa đủ artwork cho tất cả các khung.');
+      conflictErr.status = 409;
+      conflictErr.code = 'CONFLICT';
+
+      vi.spyOn(assignmentService, 'getTaskGrid').mockResolvedValue({
+        chapterId: 'chap-1',
+        stages: [],
+        pages: [],
+        lots: [],
+        tasks: [
+          {
+            id: 'cell-p1-pencil',
+            pipelineStageId: 'stage-pencil',
+            pageId: null,
+            status: 'InProgress',
+            lotId: 'lot-1',
+            assigneeUserId: 'artist-1',
+            isInputOutdated: false,
+            isStartable: false,
+            rowVersion: 1,
+          },
+        ],
+      } as any);
+      const submitSpy = vi
+        .spyOn(assignmentService, 'submitStageTasks')
+        .mockRejectedValueOnce(conflictErr);
+
+      try {
+        render(
+          <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+            <ToastProvider>
+              <ConfirmProvider>
+                <Routes>
+                  <Route
+                    path='/workspaces/:workspaceId/series/:seriesId/artist'
+                    element={<ArtistDeskView workspaceRole='ARTIST' initialScriptLines={[]} />}
+                  />
+                </Routes>
+              </ConfirmProvider>
+            </ToastProvider>
+          </MemoryRouter>,
+        );
+
+        await waitFor(() => {
+          expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute(
+            'data-stage-state',
+            'current',
+          );
+        });
+
+        fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
+
+        expect(
+          await screen.findByText('Trang 1: Chưa đủ artwork cho tất cả các khung.'),
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Không nộp được công đoạn')).not.toBeInTheDocument();
+        expect(submitSpy).toHaveBeenCalledWith('chap-1', ['cell-p1-pencil']);
+        expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute(
+          'data-stage-state',
+          'current',
+        );
+      } finally {
+        localStorage.removeItem('user');
+      }
+    });
+
+    it('Items B & C: puts editor in read-only mode and disables upload when user does not hold an InProgress/ReworkRequired cell on the page', async () => {
+      localStorage.setItem('user', JSON.stringify({ id: 'artist-1' }));
+      const mockPage1Id = '11111111-1111-1111-1111-111111111111';
+      const mockPage2Id = '11111111-1111-1111-1111-111111111112';
+      const mockPanel1Id = '22222222-2222-2222-2222-222222222221';
+
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        {
+          id: mockPage1Id,
+          chapterId: 'chap-1',
+          pageNumber: 1,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'B5',
+          dpi: 300,
+          elementsCount: 1,
+        },
+        {
+          id: mockPage2Id,
+          chapterId: 'chap-1',
+          pageNumber: 2,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'B5',
+          dpi: 300,
+          elementsCount: 1,
+        },
+      ]);
+
+      vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValue([
+        {
+          id: mockPanel1Id,
+          pageId: mockPage1Id,
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({ normalized: { x: 0, y: 0, w: 100, h: 100 } }),
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+      vi.spyOn(assignmentService, 'getTaskGrid').mockResolvedValue({
+        chapterId: 'chap-1',
+        stages: [],
+        pages: [],
+        lots: [],
+        tasks: [
+          {
+            id: 'cell-p1-pencil',
+            pipelineStageId: 'stage-pencil',
+            pageId: mockPage1Id,
+            status: 'Assigned',
+            lotId: 'lot-1',
+            assigneeUserId: 'artist-1',
+            isInputOutdated: false,
+            isStartable: true,
+            rowVersion: 1,
+          },
+          {
+            id: 'cell-p2-pencil',
+            pipelineStageId: 'stage-pencil',
+            pageId: mockPage2Id,
+            status: 'InProgress',
+            lotId: 'lot-1',
+            assigneeUserId: 'artist-1',
+            isInputOutdated: false,
+            isStartable: false,
+            rowVersion: 1,
+          },
+        ],
+      } as any);
+
+      try {
+        render(
+          <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+            <ToastProvider>
+              <ConfirmProvider>
+                <Routes>
+                  <Route
+                    path='/workspaces/:workspaceId/series/:seriesId/artist'
+                    element={<ArtistDeskView workspaceRole='ARTIST' initialScriptLines={[]} />}
+                  />
+                </Routes>
+              </ConfirmProvider>
+            </ToastProvider>
+          </MemoryRouter>,
+        );
+
+        // Page 1 has status Assigned (not InProgress/ReworkRequired) -> read-only banner & disabled upload dropzone
+        await waitFor(() => {
+          expect(screen.getByTestId('artist-page-readonly-banner')).toBeInTheDocument();
+        });
+        expect(screen.getByTestId('panel-dropzone-1')).toBeDisabled();
+        expect(screen.getByTestId('btn-open-templates-simple')).toBeDisabled();
+
+        // Switch to Page 2 (status InProgress) -> editable & upload enabled
+        const card2 = screen.getByTestId('canva-page-card-2');
+        fireEvent.click(card2.querySelector('[role="button"]')!);
+
+        await waitFor(() => {
+          expect(screen.queryByTestId('artist-page-readonly-banner')).not.toBeInTheDocument();
+        });
+        expect(screen.getByTestId('panel-dropzone-1')).not.toBeDisabled();
+      } finally {
+        localStorage.removeItem('user');
+      }
+    });
+
+    it('Items B & C: shows exact toast on 403 when saving layout or uploading artwork', async () => {
+      const mockPageId = '11111111-1111-1111-1111-111111111111';
+      const mockPanel1Id = '22222222-2222-2222-2222-222222222221';
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        {
+          id: mockPageId,
+          chapterId: 'chap-1',
+          pageNumber: 1,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'B5',
+          dpi: 300,
+          elementsCount: 1,
+        },
+      ]);
+      vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValue([
+        {
+          id: mockPanel1Id,
+          pageId: mockPageId,
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({ normalized: { x: 0, y: 0, w: 100, h: 100 } }),
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+
+      const forbiddenUploadErr: any = new Error(
+        'Chỉ người giữ ô đang mở mới được tải artwork lên trang này.',
+      );
+      forbiddenUploadErr.status = 403;
+      forbiddenUploadErr.code = 'FORBIDDEN';
+      vi.spyOn(artworkService, 'uploadArtwork').mockRejectedValueOnce(forbiddenUploadErr);
+
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+          <ToastProvider>
+            <ConfirmProvider>
+              <Routes>
+                <Route
+                  path='/workspaces/:workspaceId/series/:seriesId/artist'
+                  element={<ArtistDeskView workspaceRole='ARTIST' initialScriptLines={[]} />}
+                />
+              </Routes>
+            </ConfirmProvider>
+          </ToastProvider>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('panel-dropzone-1')).toBeInTheDocument();
+      });
+
+      const mockFile = new File(['image byte content'], 'forbidden.png', { type: 'image/png' });
+      fireEvent.drop(screen.getByTestId('panel-dropzone-1'), {
+        dataTransfer: { files: [mockFile] },
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Chỉ người giữ ô đang mở mới được tải artwork lên trang này.'),
+        ).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Đã nạp tranh vào ô')).not.toBeInTheDocument();
+    });
+
+    it('Item C: shows Rút bài button on ArtistDeskView when cell is Submitted, refetches grid after withdraw, and surfaces 409 error', async () => {
+      localStorage.setItem('user', JSON.stringify({ id: 'artist-1' }));
+      const mockPage1Id = '11111111-1111-1111-1111-111111111111';
+
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        {
+          id: mockPage1Id,
+          chapterId: 'chap-1',
+          pageNumber: 1,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'B5',
+          dpi: 300,
+          elementsCount: 1,
+        },
+      ]);
+      vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValue([]);
+      vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+
+      const getGridSpy = vi
+        .spyOn(assignmentService, 'getTaskGrid')
+        .mockResolvedValueOnce({
+          chapterId: 'chap-1',
+          stages: [],
+          pages: [{ id: mockPage1Id, pageNumber: 1 }],
+          lots: [],
+          tasks: [
+            {
+              id: 'cell-p1-pencil',
+              pipelineStageId: 'stage-pencil',
+              pageId: mockPage1Id,
+              status: 'Submitted',
+              lotId: 'lot-1',
+              assigneeUserId: 'artist-1',
+              isInputOutdated: false,
+              isStartable: false,
+            },
+          ],
+        } as any)
+        .mockResolvedValueOnce({
+          chapterId: 'chap-1',
+          stages: [],
+          pages: [{ id: mockPage1Id, pageNumber: 1 }],
+          lots: [],
+          tasks: [
+            {
+              id: 'cell-p1-pencil',
+              pipelineStageId: 'stage-pencil',
+              pageId: mockPage1Id,
+              status: 'Submitted',
+              lotId: 'lot-1',
+              assigneeUserId: 'artist-1',
+              isInputOutdated: false,
+              isStartable: false,
+            },
+          ],
+        } as any)
+        .mockResolvedValueOnce({
+          chapterId: 'chap-1',
+          stages: [],
+          pages: [{ id: mockPage1Id, pageNumber: 1 }],
+          lots: [],
+          tasks: [
+            {
+              id: 'cell-p1-pencil',
+              pipelineStageId: 'stage-pencil',
+              pageId: mockPage1Id,
+              status: 'InProgress',
+              lotId: 'lot-1',
+              assigneeUserId: 'artist-1',
+              isInputOutdated: false,
+              isStartable: false,
+            },
+          ],
+        } as any);
+
+      const conflict409 = Object.assign(
+        new Error('Ô đang được Editor mở duyệt, không thể rút bài.'),
+        { status: 409 },
+      );
+      const withdrawSpy = vi
+        .spyOn(assignmentService, 'withdrawStageTask')
+        .mockRejectedValueOnce(conflict409)
+        .mockResolvedValueOnce({
+          id: 'cell-p1-pencil',
+          pipelineStageId: 'stage-pencil',
+          pageId: mockPage1Id,
+          status: 'InProgress',
+        } as any);
+
+      try {
+        render(
+          <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+            <ToastProvider>
+              <ConfirmProvider>
+                <Routes>
+                  <Route
+                    path='/workspaces/:workspaceId/series/:seriesId/artist'
+                    element={<ArtistDeskView workspaceRole='ARTIST' initialScriptLines={[]} />}
+                  />
+                </Routes>
+              </ConfirmProvider>
+            </ToastProvider>
+          </MemoryRouter>,
+        );
+
+        const withdrawBtn = await screen.findByTestId('artist-withdraw-btn');
+        expect(withdrawBtn).toHaveTextContent('Rút bài');
+
+        // Lần 1: 409 -> báo đúng message Backend, không báo thành công giả, tải lại lưới
+        fireEvent.click(withdrawBtn);
+        expect(
+          await screen.findByText('Ô đang được Editor mở duyệt, không thể rút bài.'),
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Đã rút bài')).not.toBeInTheDocument();
+        expect(getGridSpy).toHaveBeenCalledTimes(2);
+
+        // Lần 2: 200 OK -> rút bài thành công, cập nhật ô trực tiếp từ DTO trả về, ẩn nút Rút bài
+        fireEvent.click(screen.getByTestId('artist-withdraw-btn'));
+        await waitFor(() => {
+          expect(withdrawSpy).toHaveBeenCalledWith('chap-1', 'cell-p1-pencil');
+          expect(screen.getByText('Đã rút bài')).toBeInTheDocument();
+        });
+        expect(getGridSpy).toHaveBeenCalledTimes(2);
+        expect(screen.queryByTestId('artist-withdraw-btn')).not.toBeInTheDocument();
+      } finally {
+        localStorage.removeItem('user');
+      }
+    });
+
+    it('Item F: locks panel layout and template actions in Ink and Color stages while keeping artwork upload active', async () => {
+      localStorage.setItem('user', JSON.stringify({ id: 'artist-1' }));
+      const mockPage1Id = '11111111-1111-1111-1111-111111111111';
+      const mockPanel1Id = '22222222-2222-2222-2222-222222222221';
+      const pencilStageId = 'a1111111-1111-1111-1111-111111111111';
+      const inkStageId = 'b2222222-2222-2222-2222-222222222222';
+      const colorStageId = 'd4444444-4444-4444-4444-444444444444';
+      const letterStageId = 'c3333333-3333-3333-3333-333333333333';
+
+      vi.spyOn(pipelineService, 'getSeriesPipeline').mockResolvedValue({
+        id: 'pipe-color',
+        seriesId: 'ser-1',
+        name: 'Color Webtoon',
+        stages: [
+          { id: pencilStageId, stageOrder: 1, name: 'Pencil', slug: 'pencil', isEnabled: true },
+          { id: inkStageId, stageOrder: 2, name: 'Ink', slug: 'ink', isEnabled: true },
+          {
+            id: colorStageId,
+            stageOrder: 3,
+            name: 'Tô màu (Color)',
+            slug: 'color',
+            isEnabled: true,
+          },
+          { id: letterStageId, stageOrder: 4, name: 'Letter', slug: 'lettering', isEnabled: true },
+        ],
+        transitions: [],
+      } as any);
+
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        {
+          id: mockPage1Id,
+          chapterId: 'chap-1',
+          pageNumber: 1,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'B5',
+          dpi: 300,
+          elementsCount: 1,
+        },
+      ]);
+      vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValue([
+        {
+          id: mockPanel1Id,
+          pageId: mockPage1Id,
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({ normalized: { x: 0, y: 0, w: 100, h: 100 } }),
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+      const uploadSpy = vi
+        .spyOn(artworkService, 'uploadArtwork')
+        .mockResolvedValue({ id: 'art-color-1' } as any);
+
+      vi.spyOn(assignmentService, 'getTaskGrid').mockResolvedValue({
+        chapterId: 'chap-1',
+        stages: [
+          { id: pencilStageId, name: 'Pencil', stageOrder: 1, isEnabled: true },
+          { id: inkStageId, name: 'Ink', stageOrder: 2, isEnabled: true },
+          { id: colorStageId, name: 'Tô màu (Color)', stageOrder: 3, isEnabled: true },
+          { id: letterStageId, name: 'Letter', stageOrder: 4, isEnabled: true },
+        ],
+        pages: [{ id: mockPage1Id, pageNumber: 1 }],
+        lots: [],
+        tasks: [
+          {
+            id: 'cell-p1-color',
+            pipelineStageId: colorStageId,
+            pageId: mockPage1Id,
+            status: 'InProgress',
+            lotId: 'lot-color',
+            assigneeUserId: 'artist-1',
+            isInputOutdated: false,
+            isStartable: false,
+          },
+        ],
+      } as any);
+
+      try {
+        render(
+          <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+            <ToastProvider>
+              <ConfirmProvider>
+                <Routes>
+                  <Route
+                    path='/workspaces/:workspaceId/series/:seriesId/artist'
+                    element={<ArtistDeskView workspaceRole='ARTIST' initialScriptLines={[]} />}
+                  />
+                </Routes>
+              </ConfirmProvider>
+            </ToastProvider>
+          </MemoryRouter>,
+        );
+
+        await waitFor(() => {
+          expect(screen.getByTestId('artist-layout-locked-notice')).toHaveTextContent(
+            /Chỉ công đoạn Pencil mới được sửa bố cục khung/i,
+          );
+        });
+
+        // Thao tác bố cục khung bị khoá ở công đoạn Color
+        expect(screen.getByTestId('btn-upload-sketch-simple')).toBeDisabled();
+        expect(screen.getByTestId('btn-open-templates-simple')).toBeDisabled();
+        expect(screen.getByTestId('btn-split-panels-simple')).toBeDisabled();
+        expect(screen.getByTestId('canvas-btn-save-layout')).toBeDisabled();
+        expect(screen.getByTestId('canva-tab-templates')).toBeDisabled();
+
+        // Nạp tranh vào khung vẫn hoạt động bình thường
+        const dropzone = screen.getByTestId('panel-dropzone-1');
+        expect(dropzone).not.toBeDisabled();
+
+        const colorFile = new File(['colored bytes'], 'color-panel1.png', { type: 'image/png' });
+        fireEvent.drop(dropzone, { dataTransfer: { files: [colorFile] } });
+
+        await waitFor(() => {
+          expect(uploadSpy).toHaveBeenCalledWith(
+            'chap-1',
+            mockPage1Id,
+            colorFile,
+            colorStageId,
+            undefined,
+            undefined,
+            mockPanel1Id,
+          );
+          expect(screen.getByAltText('color-panel1.png')).toBeInTheDocument();
+        });
+      } finally {
+        localStorage.removeItem('user');
+      }
     });
   });
 });

@@ -1,6 +1,6 @@
 import type { PipelineStageDto } from '@/services/pipeline.service';
 
-export type ArtistStageKind = 'pencil' | 'ink' | 'lettering' | null;
+export type ArtistStageKind = 'pencil' | 'ink' | 'color' | 'lettering' | null;
 
 type StageLike = Pick<PipelineStageDto, 'slug' | 'name'> & {
   allowedRole?: string | null;
@@ -21,12 +21,14 @@ export function getArtistStageKind(stage?: StageLike | null): ArtistStageKind {
   // Slug là nguồn chính xác nhất. Pencil phải được kiểm tra trước Ink.
   if (slug) {
     if (slug.includes('pencil') || slug.includes('chì')) return 'pencil';
+    if (slug.includes('color') || slug.includes('colour') || slug.includes('màu')) return 'color';
     if (slug.includes('ink') || slug.includes('mực') || slug.includes('nét')) return 'ink';
     if (slug.includes('letter') || slug.includes('thoại')) return 'lettering';
   }
 
   // Fallback theo tên: "Nét chì" phải khớp Pencil trước khi xét "nét" của Ink.
   if (name.includes('pencil') || name.includes('chì')) return 'pencil';
+  if (name.includes('color') || name.includes('colour') || name.includes('màu')) return 'color';
   if (name.includes('ink') || name.includes('mực') || name.includes('nét')) return 'ink';
   if (name.includes('letter') || name.includes('thoại')) return 'lettering';
 

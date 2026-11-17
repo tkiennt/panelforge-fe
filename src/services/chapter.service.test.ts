@@ -117,7 +117,8 @@ describe('chapterService - saveChapterScript & submitChapterScript (SCR-14)', ()
       };
       const mockResult = {
         chapter: { id: 'chap-1', status: 'InProduction' } as any,
-        assignments: [{ id: 'asg-1' } as any],
+        assignments: [],
+        lots: [{ id: 'lot-1', chapterId: 'chap-1', taskIds: ['task-1'] } as any],
       };
       vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockResult });
 

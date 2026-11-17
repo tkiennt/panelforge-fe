@@ -53,6 +53,8 @@ export interface PageArtworkRef {
   id: string;
   versionNumber: number;
   url: string;
+  /** Ảnh chỉ nằm trên máy (blob URL), chưa lưu lên máy chủ: chỉ các khung cắt ra mới được tải lên. */
+  isLocal?: boolean;
 }
 
 interface WorkflowProps {
@@ -153,7 +155,7 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
       ) : artwork ? (
         <div className='flex flex-wrap items-center gap-2'>
           <span className='text-[11px] font-mono font-bold text-[#C2410C] bg-white border border-[#D8D2C5] rounded px-1.5 py-0.5'>
-            Artwork v{artwork.versionNumber}
+            {artwork.isLocal ? 'Ảnh trên máy · chưa lưu' : `Artwork v${artwork.versionNumber}`}
           </span>
           {canEdit && (
             <button
@@ -163,7 +165,8 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
               data-testid='workflow-new-version-btn'
               className='px-2.5 py-1 text-xs font-semibold rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#F3F0E9] text-[#1C1917] flex items-center gap-1 cursor-pointer disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[#F97316]'
             >
-              <Upload className='w-3 h-3' aria-hidden /> Tải phiên bản mới
+              <Upload className='w-3 h-3' aria-hidden />{' '}
+              {artwork.isLocal ? 'Đổi ảnh' : 'Tải phiên bản mới'}
             </button>
           )}
           <button
@@ -668,8 +671,18 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
               undefined,
               panel.id,
             );
-          } catch (cropErr) {
+          } catch (cropErr: any) {
             failedCrops += 1;
+            const cropStatus = cropErr?.status ?? cropErr?.response?.status;
+            if (cropStatus === 403 || cropErr?.code === 'FORBIDDEN') {
+              const forbiddenMsg =
+                cropErr?.response?.data?.message ||
+                cropErr?.response?.data?.error ||
+                cropErr?.message;
+              if (forbiddenMsg) {
+                setError(forbiddenMsg);
+              }
+            }
             console.warn(`Lỗi cắt/tải ảnh cho khung ${next}:`, cropErr);
           }
         }
@@ -702,18 +715,27 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
       setSaveMsg(`Đã lưu ${savedPanels} panel vào trang ${page.pageNumber}.`);
       if (failedCrops > 0) {
         setError(
-          `${failedCrops} khung chưa có tranh (cắt hoặc tải ảnh lỗi). Hãy nạp tranh cho các khung đó ở bàn vẽ.`,
+          (prev) =>
+            prev ||
+            `${failedCrops} khung chưa có tranh (cắt hoặc tải ảnh lỗi). Hãy nạp tranh cho các khung đó ở bàn vẽ.`,
         );
       }
       await onApplied();
     } catch (err: unknown) {
-      const e = err as { status?: number; message?: string; response?: { status?: number } };
+      const e = err as {
+        status?: number;
+        code?: string;
+        message?: string;
+        response?: { status?: number };
+      };
       const status = e.status ?? e.response?.status;
       const done = `Đã lưu ${savedPanels} panel trước khi lỗi.`;
       setError(
-        status === 409
-          ? `Dữ liệu trang vừa thay đổi ở nơi khác (409). ${done} Hãy đóng hộp này, tải lại trang và rà soát phiên bản trước khi lưu tiếp.`
-          : `${e.message || 'Lưu thất bại.'} ${done}`,
+        status === 403 || e.code === 'FORBIDDEN'
+          ? 'Bạn không có ô đang mở cho trang này'
+          : status === 409
+            ? `Dữ liệu trang vừa thay đổi ở nơi khác (409). ${done} Hãy đóng hộp này, tải lại trang và rà soát phiên bản trước khi lưu tiếp.`
+            : `${e.message || 'Lưu thất bại.'} ${done}`,
       );
       if (savedPanels + savedBubbles > 0) await onApplied();
     } finally {
@@ -854,7 +876,10 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
         <div className='flex items-center justify-between w-full'>
           <div className='min-w-0'>
             <h2 id='split-review-title' className='text-sm font-bold text-[#1C1917]'>
-              Nhận diện panel — Trang {page.pageNumber}, artwork v{artwork.versionNumber}
+              Nhận diện panel — Trang {page.pageNumber},{' '}
+              {artwork.isLocal
+                ? 'ảnh trên máy (chỉ lưu các khung đã cắt)'
+                : `artwork v${artwork.versionNumber}`}
             </h2>
           </div>
           <button

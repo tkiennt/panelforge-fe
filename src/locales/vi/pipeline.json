@@ -39,14 +39,7 @@
   },
   "board": {
     "overdueOnly": "Chỉ việc quá hạn",
-    "clearFilters": "Xoá bộ lọc",
-    "groupBy": "Nhóm theo",
-    "viewMode": "Cách xem",
-    "loadingTasks": "Đang tải công việc…",
-    "refreshing": "Đang làm mới…",
-    "quickFilterAria": "Lọc nhanh theo trạng thái",
-    "showingTasks": "Đang hiển thị {count} / {total} công việc của chương",
-    "filtered": "(đã lọc)"
+    "clearFilters": "Xoá bộ lọc"
   },
   "modal": {
     "title": "Cấu hình Quy trình sản xuất",
@@ -99,6 +92,9 @@
     "toastEnabledTitle": "Đã bật công đoạn",
     "toastDisabledTitle": "Đã tắt công đoạn",
     "toastToggleDesc": "Công đoạn \"{name}\" hiện đã {status}.",
+    "toastStatusEnabled": "được bật",
+    "toastStatusDisabled": "tắt",
+    "toastGateMoved": "Cổng duyệt đã chuyển sang {stages}.",
     "toastUpdateSuccess": "Cập nhật thành công",
     "toastUpdateDesc": "Đã cập nhật công đoạn \"{name}\".",
     "toastAddSuccess": "Thêm công đoạn thành công",
@@ -167,7 +163,9 @@
       "underReview": "Đang duyệt (UnderReview)",
       "approved": "Đã duyệt (Approved)",
       "reworkRequired": "Cần sửa lại (Rework)"
-    }
+    },
+    "tabAssignments": "Danh sách phân công",
+    "tabTaskGridV3": "Lưới Trang × Công đoạn (V3)"
   },
   "createAssignmentModal": {
     "headerBadge": "Khởi tạo công việc",
@@ -274,5 +272,41 @@
     "submitPlanBtn": "Giao Kế Hoạch Toàn Chương",
     "submitBulkBtn": "Giao việc hàng loạt ({count} trang)",
     "submitBtn": "Tạo & Giao Việc"
+  },
+  "taskGridV3": {
+    "cancelledCell": "Đã huỷ",
+    "unassignedCell": "chưa giao",
+    "lastDecisionPrefix": "Nhận xét",
+    "lastDecisionLabel": "Nhận xét lần duyệt gần nhất",
+    "reopenReasonPrefix": "Producer mở lại:",
+    "attemptBadge": "Lần nộp #{count}",
+    "withdrawBtn": "Rút bài",
+    "withdrawSuccessTitle": "Đã rút bài",
+    "withdrawErrorTitle": "Không thể rút bài",
+    "underReviewBy": "Đang được duyệt bởi {name}",
+    "underReviewByYou": "Bạn đang giữ khoá duyệt",
+    "releaseReviewBtn": "Nhả khoá duyệt",
+    "forceReleaseReviewBtn": "Gỡ khoá duyệt",
+    "releaseReviewSuccessTitle": "Đã nhả khoá duyệt",
+    "reassignBtn": "Đổi người",
+    "reassignTitle": "Đổi người nhận ô việc",
+    "reassignSelectLabel": "Người nhận mới",
+    "reassignConfirmBtn": "Xác nhận đổi người",
+    "reassignSuccessTitle": "Đã đổi người nhận",
+    "editLotBtn": "Sửa lô",
+    "editLotTitle": "Sửa hạn & ghi chú lô",
+    "clearDueDateLabel": "Xoá hạn hoàn thành",
+    "saveLotBtn": "Lưu thay đổi lô",
+    "updateLotSuccessTitle": "Đã cập nhật lô công việc",
+    "layoutLockedInkColor": "Chỉ công đoạn Pencil mới được sửa bố cục khung",
+    "submitWholeLotCount": "Nộp cả lô ({count} ô)",
+    "inputOutdatedBadge": "Đầu vào đã đổi",
+    "boardTitle": "Lưới Giao Việc",
+    "assignedLotsTitle": "Lô công việc đã giao ({count} lô)",
+    "noPagesTitle": "Chương chưa có trang nào.",
+    "noPagesDesc": "Trang được tạo khi Writer chia trang trong Kịch bản; lưu xong lưới tự thêm ô cho từng trang (Pencil, Ink, Letter…).",
+    "openScriptLink": "Mở Kịch bản",
+    "noChapterSelectedTitle": "Chưa chọn chương",
+    "noChapterSelectedDesc": "Chọn một chương ở phía trên để xem Lưới Giao Việc."
   }
 }

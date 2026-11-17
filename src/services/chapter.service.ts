@@ -3,6 +3,7 @@ import axiosClient from '../api/axiosClient';
 import type { ScriptLineKind, ScriptLineRefInput } from './scriptLine.service';
 import type { AssignmentDto } from './assignment.service';
 import type { ChapterCastBlockerDto } from './chapterCast.service';
+import type { StageTaskLotDto } from '@/types/pipeline';
 
 export interface ScriptTreeCast {
   entryId: string;
@@ -67,7 +68,10 @@ export interface StartChapterProductionRequest {
 
 export interface StartChapterProductionResultDto {
   chapter: ChapterDto;
+  /** Luôn rỗng: Gate 1 giao trên Lưới V3 (xem `lots`). */
   assignments: AssignmentDto[];
+  /** Các lô lưới Gate 1 vừa giao (Pencil + Letterer theo dải trang). */
+  lots: StageTaskLotDto[];
 }
 
 /** D12: vòng đời kịch bản Draft ↔ InReview → Frozen. */
@@ -208,8 +212,11 @@ export type ChapterLockGateCode =
   | 'NOT_IN_PRODUCTION'
   | 'NO_PAGES'
   | 'ASSIGNMENTS_NOT_APPROVED'
+  | 'TASK_GRID_NOT_APPROVED'
   | 'OPEN_CHANGE_REQUESTS'
   | 'BLOCKING_FINDINGS'
+  | 'IMPACT_FLAGS'
+  | 'PAGES_WITHOUT_WORK'
   | 'SCRIPT_NOT_FROZEN'
   | 'PENDING_AI_SUGGESTIONS'
   | string;

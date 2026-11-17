@@ -421,6 +421,22 @@
     "checklist": "Checklist",
     "consistency": "Nhất quán",
     "changeRequests": "Yêu cầu sửa",
-    "returnWork": "Gửi yêu cầu sửa (Trả việc)"
+    "returnWork": "Gửi yêu cầu sửa (Trả việc)",
+    "gate2GridTitle": "Duyệt ô Lưới V3 · Trang {page}",
+    "gate2GridApproveCell": "Duyệt ô",
+    "gate2GridRequestChanges": "Yêu cầu sửa",
+    "gate2GridCommentPlaceholder": "Nhập nhận xét yêu cầu sửa bắt buộc (BR-06)...",
+    "gate2GridConfirmReturn": "Gửi yêu cầu sửa",
+    "gate2GridSubmitChapterReview": "Nộp kết quả Gate 2",
+    "gate2GridSelfReviewLocked": "Không thể tự duyệt ô của mình (BR-06)",
+    "gate2GridLastComment": "Nhận xét duyệt gần nhất",
+    "reopenReasonPrefix": "Producer mở lại:",
+    "openDetailReview": "Mở màn duyệt",
+    "underReviewBy": "Đang được duyệt bởi {name}",
+    "underReviewByYou": "Bạn đang giữ khoá duyệt",
+    "releaseReviewBtn": "Nhả khoá duyệt",
+    "forceReleaseReviewBtn": "Gỡ khoá duyệt",
+    "releaseReviewToast": "Đã nhả khoá duyệt",
+    "inputOutdatedBadge": "Đầu vào đã đổi"
   }
 }
