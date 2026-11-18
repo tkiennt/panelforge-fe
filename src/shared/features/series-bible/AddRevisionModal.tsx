@@ -188,7 +188,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
             existingVariants.find(
               (variant) =>
                 initialVariantLabel &&
-                variant.variantLabel.toLowerCase() === initialVariantLabel.toLowerCase(),
+                (variant.variantLabel || '').toLowerCase() === initialVariantLabel.toLowerCase(),
             ) || existingVariants[0];
           setSelectedExistingVariantKey(matching.variantKey);
           setVariantLabel(matching.variantLabel);

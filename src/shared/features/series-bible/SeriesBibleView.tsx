@@ -36,6 +36,7 @@ import { seriesService } from '@/services/series.service';
 import { AddEntityModal } from './AddEntityModal';
 import {
   BibleEntityDetailModal,
+  getRevisionVariantLabel,
   groupRevisionsIntoVariants,
   type CharacterVariant,
 } from './BibleEntityDetailModal';
@@ -457,7 +458,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     setRevisionVariantLabel(
       isNewVariant
         ? ''
-        : supersede?.variantLabel || rawEntries[entity.id]?.effectiveRevision?.variantLabel || '',
+        : supersede
+          ? getRevisionVariantLabel(supersede)
+          : rawEntries[entity.id]?.effectiveRevision
+            ? getRevisionVariantLabel(rawEntries[entity.id]?.effectiveRevision)
+            : '',
     );
     setExpectedVersionNumber(1);
     setIsArtistConceptSubmit(fromQueue);
@@ -1200,9 +1205,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               {t('bible.view.queueStatusWaiting', 'Chờ nộp Concept Art')}
                             </span>
                           )}
-                          {item.variantLabel ? (
+                          {(item.variantLabel || item.stageName) ? (
                             <span className='text-xs text-stone-600 font-medium'>
-                              · {item.variantLabel}
+                              · {item.variantLabel || item.stageName}
                             </span>
                           ) : null}
                         </div>
@@ -1308,7 +1313,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           type='button'
                           onClick={() => {
                             if (matchedEntity) {
-                              void handleOpenHistory(matchedEntity);
+                              setSelectedEntity(matchedEntity);
                             }
                           }}
                           className='px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors border border-stone-300 flex items-center gap-1'
@@ -1614,10 +1619,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <div>
                           <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors line-clamp-1'>
                             {entity.name}
-                            {effRev?.variantLabel ? (
+                            {(effRev?.variantLabel || effRev?.stageName) ? (
                               <span className='font-sans font-medium text-[#57534E]'>
                                 {' '}
-                                · {effRev.variantLabel}
+                                · {effRev.variantLabel || effRev.stageName}
                               </span>
                             ) : null}
                           </h3>
@@ -1660,10 +1665,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           <span
                             className='font-medium text-[#1C1917] truncate max-w-[150px]'
                             title={
-                              effRev?.variantLabel || t('bible.view.defaultVariant', 'Mặc định')
+                              effRev?.variantLabel ||
+                              effRev?.stageName ||
+                              t('bible.view.defaultVariant', 'Mặc định')
                             }
                           >
-                            {effRev?.variantLabel || t('bible.view.defaultVariant', 'Mặc định')}
+                            {effRev?.variantLabel ||
+                              effRev?.stageName ||
+                              t('bible.view.defaultVariant', 'Mặc định')}
                           </span>
                         </div>
                       </div>
@@ -1863,10 +1872,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           </span>
                           <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
                             {entity.name}
-                            {effRev?.variantLabel ? (
+                            {(effRev?.variantLabel || effRev?.stageName) ? (
                               <span className='font-sans font-medium text-[#57534E]'>
                                 {' '}
-                                · {effRev.variantLabel}
+                                · {effRev.variantLabel || effRev.stageName}
                               </span>
                             ) : null}
                           </h3>
@@ -1924,7 +1933,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     <div className='flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#D8D2C5]/60'>
                       <div className='text-right text-xs text-[#57534E] hidden md:block'>
                         <div className='font-semibold text-[#1C1917] truncate max-w-[140px]'>
-                          {effRev?.variantLabel || t('bible.view.defaultVariant', 'Mặc định')}
+                          {effRev?.variantLabel ||
+                            effRev?.stageName ||
+                            t('bible.view.defaultVariant', 'Mặc định')}
                         </div>
                       </div>
 
@@ -2221,7 +2232,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <div className='flex flex-wrap items-center justify-between gap-2'>
                         <div className='flex items-center gap-2 flex-wrap'>
                           <span className='px-2 py-0.5 rounded bg-stone-900 text-white font-mono text-xs font-bold'>
-                            {rev.variantLabel || `VERSION ${rev.versionNumber}`}
+                            {rev.variantLabel || rev.stageName || `VERSION ${rev.versionNumber}`}
                             {rev.isInitialVersion
                               ? t('bible.view.versionInitial', ' (Khởi tạo)')
                               : ''}

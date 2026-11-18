@@ -613,5 +613,53 @@ describe('SeriesBibleView UX/UI improvements', () => {
       await waitFor(() => expect(screen.getByText('Tần Mục')).toBeDefined());
       expect(screen.queryByTestId('add-bible-entry-btn')).toBeNull();
     });
+
+    it('opens detail workbench without crashing when clicking View Details from Design Queue or card with missing variantLabel', async () => {
+      localStorage.setItem(
+        'activeWorkspace',
+        JSON.stringify({ id: 'ws-1', currentUserRole: 'WRITER', isOwner: false }),
+      );
+      const entryMissingLabel = {
+        ...mockEntries[0],
+        effectiveRevision: {
+          ...mockEntries[0].effectiveRevision!,
+          variantLabel: undefined,
+          stageName: null,
+          reviewStatus: 'Draft',
+          isLocked: false,
+        },
+      };
+      (bibleService.getSeriesBible as any).mockResolvedValue({
+        id: 'bible-1',
+        seriesId: 'series-123',
+        workspaceId: 'ws-1',
+        name: 'Series Bible',
+        version: 1,
+        entries: [entryMissingLabel],
+      });
+      (bibleService as any).getBibleDesignQueue = vi.fn().mockResolvedValue([
+        {
+          entryId: entryMissingLabel.id,
+          seriesId: 'series-123',
+          code: entryMissingLabel.code,
+          name: entryMissingLabel.name,
+          category: 'Character',
+          revisionId: 'rev-1',
+          reviewStatus: 'Draft',
+          stageName: null,
+          updatedAt: '2026-11-18T10:00:00Z',
+        },
+      ]);
+      (bibleService.getEntryHistory as any).mockResolvedValue([
+        entryMissingLabel.effectiveRevision,
+      ]);
+
+      render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+
+      const queueBtn = await screen.findByTestId(`view-concept-history-${entryMissingLabel.id}`);
+      fireEvent.click(queueBtn);
+
+      expect(await screen.findByTestId('bible-entity-workbench')).toBeInTheDocument();
+    });
   });
 });

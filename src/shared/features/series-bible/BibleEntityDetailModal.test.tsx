@@ -797,5 +797,40 @@ describe('BibleEntityDetailModal UX/UI', () => {
         'Bản vẽ đang bị yêu cầu vẽ lại; cần Artist nộp lại concept trước khi duyệt',
       );
     });
+
+    it('không bị lỗi crash khi revision từ backend chỉ có stageName hoặc thiếu variantLabel', async () => {
+      const revWithoutVariantLabel: BibleEntryRevisionDto = {
+        id: 'rev-no-label',
+        bibleEntryId: mockEntityWithImage.id,
+        versionNumber: 1,
+        summary: 'Khởi tạo mục Luffy (Version 1)',
+        snapshotJson: '{}',
+        contentHash: 'hash-luffy',
+        stageName: null,
+        isInitialVersion: true,
+        createdAt: '2026-11-18T10:00:00Z',
+        isLocked: false,
+        reviewStatus: 'Draft',
+      };
+
+      vi.spyOn(bibleService, 'getEntryHistory').mockResolvedValue([revWithoutVariantLabel]);
+
+      const entryWithoutVariantLabel: BibleEntryDto = {
+        ...mockRawEntry,
+        effectiveRevision: revWithoutVariantLabel,
+      };
+
+      render(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          seriesId='ser-1'
+          rawEntry={entryWithoutVariantLabel}
+          latestSavedRevision={revWithoutVariantLabel}
+        />,
+      );
+
+      expect(screen.getByTestId('bible-entity-workbench')).toBeInTheDocument();
+      expect(await screen.findAllByText('Mặc định')).not.toHaveLength(0);
+    });
   });
 });

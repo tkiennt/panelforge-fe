@@ -47,7 +47,8 @@ export interface BibleEntryRevisionDto {
   isLocked?: boolean;
   lockedAt?: string | null;
   lockedById?: string | null;
-  variantLabel: string;
+  variantLabel?: string | null;
+  stageName?: string | null;
   referenceImageUrl?: string | null;
   conceptImageUrl?: string | null;
   events?: BibleRevisionEventDto[] | null;
@@ -507,7 +508,8 @@ export interface BibleDesignQueueItemDto {
   reworkFeedback?: string | null;
   artistUserId?: string | null;
   referenceImageUrl?: string | null;
-  variantLabel: string;
+  variantLabel?: string | null;
+  stageName?: string | null;
   versionNumber?: number;
   createdAt?: string;
   updatedAt: string;

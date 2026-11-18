@@ -175,8 +175,8 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
                   </span>
                   <span className='block font-mono text-xs text-stone-500'>
                     {e.code}
-                    {e.effectiveRevision?.variantLabel
-                      ? ` · ${e.effectiveRevision.variantLabel}`
+                    {e.effectiveRevision?.variantLabel || e.effectiveRevision?.stageName
+                      ? ` · ${e.effectiveRevision.variantLabel || e.effectiveRevision.stageName}`
                       : ''}
                   </span>
                 </span>
@@ -300,7 +300,10 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
                   </p>
                   <h2 className='mt-0.5 text-base font-bold text-stone-900'>{selected.name}</h2>
                   <p className='mt-1 text-xs text-stone-600'>
-                    {[rev.variantLabel, t('bibleReview.version', { version: rev.versionNumber })]
+                    {[
+                      rev.variantLabel || rev.stageName,
+                      t('bibleReview.version', { version: rev.versionNumber }),
+                    ]
                       .filter(Boolean)
                       .join(' · ')}
                   </p>
