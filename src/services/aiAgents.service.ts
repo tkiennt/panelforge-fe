@@ -41,7 +41,7 @@ export function createsScriptVersionOnAccept(kind?: AiSuggestionKind | null): bo
   return !!kind && SCRIPT_VERSION_AI_KINDS.includes(kind);
 }
 export type ContentRevisionKind = 'Script' | 'Layout' | 'ImagePrompt';
-export type ReadingDirection = 'LeftToRight' | 'RightToLeft';
+export type ReadingDirection = 'LeftToRight' | 'RightToLeft' | 'Vertical';
 /** Nhiệm vụ = loại workflow. Run tạo trước khi có loại workflow được BE trả là FullScene. */
 export type AiWorkflowType =
   | 'FullScene'

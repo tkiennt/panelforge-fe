@@ -1138,14 +1138,20 @@ describe('AiAssistPanel (Storyboard & Layout)', () => {
     expect(screen.getByTestId('ai-storyboard')).toBeInTheDocument();
   });
 
-  it('gửi đúng readingDirection = "Vertical" khi Series Vertical (chuỗi "Vertical" hoặc mã số 2)', async () => {
-    expect(toAiReadingDirection('Vertical')).toBe('Vertical');
+  it('chuẩn hoá đúng readingDirection theo enum Backend (RightToLeft=0, LeftToRight=1, Vertical=2) và gửi đúng khi chạy workflow', async () => {
+    expect(toAiReadingDirection(0)).toBe('RightToLeft');
+    expect(toAiReadingDirection('0')).toBe('RightToLeft');
+    expect(toAiReadingDirection('RightToLeft')).toBe('RightToLeft');
+    expect(toAiReadingDirection(1)).toBe('LeftToRight');
+    expect(toAiReadingDirection('1')).toBe('LeftToRight');
+    expect(toAiReadingDirection('LeftToRight')).toBe('LeftToRight');
     expect(toAiReadingDirection(2)).toBe('Vertical');
     expect(toAiReadingDirection('2')).toBe('Vertical');
-    expect(toAiReadingDirection('RightToLeft')).toBe('RightToLeft');
-    expect(toAiReadingDirection(1)).toBe('RightToLeft');
-    expect(toAiReadingDirection('LeftToRight')).toBe('LeftToRight');
-    expect(toAiReadingDirection(0)).toBe('LeftToRight');
+    expect(toAiReadingDirection('Vertical')).toBe('Vertical');
+    expect(toAiReadingDirection(null)).toBe('LeftToRight');
+    expect(toAiReadingDirection(undefined)).toBe('LeftToRight');
+    expect(toAiReadingDirection('Unknown')).toBe('LeftToRight');
+    expect(toAiReadingDirection(99)).toBe('LeftToRight');
 
     vi.spyOn(aiAgentsService, 'getSceneRevisions').mockResolvedValue([]);
     const runWorkflow = vi

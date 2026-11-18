@@ -92,6 +92,7 @@ import {
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { AiAssistPanel } from '@/shared/features/ai-agents/AiAssistPanel';
 import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
+import { toAiReadingDirection } from '@/shared/features/ai-agents/aiViewUtils';
 import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
@@ -2122,10 +2123,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     [currentChapter?.id, notify, t],
   );
 
-  const aiReadingDirection =
-    seriesDetail?.readingDirection === 1 || seriesDetail?.readingDirection === 'RightToLeft'
-      ? 'RightToLeft'
-      : 'LeftToRight';
+  const aiReadingDirection = toAiReadingDirection(seriesDetail?.readingDirection);
 
   const reloadScriptWorkingCopy = useCallback(
     (

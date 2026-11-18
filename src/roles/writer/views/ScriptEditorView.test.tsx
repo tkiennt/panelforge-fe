@@ -757,6 +757,94 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       expect(panel).toHaveAttribute('aria-label', 'Trợ lý AI · Phân khung Storyboard');
     });
 
+    it.each([
+      { raw: 0, expected: 'RightToLeft' },
+      { raw: 1, expected: 'LeftToRight' },
+      { raw: 2, expected: 'Vertical' },
+      { raw: 'Vertical', expected: 'Vertical' },
+    ])(
+      'chuyển đúng seriesDetail.readingDirection ($raw -> $expected) vào AiAssistPanel khi chạy workflow',
+      async ({ raw, expected }) => {
+        const user = userEvent.setup();
+        vi.mocked(seriesService.getSeriesById).mockResolvedValueOnce({
+          id: 'se-1',
+          workspaceId: 'ws-1',
+          title: 'Neon Odyssey',
+          storyArc: 'Hành trình vượt qua đêm đen Neo Tokyo.',
+          readingDirection: raw,
+          genre: 'Cyberpunk',
+          format: 'Manga',
+          chaptersCount: 1,
+          createdAt: '2026-10-01',
+          chapters: [],
+        });
+        vi.spyOn(aiAgentsService, 'getWorkflowAvailability').mockResolvedValue({
+          chapterId: 'chap-1',
+          sceneId: 'sc-1',
+          workflows: [
+            {
+              workflowType: 'Storyboard',
+              title: 'AI',
+              description: 'AI',
+              agents: ['Storyboard'],
+              requiredRoles: ['Writer'],
+              resultKinds: ['Layout'],
+              canRun: true,
+              missing: [],
+            },
+          ],
+        });
+        vi.spyOn(aiAgentsService, 'getSceneRevisions').mockResolvedValue([]);
+        vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([]);
+        const runWorkflowSpy = vi.spyOn(aiAgentsService, 'runWorkflow').mockResolvedValueOnce({
+          runId: 'run-dir',
+          status: 'Completed',
+          provider: 'Mock',
+          model: 'm',
+        });
+        vi.spyOn(aiAgentsService, 'getRun').mockResolvedValueOnce({
+          id: 'run-dir',
+          seriesId: 'se-1',
+          chapterId: 'chap-1',
+          sceneId: 'sc-1',
+          requestedByUserId: 'u-1',
+          status: 'Completed',
+          provider: 'Mock',
+          model: 'm',
+          brief: 'Brief test',
+          readingDirection: expected as any,
+          revisionRounds: 0,
+          maxRevisionRounds: 2,
+          baseChapterVersion: 5,
+          bibleRevisionIds: [],
+          createdAt: '2026-10-02T00:00:00Z',
+          lastActivityAtUtc: '2026-10-02T00:00:00Z',
+          steps: [],
+          suggestions: [],
+          workflowType: 'Storyboard',
+        });
+
+        renderView();
+        await screen.findByText(/Họ đang di chuyển/);
+        await user.click(await screen.findByTestId('rail-ai-btn'));
+        await user.click(await screen.findByTestId('open-ai-storyboard-btn'));
+
+        const briefInput = await screen.findByLabelText(/Brief \/ Định hướng phân khung/i);
+        fireEvent.change(briefInput, { target: { value: 'Phân khung cảnh 1' } });
+        await waitFor(() => expect(screen.getByTestId('ai-run-btn')).toBeEnabled());
+        await user.click(screen.getByTestId('ai-run-btn'));
+
+        await waitFor(() => expect(runWorkflowSpy).toHaveBeenCalledTimes(1));
+        expect(runWorkflowSpy).toHaveBeenCalledWith(
+          'se-1',
+          expect.objectContaining({
+            workflowType: 'Storyboard',
+            readingDirection: expected,
+          }),
+        );
+      },
+    );
+
     it('hiển thị chỉ báo "Đã có khung" khi phân cảnh đã có panel', async () => {
       vi.mocked(scriptLineService.getSceneById).mockResolvedValueOnce({
         ...mockSceneDetail,

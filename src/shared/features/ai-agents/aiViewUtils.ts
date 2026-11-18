@@ -9,14 +9,12 @@ import {
   WorkerAgentName,
 } from '@/services/aiAgents.service';
 
-export type AiReadingDirection = ReadingDirection | 'Vertical';
-
-/** Chuẩn hoá hướng đọc của Series (chuỗi hoặc enum số 0/1/2) sang giá trị hợp đồng AI workflow. */
+/** Chuẩn hoá hướng đọc của Series (chuỗi hoặc enum số RightToLeft=0, LeftToRight=1, Vertical=2) sang giá trị hợp đồng AI workflow. */
 export function toAiReadingDirection(
-  direction: AiReadingDirection | number | string | null | undefined,
-): AiReadingDirection {
+  direction: ReadingDirection | number | string | null | undefined,
+): ReadingDirection {
+  if (direction === 'RightToLeft' || direction === 0 || direction === '0') return 'RightToLeft';
   if (direction === 'Vertical' || direction === 2 || direction === '2') return 'Vertical';
-  if (direction === 'RightToLeft' || direction === 1 || direction === '1') return 'RightToLeft';
   return 'LeftToRight';
 }
 
