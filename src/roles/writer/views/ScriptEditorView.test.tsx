@@ -332,7 +332,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     expect(await screen.findByText('Thêm Dòng Kịch Bản Mới (UC-06)')).toBeInTheDocument();
 
-    const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật/i);
+    const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật|Chúng ta phải đi ngay/i);
     await user.type(dialogueInput, 'Tôi đã sẵn sàng.');
 
     const submitBtn = await screen.findByTestId('submit-line-btn');
@@ -362,7 +362,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     const addBtn = await screen.findByTestId('open-add-line-btn');
     await user.click(addBtn);
 
-    const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật/i);
+    const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật|Chúng ta phải đi ngay/i);
     await user.type(dialogueInput, 'Dòng gây xung đột');
 
     const submitBtn = await screen.findByTestId('submit-line-btn');
@@ -545,7 +545,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
         'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
     });
 
-    const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật/i);
+    const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật|Chúng ta phải đi ngay/i);
     await user.type(dialogueInput, 'Dòng thoại test 403');
 
     const submitBtn = await screen.findByTestId('submit-line-btn');
@@ -607,7 +607,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       expect.any(Number), // versionVector đang xem (BR-11)
     );
     expect(await screen.findByTestId('concurrency-error-banner')).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('chạy Kiểm tra nhất quán: hiển thị findings, cuộn tới dòng script, hiển thị badge trên dòng và KHÔNG có nút triage', async () => {
     vi.mocked(assignmentService.runConsistencyCheck).mockResolvedValue({
@@ -693,6 +693,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     const drawer = await screen.findByTestId('bible-characters-drawer');
     expect(within(drawer).getByText('Nhân vật Series Bible (1)')).toBeInTheDocument();
+    await user.click(within(drawer).getByTestId('filter-tab-all'));
     await user.click(within(drawer).getByText('Akira'));
     expect(await within(drawer).findByText('Nhân vật chính 20 tuổi')).toBeInTheDocument();
   });

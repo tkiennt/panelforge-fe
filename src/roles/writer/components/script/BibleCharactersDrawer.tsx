@@ -1,5 +1,5 @@
 // src/roles/writer/components/script/BibleCharactersDrawer.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Layers,
@@ -9,7 +9,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { BibleEntryDto, bibleService } from '@/services/bible.service';
+import { BibleEntryDto } from '@/services/bible.service';
 import {
   ChapterCastDto,
   ChapterCastItemDto,
@@ -23,6 +23,7 @@ export interface BibleCharactersDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   characters: BibleEntryDto[];
+  defaultTab?: 'cast' | 'all' | 'nonCast';
   chapterId?: string;
   seriesId?: string;
   workspaceId?: string;
@@ -45,6 +46,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
   isOpen,
   onClose,
   characters,
+  defaultTab = 'cast',
   chapterId,
   seriesId,
   workspaceId,
@@ -73,9 +75,15 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
   };
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterTab, setFilterTab] = useState<'cast' | 'all' | 'nonCast' | 'stubs'>('all');
+  const [filterTab, setFilterTab] = useState<'cast' | 'all' | 'nonCast'>(defaultTab);
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
   const [actingEntryId, setActingEntryId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFilterTab(defaultTab);
+    }
+  }, [isOpen, defaultTab]);
 
   if (!isOpen) return null;
 
@@ -104,12 +112,11 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
 
   const allCharacters = [...characters, ...stubsNotInBible];
 
-  // Lọc theo search và tab
+  // Lọc theo search và tab (Không cho định nghĩa nhân vật trong màn hình viết script)
   const filtered = allCharacters.filter((char) => {
     const inCast = castEntityIds.has(char.id) || Boolean(char.isStub);
     if (filterTab === 'cast' && !inCast) return false;
     if (filterTab === 'nonCast' && inCast) return false;
-    if (filterTab === 'stubs' && !char.isStub) return false;
 
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
@@ -229,56 +236,6 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
     }
   };
 
-  // Lưu bản nháp (Draft Revision)
-  const handleSaveDraft = async (
-    entryId: string,
-    payload: {
-      name: string;
-      description: string;
-      subtitle?: string;
-      detailsJson?: string;
-      isStub?: boolean;
-    },
-  ) => {
-    if (!seriesId) return;
-    try {
-      if (payload.isStub) {
-        await chapterCastService.defineBibleEntry(seriesId, entryId, {
-          name: payload.name,
-          description: payload.description,
-          subtitle: payload.subtitle,
-          detailsJson: payload.detailsJson,
-        });
-      } else {
-        await bibleService.addRevision(seriesId, entryId, {
-          summary: t('production.cast.draftSummaryDefault', 'Cập nhật đặc tả từ kịch bản'),
-          name: payload.name,
-          description: payload.description,
-          subtitle: payload.subtitle,
-          detailsJson: payload.detailsJson,
-          variantLabel: 'Mặc định',
-        });
-      }
-
-      if (onRefreshBible) await onRefreshBible();
-      if (onRefreshCast) await onRefreshCast();
-
-      if (onShowToast) {
-        onShowToast(
-          t('production.cast.saveDraftSuccess', 'Đã lưu bản nháp Series Bible'),
-          t('production.cast.saveDraftSuccessDesc', 'Đặc tả đã được cập nhật thành phiên bản nháp mới.'),
-        );
-      }
-    } catch (err: any) {
-      if (onShowToast) {
-        onShowToast(
-          t('production.cast.saveDraftFailed', 'Lưu bản nháp thất bại'),
-          err?.message || t('common.errorOccurred', 'Có lỗi xảy ra'),
-        );
-      }
-    }
-  };
-
   return (
     <aside
       data-testid='bible-characters-drawer'
@@ -293,7 +250,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           </div>
           <div className='min-w-0'>
             <h3 className='text-sm font-bold text-stone-900 truncate font-serif'>
-              {t('production.cast.charactersDrawerTitle', 'Nhân vật')}
+              {`${t('production.cast.charactersDrawerTitle', 'Nhân vật Series Bible')} (${allCharacters.length})`}
             </h3>
             <p className='text-xs text-stone-500 truncate'>
               {castEntities.length} {t('production.cast.inChapter', 'Trong chương').toLowerCase()} · {allCharacters.length} {t('production.cast.total', 'tổng số')}
@@ -323,10 +280,11 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
         </div>
       </div>
 
-      {/* Filter Tabs: Đẩy tab Trong chương lên đầu */}
+      {/* Filter Tabs: Thứ tự: Trong chương -> Ngoài chương -> Tất cả */}
       <div className='px-4 pt-3 pb-2 border-b border-stone-200/80 bg-white flex items-center gap-1 overflow-x-auto'>
         <button
           type='button'
+          data-testid='filter-tab-cast'
           onClick={() => setFilterTab('cast')}
           className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
             filterTab === 'cast'
@@ -338,17 +296,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
         </button>
         <button
           type='button'
-          onClick={() => setFilterTab('all')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-            filterTab === 'all'
-              ? 'bg-orange-100 text-orange-900'
-              : 'text-stone-600 hover:bg-stone-100'
-          }`}
-        >
-          {t('production.cast.allFilter', 'Tất cả')} ({allCharacters.length})
-        </button>
-        <button
-          type='button'
+          data-testid='filter-tab-nonCast'
           onClick={() => setFilterTab('nonCast')}
           className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
             filterTab === 'nonCast'
@@ -359,19 +307,18 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           {t('production.cast.outOfChapterFilter', 'Ngoài chương')} (
           {Math.max(0, allCharacters.length - castEntities.length)})
         </button>
-        {stubsNotInBible.length > 0 && (
-          <button
-            type='button'
-            onClick={() => setFilterTab('stubs')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-              filterTab === 'stubs'
-                ? 'bg-amber-100 text-amber-900'
-                : 'text-amber-700 hover:bg-amber-50'
-            }`}
-          >
-            {t('production.cast.stubsFilter', 'Chưa định nghĩa')} ({stubsNotInBible.length})
-          </button>
-        )}
+        <button
+          type='button'
+          data-testid='filter-tab-all'
+          onClick={() => setFilterTab('all')}
+          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+            filterTab === 'all'
+              ? 'bg-orange-100 text-orange-900'
+              : 'text-stone-600 hover:bg-stone-100'
+          }`}
+        >
+          {t('production.cast.allFilter', 'Tất cả')} ({allCharacters.length})
+        </button>
       </div>
 
       {/* Search Input */}
@@ -456,7 +403,6 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
                 workspaceId={effectiveWorkspaceId}
                 seriesId={effectiveSeriesId}
                 isActing={actingEntryId === char.id}
-                onSaveDraft={handleSaveDraft}
                 onChangeRevision={handleRevisionChange}
                 onToggleCrowd={handleToggleCrowd}
                 onCancelReplacement={handleCancelReplacement}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Edit2, Plus, Search, Trash2, X } from 'lucide-react';
 import { SceneDto } from '@/services/scriptLine.service';
 import { useTranslation } from '@/lib/i18n';
+import { parseScenePanelRange } from '../../utils/sceneUtils';
 
 interface ScriptScenesDrawerProps {
   scenes: SceneDto[];
@@ -41,11 +42,15 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
       className='w-[280px] shrink-0 bg-[#FCFBF8] border-r border-stone-200/80 flex flex-col z-20 animate-in slide-in-from-left-2 fade-in duration-150'
     >
       <div className='flex items-center justify-between gap-2 px-4 py-3 border-b border-stone-200/80'>
-        <h2 className='font-serif text-base text-stone-900'>{t('scriptStudio.scenes.title')}</h2>
+        <div>
+          <h2 className='font-serif text-base text-stone-900'>{t('scriptStudio.scenes.title', 'Phân cảnh')}</h2>
+          <p className='text-[11px] text-stone-500'>Ghi chú phân đoạn · Không ảnh hưởng logic</p>
+        </div>
         <div className='flex items-center gap-1'>
           {canEdit && (
             <button
               type='button'
+              data-testid='add-scene-btn'
               onClick={onAdd}
               title={t('scriptStudio.scenes.add')}
               aria-label={t('scriptStudio.scenes.add')}
@@ -98,6 +103,7 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
         ) : (
           visible.map((s) => {
             const isSelected = s.id === selectedSceneId;
+            const rangeInfo = parseScenePanelRange(s.summary);
             return (
               <li key={s.id}>
                 <div
@@ -121,11 +127,18 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
                       </span>
                     </span>
                     <span className='block font-serif text-[15px] text-stone-900 truncate mt-0.5'>
-                      {s.heading || t('scriptStudio.scenes.untitled')}
+                      {s.heading || t('scriptStudio.scenes.untitled', 'Chưa đặt tên')}
                     </span>
-                    {s.summary && (
-                      <span className='block text-xs text-stone-500 line-clamp-2 mt-0.5'>
-                        {s.summary}
+                    {rangeInfo.fromPanel && rangeInfo.toPanel && (
+                      <span className='inline-flex items-center text-[11px] px-1.5 py-0.5 rounded font-medium bg-orange-100 text-orange-800 border border-orange-200/70 mt-1'>
+                        {rangeInfo.fromPanel === rangeInfo.toPanel
+                          ? `Panel ${rangeInfo.fromPanel}`
+                          : `Từ Panel ${rangeInfo.fromPanel} đến Panel ${rangeInfo.toPanel}`}
+                      </span>
+                    )}
+                    {rangeInfo.cleanSummary && (
+                      <span className='block text-xs text-stone-500 line-clamp-2 mt-1'>
+                        {rangeInfo.cleanSummary}
                       </span>
                     )}
                   </button>
@@ -138,18 +151,16 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
                         onClick={onRenameSelected}
                         className='inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-stone-600 hover:text-stone-900 hover:bg-white cursor-pointer'
                       >
-                        <Edit2 className='w-3.5 h-3.5' /> {t('scriptStudio.scenes.rename')}
+                        <Edit2 className='w-3.5 h-3.5' /> {t('scriptStudio.scenes.rename', 'Sửa')}
                       </button>
-                      {scenes.length > 1 && (
-                        <button
-                          type='button'
-                          data-testid={`delete-scene-${s.sceneNumber}-btn`}
-                          onClick={() => onDelete(s)}
-                          className='inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-rose-600 hover:bg-rose-50 cursor-pointer'
-                        >
-                          <Trash2 className='w-3.5 h-3.5' /> {t('scriptStudio.scenes.delete')}
-                        </button>
-                      )}
+                      <button
+                        type='button'
+                        data-testid={`delete-scene-${s.sceneNumber}-btn`}
+                        onClick={() => onDelete(s)}
+                        className='inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-rose-600 hover:bg-rose-50 cursor-pointer'
+                      >
+                        <Trash2 className='w-3.5 h-3.5' /> {t('scriptStudio.scenes.delete', 'Xoá')}
+                      </button>
                     </div>
                   )}
                 </div>
