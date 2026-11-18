@@ -179,11 +179,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   const [editLotDueDate, setEditLotDueDate] = useState('');
   const [editLotClearDueDate, setEditLotClearDueDate] = useState(false);
 
-  // LỖI 2: Khi đã xác định currentUserRole từ API, phân quyền nghiêm ngặt theo role đó (tránh lộ nút Producer cho Artist/Letterer)
+  // Phân quyền điều phối: Producer và Editor có toàn quyền giao lô, bỏ gán và quản lý lưới việc
   const normalizedUserRole = currentUserRole ? String(currentUserRole).trim().toUpperCase() : '';
   const effectiveIsProducer =
     !isChapterLocked &&
-    (normalizedUserRole ? normalizedUserRole === 'PRODUCER' : Boolean(isProducer));
+    (normalizedUserRole
+      ? normalizedUserRole === 'PRODUCER' || normalizedUserRole === 'EDITOR'
+      : Boolean(isProducer || isEditor));
   const effectiveIsReviewer = normalizedUserRole
     ? normalizedUserRole === 'PRODUCER' || normalizedUserRole === 'EDITOR'
     : Boolean(isProducer || isEditor);
@@ -483,7 +485,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   const handleAssignLots = async (dryRun: boolean) => {
     const lots = buildLotRequests();
     if (lots.length === 0) {
-      setError('Vui lòng chọn ít nhất 1 ô Chưa giao và 1 thành viên nhận việc.');
+      setError('Chọn ít nhất 1 ô Chưa giao và 1 thành viên.');
       return;
     }
     setActionLoading(dryRun ? 'dryRun' : 'assignLots');
@@ -734,7 +736,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
   const handleReassignTask = async (task: StageTaskDto, stage: TaskGridStageDto) => {
     if (!reassignUserId) {
-      setError('Vui lòng chọn thành viên nhận việc mới.');
+      setError('Chọn thành viên nhận việc mới.');
       return;
     }
     setActionLoading(`reassign:${task.id}`);
@@ -820,7 +822,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   const handleRequestChanges = async (task: StageTaskDto) => {
     const trimmed = requestChangesComment.trim();
     if (!trimmed) {
-      setError('Vui lòng nhập nhận xét yêu cầu sửa (bắt buộc theo BR-06).');
+      setError('Nhập nhận xét yêu cầu sửa đổi.');
       return;
     }
     setActionLoading(`requestChanges:${task.id}`);
@@ -991,7 +993,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   const handleReopenTask = async (task: StageTaskDto) => {
     const trimmed = reopenReason.trim();
     if (!trimmed) {
-      setError('Vui lòng nhập lý do mở lại ô công việc.');
+      setError('Nhập lý do mở lại công việc.');
       return;
     }
     setActionLoading(`reopen:${task.id}`);

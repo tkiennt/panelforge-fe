@@ -456,7 +456,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='dashboard'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={['PRODUCER', 'ADMINISTRATOR']}
+                      allowedRoles={['PRODUCER', 'EDITOR', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
