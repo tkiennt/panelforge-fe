@@ -550,37 +550,39 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
           )}
 
           {/* Writer Chapter Cast Controls (Revision selector, crowd, cancel replacement) */}
-          {canEditScript && availableRevs.length > 0 && onChangeRevision && (
+          {canEditScript && (availableRevs.length > 0 || onToggleCrowd) && (
             <div className='pt-1 border-t border-stone-100 space-y-2'>
               {/* Revision Selector */}
-              <div>
-                <label className='text-xs text-stone-500 font-medium block mb-1'>
-                  {t('production.cast.changeChapterRevision', 'Đổi bản tạo hình chương:')}
-                </label>
-                <select
-                  disabled={isActing}
-                  value={entity.chosenByWriter && boundRev ? boundRev.revisionId : '__INHERITED__'}
-                  onChange={(e) => onChangeRevision(entity.id, e.target.value)}
-                  className='w-full p-1.5 text-xs bg-white border border-stone-200 rounded-lg outline-none focus:border-orange-500 text-stone-800 font-medium disabled:opacity-60 cursor-pointer'
-                >
-                  <option value='__INHERITED__'>
-                    {entity.inheritedFromChapterNumber
-                      ? t(
-                          'production.cast.autoInheritFrom',
-                          { number: entity.inheritedFromChapterNumber },
-                          `Kế thừa tự động (từ Ch. ${entity.inheritedFromChapterNumber})`,
-                        )
-                      : t('production.cast.autoInheritDefault', 'Kế thừa tự động (bản mặc định)')}
-                  </option>
-                  {availableRevs.map((rev) => (
-                    <option key={rev.revisionId} value={rev.revisionId}>
-                      v{rev.versionNumber} ·{' '}
-                      {rev.variantLabel || t('production.cast.defaultVariant', 'Mặc định')} (
-                      {rev.isCanonLocked ? 'CanonLocked' : rev.status})
+              {availableRevs.length > 0 && onChangeRevision && (
+                <div>
+                  <label className='text-xs text-stone-500 font-medium block mb-1'>
+                    {t('production.cast.changeChapterRevision', 'Đổi bản tạo hình chương:')}
+                  </label>
+                  <select
+                    disabled={isActing}
+                    value={entity.chosenByWriter && boundRev ? boundRev.revisionId : '__INHERITED__'}
+                    onChange={(e) => onChangeRevision(entity.id, e.target.value)}
+                    className='w-full p-1.5 text-xs bg-white border border-stone-200 rounded-lg outline-none focus:border-orange-500 text-stone-800 font-medium disabled:opacity-60 cursor-pointer'
+                  >
+                    <option value='__INHERITED__'>
+                      {entity.inheritedFromChapterNumber
+                        ? t(
+                            'production.cast.autoInheritFrom',
+                            { number: entity.inheritedFromChapterNumber },
+                            `Kế thừa tự động (từ Ch. ${entity.inheritedFromChapterNumber})`,
+                          )
+                        : t('production.cast.autoInheritDefault', 'Kế thừa tự động (bản mặc định)')}
                     </option>
-                  ))}
-                </select>
-              </div>
+                    {availableRevs.map((rev) => (
+                      <option key={rev.revisionId} value={rev.revisionId}>
+                        v{rev.versionNumber} ·{' '}
+                        {rev.variantLabel || t('production.cast.defaultVariant', 'Mặc định')} (
+                        {rev.isCanonLocked ? 'CanonLocked' : rev.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Action buttons bar */}
               <div className='flex items-center justify-between gap-1.5 flex-wrap pt-1'>

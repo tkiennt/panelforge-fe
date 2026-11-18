@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   BookOpen,
   Search,
@@ -23,6 +24,7 @@ import {
   Palette,
   ShieldCheck,
   MessageSquare,
+  Users,
 } from 'lucide-react';
 import { BibleEntity, MangaProject, normalizeWorkspaceRole } from '@/types';
 import {
@@ -129,13 +131,21 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 }) => {
   const confirm = useConfirm();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const [localEntities, setLocalEntities] = useState<BibleEntity[]>(entities);
   const [rawEntries, setRawEntries] = useState<Record<string, BibleEntryDto>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Filter & Search states
-  const [activeTab, setActiveTab] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'review') return 'review';
+    if (tabParam && ['characters', 'locations', 'terminology', 'style', 'all'].includes(tabParam)) {
+      return tabParam;
+    }
+    return 'all';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | BibleReviewStatus>('ALL');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -203,6 +213,24 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       setSelectedSeriesId(activeProject.id);
     }
   }, [activeProject?.id]);
+
+  // Sync tab & entityId from query parameters (e.g. from Editor Desk)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'review') {
+      setActiveTab('review');
+    } else if (
+      tabParam &&
+      ['all', 'characters', 'locations', 'terminology', 'style'].includes(tabParam)
+    ) {
+      setActiveTab(tabParam);
+    }
+    const entityId = searchParams.get('entityId');
+    if (entityId && localEntities.length > 0) {
+      const found = localEntities.find((e) => e.id === entityId);
+      if (found) setSelectedEntity(found);
+    }
+  }, [searchParams, localEntities]);
 
   const effectiveSeries = useMemo(() => {
     if (activeProject && (!selectedSeriesId || activeProject.id === selectedSeriesId)) {
@@ -322,6 +350,42 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       );
     } finally {
       setLockingRevisionId(null);
+    }
+  };
+
+  // Đánh dấu / Bỏ đánh dấu Quần chúng ngay trên thẻ Series Bible (BIB-13)
+  const [togglingCrowdId, setTogglingCrowdId] = useState<string | null>(null);
+  const handleToggleCrowd = async (entity: BibleEntity) => {
+    const seriesId = selectedSeriesId || activeProject?.id;
+    if (!seriesId) return;
+    setTogglingCrowdId(entity.id);
+    const nextCrowd = !entity.isCrowd;
+    try {
+      await bibleService.setBibleEntryCrowd(seriesId, entity.id, nextCrowd);
+      setLocalEntities((prev) =>
+        prev.map((e) => (e.id === entity.id ? { ...e, isCrowd: nextCrowd } : e)),
+      );
+      if (selectedEntity?.id === entity.id) {
+        setSelectedEntity((prev) => (prev ? { ...prev, isCrowd: nextCrowd } : null));
+      }
+      onShowToast(
+        nextCrowd
+          ? t('production.cast.crowdSetSuccess', 'Đã gắn cờ Quần chúng')
+          : t('production.cast.crowdRemovedSuccess', 'Đã bỏ cờ Quần chúng'),
+        nextCrowd
+          ? t(
+              'production.cast.crowdUnblockNotice',
+              'Thực thể này không còn chặn Gửi duyệt hay Bắt đầu sản xuất.',
+            )
+          : `${entity.name} đã được chuyển về thực thể tiêu chuẩn.`,
+      );
+    } catch (err: any) {
+      onShowToast(
+        t('production.cast.crowdUpdateFailed', 'Cập nhật cờ Quần chúng thất bại'),
+        err?.message || 'Không thể cập nhật cờ Quần chúng.',
+      );
+    } finally {
+      setTogglingCrowdId(null);
     }
   };
 
@@ -728,7 +792,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     if (!effectiveSeries?.id) {
       onShowToast(
         t('bible.view.selectSeriesFirstTitle', 'Chưa chọn Series'),
-        t('bible.view.selectSeriesFirstDesc', 'Vui lòng chọn một Series trước khi thêm mục.'),
+        t('bible.view.selectSeriesFirstDesc', 'Chọn Series trước khi thêm mục.'),
       );
       return;
     }
@@ -836,6 +900,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
       all: localEntities.length,
+      review: 0,
       characters: 0,
       locations: 0,
       terminology: 0,
@@ -846,9 +911,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       if (counts[cat] !== undefined) {
         counts[cat]++;
       }
+      const st = rawEntries[item.id]?.effectiveRevision?.reviewStatus;
+      if (st === 'ConceptSubmitted' || st === 'ReworkRequired') {
+        counts.review++;
+      }
     });
     return counts;
-  }, [localEntities]);
+  }, [localEntities, rawEntries]);
 
   // KPI ở header: đếm theo trạng thái phiên bản hiệu lực (spec V2.6 §5.2)
   const bibleStats = useMemo(() => {
@@ -887,7 +956,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   // Filtered entities
   const filteredEntities = useMemo(() => {
     return localEntities.filter((item) => {
-      const matchesTab = activeTab === 'all' || item.category === activeTab;
+      const matchesTab =
+        activeTab === 'all'
+          ? true
+          : activeTab === 'review'
+            ? rawEntries[item.id]?.effectiveRevision?.reviewStatus === 'ConceptSubmitted' ||
+              rawEntries[item.id]?.effectiveRevision?.reviewStatus === 'ReworkRequired'
+            : item.category === activeTab;
       const q = searchQuery.trim().toLowerCase();
       const matchesSearch =
         !q ||
@@ -1564,6 +1639,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                 {t('bible.view.cardReworkRequired', 'Cần vẽ lại')}
                               </span>
                             ) : null}
+                            {entity.isCrowd && (
+                              <span
+                                data-testid={`crowd-badge-${entity.id}`}
+                                className='px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1 shadow-2xs'
+                                title={t('bible.isCrowdHelp', 'Thực thể quần chúng không bắt buộc Model Sheet')}
+                              >
+                                <Users className='w-3 h-3' />
+                                {t('production.cast.crowd', 'Quần chúng')}
+                              </span>
+                            )}
                           </div>
                           <div className='absolute bottom-2 right-2'>
                             <span className='px-1.5 py-0.5 rounded bg-[#FCFBF8]/95 backdrop-blur-xs text-[#57534E] text-xs font-semibold border border-[#D8D2C5] shadow-xs'>
@@ -1620,6 +1705,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                 · {effRev.variantLabel}
                               </span>
                             ) : null}
+                            {entity.isCrowd && (
+                              <span
+                                data-testid={`crowd-badge-${entity.id}`}
+                                className='px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1 shadow-2xs'
+                                title={t('bible.isCrowdHelp', 'Thực thể quần chúng không bắt buộc Model Sheet')}
+                              >
+                                <Users className='w-3 h-3' />
+                                {t('production.cast.crowd', 'Quần chúng')}
+                              </span>
+                            )}
                           </h3>
                           {entity.latestDraftVersionNumber != null && (
                             <span
@@ -1694,6 +1789,38 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         >
                           <History className='w-3 h-3 text-[#78716C]' />
                           <span>{t('bible.view.cardHistory', 'Lịch sử')}</span>
+                        </button>
+
+                        {/* Nút đánh dấu Quần chúng ngay trên thẻ Series Bible */}
+                        <button
+                          type='button'
+                          data-testid={`toggle-crowd-btn-${entity.id}`}
+                          disabled={togglingCrowdId === entity.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleToggleCrowd(entity);
+                          }}
+                          title={
+                            entity.isCrowd
+                              ? t('production.cast.crowdMarked', '✓ Quần chúng (bấm để huỷ)')
+                              : t('production.cast.setCrowd', '+ Đặt Quần chúng')
+                          }
+                          className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-all cursor-pointer shadow-xs ${
+                            entity.isCrowd
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                              : 'bg-[#FCFBF8] border-[#D8D2C5] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
+                          }`}
+                        >
+                          {togglingCrowdId === entity.id ? (
+                            <Loader2 className='w-3 h-3 animate-spin text-[#F97316]' />
+                          ) : (
+                            <Users className={`w-3 h-3 ${entity.isCrowd ? 'text-emerald-600' : 'text-[#78716C]'}`} />
+                          )}
+                          <span>
+                            {entity.isCrowd
+                              ? t('production.cast.crowdMarked', '✓ Quần chúng')
+                              : t('production.cast.setCrowd', '+ Quần chúng')}
+                          </span>
                         </button>
 
                         {/* Quick review actions for Writer/Editor when concept is submitted */}
@@ -1869,6 +1996,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                 · {effRev.variantLabel}
                               </span>
                             ) : null}
+                            {entity.isCrowd && (
+                              <span
+                                data-testid={`crowd-badge-${entity.id}`}
+                                className='px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1 shadow-2xs'
+                                title={t('bible.isCrowdHelp', 'Thực thể quần chúng không bắt buộc Model Sheet')}
+                              >
+                                <Users className='w-3 h-3' />
+                                {t('production.cast.crowd', 'Quần chúng')}
+                              </span>
+                            )}
                           </h3>
                           {entity.latestDraftVersionNumber != null && (
                             <span
@@ -1950,6 +2087,38 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           title={t('bible.view.cardHistory', 'Lịch sử')}
                         >
                           <History className='w-3 h-3 text-[#78716C]' />
+                        </button>
+
+                        {/* Nút đánh dấu Quần chúng ngay trên thẻ Series Bible dạng danh sách */}
+                        <button
+                          type='button'
+                          data-testid={`toggle-crowd-btn-list-${entity.id}`}
+                          disabled={togglingCrowdId === entity.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleToggleCrowd(entity);
+                          }}
+                          title={
+                            entity.isCrowd
+                              ? t('production.cast.crowdMarked', '✓ Quần chúng (bấm để huỷ)')
+                              : t('production.cast.setCrowd', '+ Đặt Quần chúng')
+                          }
+                          className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-all cursor-pointer shadow-xs ${
+                            entity.isCrowd
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                              : 'bg-[#FCFBF8] border-[#D8D2C5] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
+                          }`}
+                        >
+                          {togglingCrowdId === entity.id ? (
+                            <Loader2 className='w-3 h-3 animate-spin text-[#F97316]' />
+                          ) : (
+                            <Users className={`w-3 h-3 ${entity.isCrowd ? 'text-emerald-600' : 'text-[#78716C]'}`} />
+                          )}
+                          <span>
+                            {entity.isCrowd
+                              ? t('production.cast.crowdMarked', '✓ Quần chúng')
+                              : t('production.cast.setCrowd', '+ Quần chúng')}
+                          </span>
                         </button>
 
                         {canRequestRework && effRev?.reviewStatus === 'ConceptSubmitted' && (
@@ -2084,6 +2253,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           isProducer={isProducer}
           isArtist={isArtist}
           isWriter={isWriter}
+          isEditor={isEditor}
           canCreateDraft={canCreateDraft}
           canEndorse={canEndorse}
           canRequestRework={canRequestRework}
@@ -2112,6 +2282,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           onRequestRework={(ent, rev) => handleOpenReworkModal(rev, ent)}
           onConfirmCanon={(rev) => handleConfirmCanon(rev, selectedEntity)}
           onShowToast={onShowToast}
+          onToggleCrowd={handleToggleCrowd}
           onZoomImage={(img) => setSelectedImageZoom(img)}
           onDeleteRevision={(ent, rev) => handleDeleteRevision(ent, rev)}
         />

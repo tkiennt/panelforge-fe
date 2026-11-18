@@ -1,10 +1,14 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { SeriesBibleView } from './SeriesBibleView';
 import { bibleService } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
 import { ConfirmProvider } from '@/shared/context/ConfirmContext';
+
+const render = (ui: React.ReactElement, options?: any) =>
+  rtlRender(ui, { wrapper: MemoryRouter, ...options });
 
 vi.mock('@/services/bible.service', () => ({
   bibleService: {
@@ -21,6 +25,7 @@ vi.mock('@/services/bible.service', () => ({
     addRevision: vi.fn().mockResolvedValue({}),
     getEntryHistory: vi.fn().mockResolvedValue([]),
     getEntryUsages: vi.fn().mockResolvedValue([]),
+    setBibleEntryCrowd: vi.fn().mockResolvedValue({}),
   },
 }));
 
@@ -386,7 +391,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     fireEvent.click(resubmitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Nộp lại bản vẽ Concept Art \(Sửa nộp nhầm\)/i)).toBeDefined();
+      expect(screen.getByText(/Nộp lại bản vẽ Concept Art/i)).toBeDefined();
     });
   });
 
@@ -612,6 +617,48 @@ describe('SeriesBibleView UX/UI improvements', () => {
       render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
       await waitFor(() => expect(screen.getByText('Tần Mục')).toBeDefined());
       expect(screen.queryByTestId('add-bible-entry-btn')).toBeNull();
+    });
+  });
+
+  describe('Crowd (Quần chúng) toggle directly on bible cards', () => {
+    it('allows toggling crowd status directly from the card action button', async () => {
+      render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+      await waitFor(() => expect(screen.getByText('Tần Mục')).toBeDefined());
+
+      const toggleBtn = screen.getByTestId('toggle-crowd-btn-entry-chr-1');
+      expect(toggleBtn).toBeDefined();
+      expect(toggleBtn.textContent).toContain('Quần chúng');
+
+      fireEvent.click(toggleBtn);
+
+      await waitFor(() => {
+        expect(bibleService.setBibleEntryCrowd).toHaveBeenCalledWith(
+          'series-123',
+          'entry-chr-1',
+          true,
+        );
+      });
+    });
+
+    it('displays crowd badge when entity has isCrowd true', async () => {
+      (bibleService.getSeriesBible as any).mockResolvedValueOnce({
+        id: 'bible-1',
+        seriesId: 'series-123',
+        workspaceId: 'ws-1',
+        name: 'Series Bible',
+        version: 1,
+        entries: [
+          {
+            ...mockEntries[0],
+            isCrowd: true,
+          },
+        ],
+      });
+
+      render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+      await waitFor(() => expect(screen.getByText('Tần Mục')).toBeDefined());
+
+      expect(screen.getByText('✓ Quần chúng')).toBeDefined();
     });
   });
 });
