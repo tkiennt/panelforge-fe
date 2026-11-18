@@ -386,3 +386,5 @@ export const elementService = {
     }
   },
 };
+
+export const updateElementTranslation = elementService.updateElementTranslation;

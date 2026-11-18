@@ -4,18 +4,25 @@ import {
   CheckCircle2,
   ChevronDown,
   CircleAlert,
+  Download,
+  Globe,
   Info,
   Link2,
+  Loader2,
   MessageCircle,
   MessageSquare,
   Plus,
+  RefreshCw,
   Volume2,
 } from 'lucide-react';
-import type { ElementSnapshotDto } from '@/services/element.service';
+import { updateElementTranslation, type ElementSnapshotDto } from '@/services/element.service';
+import { translateText } from '@/services/translation.service';
 import { BALLOON_TYPE_LABELS, suggestBalloonType } from '../../utils/letteringScript';
 import type { BalloonType } from '../../hooks/useLetteringBalloons';
 import type { ScriptLineItem } from './ArtistCanvaSidebar';
 import { SpeakerAvatar } from './SpeakerAvatar';
+import { useTranslation } from '@/lib/i18n';
+
 const Avatar: React.FC<{ line: ScriptLineItem; size?: number }> = ({ line, size = 40 }) => (
   <SpeakerAvatar
     name={line.characterName}
@@ -30,11 +37,20 @@ export interface LetteringScriptPanelProps {
   chapterTitle?: string;
   scriptLines: ScriptLineItem[];
   activePageNumber: number;
+  /** ID của trang đang mở. */
+  pageId?: string;
   /** Bóng chữ của trang đang mở. */
   elements: ElementSnapshotDto[];
   selectedElementId: string | null;
   onSelectElementId?: (id: string | null) => void;
   onAddElement?: (type: BalloonType, scriptLine?: ScriptLineItem) => void;
+  /** Callback cập nhật bản dịch bóng thoại (fallback gọi updateElementTranslation). */
+  onUpdateElementTranslation?: (
+    pageId: string,
+    elementId: string,
+    lang: string,
+    text: string,
+  ) => Promise<void> | void;
   /** Dòng script đã có bóng trên toàn chương; thiếu thì chỉ xét trang hiện tại. */
   linkedScriptLineIds?: ReadonlySet<string>;
   activeLang?: string;
@@ -51,10 +67,12 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   chapterTitle,
   scriptLines,
   activePageNumber,
+  pageId,
   elements,
   selectedElementId,
   onSelectElementId,
   onAddElement,
+  onUpdateElementTranslation,
   linkedScriptLineIds,
   activeLang,
   originalLang = 'vi',
@@ -63,6 +81,16 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   const [expanded, setExpanded] = useState(true);
   const [linkFilter, setLinkFilter] = useState<'all' | 'unlinked' | 'linked'>('all');
   const [showAllElements, setShowAllElements] = useState(false);
+
+  // Trạng thái dịch hội thoại
+  const { t } = useTranslation('production');
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [isTranslatingLine, setIsTranslatingLine] = useState<Record<string, boolean>>({});
+  const [lineError, setLineError] = useState<Record<string, string | null>>({});
+  const [isApplyingLine, setIsApplyingLine] = useState<Record<string, boolean>>({});
+  const [applySuccessLine, setApplySuccessLine] = useState<Record<string, boolean>>({});
+  const [isBatchTranslating, setIsBatchTranslating] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
 
   // Chỉ dòng có chữ để đặt (bỏ chỉ dẫn cảnh), đánh số theo thứ tự trong kịch bản
   const lines = useMemo(
@@ -105,6 +133,144 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
   const shownElements = showAllElements ? elements : elements.slice(0, 4);
 
+  // Các dòng có thể dịch thuộc trang hiện tại
+  const currentPageLines = useMemo(() => {
+    const hasPageNumbers = lines.some((x) => x.line.pageNumber != null);
+    if (!hasPageNumbers) {
+      return lines;
+    }
+    return lines.filter(
+      (x) =>
+        x.line.pageNumber === activePageNumber ||
+        elements.some((el) => el.scriptLineId === x.line.id),
+    );
+  }, [lines, activePageNumber, elements]);
+
+  // Tìm bóng thoại tương ứng cho 1 dòng kịch bản (ưu tiên bóng liên kết dòng đó, nếu không có lấy bóng đang chọn)
+  const getTargetElementForLine = (lineId: string): ElementSnapshotDto | null => {
+    return (
+      elements.find((el) => el.scriptLineId === lineId) ||
+      (selectedElementId ? elements.find((el) => el.elementId === selectedElementId) : null) ||
+      null
+    );
+  };
+
+  // Dịch 1 dòng kịch bản
+  const handleTranslateLine = async (lineId: string, textToTranslate: string) => {
+    if (!activeLang || !originalLang || !textToTranslate.trim()) return;
+    setIsTranslatingLine((prev) => ({ ...prev, [lineId]: true }));
+    setLineError((prev) => ({ ...prev, [lineId]: null }));
+    try {
+      const result = await translateText(textToTranslate, originalLang, activeLang);
+      setTranslations((prev) => ({ ...prev, [lineId]: result }));
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        t('lettering.translate.error');
+      setLineError((prev) => ({ ...prev, [lineId]: msg }));
+    } finally {
+      setIsTranslatingLine((prev) => ({ ...prev, [lineId]: false }));
+    }
+  };
+
+  // Dịch toàn bộ thoại của trang hiện tại
+  const handleBatchTranslatePage = async () => {
+    if (!activeLang || !originalLang || currentPageLines.length === 0) return;
+    setIsBatchTranslating(true);
+    setBatchError(null);
+
+    try {
+      const results = await Promise.all(
+        currentPageLines.map(async ({ line, text }) => {
+          try {
+            const res = await translateText(text, originalLang, activeLang);
+            return { id: line.id, text: res, error: null };
+          } catch (err: any) {
+            const msg =
+              err?.response?.data?.message ||
+              err?.response?.data?.error ||
+              err?.message ||
+              t('lettering.translate.error');
+            return { id: line.id, text: null, error: msg };
+          }
+        }),
+      );
+
+      const nextTranslations = { ...translations };
+      const nextErrors = { ...lineError };
+      let hasFailure = false;
+
+      for (const r of results) {
+        if (r.text != null) {
+          nextTranslations[r.id] = r.text;
+          nextErrors[r.id] = null;
+        } else {
+          nextErrors[r.id] = r.error;
+          hasFailure = true;
+        }
+      }
+
+      setTranslations(nextTranslations);
+      setLineError(nextErrors);
+      if (hasFailure) {
+        setBatchError(t('lettering.translate.batchPartial'));
+      }
+    } catch (err: any) {
+      setBatchError(t('lettering.translate.batchFailed'));
+    } finally {
+      setIsBatchTranslating(false);
+    }
+  };
+
+  // Đổ bản dịch vào bóng thoại
+  const handleApplyTranslation = async (lineId: string) => {
+    if (!activeLang) return;
+    const targetElement = getTargetElementForLine(lineId);
+    if (!targetElement) return;
+
+    const translatedText = translations[lineId];
+    if (translatedText === undefined) return;
+
+    setIsApplyingLine((prev) => ({ ...prev, [lineId]: true }));
+    setLineError((prev) => ({ ...prev, [lineId]: null }));
+    setApplySuccessLine((prev) => ({ ...prev, [lineId]: false }));
+
+    try {
+      const targetPageId = pageId || '';
+      if (onUpdateElementTranslation) {
+        await onUpdateElementTranslation(
+          targetPageId,
+          targetElement.elementId,
+          activeLang,
+          translatedText,
+        );
+      } else {
+        await updateElementTranslation(
+          targetPageId,
+          targetElement.elementId,
+          activeLang,
+          translatedText,
+          targetElement.version,
+        );
+      }
+      setApplySuccessLine((prev) => ({ ...prev, [lineId]: true }));
+      setTimeout(() => {
+        setApplySuccessLine((prev) => ({ ...prev, [lineId]: false }));
+      }, 3000);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        t('lettering.translate.applyError');
+      setLineError((prev) => ({ ...prev, [lineId]: msg }));
+    } finally {
+      setIsApplyingLine((prev) => ({ ...prev, [lineId]: false }));
+    }
+  };
+
   return (
     <div
       data-testid='canva-drawer-lettering'
@@ -120,11 +286,53 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
           </h3>
           <span
             data-testid='lettering-script-total'
-            className='px-2 py-0.5 rounded-full bg-stone-100 text-[11px] text-stone-600'
+            className='px-2 py-0.5 rounded-full bg-stone-100 text-xs text-stone-600'
           >
             Tổng: {lines.length} dòng
           </span>
         </header>
+
+        {/* Nút dịch toàn bộ thoại của trang (chỉ khi đang ở chế độ ngôn ngữ dịch) */}
+        {isTranslating && (
+          <div className='px-3 py-2 bg-orange-50/60 border-b border-stone-100 flex flex-col gap-1.5'>
+            <div className='flex items-center justify-between gap-2'>
+              <span className='text-xs text-stone-600 font-medium'>
+                {t('lettering.translate.pageLabel', {
+                  page: activePageNumber,
+                  from: originalLang.toUpperCase(),
+                  to: activeLang!.toUpperCase(),
+                })}
+              </span>
+              <button
+                type='button'
+                data-testid='lettering-batch-translate-page'
+                onClick={handleBatchTranslatePage}
+                disabled={isBatchTranslating || currentPageLines.length === 0}
+                className='inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 disabled:bg-stone-300 disabled:text-stone-500 rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs'
+              >
+                {isBatchTranslating ? (
+                  <>
+                    <Loader2 className='w-3.5 h-3.5 animate-spin' aria-hidden='true' />
+                    <span>{t('lettering.translate.translating')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Globe className='w-3.5 h-3.5' aria-hidden='true' />
+                    <span>{t('lettering.translate.batch')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+            {batchError && (
+              <p
+                data-testid='lettering-batch-translate-error'
+                className='text-xs text-red-600 bg-red-50 p-1.5 rounded border border-red-200'
+              >
+                {batchError}
+              </p>
+            )}
+          </div>
+        )}
 
         <button
           type='button'
@@ -159,7 +367,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                   data-testid={`lettering-link-filter-${key}`}
                   aria-pressed={linkFilter === key}
                   onClick={() => setLinkFilter(key)}
-                  className={`py-1 rounded-md text-[10px] font-semibold cursor-pointer transition-colors ${
+                  className={`py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
                     linkFilter === key
                       ? 'bg-white text-stone-900 shadow-2xs'
                       : 'text-stone-500 hover:text-stone-800'
@@ -170,7 +378,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
               ))}
             </div>
 
-            <ul className='space-y-1.5 max-h-[42vh] overflow-y-auto custom-scrollbar'>
+            <ul className='space-y-2 max-h-[42vh] overflow-y-auto custom-scrollbar'>
               {visibleLines.length === 0 && (
                 <li className='text-xs text-stone-500 italic px-2 py-3 text-center'>
                   Không có dòng thoại nào.
@@ -180,8 +388,11 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                 const linked = isLinked(line.id);
                 const selected = selectedLineId === line.id;
                 const isNarration = type === 'NARRATION_BOX';
+                const targetElement = getTargetElementForLine(line.id);
+                const hasTranslation = translations[line.id] !== undefined;
+
                 return (
-                  <li key={line.id}>
+                  <li key={line.id} className='space-y-1'>
                     <div
                       role='button'
                       tabIndex={0}
@@ -210,7 +421,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                           : 'border-stone-200 bg-white hover:border-orange-300 hover:bg-orange-50/40'
                       }`}
                     >
-                      <span className='w-6 h-6 rounded-full border border-stone-300 bg-white text-[11px] font-bold text-stone-700 flex items-center justify-center shrink-0'>
+                      <span className='w-6 h-6 rounded-full border border-stone-300 bg-white text-xs font-bold text-stone-700 flex items-center justify-center shrink-0'>
                         {number}
                       </span>
                       {isNarration ? (
@@ -228,7 +439,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                           {isNarration ? 'Dẫn truyện' : line.characterName || 'Nhân vật'}
                           <span
                             data-testid={`lettering-script-kind-${line.id}`}
-                            className='ml-1.5 font-normal text-[10px] text-stone-400'
+                            className='ml-1.5 font-normal text-xs text-stone-400'
                           >
                             {BALLOON_TYPE_LABELS[type]} · Trang {line.pageNumber ?? '?'}
                           </span>
@@ -246,12 +457,138 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                         />
                       )}
                     </div>
+
+                    {/* Vùng dịch hội thoại khi activeLang !== originalLang */}
+                    {isTranslating && (
+                      <div className='pl-2 pr-1 pt-0.5 pb-1'>
+                        {!hasTranslation ? (
+                          <div className='flex items-center gap-2'>
+                            <button
+                              type='button'
+                              data-testid={`lettering-translate-line-${line.id}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTranslateLine(line.id, text);
+                              }}
+                              disabled={isTranslatingLine[line.id]}
+                              className='inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-md transition-colors cursor-pointer disabled:opacity-50'
+                            >
+                              {isTranslatingLine[line.id] ? (
+                                <>
+                                  <Loader2 className='w-3 h-3 animate-spin' aria-hidden='true' />
+                                  <span>{t('lettering.translate.translating')}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Globe className='w-3 h-3' aria-hidden='true' />
+                                  <span>{t('lettering.translate.translate')}</span>
+                                </>
+                              )}
+                            </button>
+                            {lineError[line.id] && (
+                              <span
+                                data-testid={`lettering-translate-error-${line.id}`}
+                                className='text-xs text-red-600 font-medium truncate'
+                              >
+                                {lineError[line.id]}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className='p-2 bg-stone-50 rounded-lg border border-stone-200 space-y-1.5'>
+                            <div className='flex items-center justify-between text-xs text-stone-500 font-medium'>
+                              <span>
+                                {t('lettering.translate.translationLabel', {
+                                  lang: activeLang!.toUpperCase(),
+                                })}
+                              </span>
+                              <button
+                                type='button'
+                                data-testid={`lettering-retranslate-line-${line.id}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTranslateLine(line.id, text);
+                                }}
+                                disabled={isTranslatingLine[line.id]}
+                                className='hover:text-stone-800 text-xs flex items-center gap-1 cursor-pointer disabled:opacity-50'
+                                title={t('lettering.translate.retranslate')}
+                              >
+                                <RefreshCw
+                                  className={`w-2.5 h-2.5 ${isTranslatingLine[line.id] ? 'animate-spin' : ''}`}
+                                />
+                                <span>{t('lettering.translate.retranslate')}</span>
+                              </button>
+                            </div>
+                            <textarea
+                              data-testid={`lettering-preview-input-${line.id}`}
+                              value={translations[line.id]}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setTranslations((prev) => ({ ...prev, [line.id]: val }));
+                              }}
+                              rows={2}
+                              className='w-full text-xs p-1.5 border border-stone-300 rounded bg-white text-stone-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 resize-none'
+                              placeholder={t('lettering.translate.previewPlaceholder')}
+                            />
+                            <div className='flex items-center justify-between gap-2 pt-0.5'>
+                              <button
+                                type='button'
+                                data-testid={`lettering-apply-line-${line.id}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApplyTranslation(line.id);
+                                }}
+                                disabled={isApplyingLine[line.id] || !targetElement}
+                                title={
+                                  !targetElement ? t('lettering.translate.needBalloon') : undefined
+                                }
+                                className='inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 disabled:bg-stone-300 disabled:text-stone-500 rounded-md transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs'
+                              >
+                                {isApplyingLine[line.id] ? (
+                                  <>
+                                    <Loader2 className='w-3 h-3 animate-spin' />
+                                    <span>{t('lettering.translate.applying')}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className='w-3 h-3' />
+                                    <span>{t('lettering.translate.apply')}</span>
+                                  </>
+                                )}
+                              </button>
+                              {applySuccessLine[line.id] && (
+                                <span
+                                  data-testid={`lettering-apply-success-${line.id}`}
+                                  className='text-xs text-emerald-600 font-medium flex items-center gap-0.5'
+                                >
+                                  <CheckCircle2 className='w-3 h-3' />{' '}
+                                  {t('lettering.translate.applied')}
+                                </span>
+                              )}
+                              {!targetElement && (
+                                <span className='text-xs text-amber-700 italic'>
+                                  {t('lettering.translate.noBalloon')}
+                                </span>
+                              )}
+                            </div>
+                            {lineError[line.id] && (
+                              <p
+                                data-testid={`lettering-apply-error-${line.id}`}
+                                className='text-xs text-red-600'
+                              >
+                                {lineError[line.id]}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </li>
                 );
               })}
             </ul>
 
-            <p className='flex items-start gap-2 rounded-lg bg-orange-50 px-3 py-2 text-[11px] text-orange-900'>
+            <p className='flex items-start gap-2 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-900'>
               <Info className='w-3.5 h-3.5 mt-0.5 shrink-0' aria-hidden='true' />
               Chọn hoặc kéo dòng thoại để đặt vào bóng thoại trên trang truyện.
             </p>
@@ -270,7 +607,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
             <button
               type='button'
               onClick={() => setShowAllElements((v) => !v)}
-              className='text-[11px] font-semibold text-orange-600 hover:underline cursor-pointer'
+              className='text-xs font-semibold text-orange-600 hover:underline cursor-pointer'
             >
               {showAllElements ? 'Thu gọn' : 'Hiển thị tất cả'}
             </button>
@@ -280,7 +617,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         {isTranslating && (
           <p
             data-testid='lettering-missing-translations'
-            className='px-1 text-[11px] font-semibold text-amber-700'
+            className='px-1 text-xs font-semibold text-amber-700'
           >
             Thiếu bản dịch {activeLang!.toUpperCase()}: {missingTranslations}
           </p>
@@ -315,7 +652,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                         Thoại {el.readingOrder ?? idx + 1}
                       </span>
                       <span
-                        className={`block text-[11px] ${el.scriptLineId ? 'text-emerald-700' : 'text-stone-500'}`}
+                        className={`block text-xs ${el.scriptLineId ? 'text-emerald-700' : 'text-stone-500'}`}
                       >
                         {el.scriptLineId
                           ? `Đã liên kết với dòng ${lineNo ?? '?'}`
@@ -339,7 +676,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
         {/* Bóng không theo kịch bản (SFX, chữ tự do) */}
         <div className='pt-1'>
-          <p className='px-1 pb-1.5 text-[11px] font-semibold text-stone-500 flex items-center gap-1'>
+          <p className='px-1 pb-1.5 text-xs font-semibold text-stone-500 flex items-center gap-1'>
             <Plus className='w-3 h-3' aria-hidden='true' /> Thêm bóng trống
           </p>
           <div className='grid grid-cols-4 gap-1.5'>
@@ -361,7 +698,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                   e.dataTransfer.effectAllowed = 'copy';
                 }}
                 onClick={() => onAddElement?.(type)}
-                className='flex flex-col items-center gap-0.5 py-1.5 rounded-lg border border-stone-200 bg-white text-[10px] text-stone-700 hover:border-orange-400 cursor-pointer'
+                className='flex flex-col items-center gap-0.5 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-700 hover:border-orange-400 cursor-pointer'
               >
                 <Icon className='w-4 h-4' aria-hidden='true' />
                 {BALLOON_TYPE_LABELS[type]}

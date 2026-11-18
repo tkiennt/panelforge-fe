@@ -71,7 +71,25 @@
     "tailDirection": "Tail Direction",
     "originalBadge": "Original",
     "languageLabel": "Language",
-    "missingCountTooltip": "{count} untranslated balloons"
+    "missingCountTooltip": "{count} untranslated balloons",
+    "translate": {
+      "translate": "Translate",
+      "translating": "Translating...",
+      "retranslate": "Translate again",
+      "translationLabel": "Translation ({lang}):",
+      "previewPlaceholder": "Preview and edit the translation...",
+      "apply": "Fill balloon",
+      "applying": "Filling...",
+      "applied": "Filled",
+      "noBalloon": "No balloon yet",
+      "needBalloon": "Link or select a balloon before filling text",
+      "batch": "Translate all dialogue on page",
+      "pageLabel": "Page {page} ({from} → {to}):",
+      "error": "Translation failed",
+      "applyError": "Could not fill the translation into the balloon.",
+      "batchPartial": "Some lines failed to translate, please check them.",
+      "batchFailed": "Could not finish translating the page."
+    }
   },
   "template": {
     "title": "Frame Templates",

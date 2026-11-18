@@ -2396,10 +2396,18 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             chapterTitle={chapterTitle}
             scriptLines={scriptLines}
             activePageNumber={activePageNumber}
+            pageId={selectedPageId}
             elements={letteringElements}
             selectedElementId={selectedElementId}
             onSelectElementId={onSelectElementId}
             onAddElement={onAddLetteringElement}
+            onUpdateElementTranslation={
+              onUpdateElementTranslation
+                ? async (_pId, elemId, _lang, text) => {
+                    await onUpdateElementTranslation(elemId, text);
+                  }
+                : undefined
+            }
             linkedScriptLineIds={linkedScriptLineIds}
             headerSlot={letteringHeaderSlot}
             activeLang={activeLang}

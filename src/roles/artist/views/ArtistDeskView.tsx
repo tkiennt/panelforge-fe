@@ -2614,6 +2614,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           activeLang={activeLang}
           originalLang={originalLang}
           onUpdateElementText={balloons.updateElementText}
+          onUpdateElementTranslation={balloons.updateElementText}
           linkedScriptLineIds={linkedScriptLineIds}
           letteringHeaderSlot={
             <LanguageSelector
