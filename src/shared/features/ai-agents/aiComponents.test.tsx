@@ -11,6 +11,7 @@ import {
 } from '@/services/aiAgents.service';
 import { SuggestionCard } from './SuggestionCard';
 import { StepOutputView } from './StepOutputView';
+import { LayoutPreview } from './LayoutPreview';
 import { LetteringDiffView, ProductionReportView } from './AgentOutputViews';
 
 const step = (over: Partial<AiStepDto>): AiStepDto => ({
@@ -535,5 +536,43 @@ describe('View output riêng từng agent', () => {
     );
     expect(screen.getByText('INVALID_OUTPUT')).toBeInTheDocument();
     expect(screen.getByText(/85%/)).toBeInTheDocument();
+  });
+
+  it('LayoutPreview hiển thị đúng hướng đọc trên → dưới (Vertical) và khung tỉ lệ 9:16 cho Series Vertical', () => {
+    render(
+      <LayoutPreview
+        layout={{
+          schemaVersion: 1,
+          runId: 'r1',
+          sceneId: 'sc1',
+          readingDirection: 'Vertical',
+          pages: [
+            {
+              pageNumber: 1,
+              panels: [
+                {
+                  panelNumber: 1,
+                  readingOrder: 1,
+                  bbox: { x: 0.05, y: 0.05, w: 0.9, h: 0.4 },
+                  coordinateSpace: 'PageNormalized',
+                  camera: 'Wide',
+                  description: 'Khung dọc Webtoon',
+                  characterIds: [],
+                  sourceScriptLineIds: [],
+                },
+              ],
+            },
+          ],
+        }}
+        lines={{}}
+        nameById={{}}
+      />,
+    );
+
+    expect(screen.getByText(/trên → dưới \(Vertical\)/)).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Bố cục trang 1' })).toHaveAttribute(
+      'viewBox',
+      '0 0 540 960',
+    );
   });
 });

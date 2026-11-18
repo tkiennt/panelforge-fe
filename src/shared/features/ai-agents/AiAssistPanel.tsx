@@ -18,7 +18,7 @@ import { SCRIPT_WORKING_COPY_CHANGED_EVENT } from '@/services/scriptLine.service
 import type { AiWorkflowType } from '@/services/aiAgents.service';
 import { StepOutputView } from './StepOutputView';
 import { SuggestionCard } from './SuggestionCard';
-import { collectLines, formatMs } from './aiViewUtils';
+import { AiReadingDirection, collectLines, formatMs, toAiReadingDirection } from './aiViewUtils';
 import { aiStreamService } from '@/services/aiStream.service';
 
 export const BRIEF_MAX_LENGTH = 4000;
@@ -36,7 +36,7 @@ interface Props {
   briefLabel: string;
   briefPlaceholder: string;
   runLabel: string;
-  readingDirection: ReadingDirection;
+  readingDirection: AiReadingDirection | number;
   /** versionVector hiện tại của Chapter. */
   chapterVersion: number;
   /** Bible entry / nhân vật id → tên, để hiển thị người nói và nguồn bằng chứng. */
@@ -54,10 +54,43 @@ interface UiError {
   lockAi: boolean;
 }
 
+function extractServerMessage(e: unknown): string {
+  const resData = (
+    e as {
+      response?: {
+        data?: string | { error?: unknown; message?: unknown; detail?: unknown };
+      };
+    }
+  )?.response?.data;
+  if (typeof resData === 'string' && resData.trim()) return resData.trim();
+  if (resData && typeof resData === 'object') {
+    for (const candidate of [resData.error, resData.message, resData.detail]) {
+      if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+    }
+  }
+  const rawMsg = (e as Partial<AiApiError> | undefined)?.message;
+  if (typeof rawMsg === 'string') {
+    const trimmed = rawMsg.trim();
+    if (trimmed && !/^Request failed with status code \d+$/i.test(trimmed)) {
+      return trimmed;
+    }
+  }
+  return '';
+}
+
 function toUiError(e: unknown, fallback: string): UiError {
-  const err = e as Partial<AiApiError> | undefined;
-  const msg = err?.message || fallback;
-  switch (err?.code) {
+  const err = e as
+    | (Partial<AiApiError> & { response?: { status?: number; data?: { code?: string } } })
+    | undefined;
+  const status = err?.status ?? err?.response?.status;
+  const code = err?.code ?? err?.response?.data?.code;
+  const serverMsg = extractServerMessage(e);
+  const msg =
+    serverMsg ||
+    (status === 403 || code === 'FORBIDDEN'
+      ? 'Bạn không có quyền thực hiện thao tác này.'
+      : fallback);
+  switch (code) {
     case 'AI_UNAVAILABLE':
       return {
         message: 'Trợ lý AI tạm thời không khả dụng. Bạn vẫn có thể soạn tay bình thường.',
@@ -75,11 +108,14 @@ function toUiError(e: unknown, fallback: string): UiError {
     case 'CONFLICT':
       return { message: msg, lockAi: false };
     default:
-      if (err?.status === 503) {
+      if (status === 503) {
         return {
           message: 'Trợ lý AI tạm thời không khả dụng. Bạn vẫn có thể soạn tay bình thường.',
           lockAi: true,
         };
+      }
+      if (status === 403) {
+        return { message: msg, lockAi: false };
       }
       return { message: msg, lockAi: false };
   }
@@ -165,7 +201,6 @@ export const AiAssistPanel: React.FC<Props> = ({
   const [starting, setStarting] = useState(false);
   const [deciding, setDeciding] = useState(false);
   const [pollFailed, setPollFailed] = useState(false);
-  const [streamDelta, setStreamDelta] = useState<{ agent: string; text: string } | null>(null);
   const [error, setError] = useState<UiError | null>(null);
   const [aiLocked, setAiLocked] = useState(false);
   const [showTech, setShowTech] = useState(false);
@@ -238,30 +273,18 @@ export const AiAssistPanel: React.FC<Props> = ({
     };
   }, [seriesId, chapterId, sceneId, workflowType]);
 
-  // (c1) Token Streaming & Realtime Step updates qua SignalR Hub
+  const activeRunId = run && isActiveRun(run.status) ? run.id : null;
+
+  // (c1) Realtime Step & RunStatus updates qua SignalR Hub
   useEffect(() => {
-    if (!run || !isActiveRun(run.status)) {
-      setStreamDelta(null);
-      return;
-    }
+    if (!activeRunId) return;
 
-    const currentRunId = run.id;
-    aiStreamService.joinRun(currentRunId);
-
-    const unsubToken = aiStreamService.onTokenChunk((e) => {
-      if (e.runId.toLowerCase() === currentRunId.toLowerCase()) {
-        setStreamDelta((prev) => ({
-          agent: e.agent,
-          text: (prev && prev.agent === e.agent ? prev.text : '') + e.deltaText,
-        }));
-      }
-    });
+    aiStreamService.joinRun(activeRunId);
 
     const unsubStep = aiStreamService.onStepRecorded(async (e) => {
-      if (e.runId.toLowerCase() === currentRunId.toLowerCase()) {
-        setStreamDelta(null);
+      if (e.runId.toLowerCase() === activeRunId.toLowerCase()) {
         try {
-          const next = await aiAgentsService.getRun(seriesId, currentRunId);
+          const next = await aiAgentsService.getRun(seriesId, activeRunId);
           setRun(next);
         } catch {
           // ignore error, will be picked up by polling
@@ -270,10 +293,9 @@ export const AiAssistPanel: React.FC<Props> = ({
     });
 
     const unsubStatus = aiStreamService.onRunStatusChanged(async (e) => {
-      if (e.runId.toLowerCase() === currentRunId.toLowerCase()) {
-        setStreamDelta(null);
+      if (e.runId.toLowerCase() === activeRunId.toLowerCase()) {
         try {
-          const next = await aiAgentsService.getRun(seriesId, currentRunId);
+          const next = await aiAgentsService.getRun(seriesId, activeRunId);
           setRun(next);
         } catch {
           // ignore
@@ -282,12 +304,11 @@ export const AiAssistPanel: React.FC<Props> = ({
     });
 
     return () => {
-      aiStreamService.leaveRun(currentRunId);
-      unsubToken();
+      aiStreamService.leaveRun(activeRunId);
       unsubStep();
       unsubStatus();
     };
-  }, [run?.id, run?.status, seriesId]);
+  }, [activeRunId, seriesId]);
 
   // (c) polling mỗi 2 giây tới khi run không còn Queued/Running (Safety-net fallback)
   useEffect(() => {
@@ -332,7 +353,7 @@ export const AiAssistPanel: React.FC<Props> = ({
         chapterId,
         sceneId,
         brief: runBrief,
-        readingDirection,
+        readingDirection: toAiReadingDirection(readingDirection) as ReadingDirection,
         chapterVersion,
         baseScriptRevisionId: latestScriptRevisionId(revisions),
         panelIds: panelIds && panelIds.length > 0 ? panelIds : undefined,
@@ -378,8 +399,11 @@ export const AiAssistPanel: React.FC<Props> = ({
         await onReload(s.kind);
       }
     } catch (e) {
+      // 403 (ngoài phạm vi được giao dù canDecide theo role = true): hiện đúng message Backend, giữ đề xuất Pending, không tự gửi lại
       setError(toUiError(e, 'Không thể ghi quyết định.'));
-      if ((e as AiApiError)?.code === 'CONFLICT' || (e as AiApiError)?.status === 409) {
+      const status =
+        (e as AiApiError)?.status ?? (e as { response?: { status?: number } })?.response?.status;
+      if ((e as AiApiError)?.code === 'CONFLICT' || status === 409) {
         await onReload();
       }
     } finally {
@@ -576,22 +600,6 @@ export const AiAssistPanel: React.FC<Props> = ({
           >
             {running && <Loader2 className='h-3.5 w-3.5 animate-spin' />}
             <span className='whitespace-pre-line'>{status.text}</span>
-          </div>
-        )}
-
-        {streamDelta && running && (
-          <div
-            data-testid='ai-live-stream'
-            className='rounded-lg border border-indigo-200 bg-indigo-50/70 p-3 text-xs text-indigo-950 shadow-xs'
-          >
-            <div className='flex items-center gap-1.5 font-bold uppercase tracking-wider text-[11px] text-indigo-600 mb-1.5'>
-              <Sparkles className='h-3.5 w-3.5 animate-pulse text-indigo-500' />
-              <span>{streamDelta.agent} đang soạn thảo trực tiếp...</span>
-            </div>
-            <div className='whitespace-pre-wrap font-mono text-xs leading-relaxed text-slate-800 bg-white/80 p-2.5 rounded border border-indigo-100 max-h-48 overflow-y-auto'>
-              {streamDelta.text}
-              <span className='inline-block w-1.5 h-3.5 ml-0.5 bg-indigo-600 animate-pulse align-middle' />
-            </div>
           </div>
         )}
 

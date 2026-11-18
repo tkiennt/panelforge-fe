@@ -9,6 +9,8 @@ import {
   AiWorkflowAvailability,
   aiAgentsService,
 } from '@/services/aiAgents.service';
+import { aiStreamService } from '@/services/aiStream.service';
+import { toAiReadingDirection } from './aiViewUtils';
 import { AiAssistPanel, POLL_INTERVAL_MS } from './AiAssistPanel';
 
 const avail = (over: Partial<AiWorkflowAvailability> = {}): AiWorkflowAvailability => ({
@@ -231,6 +233,66 @@ describe('AiAssistPanel (Writer · Script)', () => {
       await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 3);
     });
     expect(getRun).toHaveBeenCalledTimes(2);
+  });
+
+  it('cập nhật lượt chạy qua SignalR StepRecorded và RunStatusChanged mà không dùng TokenChunk', async () => {
+    expect('onTokenChunk' in aiStreamService).toBe(false);
+
+    const joinRun = vi.spyOn(aiStreamService, 'joinRun').mockResolvedValue(undefined);
+    const leaveRun = vi.spyOn(aiStreamService, 'leaveRun').mockResolvedValue(undefined);
+    let stepListener: ((e: any) => void | Promise<void>) | undefined;
+    let statusListener: ((e: any) => void | Promise<void>) | undefined;
+    const unsubStep = vi.fn();
+    const unsubStatus = vi.fn();
+
+    vi.spyOn(aiStreamService, 'onStepRecorded').mockImplementation((cb) => {
+      stepListener = cb;
+      return unsubStep;
+    });
+    vi.spyOn(aiStreamService, 'onRunStatusChanged').mockImplementation((cb) => {
+      statusListener = cb;
+      return unsubStatus;
+    });
+
+    sessionStorage.setItem('ai-run:sc1:Script', 'r1');
+    const getRun = vi
+      .spyOn(aiAgentsService, 'getRun')
+      .mockResolvedValueOnce(run({ id: 'r1', status: 'Running', steps: [], suggestions: [] }))
+      .mockResolvedValueOnce(
+        run({ id: 'r1', status: 'Running', steps: [writerStep], suggestions: [] }),
+      )
+      .mockResolvedValue(run({ id: 'r1', status: 'Completed' }));
+
+    renderPanel();
+
+    await waitFor(() => expect(joinRun).toHaveBeenCalledWith('r1'));
+    expect(screen.queryByTestId('ai-live-stream')).not.toBeInTheDocument();
+
+    await act(async () => {
+      await stepListener?.({
+        runId: 'R1',
+        stepIndex: 1,
+        agent: 'Writer',
+        round: 0,
+        succeeded: true,
+        runStatus: 'Running',
+      });
+    });
+
+    expect(await screen.findByTestId('ai-draft')).toBeInTheDocument();
+
+    await act(async () => {
+      await statusListener?.({
+        runId: 'R1',
+        status: 'Completed',
+      });
+    });
+
+    expect(await screen.findByText('Hoàn tất')).toBeInTheDocument();
+    expect(getRun).toHaveBeenCalledTimes(3);
+    expect(leaveRun).toHaveBeenCalledWith('r1');
+    expect(unsubStep).toHaveBeenCalledTimes(1);
+    expect(unsubStatus).toHaveBeenCalledTimes(1);
   });
 
   it('baseScriptRevisionId = null khi Scene chưa có revision Script', async () => {
@@ -590,6 +652,116 @@ describe('AiAssistPanel (Writer · Script)', () => {
     ).toBeInTheDocument();
     expect(onReload).toHaveBeenCalledTimes(1);
     expect(review).toHaveBeenCalledTimes(2);
+  });
+
+  it('Reject bị chặn 403 khi ngoài phạm vi được giao (canDecide = true, canAccept = false): hiện đúng message Backend, giữ đề xuất Pending và không tự gửi lại', async () => {
+    const outOfScopeSug = suggestion({ canDecide: true, canAccept: false, status: 'Pending' });
+    vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([outOfScopeSug]);
+    const getRun = vi
+      .spyOn(aiAgentsService, 'getRun')
+      .mockResolvedValue(run({ suggestions: [outOfScopeSug] }));
+    const runWorkflow = vi.spyOn(aiAgentsService, 'runWorkflow');
+    const review = vi
+      .spyOn(aiAgentsService, 'review')
+      .mockRejectedValueOnce(
+        new AiApiError(
+          'Chapter đã giao việc cho Writer khác; bạn không thể từ chối đề xuất này.',
+          'FORBIDDEN',
+          403,
+        ),
+      )
+      .mockRejectedValueOnce({
+        message: 'Request failed with status code 403',
+        response: {
+          status: 403,
+          data: {
+            code: 'FORBIDDEN',
+            error: 'Bạn không thuộc phạm vi phân công của chương này.',
+          },
+        },
+      });
+
+    renderPanel();
+
+    expect(await screen.findByRole('button', { name: 'Reject' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /Accept/ })).not.toBeInTheDocument();
+    expect(getRun).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận Reject/ }));
+
+    expect(await screen.findByTestId('ai-error')).toHaveTextContent(
+      'Chapter đã giao việc cho Writer khác; bạn không thể từ chối đề xuất này.',
+    );
+    expect(screen.getByText('Chờ quyết định')).toBeInTheDocument();
+    expect(screen.getByTestId('ai-pending-banner')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reject' })).toBeEnabled();
+    expect(review).toHaveBeenCalledTimes(1);
+    expect(getRun).toHaveBeenCalledTimes(1);
+    expect(runWorkflow).not.toHaveBeenCalled();
+    expect(onReload).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận Reject/ }));
+
+    expect(await screen.findByTestId('ai-error')).toHaveTextContent(
+      'Bạn không thuộc phạm vi phân công của chương này.',
+    );
+    expect(screen.getByText('Chờ quyết định')).toBeInTheDocument();
+    expect(review).toHaveBeenCalledTimes(2);
+    expect(onReload).not.toHaveBeenCalled();
+  });
+
+  it('Yêu cầu sửa bị chặn 403 khi ngoài phạm vi được giao: hiện đúng message Backend, giữ đề xuất Pending và không tự gửi lại', async () => {
+    const outOfScopeSug = suggestion({ canDecide: true, canAccept: false, status: 'Pending' });
+    vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([outOfScopeSug]);
+    const getRun = vi
+      .spyOn(aiAgentsService, 'getRun')
+      .mockResolvedValue(run({ suggestions: [outOfScopeSug] }));
+    const runWorkflow = vi.spyOn(aiAgentsService, 'runWorkflow');
+    const review = vi
+      .spyOn(aiAgentsService, 'review')
+      .mockRejectedValueOnce(
+        new AiApiError(
+          'Bạn chỉ được yêu cầu sửa đề xuất trong phạm vi công việc được giao.',
+          'FORBIDDEN',
+          403,
+        ),
+      )
+      .mockRejectedValueOnce(new AiApiError('   ', 'FORBIDDEN', 403));
+
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Yêu cầu sửa' }));
+    fireEvent.change(screen.getByPlaceholderText(/Lý do yêu cầu sửa/), {
+      target: { value: 'Đổi nhịp thoại cảnh mở đầu' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận Yêu cầu sửa/ }));
+
+    expect(await screen.findByTestId('ai-error')).toHaveTextContent(
+      'Bạn chỉ được yêu cầu sửa đề xuất trong phạm vi công việc được giao.',
+    );
+    expect(screen.getByText('Chờ quyết định')).toBeInTheDocument();
+    expect(screen.getByTestId('ai-pending-banner')).toBeInTheDocument();
+    expect(screen.queryByTestId('ai-rerun-changes-btn')).not.toBeInTheDocument();
+    expect(review).toHaveBeenCalledTimes(1);
+    expect(getRun).toHaveBeenCalledTimes(1);
+    expect(runWorkflow).not.toHaveBeenCalled();
+    expect(onReload).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Yêu cầu sửa' }));
+    fireEvent.change(screen.getByPlaceholderText(/Lý do yêu cầu sửa/), {
+      target: { value: 'Thử lại lần nữa' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận Yêu cầu sửa/ }));
+
+    expect(await screen.findByTestId('ai-error')).toHaveTextContent(
+      'Bạn không có quyền thực hiện thao tác này.',
+    );
+    expect(screen.getByText('Chờ quyết định')).toBeInTheDocument();
+    expect(review).toHaveBeenCalledTimes(2);
+    expect(runWorkflow).not.toHaveBeenCalled();
+    expect(onReload).not.toHaveBeenCalled();
   });
 
   it('availability trả SCRIPT_FROZEN và SCENE_LINES_LINKED: khoá nút chạy và hiện lý do', async () => {
@@ -964,5 +1136,93 @@ describe('AiAssistPanel (Storyboard & Layout)', () => {
     expect(screen.getByText(/Scene đã có Panel; không thể áp dụng layout AI/)).toBeInTheDocument();
 
     expect(screen.getByTestId('ai-storyboard')).toBeInTheDocument();
+  });
+
+  it('gửi đúng readingDirection = "Vertical" khi Series Vertical (chuỗi "Vertical" hoặc mã số 2)', async () => {
+    expect(toAiReadingDirection('Vertical')).toBe('Vertical');
+    expect(toAiReadingDirection(2)).toBe('Vertical');
+    expect(toAiReadingDirection('2')).toBe('Vertical');
+    expect(toAiReadingDirection('RightToLeft')).toBe('RightToLeft');
+    expect(toAiReadingDirection(1)).toBe('RightToLeft');
+    expect(toAiReadingDirection('LeftToRight')).toBe('LeftToRight');
+    expect(toAiReadingDirection(0)).toBe('LeftToRight');
+
+    vi.spyOn(aiAgentsService, 'getSceneRevisions').mockResolvedValue([]);
+    const runWorkflow = vi
+      .spyOn(aiAgentsService, 'runWorkflow')
+      .mockResolvedValue({ runId: 'r-vert', status: 'Completed', provider: 'Mock', model: 'm' });
+    vi.spyOn(aiAgentsService, 'getRun').mockResolvedValue(
+      run({ id: 'r-vert', workflowType: 'Storyboard', suggestions: [] }),
+    );
+
+    const first = render(
+      <AiAssistPanel
+        seriesId='s1'
+        chapterId='c1'
+        sceneId='sc1'
+        workflowType='Storyboard'
+        suggestionKind='Layout'
+        title='Trợ lý AI · Phân khung Storyboard'
+        briefLabel='Brief'
+        briefPlaceholder='Nhập brief'
+        runLabel='Phân khung'
+        readingDirection='Vertical'
+        chapterVersion={3}
+        nameById={{ an: 'An' }}
+        onClose={onClose}
+        onReload={onReload}
+      />,
+    );
+
+    await screen.findByLabelText('Brief');
+    typeBrief('Phân khung cuộn dọc Webtoon');
+    await waitFor(() => expect(screen.getByTestId('ai-run-btn')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('ai-run-btn'));
+
+    await waitFor(() => expect(runWorkflow).toHaveBeenCalledTimes(1));
+    expect(runWorkflow).toHaveBeenNthCalledWith(
+      1,
+      's1',
+      expect.objectContaining({
+        workflowType: 'Storyboard',
+        readingDirection: 'Vertical',
+      }),
+    );
+
+    first.unmount();
+
+    render(
+      <AiAssistPanel
+        seriesId='s1'
+        chapterId='c1'
+        sceneId='sc1'
+        workflowType='Storyboard'
+        suggestionKind='Layout'
+        title='Trợ lý AI · Phân khung Storyboard'
+        briefLabel='Brief'
+        briefPlaceholder='Nhập brief'
+        runLabel='Phân khung'
+        readingDirection={2}
+        chapterVersion={3}
+        nameById={{ an: 'An' }}
+        onClose={onClose}
+        onReload={onReload}
+      />,
+    );
+
+    await screen.findByLabelText('Brief');
+    typeBrief('Phân khung từ enum số 2');
+    await waitFor(() => expect(screen.getByTestId('ai-run-btn')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('ai-run-btn'));
+
+    await waitFor(() => expect(runWorkflow).toHaveBeenCalledTimes(2));
+    expect(runWorkflow).toHaveBeenNthCalledWith(
+      2,
+      's1',
+      expect.objectContaining({
+        workflowType: 'Storyboard',
+        readingDirection: 'Vertical',
+      }),
+    );
   });
 });
