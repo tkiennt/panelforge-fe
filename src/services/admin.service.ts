@@ -192,6 +192,8 @@ export interface WorkspaceAiConfigDto {
   workspaceId: string;
   provider: string;
   hasApiKey: boolean;
+  /** Máy chủ giải mã được key đã lưu, tức AI dùng được key này. */
+  apiKeyUsable?: boolean;
   isEnabled: boolean;
   monthlyTokenQuota: number;
   usedTokensCurrentMonth: number;

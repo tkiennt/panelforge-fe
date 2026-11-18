@@ -247,7 +247,7 @@ export interface ThumbnailSuggestion {
   sha256: string;
   imagePromptRevisionId: string;
   prompt: string;
-  provider: 'Gemini' | 'Cloudflare' | 'Mock' | string;
+  provider: 'Gemini' | 'Cloudflare' | string;
   model: string;
   referenceEntryIds: string[];
 }

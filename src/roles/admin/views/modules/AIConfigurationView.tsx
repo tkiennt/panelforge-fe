@@ -38,7 +38,7 @@ const STATUS_OPTIONS: { value: string; label: string; tone: AdminTone }[] = [
   { value: 'Disabled', label: 'AI đang tắt', tone: 'neutral' },
 ];
 
-const PROVIDERS = ['Google Gemini', 'OpenAI', 'Anthropic Claude'];
+const AI_PROVIDER = 'Google Gemini';
 const KNOWN_MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-image'];
 
 const fmt = (n?: number | null) => (n ?? 0).toLocaleString('vi-VN');
@@ -59,7 +59,6 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
   const [saving, setSaving] = useState(false);
 
   const [isEnabled, setIsEnabled] = useState(true);
-  const [provider, setProvider] = useState(PROVIDERS[0]);
   const [apiKey, setApiKey] = useState('');
   const [tokenQuota, setTokenQuota] = useState('0');
   const [imageQuota, setImageQuota] = useState('0');
@@ -87,7 +86,6 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
   const applyConfig = (c: WorkspaceAiConfigDto) => {
     setConfig(c);
     setIsEnabled(c.isEnabled);
-    setProvider(c.provider || PROVIDERS[0]);
     setApiKey('');
     setTokenQuota(String(c.monthlyTokenQuota ?? 0));
     setImageQuota(String(c.monthlyImageQuota ?? 0));
@@ -129,7 +127,7 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
     setSaving(true);
     try {
       const updated = await adminService.updateWorkspaceAiConfig(workspaceId, {
-        provider,
+        provider: AI_PROVIDER,
         apiKey: apiKey.trim() || undefined,
         isEnabled,
         monthlyTokenQuota: token,
@@ -146,7 +144,11 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
   };
 
   const modelOptions = Array.from(new Set([...KNOWN_MODELS, ...(config?.allowedModels || [])]));
-  const providerOptions = PROVIDERS.includes(provider) ? PROVIDERS : [provider, ...PROVIDERS];
+  const keyState = !config?.hasApiKey
+    ? { label: 'Chưa có API key', tone: 'warning' as AdminTone }
+    : config.apiKeyUsable === false
+      ? { label: 'Key không đọc được, hãy nhập lại', tone: 'danger' as AdminTone }
+      : { label: 'Đã có API key', tone: 'success' as AdminTone };
 
   if (wsError)
     return (
@@ -219,28 +221,24 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
               </span>
             </label>
 
+            <div
+              className='flex items-center gap-2 text-sm text-admin-muted'
+              data-testid='ai-key-status'
+            >
+              Trạng thái key: <AdminBadge tone={keyState.tone}>{keyState.label}</AdminBadge>
+            </div>
+
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <AdminField label='Nhà cung cấp' htmlFor='ai-provider'>
-                <select
-                  id='ai-provider'
-                  value={provider}
-                  onChange={(e) => setProvider(e.target.value)}
-                  className={adminFieldClass}
-                >
-                  {providerOptions.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
+                <input id='ai-provider' value={AI_PROVIDER} readOnly className={adminFieldClass} />
               </AdminField>
               <AdminField
                 label='API key'
                 htmlFor='ai-key'
                 hint={
                   config?.hasApiKey
-                    ? 'Để trống nếu giữ nguyên khóa đã lưu.'
-                    : 'Khóa được kiểm tra với nhà cung cấp trước khi lưu.'
+                    ? 'Nhập key mới để thay thế, AI dùng key mới ngay sau khi lưu. Để trống nếu giữ nguyên.'
+                    : 'Key được kiểm tra với Google trước khi lưu.'
                 }
               >
                 <input
