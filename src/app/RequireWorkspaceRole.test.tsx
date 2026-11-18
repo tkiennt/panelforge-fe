@@ -68,6 +68,22 @@ describe('RequireWorkspaceRole', () => {
       expect(isRoleAllowed('ADMIN', ['ADMINISTRATOR'])).toBe(true);
       expect(isRoleAllowed('ADMINISTRATOR', ['ADMIN'])).toBe(true);
     });
+
+    it('cho phép khi một trong các activeRoles khớp với allowedRoles', () => {
+      expect(isRoleAllowed('ARTIST', ['EDITOR'], ['ARTIST', 'EDITOR'])).toBe(true);
+      expect(isRoleAllowed('WRITER', ['LETTERER'], ['WRITER', 'LETTERER'])).toBe(true);
+      expect(isRoleAllowed('ARTIST', ['PUBLISHER'], ['ARTIST', 'LETTERER'])).toBe(false);
+    });
+
+    it('cho phép ADMINISTRATOR truy cập toàn quyền', () => {
+      expect(isRoleAllowed('ADMINISTRATOR', ['ARTIST', 'WRITER'])).toBe(true);
+      expect(isRoleAllowed('USER', ['ARTIST'], [], 'ADMINISTRATOR')).toBe(true);
+    });
+
+    it('cho phép PRODUCER truy cập các màn sản xuất', () => {
+      expect(isRoleAllowed('PRODUCER', ['ARTIST'])).toBe(true);
+      expect(isRoleAllowed('PRODUCER', ['WRITER', 'EDITOR'])).toBe(true);
+    });
   });
 
   describe('Component rendering & Route guard', () => {

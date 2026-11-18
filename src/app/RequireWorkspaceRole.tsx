@@ -21,7 +21,7 @@ export const RequireWorkspaceRole: React.FC<RequireWorkspaceRoleProps> = ({
 }) => {
   const effectiveRole = resolveCurrentWorkspaceRole(currentWorkspaceRole, activeRoles, currentRole);
 
-  const allowed = isRoleAllowed(effectiveRole, allowedRoles);
+  const allowed = isRoleAllowed(effectiveRole, allowedRoles, activeRoles, currentRole);
 
   if (!allowed) {
     return (
