@@ -1,5 +1,6 @@
 // src/roles/writer/components/script/BibleCharactersDrawer.tsx
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Layers,
   Loader2,
@@ -16,7 +17,6 @@ import {
 } from '@/services/chapterCast.service';
 import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
-import { Modal } from '@/shared/ui';
 import { BibleEntryAccordionItem, BibleAccordionEntity } from './BibleEntryAccordionItem';
 
 export interface BibleCharactersDrawerProps {
@@ -25,6 +25,7 @@ export interface BibleCharactersDrawerProps {
   characters: BibleEntryDto[];
   chapterId?: string;
   seriesId?: string;
+  workspaceId?: string;
   canEditScript?: boolean;
   chapterNumber?: number;
   chapterTitle?: string;
@@ -46,6 +47,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
   characters,
   chapterId,
   seriesId,
+  workspaceId,
   canEditScript = true,
   chapterNumber,
   chapterTitle,
@@ -61,6 +63,9 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
   t: propT,
 }) => {
   const { t: i18nT } = useTranslation();
+  const routeParams = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const effectiveWorkspaceId = workspaceId || routeParams.workspaceId;
+  const effectiveSeriesId = seriesId || routeParams.seriesId;
   const confirm = useConfirm();
   const t = (key: string, fallbackOrParams?: any, explicitFallback?: string) => {
     if (propT) return propT(key, fallbackOrParams, explicitFallback);
@@ -68,15 +73,9 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
   };
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterTab, setFilterTab] = useState<'all' | 'cast' | 'nonCast' | 'stubs'>('all');
+  const [filterTab, setFilterTab] = useState<'cast' | 'all' | 'nonCast' | 'stubs'>('all');
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
   const [actingEntryId, setActingEntryId] = useState<string | null>(null);
-
-  // Modal Định nghĩa mục nháp (IsStub)
-  const [stubToDefine, setStubToDefine] = useState<ChapterCastItemDto | null>(null);
-  const [defineDesc, setDefineDesc] = useState('');
-  const [defineSubtitle, setDefineSubtitle] = useState('');
-  const [isDefining, setIsDefining] = useState(false);
 
   if (!isOpen) return null;
 
@@ -230,37 +229,6 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
     }
   };
 
-  // Submit Định nghĩa mục nháp từ Modal
-  const handleSubmitDefine = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stubToDefine || !defineDesc.trim() || !seriesId) return;
-
-    setIsDefining(true);
-    try {
-      await chapterCastService.defineBibleEntry(seriesId, stubToDefine.bibleEntryId, {
-        name: stubToDefine.name,
-        description: defineDesc.trim(),
-        subtitle: defineSubtitle.trim() || undefined,
-      });
-
-      if (onRefreshCast) await onRefreshCast();
-      if (onRefreshBible) await onRefreshBible();
-      setStubToDefine(null);
-      if (onShowToast) {
-        onShowToast(
-          t('production.cast.defineSuccess', 'Đã định nghĩa thực thể'),
-          t('production.cast.defineSuccessDesc', 'Mục nháp đã trở thành bản ghi Series Bible chính thức.'),
-        );
-      }
-    } catch (err: any) {
-      if (onShowToast) {
-        onShowToast(t('production.cast.defineFailed', 'Định nghĩa thực thể thất bại'), err?.message);
-      }
-    } finally {
-      setIsDefining(false);
-    }
-  };
-
   // Lưu bản nháp (Draft Revision)
   const handleSaveDraft = async (
     entryId: string,
@@ -325,11 +293,10 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           </div>
           <div className='min-w-0'>
             <h3 className='text-sm font-bold text-stone-900 truncate font-serif'>
-              {t('production.cast.charactersDrawerTitle', 'Nhân vật Series Bible')} ({characters.length})
+              {t('production.cast.charactersDrawerTitle', 'Nhân vật')}
             </h3>
             <p className='text-xs text-stone-500 truncate'>
-              {t('production.cast.charactersDrawerDesc', 'Danh sách nhân vật Canon đối chiếu kịch bản')}
-              {castEntities.length > 0 && ` · ${castEntities.length} ${t('production.cast.inChapter', 'Trong chương')}`}
+              {castEntities.length} {t('production.cast.inChapter', 'Trong chương').toLowerCase()} · {allCharacters.length} {t('production.cast.total', 'tổng số')}
             </p>
           </div>
         </div>
@@ -356,19 +323,8 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
         </div>
       </div>
 
-      {/* Filter Tabs */}
+      {/* Filter Tabs: Đẩy tab Trong chương lên đầu */}
       <div className='px-4 pt-3 pb-2 border-b border-stone-200/80 bg-white flex items-center gap-1 overflow-x-auto'>
-        <button
-          type='button'
-          onClick={() => setFilterTab('all')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-            filterTab === 'all'
-              ? 'bg-orange-100 text-orange-900'
-              : 'text-stone-600 hover:bg-stone-100'
-          }`}
-        >
-          {t('production.cast.allFilter', 'Tất cả')} ({allCharacters.length})
-        </button>
         <button
           type='button'
           onClick={() => setFilterTab('cast')}
@@ -379,6 +335,17 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           }`}
         >
           {t('production.cast.inChapterFilter', 'Trong chương')} ({castEntities.length})
+        </button>
+        <button
+          type='button'
+          onClick={() => setFilterTab('all')}
+          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+            filterTab === 'all'
+              ? 'bg-orange-100 text-orange-900'
+              : 'text-stone-600 hover:bg-stone-100'
+          }`}
+        >
+          {t('production.cast.allFilter', 'Tất cả')} ({allCharacters.length})
         </button>
         <button
           type='button'
@@ -415,7 +382,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
             type='text'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('production.cast.searchCharacter', 'Tìm kiếm nhân vật...')}
+            placeholder={t('production.cast.searchCharacter', 'Tìm nhân vật...')}
             className='w-full pl-8 pr-3 py-1.5 text-xs border border-stone-200 rounded-xl outline-none focus:border-orange-500 bg-stone-50 text-stone-900'
           />
         </div>
@@ -480,22 +447,14 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
               <BibleEntryAccordionItem
                 key={char.id}
                 entity={accordionEntity}
-                isInChapter={inCast}
-                onOpenDefine={
-                  isStub && castEntity
-                    ? () => {
-                        setStubToDefine(castEntity);
-                        setDefineDesc(char.description || '');
-                        setDefineSubtitle(char.subtitle || '');
-                      }
-                    : undefined
-                }
+                isInChapter={filterTab === 'all' ? inCast : undefined}
                 isOpen={expandedEntryId === char.id}
                 onToggle={() =>
                   setExpandedEntryId((prev) => (prev === char.id ? null : char.id))
                 }
                 canEditScript={canEditScript}
-                seriesId={seriesId}
+                workspaceId={effectiveWorkspaceId}
+                seriesId={effectiveSeriesId}
                 isActing={actingEntryId === char.id}
                 onSaveDraft={handleSaveDraft}
                 onChangeRevision={handleRevisionChange}
@@ -509,69 +468,6 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           })
         )}
       </div>
-
-      {/* Modal định nghĩa mục nháp IsStub */}
-      {stubToDefine && (
-        <Modal
-          isOpen={true}
-          onClose={() => setStubToDefine(null)}
-          title={`Định nghĩa nhân vật: ${stubToDefine.name}`}
-          size='md'
-          closeLabel='Hủy'
-        >
-          <form onSubmit={handleSubmitDefine} className='p-4 space-y-3.5 text-xs text-stone-800'>
-            <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900'>
-              Tên nhân vật: <strong>{stubToDefine.name}</strong> ({stubToDefine.code}). Tên này là
-              bất biến theo quy chuẩn BIB-13.
-            </div>
-
-            <div>
-              <label className='block font-semibold mb-1 text-stone-700'>
-                Danh xưng / Phụ đề (Subtitle):
-              </label>
-              <input
-                type='text'
-                value={defineSubtitle}
-                onChange={(e) => setDefineSubtitle(e.target.value)}
-                placeholder='vd: Nữ kiếm sĩ tập sự'
-                className='w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs outline-none focus:border-orange-500 bg-white text-stone-900'
-              />
-            </div>
-
-            <div>
-              <label className='block font-semibold mb-1 text-stone-700'>
-                Mô tả nhân vật (Description) <span className='text-rose-500'>*</span>:
-              </label>
-              <textarea
-                rows={3}
-                required
-                value={defineDesc}
-                onChange={(e) => setDefineDesc(e.target.value)}
-                placeholder='Nhập mô tả xuất thân, ngoại hình, tính cách...'
-                className='w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs outline-none focus:border-orange-500 bg-white text-stone-900 resize-none'
-              />
-            </div>
-
-            <div className='flex items-center justify-end gap-2 pt-2 border-t border-stone-200'>
-              <button
-                type='button'
-                onClick={() => setStubToDefine(null)}
-                className='px-3 py-1.5 rounded-lg border border-stone-300 text-stone-700 font-semibold hover:bg-stone-100 cursor-pointer'
-              >
-                Hủy
-              </button>
-              <button
-                type='submit'
-                disabled={isDefining || !defineDesc.trim()}
-                className='px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold cursor-pointer disabled:opacity-50 flex items-center gap-1.5'
-              >
-                {isDefining && <Loader2 className='w-3.5 h-3.5 animate-spin' />}
-                <span>Lưu định nghĩa</span>
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
     </aside>
   );
 };

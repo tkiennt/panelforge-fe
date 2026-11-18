@@ -565,6 +565,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     const toggleBtn = await screen.findByTestId('toggle-narrative-context-btn');
     await user.click(toggleBtn);
+    await user.click(screen.getByRole('button', { name: /Story Arc/i }));
 
     const textarea = await screen.findByTestId('story-arc-textarea');
     expect(textarea).toHaveValue('Hành trình vượt qua đêm đen Neo Tokyo.');
@@ -703,6 +704,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       const user = userEvent.setup();
       const first = renderView();
       await user.click(await screen.findByTestId('toggle-narrative-context-btn'));
+      await user.click(screen.getByRole('button', { name: /Story Arc/i }));
       const textarea = await screen.findByTestId('story-arc-textarea');
       await user.clear(textarea);
       await user.type(textarea, 'Bản nháp chưa kịp lưu');
@@ -715,6 +717,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       const banner = await screen.findByTestId('draft-restore-storyArc');
       await user.click(within(banner).getByRole('button', { name: 'Khôi phục' }));
       await user.click(await screen.findByTestId('toggle-narrative-context-btn'));
+      await user.click(screen.getByRole('button', { name: /Story Arc/i }));
       expect(await screen.findByTestId('story-arc-textarea')).toHaveValue('Bản nháp chưa kịp lưu');
       expect(seriesService.updateStoryArc).not.toHaveBeenCalled(); // người dùng vẫn tự bấm lưu
     }, 15000);

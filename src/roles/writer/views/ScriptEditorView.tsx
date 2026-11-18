@@ -2933,6 +2933,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             characters={characters}
             chapterId={currentChapter?.id}
             seriesId={seriesId || currentChapter?.seriesId}
+            workspaceId={workspaceId}
             canEditScript={canEditScript}
             chapterNumber={currentChapter?.chapterNumber}
             chapterTitle={currentChapter?.title}

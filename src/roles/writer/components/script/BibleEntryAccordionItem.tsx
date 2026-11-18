@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
+import { buildBibleUrl } from '@/app/routePaths';
 import {
+  AlertTriangle,
+  ExternalLink,
   User,
   MapPin,
   Box,
@@ -56,7 +59,7 @@ export interface BibleEntryAccordionItemProps {
   onToggle: () => void;
   canEditScript?: boolean;
   isInChapter?: boolean;
-  onOpenDefine?: () => void;
+  workspaceId?: string;
   seriesId?: string;
   isActing?: boolean;
   onSaveDraft?: (
@@ -83,7 +86,8 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
   onToggle,
   canEditScript = true,
   isInChapter,
-  onOpenDefine,
+  workspaceId,
+  seriesId,
   isActing = false,
   onSaveDraft,
   onChangeRevision,
@@ -94,6 +98,22 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
   t: propT,
 }) => {
   const { t: i18nT } = useTranslation();
+  const effectiveWorkspaceId =
+    workspaceId ||
+    (typeof window !== 'undefined'
+      ? window.location.pathname.match(/\/workspaces\/([^/]+)/)?.[1]
+      : undefined);
+  const effectiveSeriesId =
+    seriesId ||
+    (typeof window !== 'undefined'
+      ? window.location.pathname.match(/\/series\/([^/]+)/)?.[1]
+      : undefined);
+
+  const bibleUrl =
+    effectiveWorkspaceId && effectiveSeriesId
+      ? buildBibleUrl(effectiveWorkspaceId, effectiveSeriesId, entity.name)
+      : '#';
+
   const t = (key: string, fallbackOrParams?: any, explicitFallback?: string) => {
     if (propT) return propT(key, fallbackOrParams, explicitFallback);
     return i18nT(key, fallbackOrParams, explicitFallback);
@@ -130,6 +150,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
 
   // Sync edit state when entity changes
   const handleOpenEdit = () => {
+    if (entity.isStub) return;
     setEditSubtitle(entity.subtitle || '');
     setEditDescription(entity.description || '');
     const vals: Record<string, string> = {};
@@ -301,27 +322,6 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
             </span>
           )}
 
-          {/* Nút Định nghĩa nhanh cho mục nháp */}
-          {entity.isStub && onOpenDefine && canEditScript && (
-            <span
-              role='button'
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenDefine();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.stopPropagation();
-                  onOpenDefine();
-                }
-              }}
-              className='text-xs px-2 py-0.5 rounded-md font-semibold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer transition-colors shadow-2xs'
-            >
-              {t('production.cast.writeDefinition', 'Định nghĩa')}
-            </span>
-          )}
-
           <ChevronDown
             className={`w-4 h-4 text-stone-400 transition-transform duration-200 shrink-0 ${
               isOpen ? 'rotate-180 text-orange-600' : ''
@@ -348,8 +348,23 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
             </div>
           )}
 
-          {/* EDIT FORM (When writer clicks edit) */}
-          {isEditing ? (
+          {/* STUB NOTICE: Tối giản, ít chữ */}
+          {entity.isStub ? (
+            <div className='p-2.5 bg-amber-50/80 border border-amber-200/90 rounded-xl flex items-center justify-between gap-2.5 text-xs'>
+              <span className='text-amber-900 font-medium'>
+                {t('production.cast.stubNoticeShort', 'Chưa có định nghĩa')}
+              </span>
+              {bibleUrl !== '#' && (
+                <a
+                  href={bibleUrl}
+                  className='inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors shrink-0 shadow-2xs'
+                >
+                  <ExternalLink className='w-3 h-3' />
+                  <span>{t('production.cast.openSeriesBibleShort', 'Định nghĩa')}</span>
+                </a>
+              )}
+            </div>
+          ) : isEditing ? (
             <form
               onSubmit={handleSave}
               className='p-3 bg-white rounded-xl border border-stone-200/90 shadow-2xs space-y-3'
@@ -462,18 +477,17 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                 </p>
               ) : (
                 <p className='text-xs italic text-stone-400'>
-                  {t('production.cast.noDescription', 'Chưa có mô tả chi tiết.')}
+                  {t('production.cast.noDescriptionShort', '(Chưa có mô tả)')}
                 </p>
               )}
 
               {/* Spec completeness badge & quick specs view */}
               <div className='flex items-center justify-between text-xs text-stone-500 pt-1'>
                 <span className='font-medium'>
-                  {t('production.cast.specFilledCount', 'Đặc tả:')} {specStats.filled}/
-                  {specStats.total} {t('production.cast.fields', 'trường')}
+                  {t('production.cast.specFilledCount', 'Đặc tả:')} {specStats.filled}/{specStats.total}
                 </span>
 
-                {canEditScript && onSaveDraft && (
+                {canEditScript && onSaveDraft && !entity.isStub && (
                   <button
                     type='button'
                     onClick={handleOpenEdit}
@@ -481,11 +495,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                     className='px-2.5 py-1 text-xs rounded-lg border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
                   >
                     <Edit3 className='w-3.5 h-3.5' />
-                    <span>
-                      {entity.isStub
-                        ? t('production.cast.writeDefinition', 'Viết định nghĩa')
-                        : t('production.cast.editSpecBtn', 'Sửa thông tin')}
-                    </span>
+                    <span>{t('production.cast.editSpecBtnShort', 'Sửa')}</span>
                   </button>
                 )}
               </div>
