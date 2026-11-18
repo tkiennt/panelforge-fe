@@ -82,7 +82,35 @@ describe('aiAgentsService', () => {
     expect(err).toBeInstanceOf(AiApiError);
     expect(err.code).toBe('AI_UNAVAILABLE');
     expect(err.status).toBe(503);
-    expect(err.message).toBe('AI service đang tắt.');
+    expect(err.message).toContain('Trợ lý AI đang bận');
+    expect(err.message).not.toContain('AI service đang tắt');
+  });
+
+  it.each([
+    ['AI_UNAVAILABLE', 503, 'Provider giới hạn tần suất/quota (HTTP 429).', 'Trợ lý AI đang bận'],
+    [
+      'AI_INVALID_OUTPUT',
+      422,
+      'AI trả kết quả không hợp lệ: text rỗng.',
+      'AI chưa tạo được kết quả hợp lệ',
+    ],
+    [
+      'AI_INVALID_OUTPUT',
+      422,
+      'AI chưa rút gọn được xuống 30 ký tự. Hãy thử lại.',
+      'AI chưa rút gọn được xuống 30 ký tự',
+    ],
+  ])('Copilot %s (%i): hiện câu dễ hiểu', async (code, status, error, expected) => {
+    post.mockRejectedValue({ response: { status, data: { code, error } } });
+
+    const err = await aiAgentsService
+      .runCopilot('s1', { task: 'letterer.shorten', pageId: 'p', elementId: 'e', maxChars: 30 })
+      .catch((e) => e);
+
+    expect(err.code).toBe(code);
+    expect(err.status).toBe(status);
+    expect(err.message).toContain(expected);
+    expect(err.message).not.toContain('Provider');
   });
 
   it('Accept gửi chapterVersion; version cũ → lỗi 409 CONFLICT giữ nguyên để UI tải lại (BR-11)', async () => {

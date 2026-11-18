@@ -611,6 +611,10 @@ export class AiApiError extends Error {
   }
 }
 
+const AI_BUSY_MESSAGE =
+  'Trợ lý AI đang bận hoặc tạm thời không phản hồi. Hãy thử lại sau ít phút, bạn vẫn có thể làm thủ công.';
+const AI_INVALID_OUTPUT_MESSAGE = 'AI chưa tạo được kết quả hợp lệ. Hãy thử lại.';
+
 function toError(error: any, fallback: string): AiApiError {
   const data = error?.response?.data;
   const status = error?.response?.status;
@@ -622,6 +626,11 @@ function toError(error: any, fallback: string): AiApiError {
         : '';
   const code =
     data?.code || (status === 403 ? 'FORBIDDEN' : status === 409 ? 'CONFLICT' : undefined);
+  // Lỗi kỹ thuật của provider/model không có ích cho người dùng; riêng lỗi rút gọn đã có hướng dẫn cụ thể.
+  if (code === 'AI_UNAVAILABLE') return new AiApiError(AI_BUSY_MESSAGE, code, status);
+  if (code === 'AI_INVALID_OUTPUT' && !serverMsg.startsWith('AI chưa rút gọn')) {
+    return new AiApiError(AI_INVALID_OUTPUT_MESSAGE, code, status);
+  }
   const message =
     serverMsg || (status === 403 ? 'Bạn không có quyền thực hiện thao tác này.' : fallback);
   return new AiApiError(message, code, status);
