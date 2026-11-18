@@ -315,7 +315,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                     if (status === 'Submitted' || status === 'UnderReview') {
                       onToast?.(
                         'Yêu cầu làm lại qua cổng duyệt',
-                        'Với việc đang nộp/chờ duyệt, vui lòng thực hiện qua cổng xét duyệt bên dưới.',
+                        'Công việc đang chờ duyệt. Thực hiện qua cổng xét duyệt bên dưới.',
                       );
                     } else {
                       setImpactDecision('Rework');

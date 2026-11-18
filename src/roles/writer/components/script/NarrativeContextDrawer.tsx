@@ -200,7 +200,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
               disabled={!canEditScript || isChapterLocked}
               placeholder={t(
                 'scriptStudio.narrative.outlinePlaceholder',
-                'Nhập đề cương phân cảnh / nhịp điệu của chương...',
+                'vd: Cảnh 1 mở đầu đêm tuyết, cảnh 2 chạm trán...',
               )}
               data-testid='chapter-outline-textarea'
               className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] disabled:bg-[#F3F0E9] disabled:cursor-not-allowed resize-y transition-all text-[#1C1917]'
@@ -211,7 +211,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                 {outlineWordCount} {t('scriptStudio.narrative.words', 'từ')} · {outlineInput.length}{' '}
                 {t('scriptStudio.narrative.chars', 'ký tự')}
               </span>
-              <span>{t('scriptStudio.narrative.outlineAiHint', 'Tự động đưa vào prompt khi viết kịch bản AI')}</span>
+              <span>{t('scriptStudio.narrative.outlineAiHint', 'Bối cảnh cho Writer AI')}</span>
             </div>
           </div>
         )}
@@ -257,7 +257,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
               disabled={!canEditScript}
               placeholder={t(
                 'scriptStudio.narrative.storyArcPlaceholder',
-                'Nhập tóm lược Story Arc của Series (ví dụ: Hành trình khám phá bí mật cổ xưa...)',
+                'vd: Hành trình khám phá bí mật cổ xưa...',
               )}
               data-testid='story-arc-textarea'
               className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] disabled:bg-[#F3F0E9] disabled:cursor-not-allowed resize-y transition-all text-[#1C1917]'
@@ -268,7 +268,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                 {storyArcWordCount} {t('scriptStudio.narrative.words', 'từ')} · {storyArcInput.length}{' '}
                 {t('scriptStudio.narrative.chars', 'ký tự')}
               </span>
-              <span>{t('scriptStudio.narrative.storyArcAiHint', 'Dùng làm bối cảnh chính cho Writer AI')}</span>
+              <span>{t('scriptStudio.narrative.storyArcAiHint', 'Bối cảnh cho Writer AI')}</span>
             </div>
           </div>
         )}

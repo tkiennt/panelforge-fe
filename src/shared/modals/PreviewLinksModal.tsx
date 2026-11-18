@@ -165,8 +165,8 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
       setRecipientEmail('');
       setHasCopied(false);
       onShowToast?.(
-        'Tạo link xem thử thành công',
-        'Vui lòng sao chép link ngay. Token chỉ hiển thị một lần duy nhất.',
+        'Đã tạo link xem thử',
+        'Sao chép link ngay. Token chỉ hiển thị một lần duy nhất.',
       );
       fetchLinks();
     } catch (err: any) {
@@ -234,7 +234,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
       onShowToast?.(
         'Đã xử lý phản hồi',
         decision === 'NeedsChange'
-          ? 'Đã chuyển thành Cần sửa đổi. Bạn có thể mở lại chương để phân công chỉnh sửa.'
+          ? 'Đã chuyển thành Cần sửa đổi. Mở lại chương để phân công.'
           : 'Đã ghi nhận phản hồi của độc giả/đối tác.',
       );
     } catch (err: any) {
@@ -271,7 +271,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
         err?.response?.data?.error ||
           err?.response?.data?.message ||
           err?.message ||
-          'Vui lòng thử lại.',
+          'Thử lại sau ít phút.',
       );
     } finally {
       setCreatingCrId(null);
@@ -507,8 +507,8 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                   </div>
 
                   <div className='text-xs text-amber-800 bg-amber-100/60 p-2.5 rounded-lg border border-amber-200/80'>
-                    ⚠️ <strong>Lưu ý bảo mật:</strong> Liên kết xem thử này chỉ hiển thị một lần duy
-                    nhất trên giao diện. Vui lòng sao chép và gửi cho người nhận ngay bây giờ.
+                    ⚠️ <strong>Bảo mật:</strong> Link chỉ hiển thị một lần. Sao chép và gửi cho
+                    người nhận ngay bây giờ.
                   </div>
                 </div>
               )}
@@ -838,8 +838,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                           onReopenChapter && (
                             <div className='p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg flex items-center justify-between gap-3 text-amber-900'>
                               <span className='text-xs'>
-                                💡 Phản hồi này yêu cầu sửa đổi. Bạn có thể mở lại chương để chuyển
-                                về sản xuất:
+                                💡 Phản hồi yêu cầu sửa đổi. Mở lại chương để tiếp tục sản xuất:
                               </span>
                               <button
                                 type='button'

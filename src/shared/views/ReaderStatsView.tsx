@@ -78,7 +78,7 @@ export const ReaderStatsView: React.FC = () => {
 
       {!workspaceId && !loading && !error && (
         <div className='p-6 text-center text-sm text-[#737373] bg-[#FAF9F5] border border-stone-200/80 rounded-xl'>
-          {t('readerStats.noWorkspace', 'Vui lòng chọn Studio để xem thống kê lượt đọc.')}
+          {t('readerStats.noWorkspace', 'Chọn Studio để xem thống kê lượt đọc.')}
         </div>
       )}
 

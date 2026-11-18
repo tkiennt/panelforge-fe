@@ -328,7 +328,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               type='text'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder='Tìm nhanh theo tên chương, nội dung tóm tắt, số chương...'
+              placeholder='Tìm số hoặc tên chương...'
               className='w-full pl-9 pr-8 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C] focus:ring-1 focus:ring-[#C2410C] transition-all placeholder:text-[#A8A29E]'
             />
             {searchQuery && (
@@ -513,12 +513,12 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             <BookOpen className='w-6 h-6' />
           </div>
           <h3 className='text-base font-bold font-serif text-[#1C1917]'>
-            Chưa có chương nào trong series này
+            Chưa có chương
           </h3>
           <p className='text-xs text-[#57534E] max-w-md mx-auto'>
             {canCreateChapter
-              ? 'Hãy khởi tạo Chương 1 để bắt đầu giao việc cho Writer biên soạn kịch bản.'
-              : 'Producer phụ trách dự án sẽ khởi tạo chương và giao việc. Vui lòng liên hệ Producer để tạo chương trước khi viết kịch bản.'}
+              ? 'Khởi tạo Chương 1 để bắt đầu viết kịch bản.'
+              : 'Liên hệ Producer để tạo chương trước khi viết kịch bản.'}
           </p>
           {canCreateChapter && (
             <button
@@ -527,7 +527,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#C2410C] hover:bg-[#9A3412] rounded-xl shadow-xs transition-all cursor-pointer mt-2'
             >
               <Plus className='w-3.5 h-3.5' />
-              <span>+ Khởi tạo Chương 1</span>
+              <span>Tạo Chương 1</span>
             </button>
           )}
         </div>
@@ -720,7 +720,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               <label className='block text-xs font-bold text-[#1C1917] mb-1'>Tiêu đề chương</label>
               <input
                 type='text'
-                placeholder='Ví dụ: Khởi Đầu Mới, Đêm Tại Quận Shibuya...'
+                placeholder='vd: Khởi đầu mới, Đêm tuyết Shibuya'
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C]'
@@ -729,11 +729,11 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
 
             <div>
               <label className='block text-xs font-bold text-[#1C1917] mb-1'>
-                Đề cương kịch bản tóm tắt (Outline)
+                Đề cương chương
               </label>
               <textarea
                 rows={3}
-                placeholder='Tóm tắt nội dung chính hoặc diễn biến quan trọng của chương...'
+                placeholder='vd: Cuộc chạm trán tại cổng thành'
                 value={outline}
                 onChange={(e) => setOutline(e.target.value)}
                 className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C] resize-none'

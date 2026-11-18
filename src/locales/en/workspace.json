@@ -110,8 +110,8 @@
   "daysAgo": "{count} days ago",
   "pendingTasks": "{count} pending tasks",
   "enterStudio": "Enter Studio",
-  "adminNotice": "Administrator accounts cannot create or own a Studio Workspace. Please use the System Administration page.",
-  "producerNotice": "Your account does not have Producer privileges to create a Studio. Please contact an Administrator.",
+  "adminNotice": "Administrator accounts cannot create Studio Workspaces. Use the System Administration page.",
+  "producerNotice": "Account lacks Producer privileges to create a Studio. Contact an Administrator.",
   "overview": {
     "title": "Studio Overview",
     "seriesList": "Series List",
@@ -190,9 +190,9 @@
     "cancel": "Cancel",
     "create": "Create Studio",
     "creating": "Creating...",
-    "errorEmptyName": "Please enter a Workspace / Studio name.",
-    "errorCreateFailed": "Could not create Workspace. Please try again.",
-    "successTitle": "Studio created successfully",
+    "errorEmptyName": "Enter a Studio Workspace name.",
+    "errorCreateFailed": "Could not create Workspace. Try again shortly.",
+    "successTitle": "Studio created",
     "successDesc": "Workspace \"{name}\" has been created"
   }
 }

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Lock, Play } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Lock, Play } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import {
   chapterService,
@@ -34,6 +34,10 @@ interface ScriptReviewViewProps {
   currentUserId?: string;
   workspaceRole?: string;
   onShowToast?: (title: string, message: string) => void;
+  chapterIdProp?: string;
+  onBackToChapters?: () => void;
+  chaptersList?: ChapterDto[];
+  onSelectChapter?: (chapterId: string) => void;
 }
 
 const errorMessage = (err: unknown, fallback: string) =>
@@ -51,16 +55,21 @@ type Staleness = 'changed' | 'removed' | null;
 export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   workspaceRole,
   onShowToast,
+  chapterIdProp,
+  onBackToChapters,
+  chaptersList,
+  onSelectChapter,
 }) => {
   const {
     workspaceId,
     seriesId,
-    chapterId = '',
+    chapterId: routeChapterId = '',
   } = useParams<{
     workspaceId: string;
     seriesId: string;
     chapterId: string;
   }>();
+  const chapterId = chapterIdProp || routeChapterId || '';
   const navigate = useNavigate();
   const { t, lang } = useTranslation('review');
   const { t: tp } = useTranslation('production');
@@ -357,20 +366,50 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   return (
     <div className='flex min-h-0 flex-1 flex-col bg-[#FAF9F5] font-sans text-stone-900'>
       <header className='flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3'>
-        <div className='min-w-0'>
-          <h1 className='truncate font-serif text-lg font-bold tracking-tight text-stone-900'>
-            {t('scriptReview.header.title', { number: chapter.chapterNumber })}
-            {chapter.title ? `: ${chapter.title}` : ''}
-          </h1>
-          <p className='text-xs text-stone-500'>
-            {pushed
-              ? t('scriptReview.pushed.version', {
-                  n: pushed.version.versionNumber,
-                  hash: shortHash(pushed.version.contentHash),
-                })
-              : t('scriptReview.pushed.none')}
-            {chapter.scriptSubmittedAt ? ` · ${dateFormat(chapter.scriptSubmittedAt)}` : ''}
-          </p>
+        <div className='min-w-0 flex items-center gap-3'>
+          {onBackToChapters && (
+            <button
+              type='button'
+              onClick={onBackToChapters}
+              className='inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition-colors shadow-2xs cursor-pointer'
+              title='Quay lại danh sách chương'
+            >
+              <ArrowLeft className='h-3.5 w-3.5' />
+              <span>Danh sách chương</span>
+            </button>
+          )}
+          <div className='min-w-0'>
+            <div className='flex items-center gap-2'>
+              <h1 className='truncate font-serif text-lg font-bold tracking-tight text-stone-900'>
+                {t('scriptReview.header.title', { number: chapter.chapterNumber })}
+                {chapter.title ? `: ${chapter.title}` : ''}
+              </h1>
+              {chaptersList && chaptersList.length > 1 && onSelectChapter && (
+                <select
+                  value={chapterId}
+                  onChange={(e) => onSelectChapter(e.target.value)}
+                  aria-label='Chọn chương để xem'
+                  className='rounded-md border border-stone-300 bg-stone-50 px-2 py-1 text-xs font-medium text-stone-700 cursor-pointer focus:outline-none focus:border-[#EA580C]'
+                >
+                  {chaptersList.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      Chương {c.chapterNumber}
+                      {c.title ? `: ${c.title}` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <p className='text-xs text-stone-500'>
+              {pushed
+                ? t('scriptReview.pushed.version', {
+                    n: pushed.version.versionNumber,
+                    hash: shortHash(pushed.version.contentHash),
+                  })
+                : t('scriptReview.pushed.none')}
+              {chapter.scriptSubmittedAt ? ` · ${dateFormat(chapter.scriptSubmittedAt)}` : ''}
+            </p>
+          </div>
         </div>
         <div className='flex items-center gap-2'>
           <span

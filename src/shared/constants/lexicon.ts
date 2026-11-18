@@ -75,12 +75,12 @@ export const SYSTEM_ERROR_MESSAGES: Record<string, { title: string; description:
   ELEMENT_VERSION_CONFLICT: {
     title: 'Xung đột phiên bản đồng thời',
     description:
-      'Đã có chỉnh sửa mới hơn trên máy chủ; vui lòng làm mới hoặc chọn phương án xử lý an toàn.',
+      'Dữ liệu máy chủ mới hơn. Tải lại trang để tiếp tục.',
   },
   BLOCKING_FINDINGS_EXIST: {
     title: 'Chưa thể phê duyệt chương',
     description:
-      'Còn lỗi bất nhất mức Chặn (Blocking) chưa xử lý. Vui lòng rà soát lại kịch bản hoặc bản vẽ.',
+      'Còn lỗi bất nhất mức Chặn. Rà soát lại kịch bản hoặc bản vẽ.',
   },
   CHARACTER_NOT_LOCKED: {
     title: 'Thiết lập chưa khóa chuẩn',
@@ -95,7 +95,7 @@ export const SYSTEM_ERROR_MESSAGES: Record<string, { title: string; description:
   CANON_LOCKED_CANNOT_MODIFY: {
     title: 'Thiết kế đã khóa chuẩn (Canon)',
     description:
-      'Không thể chỉnh sửa đè lên thiết kế đã khóa chuẩn. Vui lòng dùng lệnh "Thay thế bản khóa (Supersede)".',
+      'Không thể sửa thiết kế đã khóa chuẩn. Dùng lệnh "Thay thế bản khóa (Supersede)".',
   },
 };
 

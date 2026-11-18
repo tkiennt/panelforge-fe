@@ -371,7 +371,7 @@
       "waitingForConfirmation": "Pending confirmation",
       "reworkRequired": "Rework required",
       "stubNoticeTitle": "Character has no definition",
-      "stubNoticeDesc": "This character was automatically detected from the script. Please write the definition in the Series Bible view.",
+      "stubNoticeDesc": "Detected from script. Open Series Bible to define this character.",
       "stubNoticeShort": "No definition yet",
       "openSeriesBible": "Open Series Bible to define",
       "openSeriesBibleShort": "Define",
@@ -502,7 +502,7 @@
       "currentBadge": "CURRENT",
       "restoredToastTitle": "Script restored",
       "restoredToastBody": "Restored to v{from}; created new revision v{to}.",
-      "restoreConflict": "The script was just modified. Reloaded the latest data; please review before restoring."
+      "restoreConflict": "Script modified. Reloaded latest data; review before restoring."
     }
   },
   "createProjectModal": {
@@ -677,13 +677,13 @@
     "toastHandoffSuccess": "Chapter handed off",
     "toastHandoffSuccessDesc": "Chapter {number} successfully handed off to Publisher.",
     "toastHandoffError": "Failed to hand off chapter",
-    "promptReopenReason": "Enter reason to reopen production for Chapter {number} (required):",
-    "toastReopenMissing": "Please enter a reason to reopen chapter.",
+    "promptReopenReason": "Enter reason to reopen production for Chapter {number}:",
+    "toastReopenMissing": "Enter a reason to reopen chapter.",
     "toastReopenSuccess": "Chapter reopened",
-    "toastReopenSuccessDesc": "Chapter {number} reverted to InProduction for further work.",
+    "toastReopenSuccessDesc": "Chapter {number} reverted to InProduction.",
     "toastReopenError": "Could not reopen chapter",
     "deleteConfirmTitle": "Confirm chapter deletion",
-    "deleteConfirmDesc": "Are you sure you want to delete Chapter {number}? Pages and scene data will be soft-deleted. Please type the exact chapter name below to confirm:"
+    "deleteConfirmDesc": "All scenes and pages in Chapter {number} will be deleted. Type chapter name to confirm:"
   },
   "dashboard": {
     "identity": {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, User, MapPin, BookMarked, Palette } from 'lucide-react';
+import { BookOpen, User, MapPin, BookMarked, Palette, ShieldCheck } from 'lucide-react';
 import type { BibleCategory } from '@/types';
 import { translate } from '@/lib/i18n';
 
@@ -9,6 +9,7 @@ export const CATEGORIES: {
   icon: React.FC<{ className?: string }>;
 }[] = [
   { key: 'all', label: 'Tất cả', icon: BookOpen },
+  { key: 'review', label: 'Chờ thẩm định', icon: ShieldCheck },
   { key: 'characters', label: 'Nhân vật', icon: User },
   { key: 'locations', label: 'Bối cảnh & Địa điểm', icon: MapPin },
   { key: 'terminology', label: 'Thuật ngữ & Đạo cụ', icon: BookMarked },

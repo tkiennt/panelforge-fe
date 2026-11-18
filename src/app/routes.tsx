@@ -718,16 +718,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 />
                 <Route
                   path='editor/bible'
-                  element={
-                    <RequireWorkspaceRole
-                      allowedRoles={['EDITOR', 'PRODUCER', 'ADMINISTRATOR']}
-                      currentWorkspaceRole={currentWorkspaceRole}
-                      currentRole={currentRole}
-                      activeRoles={activeProjectRoles}
-                    >
-                      <BibleReviewView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
-                    </RequireWorkspaceRole>
-                  }
+                  element={<Navigate to='../bible?tab=review' replace />}
                 />
                 <Route
                   path='chapters/:chapterId/script/review'

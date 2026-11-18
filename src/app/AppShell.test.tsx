@@ -96,7 +96,7 @@ describe('AppShell Component', () => {
     expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
   });
 
-  it('hiển thị đầy đủ Bàn duyệt, Duyệt Bible, Tiến độ, Board chia việc cho vai trò EDITOR trong ngữ cảnh Series', () => {
+  it('hiển thị đầy đủ Bàn duyệt, Kịch bản, Series Bible, Tiến độ, Board chia việc cho vai trò EDITOR trong ngữ cảnh Series', () => {
     const editorUser: CurrentUser = {
       name: 'Vũ Biên Tập',
       role: 'USER',
@@ -108,12 +108,12 @@ describe('AppShell Component', () => {
     renderInRouter(editorUser, '/workspaces/ws-1/series/ser-1/my-work');
 
     expect(screen.getByText('Bàn duyệt')).toBeInTheDocument();
-    expect(screen.getByText('Duyệt thiết kế Bible')).toBeInTheDocument();
     expect(screen.getByText('Kịch bản (Script)')).toBeInTheDocument();
     expect(screen.getByText('Công việc & Xét duyệt')).toBeInTheDocument();
     expect(screen.getByText('Series Bible')).toBeInTheDocument();
     expect(screen.getByText('Series Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Quy trình sản xuất')).toBeInTheDocument();
+    expect(screen.queryByText('Duyệt thiết kế Bible')).not.toBeInTheDocument();
     expect(screen.queryByText('Bàn vẽ & Khung trang')).not.toBeInTheDocument();
     expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
     expect(screen.queryByText('Cổng Duyệt Xuất Bản')).not.toBeInTheDocument();

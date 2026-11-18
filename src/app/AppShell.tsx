@@ -396,11 +396,6 @@ export function AppShell({
                 href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk`,
               },
               {
-                icon: Palette,
-                label: t('navigation.menu.bibleReview'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/editor/bible`,
-              },
-              {
                 icon: FileText,
                 label: t('navigation.menu.script'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,

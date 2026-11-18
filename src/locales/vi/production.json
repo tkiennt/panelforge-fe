@@ -371,7 +371,7 @@
       "waitingForConfirmation": "Chờ xác nhận",
       "reworkRequired": "Cần vẽ lại",
       "stubNoticeTitle": "Nhân vật chưa có định nghĩa",
-      "stubNoticeDesc": "Nhân vật này được nhận diện tự động từ kịch bản. Vui lòng viết định nghĩa nhân vật trong màn hình Series Bible.",
+      "stubNoticeDesc": "Nhận diện từ kịch bản. Mở Series Bible để định nghĩa nhân vật.",
       "stubNoticeShort": "Chưa có định nghĩa",
       "openSeriesBible": "Mở Series Bible để định nghĩa",
       "openSeriesBibleShort": "Định nghĩa",
@@ -502,7 +502,7 @@
       "currentBadge": "HIỆN TẠI",
       "restoredToastTitle": "Đã khôi phục kịch bản",
       "restoredToastBody": "Đã khôi phục về v{from}; tạo phiên bản mới v{to}.",
-      "restoreConflict": "Kịch bản vừa được thay đổi. Đã tải lại dữ liệu mới nhất, vui lòng kiểm tra trước khi khôi phục."
+      "restoreConflict": "Kịch bản đã thay đổi. Đã tải lại dữ liệu mới nhất, kiểm tra trước khi khôi phục."
     }
   },
   "createProjectModal": {
@@ -677,13 +677,13 @@
     "toastHandoffSuccess": "Đã bàn giao chương",
     "toastHandoffSuccessDesc": "Chương {number} đã được bàn giao thành công cho Publisher.",
     "toastHandoffError": "Không thể bàn giao chương",
-    "promptReopenReason": "Nhập lý do mở lại sản xuất cho Chương {number} (bắt buộc):",
-    "toastReopenMissing": "Vui lòng nhập lý do mở lại chương.",
+    "promptReopenReason": "Nhập lý do mở lại sản xuất cho Chương {number}:",
+    "toastReopenMissing": "Nhập lý do mở lại chương.",
     "toastReopenSuccess": "Đã mở lại chương",
-    "toastReopenSuccessDesc": "Chương {number} đã chuyển về trạng thái InProduction để tiếp tục sản xuất.",
+    "toastReopenSuccessDesc": "Chương {number} đã mở lại sản xuất.",
     "toastReopenError": "Không thể mở lại chương",
     "deleteConfirmTitle": "Xác nhận xóa chương",
-    "deleteConfirmDesc": "Bạn có chắc chắn muốn xóa Chương {number}? Dữ liệu trang và phân cảnh sẽ được đánh dấu xóa mềm. Vui lòng nhập chính xác tên chương bên dưới để xác nhận:"
+    "deleteConfirmDesc": "Toàn bộ phân cảnh và trang Chương {number} sẽ bị xoá. Nhập tên chương để xác nhận:"
   },
   "dashboard": {
     "identity": {

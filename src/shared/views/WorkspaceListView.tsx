@@ -199,7 +199,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
         title: t('workspace.adminNoticeTitle') || 'Giới hạn vai trò Quản trị viên',
         description:
           t('workspace.adminNotice') ||
-          'Tài khoản Administrator không thể tạo hoặc sở hữu Studio Workspace. Vui lòng liên hệ Quản trị viên để được cấp quyền Producer.',
+          'Tài khoản Administrator không thể tạo Studio Workspace. Liên hệ Quản trị viên để cấp quyền Producer.',
         confirmText: t('common.understood') || 'Đã hiểu',
         cancelText: t('common.close') || 'Đóng',
         variant: 'warning',
@@ -211,7 +211,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
         title: t('workspace.producerNoticeTitle') || 'Yêu cầu quyền Producer',
         description:
           t('workspace.producerNotice') ||
-          'Tài khoản của bạn chưa được cấp quyền Producer để tạo Studio. Vui lòng liên hệ Quản trị viên để được nâng cấp quyền hạn.',
+          'Tài khoản chưa có quyền Producer để tạo Studio. Liên hệ Quản trị viên để nâng quyền.',
         confirmText: t('common.understood') || 'Đã hiểu',
         cancelText: t('common.close') || 'Đóng',
         variant: 'warning',

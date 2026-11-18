@@ -342,7 +342,7 @@ export function useLetteringBalloons(
           return;
         }
         updatePageElements((list) => list.filter((item) => item.elementId !== id));
-        toast.error?.('Không lưu được bóng thoại', (err as Error)?.message || 'Vui lòng thử lại.');
+        toast.error?.('Không lưu được bóng thoại', (err as Error)?.message || 'Thử lại sau ít phút.');
       }
     },
     [
@@ -485,7 +485,7 @@ export function useLetteringBalloons(
       }
       updatePageElements((list) => list.filter((item) => item.elementId !== id));
       setSelectedElementId((cur) => (cur === id ? null : cur));
-      toast.error?.('Không lưu được bóng thoại', (err as Error)?.message || 'Vui lòng thử lại.');
+      toast.error?.('Không lưu được bóng thoại', (err as Error)?.message || 'Thử lại sau ít phút.');
     }
   };
 
@@ -531,7 +531,7 @@ export function useLetteringBalloons(
             toast.info('Đã tải lại', 'Phần tử vừa được chỉnh sửa từ nơi khác.');
           } else {
             reloadElements();
-            toast.error?.('Không lưu được nội dung', err?.message || 'Vui lòng thử lại.');
+            toast.error?.('Không lưu được nội dung', err?.message || 'Thử lại sau ít phút.');
           }
         }
       } else {
@@ -560,7 +560,7 @@ export function useLetteringBalloons(
             toast.info('Đã tải lại', 'Bản dịch vừa được chỉnh sửa từ nơi khác.');
           } else {
             reloadElements();
-            toast.error?.('Không lưu được bản dịch', err?.message || 'Vui lòng thử lại.');
+            toast.error?.('Không lưu được bản dịch', err?.message || 'Thử lại sau ít phút.');
           }
         }
       }
@@ -602,7 +602,7 @@ export function useLetteringBalloons(
           toast.info('Đã tải lại', 'Kiểu chữ vừa được chỉnh sửa từ nơi khác.');
         } else {
           reloadElements();
-          toast.error?.('Không lưu được kiểu chữ', err?.message || 'Vui lòng thử lại.');
+          toast.error?.('Không lưu được kiểu chữ', err?.message || 'Thử lại sau ít phút.');
         }
       }
     },

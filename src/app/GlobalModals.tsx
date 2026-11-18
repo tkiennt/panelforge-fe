@@ -77,7 +77,7 @@ export const GlobalModals: React.FC<GlobalModalsProps> = ({
             setCurrentView(`bible?search=${encodeURIComponent(e.name)}`);
             showToast('Entity Selected', `Navigated to ${e.name}`);
           } else {
-            showToast('Chưa chọn bộ truyện', 'Vui lòng mở một bộ truyện để xem Series Bible');
+            showToast('Chưa chọn bộ truyện', 'Mở một bộ truyện để xem Series Bible.');
           }
         }}
         cards={cards}

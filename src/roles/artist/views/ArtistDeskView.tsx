@@ -817,7 +817,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         );
         loadChangeRequests(currentChapterId);
       } catch (err: any) {
-        toast.error('Không thể cập nhật yêu cầu', err?.message || 'Vui lòng thử lại sau.');
+        toast.error('Không thể cập nhật yêu cầu', err?.message || 'Thử lại sau ít phút.');
       } finally {
         setIsResolvingChangeRequest(false);
       }
@@ -865,7 +865,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         }
         await loadPageHistory(targetPage.id);
       } catch (err: any) {
-        toast.error('Không thể khôi phục phiên bản', err?.message || 'Vui lòng thử lại.');
+        toast.error('Không thể khôi phục phiên bản', err?.message || 'Thử lại sau ít phút.');
       } finally {
         setIsRestoringVersion(false);
       }
@@ -1226,7 +1226,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             if (isDirectBackendErr && backendMsg) {
               toast.error(backendMsg);
             } else {
-              toast.error('Không nộp được công đoạn', backendMsg || 'Vui lòng thử lại sau.');
+              toast.error('Không nộp được công đoạn', backendMsg || 'Thử lại sau ít phút.');
             }
             if (status === 409 && typeof assignmentService.getTaskGrid === 'function') {
               const refreshedGrid = await assignmentService
@@ -1728,7 +1728,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     try {
       await pageService.deletePage?.(pageId);
     } catch (err: any) {
-      toast.error('Không xoá được trang', err?.message || 'Vui lòng thử lại sau.');
+      toast.error('Không xoá được trang', err?.message || 'Thử lại sau ít phút.');
       return;
     }
     const remaining = pages.filter((p) => p.id !== pageId);
@@ -2351,7 +2351,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       }
     } catch (err) {
       console.error('Lỗi nhận diện panel:', err);
-      toast.error('Không thể tách khung', 'Vui lòng kiểm tra lại ảnh phác thảo.');
+      toast.error('Không thể tách khung', 'Kiểm tra lại ảnh phác thảo.');
     } finally {
       setIsDetectingPanels(false);
     }

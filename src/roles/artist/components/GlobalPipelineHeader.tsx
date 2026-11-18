@@ -369,7 +369,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                     data-testid='btn-handoff-pencil-ink'
                     title={
                       !hasArtworkForCurrentStage
-                        ? 'Vui lòng upload ảnh nét chì trước khi bàn giao sang Ink'
+                        ? 'Tải lên ảnh nét chì trước khi bàn giao sang Ink'
                         : 'Kiểm tra ảnh nét chì và bàn giao sang Ink Stage'
                     }
                     className={`h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs ${
@@ -398,8 +398,8 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                     data-testid='btn-handoff-ink-lettering'
                     title={
                       !hasArtworkForCurrentStage
-                        ? 'Vui lòng upload ảnh Line-art trước khi chuyển sang Lettering'
-                        : 'Xác nhận bàn giao nét mực hoàn thiện cho Letterer'
+                        ? 'Tải lên ảnh Line-art trước khi chuyển sang Lettering'
+                        : 'Bàn giao nét mực hoàn thiện cho Letterer'
                     }
                     className={`h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs ${
                       canSubmit
@@ -426,8 +426,8 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                   data-testid='btn-handoff-lettering-gate2'
                   title={
                     !hasArtworkForCurrentStage
-                      ? 'Vui lòng hoàn thiện bản vẽ & thoại trước khi nộp duyệt'
-                      : 'Nộp bản thảo hoàn chỉnh cho Editor thẩm định ở Gate 2'
+                      ? 'Hoàn thiện bản vẽ & thoại trước khi nộp duyệt'
+                      : 'Nộp bản thảo hoàn chỉnh cho Editor ở Gate 2'
                   }
                   className={`h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs ${
                     canSubmit
