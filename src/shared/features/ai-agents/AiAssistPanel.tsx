@@ -18,7 +18,7 @@ import { SCRIPT_WORKING_COPY_CHANGED_EVENT } from '@/services/scriptLine.service
 import type { AiWorkflowType } from '@/services/aiAgents.service';
 import { StepOutputView } from './StepOutputView';
 import { SuggestionCard } from './SuggestionCard';
-import { collectLines, formatMs } from './aiViewUtils';
+import { AiReadingDirection, collectLines, formatMs, toAiReadingDirection } from './aiViewUtils';
 import { aiStreamService } from '@/services/aiStream.service';
 
 export const BRIEF_MAX_LENGTH = 4000;
@@ -36,7 +36,7 @@ interface Props {
   briefLabel: string;
   briefPlaceholder: string;
   runLabel: string;
-  readingDirection: ReadingDirection;
+  readingDirection: AiReadingDirection | number;
   /** versionVector hiện tại của Chapter. */
   chapterVersion: number;
   /** Bible entry / nhân vật id → tên, để hiển thị người nói và nguồn bằng chứng. */
@@ -353,7 +353,7 @@ export const AiAssistPanel: React.FC<Props> = ({
         chapterId,
         sceneId,
         brief: runBrief,
-        readingDirection,
+        readingDirection: toAiReadingDirection(readingDirection) as ReadingDirection,
         chapterVersion,
         baseScriptRevisionId: latestScriptRevisionId(revisions),
         panelIds: panelIds && panelIds.length > 0 ? panelIds : undefined,

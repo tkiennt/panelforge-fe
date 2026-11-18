@@ -10,6 +10,7 @@ import {
   aiAgentsService,
 } from '@/services/aiAgents.service';
 import { aiStreamService } from '@/services/aiStream.service';
+import { toAiReadingDirection } from './aiViewUtils';
 import { AiAssistPanel, POLL_INTERVAL_MS } from './AiAssistPanel';
 
 const avail = (over: Partial<AiWorkflowAvailability> = {}): AiWorkflowAvailability => ({
@@ -1135,5 +1136,93 @@ describe('AiAssistPanel (Storyboard & Layout)', () => {
     expect(screen.getByText(/Scene đã có Panel; không thể áp dụng layout AI/)).toBeInTheDocument();
 
     expect(screen.getByTestId('ai-storyboard')).toBeInTheDocument();
+  });
+
+  it('gửi đúng readingDirection = "Vertical" khi Series Vertical (chuỗi "Vertical" hoặc mã số 2)', async () => {
+    expect(toAiReadingDirection('Vertical')).toBe('Vertical');
+    expect(toAiReadingDirection(2)).toBe('Vertical');
+    expect(toAiReadingDirection('2')).toBe('Vertical');
+    expect(toAiReadingDirection('RightToLeft')).toBe('RightToLeft');
+    expect(toAiReadingDirection(1)).toBe('RightToLeft');
+    expect(toAiReadingDirection('LeftToRight')).toBe('LeftToRight');
+    expect(toAiReadingDirection(0)).toBe('LeftToRight');
+
+    vi.spyOn(aiAgentsService, 'getSceneRevisions').mockResolvedValue([]);
+    const runWorkflow = vi
+      .spyOn(aiAgentsService, 'runWorkflow')
+      .mockResolvedValue({ runId: 'r-vert', status: 'Completed', provider: 'Mock', model: 'm' });
+    vi.spyOn(aiAgentsService, 'getRun').mockResolvedValue(
+      run({ id: 'r-vert', workflowType: 'Storyboard', suggestions: [] }),
+    );
+
+    const first = render(
+      <AiAssistPanel
+        seriesId='s1'
+        chapterId='c1'
+        sceneId='sc1'
+        workflowType='Storyboard'
+        suggestionKind='Layout'
+        title='Trợ lý AI · Phân khung Storyboard'
+        briefLabel='Brief'
+        briefPlaceholder='Nhập brief'
+        runLabel='Phân khung'
+        readingDirection='Vertical'
+        chapterVersion={3}
+        nameById={{ an: 'An' }}
+        onClose={onClose}
+        onReload={onReload}
+      />,
+    );
+
+    await screen.findByLabelText('Brief');
+    typeBrief('Phân khung cuộn dọc Webtoon');
+    await waitFor(() => expect(screen.getByTestId('ai-run-btn')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('ai-run-btn'));
+
+    await waitFor(() => expect(runWorkflow).toHaveBeenCalledTimes(1));
+    expect(runWorkflow).toHaveBeenNthCalledWith(
+      1,
+      's1',
+      expect.objectContaining({
+        workflowType: 'Storyboard',
+        readingDirection: 'Vertical',
+      }),
+    );
+
+    first.unmount();
+
+    render(
+      <AiAssistPanel
+        seriesId='s1'
+        chapterId='c1'
+        sceneId='sc1'
+        workflowType='Storyboard'
+        suggestionKind='Layout'
+        title='Trợ lý AI · Phân khung Storyboard'
+        briefLabel='Brief'
+        briefPlaceholder='Nhập brief'
+        runLabel='Phân khung'
+        readingDirection={2}
+        chapterVersion={3}
+        nameById={{ an: 'An' }}
+        onClose={onClose}
+        onReload={onReload}
+      />,
+    );
+
+    await screen.findByLabelText('Brief');
+    typeBrief('Phân khung từ enum số 2');
+    await waitFor(() => expect(screen.getByTestId('ai-run-btn')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('ai-run-btn'));
+
+    await waitFor(() => expect(runWorkflow).toHaveBeenCalledTimes(2));
+    expect(runWorkflow).toHaveBeenNthCalledWith(
+      2,
+      's1',
+      expect.objectContaining({
+        workflowType: 'Storyboard',
+        readingDirection: 'Vertical',
+      }),
+    );
   });
 });

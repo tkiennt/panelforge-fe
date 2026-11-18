@@ -4,9 +4,21 @@ import {
   AiStepDto,
   AiSuggestionKind,
   AiWorkflowType,
+  ReadingDirection,
   ScriptDraft,
   WorkerAgentName,
 } from '@/services/aiAgents.service';
+
+export type AiReadingDirection = ReadingDirection | 'Vertical';
+
+/** Chuẩn hoá hướng đọc của Series (chuỗi hoặc enum số 0/1/2) sang giá trị hợp đồng AI workflow. */
+export function toAiReadingDirection(
+  direction: AiReadingDirection | number | string | null | undefined,
+): AiReadingDirection {
+  if (direction === 'Vertical' || direction === 2 || direction === '2') return 'Vertical';
+  if (direction === 'RightToLeft' || direction === 1 || direction === '1') return 'RightToLeft';
+  return 'LeftToRight';
+}
 
 /** Bảy agent chuyên môn, mỗi agent hỗ trợ một hoặc hai role; Supervisor (Gemini) điều phối chúng và KHÔNG phải ProducerAgent. */
 export const AGENTS: WorkerAgentName[] = [
