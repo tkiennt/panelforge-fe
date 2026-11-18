@@ -66,6 +66,10 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
 
   const handleSelectChapter = (chapter: ChapterDto) => {
     if (!workspaceId || !seriesId) return;
+    if (effectiveRole === 'EDITOR') {
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapter.id}/script/review`);
+      return;
+    }
     // Chuyển sang Focus Workspace (ẩn Sidebar chính của app, mở bàn làm việc toàn màn hình)
     navigate(`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${chapter.id}`);
   };

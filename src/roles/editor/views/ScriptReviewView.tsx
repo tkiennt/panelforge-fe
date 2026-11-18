@@ -95,9 +95,34 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         assignmentService.getConsistencyFindings(chapterId).catch(() => []),
         chapterService.getScriptComments(chapterId).catch(() => []),
       ]);
-      const pushedVersion = chapterData.lastSubmittedVersionId
-        ? await chapterService.getScriptVersion(chapterId, chapterData.lastSubmittedVersionId)
+      let pushedVersion = chapterData.lastSubmittedVersionId
+        ? await chapterService.getScriptVersion(chapterId, chapterData.lastSubmittedVersionId).catch(() => null)
         : null;
+
+      // Fallback: nếu chưa có bản nộp chính thức hoặc không tìm thấy version, thử tải working copy để Editor vẫn đọc được kịch bản
+      if (!pushedVersion) {
+        try {
+          const workingCopy = await chapterService.getScriptWorkingCopy(chapterId);
+          if (workingCopy && workingCopy.rows && workingCopy.rows.length > 0) {
+            pushedVersion = {
+              version: {
+                id: 'working-copy',
+                versionNumber: 0,
+                message: t('scriptReview.pushed.workingCopyDraft', 'Bản thảo đang viết'),
+                authorUserId: '',
+                authorName: '',
+                createdAt: new Date().toISOString(),
+                lineCount: workingCopy.lineCount || workingCopy.rows.length,
+                contentHash: workingCopy.contentHash || '',
+                submittedAt: null,
+              },
+              rows: workingCopy.rows,
+            };
+          }
+        } catch {
+          // Bỏ qua nếu không có working copy
+        }
+      }
       setChapter(chapterData);
       setPushed(pushedVersion);
       setCast(castData);

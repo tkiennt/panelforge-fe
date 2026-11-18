@@ -669,6 +669,110 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     </RequireWorkspaceRole>
                   }
                 />
+
+                {/* Editor Desk, Bible Review & Script Review: inside AppShell so Editor retains the system sidetab */}
+                <Route
+                  path='editor/desk'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['EDITOR', 'PRODUCER', 'ADMINISTRATOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <EditorDeskView
+                        currentUserId={currentUserInfo?.id}
+                        workspaceRole={currentWorkspaceRole}
+                        onShowToast={showToast}
+                      />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
+                  path='editor/bible'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['EDITOR', 'PRODUCER', 'ADMINISTRATOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <BibleReviewView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
+                  path='chapters/:chapterId/script/review'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={[
+                        'EDITOR',
+                        'PRODUCER',
+                        'ARTIST',
+                        'LETTERER',
+                        'WRITER',
+                        'ADMINISTRATOR',
+                      ]}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <ScriptReviewView
+                        currentUserId={currentUserInfo?.id}
+                        workspaceRole={currentWorkspaceRole}
+                        onShowToast={showToast}
+                      />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
+                  path='review/:taskId'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={[
+                        'EDITOR',
+                        'PRODUCER',
+                        'ARTIST',
+                        'LETTERER',
+                        'WRITER',
+                        'ADMINISTRATOR',
+                      ]}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <ReviewView
+                        currentUserId={currentUserInfo?.id}
+                        workspaceRole={currentWorkspaceRole}
+                        onShowToast={showToast}
+                      />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
+                  path='chapters/:chapterId/review/:taskId'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={[
+                        'EDITOR',
+                        'PRODUCER',
+                        'ARTIST',
+                        'LETTERER',
+                        'WRITER',
+                        'ADMINISTRATOR',
+                      ]}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <ReviewView
+                        currentUserId={currentUserInfo?.id}
+                        workspaceRole={currentWorkspaceRole}
+                        onShowToast={showToast}
+                      />
+                    </RequireWorkspaceRole>
+                  }
+                />
               </Route>
             </Route>
 
