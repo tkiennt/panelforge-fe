@@ -786,6 +786,8 @@ export interface UpdateStageTaskLotRequest {
   brief?: string | null;
   dueDate?: string | null;
   clearDueDate?: boolean;
+  /** `rowVersion` của lô lúc mở form (BR-11): lệch thì BE trả 409 thay vì đè. */
+  expectedRowVersion?: number;
 }
 
 export interface AssignStageTaskLotsResultDto {

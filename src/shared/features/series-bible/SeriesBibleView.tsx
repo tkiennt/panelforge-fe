@@ -2319,6 +2319,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               } else if (evt.type === 'Superseded') {
                                 badgeColor = 'bg-stone-100 text-stone-700 border-stone-200';
                                 label = t('bible.view.eventSuperseded', 'Bị thay thế');
+                              } else if (evt.type === 'DraftOverwritten') {
+                                badgeColor = 'bg-stone-100 text-stone-800 border-stone-200';
+                                label = t('bible.view.eventDraftOverwritten', 'Định nghĩa lại');
                               }
 
                               return (

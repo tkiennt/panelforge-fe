@@ -799,6 +799,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         brief: briefPayload,
         dueDate: dueDatePayload,
         clearDueDate,
+        expectedRowVersion: lot.rowVersion,
       });
       setEditingLotId(null);
       onShowToast?.(

@@ -113,7 +113,7 @@ const run = (over: Partial<AiRunDto> = {}): AiRunDto => ({
 const onReload = vi.fn();
 const onClose = vi.fn();
 
-const renderPanel = () =>
+const renderPanel = (over: Partial<React.ComponentProps<typeof AiAssistPanel>> = {}) =>
   render(
     <AiAssistPanel
       seriesId='s1'
@@ -130,6 +130,7 @@ const renderPanel = () =>
       nameById={{ an: 'An' }}
       onClose={onClose}
       onReload={onReload}
+      {...over}
     />,
   );
 
@@ -306,7 +307,46 @@ describe('AiAssistPanel (Writer · Script)', () => {
         chapterVersion: 3,
       }),
     );
-    await waitFor(() => expect(onReload).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onReload).toHaveBeenCalledWith('Script'));
+  });
+
+  it('Accept đề xuất LineRewrite truyền kind LineRewrite vào onReload và phát sự kiện đồng bộ working copy', async () => {
+    const lrSuggestion = suggestion({
+      id: 'sg-lr-1',
+      kind: 'LineRewrite',
+      payload: {
+        schemaVersion: 1,
+        runId: 'r1',
+        sceneId: 'sc1',
+        task: 'writer.rewrite',
+        sourceScriptLineId: 'l1',
+        originalText: 'Cũ',
+        suggestedText: 'Mới',
+        reason: 'Gọn hơn',
+      },
+    });
+    vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([lrSuggestion]);
+    vi.spyOn(aiAgentsService, 'getRun').mockResolvedValue(
+      run({ suggestions: [lrSuggestion], workflowType: 'Copilot' }),
+    );
+    vi.spyOn(aiAgentsService, 'review').mockResolvedValue({
+      suggestionId: 'sg-lr-1',
+      status: 'Accepted',
+      decisionId: 'd-lr',
+      chapterVersion: 4,
+    });
+    const eventSpy = vi.fn();
+    window.addEventListener('panelforge:script-working-copy-changed', eventSpy);
+
+    try {
+      renderPanel({ workflowType: 'Copilot', suggestionKind: 'LineRewrite' });
+      fireEvent.click(await screen.findByRole('button', { name: /Accept/ }));
+
+      await waitFor(() => expect(onReload).toHaveBeenCalledWith('LineRewrite'));
+      expect(eventSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener('panelforge:script-working-copy-changed', eventSpy);
+    }
   });
 
   it('canDecide = false (hoặc thiếu): không có nút Accept/Reject/Yêu cầu sửa', async () => {

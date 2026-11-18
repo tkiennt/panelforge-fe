@@ -159,6 +159,15 @@ export interface ScriptRevisionDetailDto {
   lines: ScriptRevisionLineDto[];
 }
 
+export const SCRIPT_WORKING_COPY_CHANGED_EVENT = 'panelforge:script-working-copy-changed';
+
+export interface ScriptWorkingCopyChangedDetail {
+  chapterId: string;
+  sceneId?: string | null;
+  source: 'restore' | 'ai-accept';
+  kind?: string;
+}
+
 export interface RestoreScriptRevisionRequest {
   expectedChapterVersion?: number | null;
 }
@@ -367,6 +376,13 @@ export const scriptLineService = {
         request,
         { headers: { 'Content-Type': 'application/json' } },
       );
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent<ScriptWorkingCopyChangedDetail>(SCRIPT_WORKING_COPY_CHANGED_EVENT, {
+            detail: { chapterId, sceneId, source: 'restore' },
+          }),
+        );
+      }
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể khôi phục phiên bản kịch bản.');

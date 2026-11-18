@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X,
   Share2,
@@ -24,6 +24,7 @@ import {
   PreviewFeedbackStatus,
 } from '@/services/previewLink.service';
 import { assignmentService } from '@/services/assignment.service';
+import { pageService } from '@/services/page.service';
 import type { AssignmentDto, StageTaskDto, TaskGridDto } from '@/types/pipeline';
 import { WorkspaceRole } from '@/types';
 import { useConfirm } from '@/shared/context/ConfirmContext';
@@ -75,6 +76,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
   // 5.7: phản hồi NeedsChange → yêu cầu sửa của một việc (Assignment cũ hoặc ô Lưới V3 sau khi chương mở lại)
   const [assignments, setAssignments] = useState<AssignmentDto[]>([]);
   const [taskGrid, setTaskGrid] = useState<TaskGridDto | null>(null);
+  const [pages, setPages] = useState<Array<{ id: string; pageNumber: number }>>([]);
   const [crAssignment, setCrAssignment] = useState<Record<string, string>>({});
   const [creatingCrId, setCreatingCrId] = useState<string | null>(null);
   const isInProduction = chapterStatus === 'InProduction';
@@ -109,22 +111,42 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchLinks();
-      fetchFeedback();
     }
-  }, [isOpen, fetchLinks, fetchFeedback]);
+  }, [isOpen, fetchLinks]);
 
   useEffect(() => {
-    if (isOpen && isInProduction && chapterId) {
+    if (isOpen) {
+      fetchFeedback();
+    }
+  }, [isOpen, fetchFeedback]);
+
+  useEffect(() => {
+    if (!isOpen || !chapterId) {
+      setPages([]);
+      return;
+    }
+    Promise.resolve(pageService.getPagesByChapter?.(chapterId))
+      .then((res) => setPages(res || []))
+      .catch(() => setPages([]));
+  }, [isOpen, chapterId]);
+
+  useEffect(() => {
+    if (!isOpen || !chapterId) return;
+    Promise.resolve(assignmentService.getTaskGrid?.(chapterId))
+      .then((res) => setTaskGrid(res || null))
+      .catch(() => setTaskGrid(null));
+    if (isInProduction) {
       Promise.resolve(assignmentService.getAssignments?.(chapterId))
         .then((res) => setAssignments(res || []))
         .catch(() => setAssignments([]));
-      Promise.resolve(assignmentService.getTaskGrid?.(chapterId))
-        .then((res) => setTaskGrid(res || null))
-        .catch(() => setTaskGrid(null));
     }
   }, [isOpen, isInProduction, chapterId]);
 
   if (!isOpen) return null;
+
+  const pageNumberById = new Map<string, number>();
+  for (const p of pages) pageNumberById.set(p.id, p.pageNumber);
+  for (const p of taskGrid?.pages ?? []) pageNumberById.set(p.id, p.pageNumber);
 
   const isApproved =
     chapterStatus === 'ChapterApproved' || chapterStatus === 'HandedOffAndPublished';
@@ -268,7 +290,6 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
   const gridTaskOptions = (fb: PreviewFeedbackDto): StageTaskDto[] => {
     if (!taskGrid?.tasks?.length) return [];
     const stageOrder = new Map(taskGrid.stages.map((s) => [s.id, s.stageOrder]));
-    const pageNum = new Map(taskGrid.pages.map((p) => [p.id, p.pageNumber]));
     return taskGrid.tasks
       .filter((t) => t.status !== 'Unassigned' && t.status !== 'Cancelled')
       .sort((a, b) => {
@@ -278,7 +299,9 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
         const sa = stageOrder.get(a.pipelineStageId) ?? 999;
         const sb = stageOrder.get(b.pipelineStageId) ?? 999;
         if (sa !== sb) return sa - sb;
-        return (pageNum.get(a.pageId || '') ?? 0) - (pageNum.get(b.pageId || '') ?? 0);
+        return (
+          (pageNumberById.get(a.pageId || '') ?? 0) - (pageNumberById.get(b.pageId || '') ?? 0)
+        );
       });
   };
 
@@ -342,7 +365,10 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
 
           <button
             type='button'
-            onClick={() => setActiveTab('feedback')}
+            onClick={() => {
+              setActiveTab('feedback');
+              void fetchFeedback();
+            }}
             className={`py-3 flex items-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'feedback'
                 ? 'border-[#F97316] text-[#F97316]'
@@ -658,11 +684,26 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                   {feedbacks.map((fb) => {
                     const noteValue = triageNotes[fb.id] || '';
                     const isTriaging = triagingId === fb.id;
-                    const scopeLabel = fb.panelId
-                      ? `Khung #${fb.panelId.slice(0, 6)} (Trang #${fb.pageId?.slice(0, 6)})`
-                      : fb.pageId
-                        ? `Trang #${fb.pageId.slice(0, 6)}`
-                        : 'Toàn Chương';
+                    const pageNum =
+                      fb.pageNumber ?? (fb.pageId ? pageNumberById.get(fb.pageId) : undefined);
+                    const pageText =
+                      pageNum !== undefined
+                        ? `Trang ${pageNum}`
+                        : fb.pageId
+                          ? `Trang #${fb.pageId.slice(0, 6)}`
+                          : null;
+                    const panelNum = fb.panelNumber ?? undefined;
+                    const panelText = fb.panelId
+                      ? panelNum !== undefined
+                        ? `Khung #${panelNum}`
+                        : `Khung #${fb.panelId.slice(0, 6)}`
+                      : null;
+                    const scopeLabel = panelText
+                      ? pageText
+                        ? `${panelText} (${pageText})`
+                        : panelText
+                      : (pageText ?? 'Toàn Chương');
+                    const artworkVersion = fb.artworkVersionNumber ?? undefined;
 
                     return (
                       <div
@@ -679,9 +720,9 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                               {fb.reviewerName ? `${fb.reviewerName} · ` : ''}
                               {fb.recipientEmail}
                             </span>
-                            {fb.assetReferenceId && (
+                            {artworkVersion !== undefined && (
                               <span className='text-xs font-mono text-[#888888]'>
-                                (Bản v{fb.chapterVersion})
+                                (Bản v{artworkVersion})
                               </span>
                             )}
                           </div>
@@ -852,17 +893,17 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                                   const stg = taskGrid?.stages.find(
                                     (s) => s.id === t.pipelineStageId,
                                   );
-                                  const pg = t.pageId
-                                    ? taskGrid?.pages.find((p) => p.id === t.pageId)
-                                    : null;
+                                  const pageNum = t.pageId
+                                    ? pageNumberById.get(t.pageId)
+                                    : undefined;
                                   const lot = t.lotId
                                     ? taskGrid?.lots.find((l) => l.id === t.lotId)
                                     : null;
                                   const stageLabel = stg
                                     ? `${stg.stageOrder}. ${stg.name}`
                                     : 'Công đoạn';
-                                  const pageLabel = pg
-                                    ? `Trang ${pg.pageNumber}`
+                                  const pageLabel = pageNum
+                                    ? `Trang ${pageNum}`
                                     : t.pageId
                                       ? `Trang #${t.pageId.slice(0, 6)}`
                                       : 'Toàn chương';

@@ -27,6 +27,17 @@ export type AiSuggestionKind =
   | 'LineRewrite'
   | 'SeriesMetadata'
   | 'Thumbnail';
+
+/** Các loại đề xuất AI khi Accept sẽ tạo thêm một ScriptVersion mới cho chương (BR-01 / BR-11). */
+export const SCRIPT_VERSION_AI_KINDS: readonly AiSuggestionKind[] = [
+  'Script',
+  'LineRewrite',
+  'Layout',
+];
+
+export function createsScriptVersionOnAccept(kind?: AiSuggestionKind | null): boolean {
+  return !!kind && SCRIPT_VERSION_AI_KINDS.includes(kind);
+}
 export type ContentRevisionKind = 'Script' | 'Layout' | 'ImagePrompt';
 export type ReadingDirection = 'LeftToRight' | 'RightToLeft';
 /** Nhiệm vụ = loại workflow. Run tạo trước khi có loại workflow được BE trả là FullScene. */

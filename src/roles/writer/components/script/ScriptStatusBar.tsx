@@ -1,10 +1,11 @@
 import React from 'react';
-import { AlertTriangle, Clock, Eye, Lock, X } from 'lucide-react';
+import { AlertTriangle, Clock, Eye, Lock, RefreshCw, X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
 export interface ScriptStatusBarProps {
   concurrencyError?: string | null;
   onClearConcurrencyError?: () => void;
+  onReloadWorkingCopy?: () => void;
   isScriptFrozen?: boolean;
   isScriptInReview?: boolean;
   isChapterLocked?: boolean;
@@ -18,6 +19,7 @@ export interface ScriptStatusBarProps {
 export const ScriptStatusBar: React.FC<ScriptStatusBarProps> = ({
   concurrencyError,
   onClearConcurrencyError,
+  onReloadWorkingCopy,
   isScriptFrozen,
   isScriptInReview,
   isChapterLocked,
@@ -50,11 +52,23 @@ export const ScriptStatusBar: React.FC<ScriptStatusBarProps> = ({
       <div className='flex items-center gap-2 min-w-0'>
         {concurrencyError ? (
           <div
+            role='alert'
             data-testid='concurrency-error-banner'
-            className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200'
+            className='inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200'
           >
             <AlertTriangle className='w-3.5 h-3.5 text-rose-600 shrink-0' />
             <span className='truncate'>{concurrencyError}</span>
+            {onReloadWorkingCopy && (
+              <button
+                type='button'
+                data-testid='reload-working-copy-btn'
+                onClick={onReloadWorkingCopy}
+                className='inline-flex items-center gap-1 rounded-full bg-rose-600 hover:bg-rose-700 px-2.5 py-0.5 text-xs font-semibold text-white cursor-pointer transition-colors ml-1 shrink-0'
+              >
+                <RefreshCw className='w-3 h-3' />
+                <span>{t('scriptStudio.save.reloadLatest', 'Tải lại')}</span>
+              </button>
+            )}
           </div>
         ) : isScriptFrozen ? (
           <div

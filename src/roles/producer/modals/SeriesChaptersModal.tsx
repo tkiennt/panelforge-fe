@@ -286,6 +286,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         title: editTitle.trim() === '' ? '' : editTitle.trim(),
         targetReleaseDate: editTargetReleaseDate || undefined,
         outline: editOutline.trim() === '' ? '' : editOutline.trim(),
+        expectedChapterVersion: editingChapter.versionVector,
       };
 
       await chapterService.updateChapter(editingChapter.id, payload);

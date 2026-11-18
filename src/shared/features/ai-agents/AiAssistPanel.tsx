@@ -10,9 +10,11 @@ import {
   AiWorkflowAvailability,
   ReadingDirection,
   aiAgentsService,
+  createsScriptVersionOnAccept,
   isActiveRun,
   latestScriptRevisionId,
 } from '@/services/aiAgents.service';
+import { SCRIPT_WORKING_COPY_CHANGED_EVENT } from '@/services/scriptLine.service';
 import type { AiWorkflowType } from '@/services/aiAgents.service';
 import { StepOutputView } from './StepOutputView';
 import { SuggestionCard } from './SuggestionCard';
@@ -42,8 +44,8 @@ interface Props {
   hasPanels?: boolean;
   panelIds?: string[] | null;
   onClose: () => void;
-  /** Tải lại dữ liệu của màn làm việc (script của Scene + versionVector) sau Accept hoặc khi bị 409. */
-  onReload: () => void | Promise<void>;
+  /** Tải lại dữ liệu của màn làm việc (working copy + expectedRevisionId + versionVector) sau Accept hoặc khi bị 409. */
+  onReload: (acceptedKind?: AiSuggestionKind) => void | Promise<void>;
 }
 
 interface UiError {
@@ -366,7 +368,16 @@ export const AiAssistPanel: React.FC<Props> = ({
     try {
       await aiAgentsService.review(seriesId, s.id, decision, { reason, chapterVersion });
       if (run) setRun(await aiAgentsService.getRun(seriesId, run.id));
-      if (decision === 'accept') await onReload();
+      if (decision === 'accept') {
+        if (createsScriptVersionOnAccept(s.kind) && typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent(SCRIPT_WORKING_COPY_CHANGED_EVENT, {
+              detail: { chapterId, sceneId: s.sceneId, source: 'ai-accept', kind: s.kind },
+            }),
+          );
+        }
+        await onReload(s.kind);
+      }
     } catch (e) {
       setError(toUiError(e, 'Không thể ghi quyết định.'));
       if ((e as AiApiError)?.code === 'CONFLICT' || (e as AiApiError)?.status === 409) {

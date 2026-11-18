@@ -25,6 +25,7 @@ export interface ScriptStatusDrawerProps {
   onClose: () => void;
   concurrencyError?: string | null;
   onClearConcurrencyError?: () => void;
+  onReloadWorkingCopy?: () => void;
   loadError?: string | null;
   onRetryLoadScenes?: () => void;
   isScriptFrozen?: boolean;
@@ -62,6 +63,7 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
   onClose,
   concurrencyError,
   onClearConcurrencyError,
+  onReloadWorkingCopy,
   loadError,
   onRetryLoadScenes,
   isScriptFrozen,
@@ -208,15 +210,28 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
             data-testid='drawer-concurrency-error-banner'
             className='p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start justify-between gap-2 text-rose-800 shadow-xs'
           >
-            <div className='flex items-start gap-2'>
+            <div className='flex items-start gap-2 min-w-0'>
               <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0 mt-0.5' />
-              <span className='text-xs font-medium leading-relaxed'>{concurrencyError}</span>
+              <div className='space-y-1.5 min-w-0'>
+                <span className='text-xs font-medium leading-relaxed block'>{concurrencyError}</span>
+                {onReloadWorkingCopy && (
+                  <button
+                    type='button'
+                    data-testid='drawer-reload-working-copy-btn'
+                    onClick={onReloadWorkingCopy}
+                    className='inline-flex items-center gap-1 rounded bg-rose-600 hover:bg-rose-700 px-2 py-1 text-xs font-semibold text-white cursor-pointer transition-colors'
+                  >
+                    <RefreshCw className='w-3 h-3' />
+                    <span>{t('scriptStudio.save.reloadLatest', 'Tải lại bản mới nhất')}</span>
+                  </button>
+                )}
+              </div>
             </div>
             {onClearConcurrencyError && (
               <button
                 type='button'
                 onClick={onClearConcurrencyError}
-                className='text-rose-500 hover:text-rose-700 cursor-pointer p-0.5'
+                className='text-rose-500 hover:text-rose-700 cursor-pointer p-0.5 shrink-0'
               >
                 <X className='w-4 h-4' />
               </button>

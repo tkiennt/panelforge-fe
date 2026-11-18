@@ -206,18 +206,30 @@ describe('scriptLineService', () => {
       expect(res).toEqual(detail);
     });
 
-    it('restoreScriptRevision luôn gửi body JSON kèm expectedChapterVersion', async () => {
+    it('restoreScriptRevision luôn gửi body JSON kèm expectedChapterVersion và phát sự kiện đồng bộ working copy', async () => {
       vi.mocked(axiosClient.post).mockResolvedValue({ data: { chapterVersion: 9 } });
-      await scriptLineService.restoreScriptRevision('c1', 's1', 'r1', {
-        expectedChapterVersion: 8,
-      });
-      expect(axiosClient.post).toHaveBeenCalledWith(
-        '/chapters/c1/scenes/s1/script-revisions/r1/restore',
-        { expectedChapterVersion: 8 },
-        { headers: { 'Content-Type': 'application/json' } },
-      );
-      await scriptLineService.restoreScriptRevision('c1', 's1', 'r1');
-      expect(vi.mocked(axiosClient.post).mock.calls[1][1]).toEqual({});
+      const listener = vi.fn();
+      window.addEventListener('panelforge:script-working-copy-changed', listener);
+      try {
+        await scriptLineService.restoreScriptRevision('c1', 's1', 'r1', {
+          expectedChapterVersion: 8,
+        });
+        expect(axiosClient.post).toHaveBeenCalledWith(
+          '/chapters/c1/scenes/s1/script-revisions/r1/restore',
+          { expectedChapterVersion: 8 },
+          { headers: { 'Content-Type': 'application/json' } },
+        );
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({
+          chapterId: 'c1',
+          sceneId: 's1',
+          source: 'restore',
+        });
+        await scriptLineService.restoreScriptRevision('c1', 's1', 'r1');
+        expect(vi.mocked(axiosClient.post).mock.calls[1][1]).toEqual({});
+      } finally {
+        window.removeEventListener('panelforge:script-working-copy-changed', listener);
+      }
     });
 
     it('409 giữ code CONFLICT để UI tải lại', async () => {

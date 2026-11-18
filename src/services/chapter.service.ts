@@ -110,6 +110,16 @@ export interface ChapterDto {
   previousSubmittedVersionId?: string | null;
 }
 
+export interface ScriptVersionRowRef {
+  entryId: string;
+  surfaceText: string;
+}
+
+export interface ScriptVersionRowCast {
+  entryId: string;
+  revisionId: string;
+}
+
 /** Một hàng kịch bản theo thứ tự đọc; `key` ổn định giữa các phiên bản. */
 export interface ScriptVersionRow {
   key: string;
@@ -119,6 +129,8 @@ export interface ScriptVersionRow {
   panel: number;
   label?: string | null;
   text: string;
+  refs?: ScriptVersionRowRef[] | null;
+  castRevisions?: ScriptVersionRowCast[] | null;
 }
 
 /** Lưu = commit, gửi duyệt = push (`submittedAt`). */
@@ -191,6 +203,8 @@ export interface UpdateChapterRequest {
   outline?: string | null;
   isLocked?: boolean;
   priceVnd?: number;
+  /** `versionVector` của chương lúc mở form (BR-11): lệch thì BE trả 409 thay vì đè. */
+  expectedChapterVersion?: number;
 }
 
 export type ChapterReviewAction =
@@ -481,9 +495,13 @@ export const chapterService = {
   updateOutline: async (
     chapterId: string,
     outline: string | null,
+    expectedChapterVersion?: number,
   ): Promise<{ value: string | null }> => {
     try {
-      const response = await axiosClient.put(`/chapters/${chapterId}/outline`, { outline });
+      const response = await axiosClient.put(`/chapters/${chapterId}/outline`, {
+        outline,
+        expectedChapterVersion: expectedChapterVersion ?? null,
+      });
       return response.data;
     } catch (error) {
       throw new Error(extractError(error, 'Không thể cập nhật đề cương chương.'));

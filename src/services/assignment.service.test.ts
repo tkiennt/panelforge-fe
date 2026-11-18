@@ -766,11 +766,13 @@ describe('assignmentService', () => {
       brief: 'Gia hạn thêm 2 ngày',
       dueDate: '2026-11-25T23:59:59.000Z',
       clearDueDate: false,
+      expectedRowVersion: 1,
     });
     expect(axiosClient.patch).toHaveBeenCalledWith('/chapters/chap-1/task-grid/lots/lot-1', {
       brief: 'Gia hạn thêm 2 ngày',
       dueDate: '2026-11-25T23:59:59.000Z',
       clearDueDate: false,
+      expectedRowVersion: 1, // BR-11: BE trả 409 nếu lô đã đổi
     });
     expect(updatedLot).toEqual(mockUpdatedLot);
 
