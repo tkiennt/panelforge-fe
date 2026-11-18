@@ -8,6 +8,7 @@ import { chapterService } from '@/services/chapter.service';
 import { elementService } from '@/services/element.service';
 import { buildPageComposite } from '@/shared/utils/compositePageRenderer';
 import { parseStageTaskCanvasVersions, parseStageTaskPanelLayout } from '@/types';
+import { aiAgentsService, AiApiError } from '@/services/aiAgents.service';
 
 vi.mock('@/services/assignment.service', () => ({
   assignmentService: {
@@ -1110,6 +1111,217 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
           clearDueDate: false,
         }),
       );
+    });
+  });
+
+  describe('Smart Ripple — Gợi ý xử lý ô isInputOutdated do sửa kịch bản', () => {
+    const scriptOutdatedGrid = {
+      ...mockGrid,
+      tasks: mockGrid.tasks.map((t) =>
+        t.id === 'task-p1-pencil'
+          ? { ...t, status: 'Approved' as const }
+          : t.id === 'task-p1-ink'
+            ? {
+                ...t,
+                isInputOutdated: true,
+                outdatedReason: 'Kịch bản của trang đã được sửa sau khi mở lại kịch bản.',
+              }
+            : t,
+      ),
+    };
+
+    const impactSuggestion = {
+      id: 'sug-imp-1',
+      runId: 'run-imp-1',
+      stepId: 'step-imp-1',
+      sceneId: '00000000-0000-0000-0000-000000000000',
+      kind: 'ImpactRipple' as const,
+      status: 'Pending' as const,
+      summary: 'Gợi ý Keep cho Ink, trang 1',
+      payload: {
+        taskId: 'task-p1-ink',
+        decision: 'Keep',
+        reason: 'Chỉ chỉnh câu thoại, bố cục khung tranh giữ nguyên.',
+        changes: [
+          {
+            type: 'Dialogue',
+            label: 'Akira',
+            before: 'Đi ngay',
+            after: 'Đi ngay thôi!',
+          },
+        ],
+      },
+      payloadHash: 'hash-imp-1',
+      baseChapterVersion: 2,
+      bibleRevisionIds: [],
+      hasBlockingFindings: false,
+      createdAt: '2026-11-18T10:00:00Z',
+      decisions: [],
+      canDecide: true,
+      canAccept: true,
+    };
+
+    it('Producer bấm "Gợi ý xử lý" gọi runImpactSuggestion, hiện SuggestionCard và Accept xong tải lại lưới', async () => {
+      vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(scriptOutdatedGrid as any);
+      const runImpactSpy = vi
+        .spyOn(aiAgentsService, 'runImpactSuggestion')
+        .mockResolvedValueOnce(impactSuggestion);
+      const reviewSpy = vi.spyOn(aiAgentsService, 'review').mockResolvedValueOnce({
+        suggestionId: 'sug-imp-1',
+        status: 'Accepted',
+        decisionId: 'dec-imp-1',
+        resultRevisionId: null,
+        chapterVersion: 2,
+      });
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          seriesId='se-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+        />,
+      );
+
+      const suggestBtn = await screen.findByRole('button', { name: /Gợi ý xử lý/i });
+      fireEvent.click(suggestBtn);
+
+      await waitFor(() => {
+        expect(runImpactSpy).toHaveBeenCalledWith('chap-1', 'task-p1-ink');
+      });
+
+      expect(await screen.findByText('Giữ nguyên')).toBeInTheDocument();
+      expect(
+        screen.getByText('Chỉ chỉnh câu thoại, bố cục khung tranh giữ nguyên.'),
+      ).toBeInTheDocument();
+
+      const gridCallsBeforeAccept = vi.mocked(assignmentService.getTaskGrid).mock.calls.length;
+      vi.mocked(assignmentService.getTaskGrid).mockResolvedValueOnce({
+        ...scriptOutdatedGrid,
+        tasks: scriptOutdatedGrid.tasks.map((t) =>
+          t.id === 'task-p1-ink' ? { ...t, isInputOutdated: false, outdatedReason: null } : t,
+        ),
+      } as any);
+
+      fireEvent.click(screen.getByRole('button', { name: /Accept \(áp dụng xử lý\)/i }));
+
+      await waitFor(() => {
+        expect(reviewSpy).toHaveBeenCalledWith('se-1', 'sug-imp-1', 'accept', {});
+        expect(vi.mocked(assignmentService.getTaskGrid).mock.calls.length).toBeGreaterThan(
+          gridCallsBeforeAccept,
+        );
+      });
+      expect(assignmentService.resolveStageTaskImpact).not.toHaveBeenCalled();
+    });
+
+    it('Reject đề xuất ImpactRipple không đổi trạng thái ô và không gọi lại getTaskGrid', async () => {
+      vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(scriptOutdatedGrid as any);
+      vi.spyOn(aiAgentsService, 'runImpactSuggestion').mockResolvedValueOnce(impactSuggestion);
+      const reviewSpy = vi.spyOn(aiAgentsService, 'review').mockResolvedValueOnce({
+        suggestionId: 'sug-imp-1',
+        status: 'Rejected',
+        decisionId: 'dec-imp-rej',
+        resultRevisionId: null,
+        chapterVersion: 2,
+      });
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          seriesId='se-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+        />,
+      );
+
+      fireEvent.click(await screen.findByRole('button', { name: /Gợi ý xử lý/i }));
+      expect(await screen.findByText('Giữ nguyên')).toBeInTheDocument();
+
+      const gridCallsBeforeReject = vi.mocked(assignmentService.getTaskGrid).mock.calls.length;
+      fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+      fireEvent.click(screen.getByRole('button', { name: /Xác nhận Reject/i }));
+
+      await waitFor(() => {
+        expect(reviewSpy).toHaveBeenCalledWith('se-1', 'sug-imp-1', 'reject', {});
+      });
+      expect(vi.mocked(assignmentService.getTaskGrid).mock.calls.length).toBe(
+        gridCallsBeforeReject,
+      );
+      expect(assignmentService.resolveStageTaskImpact).not.toHaveBeenCalled();
+      expect(screen.getByText('Đầu vào lỗi thời')).toBeInTheDocument();
+    });
+
+    it('ẩn nút "Gợi ý xử lý" khi không phải Producer hoặc ô lỗi thời không phải do sửa kịch bản, và hiện nguyên văn lỗi 403/409', async () => {
+      // mockGrid mặc định có task-p1-ink với outdatedReason = 'Pencil trang 1 vừa mở lại' -> không hiện Gợi ý xử lý
+      const first = render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          seriesId='se-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+        />,
+      );
+      await screen.findByText('Đầu vào lỗi thời');
+      expect(screen.queryByRole('button', { name: /Gợi ý xử lý/i })).not.toBeInTheDocument();
+      first.unmount();
+
+      // Ô sửa kịch bản nhưng người xem là Artist / Editor -> ẩn nút
+      vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(scriptOutdatedGrid as any);
+      const second = render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          seriesId='se-1'
+          workspaceId='ws-1'
+          currentUserId='user-editor'
+          currentUserRole='Editor'
+          isEditor={true}
+        />,
+      );
+      await screen.findByText('Đầu vào lỗi thời');
+      expect(screen.queryByRole('button', { name: /Gợi ý xử lý/i })).not.toBeInTheDocument();
+      second.unmount();
+
+      // Producer gọi bị lỗi 403 và 409 -> hiện đúng message Backend
+      vi.spyOn(aiAgentsService, 'runImpactSuggestion')
+        .mockRejectedValueOnce(
+          new AiApiError('Chỉ Producer mới được xin gợi ý xử lý ảnh hưởng.', 'FORBIDDEN', 403),
+        )
+        .mockRejectedValueOnce(
+          new AiApiError(
+            'Không tìm thấy thay đổi kịch bản của trang này để so sánh.',
+            'CONFLICT',
+            409,
+          ),
+        );
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          seriesId='se-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+        />,
+      );
+
+      const suggestBtn = await screen.findByRole('button', { name: /Gợi ý xử lý/i });
+      fireEvent.click(suggestBtn);
+      expect(
+        (await screen.findAllByText('Chỉ Producer mới được xin gợi ý xử lý ảnh hưởng.')).length,
+      ).toBeGreaterThanOrEqual(1);
+
+      fireEvent.click(suggestBtn);
+      expect(
+        (await screen.findAllByText('Không tìm thấy thay đổi kịch bản của trang này để so sánh.'))
+          .length,
+      ).toBeGreaterThanOrEqual(1);
     });
   });
 });

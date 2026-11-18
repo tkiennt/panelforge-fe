@@ -56,6 +56,10 @@ import {
   ImageViewerLightbox,
   type ImageViewerSlide,
 } from '@/shared/components/image-viewer/ImageViewerLightbox';
+import { aiAgentsService, type AiSuggestionDto } from '@/services/aiAgents.service';
+import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
+
+const SCRIPT_OUTDATED_REASON_RE = /kịch bản|script/i;
 
 export interface TaskGridBoardProps {
   chapterId: string;
@@ -179,6 +183,17 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   const [editLotDueDate, setEditLotDueDate] = useState('');
   const [editLotClearDueDate, setEditLotClearDueDate] = useState(false);
 
+  // Smart Ripple AI: gợi ý Keep / Rework cho ô isInputOutdated do sửa kịch bản (Producer)
+  const [impactSuggestionsByTask, setImpactSuggestionsByTask] = useState<
+    Record<string, AiSuggestionDto>
+  >({});
+  const [impactErrorsByTask, setImpactErrorsByTask] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setImpactSuggestionsByTask({});
+    setImpactErrorsByTask({});
+  }, [chapterId]);
+
   // LỖI 2: Khi đã xác định currentUserRole từ API, phân quyền nghiêm ngặt theo role đó (tránh lộ nút Producer cho Artist/Letterer)
   const normalizedUserRole = currentUserRole ? String(currentUserRole).trim().toUpperCase() : '';
   const effectiveIsProducer =
@@ -196,6 +211,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       setReassigningTaskId(null);
       setEditingLotId(null);
       setDryRunPreview(null);
+      setImpactSuggestionsByTask({});
+      setImpactErrorsByTask({});
     }
   }, [effectiveIsProducer]);
 
@@ -1049,6 +1066,84 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     }
   };
 
+  const handleRequestImpactSuggestion = async (task: StageTaskDto) => {
+    setActionLoading(`aiImpact:${task.id}`);
+    setError(null);
+    setImpactErrorsByTask((prev) => {
+      const next = { ...prev };
+      delete next[task.id];
+      return next;
+    });
+    try {
+      const suggestion = await aiAgentsService.runImpactSuggestion(chapterId, task.id);
+      setImpactSuggestionsByTask((prev) => ({ ...prev, [task.id]: suggestion }));
+    } catch (err: any) {
+      const msg = err?.message || 'Không thể lấy gợi ý xử lý ảnh hưởng.';
+      setImpactErrorsByTask((prev) => ({ ...prev, [task.id]: msg }));
+      setError(msg);
+      onShowToast?.('Lỗi gợi ý xử lý', msg);
+      if (err?.status === 409) void loadGrid(true);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDecideImpactSuggestion = async (
+    task: StageTaskDto,
+    suggestion: AiSuggestionDto,
+    decision: 'accept' | 'reject' | 'request-changes',
+    reason?: string,
+  ) => {
+    setActionLoading(`aiImpactDecide:${task.id}`);
+    setError(null);
+    setImpactErrorsByTask((prev) => {
+      const next = { ...prev };
+      delete next[task.id];
+      return next;
+    });
+    try {
+      let effectiveSeriesId = seriesId || '';
+      if (!effectiveSeriesId && typeof chapterService.getChapterById === 'function') {
+        const chap = await Promise.resolve(chapterService.getChapterById(chapterId)).catch(
+          () => null,
+        );
+        effectiveSeriesId = chap?.seriesId || '';
+      }
+      const res = await aiAgentsService.review(
+        effectiveSeriesId,
+        suggestion.id,
+        decision,
+        reason ? { reason } : {},
+      );
+      if (decision === 'accept') {
+        setImpactSuggestionsByTask((prev) => {
+          const next = { ...prev };
+          delete next[task.id];
+          return next;
+        });
+        await loadGrid();
+      } else {
+        setImpactSuggestionsByTask((prev) => ({
+          ...prev,
+          [task.id]: {
+            ...suggestion,
+            status: res.status,
+            canDecide: false,
+            canAccept: false,
+          },
+        }));
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'Không thể ghi quyết định.';
+      setImpactErrorsByTask((prev) => ({ ...prev, [task.id]: msg }));
+      setError(msg);
+      onShowToast?.('Lỗi quyết định gợi ý', msg);
+      if (err?.status === 409) void loadGrid(true);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleUnassignTasks = async (taskIds: string[]) => {
     if (taskIds.length === 0) return;
     setActionLoading(taskIds.length === 1 ? `unassign:${taskIds[0]}` : 'unassignBatch');
@@ -1142,6 +1237,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       isStageEnabled && effectiveIsProducer && task.status === 'Approved' && !task.isInputOutdated;
     const canResolveImpact = isStageEnabled && effectiveIsProducer && task.isInputOutdated;
     const prereqReadyForImpact = canResolveImpact ? arePrerequisitesApproved(task, stage) : false;
+    const canSuggestImpactAi = Boolean(
+      canResolveImpact &&
+      task.pageId &&
+      task.outdatedReason &&
+      SCRIPT_OUTDATED_REASON_RE.test(task.outdatedReason),
+    );
+    const impactSuggestion = impactSuggestionsByTask[task.id] ?? null;
+    const impactAiError = impactErrorsByTask[task.id] ?? null;
 
     const isSelectedForLot = selectedUnassignedIds.has(task.id);
     const isSelectedForSubmit = selectedSubmitIds.has(task.id);
@@ -1149,7 +1252,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     const hasOpenInlineForm =
       requestingChangesTaskId === task.id ||
       reopeningTaskId === task.id ||
-      reassigningTaskId === task.id;
+      reassigningTaskId === task.id ||
+      Boolean(impactSuggestion);
     const attemptCount = task.attemptCount ?? 0;
     const reworkDisplay = resolveReworkReasonDisplay(
       task,
@@ -1688,7 +1792,47 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 <RotateCcw className='h-2.5 w-2.5' />
                 <span>Làm lại</span>
               </button>
+              {canSuggestImpactAi && (
+                <button
+                  type='button'
+                  data-testid={`ai-impact-btn-${task.id}`}
+                  disabled={
+                    actionLoading === `aiImpact:${task.id}` ||
+                    actionLoading === `aiImpactDecide:${task.id}`
+                  }
+                  onClick={() => void handleRequestImpactSuggestion(task)}
+                  title='AI gợi ý Giữ nguyên hoặc Làm lại dựa trên thay đổi kịch bản của trang'
+                  className='inline-flex items-center gap-1 rounded border border-orange-300 bg-white hover:bg-orange-50 text-[#C2410C] px-2 py-0.5 text-[10px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                >
+                  {actionLoading === `aiImpact:${task.id}` ? (
+                    <Loader2 className='h-2.5 w-2.5 animate-spin' />
+                  ) : (
+                    <Sparkles className='h-2.5 w-2.5' />
+                  )}
+                  <span>Gợi ý xử lý</span>
+                </button>
+              )}
             </div>
+            {impactAiError && (
+              <div
+                role='alert'
+                className='rounded border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] text-rose-800'
+              >
+                {impactAiError}
+              </div>
+            )}
+            {impactSuggestion && (
+              <div className='pt-1'>
+                <SuggestionCard
+                  suggestion={impactSuggestion}
+                  seriesId={seriesId}
+                  busy={actionLoading === `aiImpactDecide:${task.id}`}
+                  onDecide={(decision, reason) =>
+                    void handleDecideImpactSuggestion(task, impactSuggestion, decision, reason)
+                  }
+                />
+              </div>
+            )}
           </div>
         )}
 
