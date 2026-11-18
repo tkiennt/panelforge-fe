@@ -186,6 +186,17 @@ interface BibleEntityDetailModalProps {
   /** Danh sách mục của Bible để chuyển nhanh sang mục cùng danh mục ở sidebar. */
   entities?: BibleEntity[];
   onSelectEntity?: (entity: BibleEntity) => void;
+  /**
+   * Lưu nhanh các trường đặc tả nhập trực tiếp: tạo bản nháp mới (append-only) với
+   * expectedVersionNumber = phiên bản lớn nhất người dùng đang xem. Trả về true nếu lưu thành công.
+   */
+  onSaveSpecFields?: (
+    entity: BibleEntity,
+    attributes: Record<string, unknown>,
+    variantLabel: string,
+    expectedVersionNumber: number,
+    targetRevisionId?: string,
+  ) => Promise<boolean>;
 }
 
 export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
@@ -199,6 +210,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   canEndorse = false,
   canRequestRework = canEndorse,
   seriesId,
+  onSaveSpecFields,
   onClose,
   onOpenHistory,
   onOpenAddRevision,
@@ -1100,18 +1112,47 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     (lifecycleStatus === 'Draft' && (isVisualDesign ? isArtistUser : canEndorse)) ||
     (lifecycleStatus === 'ConceptSubmitted' && canEndorse) ||
     (lifecycleStatus === 'ReworkRequired' && isArtistUser);
-  const specDescription = (() => {
-    if (!selectedVersionId && activeRevision?.id === rawEntry?.effectiveRevision?.id) {
-      return entity.description ?? '';
-    }
-    try {
-      const snap = JSON.parse(activeRevision?.snapshotJson || '{}');
-      return (snap.Description ?? snap.description ?? entity.description ?? '') as string;
-    } catch {
-      return entity.description ?? '';
-    }
-  })();
   const specProgress = specCompleteness(normalizedCategory, variantAttributes.raw);
+
+  // Nhập trực tiếp các trường đặc tả còn trống → lưu thành bản nháp mới (append-only).
+  const [specDraft, setSpecDraft] = useState<Record<string, string>>({});
+  const [savingSpec, setSavingSpec] = useState(false);
+  useEffect(() => {
+    setSpecDraft({});
+    setEditingSpecKeys(new Set());
+  }, [activeRevision?.id]);
+  const canInlineEditSpec =
+    effectiveCanCreateDraft && !!onSaveSpecFields && activeRevision?.reviewStatus !== 'CanonLocked';
+  const [editingSpecKeys, setEditingSpecKeys] = useState<Set<string>>(new Set());
+  const specDraftDirty = Object.entries(specDraft).some(
+    ([k, v]) => v.trim() !== String(variantAttributes.raw[k] ?? '').trim(),
+  );
+  const handleSaveSpecDraft = async () => {
+    if (!onSaveSpecFields || !specDraftDirty || savingSpec) return;
+    const attrs: Record<string, unknown> = { ...variantAttributes.raw };
+    for (const [k, v] of Object.entries(specDraft)) {
+      if (v.trim()) attrs[k] = v.trim();
+      else delete attrs[k];
+    }
+    const allRevs = variants.flatMap((v) => v.revisions);
+    const expected = allRevs.length
+      ? Math.max(...allRevs.map((r) => r.versionNumber))
+      : (activeRevision?.versionNumber ?? 1);
+    setSavingSpec(true);
+    try {
+      const ok = await onSaveSpecFields(
+        entity,
+        attrs,
+        (activeRevision?.variantLabel ?? activeRevision?.stageName ?? '').trim(),
+        expected,
+        activeRevision?.id,
+      );
+      if (ok) setSpecDraft({});
+      setEditingSpecKeys(new Set());
+    } finally {
+      setSavingSpec(false);
+    }
+  };
 
   const modalContent = (
     <section
@@ -1120,19 +1161,70 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       aria-labelledby='bible-entity-title'
       data-testid='bible-entity-workbench'
     >
-      {/* ================= HEADER (hero card như màn danh sách Series Bible) ================= */}
-      <header className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'>
-        <div className='flex items-center justify-between gap-3'>
+      {/* ================= HEADER: thanh công cụ gọn (Level 2 toolbar như các màn làm việc khác) ================= */}
+      <header className='sticky top-0 z-20 bg-white/90 backdrop-blur-md border border-stone-200 rounded-xl shadow-xs'>
+        <div className='flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3'>
           <button
             type='button'
             onClick={onClose}
-            className='inline-flex items-center gap-1.5 text-sm font-semibold text-stone-600 hover:text-[#C2410C] transition-colors cursor-pointer'
+            className='w-9 h-9 shrink-0 rounded-lg border border-stone-200 flex items-center justify-center text-stone-600 hover:text-stone-900 hover:border-stone-400 hover:bg-stone-100 transition-colors cursor-pointer'
             title={t('bible.detailModal.backToBibleTitle', 'Quay lại danh sách Series Bible (Esc)')}
+            aria-label={t('bible.detailModal.backToBible', 'Series Bible')}
           >
             <ArrowLeft className='w-4 h-4' />
-            <span>{t('bible.detailModal.backToBible', 'Series Bible')}</span>
           </button>
-          <div className='flex items-center gap-2'>
+          <div className='w-11 h-11 shrink-0 rounded-lg overflow-hidden border border-stone-200 bg-stone-100 flex items-center justify-center'>
+            {entity.imageUrl ? (
+              <AuthenticatedImage
+                src={entity.imageUrl}
+                alt={entity.name}
+                className='w-full h-full object-cover'
+                data-testid='bible-header-thumb'
+              />
+            ) : (
+              <span className='font-serif font-bold text-lg text-stone-800'>
+                {(entity.name || '?').trim().charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className='min-w-0 flex-1'>
+            <nav className='flex items-center gap-1 text-xs text-stone-500' aria-label='breadcrumb'>
+              <button
+                type='button'
+                onClick={onClose}
+                className='hover:text-stone-900 hover:underline cursor-pointer'
+              >
+                {t('bible.detailModal.backToBible', 'Series Bible')}
+              </button>
+              <span aria-hidden='true'>/</span>
+              <span>{getCategoryLabel(entity.category)}</span>
+            </nav>
+            <div className='flex items-center gap-2 min-w-0 flex-wrap'>
+              <div className='flex items-center gap-2 flex-wrap'>
+                <span className='font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200'>
+                  {entity.code}
+                </span>
+              </div>
+              <h2
+                id='bible-entity-title'
+                className='text-xl font-bold font-serif text-stone-900 tracking-tight truncate'
+              >
+                {entity.name}
+              </h2>
+              {entity.latestDraftVersionNumber != null && (
+                <span
+                  className='inline-flex px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium'
+                  data-testid='pending-draft-badge-detail'
+                >
+                  {t('bible.view.pendingDraftBadge', { n: entity.latestDraftVersionNumber })}
+                </span>
+              )}
+              {entity.subtitle && (
+                <span className='text-sm text-stone-500 truncate'>· {entity.subtitle}</span>
+              )}
+            </div>
+          </div>
+          <div className='flex items-center gap-2 flex-wrap'>
             <span className='px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 bg-stone-100 text-stone-700 border-stone-200'>
               <User className='w-3.5 h-3.5 text-stone-500' />
               {isProducerUser
@@ -1146,52 +1238,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       : t('bible.detailModal.roleViewer', 'Người xem')}
             </span>
             <button
-              ref={closeButtonRef}
-              type='button'
-              onClick={onClose}
-              className='p-1.5 rounded-full hover:bg-stone-200 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer'
-              title={t('bible.detailModal.closeTitle', 'Đóng (Esc)')}
-              aria-label={t('bible.detailModal.closeAria', 'Đóng cửa sổ chi tiết')}
-            >
-              <X className='w-4 h-4' />
-            </button>
-          </div>
-        </div>
-
-        <div className='flex flex-col xl:flex-row xl:items-end justify-between gap-4'>
-          <div className='min-w-0 space-y-1.5'>
-            <div className='flex items-center gap-2 flex-wrap'>
-              <span className='font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200'>
-                {entity.code}
-              </span>
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getCategoryBadgeStyle(entity.category)}`}
-              >
-                {getCategoryLabel(entity.category)}
-              </span>
-            </div>
-            <h2
-              id='bible-entity-title'
-              className='text-2xl font-bold font-serif text-stone-900 tracking-tight truncate'
-            >
-              {entity.name}
-            </h2>
-            {entity.latestDraftVersionNumber != null && (
-              <span
-                className='inline-flex px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium'
-                data-testid='pending-draft-badge-detail'
-              >
-                {t('bible.view.pendingDraftBadge', { n: entity.latestDraftVersionNumber })}
-              </span>
-            )}
-            {entity.subtitle && <p className='text-sm text-stone-600'>{entity.subtitle}</p>}
-          </div>
-
-          <div className='flex items-center gap-2 flex-wrap shrink-0'>
-            <button
               type='button'
               onClick={() => onOpenHistory(entity)}
-              className='px-4 py-2 rounded-full bg-white hover:bg-[#F5F5F4] text-[#292524] border border-[#E7E5E4] text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
+              className='px-3.5 py-1.5 rounded-lg bg-white hover:bg-[#F5F5F4] text-[#292524] border border-[#E7E5E4] text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
             >
               <History className='w-4 h-4 text-stone-500' />
               <span>{t('bible.detailModal.historyBtn', 'Lịch sử phiên bản')}</span>
@@ -1200,7 +1249,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               <button
                 type='button'
                 onClick={() => onOpenAddRevision(entity)}
-                className='px-4 py-2 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
+                className='px-3.5 py-1.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
               >
                 <GitCommit className='w-4 h-4' />
                 <span>
@@ -1220,14 +1269,24 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   : t('bible.detailModal.readOnlyNotice', 'Chế độ chỉ xem')}
               </span>
             )}
+            <button
+              ref={closeButtonRef}
+              type='button'
+              onClick={onClose}
+              className='p-1.5 rounded-full hover:bg-stone-200 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer'
+              title={t('bible.detailModal.closeTitle', 'Đóng (Esc)')}
+              aria-label={t('bible.detailModal.closeAria', 'Đóng cửa sổ chi tiết')}
+            >
+              <X className='w-4 h-4' />
+            </button>
           </div>
         </div>
         <div
-          className='pt-4 border-t border-[#E7E2D6] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3'
+          className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 px-4 py-2 border-t border-stone-200/80 bg-stone-50/70 rounded-b-xl'
           data-testid='bible-status-strip'
         >
           <ol
-            className='flex items-center gap-2 overflow-x-auto'
+            className='flex items-center gap-1.5 overflow-x-auto'
             aria-label={t('bible.detailModal.lifecycleTitle', 'Vòng đời phiên bản')}
           >
             {lifecycleSteps.map((label, i) => {
@@ -1241,7 +1300,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   aria-current={current ? 'step' : undefined}
                 >
                   <span
-                    className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
+                    className={`w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center ${
                       done
                         ? 'bg-emerald-600 text-white'
                         : rework
@@ -1251,25 +1310,25 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             : 'bg-stone-100 text-stone-500 border border-stone-200'
                     }`}
                   >
-                    {done ? <CheckCircle2 className='w-3.5 h-3.5' /> : i + 1}
+                    {done ? <CheckCircle2 className='w-3 h-3' /> : i + 1}
                   </span>
                   <span
-                    className={`text-sm ${current ? 'font-semibold text-stone-900' : 'text-stone-500'}`}
+                    className={`text-xs ${current ? 'font-semibold text-stone-900' : 'text-stone-500'}`}
                   >
                     {rework ? t('bible.detailModal.stepRework', 'Cần vẽ lại') : label}
                   </span>
                   {i < lifecycleSteps.length - 1 && (
-                    <span className='w-8 h-px bg-stone-300' aria-hidden='true' />
+                    <span className='w-5 h-px bg-stone-300' aria-hidden='true' />
                   )}
                 </li>
               );
             })}
           </ol>
-          <div className='flex items-center gap-2 flex-wrap text-sm'>
+          <div className='flex items-center gap-1.5 flex-wrap text-xs'>
             <span className='text-stone-500'>{t('bible.detailModal.waitingFor', 'Đang chờ:')}</span>
             <span className='font-semibold text-stone-800'>{waitingFor}</span>
             {isMyTurn && (
-              <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 text-xs font-semibold'>
+              <span className='px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-800 border border-stone-300 text-xs font-semibold'>
                 {t('bible.detailModal.yourTurn', 'Đến lượt bạn')}
               </span>
             )}
@@ -1289,7 +1348,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           >
             {siblings.length > 1 && onSelectEntity && (
               <nav
-                className='bg-white border border-stone-200/80 rounded-xl shadow-xs p-2'
+                className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl shadow-xs p-2'
                 aria-label={t('bible.detailModal.navSameCategoryAria', 'Mục cùng danh mục')}
               >
                 <p className='px-2.5 pt-1.5 pb-2 text-xs font-semibold uppercase tracking-wider text-stone-500'>
@@ -1311,7 +1370,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             aria-current={isActive ? 'true' : undefined}
                             className={`w-full px-2.5 py-2 rounded-lg text-left flex items-center gap-2 border-l-4 transition-all duration-150 cursor-pointer ${
                               isActive
-                                ? 'bg-orange-50 border-orange-500 text-orange-800'
+                                ? 'bg-stone-100 border-stone-500 text-stone-800'
                                 : 'border-transparent text-stone-700 hover:bg-stone-100'
                             }`}
                           >
@@ -1335,10 +1394,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             )}
 
             <section className='space-y-3' data-testid='variant-selector'>
-              <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+              <div className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
                 <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                   <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
-                    <Layers className='w-4 h-4 text-[#F97316]' />
+                    <Layers className='w-4 h-4 text-stone-500' />
                     <span>{t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}</span>
                   </div>
                   <span className='text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 whitespace-nowrap'>
@@ -1371,7 +1430,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         data-testid={`variant-tab-${variant.variantKey}`}
                         className={`px-3 py-2.5 rounded-xl border transition-all cursor-pointer space-y-1 ${
                           isActive
-                            ? 'bg-[#FFF7ED] text-[#C2410C] border-[#F97316] ring-1 ring-[#F97316]/30'
+                            ? 'bg-stone-100 text-stone-900 border-stone-400 ring-1 ring-stone-400/30'
                             : 'bg-white text-stone-700 border-stone-200 hover:border-stone-400 hover:bg-stone-50/60'
                         }`}
                       >
@@ -1413,7 +1472,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       onOpenAddRevision(entity, null, false, undefined, false, true);
                     }}
                     data-testid='add-new-variant-btn'
-                    className='w-full py-2 border-2 border-dashed border-stone-300 hover:border-orange-400 text-stone-600 hover:text-[#C2410C] hover:bg-orange-50/60 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer'
+                    className='w-full py-2 border-2 border-dashed border-stone-300 hover:border-stone-400 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer'
                     title={t(
                       'bible.detailModal.createNewVariantTitle',
                       'Thêm biến thể thiết kế mới',
@@ -1428,11 +1487,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
             {seriesId && (
               <section
-                className='bg-white border border-stone-200/80 rounded-xl shadow-xs p-4 space-y-2.5'
+                className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl shadow-xs p-4 space-y-2.5'
                 data-testid='bible-usages'
               >
                 <p className='text-sm font-bold text-stone-900 flex items-center gap-1.5'>
-                  <FileText className='w-4 h-4 text-orange-600' />
+                  <FileText className='w-4 h-4 text-stone-500' />
                   {t('bible.detailModal.scriptAppearances', 'Xuất hiện trong kịch bản')}
                 </p>
                 {usages === null ? (
@@ -1503,10 +1562,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               </section>
             )}
             {/* CARD 2: PHIÊN BẢN & NHẬT KÝ SỬA ĐỔI (VERSION & AUDIT TRAIL GỘP CHUNG) */}
-            <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+            <div className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
               <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                 <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
-                  <History className='w-4 h-4 text-[#F97316]' />
+                  <History className='w-4 h-4 text-stone-500' />
                   <span>{t('bible.detailModal.versionsAndAudit', 'Phiên bản & Nhật ký')}</span>
                 </div>
                 <button
@@ -1530,7 +1589,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         onClick={() => setSelectedVersionId(rev.id)}
                         className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-xs ${
                           isSelected
-                            ? 'bg-[#FFF7ED] border-[#F97316]/70 shadow-2xs font-semibold'
+                            ? 'bg-stone-100 border-stone-400 shadow-2xs font-semibold'
                             : 'bg-white border-stone-200 hover:border-stone-300'
                         }`}
                       >
@@ -1743,10 +1802,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             >
               <section className='min-w-0' data-testid='bible-spec-column'>
                 {/* CARD 1: THÔNG TIN ĐẶC TẢ THU GỌN (METADATA SPECS) */}
-                <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+                <div className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
                   <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                     <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
-                      <FileText className='w-4 h-4 text-[#F97316]' />
+                      <FileText className='w-4 h-4 text-stone-500' />
                       <span>{card1Title}</span>
                       <span
                         className='px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200 text-xs font-mono font-medium'
@@ -1759,29 +1818,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         {specProgress.filled}/{specProgress.total}
                       </span>
                     </div>
-                    <div className='flex items-center gap-1.5'>
-                      {effectiveCanCreateDraft && (
-                        <button
-                          type='button'
-                          onClick={() => onOpenAddRevision(entity, activeRevision)}
-                          className='inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-orange-50 border border-stone-200 hover:border-orange-300 text-stone-700 hover:text-orange-700 text-xs font-semibold rounded-lg transition-all cursor-pointer shadow-2xs'
-                          title={t(
-                            'bible.detailModal.editSpecTitle',
-                            'Cập nhật đặc tả thông số cho mục này',
-                          )}
-                        >
-                          <Edit3 className='w-3 h-3 text-orange-600' />
-                          <span>{t('bible.detailModal.editSpecBtn', 'Sửa')}</span>
-                        </button>
-                      )}
-                    </div>
                   </div>
 
-                  {specDescription && (
-                    <p className='text-sm text-stone-700 leading-relaxed whitespace-pre-line'>
-                      {specDescription}
-                    </p>
-                  )}
                   <div className='space-y-5'>
                     {SPEC_SCHEMA[normalizedCategory].map((group) => {
                       const rows = group.fields.map((field) => ({
@@ -1808,58 +1846,169 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                 return (
                                   <div
                                     key={field.key}
-                                    className={`grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-x-4 gap-y-0.5 px-3 py-2 rounded-lg ${
+                                    className={`grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-x-4 gap-y-1 items-center min-h-[52px] px-3 py-2 rounded-lg ${
                                       isForbidden
                                         ? 'bg-rose-50 border border-rose-200'
                                         : 'bg-stone-50'
                                     }`}
                                   >
-                                    <dt className='text-xs font-medium text-stone-500 sm:pt-0.5'>
+                                    <dt className='text-xs font-medium text-stone-500'>
                                       {field.label}
                                     </dt>
-                                    <dd
-                                      className={`text-sm font-medium whitespace-pre-line ${
-                                        isForbidden ? 'text-rose-800' : 'text-stone-900'
-                                      }`}
-                                    >
-                                      {value}
-                                    </dd>
+                                    {editingSpecKeys.has(field.key) ? (
+                                      <dd>
+                                        {(() => {
+                                          const props = {
+                                            id: `spec-input-${field.key}`,
+                                            'data-testid': `spec-input-${field.key}`,
+                                            autoFocus: true,
+                                            disabled: savingSpec,
+                                            value: specDraft[field.key] ?? value,
+                                            onChange: (
+                                              e: React.ChangeEvent<
+                                                HTMLInputElement | HTMLTextAreaElement
+                                              >,
+                                            ) =>
+                                              setSpecDraft((prev) => ({
+                                                ...prev,
+                                                [field.key]: e.target.value,
+                                              })),
+                                            className:
+                                              'w-full px-3 py-1.5 text-sm bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-500 focus:ring-2 focus:ring-stone-400/20 transition disabled:opacity-60',
+                                          };
+                                          return field.multiline ? (
+                                            <textarea {...props} rows={2} />
+                                          ) : (
+                                            <input {...props} type='text' />
+                                          );
+                                        })()}
+                                      </dd>
+                                    ) : (
+                                      <dd className='flex items-center justify-between gap-2'>
+                                        <span
+                                          className={`text-sm font-medium whitespace-pre-line ${
+                                            isForbidden ? 'text-rose-800' : 'text-stone-900'
+                                          }`}
+                                        >
+                                          {value}
+                                        </span>
+                                        {canInlineEditSpec && (
+                                          <button
+                                            type='button'
+                                            onClick={() =>
+                                              setEditingSpecKeys((prev) =>
+                                                new Set(prev).add(field.key),
+                                              )
+                                            }
+                                            data-testid={`spec-edit-${field.key}`}
+                                            className='shrink-0 p-1 rounded-md text-stone-400 hover:text-stone-900 hover:bg-stone-200 transition cursor-pointer'
+                                            title={t('bible.detailModal.editSpecBtn', 'Sửa')}
+                                            aria-label={`${t('bible.detailModal.editSpecBtn', 'Sửa')} ${field.label}`}
+                                          >
+                                            <Edit3 className='w-3.5 h-3.5' />
+                                          </button>
+                                        )}
+                                      </dd>
+                                    )}
                                   </div>
                                 );
                               })}
                             </dl>
                           )}
-                          {empty.length > 0 && (
-                            <div className='flex flex-wrap items-center gap-1.5'>
-                              <span className='text-xs text-stone-400'>
-                                {t('bible.detailModal.notConfigured', 'Chưa thiết lập')}
-                              </span>
-                              {empty.map(({ field }) =>
-                                effectiveCanCreateDraft ? (
-                                  <button
-                                    key={field.key}
-                                    type='button'
-                                    onClick={() => onOpenAddRevision(entity, activeRevision)}
-                                    className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-dashed border-stone-300 text-xs text-stone-500 hover:border-orange-400 hover:text-orange-700 hover:bg-orange-50 transition-colors cursor-pointer'
-                                  >
-                                    <Plus className='w-3 h-3' />
-                                    {field.label}
-                                  </button>
-                                ) : (
+                          {empty.length > 0 &&
+                            (canInlineEditSpec ? (
+                              <div className='space-y-1.5'>
+                                {empty.map(({ field }) => {
+                                  const inputId = `spec-input-${field.key}`;
+                                  const common = {
+                                    id: inputId,
+                                    value: specDraft[field.key] ?? '',
+                                    disabled: savingSpec,
+                                    placeholder: field.placeholder || field.label,
+                                    'data-testid': inputId,
+                                    className:
+                                      'w-full px-3 py-1.5 text-sm bg-white border border-stone-200 rounded-lg placeholder:text-stone-400 hover:border-stone-300 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-500/15 transition disabled:opacity-60',
+                                  };
+                                  const onChange = (
+                                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+                                  ) =>
+                                    setSpecDraft((prev) => ({
+                                      ...prev,
+                                      [field.key]: e.target.value,
+                                    }));
+                                  return (
+                                    <div
+                                      key={field.key}
+                                      className='grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-x-4 gap-y-1 items-center min-h-[52px] px-3 py-2 rounded-lg bg-stone-50'
+                                    >
+                                      <label
+                                        htmlFor={inputId}
+                                        className='text-xs font-medium text-stone-500'
+                                      >
+                                        {field.label}
+                                      </label>
+                                      {field.multiline ? (
+                                        <textarea {...common} rows={2} onChange={onChange} />
+                                      ) : (
+                                        <input
+                                          {...common}
+                                          type='text'
+                                          onChange={onChange}
+                                          onKeyDown={(e) => {
+                                            if (e.key !== 'Enter' || e.nativeEvent.isComposing)
+                                              return;
+                                            e.preventDefault();
+                                            void handleSaveSpecDraft();
+                                          }}
+                                        />
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className='flex flex-wrap items-center gap-1.5'>
+                                <span className='text-xs text-stone-400'>
+                                  {t('bible.detailModal.notConfigured', 'Chưa thiết lập')}
+                                </span>
+                                {empty.map(({ field }) => (
                                   <span
                                     key={field.key}
                                     className='px-2 py-0.5 rounded-full border border-dashed border-stone-300 text-xs text-stone-500'
                                   >
                                     {field.label}
                                   </span>
-                                ),
-                              )}
-                            </div>
-                          )}
+                                ))}
+                              </div>
+                            ))}
                         </div>
                       );
                     })}
                   </div>
+                  {canInlineEditSpec && specDraftDirty && (
+                    <div className='sticky bottom-3 flex items-center justify-end gap-2 pt-3 border-t border-stone-200/80 bg-white'>
+                      <button
+                        type='button'
+                        disabled={savingSpec}
+                        onClick={() => setSpecDraft({})}
+                        className='px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-600 hover:bg-stone-100 transition cursor-pointer disabled:opacity-50'
+                      >
+                        {t('bible.detailModal.cancelSpecEdit', 'Huỷ')}
+                      </button>
+                      <button
+                        type='button'
+                        disabled={savingSpec}
+                        onClick={() => void handleSaveSpecDraft()}
+                        data-testid='save-spec-inline-btn'
+                        className='px-4 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold shadow-xs transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5'
+                      >
+                        <Check className='w-3.5 h-3.5' />
+                        {savingSpec
+                          ? t('bible.detailModal.savingSpec', 'Đang lưu…')
+                          : t('bible.detailModal.saveSpec', 'Lưu đặc tả')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -1880,16 +2029,16 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       ))}
                     </div>
                   )}
-                  <div className='bg-white border border-stone-200/80 rounded-xl p-4 sm:p-5 shadow-xs space-y-3'>
+                  <div className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-4 sm:p-5 shadow-xs space-y-3'>
                     {/* Artwork Header: Tab Turnaround vs Action / Expressions + Zoom button */}
                     <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                       <div className='flex items-center gap-2 min-w-0'>
-                        <Palette className='w-4 h-4 text-[#F97316] shrink-0' />
+                        <Palette className='w-4 h-4 text-stone-500 shrink-0' />
                         <span className='font-bold text-xs sm:text-sm text-[#1C1917] truncate'>
                           {visualCardInfo.title}
                         </span>
                         <span
-                          className={`text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200`}
+                          className={`text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-800 border border-stone-300`}
                         >
                           {visualCardInfo.badge}
                         </span>
@@ -1930,7 +2079,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                 title: selectedImageTitle || entity.name,
                               })
                             }
-                            className='p-1.5 rounded-lg border border-stone-200 hover:bg-white text-stone-600 hover:text-orange-600 transition shadow-2xs cursor-pointer'
+                            className='p-1.5 rounded-lg border border-stone-200 hover:bg-white text-stone-600 hover:text-stone-900 transition shadow-2xs cursor-pointer'
                             title={t('bible.detailModal.zoomImageTitle', 'Phóng to ảnh')}
                           >
                             <Eye className='w-4 h-4' />
@@ -1999,7 +2148,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                   }}
                                   className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border shrink-0 transition-all cursor-pointer ${
                                     selectedImageUrl === entity.imageUrl
-                                      ? 'border-[#F97316] bg-orange-50/50 ring-1 ring-[#F97316]/20'
+                                      ? 'border-stone-400 bg-stone-100 ring-1 ring-stone-400/30'
                                       : 'border-stone-200 hover:border-stone-300 bg-white'
                                   }`}
                                 >
@@ -2027,7 +2176,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                   }}
                                   className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border shrink-0 transition-all cursor-pointer ${
                                     selectedImageUrl === img.url
-                                      ? 'border-[#F97316] bg-orange-50/50 ring-1 ring-[#F97316]/20'
+                                      ? 'border-stone-400 bg-stone-100 ring-1 ring-stone-400/30'
                                       : 'border-stone-200 hover:border-stone-300 bg-white'
                                   }`}
                                 >
@@ -2068,11 +2217,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         }}
                         className={`p-8 sm:p-12 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-3.5 text-center min-h-[300px] group ${
                           isDraggingOver
-                            ? 'border-[#F97316] bg-orange-50/70 shadow-inner ring-4 ring-[#F97316]/10'
-                            : 'border-stone-300 hover:border-[#F97316] bg-stone-50/60 hover:bg-orange-50/30'
+                            ? 'border-stone-400 bg-stone-100 shadow-inner ring-4 ring-stone-400/30'
+                            : 'border-stone-300 hover:border-stone-400 bg-stone-50/60 hover:bg-stone-100'
                         }`}
                       >
-                        <div className='w-14 h-14 rounded-2xl bg-orange-100/80 border border-orange-200 flex items-center justify-center text-[#EA580C] group-hover:scale-105 group-hover:bg-[#F97316] group-hover:text-white transition-all shadow-2xs'>
+                        <div className='w-14 h-14 rounded-2xl bg-stone-100 border border-stone-300 flex items-center justify-center text-stone-500 group-hover:scale-105 group-hover:bg-stone-700 group-hover:text-white transition-all shadow-2xs'>
                           <Upload className='w-7 h-7' />
                         </div>
                         <div className='max-w-md space-y-1.5'>
@@ -2319,7 +2468,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       >
                         <div className='flex items-center justify-between text-xs font-bold text-stone-700'>
                           <div className='flex items-center gap-1.5'>
-                            <History className='w-3.5 h-3.5 text-orange-600' />
+                            <History className='w-3.5 h-3.5 text-stone-500' />
                             <span>
                               {t(
                                 'bible.detailModal.conceptSubmissions',
@@ -2351,7 +2500,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                 }}
                                 className={`px-3 py-1.5 rounded-xl text-xs font-medium border shrink-0 transition-all cursor-pointer flex items-center gap-2 ${
                                   isSelected
-                                    ? 'bg-orange-50 border-orange-500 text-orange-800 shadow-2xs font-bold ring-1 ring-orange-500/30'
+                                    ? 'bg-stone-100 border-stone-500 text-stone-800 shadow-2xs font-bold ring-1 ring-stone-400/30'
                                     : 'bg-white border-stone-200 text-stone-700 hover:border-stone-300'
                                 }`}
                                 data-testid={`concept-version-item-${verNum}`}
@@ -2377,7 +2526,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     >
                       <div className='flex items-center justify-between'>
                         <div className='flex items-center gap-2 text-xs sm:text-sm font-bold text-stone-900'>
-                          <MessageSquare className='w-4 h-4 text-[#F97316]' />
+                          <MessageSquare className='w-4 h-4 text-stone-500' />
                           <span>
                             {t('bible.detailModal.conceptCommentsTitle', 'Nhận xét Concept Art')}
                           </span>
@@ -2463,7 +2612,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                       onClick={() =>
                                         setActiveReplyId(activeReplyId === c.id ? null : c.id)
                                       }
-                                      className='px-2 py-0.5 text-xs font-medium text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 rounded border border-orange-200 transition cursor-pointer flex items-center gap-1'
+                                      className='px-2 py-0.5 text-xs font-medium text-stone-500 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded border border-stone-300 transition cursor-pointer flex items-center gap-1'
                                       data-testid={`reply-comment-btn-${c.id}`}
                                     >
                                       <CornerDownRight className='w-3 h-3' />
@@ -2538,7 +2687,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                       type='button'
                                       disabled={submittingComment || !replyTextMap[c.id]?.trim()}
                                       onClick={() => void handleReplyComment(c.id)}
-                                      className='px-3 py-1.5 bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition cursor-pointer flex items-center gap-1'
+                                      className='px-3 py-1.5 bg-stone-800 hover:bg-stone-900 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition cursor-pointer flex items-center gap-1'
                                       data-testid={`submit-reply-btn-${c.id}`}
                                     >
                                       <Send className='w-3 h-3' />
@@ -2576,7 +2725,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           type='button'
                           disabled={submittingComment || !newCommentText.trim()}
                           onClick={() => void handleCreateComment()}
-                          className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-[0.98]'
+                          className='px-4 py-2 bg-stone-800 hover:bg-stone-900 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-[0.98]'
                           data-testid='create-concept-comment-btn'
                         >
                           <Send className='w-3.5 h-3.5' />
@@ -2598,7 +2747,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     <>
       {/* Toàn trang trên nền giấy (không có sidebar/top bar của AppShell) */}
       <div
-        className='fixed inset-0 z-[1000] bg-[#FAF9F5] overflow-y-auto animate-in fade-in duration-150'
+        className='fixed inset-0 z-[1000] bg-[#F2F0EA] overflow-y-auto animate-in fade-in duration-150'
         role='dialog'
         aria-modal='true'
         aria-labelledby='bible-entity-title'

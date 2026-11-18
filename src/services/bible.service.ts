@@ -160,6 +160,8 @@ export interface AddBibleEntryRevisionRequest {
   priority?: BiblePriority;
   strictCheck?: boolean;
   variantLabel: string;
+  /** Phiên bản gốc đang sửa (BE dùng để giữ đúng biến thể khi mục có nhiều biến thể). */
+  targetRevisionId?: string;
 }
 
 /** Producer thay thế bản đã khoá: nội dung mới + lý do; chương hiệu lực lấy theo bản bị thay. */

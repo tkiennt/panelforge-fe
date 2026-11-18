@@ -494,6 +494,53 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     setAddRevModalOpen(true);
   };
 
+  // Lưu nhanh đặc tả nhập trực tiếp ở màn chi tiết → bản nháp mới (append-only, BR-05).
+  const handleSaveSpecFields = async (
+    entity: BibleEntity,
+    attributes: Record<string, unknown>,
+    variantLabel: string,
+    expectedVersionNumber: number,
+    targetRevisionId?: string,
+  ): Promise<boolean> => {
+    if (!effectiveSeries?.id) return false;
+    try {
+      await bibleService.addRevision(effectiveSeries.id, entity.id, {
+        expectedVersionNumber,
+        targetRevisionId,
+        name: entity.name,
+        subtitle: entity.subtitle || '',
+        description: entity.description || '',
+        referenceImageUrl: entity.imageUrl || undefined,
+        variantLabel,
+        summary: t('bible.detailModal.specSavedTitle', 'Đã lưu đặc tả'),
+        detailsJson: JSON.stringify({
+          turnaroundGallery: entity.gallery || [],
+          attributes,
+        }),
+      });
+      onShowToast(
+        t('bible.detailModal.specSavedTitle', 'Đã lưu đặc tả'),
+        t('bible.detailModal.specSavedDesc', 'Đã tạo bản nháp mới với các trường vừa nhập.'),
+      );
+      setRefreshTrigger((prev) => prev + 1);
+      setSelectedEntity((cur) =>
+        cur && cur.id === entity.id ? { ...cur, attributes: attributes as any } : cur,
+      );
+      return true;
+    } catch (err: any) {
+      const isConflict = err?.code === 'CONFLICT' || err?.status === 409;
+      onShowToast(
+        isConflict
+          ? t('bible.view.conflictTitleGeneric', 'Xung đột phiên bản (409 CONFLICT)')
+          : t('bible.detailModal.specSaveFailedTitle', 'Không lưu được đặc tả'),
+        err?.message || '',
+      );
+      // 409: tải lại dữ liệu mới nhất; giữ nguyên nội dung người dùng đang nhập.
+      if (isConflict) setRefreshTrigger((prev) => prev + 1);
+      return false;
+    }
+  };
+
   const executeSaveRevision = async (submittedContent?: {
     expectedVersionNumber?: number;
     name: string;
@@ -1205,7 +1252,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               {t('bible.view.queueStatusWaiting', 'Chờ nộp Concept Art')}
                             </span>
                           )}
-                          {(item.variantLabel || item.stageName) ? (
+                          {item.variantLabel || item.stageName ? (
                             <span className='text-xs text-stone-600 font-medium'>
                               · {item.variantLabel || item.stageName}
                             </span>
@@ -1619,7 +1666,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <div>
                           <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors line-clamp-1'>
                             {entity.name}
-                            {(effRev?.variantLabel || effRev?.stageName) ? (
+                            {effRev?.variantLabel || effRev?.stageName ? (
                               <span className='font-sans font-medium text-[#57534E]'>
                                 {' '}
                                 · {effRev.variantLabel || effRev.stageName}
@@ -1872,7 +1919,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           </span>
                           <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
                             {entity.name}
-                            {(effRev?.variantLabel || effRev?.stageName) ? (
+                            {effRev?.variantLabel || effRev?.stageName ? (
                               <span className='font-sans font-medium text-[#57534E]'>
                                 {' '}
                                 · {effRev.variantLabel || effRev.stageName}
@@ -2125,6 +2172,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           onShowToast={onShowToast}
           onZoomImage={(img) => setSelectedImageZoom(img)}
           onDeleteRevision={(ent, rev) => handleDeleteRevision(ent, rev)}
+          onSaveSpecFields={handleSaveSpecFields}
         />
       )}
 

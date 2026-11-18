@@ -143,7 +143,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
     );
 
     expect(screen.getByTestId('pending-draft-badge-detail')).toHaveTextContent('Có bản nháp v4');
-    expect(screen.getByText(mockEntityWithImage.description)).toBeInTheDocument();
+    // Mô tả tự do không còn hiển thị trong thẻ đặc tả (chỉ hiện các trường đặc tả).
     expect(screen.getByTestId('auth-image')).toBeInTheDocument();
   });
 
@@ -368,6 +368,41 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.queryByText(/Robotic prosthetic arm/i)).not.toBeInTheDocument();
   });
 
+  it('lets editors type empty spec fields inline and saves them as a new draft', async () => {
+    const onSaveSpecFields = vi.fn().mockResolvedValue(true);
+    const characterWithoutAttributes: BibleEntity = {
+      id: 'ent-inline',
+      code: 'CHR-998',
+      name: 'Nhân vật nhập nhanh',
+      category: 'characters',
+      attributes: { height: '178 cm' },
+    };
+
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        canCreateDraft
+        entity={characterWithoutAttributes}
+        rawEntry={undefined}
+        onSaveSpecFields={onSaveSpecFields}
+      />,
+    );
+
+    expect(screen.queryByTestId('save-spec-inline-btn')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('spec-input-age'), { target: { value: '18' } });
+    fireEvent.click(screen.getByTestId('save-spec-inline-btn'));
+
+    await waitFor(() => expect(onSaveSpecFields).toHaveBeenCalledTimes(1));
+    const [entityArg, attrs] = onSaveSpecFields.mock.calls[0];
+    expect(entityArg.id).toBe('ent-inline');
+    // Giữ trường cũ, thêm trường mới
+    expect(attrs).toMatchObject({ age: '18', height: '178 cm' });
+    // Không gửi nhãn hiển thị "Mặc định" (BE coi là đổi variant_label → 409)
+    expect(onSaveSpecFields.mock.calls[0][2]).not.toBe('Mặc định');
+    // Gửi id phiên bản đang sửa để BE giữ đúng biến thể khi có nhiều biến thể
+    expect(onSaveSpecFields.mock.calls[0]).toHaveLength(5);
+  });
+
   it('renders location specifications and concept art labels instead of character fields for locations', () => {
     const locationEntity: BibleEntity = {
       id: 'ent-loc',
@@ -386,7 +421,6 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.getByText(/Thông số không gian & Bối cảnh/i)).toBeInTheDocument();
     expect(screen.getByText('Loại không gian')).toBeInTheDocument();
     expect(screen.getByText('Kiến trúc & vật cố định')).toBeInTheDocument();
-    expect(screen.getByText('Cầu đá cổ bị gãy nhịp, vực sâu không đáy.')).toBeInTheDocument();
 
     // Must NOT render Character fields
     expect(screen.queryByText('Độ tuổi:')).not.toBeInTheDocument();
