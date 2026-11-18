@@ -11,12 +11,11 @@ export interface ConvertScriptRequest {
   seriesBibleContext?: SeriesBibleContext;
   startingPageNumber?: number; // Mặc định từ trang 1 hoặc trang kế tiếp
   targetPanelsPerPage?: number; // Số khung hình mỗi trang (mặc định 4 - 6)
-  apiKey?: string; // Tùy chọn: API Key trực tiếp nếu người dùng muốn dùng Gemini
 }
 
 export interface ConvertScriptResponse {
   scriptText: string;
   pagesCount: number;
   panelsCount: number;
-  source: 'gemini' | 'heuristic';
+  source: 'heuristic';
 }

@@ -116,8 +116,9 @@ export const SuggestionCard: React.FC<Props> = ({
   const meta = KIND_META[s.kind];
   const Icon = KIND_ICON[s.kind];
   const pending = s.status === 'Pending';
-  // BE cũ không trả canDecide → không ẩn nút (Backend vẫn là nơi chặn)
+  // BE cũ không trả canDecide / canAccept → không ẩn nút (Backend vẫn là nơi chặn)
   const allowed = s.canDecide !== false;
+  const canAccept = allowed && s.canAccept !== false;
   const needsParent = !!s.parentSuggestionId;
   const blockedByScript = needsParent && parentStatus !== 'Accepted';
   const acceptDisabledReason = !pending
@@ -325,15 +326,17 @@ export const SuggestionCard: React.FC<Props> = ({
             </div>
           ) : (
             <div className='flex flex-wrap gap-2'>
-              <button
-                type='button'
-                disabled={busy || !!acceptDisabledReason}
-                title={acceptDisabledReason || meta.applyNote}
-                onClick={() => onDecide('accept')}
-                className='flex items-center gap-1 rounded border-[1.5px] border-emerald-600 bg-emerald-600 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40'
-              >
-                <Check size={13} /> {meta.applyLabel}
-              </button>
+              {canAccept && (
+                <button
+                  type='button'
+                  disabled={busy || !!acceptDisabledReason}
+                  title={acceptDisabledReason || meta.applyNote}
+                  onClick={() => onDecide('accept')}
+                  className='flex items-center gap-1 rounded border-[1.5px] border-emerald-600 bg-emerald-600 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40'
+                >
+                  <Check size={13} /> {meta.applyLabel}
+                </button>
+              )}
               <button
                 type='button'
                 disabled={busy}
@@ -352,10 +355,10 @@ export const SuggestionCard: React.FC<Props> = ({
               </button>
             </div>
           )}
-          {!!acceptDisabledReason && !form && (
+          {canAccept && !!acceptDisabledReason && !form && (
             <p className='mt-1 text-[10px] text-[#737373]'>{acceptDisabledReason}</p>
           )}
-          {!acceptDisabledReason && !form && (
+          {canAccept && !acceptDisabledReason && !form && (
             <p className='mt-1 text-[10px] text-[#737373]'>{meta.applyNote}</p>
           )}
         </div>

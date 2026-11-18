@@ -73,11 +73,7 @@ function toUiError(e: unknown, fallback: string): UiError {
     case 'AI_QUOTA_EXCEEDED':
       return { message: 'Đã hết hạn mức dùng Trợ lý AI. Hãy thử lại sau.', lockAi: false };
     case 'CONFLICT':
-      return {
-        message:
-          'Chương đã thay đổi trong lúc AI chạy. Đã tải lại dữ liệu mới nhất; hãy bấm chạy lại nếu vẫn cần.',
-        lockAi: false,
-      };
+      return { message: msg, lockAi: false };
     default:
       if (err?.status === 503) {
         return {
@@ -592,8 +588,12 @@ export const AiAssistPanel: React.FC<Props> = ({
               <SuggestionCard
                 key={s.id}
                 seriesId={seriesId}
-                // chỉ cho quyết định khi BE xác nhận canDecide = true
-                suggestion={{ ...s, canDecide: s.canDecide === true }}
+                // chỉ cho quyết định / áp dụng khi BE xác nhận canDecide / canAccept = true
+                suggestion={{
+                  ...s,
+                  canDecide: s.canDecide === true,
+                  canAccept: s.canAccept === true,
+                }}
                 busy={deciding}
                 nameById={nameById}
                 hasPanels={hasPanels}

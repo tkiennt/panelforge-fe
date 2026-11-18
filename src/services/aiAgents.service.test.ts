@@ -99,6 +99,25 @@ describe('aiAgentsService', () => {
     });
     expect(err.status).toBe(409);
     expect(err.code).toBe('CONFLICT');
+    expect(err.message).toBe('Version cũ');
+  });
+
+  it('403 từ filter phân quyền (chỉ có message, không có code): gán code FORBIDDEN và giữ nguyên message Backend', async () => {
+    post.mockRejectedValue({
+      response: {
+        status: 403,
+        data: { message: 'Bạn không có quyền thực hiện thao tác này trong Series.' },
+      },
+    });
+
+    const err = await aiAgentsService
+      .review('s1', 'sg1', 'accept', { chapterVersion: 1 })
+      .catch((e) => e);
+
+    expect(err).toBeInstanceOf(AiApiError);
+    expect(err.status).toBe(403);
+    expect(err.code).toBe('FORBIDDEN');
+    expect(err.message).toBe('Bạn không có quyền thực hiện thao tác này trong Series.');
   });
 
   it('reject / request-changes dùng đúng route và gửi reason', async () => {

@@ -39,7 +39,7 @@ const STATUS_OPTIONS: { value: string; label: string; tone: AdminTone }[] = [
 ];
 
 const PROVIDERS = ['Google Gemini', 'OpenAI', 'Anthropic Claude'];
-const KNOWN_MODELS = ['gemini-1.5-pro', 'gemini-1.5-flash', 'claude-3-5-sonnet', 'gpt-4o'];
+const KNOWN_MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-image'];
 
 const fmt = (n?: number | null) => (n ?? 0).toLocaleString('vi-VN');
 

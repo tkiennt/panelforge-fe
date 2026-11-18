@@ -58,6 +58,7 @@ const suggestion = (over: Partial<AiSuggestionDto> = {}): AiSuggestionDto => ({
   createdAt: '',
   decisions: [],
   canDecide: true,
+  canAccept: true,
   ...over,
 });
 
@@ -371,6 +372,28 @@ describe('AiAssistPanel (Writer · Script)', () => {
     expect(screen.queryByRole('button', { name: 'Yêu cầu sửa' })).not.toBeInTheDocument();
   });
 
+  it('canDecide = true nhưng canAccept = false (hoặc thiếu): ẩn Accept, giữ Reject và Yêu cầu sửa', async () => {
+    vi.spyOn(aiAgentsService, 'runWorkflow').mockResolvedValue({
+      runId: 'r1',
+      status: 'Completed',
+      provider: 'Mock',
+      model: 'm',
+    });
+    vi.spyOn(aiAgentsService, 'getRun').mockResolvedValue(
+      run({ suggestions: [suggestion({ canDecide: true, canAccept: false })] }),
+    );
+    renderPanel();
+    await screen.findByLabelText('Brief');
+    typeBrief();
+    await waitFor(() => expect(screen.getByTestId('ai-run-btn')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('ai-run-btn'));
+
+    await screen.findByTestId('ai-suggestions');
+    expect(screen.queryByRole('button', { name: /Accept/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reject' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Yêu cầu sửa' })).toBeEnabled();
+  });
+
   it('Yêu cầu sửa bắt buộc có lý do và gửi reason', async () => {
     vi.spyOn(aiAgentsService, 'runWorkflow').mockResolvedValue({
       runId: 'r1',
@@ -438,10 +461,16 @@ describe('AiAssistPanel (Writer · Script)', () => {
     expect(screen.getByTestId('ai-run-btn')).toBeEnabled();
   });
 
-  it('409 CONFLICT: tải lại dữ liệu, KHÔNG tự gửi lại', async () => {
+  it('409 CONFLICT: hiển thị đúng câu lỗi của Backend, tải lại dữ liệu, KHÔNG tự gửi lại', async () => {
     const runWorkflow = vi
       .spyOn(aiAgentsService, 'runWorkflow')
-      .mockRejectedValue(new AiApiError('Version cũ', 'CONFLICT', 409));
+      .mockRejectedValue(
+        new AiApiError(
+          'Kịch bản đang đóng băng (Frozen), không thể chạy workflow Script.',
+          'CONFLICT',
+          409,
+        ),
+      );
     renderPanel();
     await screen.findByLabelText('Brief');
     typeBrief();
@@ -449,10 +478,87 @@ describe('AiAssistPanel (Writer · Script)', () => {
 
     fireEvent.click(screen.getByTestId('ai-run-btn'));
 
-    expect(await screen.findByText(/hãy bấm chạy lại/)).toBeInTheDocument();
+    expect(
+      await screen.findByText('Kịch bản đang đóng băng (Frozen), không thể chạy workflow Script.'),
+    ).toBeInTheDocument();
     expect(onReload).toHaveBeenCalledTimes(1);
     expect(runWorkflow).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('ai-run-btn')).toBeEnabled();
+  });
+
+  it('Accept bị chặn 403 / 409: hiển thị đúng thông báo từ Backend', async () => {
+    vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([suggestion()]);
+    vi.spyOn(aiAgentsService, 'getRun').mockResolvedValue(run());
+    const review = vi
+      .spyOn(aiAgentsService, 'review')
+      .mockRejectedValueOnce(
+        new AiApiError(
+          'Chỉ Writer mới được áp dụng đề xuất Script; bạn có thể từ chối hoặc yêu cầu sửa.',
+          'FORBIDDEN',
+          403,
+        ),
+      )
+      .mockRejectedValueOnce(
+        new AiApiError(
+          'Scene có dòng đã gắn Panel, không thể thay cả script bằng đề xuất AI.',
+          'CONFLICT',
+          409,
+        ),
+      );
+
+    renderPanel();
+    fireEvent.click(await screen.findByRole('button', { name: /Accept/ }));
+
+    expect(
+      await screen.findByText(
+        'Chỉ Writer mới được áp dụng đề xuất Script; bạn có thể từ chối hoặc yêu cầu sửa.',
+      ),
+    ).toBeInTheDocument();
+    expect(onReload).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /Accept/ }));
+    expect(
+      await screen.findByText(
+        'Scene có dòng đã gắn Panel, không thể thay cả script bằng đề xuất AI.',
+      ),
+    ).toBeInTheDocument();
+    expect(onReload).toHaveBeenCalledTimes(1);
+    expect(review).toHaveBeenCalledTimes(2);
+  });
+
+  it('availability trả SCRIPT_FROZEN và SCENE_LINES_LINKED: khoá nút chạy và hiện lý do', async () => {
+    vi.mocked(aiAgentsService.getWorkflowAvailability).mockResolvedValue({
+      chapterId: 'c1',
+      sceneId: 'sc1',
+      workflows: [
+        avail({
+          canRun: false,
+          missing: [
+            {
+              code: 'SCRIPT_FROZEN',
+              kind: 'State',
+              message: 'Kịch bản của chương đã đóng băng.',
+            },
+            {
+              code: 'SCENE_LINES_LINKED',
+              kind: 'State',
+              message:
+                'Scene có dòng đã gắn Panel; thay cả script bằng AI sẽ làm mất liên kết này.',
+            },
+          ],
+        }),
+      ],
+    });
+
+    renderPanel();
+    expect(await screen.findByText('Kịch bản của chương đã đóng băng.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Scene có dòng đã gắn Panel; thay cả script bằng AI sẽ làm mất liên kết này.',
+      ),
+    ).toBeInTheDocument();
+    typeBrief();
+    expect(screen.getByTestId('ai-run-btn')).toBeDisabled();
   });
 
   it('brief tối đa 4000 ký tự và bắt buộc không rỗng', async () => {

@@ -307,6 +307,8 @@ export interface AiSuggestionDto {
   decisionRoles?: WorkspaceRoleName[];
   /** BE tính: người đang xem có thể Accept/Reject/RequestChanges ngay lúc này. Thiếu (BE cũ) → UI hiểu là có thể. */
   canDecide?: boolean;
+  /** BE tính: vai trò của người đang xem được phép Accept loại đề xuất này (còn Pending). */
+  canAccept?: boolean;
 }
 export interface AiRunDto {
   id: string;
@@ -552,8 +554,18 @@ export class AiApiError extends Error {
 
 function toError(error: any, fallback: string): AiApiError {
   const data = error?.response?.data;
-  const message = data?.error || data?.message || fallback;
-  return new AiApiError(message, data?.code, error?.response?.status);
+  const status = error?.response?.status;
+  const serverMsg =
+    typeof data?.error === 'string' && data.error.trim()
+      ? data.error.trim()
+      : typeof data?.message === 'string' && data.message.trim()
+        ? data.message.trim()
+        : '';
+  const code =
+    data?.code || (status === 403 ? 'FORBIDDEN' : status === 409 ? 'CONFLICT' : undefined);
+  const message =
+    serverMsg || (status === 403 ? 'Bạn không có quyền thực hiện thao tác này.' : fallback);
+  return new AiApiError(message, code, status);
 }
 
 export const isActiveRun = (status?: AiRunStatus) => status === 'Queued' || status === 'Running';

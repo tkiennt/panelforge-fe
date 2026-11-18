@@ -69,6 +69,7 @@ const suggestion = (over: Partial<AiSuggestionDto>): AiSuggestionDto => ({
   decisions: [],
   decisionRoles: ['Producer', 'Writer', 'Editor'],
   canDecide: true,
+  canAccept: true,
   ...over,
 });
 
@@ -182,9 +183,31 @@ describe('SuggestionCard — nút quyết định theo loại kết quả và qu
     expect(onDecide).toHaveBeenCalledWith('accept');
   });
 
+  it('canDecide = true nhưng canAccept = false: ẩn nút Accept, vẫn hiện Reject và Yêu cầu sửa', () => {
+    render(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'Script',
+          canDecide: true,
+          canAccept: false,
+          decisionRoles: ['Producer', 'Writer', 'Editor'],
+        })}
+        busy={false}
+        onDecide={noop}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /Accept/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Thay các dòng script của Scene/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('no-decision-rights')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reject' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Yêu cầu sửa' })).toBeEnabled();
+  });
+
   it('BE cũ không trả canDecide: không ẩn nút (Backend vẫn là nơi chặn)', () => {
     const s = suggestion({});
     delete s.canDecide;
+    delete s.canAccept;
     delete s.decisionRoles;
     render(<SuggestionCard suggestion={s} busy={false} onDecide={noop} />);
 

@@ -1280,6 +1280,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
         createdAt: '2026-10-02T00:00:00Z',
         decisions: [],
         canDecide: true,
+        canAccept: true,
       };
 
       if (kind === 'LineRewrite') {
