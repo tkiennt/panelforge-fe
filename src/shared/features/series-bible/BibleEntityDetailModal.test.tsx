@@ -375,6 +375,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       code: 'CHR-998',
       name: 'Nhân vật nhập nhanh',
       category: 'characters',
+      description: '',
       attributes: { height: '178 cm' },
     };
 
