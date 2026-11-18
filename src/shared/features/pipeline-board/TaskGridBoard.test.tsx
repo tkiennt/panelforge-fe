@@ -1271,6 +1271,35 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       expect(screen.queryByRole('button', { name: /Gợi ý xử lý/i })).not.toBeInTheDocument();
       first.unmount();
 
+      // Lý do do người mở lại có chứa chữ "kịch bản" ("Pencil được mở lại: sửa theo kịch bản") -> KHÔNG hiện Gợi ý xử lý
+      vi.mocked(assignmentService.getTaskGrid).mockResolvedValueOnce({
+        ...mockGrid,
+        tasks: mockGrid.tasks.map((t) =>
+          t.id === 'task-p1-pencil'
+            ? { ...t, status: 'Approved' as const }
+            : t.id === 'task-p1-ink'
+              ? {
+                  ...t,
+                  isInputOutdated: true,
+                  outdatedReason: 'Pencil được mở lại: sửa theo kịch bản',
+                }
+              : t,
+        ),
+      } as any);
+      const reopenWithScriptWord = render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          seriesId='se-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+        />,
+      );
+      await screen.findByText('Pencil được mở lại: sửa theo kịch bản');
+      expect(screen.queryByRole('button', { name: /Gợi ý xử lý/i })).not.toBeInTheDocument();
+      reopenWithScriptWord.unmount();
+
       // Ô sửa kịch bản nhưng người xem là Artist / Editor -> ẩn nút
       vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(scriptOutdatedGrid as any);
       const second = render(

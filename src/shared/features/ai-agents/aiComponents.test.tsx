@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import React from 'react';
 import {
   AiRunDto,
@@ -466,6 +466,85 @@ describe('SuggestionCard — nút quyết định theo loại kết quả và qu
 
     fireEvent.click(screen.getByRole('button', { name: /Accept/i }));
     expect(onDecide).toHaveBeenCalledWith('accept');
+  });
+
+  it('SeriesMetadata: tóm tắt thẻ không nêu ageRating; xem chi tiết tách logline, teaser, ageRating vào nhóm "Chỉ tham khảo, không được lưu khi Accept"', () => {
+    const basePayload = {
+      schemaVersion: 1,
+      runId: 'run-meta-1',
+      seriesId: 'se-1',
+      originalSynopsis: 'Tóm tắt cũ',
+      originalGenre: 'General',
+      metadata: {
+        logline: 'Một lưỡi kiếm đơn độc giữa đại đô thị mưa đêm.',
+        synopsis: 'Akira truy tìm kẻ đứng sau vụ sụp đổ tháp trung tâm Neo Tokyo.',
+        genre: 'Cyberpunk',
+        teaser: 'Đón đọc chương mở màn tuần này!',
+        ageRating: '16+',
+      },
+      reason: 'Bám sát bối cảnh chương 1 đã phát hành.',
+    };
+
+    const { rerender } = render(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'SeriesMetadata',
+          summary: 'Đề xuất thông tin phát hành cho Neon Odyssey',
+          payload: basePayload,
+        })}
+        busy={false}
+        onDecide={noop}
+      />,
+    );
+
+    // Dòng tóm tắt thẻ không được nêu ageRating
+    expect(screen.getByText(/Thể loại: Cyberpunk/)).toBeInTheDocument();
+    expect(screen.queryByText(/16\+/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Độ tuổi/i)).not.toBeInTheDocument();
+
+    // Xem chi tiết
+    fireEvent.click(screen.getByText(/Xem nội dung đề xuất/));
+
+    expect(
+      screen.getByText('Akira truy tìm kẻ đứng sau vụ sụp đổ tháp trung tâm Neo Tokyo.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Cyberpunk')).toBeInTheDocument();
+
+    const refBox = screen.getByTestId('series-metadata-reference-only');
+    expect(
+      within(refBox).getByText('Chỉ tham khảo, không được lưu khi Accept'),
+    ).toBeInTheDocument();
+    expect(
+      within(refBox).getByText('Một lưỡi kiếm đơn độc giữa đại đô thị mưa đêm.'),
+    ).toBeInTheDocument();
+    expect(within(refBox).getByText('Đón đọc chương mở màn tuần này!')).toBeInTheDocument();
+    expect(within(refBox).getByText('16+')).toBeInTheDocument();
+    expect(
+      within(refBox).queryByText('Akira truy tìm kẻ đứng sau vụ sụp đổ tháp trung tâm Neo Tokyo.'),
+    ).not.toBeInTheDocument();
+
+    // Khi teaser rỗng thì ẩn dòng Teaser nhưng vẫn giữ logline và ageRating trong nhóm tham khảo
+    rerender(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'SeriesMetadata',
+          summary: 'Đề xuất thông tin phát hành cho Neon Odyssey',
+          payload: {
+            ...basePayload,
+            metadata: { ...basePayload.metadata, teaser: '   ' },
+          },
+        })}
+        busy={false}
+        onDecide={noop}
+      />,
+    );
+
+    const refBoxNoTeaser = screen.getByTestId('series-metadata-reference-only');
+    expect(within(refBoxNoTeaser).queryByText(/Teaser:/)).not.toBeInTheDocument();
+    expect(
+      within(refBoxNoTeaser).getByText('Một lưỡi kiếm đơn độc giữa đại đô thị mưa đêm.'),
+    ).toBeInTheDocument();
+    expect(within(refBoxNoTeaser).getByText('16+')).toBeInTheDocument();
   });
 });
 

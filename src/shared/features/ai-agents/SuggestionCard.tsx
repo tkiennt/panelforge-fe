@@ -109,8 +109,8 @@ function detailOf(s: AiSuggestionDto): string {
     }
     case 'SeriesMetadata': {
       const sm = s.payload as SeriesMetadataSuggestion | undefined;
-      return sm?.metadata
-        ? `Độ tuổi: ${sm.metadata.ageRating} · Thể loại: ${sm.metadata.genre}`
+      return sm?.metadata?.genre
+        ? `Thể loại: ${sm.metadata.genre} · Cập nhật tóm tắt & thể loại`
         : 'Gợi ý thông tin phát hành Series';
     }
     case 'Thumbnail': {
@@ -232,33 +232,58 @@ export const SuggestionCard: React.FC<Props> = ({
           {showContent && (
             <div className='mt-2'>
               {s.kind === 'SeriesMetadata' ? (
-                <div className='space-y-1.5 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
-                  <div>
-                    <span className='font-bold text-[#171717]'>Logline: </span>
-                    <span className='text-[#404040]'>
-                      {(s.payload as SeriesMetadataSuggestion)?.metadata?.logline}
-                    </span>
-                  </div>
-                  <div>
-                    <span className='font-bold text-[#171717]'>Tóm tắt: </span>
-                    <span className='text-[#404040]'>
-                      {(s.payload as SeriesMetadataSuggestion)?.metadata?.synopsis}
-                    </span>
-                  </div>
-                  <div className='flex gap-4 text-[11px] text-[#525252]'>
-                    <span>
-                      Thể loại: <b>{(s.payload as SeriesMetadataSuggestion)?.metadata?.genre}</b>
-                    </span>
-                    <span>
-                      Độ tuổi: <b>{(s.payload as SeriesMetadataSuggestion)?.metadata?.ageRating}</b>
-                    </span>
-                  </div>
-                  {(s.payload as SeriesMetadataSuggestion)?.reason && (
-                    <div className='text-[11px] italic text-[#737373]'>
-                      Lý do: {(s.payload as SeriesMetadataSuggestion)?.reason}
+                (() => {
+                  const sm = s.payload as SeriesMetadataSuggestion | undefined;
+                  const md = sm?.metadata;
+                  const logline = md?.logline?.trim();
+                  const teaser = md?.teaser?.trim();
+                  const ageRating = md?.ageRating?.trim();
+                  const hasRefFields = Boolean(logline || teaser || ageRating);
+                  return (
+                    <div className='space-y-2 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
+                      <div className='space-y-1'>
+                        <div>
+                          <span className='font-bold text-[#171717]'>Tóm tắt: </span>
+                          <span className='text-[#404040]'>{md?.synopsis}</span>
+                        </div>
+                        <div className='text-[11px] text-[#525252]'>
+                          Thể loại: <b>{md?.genre}</b>
+                        </div>
+                      </div>
+                      {hasRefFields && (
+                        <div
+                          className='space-y-1 rounded border border-dashed border-[#D4D4D4] bg-white/80 p-2 text-[11px] text-[#525252]'
+                          data-testid='series-metadata-reference-only'
+                        >
+                          <div className='font-semibold text-[#737373]'>
+                            Chỉ tham khảo, không được lưu khi Accept
+                          </div>
+                          {logline && (
+                            <div>
+                              <span className='font-semibold text-[#525252]'>Logline: </span>
+                              <span>{logline}</span>
+                            </div>
+                          )}
+                          {teaser && (
+                            <div>
+                              <span className='font-semibold text-[#525252]'>Teaser: </span>
+                              <span>{teaser}</span>
+                            </div>
+                          )}
+                          {ageRating && (
+                            <div>
+                              <span className='font-semibold text-[#525252]'>Độ tuổi: </span>
+                              <b>{ageRating}</b>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {sm?.reason && (
+                        <div className='text-[11px] italic text-[#737373]'>Lý do: {sm.reason}</div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()
               ) : s.kind === 'Thumbnail' ? (
                 <div className='rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs space-y-2'>
                   {(s.payload as ThumbnailSuggestion)?.sha256 && (

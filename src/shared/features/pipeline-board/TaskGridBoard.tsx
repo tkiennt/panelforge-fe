@@ -59,7 +59,7 @@ import {
 import { aiAgentsService, type AiSuggestionDto } from '@/services/aiAgents.service';
 import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
 
-const SCRIPT_OUTDATED_REASON_RE = /kịch bản|script/i;
+const SCRIPT_CHANGED_REASON = 'Kịch bản của trang đã được sửa sau khi mở lại kịch bản.';
 
 export interface TaskGridBoardProps {
   chapterId: string;
@@ -1238,10 +1238,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     const canResolveImpact = isStageEnabled && effectiveIsProducer && task.isInputOutdated;
     const prereqReadyForImpact = canResolveImpact ? arePrerequisitesApproved(task, stage) : false;
     const canSuggestImpactAi = Boolean(
-      canResolveImpact &&
-      task.pageId &&
-      task.outdatedReason &&
-      SCRIPT_OUTDATED_REASON_RE.test(task.outdatedReason),
+      canResolveImpact && task.pageId && task.outdatedReason === SCRIPT_CHANGED_REASON,
     );
     const impactSuggestion = impactSuggestionsByTask[task.id] ?? null;
     const impactAiError = impactErrorsByTask[task.id] ?? null;
