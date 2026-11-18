@@ -23,6 +23,7 @@ import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { Modal } from '@/shared/ui';
 import { BibleEntryAccordionItem, BibleAccordionEntity } from './BibleEntryAccordionItem';
+import { BibleStubAiDraftSection } from './BibleStubAiDraftSection';
 
 export interface BibleCharactersDrawerProps {
   isOpen: boolean;
@@ -244,7 +245,10 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast(t('production.cast.crowdUpdateFailed', 'Cập nhật cờ Quần chúng thất bại'), err?.message);
+        onShowToast(
+          t('production.cast.crowdUpdateFailed', 'Cập nhật cờ Quần chúng thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setActingEntryId(null);
@@ -275,12 +279,18 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
       if (onShowToast) {
         onShowToast(
           t('production.cast.cancelReplacementSuccess', 'Đã huỷ bản thay thế'),
-          t('production.cast.cancelReplacementSuccessDesc', 'Binding của chương đã quay về bản kế thừa.'),
+          t(
+            'production.cast.cancelReplacementSuccessDesc',
+            'Binding của chương đã quay về bản kế thừa.',
+          ),
         );
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast(t('production.cast.cancelReplacementFailed', 'Huỷ bản thay thế thất bại'), err?.message);
+        onShowToast(
+          t('production.cast.cancelReplacementFailed', 'Huỷ bản thay thế thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setActingEntryId(null);
@@ -306,12 +316,18 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
       if (onShowToast) {
         onShowToast(
           t('production.cast.defineSuccess', 'Đã định nghĩa thực thể'),
-          t('production.cast.defineSuccessDesc', 'Mục nháp đã trở thành bản ghi Series Bible chính thức.'),
+          t(
+            'production.cast.defineSuccessDesc',
+            'Mục nháp đã trở thành bản ghi Series Bible chính thức.',
+          ),
         );
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast(t('production.cast.defineFailed', 'Định nghĩa thực thể thất bại'), err?.message);
+        onShowToast(
+          t('production.cast.defineFailed', 'Định nghĩa thực thể thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setIsDefining(false);
@@ -355,7 +371,10 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
       if (onShowToast) {
         onShowToast(
           t('production.cast.saveDraftSuccess', 'Đã lưu bản nháp Series Bible'),
-          t('production.cast.saveDraftSuccessDesc', 'Đặc tả đã được cập nhật thành phiên bản nháp mới.'),
+          t(
+            'production.cast.saveDraftSuccessDesc',
+            'Đặc tả đã được cập nhật thành phiên bản nháp mới.',
+          ),
         );
       }
     } catch (err: any) {
@@ -382,10 +401,14 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           </div>
           <div className='min-w-0'>
             <h3 className='text-sm font-bold text-stone-900 truncate font-serif'>
-              {t('production.cast.charactersDrawerTitle', 'Nhân vật Series Bible')} ({characters.length})
+              {t('production.cast.charactersDrawerTitle', 'Nhân vật Series Bible')} (
+              {characters.length})
             </h3>
             <p className='text-xs text-stone-500 truncate'>
-              {t('production.cast.charactersDrawerDesc', 'Danh sách nhân vật Canon đối chiếu kịch bản')}
+              {t(
+                'production.cast.charactersDrawerDesc',
+                'Danh sách nhân vật Canon đối chiếu kịch bản',
+              )}
               {castEntities.length > 0 && ` · ${castEntities.length} trong cast`}
             </p>
           </div>
@@ -421,7 +444,8 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
               <AlertTriangle className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
               <div>
                 <span className='font-bold text-amber-950'>
-                  {t('production.cast.submitBlockedTitle', 'Chặn Gửi duyệt')} ({submitBlockers.length}):
+                  {t('production.cast.submitBlockedTitle', 'Chặn Gửi duyệt')} (
+                  {submitBlockers.length}):
                 </span>
                 <span className='ml-1 text-xs text-amber-800 leading-relaxed'>
                   {submitBlockers.map((b) => `${b.entryName} (${b.reason})`).join(', ')}
@@ -554,8 +578,13 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
               detailsJson: char.detailsJson,
               isStub,
               isCrowd: char.isCrowd || castEntity?.isCrowd,
-              isCanonLocked: castEntity?.boundRevision?.isCanonLocked ?? char.effectiveRevision?.isLocked ?? false,
-              bibleStatus: castEntity?.bibleStatus || (char.effectiveRevision?.isLocked ? 'CanonLocked' : 'Draft'),
+              isCanonLocked:
+                castEntity?.boundRevision?.isCanonLocked ??
+                char.effectiveRevision?.isLocked ??
+                false,
+              bibleStatus:
+                castEntity?.bibleStatus ||
+                (char.effectiveRevision?.isLocked ? 'CanonLocked' : 'Draft'),
               source: castEntity?.source,
               boundRevision: castEntity?.boundRevision,
               chosenByWriter: castEntity?.chosenByWriter,
@@ -640,9 +669,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
                 <BibleEntryAccordionItem
                   entity={accordionEntity}
                   isOpen={expandedEntryId === char.id}
-                  onToggle={() =>
-                    setExpandedEntryId((prev) => (prev === char.id ? null : char.id))
-                  }
+                  onToggle={() => setExpandedEntryId((prev) => (prev === char.id ? null : char.id))}
                   canEditScript={canEditScript}
                   seriesId={seriesId}
                   isActing={actingEntryId === char.id}
@@ -674,6 +701,16 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
               Tên nhân vật: <strong>{stubToDefine.name}</strong> ({stubToDefine.code}). Tên này là
               bất biến theo quy chuẩn BIB-13.
             </div>
+
+            <BibleStubAiDraftSection
+              seriesId={seriesId}
+              entryId={stubToDefine.bibleEntryId}
+              canUseAi={Boolean(canEditScript)}
+              onApplyDraft={({ description, subtitle }) => {
+                if (description) setDefineDesc(description);
+                setDefineSubtitle(subtitle);
+              }}
+            />
 
             <div>
               <label className='block font-semibold mb-1 text-stone-700'>

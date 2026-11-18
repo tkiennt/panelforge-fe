@@ -27,6 +27,7 @@ import {
   specFields,
 } from '@/shared/features/series-bible/bibleSpec';
 import { SpecFieldsEditor } from '@/shared/features/series-bible/SpecFieldsEditor';
+import { BibleStubAiDraftSection } from './BibleStubAiDraftSection';
 
 export interface BibleAccordionEntity {
   id: string; // bibleEntryId
@@ -80,6 +81,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
   isOpen,
   onToggle,
   canEditScript = true,
+  seriesId,
   isActing = false,
   onSaveDraft,
   onChangeRevision,
@@ -261,7 +263,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
           )}
 
           {/* EDIT FORM (When writer clicks edit) */}
-          {isEditing ? (
+          {isEditing && canEditScript ? (
             <form
               onSubmit={handleSave}
               className='p-3 bg-white rounded-xl border border-stone-200/90 shadow-2xs space-y-3'
@@ -274,6 +276,18 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                   {t('production.cast.editSpecHint', 'Lưu thành bản nháp Series Bible')}
                 </span>
               </div>
+
+              {entity.isStub && (
+                <BibleStubAiDraftSection
+                  seriesId={seriesId}
+                  entryId={entity.id}
+                  canUseAi={Boolean(canEditScript)}
+                  onApplyDraft={({ description, subtitle }) => {
+                    if (description) setEditDescription(description);
+                    setEditSubtitle(subtitle);
+                  }}
+                />
+              )}
 
               {/* Entity Name is IMMUTABLE */}
               <div>

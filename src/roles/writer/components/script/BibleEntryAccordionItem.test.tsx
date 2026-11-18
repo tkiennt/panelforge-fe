@@ -106,4 +106,34 @@ describe('BibleEntryAccordionItem Component', () => {
       );
     });
   });
+
+  it('chỉ hiện "Soạn nháp từ kịch bản" cho mục còn là stub (isStub = true), không hiện với mục đã định nghĩa', () => {
+    const { rerender } = render(
+      <BibleEntryAccordionItem
+        entity={mockCharacter}
+        isOpen={true}
+        onToggle={vi.fn()}
+        canEditScript={true}
+        seriesId='series-1'
+        onSaveDraft={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('edit-entry-btn'));
+    expect(
+      screen.queryByRole('button', { name: /Soạn nháp từ kịch bản/i }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <BibleEntryAccordionItem
+        entity={{ ...mockCharacter, id: 'stub-2', isStub: true, description: '' }}
+        isOpen={true}
+        onToggle={vi.fn()}
+        canEditScript={true}
+        seriesId='series-1'
+        onSaveDraft={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /Soạn nháp từ kịch bản/i })).toBeInTheDocument();
+  });
 });

@@ -20,6 +20,7 @@ import {
 } from '@/services/chapterCast.service';
 import { BibleEntryDto, bibleService } from '@/services/bible.service';
 import { BibleEntryAccordionItem, BibleAccordionEntity } from './BibleEntryAccordionItem';
+import { BibleStubAiDraftSection } from './BibleStubAiDraftSection';
 
 interface ChapterCastDrawerProps {
   isOpen: boolean;
@@ -506,6 +507,16 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                   {stubToDefine.name}
                 </div>
               </div>
+
+              <BibleStubAiDraftSection
+                seriesId={seriesId}
+                entryId={stubToDefine.bibleEntryId}
+                canUseAi={Boolean(canEditScript)}
+                onApplyDraft={({ description, subtitle }) => {
+                  if (description) setDefineDesc(description);
+                  setDefineSubtitle(subtitle);
+                }}
+              />
 
               <div>
                 <label className='font-semibold text-stone-700 block mb-1'>
