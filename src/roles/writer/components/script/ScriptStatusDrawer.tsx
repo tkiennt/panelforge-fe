@@ -205,7 +205,7 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
         {/* Xung đột phiên bản 409 */}
         {concurrencyError && (
           <div
-            data-testid='concurrency-error-banner'
+            data-testid='drawer-concurrency-error-banner'
             className='p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start justify-between gap-2 text-rose-800 shadow-xs'
           >
             <div className='flex items-start gap-2'>
