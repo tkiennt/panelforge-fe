@@ -44,6 +44,13 @@ export interface CharacterVariant {
   isLocked: boolean;
 }
 
+export function getRevisionVariantLabel(
+  rev?: { variantLabel?: string | null; stageName?: string | null } | null,
+): string {
+  const raw = rev?.variantLabel ?? rev?.stageName ?? '';
+  return typeof raw === 'string' && raw.trim() ? raw.trim() : 'Mặc định';
+}
+
 export function groupRevisionsIntoVariants(
   revisions: BibleEntryRevisionDto[],
   fallbackRevision?: BibleEntryRevisionDto | null,
@@ -53,10 +60,14 @@ export function groupRevisionsIntoVariants(
 
   const addRev = (rev: BibleEntryRevisionDto | null | undefined) => {
     if (!rev) return;
-    const idKey = rev.id ? String(rev.id) : `v${rev.versionNumber}-${rev.variantLabel}`;
+    const label = getRevisionVariantLabel(rev);
+    const normalizedRev: BibleEntryRevisionDto = { ...rev, variantLabel: label };
+    const idKey = normalizedRev.id
+      ? String(normalizedRev.id)
+      : `v${normalizedRev.versionNumber}-${label}`;
     if (!seenIds.has(idKey)) {
       seenIds.add(idKey);
-      all.push(rev);
+      all.push(normalizedRev);
     }
   };
 
@@ -73,7 +84,8 @@ export function groupRevisionsIntoVariants(
 
   const groupMap = new Map<string, BibleEntryRevisionDto[]>();
   for (const rev of all) {
-    const groupKey = rev.variantLabel.trim().toLocaleLowerCase();
+    const label = getRevisionVariantLabel(rev);
+    const groupKey = label.toLocaleLowerCase();
     if (!groupMap.has(groupKey)) {
       groupMap.set(groupKey, []);
     }
@@ -92,10 +104,11 @@ export function groupRevisionsIntoVariants(
     const sortedRevs = [...revList].sort((a, b) => (b.versionNumber || 0) - (a.versionNumber || 0));
     const latest = sortedRevs[0];
     const isLocked = sortedRevs.some((r) => r.reviewStatus === 'CanonLocked');
+    const latestLabel = getRevisionVariantLabel(latest);
     variants.push({
       variantKey: `variant-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
-      variantLabel: latest.variantLabel,
-      latestRevision: latest,
+      variantLabel: latestLabel,
+      latestRevision: { ...latest, variantLabel: latestLabel },
       revisions: sortedRevs,
       isLocked,
     });
@@ -223,8 +236,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   });
   const [selectedVariantKey, setSelectedVariantKey] = useState<string>(() => {
     if (latestSavedRevision && latestSavedRevision.bibleEntryId === entity.id) {
-      return `variant-${latestSavedRevision.variantLabel
-        .trim()
+      return `variant-${getRevisionVariantLabel(latestSavedRevision)
         .toLocaleLowerCase()
         .replace(/[^a-zA-Z0-9_-]/g, '_')}`;
     }
@@ -239,8 +251,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       });
       setSelectedVersionId(latestSavedRevision.id);
       setSelectedVariantKey(
-        `variant-${latestSavedRevision.variantLabel
-          .trim()
+        `variant-${getRevisionVariantLabel(latestSavedRevision)
           .toLocaleLowerCase()
           .replace(/[^a-zA-Z0-9_-]/g, '_')}`,
       );
@@ -882,8 +893,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             actorDesc = t('bible.detailModal.actorEditor', 'Biên tập viên');
             actionDesc = t(
               'bible.detailModal.actionLocked',
-              { target: activeRevision.variantLabel || entity.name },
-              `Ban hành quy chuẩn chính thức cho ${activeRevision.variantLabel || entity.name}`,
+              {
+                target: activeRevision.variantLabel || activeRevision.stageName || entity.name,
+              },
+              `Ban hành quy chuẩn chính thức cho ${activeRevision.variantLabel || activeRevision.stageName || entity.name}`,
             );
             break;
           case 'Superseded':
@@ -927,8 +940,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             actor: t('bible.detailModal.actorEditor', 'Biên tập viên'),
             action: t(
               'bible.detailModal.actionLocked',
-              { target: `${rev.variantLabel || entity.name} (v${rev.versionNumber})` },
-              `Ban hành quy chuẩn chính thức cho ${rev.variantLabel || entity.name} (v${rev.versionNumber})`,
+              {
+                target: `${rev.variantLabel || rev.stageName || entity.name} (v${rev.versionNumber})`,
+              },
+              `Ban hành quy chuẩn chính thức cho ${rev.variantLabel || rev.stageName || entity.name} (v${rev.versionNumber})`,
             ),
             hash: '',
           });
@@ -1207,6 +1222,59 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             )}
           </div>
         </div>
+        <div
+          className='pt-4 border-t border-[#E7E2D6] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3'
+          data-testid='bible-status-strip'
+        >
+          <ol
+            className='flex items-center gap-2 overflow-x-auto'
+            aria-label={t('bible.detailModal.lifecycleTitle', 'Vòng đời phiên bản')}
+          >
+            {lifecycleSteps.map((label, i) => {
+              const done = lifecycleDone || i < lifecycleIndex;
+              const current = !lifecycleDone && i === lifecycleIndex;
+              const rework = current && lifecycleStatus === 'ReworkRequired';
+              return (
+                <li
+                  key={label}
+                  className='flex items-center gap-2 shrink-0'
+                  aria-current={current ? 'step' : undefined}
+                >
+                  <span
+                    className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
+                      done
+                        ? 'bg-emerald-600 text-white'
+                        : rework
+                          ? 'bg-rose-600 text-white'
+                          : current
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-stone-100 text-stone-500 border border-stone-200'
+                    }`}
+                  >
+                    {done ? <CheckCircle2 className='w-3.5 h-3.5' /> : i + 1}
+                  </span>
+                  <span
+                    className={`text-sm ${current ? 'font-semibold text-stone-900' : 'text-stone-500'}`}
+                  >
+                    {rework ? t('bible.detailModal.stepRework', 'Cần vẽ lại') : label}
+                  </span>
+                  {i < lifecycleSteps.length - 1 && (
+                    <span className='w-8 h-px bg-stone-300' aria-hidden='true' />
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+          <div className='flex items-center gap-2 flex-wrap text-sm'>
+            <span className='text-stone-500'>{t('bible.detailModal.waitingFor', 'Đang chờ:')}</span>
+            <span className='font-semibold text-stone-800'>{waitingFor}</span>
+            {isMyTurn && (
+              <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 text-xs font-semibold'>
+                {t('bible.detailModal.yourTurn', 'Đến lượt bạn')}
+              </span>
+            )}
+          </div>
+        </div>
       </header>
 
       {/* ================= WORKSPACE BODY CONTAINER ================= */}
@@ -1273,7 +1341,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     <Layers className='w-4 h-4 text-[#F97316]' />
                     <span>{t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}</span>
                   </div>
-                  <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600'>
+                  <span className='text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 whitespace-nowrap'>
                     {t(
                       'bible.detailModal.variantCount',
                       { count: variants.length },
@@ -1285,13 +1353,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 {/* Vertical list of variants */}
                 <div className='space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5'>
                   {variants.map((variant) => {
+                    const vLabel = variant.variantLabel || 'Mặc định';
                     const isActive = selectedVariantKey === variant.variantKey;
                     const isDefaultVariant =
-                      variant.variantLabel.toLowerCase().includes('chuẩn') ||
-                      variant.variantLabel.toLowerCase().includes('mặc định');
+                      vLabel.toLowerCase().includes('chuẩn') ||
+                      vLabel.toLowerCase().includes('mặc định');
                     const variantIcon = isDefaultVariant
                       ? null
-                      : getVariantIcon(variant.variantLabel, entity.category);
+                      : getVariantIcon(vLabel, entity.category);
                     return (
                       <div
                         key={variant.variantKey}
@@ -1300,9 +1369,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           setSelectedVersionId(null);
                         }}
                         data-testid={`variant-tab-${variant.variantKey}`}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
+                        className={`px-3 py-2.5 rounded-xl border transition-all cursor-pointer space-y-1 ${
                           isActive
-                            ? 'bg-[#FFF7ED] text-[#EA580C] border-2 border-[#F97316] shadow-xs'
+                            ? 'bg-[#FFF7ED] text-[#C2410C] border-[#F97316] ring-1 ring-[#F97316]/30'
                             : 'bg-white text-stone-700 border-stone-200 hover:border-stone-400 hover:bg-stone-50/60'
                         }`}
                       >
@@ -1322,11 +1391,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           )}
                         </div>
 
-                        <div className='flex items-center justify-between text-xs text-stone-500'>
-                          <span className='font-medium text-xs bg-stone-100 px-2 py-0.5 rounded-full text-stone-600'>
-                            {variant.variantLabel}
-                          </span>
-                          <span className='text-xs text-stone-400'>
+                        <div className='text-xs text-stone-500'>
+                          <span>
                             {t(
                               'bible.detailModal.revisionCount',
                               { count: variant.revisions.length },
@@ -1385,12 +1451,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 ) : (
                   <ul className='space-y-2'>
                     {usages.map((u) => (
-                      <li key={u.chapterId} className='flex items-start justify-between gap-2'>
-                        <span className='min-w-0'>
+                      <li
+                        key={u.chapterId}
+                        className='rounded-lg border border-stone-200/70 bg-stone-50/60 p-2.5 space-y-1.5'
+                      >
+                        <span className='block min-w-0'>
                           <span className='font-mono text-xs text-stone-500 mr-1.5'>
                             Ch.{u.chapterNumber}
                           </span>
-                          <span className='text-sm text-stone-800'>
+                          <span className='text-sm font-medium text-stone-800 break-words'>
                             {u.chapterTitle ||
                               t('bible.detailModal.untitledChapter', 'Chưa đặt tên')}
                           </span>
@@ -1406,7 +1475,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           </span>
                         </span>
                         <span
-                          className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                          className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border ${
                             u.isCanonSatisfied
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                               : 'bg-rose-50 text-rose-800 border-rose-200'
@@ -1433,66 +1502,158 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   )}
               </section>
             )}
+            {/* CARD 2: PHIÊN BẢN & NHẬT KÝ SỬA ĐỔI (VERSION & AUDIT TRAIL GỘP CHUNG) */}
+            <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+              <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
+                <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
+                  <History className='w-4 h-4 text-[#F97316]' />
+                  <span>{t('bible.detailModal.versionsAndAudit', 'Phiên bản & Nhật ký')}</span>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => onOpenHistory(entity)}
+                  className='text-xs font-semibold text-stone-600 hover:text-stone-900 px-2 py-0.5 rounded-md border border-stone-200 hover:bg-stone-50 transition cursor-pointer'
+                >
+                  {t('bible.detailModal.historyQuickBtn', 'Lịch sử')}
+                </button>
+              </div>
+
+              {/* Version list */}
+              <div className='space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-0.5'>
+                {activeVariant?.revisions && activeVariant.revisions.length > 0 ? (
+                  activeVariant.revisions.map((rev) => {
+                    const isSelected = rev.id === activeRevision?.id;
+                    const isCanon = rev.reviewStatus === 'CanonLocked';
+                    return (
+                      <div
+                        key={rev.id}
+                        onClick={() => setSelectedVersionId(rev.id)}
+                        className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-xs ${
+                          isSelected
+                            ? 'bg-[#FFF7ED] border-[#F97316]/70 shadow-2xs font-semibold'
+                            : 'bg-white border-stone-200 hover:border-stone-300'
+                        }`}
+                      >
+                        <div className='flex items-center gap-2 min-w-0'>
+                          <span className='font-mono font-bold text-stone-800'>
+                            v{rev.versionNumber}
+                          </span>
+                          <span
+                            className={`text-xs px-1.5 py-0.5 rounded-full border ${
+                              isCanon
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold'
+                                : rev.reviewStatus === 'ConceptSubmitted'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : rev.reviewStatus === 'ReworkRequired'
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : 'bg-stone-100 text-stone-600 border-stone-200'
+                            }`}
+                          >
+                            {isCanon
+                              ? t('bible.detailModal.officialBadge', 'Chính thức')
+                              : rev.reviewStatus === 'ConceptSubmitted'
+                                ? t('bible.detailModal.pendingReview', 'Chờ thẩm định')
+                                : rev.reviewStatus === 'ReworkRequired'
+                                  ? t('bible.detailModal.stepRework', 'Yêu cầu sửa')
+                                  : t('bible.detailModal.draftBadge', 'Bản nháp')}
+                          </span>
+                        </div>
+                        <span className='text-xs text-stone-400 font-mono'>
+                          {new Date(rev.createdAt).toLocaleDateString('vi-VN')}
+                        </span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className='p-2 text-center text-xs text-stone-400 italic'>
+                    {t('bible.detailModal.noRevisions', 'Chưa có phiên bản')}
+                  </div>
+                )}
+              </div>
+
+              {/* Active Version Immutability & Action */}
+              {activeRevision?.reviewStatus === 'CanonLocked' && (
+                <div className='p-2.5 bg-stone-50/80 rounded-xl border border-stone-200/80 space-y-1.5 text-xs'>
+                  <div className='flex items-center justify-between'>
+                    <span className='font-bold text-stone-800 flex items-center gap-1.5'>
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          activeRevision?.reviewStatus === 'CanonLocked'
+                            ? 'bg-emerald-500'
+                            : 'bg-amber-500'
+                        }`}
+                      />
+                      v{activeRevision?.versionNumber ?? 1} (
+                      {activeRevision?.reviewStatus === 'CanonLocked'
+                        ? t('bible.detailModal.officialBadge', 'Chính thức')
+                        : activeRevision?.reviewStatus === 'ConceptSubmitted'
+                          ? t('bible.detailModal.pendingReview', 'Chờ thẩm định')
+                          : activeRevision?.reviewStatus === 'ReworkRequired'
+                            ? t('bible.detailModal.stepRework', 'Yêu cầu sửa')
+                            : t('bible.detailModal.draftBadge', 'Bản nháp')}
+                      )
+                    </span>
+                    <span className='text-xs text-stone-500 font-medium'>
+                      {activeRevision?.reviewStatus === 'CanonLocked'
+                        ? t('bible.detailModal.immutable', 'Bất biến')
+                        : t('bible.detailModal.editable', 'Có thể chỉnh sửa')}
+                    </span>
+                  </div>
+
+                  {activeRevision?.reviewStatus === 'CanonLocked' && effectiveCanCreateDraft && (
+                    <button
+                      type='button'
+                      onClick={() => onOpenAddRevision(entity, activeRevision)}
+                      className='w-full py-1.5 px-2 bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 font-semibold text-xs rounded-lg transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer mt-1'
+                      title={t(
+                        'bible.detailModal.supersedeLockedTitle',
+                        'Tạo phiên bản kế thừa tiếp theo mà không ghi đè bản gốc đã khóa chuẩn',
+                      )}
+                    >
+                      <Plus className='w-3 h-3' />
+                      <span>
+                        {t('bible.detailModal.supersedeLockedBtn', 'Thay thế bản khóa (Supersede)')}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* AUDIT TRAIL GỘP TRỰC TIẾP VÀO VERSION CARD */}
+              <div className='space-y-2 pt-2 border-t border-stone-200/80'>
+                <div className='font-bold text-xs uppercase tracking-wider text-stone-700 flex items-center justify-between'>
+                  <span>{t('bible.detailModal.changeHistoryTitle', 'Lịch sử thay đổi')}</span>
+                  <span className='text-xs font-normal text-stone-400'>
+                    {t(
+                      'bible.detailModal.eventCount',
+                      { count: auditLogs.length },
+                      `${auditLogs.length} sự kiện`,
+                    )}
+                  </span>
+                </div>
+
+                <div className='space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-0.5 text-xs'>
+                  {auditLogs.map((log, i) => (
+                    <div
+                      key={i}
+                      className='p-1.5 rounded-lg bg-stone-50 border border-stone-100 flex items-center justify-between gap-1 text-xs'
+                    >
+                      <div className='truncate min-w-0'>
+                        <strong className='text-stone-900'>{log.actor}</strong>{' '}
+                        <span className='text-stone-600'>{log.action}</span>
+                      </div>
+                      <span className='text-xs text-stone-400 shrink-0 font-medium'>
+                        {log.time}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </CollapsibleSidebar>
 
           {/* ================= MAIN: trạng thái · Đặc tả | Bản vẽ · Phiên bản ================= */}
           <div className='min-w-0 space-y-4'>
-            <div
-              className='bg-white border border-stone-200/80 rounded-xl shadow-xs p-4 space-y-3'
-              data-testid='bible-status-strip'
-            >
-              <ol
-                className='flex items-center gap-2 overflow-x-auto'
-                aria-label={t('bible.detailModal.lifecycleTitle', 'Vòng đời phiên bản')}
-              >
-                {lifecycleSteps.map((label, i) => {
-                  const done = lifecycleDone || i < lifecycleIndex;
-                  const current = !lifecycleDone && i === lifecycleIndex;
-                  const rework = current && lifecycleStatus === 'ReworkRequired';
-                  return (
-                    <li
-                      key={label}
-                      className='flex items-center gap-2 shrink-0'
-                      aria-current={current ? 'step' : undefined}
-                    >
-                      <span
-                        className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
-                          done
-                            ? 'bg-emerald-600 text-white'
-                            : rework
-                              ? 'bg-rose-600 text-white'
-                              : current
-                                ? 'bg-orange-500 text-white'
-                                : 'bg-stone-100 text-stone-500 border border-stone-200'
-                        }`}
-                      >
-                        {done ? <CheckCircle2 className='w-3.5 h-3.5' /> : i + 1}
-                      </span>
-                      <span
-                        className={`text-sm ${current ? 'font-semibold text-stone-900' : 'text-stone-500'}`}
-                      >
-                        {rework ? t('bible.detailModal.stepRework', 'Cần vẽ lại') : label}
-                      </span>
-                      {i < lifecycleSteps.length - 1 && (
-                        <span className='w-8 h-px bg-stone-300' aria-hidden='true' />
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-              <div className='flex items-center gap-2 flex-wrap text-sm'>
-                <span className='text-stone-500'>
-                  {t('bible.detailModal.waitingFor', 'Đang chờ:')}
-                </span>
-                <span className='font-semibold text-stone-800'>{waitingFor}</span>
-                {isMyTurn && (
-                  <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 text-xs font-semibold'>
-                    {t('bible.detailModal.yourTurn', 'Đến lượt bạn')}
-                  </span>
-                )}
-              </div>
-            </div>
-
             {/* ================= SINGLE CONTEXTUAL STATUS ALERT (LUCIAN INLINE ALERT) ================= */}
             {activeRevision?.reviewStatus === 'ReworkRequired' ? (
               <Alert
@@ -1621,43 +1782,83 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       {specDescription}
                     </p>
                   )}
-                  <div className='space-y-4'>
-                    {SPEC_SCHEMA[normalizedCategory].map((group) => (
-                      <div key={group.title}>
-                        <p className='text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1.5'>
-                          {group.title}
-                        </p>
-                        <dl className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
-                          {group.fields.map((field) => {
-                            const value = String(variantAttributes.raw[field.key] ?? '').trim();
-                            const isForbidden = field.key === 'forbidden' && value !== '';
-                            return (
-                              <div
-                                key={field.key}
-                                className={`rounded-lg border p-2.5 ${field.multiline ? 'sm:col-span-2' : ''} ${
-                                  isForbidden
-                                    ? 'bg-rose-50/70 border-rose-200'
-                                    : 'bg-stone-50/80 border-stone-200/60'
-                                }`}
-                              >
-                                <dt className='text-xs font-semibold text-stone-500'>
-                                  {field.label}
-                                </dt>
-                                <dd
-                                  className={
-                                    value
-                                      ? 'mt-0.5 text-sm text-stone-800 whitespace-pre-line'
-                                      : 'mt-0.5 text-xs italic text-stone-500'
-                                  }
-                                >
-                                  {value || t('bible.detailModal.notConfigured', 'Chưa thiết lập')}
-                                </dd>
-                              </div>
-                            );
-                          })}
-                        </dl>
-                      </div>
-                    ))}
+                  <div className='space-y-5'>
+                    {SPEC_SCHEMA[normalizedCategory].map((group) => {
+                      const rows = group.fields.map((field) => ({
+                        field,
+                        value: String(variantAttributes.raw[field.key] ?? '').trim(),
+                      }));
+                      const filled = rows.filter((r) => r.value);
+                      const empty = rows.filter((r) => !r.value);
+                      return (
+                        <div key={group.title} className='space-y-2'>
+                          <div className='flex items-center gap-2'>
+                            <p className='text-xs font-bold uppercase tracking-wider text-stone-500'>
+                              {group.title}
+                            </p>
+                            <span className='h-px flex-1 bg-stone-200' aria-hidden='true' />
+                            <span className='text-xs font-mono text-stone-400'>
+                              {filled.length}/{rows.length}
+                            </span>
+                          </div>
+                          {filled.length > 0 && (
+                            <dl className='space-y-1.5'>
+                              {filled.map(({ field, value }) => {
+                                const isForbidden = field.key === 'forbidden';
+                                return (
+                                  <div
+                                    key={field.key}
+                                    className={`grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-x-4 gap-y-0.5 px-3 py-2 rounded-lg ${
+                                      isForbidden
+                                        ? 'bg-rose-50 border border-rose-200'
+                                        : 'bg-stone-50'
+                                    }`}
+                                  >
+                                    <dt className='text-xs font-medium text-stone-500 sm:pt-0.5'>
+                                      {field.label}
+                                    </dt>
+                                    <dd
+                                      className={`text-sm font-medium whitespace-pre-line ${
+                                        isForbidden ? 'text-rose-800' : 'text-stone-900'
+                                      }`}
+                                    >
+                                      {value}
+                                    </dd>
+                                  </div>
+                                );
+                              })}
+                            </dl>
+                          )}
+                          {empty.length > 0 && (
+                            <div className='flex flex-wrap items-center gap-1.5'>
+                              <span className='text-xs text-stone-400'>
+                                {t('bible.detailModal.notConfigured', 'Chưa thiết lập')}
+                              </span>
+                              {empty.map(({ field }) =>
+                                effectiveCanCreateDraft ? (
+                                  <button
+                                    key={field.key}
+                                    type='button'
+                                    onClick={() => onOpenAddRevision(entity, activeRevision)}
+                                    className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-dashed border-stone-300 text-xs text-stone-500 hover:border-orange-400 hover:text-orange-700 hover:bg-orange-50 transition-colors cursor-pointer'
+                                  >
+                                    <Plus className='w-3 h-3' />
+                                    {field.label}
+                                  </button>
+                                ) : (
+                                  <span
+                                    key={field.key}
+                                    className='px-2 py-0.5 rounded-full border border-dashed border-stone-300 text-xs text-stone-500'
+                                  >
+                                    {field.label}
+                                  </span>
+                                ),
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </section>
@@ -1865,7 +2066,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             onOpenAddRevision(entity, activeRevision);
                           }
                         }}
-                        className={`p-8 sm:p-12 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-3.5 text-center min-h-[460px] group ${
+                        className={`p-8 sm:p-12 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-3.5 text-center min-h-[300px] group ${
                           isDraggingOver
                             ? 'border-[#F97316] bg-orange-50/70 shadow-inner ring-4 ring-[#F97316]/10'
                             : 'border-stone-300 hover:border-[#F97316] bg-stone-50/60 hover:bg-orange-50/30'
@@ -2317,7 +2518,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                       }
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter' && !e.shiftKey) {
-                                          if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
+                                          if (
+                                            e.nativeEvent?.isComposing ||
+                                            (e as any).keyCode === 229
+                                          )
+                                            return;
                                           e.preventDefault();
                                           void handleReplyComment(c.id);
                                         }
@@ -2382,153 +2587,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   </div>
                 </section>
               )}
-            </div>
-
-            {/* CARD 2: PHIÊN BẢN & NHẬT KÝ SỬA ĐỔI (VERSION & AUDIT TRAIL GỘP CHUNG) */}
-            <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
-              <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
-                <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
-                  <History className='w-4 h-4 text-[#F97316]' />
-                  <span>{t('bible.detailModal.versionsAndAudit', 'Phiên bản & Nhật ký')}</span>
-                </div>
-                <button
-                  type='button'
-                  onClick={() => onOpenHistory(entity)}
-                  className='text-xs font-semibold text-stone-600 hover:text-stone-900 px-2 py-0.5 rounded-md border border-stone-200 hover:bg-stone-50 transition cursor-pointer'
-                >
-                  {t('bible.detailModal.historyQuickBtn', 'Lịch sử')}
-                </button>
-              </div>
-
-              {/* Version list */}
-              <div className='space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-0.5'>
-                {activeVariant?.revisions && activeVariant.revisions.length > 0 ? (
-                  activeVariant.revisions.map((rev) => {
-                    const isSelected = rev.id === activeRevision?.id;
-                    const isCanon = rev.reviewStatus === 'CanonLocked';
-                    return (
-                      <div
-                        key={rev.id}
-                        onClick={() => setSelectedVersionId(rev.id)}
-                        className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-xs ${
-                          isSelected
-                            ? 'bg-[#FFF7ED] border-[#F97316]/70 shadow-2xs font-semibold'
-                            : 'bg-white border-stone-200 hover:border-stone-300'
-                        }`}
-                      >
-                        <div className='flex items-center gap-2 min-w-0'>
-                          <span className='font-mono font-bold text-stone-800'>
-                            v{rev.versionNumber}
-                          </span>
-                          <span
-                            className={`text-xs px-1.5 py-0.5 rounded-full border ${
-                              isCanon
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold'
-                                : rev.reviewStatus === 'ConceptSubmitted'
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : rev.reviewStatus === 'ReworkRequired'
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                    : 'bg-stone-100 text-stone-600 border-stone-200'
-                            }`}
-                          >
-                            {isCanon
-                              ? t('bible.detailModal.officialBadge', 'Chính thức')
-                              : rev.reviewStatus === 'ConceptSubmitted'
-                                ? t('bible.detailModal.pendingReview', 'Chờ thẩm định')
-                                : rev.reviewStatus === 'ReworkRequired'
-                                  ? t('bible.detailModal.stepRework', 'Yêu cầu sửa')
-                                  : t('bible.detailModal.draftBadge', 'Bản nháp')}
-                          </span>
-                        </div>
-                        <span className='text-xs text-stone-400 font-mono'>
-                          {new Date(rev.createdAt).toLocaleDateString('vi-VN')}
-                        </span>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className='p-2 text-center text-xs text-stone-400 italic'>
-                    {t('bible.detailModal.noRevisions', 'Chưa có phiên bản')}
-                  </div>
-                )}
-              </div>
-
-              {/* Active Version Immutability & Action */}
-              <div className='p-2.5 bg-stone-50/80 rounded-xl border border-stone-200/80 space-y-1.5 text-xs'>
-                <div className='flex items-center justify-between'>
-                  <span className='font-bold text-stone-800 flex items-center gap-1.5'>
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        activeRevision?.reviewStatus === 'CanonLocked'
-                          ? 'bg-emerald-500'
-                          : 'bg-amber-500'
-                      }`}
-                    />
-                    v{activeRevision?.versionNumber ?? 1} (
-                    {activeRevision?.reviewStatus === 'CanonLocked'
-                      ? t('bible.detailModal.officialBadge', 'Chính thức')
-                      : activeRevision?.reviewStatus === 'ConceptSubmitted'
-                        ? t('bible.detailModal.pendingReview', 'Chờ thẩm định')
-                        : activeRevision?.reviewStatus === 'ReworkRequired'
-                          ? t('bible.detailModal.stepRework', 'Yêu cầu sửa')
-                          : t('bible.detailModal.draftBadge', 'Bản nháp')}
-                    )
-                  </span>
-                  <span className='text-xs text-stone-500 font-medium'>
-                    {activeRevision?.reviewStatus === 'CanonLocked'
-                      ? t('bible.detailModal.immutable', 'Bất biến')
-                      : t('bible.detailModal.editable', 'Có thể chỉnh sửa')}
-                  </span>
-                </div>
-
-                {activeRevision?.reviewStatus === 'CanonLocked' && effectiveCanCreateDraft && (
-                  <button
-                    type='button'
-                    onClick={() => onOpenAddRevision(entity, activeRevision)}
-                    className='w-full py-1.5 px-2 bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 font-semibold text-xs rounded-lg transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer mt-1'
-                    title={t(
-                      'bible.detailModal.supersedeLockedTitle',
-                      'Tạo phiên bản kế thừa tiếp theo mà không ghi đè bản gốc đã khóa chuẩn',
-                    )}
-                  >
-                    <Plus className='w-3 h-3' />
-                    <span>
-                      {t('bible.detailModal.supersedeLockedBtn', 'Thay thế bản khóa (Supersede)')}
-                    </span>
-                  </button>
-                )}
-              </div>
-
-              {/* AUDIT TRAIL GỘP TRỰC TIẾP VÀO VERSION CARD */}
-              <div className='space-y-2 pt-2 border-t border-stone-200/80'>
-                <div className='font-bold text-xs uppercase tracking-wider text-stone-700 flex items-center justify-between'>
-                  <span>{t('bible.detailModal.changeHistoryTitle', 'Lịch sử thay đổi')}</span>
-                  <span className='text-xs font-normal text-stone-400'>
-                    {t(
-                      'bible.detailModal.eventCount',
-                      { count: auditLogs.length },
-                      `${auditLogs.length} sự kiện`,
-                    )}
-                  </span>
-                </div>
-
-                <div className='space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-0.5 text-xs'>
-                  {auditLogs.map((log, i) => (
-                    <div
-                      key={i}
-                      className='p-1.5 rounded-lg bg-stone-50 border border-stone-100 flex items-center justify-between gap-1 text-xs'
-                    >
-                      <div className='truncate min-w-0'>
-                        <strong className='text-stone-900'>{log.actor}</strong>{' '}
-                        <span className='text-stone-600'>{log.action}</span>
-                      </div>
-                      <span className='text-xs text-stone-400 shrink-0 font-medium'>
-                        {log.time}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </div>
