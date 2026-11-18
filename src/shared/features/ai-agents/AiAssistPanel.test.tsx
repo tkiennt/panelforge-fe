@@ -653,6 +653,116 @@ describe('AiAssistPanel (Writer · Script)', () => {
     expect(review).toHaveBeenCalledTimes(2);
   });
 
+  it('Reject bị chặn 403 khi ngoài phạm vi được giao (canDecide = true, canAccept = false): hiện đúng message Backend, giữ đề xuất Pending và không tự gửi lại', async () => {
+    const outOfScopeSug = suggestion({ canDecide: true, canAccept: false, status: 'Pending' });
+    vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([outOfScopeSug]);
+    const getRun = vi
+      .spyOn(aiAgentsService, 'getRun')
+      .mockResolvedValue(run({ suggestions: [outOfScopeSug] }));
+    const runWorkflow = vi.spyOn(aiAgentsService, 'runWorkflow');
+    const review = vi
+      .spyOn(aiAgentsService, 'review')
+      .mockRejectedValueOnce(
+        new AiApiError(
+          'Chapter đã giao việc cho Writer khác; bạn không thể từ chối đề xuất này.',
+          'FORBIDDEN',
+          403,
+        ),
+      )
+      .mockRejectedValueOnce({
+        message: 'Request failed with status code 403',
+        response: {
+          status: 403,
+          data: {
+            code: 'FORBIDDEN',
+            error: 'Bạn không thuộc phạm vi phân công của chương này.',
+          },
+        },
+      });
+
+    renderPanel();
+
+    expect(await screen.findByRole('button', { name: 'Reject' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /Accept/ })).not.toBeInTheDocument();
+    expect(getRun).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận Reject/ }));
+
+    expect(await screen.findByTestId('ai-error')).toHaveTextContent(
+      'Chapter đã giao việc cho Writer khác; bạn không thể từ chối đề xuất này.',
+    );
+    expect(screen.getByText('Chờ quyết định')).toBeInTheDocument();
+    expect(screen.getByTestId('ai-pending-banner')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reject' })).toBeEnabled();
+    expect(review).toHaveBeenCalledTimes(1);
+    expect(getRun).toHaveBeenCalledTimes(1);
+    expect(runWorkflow).not.toHaveBeenCalled();
+    expect(onReload).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận Reject/ }));
+
+    expect(await screen.findByTestId('ai-error')).toHaveTextContent(
+      'Bạn không thuộc phạm vi phân công của chương này.',
+    );
+    expect(screen.getByText('Chờ quyết định')).toBeInTheDocument();
+    expect(review).toHaveBeenCalledTimes(2);
+    expect(onReload).not.toHaveBeenCalled();
+  });
+
+  it('Yêu cầu sửa bị chặn 403 khi ngoài phạm vi được giao: hiện đúng message Backend, giữ đề xuất Pending và không tự gửi lại', async () => {
+    const outOfScopeSug = suggestion({ canDecide: true, canAccept: false, status: 'Pending' });
+    vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([outOfScopeSug]);
+    const getRun = vi
+      .spyOn(aiAgentsService, 'getRun')
+      .mockResolvedValue(run({ suggestions: [outOfScopeSug] }));
+    const runWorkflow = vi.spyOn(aiAgentsService, 'runWorkflow');
+    const review = vi
+      .spyOn(aiAgentsService, 'review')
+      .mockRejectedValueOnce(
+        new AiApiError(
+          'Bạn chỉ được yêu cầu sửa đề xuất trong phạm vi công việc được giao.',
+          'FORBIDDEN',
+          403,
+        ),
+      )
+      .mockRejectedValueOnce(new AiApiError('   ', 'FORBIDDEN', 403));
+
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Yêu cầu sửa' }));
+    fireEvent.change(screen.getByPlaceholderText(/Lý do yêu cầu sửa/), {
+      target: { value: 'Đổi nhịp thoại cảnh mở đầu' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận Yêu cầu sửa/ }));
+
+    expect(await screen.findByTestId('ai-error')).toHaveTextContent(
+      'Bạn chỉ được yêu cầu sửa đề xuất trong phạm vi công việc được giao.',
+    );
+    expect(screen.getByText('Chờ quyết định')).toBeInTheDocument();
+    expect(screen.getByTestId('ai-pending-banner')).toBeInTheDocument();
+    expect(screen.queryByTestId('ai-rerun-changes-btn')).not.toBeInTheDocument();
+    expect(review).toHaveBeenCalledTimes(1);
+    expect(getRun).toHaveBeenCalledTimes(1);
+    expect(runWorkflow).not.toHaveBeenCalled();
+    expect(onReload).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Yêu cầu sửa' }));
+    fireEvent.change(screen.getByPlaceholderText(/Lý do yêu cầu sửa/), {
+      target: { value: 'Thử lại lần nữa' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận Yêu cầu sửa/ }));
+
+    expect(await screen.findByTestId('ai-error')).toHaveTextContent(
+      'Bạn không có quyền thực hiện thao tác này.',
+    );
+    expect(screen.getByText('Chờ quyết định')).toBeInTheDocument();
+    expect(review).toHaveBeenCalledTimes(2);
+    expect(runWorkflow).not.toHaveBeenCalled();
+    expect(onReload).not.toHaveBeenCalled();
+  });
+
   it('availability trả SCRIPT_FROZEN và SCENE_LINES_LINKED: khoá nút chạy và hiện lý do', async () => {
     vi.mocked(aiAgentsService.getWorkflowAvailability).mockResolvedValue({
       chapterId: 'c1',

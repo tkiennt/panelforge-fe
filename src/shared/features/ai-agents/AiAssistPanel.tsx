@@ -54,10 +54,43 @@ interface UiError {
   lockAi: boolean;
 }
 
+function extractServerMessage(e: unknown): string {
+  const resData = (
+    e as {
+      response?: {
+        data?: string | { error?: unknown; message?: unknown; detail?: unknown };
+      };
+    }
+  )?.response?.data;
+  if (typeof resData === 'string' && resData.trim()) return resData.trim();
+  if (resData && typeof resData === 'object') {
+    for (const candidate of [resData.error, resData.message, resData.detail]) {
+      if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+    }
+  }
+  const rawMsg = (e as Partial<AiApiError> | undefined)?.message;
+  if (typeof rawMsg === 'string') {
+    const trimmed = rawMsg.trim();
+    if (trimmed && !/^Request failed with status code \d+$/i.test(trimmed)) {
+      return trimmed;
+    }
+  }
+  return '';
+}
+
 function toUiError(e: unknown, fallback: string): UiError {
-  const err = e as Partial<AiApiError> | undefined;
-  const msg = err?.message || fallback;
-  switch (err?.code) {
+  const err = e as
+    | (Partial<AiApiError> & { response?: { status?: number; data?: { code?: string } } })
+    | undefined;
+  const status = err?.status ?? err?.response?.status;
+  const code = err?.code ?? err?.response?.data?.code;
+  const serverMsg = extractServerMessage(e);
+  const msg =
+    serverMsg ||
+    (status === 403 || code === 'FORBIDDEN'
+      ? 'Bạn không có quyền thực hiện thao tác này.'
+      : fallback);
+  switch (code) {
     case 'AI_UNAVAILABLE':
       return {
         message: 'Trợ lý AI tạm thời không khả dụng. Bạn vẫn có thể soạn tay bình thường.',
@@ -75,11 +108,14 @@ function toUiError(e: unknown, fallback: string): UiError {
     case 'CONFLICT':
       return { message: msg, lockAi: false };
     default:
-      if (err?.status === 503) {
+      if (status === 503) {
         return {
           message: 'Trợ lý AI tạm thời không khả dụng. Bạn vẫn có thể soạn tay bình thường.',
           lockAi: true,
         };
+      }
+      if (status === 403) {
+        return { message: msg, lockAi: false };
       }
       return { message: msg, lockAi: false };
   }
@@ -363,8 +399,11 @@ export const AiAssistPanel: React.FC<Props> = ({
         await onReload(s.kind);
       }
     } catch (e) {
+      // 403 (ngoài phạm vi được giao dù canDecide theo role = true): hiện đúng message Backend, giữ đề xuất Pending, không tự gửi lại
       setError(toUiError(e, 'Không thể ghi quyết định.'));
-      if ((e as AiApiError)?.code === 'CONFLICT' || (e as AiApiError)?.status === 409) {
+      const status =
+        (e as AiApiError)?.status ?? (e as { response?: { status?: number } })?.response?.status;
+      if ((e as AiApiError)?.code === 'CONFLICT' || status === 409) {
         await onReload();
       }
     } finally {
