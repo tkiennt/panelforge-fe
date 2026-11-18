@@ -1,18 +1,35 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Building2, ArrowLeft, Loader2, AlertTriangle, Check, QrCode } from 'lucide-react';
+import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom';
+import {
+  Building2,
+  ArrowLeft,
+  Loader2,
+  AlertTriangle,
+  Check,
+  QrCode,
+  CreditCard,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Search,
+  RefreshCw,
+  X,
+} from 'lucide-react';
 import {
   paymentService,
   buildVietQrImageUrl,
   toBankAccountName,
   POPULAR_VIETNAM_BANKS,
-  type WorkspaceBankSettingsDto,
+  type PaymentStatusFilter,
+  type PaymentTransactionDto,
 } from '@/services/payment.service';
 import { useTranslation } from '@/lib/i18n';
 import { getApiErrorMessage } from '@/lib/api-error';
 
 const SAMPLE_ORDER_CODE = 'PF123456';
 const SAMPLE_AMOUNT_VND = 10000;
+const STATUS_TABS: PaymentStatusFilter[] = ['All', 'Pending', 'Approved', 'Rejected'];
+const formatVnd = (amount: number) => `${Number(amount || 0).toLocaleString('vi-VN')} ₫`;
 
 interface BankForm {
   bankBin: string;
@@ -35,8 +52,9 @@ interface PublisherBankSettingsViewProps {
 export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps> = ({
   onShowToast,
 }) => {
-  const { t } = useTranslation('payments');
+  const { t, lang } = useTranslation('payments');
   const { workspaceId = '' } = useParams<{ workspaceId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -44,6 +62,95 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
   const [error, setError] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [bankForm, setBankForm] = useState<BankForm>(EMPTY_BANK_FORM);
+
+  // Danh sách giao dịch VietQR của Studio (Đối soát & Duyệt)
+  const [txLoading, setTxLoading] = useState(false);
+  const [transactions, setTransactions] = useState<PaymentTransactionDto[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [selectedStatus, setSelectedStatus] = useState<PaymentStatusFilter>('All');
+  const [seriesIdFilter, setSeriesIdFilter] = useState<string>(
+    () => searchParams.get('seriesId') ?? '',
+  );
+  const [searchInput, setSearchInput] = useState('');
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [previewQrTx, setPreviewQrTx] = useState<PaymentTransactionDto | null>(null);
+  const [rejectTx, setRejectTx] = useState<PaymentTransactionDto | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+
+  const fetchTransactions = useCallback(async () => {
+    if (!workspaceId || typeof paymentService.getPayments !== 'function') return;
+    setTxLoading(true);
+    try {
+      const res = await paymentService.getPayments(workspaceId, {
+        status: selectedStatus,
+        seriesId: seriesIdFilter || undefined,
+        search: searchInput.trim() || undefined,
+        pageIndex: 1,
+        pageSize: 30,
+      });
+      setTransactions(res?.items ?? []);
+      setPendingCount(res?.summary?.pendingCount ?? 0);
+    } catch {
+      // Giữ nguyên danh sách nếu lỗi mạng tạm thời
+    } finally {
+      setTxLoading(false);
+    }
+  }, [workspaceId, selectedStatus, seriesIdFilter, searchInput]);
+
+  useEffect(() => {
+    void fetchTransactions();
+  }, [fetchTransactions]);
+
+  const handleApproveTx = async (tx: PaymentTransactionDto) => {
+    if (!workspaceId || typeof paymentService.approvePayment !== 'function') return;
+    setActionLoadingId(tx.id);
+    try {
+      const res = await paymentService.approvePayment(workspaceId, tx.id);
+      onShowToast?.(
+        t('toast.approvedTitle'),
+        res?.message || t('toast.approvedDesc', { orderCode: tx.orderCode }),
+        'success',
+      );
+      await fetchTransactions();
+    } catch (err) {
+      const msg = getApiErrorMessage(err) || t('toast.approveErrorDesc');
+      setError(msg);
+      onShowToast?.(t('toast.approveErrorTitle'), msg, 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleRejectTx = async () => {
+    if (
+      !workspaceId ||
+      !rejectTx ||
+      !rejectionReason.trim() ||
+      typeof paymentService.rejectPayment !== 'function'
+    )
+      return;
+    setActionLoadingId(rejectTx.id);
+    try {
+      const res = await paymentService.rejectPayment(
+        workspaceId,
+        rejectTx.id,
+        rejectionReason.trim(),
+      );
+      onShowToast?.(
+        t('toast.rejectedTitle'),
+        res?.message || t('toast.rejectedDesc', { orderCode: rejectTx.orderCode }),
+        'success',
+      );
+      setRejectTx(null);
+      await fetchTransactions();
+    } catch (err) {
+      const msg = getApiErrorMessage(err) || t('toast.rejectErrorDesc');
+      setError(msg);
+      onShowToast?.(t('toast.rejectErrorTitle'), msg, 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const fetchBankSettings = useCallback(async () => {
     if (!workspaceId) return;
@@ -331,6 +438,325 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
             </button>
           </div>
         </form>
+      )}
+
+      {/* ─── Danh sách Giao dịch & Đối soát VietQR ─── */}
+      {typeof paymentService.getPayments === 'function' && (
+        <div className='pt-6 border-t border-[#E7E7E7] space-y-4'>
+          <div className='flex flex-wrap items-center justify-between gap-3'>
+            <div className='flex items-center gap-2.5'>
+              <div className='p-2 rounded-xl bg-[#F97316]/10 text-[#F97316]'>
+                <CreditCard className='w-5 h-5' />
+              </div>
+              <div>
+                <h2 className='text-base font-bold text-[#171717] flex items-center gap-2'>
+                  <span>{t('insights.transactions')}</span>
+                  {pendingCount > 0 && (
+                    <span className='px-2 py-0.5 rounded-full bg-amber-500 text-white text-xs font-bold'>
+                      {pendingCount} {t('status.pending')}
+                    </span>
+                  )}
+                </h2>
+                <p className='text-xs text-[#737373]'>{t('subtitle')}</p>
+              </div>
+            </div>
+
+            <div className='flex items-center gap-2'>
+              {seriesIdFilter && (
+                <button
+                  type='button'
+                  onClick={() => {
+                    setSeriesIdFilter('');
+                    searchParams.delete('seriesId');
+                    setSearchParams(searchParams, { replace: true });
+                  }}
+                  className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800 hover:bg-amber-100 cursor-pointer'
+                >
+                  <span>Đang lọc theo 1 bộ truyện · Xem tất cả (gồm Nạp Ví & VIP)</span>
+                  <X className='w-3.5 h-3.5' />
+                </button>
+              )}
+              <button
+                type='button'
+                onClick={() => void fetchTransactions()}
+                disabled={txLoading}
+                className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E7E7E7] bg-white hover:bg-[#FAF8F5] text-xs font-semibold text-[#555555] cursor-pointer disabled:opacity-50'
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${txLoading ? 'animate-spin text-[#F97316]' : ''}`}
+                />
+                <span>{t('refresh')}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className='flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-[#E7E7E7]'>
+            <div className='flex flex-wrap items-center gap-1.5'>
+              {STATUS_TABS.map((tab) => {
+                const active = selectedStatus === tab;
+                const labelMap: Record<PaymentStatusFilter, string> = {
+                  All: t('status.all'),
+                  Pending: t('status.pending'),
+                  Approved: t('status.approved'),
+                  Rejected: t('status.rejected'),
+                };
+                return (
+                  <button
+                    key={tab}
+                    type='button'
+                    onClick={() => setSelectedStatus(tab)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                      active
+                        ? 'bg-[#171717] text-white'
+                        : 'text-[#737373] hover:text-[#171717] hover:bg-[#FAF8F4]'
+                    }`}
+                  >
+                    {labelMap[tab]}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className='relative w-64'>
+              <Search className='w-3.5 h-3.5 text-[#888888] absolute left-3 top-1/2 -translate-y-1/2' />
+              <input
+                type='text'
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder={t('filters.searchPlaceholder')}
+                aria-label={t('filters.searchPlaceholder')}
+                className='w-full pl-8 pr-3 py-1.5 rounded-xl border border-[#E7E7E7] text-xs focus:outline-none focus:border-[#F97316]'
+              />
+            </div>
+          </div>
+
+          <div className='rounded-2xl border border-[#E7E7E7] bg-white overflow-x-auto'>
+            <table className='w-full text-left text-xs min-w-[760px]'>
+              <thead className='bg-[#FAF8F4] text-[#737373] border-b border-[#E7E7E7]'>
+                <tr>
+                  <th className='px-4 py-2.5 font-medium'>{t('table.orderCode')}</th>
+                  <th className='px-4 py-2.5 font-medium'>{t('table.reader')}</th>
+                  <th className='px-4 py-2.5 font-medium'>{t('table.content')}</th>
+                  <th className='px-4 py-2.5 font-medium text-right'>{t('table.amount')}</th>
+                  <th className='px-4 py-2.5 font-medium'>{t('table.createdAt')}</th>
+                  <th className='px-4 py-2.5 font-medium'>{t('table.status')}</th>
+                  <th className='px-4 py-2.5 font-medium text-right'>{t('table.actions')}</th>
+                </tr>
+              </thead>
+              <tbody className='divide-y divide-[#F0F0F0]'>
+                {txLoading ? (
+                  <tr>
+                    <td colSpan={7} className='py-10 text-center text-[#737373]'>
+                      <Loader2 className='w-5 h-5 animate-spin mx-auto' />
+                    </td>
+                  </tr>
+                ) : transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className='py-10 text-center text-[#737373]'>
+                      {t('table.emptyTitle')}
+                    </td>
+                  </tr>
+                ) : (
+                  transactions.map((tx) => {
+                    const busy = actionLoadingId === tx.id;
+                    const typeName =
+                      tx.type === 'Topup'
+                        ? t('type.topup')
+                        : tx.type === 'VipSubscription'
+                          ? t('type.vipSubscription')
+                          : t('type.chapterUnlock');
+                    return (
+                      <tr key={tx.id} className='hover:bg-[#FAF8F4]'>
+                        <td className='px-4 py-3 font-mono font-bold text-[#171717]'>
+                          <div className='inline-flex items-center gap-1.5'>
+                            <span>{tx.orderCode}</span>
+                            {tx.qrImageUrl && (
+                              <button
+                                type='button'
+                                onClick={() => setPreviewQrTx(tx)}
+                                title={t('actions.viewQr')}
+                                aria-label={t('actions.viewQr')}
+                                className='p-1 rounded hover:bg-[#F97316]/10 text-[#737373] hover:text-[#F97316] cursor-pointer'
+                              >
+                                <QrCode className='w-3.5 h-3.5' />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className='px-4 py-3'>
+                          <div className='font-semibold text-[#171717]'>
+                            {tx.readerName || t('table.unknownReader')}
+                          </div>
+                          <div className='text-[11px] text-[#737373]'>{tx.readerEmail || '—'}</div>
+                        </td>
+                        <td className='px-4 py-3'>
+                          <div className='font-medium text-[#171717]'>{typeName}</div>
+                          <div className='text-[11px] text-[#737373]'>
+                            {tx.seriesTitle
+                              ? `${tx.seriesTitle}${tx.chapterNumber != null ? ` · Ch. ${tx.chapterNumber}` : ''}`
+                              : tx.type === 'Topup'
+                                ? t('detail.topup')
+                                : tx.type === 'VipSubscription'
+                                  ? t('detail.vipSubscription')
+                                  : '—'}
+                          </div>
+                        </td>
+                        <td className='px-4 py-3 text-right font-mono font-bold text-[#171717]'>
+                          {formatVnd(tx.amountVnd)}
+                        </td>
+                        <td className='px-4 py-3 font-mono text-[11px] text-[#737373]'>
+                          {tx.createdAt
+                            ? new Date(tx.createdAt).toLocaleString(
+                                lang === 'en' ? 'en-US' : 'vi-VN',
+                              )
+                            : '—'}
+                        </td>
+                        <td className='px-4 py-3'>
+                          {tx.status === 'Pending' ? (
+                            <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold'>
+                              <Clock className='w-3 h-3' />
+                              {t('status.pending')}
+                            </span>
+                          ) : tx.status === 'Approved' ? (
+                            <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold'>
+                              <CheckCircle2 className='w-3 h-3' />
+                              {t('status.approved')}
+                            </span>
+                          ) : (
+                            <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-semibold'>
+                              <XCircle className='w-3 h-3' />
+                              {tx.status === 'Rejected'
+                                ? t('status.rejected')
+                                : t('status.expired')}
+                            </span>
+                          )}
+                        </td>
+                        <td className='px-4 py-3 text-right'>
+                          {tx.status === 'Pending' ? (
+                            <div className='inline-flex items-center gap-1.5'>
+                              <button
+                                type='button'
+                                disabled={busy}
+                                onClick={() => void handleApproveTx(tx)}
+                                className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer disabled:opacity-50'
+                              >
+                                {busy ? (
+                                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                                ) : (
+                                  <Check className='w-3.5 h-3.5' />
+                                )}
+                                <span>{t('actions.approve')}</span>
+                              </button>
+                              <button
+                                type='button'
+                                disabled={busy}
+                                onClick={() => {
+                                  setRejectTx(tx);
+                                  setRejectionReason(t('reject.defaultReason'));
+                                }}
+                                className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 font-medium cursor-pointer disabled:opacity-50'
+                              >
+                                <X className='w-3.5 h-3.5' />
+                                <span>{t('actions.reject')}</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <span className='text-[#A3A3A3]'>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xem mã QR giao dịch */}
+      {previewQrTx && (
+        <div className='fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4'>
+          <div className='bg-white rounded-2xl border border-[#E7E7E7] max-w-sm w-full p-5 space-y-4 text-center shadow-xl'>
+            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-2'>
+              <span className='font-bold text-sm text-[#171717]'>
+                {t('qrModal.title', { orderCode: previewQrTx.orderCode })}
+              </span>
+              <button
+                type='button'
+                onClick={() => setPreviewQrTx(null)}
+                aria-label={t('actions.close')}
+                className='text-[#737373] hover:text-[#171717] cursor-pointer'
+              >
+                <X className='w-4 h-4' />
+              </button>
+            </div>
+            <img
+              src={previewQrTx.qrImageUrl}
+              alt={`VietQR ${previewQrTx.orderCode}`}
+              className='w-56 h-56 object-contain mx-auto rounded-xl border border-[#E7E7E7] p-2'
+            />
+            <div className='text-xs space-y-1 text-left bg-[#FAF8F4] p-3 rounded-xl border border-[#E7E7E7]'>
+              <div className='flex justify-between'>
+                <span className='text-[#737373]'>{t('qrModal.amount')}</span>
+                <span className='font-mono font-bold text-emerald-700'>
+                  {formatVnd(previewQrTx.amountVnd)}
+                </span>
+              </div>
+              <div className='flex justify-between'>
+                <span className='text-[#737373]'>{t('qrModal.transferContent')}</span>
+                <span className='font-mono font-bold text-[#F97316]'>{previewQrTx.orderCode}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal từ chối giao dịch */}
+      {rejectTx && (
+        <div className='fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4'>
+          <div className='bg-white rounded-2xl border border-[#E7E7E7] max-w-md w-full p-5 space-y-4 shadow-xl'>
+            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-2'>
+              <span className='font-bold text-sm text-rose-600'>
+                {t('reject.title', { orderCode: rejectTx.orderCode })}
+              </span>
+              <button
+                type='button'
+                onClick={() => setRejectTx(null)}
+                aria-label={t('actions.close')}
+                className='text-[#737373] hover:text-[#171717] cursor-pointer'
+              >
+                <X className='w-4 h-4' />
+              </button>
+            </div>
+            <p className='text-xs text-[#555555]'>{t('reject.description')}</p>
+            <textarea
+              rows={3}
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder={t('reject.placeholder')}
+              aria-label={t('reject.placeholder')}
+              className='w-full p-3 rounded-xl border border-[#E7E7E7] text-xs focus:outline-none focus:border-rose-500'
+            />
+            <div className='flex justify-end gap-2'>
+              <button
+                type='button'
+                onClick={() => setRejectTx(null)}
+                className='px-3 py-1.5 rounded-xl border border-[#E7E7E7] text-xs font-semibold text-[#555555] cursor-pointer'
+              >
+                {t('actions.cancel')}
+              </button>
+              <button
+                type='button'
+                disabled={!rejectionReason.trim() || actionLoadingId === rejectTx.id}
+                onClick={() => void handleRejectTx()}
+                className='px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50'
+              >
+                {t('reject.submit')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

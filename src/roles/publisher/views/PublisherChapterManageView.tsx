@@ -155,7 +155,12 @@ export const PublisherChapterManageView: React.FC = () => {
                   <GeneralSection seriesId={seriesId} chapterId={chapterId} />
                 )}
                 {section === 'prices' && (
-                  <PricesSection manage={manage} onSaved={onSaved} onError={onError} />
+                  <PricesSection
+                    manage={manage}
+                    onSaved={onSaved}
+                    onError={onError}
+                    onReload={reload}
+                  />
                 )}
                 {section === 'pages' && (
                   <PagesSection manage={manage} onSaved={onSaved} onError={onError} />
@@ -231,27 +236,53 @@ const PricesSection: React.FC<{
   manage: ChapterManageDto;
   onSaved: (d: ChapterManageDto) => void;
   onError: (e: unknown) => void;
-}> = ({ manage, onSaved, onError }) => {
+  onReload?: () => Promise<void>;
+}> = ({ manage, onSaved, onError, onReload }) => {
   const { t } = useTranslation('payments');
   const { vnd } = useMoney();
+  const [isLockedDraft, setIsLockedDraft] = useState<boolean>(manage.chapterIsLocked);
+  const [basePriceDraft, setBasePriceDraft] = useState<string>(
+    manage.basePriceVnd > 0 ? String(manage.basePriceVnd) : '10000',
+  );
   const [draft, setDraft] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       manage.languagePrices.map((p) => [p.language, p.isCustom ? String(p.priceVnd) : '']),
     ),
   );
   const [saving, setSaving] = useState(false);
+  const [publishingLang, setPublishingLang] = useState<ContentLanguage | null>(null);
+
+  useEffect(() => {
+    setIsLockedDraft(manage.chapterIsLocked);
+    setBasePriceDraft(manage.basePriceVnd > 0 ? String(manage.basePriceVnd) : '10000');
+    setDraft(
+      Object.fromEntries(
+        manage.languagePrices.map((p) => [p.language, p.isCustom ? String(p.priceVnd) : '']),
+      ),
+    );
+  }, [manage]);
 
   const save = async () => {
     setSaving(true);
     try {
+      const prices = CONTENT_LANGUAGES.map((l) => ({
+        language: l,
+        priceVnd: draft[l] ? Number(draft[l]) : null,
+      }));
+      const hasCustomPositive = prices.some((p) => (p.priceVnd ?? 0) > 0);
+      const nextLocked = isLockedDraft || (!manage.chapterIsLocked && hasCustomPositive);
+      const nextBasePrice = nextLocked ? Math.max(1000, Number(basePriceDraft) || 10000) : 0;
+      const pricingChanged =
+        nextLocked !== manage.chapterIsLocked ||
+        (nextLocked && nextBasePrice !== manage.basePriceVnd);
+
       onSaved(
-        await monetizationService.setLanguagePrices(
-          manage.chapterId,
-          CONTENT_LANGUAGES.map((l) => ({
-            language: l,
-            priceVnd: draft[l] ? Number(draft[l]) : null,
-          })),
-        ),
+        pricingChanged
+          ? await monetizationService.setLanguagePrices(manage.chapterId, prices, {
+              isLocked: nextLocked,
+              basePriceVnd: nextBasePrice,
+            })
+          : await monetizationService.setLanguagePrices(manage.chapterId, prices),
       );
     } catch (err) {
       onError(err);
@@ -260,17 +291,95 @@ const PricesSection: React.FC<{
     }
   };
 
+  const handlePublishEdition = async (lang: ContentLanguage) => {
+    setPublishingLang(lang);
+    try {
+      await monetizationService.publishLanguageEdition(manage.chapterId, lang);
+      await onReload?.();
+    } catch (err) {
+      onError(err);
+    } finally {
+      setPublishingLang(null);
+    }
+  };
+
   return (
     <div className='space-y-4'>
+      <div className='p-4 rounded-2xl border border-[#E7E7E7] bg-white space-y-3'>
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <div>
+            <div className='text-sm font-semibold text-[#171717]'>{t('chapterPricing.toggle')}</div>
+            <div className='text-xs text-[#737373]'>
+              {isLockedDraft ? t('chapterPricing.lockedHint') : t('chapterPricing.freeHint')}
+            </div>
+          </div>
+          <button
+            type='button'
+            role='switch'
+            aria-checked={isLockedDraft}
+            aria-label={t('chapterPricing.toggle')}
+            onClick={() => setIsLockedDraft((prev) => !prev)}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+              isLockedDraft ? 'bg-[#F97316]' : 'bg-[#D4D4D4]'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-xs transition ${
+                isLockedDraft ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {isLockedDraft && (
+          <div className='flex flex-wrap items-center gap-3 pt-2 border-t border-[#F0F0F0]'>
+            <label className='flex items-center gap-2 text-xs text-[#555555] font-medium'>
+              {t('manage.basePrice')} (VNĐ)
+              <input
+                type='number'
+                min={1000}
+                step={500}
+                value={basePriceDraft}
+                onChange={(e) => setBasePriceDraft(e.target.value)}
+                aria-label={t('manage.basePrice')}
+                className='w-32 px-2.5 py-1.5 rounded-lg border border-[#E7E7E7] font-mono text-xs focus:outline-none focus:border-[#F97316]'
+              />
+            </label>
+            <div className='flex items-center gap-1.5 text-xs text-[#737373]'>
+              <span>{t('chapterPricing.quickPick')}</span>
+              {[5000, 10000, 15000, 20000].map((preset) => (
+                <button
+                  key={preset}
+                  type='button'
+                  onClick={() => setBasePriceDraft(String(preset))}
+                  className={`px-2 py-1 rounded-md border text-[11px] font-mono cursor-pointer ${
+                    Number(basePriceDraft) === preset
+                      ? 'border-[#F97316] bg-[#F97316]/10 text-[#C2410C] font-bold'
+                      : 'border-[#E7E7E7] bg-[#FAF8F4] text-[#555555] hover:bg-white'
+                  }`}
+                >
+                  {vnd(preset)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       <p className='text-xs text-[#737373]'>
-        {t('manage.pricesHint', { base: vnd(manage.basePriceVnd) })}
+        {t('manage.pricesHint', {
+          base: vnd(
+            isLockedDraft ? Number(basePriceDraft) || manage.basePriceVnd : manage.basePriceVnd,
+          ),
+        })}
       </p>
       <div className='rounded-2xl border border-[#E7E7E7] bg-white divide-y divide-[#F0F0F0]'>
         {CONTENT_LANGUAGES.map((l) => {
           const status = manage.languages.find((s) => s.language === l);
+          const canPublishEdition = !status?.isAvailable && status?.editionStatus === 'Approved';
           return (
             <div key={l} className='flex flex-wrap items-center gap-3 px-4 py-3'>
-              <div className='w-40'>
+              <div className='w-48'>
                 <div className='text-sm font-semibold text-[#171717]'>{t(`lang.${l}`)}</div>
                 <div
                   className={`text-[11px] ${status?.isAvailable ? 'text-emerald-700' : 'text-[#A3A3A3]'}`}
@@ -290,7 +399,11 @@ const PricesSection: React.FC<{
                   min={1000}
                   step={500}
                   value={draft[l] ?? ''}
-                  placeholder={String(manage.basePriceVnd)}
+                  placeholder={String(
+                    isLockedDraft
+                      ? Number(basePriceDraft) || manage.basePriceVnd
+                      : manage.basePriceVnd,
+                  )}
                   onChange={(e) => setDraft((d) => ({ ...d, [l]: e.target.value }))}
                   aria-label={`${t('manage.customPrice')} ${l}`}
                   className='w-32 px-2.5 py-1.5 rounded-lg border border-[#E7E7E7] focus:outline-none focus:border-[#F97316]'
@@ -303,6 +416,17 @@ const PricesSection: React.FC<{
                   className='text-xs text-[#737373] underline cursor-pointer'
                 >
                   {t('manage.useBase')}
+                </button>
+              )}
+              {canPublishEdition && (
+                <button
+                  type='button'
+                  disabled={publishingLang === l}
+                  onClick={() => handlePublishEdition(l)}
+                  className='ml-auto px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5'
+                >
+                  {publishingLang === l && <Loader2 className='w-3.5 h-3.5 animate-spin' />}
+                  Phát hành bản {l.toUpperCase()}
                 </button>
               )}
             </div>
@@ -367,7 +491,6 @@ const PagesSection: React.FC<{
   };
 
   const status = manage.languages.find((l) => l.language === preview);
-  const isTranslation = TRANSLATION_LANGUAGES.includes(preview);
 
   return (
     <div className='space-y-4'>
@@ -430,11 +553,7 @@ const PagesSection: React.FC<{
             const isPreview = draft.has(p.pageId);
             const locked = paid && !isPreview;
             const url = p.imageUrls[preview] ?? null;
-            const key = `${p.pageId}:${preview}`;
             const label = t('manage.page', { number: p.pageNumber });
-            const uploadLabel = url
-              ? t('manage.replace')
-              : t('manage.upload', { lang: preview.toUpperCase() });
             return (
               <li key={p.pageId} className='flex flex-col items-center gap-1.5'>
                 <button

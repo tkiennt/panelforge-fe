@@ -213,6 +213,8 @@ export interface ChapterLanguageStatusDto {
   translatedPages: number;
   /** Bản ngôn ngữ đã phát hành cho Reader (đủ ảnh mọi trang). */
   isAvailable: boolean;
+  /** Trạng thái ấn bản ngôn ngữ (Draft | InReview | EditorApproved | Approved | Published). */
+  editionStatus?: string | null;
 }
 
 /** ManagedPageDto */
@@ -324,6 +326,8 @@ export interface PublisherRevenueDto {
     chapterRevenueVnd: number;
     pendingCount: number;
     totalViews: number;
+    vipRevenueVnd?: number;
+    topupRevenueVnd?: number;
   };
   series: PublisherSeriesRevenueDto[];
 }
@@ -405,12 +409,18 @@ export const monetizationService = {
   async setLanguagePrices(
     chapterId: string,
     prices: LanguagePriceItem[],
+    options?: { isLocked?: boolean; basePriceVnd?: number },
   ): Promise<ChapterManageDto> {
     const res = await axiosClient.put<ChapterManageDto>(
       `/publisher/chapters/${chapterId}/language-prices`,
-      { prices },
+      options ? { prices, ...options } : { prices },
     );
     return res.data;
+  },
+
+  /** POST /chapters/{chapterId}/editions/{lang}/publish — phát hành ấn bản dịch đã được nghiệm thu (Approved). */
+  async publishLanguageEdition(chapterId: string, language: ContentLanguage): Promise<void> {
+    await axiosClient.post(`/chapters/${chapterId}/editions/${language}/publish`, {});
   },
 
   /** GET /api/publisher/revenue (Publisher/Admin) */

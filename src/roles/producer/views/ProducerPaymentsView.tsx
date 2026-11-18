@@ -478,15 +478,23 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
 
         <div className='flex flex-wrap items-center gap-2.5'>
           {savedBank ? (
-            <span className='hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 font-medium'>
+            <button
+              type='button'
+              onClick={openBankModal}
+              className='hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-[11px] text-emerald-800 font-medium cursor-pointer transition-colors'
+            >
               <Building2 className='w-3.5 h-3.5' />
               {savedBank.bankName} • <span className='font-mono'>{savedBank.bankAccountNo}</span>
-            </span>
+            </button>
           ) : (
-            <span className='hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 font-medium'>
+            <button
+              type='button'
+              onClick={openBankModal}
+              className='hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-[11px] text-amber-800 font-medium cursor-pointer transition-colors'
+            >
               <Building2 className='w-3.5 h-3.5' />
               {t('bank.notConfigured')}
-            </span>
+            </button>
           )}
           <button
             type='button'

@@ -70,9 +70,22 @@ export const PublisherRevenueView: React.FC = () => {
 
       {s && (
         <div className='grid grid-cols-2 lg:grid-cols-4 gap-4'>
-          <Kpi label={t('revenue.total')} value={vnd(s.totalRevenueVnd)} highlight />
+          <Kpi
+            label={t('revenue.total')}
+            value={vnd(s.totalRevenueVnd)}
+            sub={
+              (s.vipRevenueVnd ?? 0) > 0 || (s.topupRevenueVnd ?? 0) > 0
+                ? `VIP: ${vnd(s.vipRevenueVnd ?? 0)} · Nạp Ví: ${vnd(s.topupRevenueVnd ?? 0)}`
+                : undefined
+            }
+            highlight
+          />
           <Kpi label={t('revenue.chapterRevenue')} value={vnd(s.chapterRevenueVnd)} />
-          <Kpi label={t('revenue.pending')} value={fmt(s.pendingCount)} />
+          <Kpi
+            label={t('revenue.pending')}
+            value={fmt(s.pendingCount)}
+            highlight={s.pendingCount > 0}
+          />
           <Kpi label={t('revenue.views')} value={fmt(s.totalViews)} />
         </div>
       )}
@@ -101,6 +114,16 @@ export const PublisherRevenueView: React.FC = () => {
             </option>
           ))}
         </select>
+        {workspaceId && (
+          <button
+            type='button'
+            onClick={() => navigate(`/publisher/revenue/workspaces/${workspaceId}`)}
+            className='inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold cursor-pointer'
+          >
+            <span>{t('insights.transactions')}</span>
+            <ChevronRight className='w-3.5 h-3.5' />
+          </button>
+        )}
       </div>
 
       {error && (
@@ -165,11 +188,7 @@ export const PublisherRevenueView: React.FC = () => {
                     <td className='px-4 py-2.5 text-right'>
                       <button
                         type='button'
-                        onClick={() =>
-                          navigate(
-                            `/publisher/revenue/workspaces/${r.workspaceId}?seriesId=${r.seriesId}`,
-                          )
-                        }
+                        onClick={() => navigate(`/publisher/revenue/workspaces/${r.workspaceId}`)}
                         className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#E7E7E7] text-xs font-medium hover:bg-white cursor-pointer'
                       >
                         {t('revenue.manage')}
@@ -187,9 +206,10 @@ export const PublisherRevenueView: React.FC = () => {
   );
 };
 
-const Kpi: React.FC<{ label: string; value: string; highlight?: boolean }> = ({
+const Kpi: React.FC<{ label: string; value: string; sub?: string; highlight?: boolean }> = ({
   label,
   value,
+  sub,
   highlight,
 }) => (
   <div
@@ -197,6 +217,7 @@ const Kpi: React.FC<{ label: string; value: string; highlight?: boolean }> = ({
   >
     <div className='text-xs text-[#737373]'>{label}</div>
     <div className='text-xl font-bold text-[#171717] mt-1 tabular-nums'>{value}</div>
+    {sub && <div className='text-[11px] text-[#737373] mt-1'>{sub}</div>}
   </div>
 );
 
