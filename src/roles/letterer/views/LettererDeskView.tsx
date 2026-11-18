@@ -12,7 +12,11 @@ export interface LettererDeskViewProps {
  * Mọi thao tác thoại, bóng, script binding và cảnh báo diễn ra trực tiếp trên Artist Desk.
  */
 export default function LettererDeskView({ workspaceRole }: LettererDeskViewProps) {
-  return <ArtistDeskView workspaceRole={workspaceRole} initialSidebarTab='lettering' />;
+  const effectiveRole =
+    workspaceRole ??
+    (typeof window !== 'undefined' ? localStorage.getItem('workspaceRole') : null) ??
+    'LETTERER';
+  return <ArtistDeskView workspaceRole={effectiveRole} initialSidebarTab='lettering' />;
 }
 
 export { LettererDeskView as LettererWorkspace };
