@@ -101,6 +101,15 @@ export const buildAdminUrl = (tab?: string): string => {
   return `/admin?tab=${encodeURIComponent(tab)}`;
 };
 
+export const buildChapterManagementUrl = (
+  workspaceId: string,
+  seriesId: string,
+  chapterId?: string,
+): string => {
+  const query = chapterId ? `?chapterId=${encodeURIComponent(chapterId)}` : '';
+  return buildSeriesPath(workspaceId, seriesId, `chapters${query}`);
+};
+
 export const buildExportUrl = (workspaceId: string, seriesId: string): string => {
   return buildSeriesPath(workspaceId, seriesId, 'export');
 };

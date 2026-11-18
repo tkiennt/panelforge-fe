@@ -70,6 +70,10 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
       navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapter.id}/script/review`);
       return;
     }
+    if (effectiveRole === 'PRODUCER') {
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters?chapterId=${chapter.id}`);
+      return;
+    }
     // Chuyển sang Focus Workspace (ẩn Sidebar chính của app, mở bàn làm việc toàn màn hình)
     navigate(`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${chapter.id}`);
   };

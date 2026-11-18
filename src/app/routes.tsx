@@ -63,6 +63,11 @@ const ProducerPaymentsView = lazy(() =>
 const DashboardView = lazy(() =>
   import('@/roles/producer/views/DashboardView').then((m) => ({ default: m.DashboardView })),
 );
+const ProducerChapterManagementView = lazy(() =>
+  import('@/roles/producer/views/ProducerChapterManagementView').then((m) => ({
+    default: m.ProducerChapterManagementView,
+  })),
+);
 const StudioOverviewView = lazy(() =>
   import('@/shared/views/StudioOverviewView').then((m) => ({ default: m.StudioOverviewView })),
 );
@@ -506,6 +511,29 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                         activeProject={activeProject}
                         assistants={assistants}
                         provenanceLogs={provenanceLogs}
+                        onShowToast={showToast}
+                      />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
+                  path='chapters'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={[
+                        'PRODUCER',
+                        'WRITER',
+                        'ARTIST',
+                        'LETTERER',
+                        'EDITOR',
+                        'ADMINISTRATOR',
+                      ]}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <ProducerChapterManagementView
+                        workspaceRole={currentWorkspaceRole}
                         onShowToast={showToast}
                       />
                     </RequireWorkspaceRole>

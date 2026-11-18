@@ -174,7 +174,6 @@ const getRoleNavConfig = (
       section: t('navigation.sections.desk'),
       items: [
         { icon: ShieldCheck, label: t('navigation.menu.reviewDesk'), href: '/editor/desk' },
-        { icon: Palette, label: t('navigation.menu.bibleReview'), href: '/editor/bible' },
         { icon: FileText, label: t('navigation.menu.script'), href: '/script' },
         { icon: Layers, label: t('navigation.menu.workAndReview'), href: '/my-work' },
         { icon: BookMarked, label: t('navigation.menu.bible'), href: '/bible' },
@@ -282,6 +281,11 @@ export function AppShell({
                 icon: LayoutDashboard,
                 label: t('navigation.menu.seriesDashboard'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
+              },
+              {
+                icon: BookOpen,
+                label: 'Quản lý chương',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
               },
 
               {
@@ -421,6 +425,11 @@ export function AppShell({
                 icon: LayoutDashboard,
                 label: t('navigation.menu.seriesDashboard'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
+              },
+              {
+                icon: BookOpen,
+                label: 'Quản lý chương',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
               },
               {
                 icon: Kanban,
