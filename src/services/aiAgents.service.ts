@@ -367,6 +367,7 @@ export interface RunWorkflowRequest {
   workflowType?: AiWorkflowType;
   /** Chỉ dùng cho workflow Artist: danh sách ID panel cần tạo mô tả vẽ; null/rỗng = mọi panel của layout đã duyệt */
   panelIds?: string[] | null;
+  revisionOfSuggestionId?: string;
 }
 export interface RunWorkflowResponse {
   runId: string;

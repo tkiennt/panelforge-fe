@@ -431,6 +431,72 @@ describe('AiAssistPanel (Writer · Script)', () => {
     expect(onReload).not.toHaveBeenCalled();
   });
 
+  it('ChangesRequested: hiện nút "Chạy lại theo góp ý", truyền revisionOfSuggestionId và dùng reason khi brief trống', async () => {
+    const changesSuggestion = suggestion({
+      id: 'sg-cr',
+      status: 'ChangesRequested',
+      createdAt: '2026-10-12T10:00:00Z',
+      decisions: [
+        {
+          id: 'd-old',
+          decision: 'ChangesRequested',
+          reason: 'Góp ý cũ',
+          decidedByUserId: 'u1',
+          createdAt: '2026-10-12T09:00:00Z',
+        } as never,
+        {
+          id: 'd-latest',
+          decision: 'ChangesRequested',
+          reason: 'Sửa lại nhịp thoại cảnh này',
+          decidedByUserId: 'u1',
+          createdAt: '2026-10-12T10:05:00Z',
+        } as never,
+      ],
+    });
+    sessionStorage.setItem('ai-run:sc1:Script', 'r1');
+    const getRun = vi
+      .spyOn(aiAgentsService, 'getRun')
+      .mockResolvedValue(run({ id: 'r1', suggestions: [changesSuggestion] }));
+    const runWorkflow = vi
+      .spyOn(aiAgentsService, 'runWorkflow')
+      .mockResolvedValue({ runId: 'r2', status: 'Completed', provider: 'Mock', model: 'm' });
+
+    renderPanel();
+
+    const rerunBtn = await screen.findByRole('button', { name: 'Chạy lại theo góp ý' });
+    expect(rerunBtn).toBeEnabled();
+
+    // Khi brief trống -> dùng reason của quyết định ChangesRequested gần nhất
+    fireEvent.click(rerunBtn);
+    await waitFor(() => expect(runWorkflow).toHaveBeenCalledTimes(1));
+    expect(runWorkflow).toHaveBeenLastCalledWith('s1', {
+      workflowType: 'Script',
+      chapterId: 'c1',
+      sceneId: 'sc1',
+      brief: 'Sửa lại nhịp thoại cảnh này',
+      readingDirection: 'RightToLeft',
+      chapterVersion: 3,
+      baseScriptRevisionId: 'rev-new',
+      revisionOfSuggestionId: 'sg-cr',
+    });
+
+    // Khi có nhập brief -> ưu tiên dùng brief đang nhập
+    getRun.mockResolvedValue(run({ id: 'r2', suggestions: [changesSuggestion] }));
+    typeBrief('Brief viết mới');
+    fireEvent.click(await screen.findByRole('button', { name: 'Chạy lại theo góp ý' }));
+    await waitFor(() => expect(runWorkflow).toHaveBeenCalledTimes(2));
+    expect(runWorkflow).toHaveBeenLastCalledWith('s1', {
+      workflowType: 'Script',
+      chapterId: 'c1',
+      sceneId: 'sc1',
+      brief: 'Brief viết mới',
+      readingDirection: 'RightToLeft',
+      chapterVersion: 3,
+      baseScriptRevisionId: 'rev-new',
+      revisionOfSuggestionId: 'sg-cr',
+    });
+  });
+
   it('503 AI_UNAVAILABLE: khoá nút AI, báo vẫn soạn tay được', async () => {
     vi.spyOn(aiAgentsService, 'runWorkflow').mockRejectedValue(
       new AiApiError('AI service đang tắt.', 'AI_UNAVAILABLE', 503),

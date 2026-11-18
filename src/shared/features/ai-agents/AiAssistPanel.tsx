@@ -321,7 +321,7 @@ export const AiAssistPanel: React.FC<Props> = ({
   const runDisabled = loadingAvail || !canRun || aiLocked || starting || running || !briefTrim;
 
   // (b) chạy nhiệm vụ
-  const handleRun = async () => {
+  const executeRun = async (runBrief: string, revisionOfSuggestionId?: string) => {
     setError(null);
     setStarting(true);
     setPollFailed(false);
@@ -331,11 +331,12 @@ export const AiAssistPanel: React.FC<Props> = ({
         workflowType,
         chapterId,
         sceneId,
-        brief: briefTrim,
+        brief: runBrief,
         readingDirection,
         chapterVersion,
         baseScriptRevisionId: latestScriptRevisionId(revisions),
         panelIds: panelIds && panelIds.length > 0 ? panelIds : undefined,
+        ...(revisionOfSuggestionId ? { revisionOfSuggestionId } : {}),
       });
       storeRunId(storageKey, started.runId);
       setRun(await aiAgentsService.getRun(seriesId, started.runId));
@@ -351,6 +352,8 @@ export const AiAssistPanel: React.FC<Props> = ({
       setStarting(false);
     }
   };
+
+  const handleRun = () => executeRun(briefTrim);
 
   // (e)(f) quyết định đề xuất
   const handleDecide = async (
@@ -390,6 +393,38 @@ export const AiAssistPanel: React.FC<Props> = ({
   const continuityStep = latestStep(steps, 'Continuity');
   const storyboardStep = latestStep(steps, 'Storyboard');
   const suggestions = (run?.suggestions ?? []).filter((s) => s.kind === suggestionKind);
+  const latestSuggestion = useMemo(
+    () =>
+      [...suggestions].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ??
+      suggestions[suggestions.length - 1],
+    [suggestions],
+  );
+  const latestChangesReason = useMemo(() => {
+    if (latestSuggestion?.status !== 'ChangesRequested') return '';
+    const rawDecisions = (latestSuggestion.decisions ?? []) as unknown as Array<
+      Record<string, unknown>
+    >;
+    const matched = rawDecisions.filter((d) => {
+      const val = String(d.decision ?? d.type ?? d.status ?? '').toLowerCase();
+      return val.includes('change') || val === 'request-changes';
+    });
+    const pool = matched.length > 0 ? matched : rawDecisions;
+    const withIndexed = pool.map((d, idx) => ({
+      d,
+      idx,
+      ts: String(d.createdAt ?? d.decidedAt ?? d.createdAtUtc ?? d.decidedAtUtc ?? ''),
+    }));
+    withIndexed.sort((a, b) => {
+      if (a.ts && b.ts && a.ts !== b.ts) return b.ts.localeCompare(a.ts);
+      return b.idx - a.idx;
+    });
+    const reason = withIndexed[0]?.d?.reason;
+    return typeof reason === 'string' ? reason.trim() : '';
+  }, [latestSuggestion]);
+  const rerunBrief = briefTrim || latestChangesReason;
+  const showRerunChanges =
+    !loadingAvail && canRun && !aiLocked && latestSuggestion?.status === 'ChangesRequested';
+  const rerunDisabled = starting || running || !rerunBrief;
   const status = run ? statusText(run) : null;
 
   const toggleTech = useCallback(() => setShowTech((v) => !v), []);
@@ -495,24 +530,42 @@ export const AiAssistPanel: React.FC<Props> = ({
             disabled={running}
             className='w-full resize-none rounded-xl border border-[#E7E7E7] bg-white px-3 py-2 text-xs outline-none focus:border-orange-500 disabled:bg-zinc-100'
           />
-          <div className='mt-1 flex items-center justify-between'>
+          <div className='mt-1 flex items-center justify-between gap-2'>
             <span className='font-mono text-[10px] text-zinc-400'>
               {brief.length}/{BRIEF_MAX_LENGTH}
             </span>
-            <button
-              type='button'
-              data-testid='ai-run-btn'
-              onClick={handleRun}
-              disabled={runDisabled}
-              className='inline-flex items-center gap-1.5 rounded-xl bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50'
-            >
-              {starting || running ? (
-                <Loader2 className='h-3.5 w-3.5 animate-spin' />
-              ) : (
-                <Sparkles className='h-3.5 w-3.5' />
+            <div className='flex items-center gap-2'>
+              {showRerunChanges && latestSuggestion && (
+                <button
+                  type='button'
+                  data-testid='ai-rerun-changes-btn'
+                  onClick={() => executeRun(rerunBrief, latestSuggestion.id)}
+                  disabled={rerunDisabled}
+                  className='inline-flex items-center gap-1.5 rounded-xl border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 transition-all hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50'
+                >
+                  {starting || running ? (
+                    <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                  ) : (
+                    <Sparkles className='h-3.5 w-3.5' />
+                  )}
+                  Chạy lại theo góp ý
+                </button>
               )}
-              {runLabel}
-            </button>
+              <button
+                type='button'
+                data-testid='ai-run-btn'
+                onClick={handleRun}
+                disabled={runDisabled}
+                className='inline-flex items-center gap-1.5 rounded-xl bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50'
+              >
+                {starting || running ? (
+                  <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                ) : (
+                  <Sparkles className='h-3.5 w-3.5' />
+                )}
+                {runLabel}
+              </button>
+            </div>
           </div>
         </div>
 
