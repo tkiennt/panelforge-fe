@@ -356,4 +356,150 @@ describe('helper hiển thị Trợ lý AI', () => {
     expect(res.id).toBe('sug-tn');
     expect(res.kind).toBe('Thumbnail');
   });
+
+  it('chạy Copilot bóng thoại (letterer.shorten): nhận pageId, elementId, maxChars, revisionOfSuggestionId tùy chọn không cần lineId', async () => {
+    post.mockResolvedValue({
+      data: {
+        id: 'sug-bubble',
+        runId: 'r-bubble',
+        stepId: 'st-bubble',
+        sceneId: 'sc1',
+        kind: 'Lettering',
+        status: 'Pending',
+        summary: 'Rút gọn thoại còn 18/25 ký tự',
+        payload: {
+          pageId: 'page-1',
+          elementId: 'el-1',
+          elementVersion: 2,
+          originalText: 'Chúng ta không thể bỏ mặc họ lúc này được đâu!',
+          suggestedText: 'Không thể bỏ họ!',
+          reason: 'Ngắn gọn vừa bóng thoại',
+          maxChars: 25,
+        },
+        payloadHash: 'hash-b',
+        baseChapterVersion: 3,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-11-18T10:00:00Z',
+        decisions: [],
+      },
+    });
+
+    const res = await aiAgentsService.runCopilot('s1', {
+      task: 'letterer.shorten',
+      pageId: 'page-1',
+      elementId: 'el-1',
+      maxChars: 25,
+      revisionOfSuggestionId: 'sug-old',
+    });
+
+    expect(post).toHaveBeenCalledWith('/series/s1/ai/copilot', {
+      task: 'letterer.shorten',
+      pageId: 'page-1',
+      elementId: 'el-1',
+      maxChars: 25,
+      revisionOfSuggestionId: 'sug-old',
+    });
+    expect(res.kind).toBe('Lettering');
+  });
+
+  it('runBibleStubDraft: POST /series/{seriesId}/ai/bible/entries/{entryId}/stub-draft và giữ nguyên message lỗi 409', async () => {
+    post.mockResolvedValueOnce({
+      data: {
+        id: 'sug-stub',
+        runId: 'r-stub',
+        stepId: 'st-stub',
+        sceneId: 'sc1',
+        kind: 'BibleStub',
+        status: 'Pending',
+        summary: 'Hồ sơ nháp cho Akira',
+        payload: {
+          entryId: 'ent-1',
+          name: 'Akira',
+          draft: {
+            description: 'Kiếm sĩ áo choàng đen.',
+            subtitle: 'Kiếm sĩ',
+            citations: [
+              { claim: 'Mặc áo choàng đen', lineId: 'l1', quote: 'Akira khoác áo choàng đen' },
+            ],
+          },
+          reason: 'Tổng hợp từ 1 dòng thoại',
+        },
+        payloadHash: 'hash-st',
+        baseChapterVersion: 1,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-11-18T10:00:00Z',
+        decisions: [],
+      },
+    });
+
+    const ok = await aiAgentsService.runBibleStubDraft('s1', 'ent-1', 'tập trung ngoại hình');
+    expect(post).toHaveBeenCalledWith('/series/s1/ai/bible/entries/ent-1/stub-draft', {
+      instruction: 'tập trung ngoại hình',
+    });
+    expect(ok.kind).toBe('BibleStub');
+
+    post.mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: {
+          code: 'CONFLICT',
+          error: 'Chưa có dòng kịch bản nào nhắc tới mục này, nên không có căn cứ để soạn.',
+        },
+      },
+    });
+    const err = await aiAgentsService.runBibleStubDraft('s1', 'ent-2').catch((e) => e);
+    expect(err).toBeInstanceOf(AiApiError);
+    expect(err.status).toBe(409);
+    expect(err.message).toBe(
+      'Chưa có dòng kịch bản nào nhắc tới mục này, nên không có căn cứ để soạn.',
+    );
+  });
+
+  it('runImpactSuggestion: POST /chapters/{chapterId}/ai/impact/{taskId} không gửi body và giữ nguyên lỗi 403/409', async () => {
+    post.mockResolvedValueOnce({
+      data: {
+        id: 'sug-imp',
+        runId: 'r-imp',
+        stepId: 'st-imp',
+        sceneId: '00000000-0000-0000-0000-000000000000',
+        kind: 'ImpactRipple',
+        status: 'Pending',
+        summary: 'Gợi ý Keep cho Ink, trang 1',
+        payload: {
+          taskId: 'task-1',
+          decision: 'Keep',
+          reason: 'Chỉ sửa dấu câu, không đổi bố cục tranh.',
+          changes: [{ type: 'Dialogue', label: 'Akira', before: 'Đi thôi', after: 'Đi thôi!' }],
+        },
+        payloadHash: 'hash-imp',
+        baseChapterVersion: 2,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-11-18T10:00:00Z',
+        decisions: [],
+      },
+    });
+
+    const ok = await aiAgentsService.runImpactSuggestion('chap-1', 'task-1');
+    expect(post).toHaveBeenCalledWith('/chapters/chap-1/ai/impact/task-1');
+    expect(ok.kind).toBe('ImpactRipple');
+
+    post.mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: { code: 'CONFLICT', error: 'Ô này không mang cờ ảnh hưởng do sửa kịch bản.' },
+      },
+    });
+    const err = await aiAgentsService.runImpactSuggestion('chap-1', 'task-2').catch((e) => e);
+    expect(err.status).toBe(409);
+    expect(err.message).toBe('Ô này không mang cờ ảnh hưởng do sửa kịch bản.');
+  });
+
+  it('review accept không cần truyền chapterVersion cho các đề xuất ngoài kịch bản (Lettering/BibleStub/ImpactRipple)', async () => {
+    post.mockResolvedValueOnce({ data: { status: 'Accepted' } });
+    await aiAgentsService.review('s1', 'sg-letter', 'accept');
+    expect(post).toHaveBeenCalledWith('/series/s1/ai/suggestions/sg-letter/accept', {});
+  });
 });

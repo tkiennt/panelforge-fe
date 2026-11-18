@@ -325,6 +325,147 @@ describe('SuggestionCard — nút quyết định theo loại kết quả và qu
     fireEvent.click(screen.getByText(/Xem nội dung đề xuất/));
     expect(screen.getByText('Bà ơi hay để cháu thử…')).toBeInTheDocument();
   });
+
+  it('Lettering đơn lẻ (bóng thoại): hiển thị bản gốc và bản rút gọn kèm lý do', () => {
+    render(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'Lettering',
+          summary: 'Rút gọn thoại còn 16/25 ký tự',
+          payload: {
+            pageId: 'page-1',
+            elementId: 'el-1',
+            elementVersion: 2,
+            originalText: 'Chúng ta không thể đứng nhìn họ gặp nguy hiểm!',
+            suggestedText: 'Không thể đứng nhìn!',
+            reason: 'Giữ ý chính cho vừa khung bóng',
+            maxChars: 25,
+          },
+        })}
+        busy={false}
+        onDecide={noop}
+      />,
+    );
+
+    expect(screen.getByText('Chúng ta không thể đứng nhìn họ gặp nguy hiểm!')).toBeInTheDocument();
+    expect(screen.getByText('Không thể đứng nhìn!')).toBeInTheDocument();
+    expect(screen.getByText(/Giữ ý chính cho vừa khung bóng/)).toBeInTheDocument();
+  });
+
+  it('BibleStub: hiển thị mô tả, tiêu đề phụ, từng trích dẫn và nút "Dùng làm nháp"', () => {
+    const onDecide = vi.fn();
+    render(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'BibleStub',
+          summary: 'Hồ sơ nháp cho Akira',
+          payload: {
+            entryId: 'ent-1',
+            name: 'Akira',
+            draft: {
+              description: 'Kiếm sĩ khoác áo choàng đen, mang vết sẹo ngang mày.',
+              subtitle: 'Kiếm sĩ lang thang',
+              citations: [
+                {
+                  claim: 'Khoác áo choàng đen',
+                  lineId: 'line-1',
+                  quote: 'Akira kéo thấp chiếc áo choàng đen trong màn mưa.',
+                },
+                {
+                  claim: 'Có vết sẹo ngang mày',
+                  lineId: 'line-2',
+                  quote: 'Vết sẹo ngang mày của Akira ánh lên dưới tia chớp.',
+                },
+              ],
+            },
+            reason: 'Tổng hợp nguyên văn từ 2 dòng kịch bản',
+          },
+        })}
+        busy={false}
+        onDecide={onDecide}
+      />,
+    );
+
+    expect(screen.getByText('Kiếm sĩ lang thang')).toBeInTheDocument();
+    expect(
+      screen.getByText('Kiếm sĩ khoác áo choàng đen, mang vết sẹo ngang mày.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Khoác áo choàng đen')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Akira kéo thấp chiếc áo choàng đen trong màn mưa\./),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Có vết sẹo ngang mày')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Vết sẹo ngang mày của Akira ánh lên dưới tia chớp\./),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Dùng làm nháp/ }));
+    expect(onDecide).toHaveBeenCalledWith('accept');
+  });
+
+  it('ImpactRipple: hiển thị quyết định Giữ nguyên hoặc Làm lại, lý do và danh sách thay đổi', () => {
+    const onDecide = vi.fn();
+    const { rerender } = render(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'ImpactRipple',
+          summary: 'Gợi ý Keep cho Ink, trang 1',
+          payload: {
+            taskId: 'task-1',
+            decision: 'Keep',
+            reason: 'Chỉ chỉnh dấu câu, không ảnh hưởng nét vẽ.',
+            changes: [
+              {
+                type: 'Dialogue',
+                label: 'Akira',
+                before: 'Họ đang tới',
+                after: 'Họ đang tới!',
+              },
+            ],
+          },
+        })}
+        busy={false}
+        onDecide={onDecide}
+      />,
+    );
+
+    expect(screen.getByText('Giữ nguyên')).toBeInTheDocument();
+    expect(screen.getByText('Chỉ chỉnh dấu câu, không ảnh hưởng nét vẽ.')).toBeInTheDocument();
+    expect(screen.getByText(/Dialogue · Akira/)).toBeInTheDocument();
+    expect(screen.getByText('Họ đang tới')).toBeInTheDocument();
+    expect(screen.getByText('Họ đang tới!')).toBeInTheDocument();
+
+    rerender(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'ImpactRipple',
+          summary: 'Gợi ý Rework cho Ink, trang 1',
+          payload: {
+            taskId: 'task-1',
+            decision: 'Rework',
+            reason: 'Đổi hành động nhân vật từ đứng sang rút kiếm.',
+            changes: [
+              {
+                type: 'Action',
+                label: null,
+                before: 'Akira đứng yên quan sát.',
+                after: 'Akira rút kiếm lao tới.',
+              },
+            ],
+          },
+        })}
+        busy={false}
+        onDecide={onDecide}
+      />,
+    );
+
+    expect(screen.getByText('Làm lại')).toBeInTheDocument();
+    expect(screen.getByText('Đổi hành động nhân vật từ đứng sang rút kiếm.')).toBeInTheDocument();
+    expect(screen.getByText('Akira rút kiếm lao tới.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Accept/i }));
+    expect(onDecide).toHaveBeenCalledWith('accept');
+  });
 });
 
 describe('View output riêng từng agent', () => {

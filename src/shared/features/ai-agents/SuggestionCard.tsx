@@ -4,6 +4,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  GitCompare,
   Image as ImageIcon,
   LayoutTemplate,
   Lock,
@@ -19,6 +20,10 @@ import {
   AiSuggestionKind,
   AiSuggestionStatus,
   ArtistPromptSet,
+  BibleStubCitation,
+  BibleStubSuggestion,
+  BubbleShortenSuggestion,
+  ImpactRippleSuggestion,
   LetteringSuggestionSet,
   ScriptDraft,
   StoryboardLayout,
@@ -51,7 +56,30 @@ const KIND_ICON: Record<AiSuggestionKind, React.ElementType> = {
   LineRewrite: Sparkles,
   SeriesMetadata: BookOpen,
   Thumbnail: Palette,
+  BibleStub: BookOpen,
+  ImpactRipple: GitCompare,
 };
+
+function isBubbleShortenPayload(payload: unknown): payload is BubbleShortenSuggestion {
+  return (
+    !!payload &&
+    typeof payload === 'object' &&
+    ('originalText' in payload || 'suggestedText' in payload) &&
+    !('suggestions' in payload)
+  );
+}
+
+function getBibleCitations(bs?: BibleStubSuggestion | null): BibleStubCitation[] {
+  return bs?.draft?.citations ?? bs?.citations ?? [];
+}
+
+function formatImpactDecision(decision?: string | null): string {
+  if (!decision) return '';
+  const norm = decision.trim().toLowerCase();
+  if (norm === 'keep' || norm === 'giữ nguyên') return 'Giữ nguyên';
+  if (norm === 'rework' || norm === 'làm lại') return 'Làm lại';
+  return decision;
+}
 
 interface Props {
   suggestion: AiSuggestionDto;
@@ -91,8 +119,22 @@ function detailOf(s: AiSuggestionDto): string {
     }
     case 'ImagePrompt':
       return `${(s.payload as ArtistPromptSet | undefined)?.panels?.length ?? 0} prompt ảnh cho panel`;
-    default:
+    case 'BibleStub':
+      return `${getBibleCitations(s.payload as BibleStubSuggestion | undefined).length} trích dẫn từ kịch bản`;
+    case 'ImpactRipple': {
+      const ir = s.payload as ImpactRippleSuggestion | undefined;
+      return `${formatImpactDecision(ir?.decision)} · ${ir?.changes?.length ?? 0} thay đổi kịch bản`;
+    }
+    case 'Lettering': {
+      if (isBubbleShortenPayload(s.payload)) {
+        return s.payload.maxChars
+          ? `Tối đa ${s.payload.maxChars} ký tự · Đổi chữ trên bóng thoại`
+          : 'Rút gọn chữ trên bóng thoại';
+      }
       return `${(s.payload as LetteringSuggestionSet | undefined)?.suggestions?.length ?? 0} dòng thoại được đề xuất rút gọn`;
+    }
+    default:
+      return '';
   }
 }
 
@@ -111,9 +153,20 @@ export const SuggestionCard: React.FC<Props> = ({
 }) => {
   const [form, setForm] = useState<'reject' | 'request-changes' | null>(null);
   const [reason, setReason] = useState('');
-  const [showContent, setShowContent] = useState(false);
+  const inlineOpenByDefault =
+    s.kind === 'BibleStub' ||
+    s.kind === 'ImpactRipple' ||
+    (s.kind === 'Lettering' && isBubbleShortenPayload(s.payload));
+  const [showContent, setShowContent] = useState(inlineOpenByDefault);
 
-  const meta = KIND_META[s.kind];
+  const baseMeta = KIND_META[s.kind];
+  const meta =
+    s.kind === 'Lettering' && isBubbleShortenPayload(s.payload)
+      ? {
+          ...baseMeta,
+          applyNote: 'Đổi chữ trên bóng thoại, không đổi dòng kịch bản.',
+        }
+      : baseMeta;
   const Icon = KIND_ICON[s.kind];
   const pending = s.status === 'Pending';
   // BE cũ không trả canDecide / canAccept → không ẩn nút (Backend vẫn là nơi chặn)
@@ -136,7 +189,9 @@ export const SuggestionCard: React.FC<Props> = ({
     s.kind === 'LineRewrite' ||
     s.kind === 'SeriesMetadata' ||
     s.kind === 'Thumbnail' ||
-    s.kind === 'Layout';
+    s.kind === 'Layout' ||
+    s.kind === 'BibleStub' ||
+    s.kind === 'ImpactRipple';
 
   const submit = () => {
     if (!form) return;
@@ -248,7 +303,107 @@ export const SuggestionCard: React.FC<Props> = ({
                   nameById={nameById}
                 />
               ) : s.kind === 'Lettering' ? (
-                <LetteringDiffView set={s.payload as LetteringSuggestionSet} />
+                isBubbleShortenPayload(s.payload) ? (
+                  <div className='space-y-1.5 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
+                    <div>
+                      <span className='text-[11px] font-semibold text-[#737373]'>Bản gốc: </span>
+                      <span className='text-[11px] text-[#737373] line-through'>
+                        {s.payload.originalText}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-[11px] font-semibold text-emerald-800'>
+                        Bản rút gọn:{' '}
+                      </span>
+                      <span className='font-medium text-emerald-800'>
+                        {s.payload.suggestedText}
+                      </span>
+                    </div>
+                    {s.payload.reason && (
+                      <div className='text-[11px] italic text-[#525252]'>
+                        Lý do: {s.payload.reason}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <LetteringDiffView set={s.payload as LetteringSuggestionSet} />
+                )
+              ) : s.kind === 'BibleStub' ? (
+                <div className='space-y-2 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
+                  {(s.payload as BibleStubSuggestion)?.draft?.subtitle && (
+                    <div className='font-bold text-[#171717]'>
+                      {(s.payload as BibleStubSuggestion).draft.subtitle}
+                    </div>
+                  )}
+                  <div className='whitespace-pre-line text-[#404040]'>
+                    {(s.payload as BibleStubSuggestion)?.draft?.description}
+                  </div>
+                  {(s.payload as BibleStubSuggestion)?.reason && (
+                    <div className='text-[11px] italic text-[#525252]'>
+                      Lý do: {(s.payload as BibleStubSuggestion).reason}
+                    </div>
+                  )}
+                  {getBibleCitations(s.payload as BibleStubSuggestion).length > 0 && (
+                    <ul className='mt-2 space-y-1.5 border-t border-[#E7E7E7] pt-2'>
+                      {getBibleCitations(s.payload as BibleStubSuggestion).map((c, idx) => (
+                        <li
+                          key={c.lineId ? `${c.lineId}-${idx}` : idx}
+                          className='rounded border border-[#E7E7E7] bg-white p-2'
+                        >
+                          <div className='font-semibold text-[#171717]'>{c.claim}</div>
+                          <blockquote className='mt-0.5 text-[11px] italic text-[#525252]'>
+                            “{c.quote}”
+                          </blockquote>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : s.kind === 'ImpactRipple' ? (
+                <div className='space-y-2 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
+                  <div className='flex items-center gap-2'>
+                    <span className='font-bold text-[#171717]'>Quyết định:</span>
+                    <span
+                      className={`rounded border px-1.5 py-0.5 text-[11px] font-bold ${
+                        formatImpactDecision((s.payload as ImpactRippleSuggestion)?.decision) ===
+                        'Làm lại'
+                          ? 'border-amber-300 bg-amber-50 text-amber-800'
+                          : 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                      }`}
+                    >
+                      {formatImpactDecision((s.payload as ImpactRippleSuggestion)?.decision)}
+                    </span>
+                  </div>
+                  {(s.payload as ImpactRippleSuggestion)?.reason && (
+                    <div className='text-[#404040]'>
+                      {(s.payload as ImpactRippleSuggestion).reason}
+                    </div>
+                  )}
+                  {((s.payload as ImpactRippleSuggestion)?.changes?.length ?? 0) > 0 && (
+                    <ul className='space-y-1.5 border-t border-[#E7E7E7] pt-2'>
+                      {(s.payload as ImpactRippleSuggestion).changes.map((ch, idx) => {
+                        const heading = [ch.type, ch.label].filter(Boolean).join(' · ');
+                        return (
+                          <li key={idx} className='rounded border border-[#E7E7E7] bg-white p-2'>
+                            {heading && (
+                              <div className='text-[11px] font-semibold text-[#525252]'>
+                                {heading}
+                              </div>
+                            )}
+                            {ch.before != null && ch.before !== '' && (
+                              <div className='text-[11px] text-[#737373] line-through'>
+                                {ch.before}
+                              </div>
+                            )}
+                            {ch.after != null && ch.after !== '' && (
+                              <div className='mt-0.5 font-medium text-emerald-800'>{ch.after}</div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
               ) : (
                 <ArtistPromptsView set={s.payload as ArtistPromptSet} nameById={nameById} />
               )}

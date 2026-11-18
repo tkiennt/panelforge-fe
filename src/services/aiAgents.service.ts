@@ -26,7 +26,9 @@ export type AiSuggestionKind =
   | 'Lettering'
   | 'LineRewrite'
   | 'SeriesMetadata'
-  | 'Thumbnail';
+  | 'Thumbnail'
+  | 'BibleStub'
+  | 'ImpactRipple';
 
 /** Các loại đề xuất AI khi Accept sẽ tạo thêm một ScriptVersion mới cho chương (BR-01 / BR-11). */
 export const SCRIPT_VERSION_AI_KINDS: readonly AiSuggestionKind[] = [
@@ -246,10 +248,66 @@ export interface RunThumbnailRequest {
 }
 
 export interface RunCopilotRequest {
-  task: 'writer.rewrite' | 'letterer.shorten';
-  lineId: string;
+  task: 'writer.rewrite' | 'letterer.shorten' | string;
+  lineId?: string;
   instruction?: string | null;
   maxChars?: number | null;
+  pageId?: string;
+  elementId?: string;
+  revisionOfSuggestionId?: string;
+}
+
+/** Payload của AiSuggestion kind Lettering đơn lẻ (BubbleShortenSuggestion trên một bóng thoại). */
+export interface BubbleShortenSuggestion {
+  schemaVersion?: number;
+  runId?: string;
+  sceneId?: string;
+  task?: string;
+  pageId: string;
+  elementId: string;
+  elementVersion?: number;
+  originalText: string;
+  suggestedText: string;
+  reason?: string | null;
+  maxChars?: number | null;
+}
+
+export interface BibleStubCitation {
+  claim: string;
+  lineId?: string | null;
+  quote: string;
+}
+
+export interface BibleStubDraft {
+  description: string;
+  subtitle?: string | null;
+  citations?: BibleStubCitation[];
+}
+
+export interface BibleStubSuggestion {
+  schemaVersion?: number;
+  runId?: string;
+  entryId?: string;
+  name?: string;
+  draft: BibleStubDraft;
+  citations?: BibleStubCitation[];
+  reason?: string | null;
+}
+
+export interface ImpactLineChange {
+  type?: string;
+  label?: string | null;
+  before?: string | null;
+  after?: string | null;
+}
+
+export interface ImpactRippleSuggestion {
+  schemaVersion?: number;
+  runId?: string;
+  taskId?: string;
+  decision: 'Keep' | 'Rework' | string;
+  reason: string;
+  changes: ImpactLineChange[];
 }
 
 // ── DTO của BE ────────────────────────────────────────────────────────────────
@@ -586,13 +644,40 @@ export const aiAgentsService = {
     }
   },
 
-  /** Chạy Copilot sync trên một dòng thoại (writer.rewrite hoặc letterer.shorten). Trả về AiSuggestionDto (Pending, kind: LineRewrite). */
+  /** Chạy Copilot sync (writer.rewrite hoặc letterer.shorten). Trả về AiSuggestionDto (Pending, kind: LineRewrite | Lettering). */
   async runCopilot(seriesId: string, body: RunCopilotRequest): Promise<AiSuggestionDto> {
     try {
       const res = await axiosClient.post(`/series/${seriesId}/ai/copilot`, body);
       return res.data;
     } catch (e) {
       throw toError(e, 'Không thể chạy AI Copilot.');
+    }
+  },
+
+  /** Bible Stub Harvester: xin hồ sơ nháp có trích dẫn từ các dòng kịch bản nhắc tới mục stub. */
+  async runBibleStubDraft(
+    seriesId: string,
+    entryId: string,
+    instruction?: string,
+  ): Promise<AiSuggestionDto> {
+    try {
+      const res = await axiosClient.post(
+        `/series/${seriesId}/ai/bible/entries/${entryId}/stub-draft`,
+        instruction !== undefined ? { instruction } : {},
+      );
+      return res.data;
+    } catch (e) {
+      throw toError(e, 'Không thể soạn nháp từ kịch bản.');
+    }
+  },
+
+  /** Smart Ripple: Producer xin gợi ý Keep / Rework cho ô mang cờ isInputOutdated do sửa kịch bản. */
+  async runImpactSuggestion(chapterId: string, taskId: string): Promise<AiSuggestionDto> {
+    try {
+      const res = await axiosClient.post(`/chapters/${chapterId}/ai/impact/${taskId}`);
+      return res.data;
+    } catch (e) {
+      throw toError(e, 'Không thể lấy gợi ý xử lý ảnh hưởng.');
     }
   },
 
@@ -729,12 +814,12 @@ export const aiAgentsService = {
     }
   },
 
-  /** decision: accept | reject | request-changes. Accept bắt buộc chapterVersion hiện tại (sai → 409). */
+  /** decision: accept | reject | request-changes. Accept bắt buộc chapterVersion với đề xuất sửa chương; Lettering/BibleStub/ImpactRipple gửi {}. */
   async review(
     seriesId: string,
     suggestionId: string,
     decision: 'accept' | 'reject' | 'request-changes',
-    body: { reason?: string; chapterVersion?: number },
+    body: { reason?: string; chapterVersion?: number } = {},
   ): Promise<ReviewResponse> {
     try {
       const res = await axiosClient.post(
