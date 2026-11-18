@@ -67,12 +67,22 @@ export interface SupervisorDecision {
   allowedActions: string[];
   guardrailOverridden: boolean;
 }
+export interface ScriptDraftRef {
+  surfaceText: string;
+  bibleEntryId?: string | null;
+  newName?: string | null;
+  newCategory?: 'Character' | 'Location' | 'Prop' | string | null;
+}
 export interface ScriptDraftLine {
   lineId: string;
   order: number;
   speakerId?: string | null;
   dialogue?: string | null;
   stageDirection?: string | null;
+  /** Action, Dialogue, Thought, Narration, Sfx; bản nháp cũ không có. */
+  kind?: string | null;
+  speakerLabel?: string | null;
+  refs?: ScriptDraftRef[] | null;
 }
 export interface ScriptDraft {
   schemaVersion: number;

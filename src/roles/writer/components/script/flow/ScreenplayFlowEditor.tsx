@@ -73,6 +73,8 @@ export interface ScreenplayFlowEditorProps {
   onRewriteLineId?: (lineId: string) => void;
   rewritingLineId?: string | null;
   flowAiSlot?: React.ReactNode;
+  /** Bản xem thay đổi của đề xuất AI; khi có thì thay trang viết và khoá sửa. */
+  diffPreview?: React.ReactNode;
   registerSetPanelStage?: (
     fn:
       | ((
@@ -113,6 +115,12 @@ const SHEET_CSS = `
 .gn-sheet .gn-caption, .gn-sheet .gn-sfx { display: grid; grid-template-columns: 11rem 1fr; margin-top: .5rem; }
 .gn-sheet .gn-caption::before, .gn-sheet .gn-sfx::before { content: attr(data-label); grid-column: 1; }
 .gn-sheet .gn-sfx { font-weight: 700; }
+.gn-sheet .gn-diff .ProseMirror { min-height: 0; }
+.gn-sheet .gn-diff .gn-character { float: none; width: auto; }
+.gn-sheet .gn-diff .gn-dialogue { margin-left: 4rem; }
+.gn-sheet .gn-diff .gn-parens { margin-left: 2rem; }
+.gn-sheet .gn-diff [data-diff='added'] { background: #dcfce7; box-shadow: inset 3px 0 #16a34a; }
+.gn-sheet .gn-diff [data-diff='removed'] { background: #fee2e2; box-shadow: inset 3px 0 #dc2626; text-decoration: line-through; color: #7f1d1d; }
 .gn-sheet .gn-ghost { color: #a8a29e; pointer-events: none; user-select: none; }
 `;
 
@@ -142,10 +150,11 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   onRewriteLineId,
   rewritingLineId,
   flowAiSlot,
+  diffPreview,
   registerSetPanelStage,
 }) => {
   const { t } = useTranslation('production');
-  const isReadOnly = !canEditScript || isChapterLocked;
+  const isReadOnly = !canEditScript || isChapterLocked || Boolean(diffPreview);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
@@ -667,7 +676,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                 )}
               </header>
             )}
-            <EditorContent editor={editor} />
+            {diffPreview}
+            <div className={diffPreview ? 'hidden' : undefined}>
+              <EditorContent editor={editor} />
+            </div>
             <BibleRefFloatingMenu
               editor={editor}
               allBibleEntries={allBibleEntries || []}

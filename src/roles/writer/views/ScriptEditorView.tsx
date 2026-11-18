@@ -93,6 +93,7 @@ import { normalizeWorkspaceRole } from '@/types/auth';
 import { AiAssistPanel } from '@/shared/features/ai-agents/AiAssistPanel';
 import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
 import { toAiReadingDirection } from '@/shared/features/ai-agents/aiViewUtils';
+import { ScriptDiffPreview } from '../components/script/flow/ScriptDiffPreview';
 import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
@@ -2342,6 +2343,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     Record<string, AiSuggestionDto>
   >({});
   const [lineCopilotErrors, setLineCopilotErrors] = useState<Record<string, string>>({});
+  const [aiScriptPreview, setAiScriptPreview] = useState<AiSuggestionDto | null>(null);
 
   useEffect(() => {
     setLineCopilotSuggestions({});
@@ -2440,6 +2442,19 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       (currentSceneDto?.pagesCount ?? 0) > 0
     );
   }, [selectedScene, currentSceneDto]);
+
+  const previewScenes =
+    chapterScenesDetail.length > 0 ? chapterScenesDetail : selectedScene ? [selectedScene] : [];
+  const pendingLineRewrite = activeCopilotLineId
+    ? lineCopilotSuggestions[activeCopilotLineId]
+    : null;
+  const scriptPreviewSuggestion =
+    aiScriptPreview ?? (pendingLineRewrite?.status === 'Pending' ? pendingLineRewrite : null);
+  const scriptPreviewScene = previewScenes.find((s) =>
+    aiScriptPreview
+      ? s.id === aiScriptPreview.sceneId
+      : s.scriptLines?.some((l) => l.id === activeCopilotLineId),
+  );
 
   const aiNameById = Object.fromEntries(
     allBibleEntries.map((e) => [e.id, getBibleEntryNameWithStage(e)]),
@@ -2865,6 +2880,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 canEditScript && !isChapterLocked ? handleRewriteLineById : undefined
               }
               rewritingLineId={rewritingLineId}
+              diffPreview={
+                scriptPreviewSuggestion && scriptPreviewScene ? (
+                  <ScriptDiffPreview
+                    suggestion={scriptPreviewSuggestion}
+                    scene={scriptPreviewScene}
+                    nameById={aiNameById}
+                  />
+                ) : undefined
+              }
               flowAiSlot={
                 activeCopilotLineId &&
                 (lineCopilotErrors[activeCopilotLineId] ||
@@ -3209,6 +3233,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           nameById={aiNameById}
           onClose={() => setActiveRightDrawer(null)}
           onReload={handleAiReload}
+          onScriptPreview={setAiScriptPreview}
         />
       )}
 

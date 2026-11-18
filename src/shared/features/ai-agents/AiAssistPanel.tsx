@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, ChevronDown, ChevronRight, Loader2, Lock, Sparkles, X } from 'lucide-react';
 import {
@@ -46,6 +46,8 @@ interface Props {
   onClose: () => void;
   /** Tải lại dữ liệu của màn làm việc (working copy + expectedRevisionId + versionVector) sau Accept hoặc khi bị 409. */
   onReload: (acceptedKind?: AiSuggestionKind) => void | Promise<void>;
+  /** Báo đề xuất Script đang chờ để màn hình hiện thay đổi trên trang script. */
+  onScriptPreview?: (suggestion: AiSuggestionDto | null) => void;
 }
 
 interface UiError {
@@ -193,6 +195,7 @@ export const AiAssistPanel: React.FC<Props> = ({
   panelIds,
   onClose,
   onReload,
+  onScriptPreview,
 }) => {
   const [availability, setAvailability] = useState<AiWorkflowAvailability | null>(null);
   const [loadingAvail, setLoadingAvail] = useState(true);
@@ -417,6 +420,15 @@ export const AiAssistPanel: React.FC<Props> = ({
   const continuityStep = latestStep(steps, 'Continuity');
   const storyboardStep = latestStep(steps, 'Storyboard');
   const suggestions = (run?.suggestions ?? []).filter((s) => s.kind === suggestionKind);
+  const pendingScript =
+    suggestions.find((s) => s.kind === 'Script' && s.status === 'Pending') ?? null;
+  const pendingScriptId = pendingScript?.id;
+  const pendingScriptRef = useRef(pendingScript);
+  pendingScriptRef.current = pendingScript;
+  useEffect(() => {
+    onScriptPreview?.(pendingScriptRef.current);
+    return () => onScriptPreview?.(null);
+  }, [pendingScriptId, onScriptPreview]);
   const latestSuggestion = useMemo(
     () =>
       [...suggestions].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ??
