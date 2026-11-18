@@ -80,7 +80,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
 
     // Drawer opens and switches to Script
     const drawer = screen.getByTestId('canva-secondary-drawer');
-    expect(drawer).toHaveClass('w-[330px]');
+    expect(drawer).toHaveStyle({ width: '400px' });
     expect(screen.getByTestId('canva-drawer-script')).toBeInTheDocument();
     expect(screen.getByText('Phân cảnh 1: Cổng Thành Phía Nam')).toBeInTheDocument();
     expect(screen.getByText('NGOẠI · CỔNG THÀNH · SÁNG')).toBeInTheDocument();
@@ -196,7 +196,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(sidebar).toHaveAttribute('data-sb-theme', 'paper');
   });
 
-  it('renders script in continuous manuscript flow by page and panel for reference without box cards', () => {
+  it('defaults the script reader to the current page and can search the whole chapter', () => {
     renderWithRouter(
       <ArtistCanvaSidebar
         pages={MOCK_PAGES}
@@ -215,13 +215,17 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
 
     // Verify continuous manuscript container
     expect(screen.getByTestId('canva-script-manuscript-flow')).toBeInTheDocument();
-    expect(screen.getByText(/── TRANG 1 ──/i)).toBeInTheDocument();
+    expect(screen.getByTestId('canva-script-mode-current-page')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.getByTestId('script-panel-section-1-1')).toBeInTheDocument();
 
-    // Search filter in script
+    // Search filter across the chapter after opting into the all-chapter mode.
+    fireEvent.click(screen.getByTestId('canva-script-mode-all'));
     const searchInput = screen.getByTestId('canva-input-search-script');
     fireEvent.change(searchInput, { target: { value: 'Hắc Long' } });
-    expect(screen.getByText(/Thanh Hà/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Thanh Hà/i).length).toBeGreaterThan(0);
   });
 
   it('renders series bible with reference image and turnaround visual notes', () => {
@@ -308,8 +312,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(handleClearTemplate).toHaveBeenCalledTimes(1);
   });
 
-  it('renders locked layout banner when isLayoutLocked=true and triggers onUnlockLayout', () => {
-    const handleUnlock = vi.fn();
+  it('allows selecting another template when the page already has panels', () => {
     const handleSelectTemplate = vi.fn();
 
     renderWithRouter(
@@ -324,9 +327,6 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onToggleVisibility={vi.fn()}
         activeTemplateId='f0000000-0000-0000-0000-000000000004'
         hasPagePanels={true}
-        isLayoutLocked={true}
-        hasPageArtwork={true}
-        onUnlockLayout={handleUnlock}
         onSelectTemplate={handleSelectTemplate}
       />,
     );
@@ -335,10 +335,11 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     // Status banner is removed to keep template drawer clean
     expect(screen.queryByTestId('canva-layout-locked-banner')).not.toBeInTheDocument();
 
-    // Clicking a different template card when locked with artwork triggers unlock prompt rather than directly switching
+    // Existing panels never block choosing another template.
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
-    expect(handleUnlock).toHaveBeenCalledTimes(1);
-    expect(handleSelectTemplate).not.toHaveBeenCalled();
+    expect(handleSelectTemplate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'f0000000-0000-0000-0000-00000000000c' }),
+    );
   });
 
   it('renders Sidetab Changes (Tab 5) with badge counter, filters, and resolve actions', () => {

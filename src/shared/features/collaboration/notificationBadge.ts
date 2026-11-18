@@ -9,6 +9,9 @@ import {
   MessageSquare,
   type LucideIcon,
 } from 'lucide-react';
+import type { NotificationDto } from '@/types';
+import { chapterService } from '@/services/chapter.service';
+import { seriesService } from '@/services/series.service';
 
 export interface NotificationBadgeConfig {
   icon: LucideIcon;
@@ -116,3 +119,69 @@ export const getNotificationBadge = (type: string): NotificationBadgeConfig => {
       };
   }
 };
+
+/**
+ * Xác định đường dẫn điều hướng khi người dùng bấm vào một thông báo:
+ * - Thông báo Lưới V3 (`assignmentId == null`, có `chapterId`): mở thẳng Lưới V3 của chương (`.../workspace?chapterId=...&board=grid-v3`),
+ *   tuyệt đối không điều hướng sang trang Assignment V2 với id null.
+ * - Thông báo Assignment V2 (có `assignmentId` + `chapterId`): mở `.../my-work?chapterId=...&assignmentId=...`.
+ * - Tự động tra cứu `seriesId` / `workspaceId` qua `chapterService` / `seriesService` khi người dùng đang đứng ngoài màn Series.
+ */
+export async function resolveNotificationTargetPath(
+  n: NotificationDto,
+  ctx?: { workspaceId?: string; seriesId?: string },
+): Promise<string | null> {
+  if (!n.chapterId) return null;
+
+  let resolvedWsId = ctx?.workspaceId || undefined;
+  let resolvedSeriesId = ctx?.seriesId || undefined;
+
+  if (!resolvedWsId) {
+    try {
+      const savedWs = localStorage.getItem('activeWorkspace');
+      const parsed = savedWs ? JSON.parse(savedWs) : null;
+      if (parsed?.id && typeof parsed.id === 'string') {
+        resolvedWsId = parsed.id;
+      }
+    } catch {
+      // ignore malformed storage
+    }
+  }
+
+  if (!resolvedSeriesId) {
+    const chap = await chapterService.getChapterById(n.chapterId).catch(() => null);
+    if (chap?.seriesId) {
+      resolvedSeriesId = chap.seriesId;
+    }
+  }
+
+  if (resolvedSeriesId && !resolvedWsId) {
+    const ser = await seriesService.getSeriesById(resolvedSeriesId).catch(() => null);
+    if (ser?.workspaceId) {
+      resolvedWsId = ser.workspaceId;
+    }
+  }
+
+  if (!resolvedWsId || !resolvedSeriesId) {
+    return resolvedWsId ? `/workspaces/${resolvedWsId}/overview` : null;
+  }
+
+  if (
+    n.type === 'ChapterReadyForPublication' ||
+    n.type === 'ChapterReopened' ||
+    n.type === 'ChapterPublished'
+  ) {
+    return `/workspaces/${resolvedWsId}/series/${resolvedSeriesId}/publishing`;
+  }
+
+  if (!n.assignmentId) {
+    const query = new URLSearchParams({ chapterId: n.chapterId, board: 'grid-v3' });
+    return `/workspaces/${resolvedWsId}/series/${resolvedSeriesId}/workspace?${query.toString()}`;
+  }
+
+  const query = new URLSearchParams({
+    chapterId: n.chapterId,
+    assignmentId: n.assignmentId,
+  });
+  return `/workspaces/${resolvedWsId}/series/${resolvedSeriesId}/my-work?${query.toString()}`;
+}

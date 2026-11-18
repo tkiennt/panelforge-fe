@@ -21,7 +21,7 @@ Frontend ↔ Backend coordination follows `.agents/CODEBASE_MAP.md` and Backend 
 - **Kế hoạch triển khai (Plans):** `../panelforge-hub/docs/note/PANELFORGE_V2_6_IMPLEMENTATION_PLAN.md` và `../panelforge-hub/docs/note/plans/`. Không tạo hay lưu file plan trong repo này.
 - **Quy chuẩn thiết kế UI/UX:** `../panelforge-hub/docs/spec/DESIGN_RULES.md`.
 - **Thuật ngữ & State Machines:** `../panelforge-hub/docs/standards/`.
-- **Team Workboard:** `../panelforge-hub/docs/tracking/TEAM_WORKBOARD.md`. Trước khi code: kéo nhánh mới từ `trungkien`, ghi nhận task. Khi hoàn tất: cập nhật trạng thái "Đã xong" và thông tin thay đổi API/DB cần lưu ý cho nhóm.
+- **Team Workboard:** `../panelforge-hub/docs/tracking/TEAM_WORKBOARD.md`. Trước khi code: kéo nhánh mới từ `{work-branch}`, ghi nhận task. Khi hoàn tất: cập nhật trạng thái "Đã xong" và thông tin thay đổi API/DB cần lưu ý cho nhóm.
 ## PanelForge Agent Rules
 
 1. Read existing implementation before writing code.
@@ -62,10 +62,10 @@ A lower level never overrides a higher one. Ponytail must never override a manda
 | API contract with backend | `api-and-interface-design`, `panelforge-architecture`, `panelforge-cqrs`, `panelforge-business-rules` |
 | Versioning / provenance / canvas persistence | `panelforge-event-sourcing`, `panelforge-business-rules` |
 | Security | `security-and-hardening`, `panelforge-security` |
-| Frontend | `frontend-ui-engineering`, `incremental-implementation` |
+| Frontend | `modern-web-guidance` (first), `frontend-ui-engineering`, `incremental-implementation` |
 | Testing | `test-driven-development`, `browser-testing-with-devtools`, `panelforge-tooling` |
 | Debugging | `debugging-and-error-recovery` |
-| Performance | `performance-optimization` |
+| Performance | `modern-web-guidance` (CWV guides), `performance-optimization` |
 | Review | `code-review-and-quality`, `code-simplification`, Ponytail review (`/ponytail-review`) |
 | CI/CD | `git-workflow-and-versioning`, `ci-cd-and-automation` |
 
@@ -90,6 +90,22 @@ MCP servers configured for this machine (Claude Code user scope): `playwright` (
 - **`ci-cd-and-automation` examples (Vercel, Prisma)**: adapt to the existing `.github/workflows`; do not add deploy targets without asking.
 - **`.agents/skills/ponytail/`** (`SKILL.md` full skill, `ponytail.md` short Antigravity ruleset) and the Claude Ponytail plugin describe the same philosophy; the precedence above applies to both.
 
+## Modern Web Guidance (bắt buộc cho HTML/CSS/JS phía client)
+
+Skill `.claude/skills/modern-web-guidance/` là bản sao offline, cố định commit, của [GoogleChrome/modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance) (210 guide, Apache-2.0).
+
+- **Khi nào:** trước khi viết/sửa UI, CSS layout/animation, hoặc JS phía client (modal, drawer, popover/dropdown, tooltip, tabs, toast, form/validation, Enter-to-submit, bảng, cuộn, ảnh, Core Web Vitals, a11y, ngày giờ/locale, sanitize HTML). Không dùng cho test, tooling, i18n thuần, canvas Konva (trừ a11y/xuất ảnh).
+- **Cách:** Grep `INDEX.md` → đọc `guides/<category>/<id>.md` → áp dụng → ghi mục `### Modern Web Guidance` khi bàn giao. Không gọi `npx modern-web-guidance` trừ khi user cho phép.
+- **Mặc định bắt buộc** (đã rút từ guide, áp dụng cả khi chưa mở guide):
+  - Overlay chặn trang dùng `<dialog>` + `showModal()` qua primitive chung `shared/ui/Modal`/`Drawer`; không tự dựng `fixed inset-0` + `role="dialog"` mới (`dialog`, `prevent-page-scroll-under-modal-dialog`).
+  - Dropdown/menu/popover dùng Popover API (light-dismiss sẵn), không thêm listener `mousedown` "click outside" mới (`declarative-dialog-popover-control`, `menu`, `viewport-aware-dropdowns`).
+  - Mọi `onKeyDown` xử lý `Enter` phải bỏ qua khi `e.nativeEvent.isComposing` — người dùng gõ tiếng Việt bằng bộ gõ IME (`ime-safe-enter-submit`).
+  - Ngày/số định dạng bằng `Intl` theo ngôn ngữ i18n hiện hành, không ghi cứng `'vi-VN'`.
+  - `<img>` có `width`/`height` (hoặc `aspect-ratio`) và `loading="lazy"` khi dưới màn đầu; ảnh LCP dùng `fetchPriority="high"` (`optimize-image-priority`).
+- **Chính sách trình duyệt:** Baseline Widely available dùng tự do; Newly available cần feature detection + fallback ≤ 20 dòng, không thêm dependency; Limited availability chỉ làm progressive enhancement.
+- **Thứ bậc:** đứng ở mức 5 trong "Precedence" (cùng upstream skills): không được ghi đè BR, bảo mật, kiến trúc hiện có, `DESIGN_RULES.md`.
+- **Kế hoạch refactor theo guide:** `../panelforge-hub/docs/note/plans/09_MODERN_WEB_PLAN.md` (prefix `MWG`).
+
 ## Ponytail
 
 Installed as a Claude Code plugin at project scope (`.claude/settings.json`, marketplace pinned to `v4.10.0`). Default mode is **lite** (`PONYTAIL_DEFAULT_MODE=lite`). Do not switch the project default to `full` or `ultra`.
@@ -99,30 +115,27 @@ Installed as a Claude Code plugin at project scope (`.claude/settings.json`, mar
 - `.claude/skills/` – 16 upstream skills (addyosmani/agent-skills, MIT) + 6 `panelforge-*` skills. Upstream copies are unmodified; to update, re-copy from https://github.com/addyosmani/agent-skills (`skills/<name>`); a local clone lives in `../../Backend/PanelForge_FA26SE251/agent-tools/agent-skills` (git-ignored).
 - `.claude/references/` – checklists referenced by upstream skills as `../../references/*.md`.
 - `.claude/settings.json` – shared: Ponytail plugin, `PONYTAIL_DEFAULT_MODE`, deny rules for reading secret files.
+- `.claude/skills/modern-web-guidance/` – offline Modern Web Guidance (Google Chrome, Apache-2.0); `guides/` unmodified, pinned commit and update steps in `SOURCE.md`.
 - `.agents/skills/` – existing skills used by the Antigravity agent; left unchanged.
+- `.agents/rules/modern-web.md` – always-on rule pointing Antigravity to the same guidance.
 
 ## Git workflow (bắt buộc cho AI Agents)
 
-- **Nhánh làm việc:** chỉ commit/push lên nhánh `feature/<tên-tính-năng>` (vd. `feature/publisher-monetization`). Chưa có nhánh phù hợp → tạo mới từ nhánh feature hiện tại, hỏi người dùng nếu không rõ tên.
-- **Lấy code mới:** `git fetch origin` rồi `git merge origin/trungkien` vào nhánh feature đang làm. Không pull/merge trực tiếp trên nhánh `trungkien`.
-- **Không tác động `trungkien` (và `main`):** không checkout để sửa, không commit, không push, không rebase, không force-push lên các nhánh này.
-- **Trước khi merge:** working tree phải sạch; nếu còn thay đổi thì commit lên nhánh feature (hoặc `git stash` rồi `stash pop` sau merge).
+- **Nhánh làm việc: `{work-branch}`** — nhánh do người code trên máy này chọn (mỗi người push nhánh riêng), lưu ở `git config --local panelforge.workBranch` (chỉ trên máy này, không commit). Đầu phiên chạy `git config --local --get panelforge.workBranch`: có giá trị → dùng, không hỏi lại; trống → hỏi người dùng tên nhánh rồi lưu bằng `powershell -File ../panelforge-hub/.agents/scripts/work_branch.ps1 -Action set -Branch <tên>`; repo đang ở nhánh khác → hỏi trước khi checkout. Không commit/push lên `main` hay nhánh của người khác; không tạo nhánh `feature/*` để làm việc thường ngày.
+- **Một agent:** làm trực tiếp trên `{work-branch}` trong repo chính (`git checkout {work-branch}`), không tạo worktree.
+- **Nhiều agent song song (multi-agent / subagent / session song song):** mỗi agent làm trong **git worktree riêng**, tách nhánh con từ `{work-branch}`:
+  - `git worktree add ../.worktrees/<repo>-<task> -b {work-branch}-<task> {work-branch}`
+  - Mỗi agent chỉ sửa file thuộc task của mình; hai agent không được sửa cùng file.
+  - Không agent nào sửa trực tiếp working tree chính khi agent khác đang chạy.
+  - Khi xong: commit trong worktree → `git checkout {work-branch} && git merge --no-ff {work-branch}-<task>` → giải quyết conflict, build → `git worktree remove <path>` và `git branch -d {work-branch}-<task>`. Không push nhánh `{work-branch}-<task>` lên remote.
+- **Lấy code mới:** khi working tree sạch, `git pull origin {work-branch}` (còn thay đổi thì commit hoặc `git stash` rồi `stash pop` sau khi pull).
+- **Push:** chỉ `git push origin {work-branch}` khi hoàn thành 1 module lớn hoặc khi user yêu cầu trực tiếp. Không push sau mỗi prompt/commit nhỏ.
+- Không force-push, không rebase lại lịch sử đã push trên `{work-branch}`.
 - **Conflict:** giữ thay đổi của cả hai bên khi không loại trừ nhau; với `*ModelSnapshot.cs` của EF, sau khi gộp phải kiểm tra bằng `dotnet ef migrations add` thử (phải ra migration rỗng). Build/test trước khi commit merge.
-- **Commit message:** theo Conventional Commits (`panelforge-hubs/web/public/docs/note/GIT_COMMIT_CONVENTION.md`): `<type>(<scope>): <mô tả>` — type ∈ feat|fix|docs|style|refactor|perf|test|chore; header ≤ 72 ký tự, động từ mệnh lệnh, viết thường, không dấu chấm cuối; body giải thích *why/how*, trích mã BR-xx nếu có. Merge commit: `chore(merge): sync trungkien into feature/<tên>`.
+- **Commit message:** theo Conventional Commits (`panelforge-hubs/web/public/docs/note/GIT_COMMIT_CONVENTION.md`): `<type>(<scope>): <mô tả>` — type ∈ feat|fix|docs|style|refactor|perf|test|chore; header ≤ 72 ký tự, động từ mệnh lệnh, viết thường, không dấu chấm cuối; body giải thích *why/how*, trích mã BR-xx nếu có. Merge commit: `chore(merge): sync origin/{work-branch} into {work-branch}`.
 - Không dùng `--no-verify`, không `push --force` lên nhánh dùng chung.
 - **Sau khi sửa code, cập nhật `panelforge-hubs` (nhánh `main`) và push:**
   1. `git -C ../panelforge-hubs pull --ff-only origin main`.
-  2. Thêm một dòng lên đầu §3 "Đã xong" của `docs/tracking/TEAM_WORKBOARD.md` (ngày, người, repo BE/FE, việc, commit hash + nhánh feature, ảnh hưởng API/DB/enum); xoá dòng của mình ở §2 nếu có.
+  2. Thêm một dòng lên đầu §3 "Đã xong" của `docs/tracking/TEAM_WORKBOARD.md` (ngày, người, repo BE/FE, việc, commit hash trên `{work-branch}`, ảnh hưởng API/DB/enum); xoá dòng của mình ở §2 nếu có.
   3. Chạy `node scripts/sync-hub.mjs` để đồng bộ `hub-state.json`, `AUDIT_LOGS.md` và `web/public/docs`.
   4. Commit `docs(tracker): <việc ngắn gọn>` rồi `git push origin main` trong `panelforge-hubs`. Đây là ngoại lệ được phép cho quy tắc "không push sau mỗi lần làm" của hub.
-
-## Git Branch & Multi-Agent Workflow (THBMinh)
-
-- **Nhánh làm việc chính: `THBMinh`** (có ở cả BE `PanelForge_FA26SE251` và FE `panelforge-fe`). Mọi thay đổi đều đi vào `THBMinh`; không commit/push thẳng lên `main`.
-- **Một agent**: làm việc trực tiếp trên `THBMinh` (`git checkout THBMinh`).
-- **Nhiều agent (multi-agent / subagent / session song song)**: mỗi agent làm việc **tách biệt trong git worktree riêng**, tách nhánh con từ `THBMinh`:
-  - `git worktree add ../.worktrees/<repo>-<task> -b THBMinh-<task> THBMinh`
-  - Mỗi agent chỉ sửa file thuộc task của mình; hai agent không được sửa cùng file.
-  - Không agent nào sửa trực tiếp working tree chính khi agent khác đang chạy.
-- **Khi hoàn thành**: commit trong worktree → merge vào `THBMinh` (`git checkout THBMinh && git merge --no-ff THBMinh-<task>`), giải quyết conflict, chạy build/test, rồi `git push origin THBMinh`. Sau đó dọn dẹp: `git worktree remove <path>` và `git branch -d THBMinh-<task>`.
-- Không force-push, không rebase lại lịch sử đã push trên `THBMinh`.

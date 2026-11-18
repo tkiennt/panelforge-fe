@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   Users,
@@ -24,6 +23,7 @@ import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
 import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/lucian/lucian-285.css';
+import { Modal } from '@/shared/ui';
 
 export interface SeriesMembersModalProps {
   isOpen: boolean;
@@ -146,8 +146,6 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
     message: string;
   } | null>(null);
 
-  const cardRef = useRef<HTMLDivElement>(null);
-
   const loadData = async () => {
     if (!seriesId) return;
     setLoading(true);
@@ -185,18 +183,6 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       setStatusAlert(null);
     }
   }, [isOpen, seriesId, workspaceId]);
-
-  // Keyboard escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   // Danh sách ứng viên Talent Pool (Producer luôn mặc định trong Series nên không xuất hiện ở cột ứng viên)
   const availableWorkspaceMembers = useMemo(() => {
@@ -289,17 +275,26 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       setStatusAlert({
         type: 'success',
         title: t('members.alerts.addSuccessTitle', 'Bổ sung thành viên thành công'),
-        message: t('members.alerts.addSuccessMsg', { name: memberName, seriesTitle }, `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`),
+        message: t(
+          'members.alerts.addSuccessMsg',
+          { name: memberName, seriesTitle },
+          `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`,
+        ),
       });
 
       toast.success(
         t('members.alerts.addSuccessTitle', 'Bổ sung thành viên thành công'),
-        t('members.alerts.addSuccessMsg', { name: memberName, seriesTitle }, `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`),
+        t(
+          'members.alerts.addSuccessMsg',
+          { name: memberName, seriesTitle },
+          `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`,
+        ),
       );
       await loadData();
       onMembersChanged?.();
     } catch (err: any) {
-      const errorMsg = err.message || t('members.alerts.addErrorTitle', 'Không thể thêm thành viên');
+      const errorMsg =
+        err.message || t('members.alerts.addErrorTitle', 'Không thể thêm thành viên');
       setStatusAlert({
         type: 'danger',
         title: t('members.alerts.addErrorTitle', 'Không thể thêm thành viên'),
@@ -318,11 +313,17 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       setStatusAlert({
         type: 'warning',
         title: t('members.alerts.cannotRemoveProducerTitle', 'Không thể xóa thành viên'),
-        message: t('members.alerts.cannotRemoveProducerMsg', 'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.'),
+        message: t(
+          'members.alerts.cannotRemoveProducerMsg',
+          'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
+        ),
       });
       toast.warning(
         t('members.alerts.cannotRemoveProducerTitle', 'Không thể xóa thành viên'),
-        t('members.alerts.cannotRemoveProducerMsg', 'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.'),
+        t(
+          'members.alerts.cannotRemoveProducerMsg',
+          'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
+        ),
       );
       return;
     }
@@ -331,7 +332,11 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 
     const confirmed = await confirm({
       title: t('members.confirms.removeMemberTitle', 'Xóa thành viên?'),
-      description: t('members.confirms.removeMemberDesc', { name: memberName, seriesTitle }, `Bạn có chắc muốn xóa "${memberName}" khỏi bộ truyện "${seriesTitle}"?`),
+      description: t(
+        'members.confirms.removeMemberDesc',
+        { name: memberName, seriesTitle },
+        `Bạn có chắc muốn xóa "${memberName}" khỏi bộ truyện "${seriesTitle}"?`,
+      ),
       confirmText: t('members.confirms.confirmRemoveBtn', 'Xóa thành viên'),
       cancelText: t('members.confirms.cancelBtn', 'Hủy'),
       variant: 'danger',
@@ -344,17 +349,31 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       await seriesService.removeSeriesMember(workspaceId, seriesId, member.userId);
       setStatusAlert({
         type: 'info',
-        title: t('members.alerts.removeSuccessTitle', { seriesTitle }, `Đã xóa thành viên khỏi "${seriesTitle}"`),
-        message: t('members.alerts.removeSuccessMsg', { name: memberName, seriesTitle }, `"${memberName}" đã được xóa khỏi "${seriesTitle}".`),
+        title: t(
+          'members.alerts.removeSuccessTitle',
+          { seriesTitle },
+          `Đã xóa thành viên khỏi "${seriesTitle}"`,
+        ),
+        message: t(
+          'members.alerts.removeSuccessMsg',
+          { name: memberName, seriesTitle },
+          `"${memberName}" đã được xóa khỏi "${seriesTitle}".`,
+        ),
       });
       toast.success(
         t('members.alerts.updateRoleSuccessTitle', 'Đã cập nhật danh sách'),
-        t('members.alerts.removeSuccessMsg', { name: memberName, seriesTitle }, `"${memberName}" đã được xóa khỏi "${seriesTitle}".`),
+        t(
+          'members.alerts.removeSuccessMsg',
+          { name: memberName, seriesTitle },
+          `"${memberName}" đã được xóa khỏi "${seriesTitle}".`,
+        ),
       );
       await loadData();
       onMembersChanged?.();
     } catch (err: any) {
-      const errorMsg = err.message || t('members.alerts.removeErrorTitle', 'Không thể xóa thành viên khỏi bộ truyện');
+      const errorMsg =
+        err.message ||
+        t('members.alerts.removeErrorTitle', 'Không thể xóa thành viên khỏi bộ truyện');
       setStatusAlert({
         type: 'danger',
         title: t('members.alerts.removeErrorTitle', 'Thao tác không thành công'),
@@ -368,21 +387,16 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 
   if (!isOpen) return null;
 
-  const modalContent = (
-    <div
-      className='u285-modal-overlay !z-[100] fixed inset-0 flex items-center justify-center p-4 sm:p-6'
-      role='dialog'
-      aria-modal='true'
-      aria-labelledby='series-members-modal-title'
-      aria-describedby='series-members-modal-desc'
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='full'
+      title={t('members.modal.title', 'Đội ngũ sản xuất Series')}
+      description={t('members.modal.seriesSubtitle', { seriesTitle }, `Bộ truyện: ${seriesTitle}`)}
+      closeLabel='Đóng modal'
     >
-      <div
-        ref={cardRef}
-        className='u285-modal-card w-full max-w-5xl xl:max-w-6xl max-h-[88vh] shadow-2xl flex flex-col'
-      >
+      <div className='u285-modal-card w-full max-w-5xl xl:max-w-6xl max-h-[88vh] shadow-2xl flex flex-col'>
         {/* Header - Chuẩn Lucian với không gian rộng rãi */}
         <div className='p-4 sm:px-6 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between shrink-0'>
           <div className='flex items-center gap-3'>
@@ -901,8 +915,6 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
-
-  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

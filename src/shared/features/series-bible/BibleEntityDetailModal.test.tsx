@@ -56,10 +56,11 @@ describe('BibleEntityDetailModal UX/UI', () => {
       summary: 'Cập nhật trang phục',
       snapshotJson: '{}',
       contentHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      effectiveFromChapterNumber: 5,
+      variantLabel: 'Mặc định',
       isInitialVersion: false,
       createdAt: '2026-10-15T08:30:00Z',
       isLocked: true,
+      reviewStatus: 'CanonLocked',
       lockedAt: '2026-10-15T08:30:00Z',
     },
   };
@@ -106,31 +107,44 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(allHeadings.length).toBe(1);
   });
 
-  it('displays Canon locked banner with chapter and approval date, without BR-18 code', () => {
+  it('displays Canon locked banner with approval date and no chapter range', () => {
     render(<BibleEntityDetailModal {...defaultProps} />);
 
     expect(screen.getByText(/Đã khóa chuẩn/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Ch\.\s*5\s*→\s*hết/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/Ch\.\s*5\s*→\s*hết/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Đã duyệt/i)).toBeInTheDocument();
 
     // Must NOT contain internal code BR-18
     expect(screen.queryByText(/BR-18/i)).not.toBeInTheDocument();
   });
 
-  it('displays stageName alongside chapter range if provided in revision', () => {
-    const rawWithStage: BibleEntryDto = {
+  it('displays the variant label without a chapter range', () => {
+    const rawWithVariant: BibleEntryDto = {
       ...mockRawEntry,
       effectiveRevision: {
         ...mockRawEntry.effectiveRevision!,
-        stageName: 'Lúc nhỏ',
-        effectiveFromChapterNumber: 1,
-        effectiveToChapterNumber: 19,
+        variantLabel: 'Lúc nhỏ',
       },
     };
 
-    render(<BibleEntityDetailModal {...defaultProps} rawEntry={rawWithStage} />);
+    render(<BibleEntityDetailModal {...defaultProps} rawEntry={rawWithVariant} />);
 
-    expect(screen.getAllByText(/Lúc nhỏ\s*·\s*Ch\.1–19/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Lúc nhỏ').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/Ch\.1–19/i)).not.toBeInTheDocument();
+  });
+
+  it('shows a pending draft badge without replacing canon entry data', () => {
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        entity={{ ...mockEntityWithImage, latestDraftVersionNumber: 4 }}
+        rawEntry={{ ...mockRawEntry, latestDraftVersionNumber: 4 }}
+      />,
+    );
+
+    expect(screen.getByTestId('pending-draft-badge-detail')).toHaveTextContent('Có bản nháp v4');
+    expect(screen.getByText(mockEntityWithImage.description)).toBeInTheDocument();
+    expect(screen.getByTestId('auth-image')).toBeInTheDocument();
   });
 
   it('allows Writer/Artist to create drafts via canCreateDraft prop', () => {
@@ -226,7 +240,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.getByText('Tần Mục - Góc nghiêng (Side)')).toBeInTheDocument();
   });
 
-  it('deduplicates revisions of the same chapter milestone and uses explicit stageName without displaying twice', () => {
+  it('deduplicates revisions with the same variant label', () => {
     const rawWithMultiRev: BibleEntryDto = {
       ...mockRawEntry,
       effectiveRevision: {
@@ -234,10 +248,9 @@ describe('BibleEntityDetailModal UX/UI', () => {
         bibleEntryId: 'ent-1',
         versionNumber: 2,
         summary: 'Đặt tên giai đoạn',
-        stageName: 'Lúc nhỏ',
+        variantLabel: 'Lúc nhỏ',
         snapshotJson: '{}',
         contentHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-        effectiveFromChapterNumber: 1,
         isInitialVersion: false,
         createdAt: '2026-10-15T09:00:00Z',
       },
@@ -245,42 +258,36 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     render(<BibleEntityDetailModal {...defaultProps} rawEntry={rawWithMultiRev} />);
 
-    // Era selector should have ONE stage tab for Chapter 1 with stageName 'Lúc nhỏ'
-    const eraSelector = screen.getByTestId('era-stages-selector');
-    expect(eraSelector).toBeInTheDocument();
+    const variantSelector = screen.getByTestId('variant-selector');
+    expect(variantSelector).toBeInTheDocument();
     expect(screen.getAllByText('Lúc nhỏ').length).toBeGreaterThanOrEqual(1);
     // Must not duplicate with fallback 'Giai đoạn khởi đầu'
     expect(screen.queryByText('Giai đoạn khởi đầu')).not.toBeInTheDocument();
   });
-  it('disables rework button and marks endorse button as endorsed when revision is WriterEndorsed (Bug 5)', () => {
-    const rawWithEndorsed: BibleEntryDto = {
+  it('disables rework button when revision is CanonLocked', () => {
+    const rawWithLocked: BibleEntryDto = {
       ...mockRawEntry,
       effectiveRevision: {
-        id: 'rev-endorsed',
+        id: 'rev-locked',
         bibleEntryId: 'ent-1',
         versionNumber: 2,
-        summary: 'Writer đã duyệt',
-        stageName: 'Giai đoạn chuẩn',
+        summary: 'Canon đã khoá',
+        variantLabel: 'Mặc định',
         snapshotJson: '{}',
         contentHash: 'abc',
-        effectiveFromChapterNumber: 1,
         isInitialVersion: false,
         createdAt: '2026-10-15T09:00:00Z',
-        reviewStatus: 'WriterEndorsed',
+        isLocked: true,
+        reviewStatus: 'CanonLocked',
         referenceImageUrl: 'https://example.com/sheet.png',
       },
     };
 
-    render(
-      <BibleEntityDetailModal {...defaultProps} rawEntry={rawWithEndorsed} canEndorse={true} />,
-    );
+    render(<BibleEntityDetailModal {...defaultProps} rawEntry={rawWithLocked} canEndorse={true} />);
 
     const reworkBtn = screen.getByTestId('detail-rework-btn');
     expect(reworkBtn).toBeDisabled();
-
-    const endorseBtn = screen.getByTestId('detail-endorse-btn');
-    expect(endorseBtn).toBeDisabled();
-    expect(screen.getByText('Đã duyệt thiết kế')).toBeInTheDocument();
+    expect(screen.getByText('Đã khoá Canon chính thức')).toBeInTheDocument();
   });
 
   it('renders correct category type badge in header for characters and locations (Bug 1)', () => {
@@ -309,7 +316,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       summary: 'Artist nộp concept mới',
       snapshotJson: '{}',
       contentHash: 'hash3',
-      effectiveFromChapterNumber: 1,
+      variantLabel: 'Mặc định',
       isInitialVersion: false,
       createdAt: '2026-10-29T10:00:00Z',
       reviewStatus: 'ConceptSubmitted' as const,
@@ -397,7 +404,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.queryByTestId('detail-lock-btn')).not.toBeInTheDocument();
   });
 
-  it('renders 3-column layout with Era Stages, Hero Artwork Canvas, and merged Version & Audit Trail', () => {
+  it('renders 3-column layout with variants, artwork, and audit history', () => {
     const rev1: BibleEntryRevisionDto = {
       id: 'rev-v1',
       bibleEntryId: mockEntityWithImage.id,
@@ -409,8 +416,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       isLocked: false,
       isInitialVersion: true,
       referenceImageUrl: '/api/series/ser-1/bible/assets/hash-v1',
-      stageName: 'Giai đoạn chuẩn',
-      effectiveFromChapterNumber: 1,
+      variantLabel: 'Mặc định',
       createdAt: '2026-10-01T00:00:00Z',
     };
 
@@ -425,8 +431,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       isLocked: false,
       isInitialVersion: false,
       referenceImageUrl: '/api/series/ser-1/bible/assets/hash-v2',
-      stageName: 'Giai đoạn chuẩn',
-      effectiveFromChapterNumber: 1,
+      variantLabel: 'Mặc định',
       createdAt: '2026-10-15T00:00:00Z',
     };
 
@@ -456,9 +461,9 @@ describe('BibleEntityDetailModal UX/UI', () => {
       />,
     );
 
-    // Column 1: Era stages selector
-    expect(screen.getByTestId('era-stages-selector')).toBeInTheDocument();
-    expect(screen.getByText('Thời kỳ & Giai đoạn')).toBeInTheDocument();
+    // Column 1: variant selector
+    expect(screen.getByTestId('variant-selector')).toBeInTheDocument();
+    expect(screen.getByText('Biến thể thiết kế')).toBeInTheDocument();
 
     // Column 2: Hero Artwork Canvas
     expect(screen.getByTestId('auth-image')).toBeInTheDocument();
@@ -476,7 +481,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       summary: 'Revision with events',
       snapshotJson: '{}',
       contentHash: 'hash-events-1234567890',
-      effectiveFromChapterNumber: 1,
+      variantLabel: 'Mặc định',
       isInitialVersion: false,
       createdAt: '2026-11-02T10:00:00Z',
       isLocked: false,
@@ -657,7 +662,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
   });
 
   describe('Khóa Canon & Duyệt thiết kế (2026-11-04 Handoff & Breaking changes)', () => {
-    it('chỉ hiển thị nút Khóa Canon khi revision là WriterEndorsed; ẩn khi Draft, ConceptSubmitted hoặc ReworkRequired', () => {
+    it('không cho Producer khoá Canon ở bất kỳ trạng thái duyệt nào', () => {
       const baseRev: BibleEntryRevisionDto = {
         id: 'rev-test-lock',
         bibleEntryId: mockEntityWithImage.id,
@@ -665,10 +670,9 @@ describe('BibleEntityDetailModal UX/UI', () => {
         summary: 'Bản vẽ',
         snapshotJson: '{}',
         contentHash: 'hash-test-lock-12345',
-        effectiveFromChapterNumber: 1,
+        variantLabel: 'Mặc định',
         isInitialVersion: true,
         createdAt: '2026-11-04T10:00:00Z',
-        isLocked: false,
         reviewStatus: 'Draft',
         referenceImageUrl: 'https://example.com/concept.png',
       };
@@ -726,19 +730,22 @@ describe('BibleEntityDetailModal UX/UI', () => {
       );
       expect(screen.queryByTestId('detail-lock-btn')).not.toBeInTheDocument();
 
-      // 4. Khi WriterEndorsed: hiển thị nút Khóa Canon
-      const endorsedRev: BibleEntryRevisionDto = { ...baseRev, reviewStatus: 'WriterEndorsed' };
+      // 4. Producer never sees confirm/lock per Q20/Q22
+      const conceptRevProducer: BibleEntryRevisionDto = {
+        ...baseRev,
+        reviewStatus: 'ConceptSubmitted',
+      };
       rerender(
         <BibleEntityDetailModal
           {...defaultProps}
           isProducer={true}
           entity={mockEntityWithImage}
-          rawEntry={makeEntry(endorsedRev)}
-          latestSavedRevision={endorsedRev}
+          rawEntry={makeEntry(conceptRevProducer)}
+          latestSavedRevision={conceptRevProducer}
         />,
       );
-      expect(screen.getByTestId('detail-lock-btn')).toBeInTheDocument();
-      expect(screen.getByTestId('detail-lock-btn')).toHaveTextContent('🔒 Khóa Canon');
+      expect(screen.queryByTestId('detail-lock-btn')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('detail-confirm-btn')).not.toBeInTheDocument();
     });
 
     it('vô hiệu hóa nút Duyệt thiết kế khi revision đang ReworkRequired', () => {
@@ -749,7 +756,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
         summary: 'Bản vẽ cần sửa',
         snapshotJson: '{}',
         contentHash: 'hash-rework-123',
-        effectiveFromChapterNumber: 1,
+        variantLabel: 'Mặc định',
         isInitialVersion: true,
         createdAt: '2026-11-04T10:00:00Z',
         isLocked: false,
@@ -775,6 +782,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       render(
         <BibleEntityDetailModal
           {...defaultProps}
+          isProducer={false}
           canEndorse={true}
           entity={mockEntityWithImage}
           rawEntry={reworkEntry}
@@ -782,9 +790,9 @@ describe('BibleEntityDetailModal UX/UI', () => {
         />,
       );
 
-      const endorseBtn = screen.getByTestId('detail-endorse-btn');
-      expect(endorseBtn).toBeDisabled();
-      expect(endorseBtn).toHaveAttribute(
+      const confirmBtn = screen.getByTestId('detail-confirm-btn');
+      expect(confirmBtn).toBeDisabled();
+      expect(confirmBtn).toHaveAttribute(
         'title',
         'Bản vẽ đang bị yêu cầu vẽ lại; cần Artist nộp lại concept trước khi duyệt',
       );

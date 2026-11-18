@@ -169,7 +169,7 @@ export const AttentionRiskCard: React.FC<AttentionRiskCardProps> = ({
               <OverdueItem
                 key={od.assignmentId}
                 tone='rose'
-                title={od.brief}
+                title={od.brief || 'Ô công việc trên Lưới V3'}
                 tag={od.status}
                 owner={od.assigneeName}
                 dueDate={od.dueDate}

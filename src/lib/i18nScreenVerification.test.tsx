@@ -105,7 +105,9 @@ describe('FE i18n VI <-> EN Language Switching Verification', () => {
 
       // CTA Buttons
       expect(screen.getByRole('button', { name: /Create Free Account/i })).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /Discover the production workflow/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: /Discover the production workflow/i }),
+      ).toBeInTheDocument();
 
       // Feature pillars
       expect(screen.getByText(/Structured Content/i)).toBeInTheDocument();
@@ -130,7 +132,8 @@ describe('FE i18n VI <-> EN Language Switching Verification', () => {
       const headerText = header?.textContent || '';
 
       // Check that typical Vietnamese accented characters do NOT exist in header
-      const vietnameseRegex = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
+      const vietnameseRegex =
+        /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
       expect(vietnameseRegex.test(headerText)).toBe(false);
     });
 
@@ -215,9 +218,15 @@ describe('FE i18n VI <-> EN Language Switching Verification', () => {
       expect(translate('review.diff.sideBySide', undefined, 'en')).toBe('Side-by-side');
       expect(translate('review.diff.slider', undefined, 'en')).toBe('Split Slider');
       expect(translate('review.diff.onionSkin', undefined, 'en')).toBe('Onion Skin');
-      expect(translate('review.chapterReview.stepper.editor', undefined, 'en')).toBe('Editor Review');
-      expect(translate('review.chapterReview.stepper.producer', undefined, 'en')).toBe('Producer Review');
-      expect(translate('review.chapterReview.stepper.publisher', undefined, 'en')).toBe('Publisher Release');
+      expect(translate('review.chapterReview.stepper.editor', undefined, 'en')).toBe(
+        'Editor Review',
+      );
+      expect(translate('review.chapterReview.stepper.producer', undefined, 'en')).toBe(
+        'Producer Review',
+      );
+      expect(translate('review.chapterReview.stepper.publisher', undefined, 'en')).toBe(
+        'Publisher Release',
+      );
     });
 
     it('provides proper English translations for Pipeline namespace', () => {
@@ -232,13 +241,15 @@ describe('FE i18n VI <-> EN Language Switching Verification', () => {
     });
 
     it('provides proper English translations for Bible namespace', () => {
-      expect(translate('bible.categories.all', undefined, 'en')).toBe('All Entries');
+      expect(translate('bible.categories.all', undefined, 'en')).toBe('All');
       expect(translate('bible.categories.character', undefined, 'en')).toBe('Character');
       expect(translate('bible.categories.location', undefined, 'en')).toBe('Location & Setting');
       expect(translate('bible.canonLock.badge', undefined, 'en')).toBe('Canon Locked');
       expect(translate('bible.canonLock.lockAction', undefined, 'en')).toBe('🔒 Lock Canon');
       expect(translate('bible.fields.name', undefined, 'en')).toBe('Name');
-      expect(translate('bible.fields.visualDescription', undefined, 'en')).toBe('Visual Description');
+      expect(translate('bible.fields.visualDescription', undefined, 'en')).toBe(
+        'Visual Description',
+      );
     });
   });
 });

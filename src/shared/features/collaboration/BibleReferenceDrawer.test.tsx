@@ -7,7 +7,7 @@ import { bibleService, BibleEntryDto } from '@/services/bible.service';
 vi.mock('@/services/bible.service', () => ({
   bibleService: {
     getPanelBible: vi.fn(),
-    getBibleEntriesAtChapter: vi.fn(),
+    getSeriesBible: vi.fn(),
   },
 }));
 
@@ -38,7 +38,7 @@ const mockPanelEntries: BibleEntryDto[] = [
       summary: 'Bản chuẩn',
       snapshotJson: '{}',
       contentHash: 'hash1',
-      effectiveFromChapterNumber: 1,
+      variantLabel: 'Mặc định',
       isInitialVersion: true,
       createdAt: '2026-10-01T00:00:00Z',
       isLocked: true,
@@ -70,7 +70,7 @@ const mockChapterEntries: BibleEntryDto[] = [
       summary: 'Nâng cấp trang phục diễn',
       snapshotJson: '{}',
       contentHash: 'hash2',
-      effectiveFromChapterNumber: 1,
+      variantLabel: 'Biểu diễn',
       isInitialVersion: false,
       createdAt: '2026-10-05T00:00:00Z',
       isLocked: true,
@@ -84,7 +84,14 @@ describe('BibleReferenceDrawer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(bibleService.getPanelBible).mockResolvedValue(mockPanelEntries);
-    vi.mocked(bibleService.getBibleEntriesAtChapter).mockResolvedValue(mockChapterEntries);
+    vi.mocked(bibleService.getSeriesBible).mockResolvedValue({
+      id: 'bible-123',
+      seriesId: 'series-123',
+      workspaceId: 'workspace-1',
+      name: 'Series Bible',
+      version: 1,
+      entries: mockChapterEntries,
+    });
   });
 
   it('does not render when isOpen is false', () => {
@@ -127,7 +134,7 @@ describe('BibleReferenceDrawer', () => {
     });
   });
 
-  it('switches to chapter canon mode and fetches canon entries with canonOnly=true', async () => {
+  it('switches to the full Series Bible mode', async () => {
     const user = userEvent.setup();
     render(
       <BibleReferenceDrawer
@@ -147,7 +154,7 @@ describe('BibleReferenceDrawer', () => {
     const chapterTab = screen.getByTestId('tab-chapter-bible');
     await user.click(chapterTab);
 
-    expect(bibleService.getBibleEntriesAtChapter).toHaveBeenCalledWith('series-123', 2, true);
+    expect(bibleService.getSeriesBible).toHaveBeenCalledWith('series-123');
 
     await waitFor(() => {
       expect(screen.getByText('Miku Hatsune')).toBeInTheDocument();

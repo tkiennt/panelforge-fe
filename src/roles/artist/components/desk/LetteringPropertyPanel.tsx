@@ -305,7 +305,12 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
               value={sizeDraft}
               onChange={(e) => setSizeDraft(e.target.value.replace(/[^0-9]/g, ''))}
               onBlur={commitSize}
-              onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
+                  (e.currentTarget as HTMLInputElement).blur();
+                }
+              }}
               className='w-12 h-8 text-center rounded-lg border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500'
             />
             <button

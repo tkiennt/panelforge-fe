@@ -45,6 +45,7 @@ import {
   Menu,
   Palette,
   CreditCard,
+  Download,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
@@ -90,14 +91,14 @@ const getRoleNavConfig = (
       section: t('navigation.sections.systemAdmin'),
       items: [
         { icon: LayoutDashboard, label: t('navigation.menu.systemDashboard'), href: '/admin' },
-        { icon: Users, label: t('navigation.menu.usersAndRoles'), href: '/users' },
+        { icon: Users, label: t('navigation.menu.usersAndRoles'), href: '/admin?tab=users' },
         {
           icon: Cpu,
           label: t('navigation.menu.aiQuota'),
-          href: '/ai-quota',
+          href: '/admin?tab=ai-config',
           badge: { type: 'dot', color: 'bg-emerald-500' },
         },
-        { icon: List, label: t('navigation.menu.auditLog'), href: '/audit-log' },
+        { icon: List, label: t('navigation.menu.auditLog'), href: '/admin?tab=audit' },
       ],
     },
   ],
@@ -134,6 +135,7 @@ const getRoleNavConfig = (
         { icon: FileText, label: 'B5 Pre-Press Specs', href: '/specs' },
         { icon: ShieldCheck, label: 'SHA-256 Provenance', href: '/sha' },
         { icon: Send, label: t('navigation.menu.publishingGate'), href: '/publishing' },
+        { icon: Download, label: t('navigation.menu.exportHandoff'), href: '/export' },
       ],
     },
   ],
@@ -310,6 +312,11 @@ export function AppShell({
                 href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
               },
               {
+                icon: Download,
+                label: t('navigation.menu.exportHandoff'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/export`,
+              },
+              {
                 icon: Eye,
                 label: t('navigation.menu.readerStats'),
                 href: `/workspaces/${workspaceId}/reader-stats`,
@@ -401,6 +408,20 @@ export function AppShell({
                       icon: Type,
                       label: t('navigation.menu.lettering'),
                       href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
+                    },
+                  ]
+                : []),
+              ...(effectiveRole === 'EDITOR'
+                ? [
+                    {
+                      icon: ShieldCheck,
+                      label: t('navigation.menu.reviewDesk'),
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk`,
+                    },
+                    {
+                      icon: Palette,
+                      label: t('navigation.menu.bibleReview'),
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/editor/bible`,
                     },
                   ]
                 : []),
@@ -583,12 +604,14 @@ export function AppShell({
 
   navSections.forEach((section) => {
     section.items.forEach((item: any) => {
+      // So theo pathname: href có thể mang query (vd. Quy trình sản xuất ?chapterId=...)
+      const itemPath = String(item.href).split('?')[0];
       const isMatch =
-        location.pathname === item.href ||
-        (item.href !== '/' && location.pathname.startsWith(`${item.href}/`));
-      if (isMatch && item.href.length > bestMatchLength) {
+        location.pathname === itemPath ||
+        (itemPath !== '/' && location.pathname.startsWith(`${itemPath}/`));
+      if (isMatch && itemPath.length > bestMatchLength) {
         bestMatch = item;
-        bestMatchLength = item.href.length;
+        bestMatchLength = itemPath.length;
       }
     });
   });
@@ -729,7 +752,10 @@ export function AppShell({
                   data-testid='back-to-workspaces-breadcrumb'
                   className='text-[#1C1917] hover:text-black cursor-pointer transition-all flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-[#FFF2E6] hover:shadow-2xs'
                   onClick={() => navigate('/workspaces')}
-                  title={t('navigation.header.backToWorkspaces', 'Quay lại danh sách Workspace (Workspaces Catalog)')}
+                  title={t(
+                    'navigation.header.backToWorkspaces',
+                    'Quay lại danh sách Workspace (Workspaces Catalog)',
+                  )}
                 >
                   <Briefcase className='w-3.5 h-3.5 text-[#57534E]' />
                   <span className='font-bold'>Workspaces</span>
@@ -793,7 +819,9 @@ export function AppShell({
                           data-testid='header-artist-breadcrumb'
                         >
                           <LayoutTemplate className='w-3.5 h-3.5 text-[#F97316]' />
-                          <span className='truncate'>{t('navigation.menu.desk', 'Bàn vẽ Khung tranh')}</span>
+                          <span className='truncate'>
+                            {t('navigation.menu.desk', 'Bàn vẽ Khung tranh')}
+                          </span>
                         </div>
                       </>
                     )}
@@ -841,7 +869,10 @@ export function AppShell({
                   }
                 }}
                 className='relative flex items-center text-left cursor-pointer group'
-                title={t('navigation.header.quickSearch', 'Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)')}
+                title={t(
+                  'navigation.header.quickSearch',
+                  'Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)',
+                )}
                 data-testid='header-command-palette-trigger'
               >
                 <Search className='w-3.5 h-3.5 text-[#57534E] absolute left-3.5 pointer-events-none stroke-[2] group-hover:text-[#1C1917] transition-colors' />

@@ -139,4 +139,38 @@ describe('TeamInviteAcceptance Component (Lucian UX/UI Prompt #285)', () => {
     expect(screen.queryByRole('combobox', { name: /Owner/i })).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: /Phó/i })).toHaveValue('Producer');
   });
+
+  it('does not change member role in UI and surfaces exact 409 message when onRoleChange rejects', async () => {
+    const user = userEvent.setup();
+    const conflictErr = Object.assign(
+      new Error('Thành viên đang giữ ô công việc chưa xong của vai trò cũ.'),
+      { status: 409 },
+    );
+    const onRoleChange = vi.fn().mockRejectedValueOnce(conflictErr);
+
+    render(
+      <TeamInviteAcceptance
+        initialMembers={[
+          {
+            id: 'usr-artist-1',
+            name: 'Tite Kubo',
+            email: 'kubo@bleach.com',
+            role: 'Artist',
+            status: 'Joined' as const,
+          },
+        ]}
+        availableRoles={['Artist', 'Writer', 'Editor']}
+        onRoleChange={onRoleChange}
+      />,
+    );
+
+    const memberRole = screen.getByRole('combobox', { name: /Tite Kubo/i });
+    await user.selectOptions(memberRole, 'Editor');
+
+    expect(onRoleChange).toHaveBeenCalledWith('usr-artist-1', 'kubo@bleach.com', 'Editor');
+    expect(memberRole).toHaveValue('Artist');
+    expect(
+      await screen.findByText('Thành viên đang giữ ô công việc chưa xong của vai trò cũ.'),
+    ).toBeInTheDocument();
+  });
 });

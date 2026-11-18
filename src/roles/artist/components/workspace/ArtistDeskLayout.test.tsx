@@ -180,7 +180,7 @@ describe('Artist Desk 3-Column Workspace Suite', () => {
             imageUrl: 'https://example.com/panel1_art.png',
           },
         ]}
-      />
+      />,
     );
 
     const zoomBtn = screen.getByTitle('Phóng to xem chi tiết');

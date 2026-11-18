@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Users,
   Shield,
@@ -11,6 +12,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
+  Eye,
   type LucideIcon,
 } from 'lucide-react';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
@@ -22,10 +24,18 @@ import { AdminAuditLogView } from './AdminAuditLogView';
 import { AIConfigurationView } from './modules/AIConfigurationView';
 import { StorageBackupSettings } from './modules/StorageBackupSettings';
 import { SessionPolicySettings } from './modules/SessionPolicySettings';
+import { ReaderStatsView } from '@/shared/views/ReaderStatsView';
 import { adminFocusRing } from './components/adminUiStyles';
 
 export type AdminTab =
-  'dashboard' | 'users' | 'master-data' | 'ai-config' | 'storage' | 'session-policy' | 'audit';
+  | 'dashboard'
+  | 'users'
+  | 'master-data'
+  | 'ai-config'
+  | 'storage'
+  | 'session-policy'
+  | 'audit'
+  | 'analytics';
 
 interface AdminDashboardProps {
   onLogout?: () => void;
@@ -57,16 +67,41 @@ const NAV_GROUPS: { label: string; items: { id: AdminTab; label: string; icon: L
     },
     {
       label: 'Giám sát',
-      items: [{ id: 'audit', label: 'Nhật ký hệ thống', icon: List }],
+      items: [
+        { id: 'audit', label: 'Nhật ký hệ thống', icon: List },
+        { id: 'analytics', label: 'Thống kê độc giả', icon: Eye },
+      ],
     },
   ];
 
 const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
+const VALID_TABS: AdminTab[] = [
+  'dashboard',
+  'users',
+  'master-data',
+  'ai-config',
+  'storage',
+  'session-policy',
+  'audit',
+  'analytics',
+];
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentUser }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as AdminTab | null;
+  const initialTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'dashboard';
+  const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (tabParam && VALID_TABS.includes(tabParam)) {
+      setActiveTab(tabParam);
+    } else if (!tabParam) {
+      setActiveTab('dashboard');
+    }
+  }, [tabParam]);
 
   const activeLabel = NAV_ITEMS.find((i) => i.id === activeTab)?.label ?? '';
   const displayName = currentUser?.name || 'Administrator';
@@ -74,6 +109,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
 
   const go = (tab: AdminTab) => {
     setActiveTab(tab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (tab === 'dashboard') {
+          next.delete('tab');
+        } else {
+          next.set('tab', tab);
+        }
+        return next;
+      },
+      { replace: true },
+    );
     setIsMobileDrawerOpen(false);
   };
 
@@ -275,6 +322,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
                 onNavigateToAudit={() => go('audit')}
                 onNavigateToSessionPolicy={() => go('session-policy')}
                 onNavigateToStorage={() => go('storage')}
+                onNavigateToAnalytics={() => go('analytics')}
               />
             )}
             {activeTab === 'users' && <AdminUserManagementView />}
@@ -282,6 +330,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
             {activeTab === 'storage' && <StorageBackupSettings />}
             {activeTab === 'session-policy' && <SessionPolicySettings />}
             {activeTab === 'audit' && <AdminAuditLogView />}
+            {activeTab === 'analytics' && <ReaderStatsView />}
           </div>
         </main>
       </div>

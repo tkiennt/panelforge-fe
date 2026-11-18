@@ -39,6 +39,42 @@
 
   /* --- FOCUS & TRANSITION --- */
   --studio-focus-outline: #f97316;
+
+  /* --- SHARED UI SEMANTICS --- */
+  --studio-surface-0: var(--studio-paper);
+  --studio-surface-1: var(--studio-paper-card);
+  --studio-surface-2: var(--studio-paper-pure);
+  --studio-surface-3: var(--studio-paper-pure);
+  --studio-accent-ink: #fff;
+  --studio-status-success: var(--studio-mint);
+  --studio-status-success-soft: var(--studio-mint-soft);
+  --studio-status-success-line: #6ee7b7;
+  --studio-status-warning: var(--studio-amber);
+  --studio-status-warning-soft: var(--studio-amber-soft);
+  --studio-status-warning-line: #fcd34d;
+  --studio-status-danger: var(--studio-danger);
+  --studio-status-danger-soft: var(--studio-danger-soft);
+  --studio-status-danger-line: #fda4af;
+  --studio-status-info: #2563eb;
+  --studio-status-info-soft: #eff6ff;
+  --studio-status-info-line: #93c5fd;
+  --studio-focus-ring: var(--studio-focus-outline);
+  --studio-radius-sm: 6px;
+  --studio-radius-md: 12px;
+  --studio-radius-lg: 16px;
+  --studio-shadow-1: 0 4px 20px -2px rgb(28 27 27 / 4%);
+  --studio-shadow-2: 0 12px 32px -4px rgb(28 27 27 / 6%);
+  --studio-shadow-3: 0 24px 54px -12px rgb(28 27 27 / 8%);
+  --studio-z-sticky: 30;
+  --studio-z-dropdown: 40;
+  --studio-z-drawer: 50;
+  --studio-z-modal: 60;
+  --studio-z-toast: 70;
+  --studio-z-tooltip: 80;
+  --studio-motion-fast: 100ms;
+  --studio-motion-base: 150ms;
+  --studio-motion-overlay: 200ms;
+  --studio-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* Explicit opt-in Dark Mode: Only activates when root container has data-theme="dark" */
@@ -72,6 +108,12 @@
   --studio-danger-soft: rgba(217, 58, 85, 0.18);
 
   --studio-focus-outline: #fb923c;
+  --studio-status-success-line: rgba(126, 232, 192, 0.45);
+  --studio-status-warning-line: rgba(255, 178, 107, 0.45);
+  --studio-status-danger-line: rgba(255, 125, 140, 0.45);
+  --studio-status-info: #60a5fa;
+  --studio-status-info-soft: rgba(96, 165, 250, 0.18);
+  --studio-status-info-line: rgba(96, 165, 250, 0.45);
 }
 
 /* ==========================================================================
@@ -79,12 +121,30 @@
    ========================================================================== */
 
 /* Floor 6: Instant focus-visible ring on all interactive elements */
+:focus-visible {
+  outline: 2px solid var(--studio-focus-ring, var(--studio-focus-outline, #f97316));
+  outline-offset: 2px;
+}
+
 .focus-ring {
   outline: none;
 }
 .focus-ring:focus-visible {
   outline: 2px solid var(--studio-focus-outline);
   outline-offset: 2px;
+}
+
+/* Google Modern Web Guidance: Native modal dialog scroll containment & backdrop */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+html:has(dialog:modal) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
 }
 
 /* Floor 2: Safe targeted micro-interactions (Never transition: all) */

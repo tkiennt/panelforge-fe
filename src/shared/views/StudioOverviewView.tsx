@@ -27,10 +27,12 @@ import { InviteMemberModal } from '@/roles/producer/modals/InviteMemberModal';
 import { systemImageToFile, type SystemImage } from '@/shared/utils/systemImages';
 import { getRoleDefaultPath } from '@/roles/roles';
 import { normalizeWorkspaceRole } from '@/types/auth';
+import { readCachedWorkspace, writeCachedWorkspace } from '@/types/workspace';
 import { StudioGovernanceBar } from './studio-overview/StudioGovernanceBar';
 import { SeriesFilterBar } from './studio-overview/SeriesFilterBar';
 import { SeriesShelf } from './studio-overview/SeriesShelf';
 import { MembersTabContent } from './studio-overview/MembersTabContent';
+import { Alert } from '@/shared/ui';
 import {
   CoverPickerModal,
   CreateSeriesModal,
@@ -48,19 +50,14 @@ export const StudioOverviewView: React.FC = () => {
   const confirm = useConfirm();
   const { workspaceId } = useParams();
   const [, setWorkspaces] = useState<WorkspaceDto[]>([]);
-  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceDto | null>(() => {
-    try {
-      const saved = localStorage.getItem('activeWorkspace');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceDto | null>(() =>
+    readCachedWorkspace(),
+  );
 
   const userRole = localStorage.getItem('userRole');
   const wsRole =
     normalizeWorkspaceRole(activeWorkspace?.currentUserRole) ||
-    normalizeWorkspaceRole(localStorage.getItem('workspaceRole'));
+    (activeWorkspace ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole')) : null);
   const isProducer = wsRole === 'PRODUCER' || !!activeWorkspace?.isOwner;
   const isProducerOrAdmin = userRole === 'ADMINISTRATOR' || isProducer;
 
@@ -277,8 +274,21 @@ export const StudioOverviewView: React.FC = () => {
                   (currentUser?.id && m.userId === currentUser.id) ||
                   (currentUser?.email && m.email === currentUser.email),
               )?.role,
-            ) ||
-            normalizeWorkspaceRole(localStorage.getItem('workspaceRole'));
+            );
+          const syncedCur = writeCachedWorkspace(
+            {
+              ...cur,
+              currentUserRole: resolvedWsRole ?? normalizeWorkspaceRole(cur.currentUserRole),
+            },
+            currentUser?.id,
+          );
+          setActiveWorkspace(syncedCur);
+          try {
+            if (resolvedWsRole) localStorage.setItem('workspaceRole', resolvedWsRole);
+            else localStorage.removeItem('workspaceRole');
+          } catch {
+            /* ignore */
+          }
           const isCurrentProducer = !!cur.isOwner || resolvedWsRole === 'PRODUCER';
 
           // Load Workspace Resource Usage (GET /api/workspaces/{id}/usage) — chỉ gọi khi role hiện tại là Producer
@@ -334,12 +344,6 @@ export const StudioOverviewView: React.FC = () => {
       try {
         const templates = await pipelineService.getActivePipelineTemplates();
         setPipelineTemplates(templates);
-        const def = templates.find((t) => t.isDefault);
-        if (def) {
-          setNewSeriesTemplateId(def.id);
-        } else if (templates.length > 0) {
-          setNewSeriesTemplateId(templates[0].id);
-        }
       } catch (err: any) {
         console.warn('Lỗi tải danh sách template pipeline:', err);
       }
@@ -374,6 +378,7 @@ export const StudioOverviewView: React.FC = () => {
       setNewSeriesGenre('Shonen / Action');
       setNewSeriesFormat('WEBTOON');
       setNewSeriesDirection(2);
+      setNewSeriesTemplateId('');
       showToast(
         'Tạo Series thành công',
         `Đã tạo bộ truyện "${created.title}" với cấu hình pipeline và metadata hoàn chỉnh.`,
@@ -833,10 +838,7 @@ export const StudioOverviewView: React.FC = () => {
           >
             {/* Error Message with Retry */}
             {loadError && (
-              <div
-                role='alert'
-                className='p-4 bg-rose-50 border border-rose-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-800 text-xs sm:text-sm'
-              >
+              <Alert tone='danger' className='text-xs sm:text-sm'>
                 <div className='flex items-center gap-2.5'>
                   <AlertTriangle className='w-5 h-5 text-rose-600 shrink-0' aria-hidden='true' />
                   <span>{loadError}</span>
@@ -848,7 +850,7 @@ export const StudioOverviewView: React.FC = () => {
                 >
                   Thử lại
                 </button>
-              </div>
+              </Alert>
             )}
 
             {/* Search, Filter & Sort Toolbar */}

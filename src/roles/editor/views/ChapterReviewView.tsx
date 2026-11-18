@@ -31,6 +31,7 @@ import {
   AlertOctagon,
   Maximize2,
   Trash2,
+  Lock,
 } from 'lucide-react';
 import { pageService, type PageDto } from '@/services/page.service';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
@@ -58,27 +59,33 @@ import {
 } from '@/shared/features/collaboration/ChapterReviewArtworkOverview';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { SubmissionHistory } from '@/shared/features/collaboration/SubmissionHistory';
+import { Modal } from '@/shared/ui';
 import {
   Box,
   CHECKLIST_ITEMS,
   ChecklistId,
   normalizeRegionBox,
   parseRegionBox,
-  findIntersectingPanelId,
+  findIntersectingPanelIds,
   isRegionOverlappingText,
   suggestTargetAssignment,
   buildReturnWorkPayload,
   parse409AwaitingReview,
   roundCoord,
 } from './chapterReviewViewUtils';
-import type {
-  AssignmentDto,
-  ChangeRequestDto,
-  ConsistencyFindingDto,
-  PanelDto,
-  StageProgressDto,
-  SubmissionDto,
-  VisualConsistencyReportDto,
+import {
+  resolveReworkDecisionComments,
+  resolveReworkReasonDisplay,
+  type AssignmentDto,
+  type ChangeRequestDto,
+  type ConsistencyFindingDto,
+  type PanelDto,
+  type StageProgressDto,
+  type StageTaskDto,
+  type SubmissionDto,
+  type TaskGridDto,
+  type TaskGridReviewItemDto,
+  type VisualConsistencyReportDto,
 } from '@/types';
 
 export interface ChapterReviewViewProps {
@@ -89,6 +96,8 @@ export interface ChapterReviewViewProps {
   effectiveRole?: string | null;
   currentUserId?: string | null;
   onShowToast?: (title: string, desc: string) => void;
+  onDecisionMade?: () => void;
+  onCloseWithoutDecision?: () => Promise<void> | void;
 }
 
 type ReviewTab = 'changes' | 'checklist' | 'consistency';
@@ -119,6 +128,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   effectiveRole,
   currentUserId,
   onShowToast,
+  onDecisionMade,
+  onCloseWithoutDecision,
 }) => {
   const { t } = useTranslation('review');
   const navigate = useNavigate();
@@ -135,6 +146,12 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [chapterTitle, setChapterTitle] = useState<string>('');
   const [chapterNumber, setChapterNumber] = useState<number>(1);
+  const [taskGrid, setTaskGrid] = useState<TaskGridDto | null>(null);
+  const [gridCommentsByTask, setGridCommentsByTask] = useState<Record<string, string>>({});
+  const [gridReviewerNames, setGridReviewerNames] = useState<Record<string, string>>({});
+  const [gridCellBusyId, setGridCellBusyId] = useState<string | null>(null);
+  const [rejectingGridCellId, setRejectingGridCellId] = useState<string | null>(null);
+  const [rejectGridCellComment, setRejectGridCellComment] = useState<string>('');
 
   // Consistency & Visual report
   const [findings, setFindings] = useState<ConsistencyFindingDto[]>([]);
@@ -222,6 +239,11 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     setLoading(true);
     setBackendBlockError(null);
     try {
+      const gridPromise: Promise<TaskGridDto | null> =
+        typeof assignmentService.getTaskGrid === 'function'
+          ? assignmentService.getTaskGrid(chapterId).catch(() => null)
+          : Promise.resolve(null);
+
       const [
         pagesRes,
         pipelineRes,
@@ -230,6 +252,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         changeRequestsRes,
         submissionsRes,
         membersRes,
+        reviewQueueRes,
         findingsRes,
         visualRes,
       ] = await Promise.all([
@@ -246,11 +269,24 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         effectiveWsId
           ? workspaceService.getMembers(effectiveWsId).catch(() => [] as WorkspaceMemberDto[])
           : Promise.resolve([]),
+        effectiveWsId && typeof assignmentService.getTaskGridReviewQueue === 'function'
+          ? assignmentService
+              .getTaskGridReviewQueue(effectiveWsId, seriesId ? { seriesId } : undefined)
+              .catch(() => [] as TaskGridReviewItemDto[])
+          : Promise.resolve([] as TaskGridReviewItemDto[]),
         assignmentService
           .getConsistencyFindings(chapterId)
           .catch(() => [] as ConsistencyFindingDto[]),
         assignmentService.getVisualConsistencyReport(chapterId, visualThreshold).catch(() => null),
       ]);
+      const gridRes = await gridPromise;
+      const reviewerNamesMap: Record<string, string> = {};
+      for (const item of reviewQueueRes || []) {
+        if (item.taskId && item.reviewerName) {
+          reviewerNamesMap[item.taskId] = item.reviewerName;
+        }
+      }
+      setGridReviewerNames(reviewerNamesMap);
 
       const sortedPages = [...pagesRes].sort((a, b) => a.pageNumber - b.pageNumber);
       setPages(sortedPages);
@@ -268,12 +304,134 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       });
       setPagePanelsMap(panelMap);
 
-      const activeStages = getActivePipelineStages(pipelineRes?.stages ?? []);
+      const nonCancelledGridTasks = (gridRes?.tasks ?? []).filter(
+        (item) => item.status !== 'Cancelled',
+      );
+      const hasGrid = Boolean(gridRes && nonCancelledGridTasks.length > 0);
+      let activeStages: PipelineStageDto[];
+      if ((gridRes?.stages ?? []).length > 0) {
+        const pipeById = new Map<string, PipelineStageDto>(
+          ((pipelineRes?.stages ?? []) as PipelineStageDto[]).map((s) => [s.id, s]),
+        );
+        activeStages = (gridRes?.stages ?? [])
+          .filter((s) => s.isEnabled !== false && pipeById.get(s.id)?.isEnabled !== false)
+          .sort((a, b) => a.stageOrder - b.stageOrder)
+          .map((s) => {
+            const base = pipeById.get(s.id);
+            return {
+              id: s.id,
+              name: s.name,
+              slug: base?.slug ?? s.name.toLowerCase(),
+              stageOrder: s.stageOrder,
+              allowedRole: s.allowedRole ?? base?.allowedRole,
+              isApprovalGate: s.isApprovalGate,
+              isInitial: base?.isInitial ?? false,
+              isTerminal: base?.isTerminal ?? false,
+              isEnabled: s.isEnabled,
+            } as PipelineStageDto;
+          });
+      } else {
+        activeStages = getActivePipelineStages(pipelineRes?.stages ?? []);
+      }
       setStages(activeStages);
-      setChapterAssignments(assignmentsRes);
-      setStageProgressList(progressRes);
+
+      if (hasGrid && gridRes) {
+        const enabledIds = new Set(activeStages.map((s) => s.id));
+        const gridStagesById = new Map((gridRes.stages ?? []).map((s) => [s.id, s]));
+        const gridLotsById = new Map((gridRes.lots ?? []).map((l) => [l.id, l]));
+        const enabledGridTasks = nonCancelledGridTasks.filter((item) =>
+          enabledIds.has(item.pipelineStageId),
+        );
+        const reworkComments = await resolveReworkDecisionComments(
+          chapterId,
+          enabledGridTasks,
+          typeof assignmentService.getStageTaskSubmissions === 'function'
+            ? (cId, tId) => assignmentService.getStageTaskSubmissions(cId, tId)
+            : undefined,
+        );
+        setTaskGrid(gridRes);
+        setGridCommentsByTask(reworkComments);
+
+        const synthAssignments: AssignmentDto[] = enabledGridTasks.map((cell) => {
+          const stg = gridStagesById.get(cell.pipelineStageId);
+          const lot = cell.lotId ? gridLotsById.get(cell.lotId) : undefined;
+          return {
+            id: cell.id,
+            seriesId,
+            chapterId,
+            entityType: cell.pageId ? 'Page' : 'Chapter',
+            targetEntityId: cell.pageId ?? chapterId,
+            pipelineStageId: cell.pipelineStageId,
+            stageName: stg?.name ?? 'Stage',
+            stageOrder: stg?.stageOrder ?? 99,
+            assigneeUserId: cell.assigneeUserId ?? lot?.assigneeUserId ?? '',
+            assignedRole: (lot?.assignedRole || stg?.allowedRole || 'Artist') as any,
+            brief: lot?.brief?.trim() || stg?.name || 'Stage',
+            priority: 'Medium' as any,
+            status: cell.status as any,
+            createdAt: cell.startedAt ?? new Date().toISOString(),
+          };
+        });
+        const synthProgress: StageProgressDto[] = enabledGridTasks.flatMap((cell) => {
+          if (!cell.pageId) return [];
+          const pagePanels = panelMap[cell.pageId] ?? [];
+          if (pagePanels.length === 0) return [];
+          return pagePanels.map(
+            (pnl) =>
+              ({
+                id: `prog-${cell.id}-${pnl.id}`,
+                chapterId,
+                pageId: cell.pageId,
+                panelId: pnl.id,
+                pipelineStageId: cell.pipelineStageId,
+                status: cell.status as any,
+              }) as unknown as StageProgressDto,
+          );
+        });
+
+        setChapterAssignments(synthAssignments);
+        setStageProgressList(synthProgress);
+
+        const reviewCell =
+          enabledGridTasks.find((item) => item.id === assignment.id) ??
+          enabledGridTasks.find(
+            (item) => !item.pageId && item.pipelineStageId === assignment.pipelineStageId,
+          );
+        if (
+          submissionsRes.length === 0 &&
+          reviewCell &&
+          typeof assignmentService.getStageTaskSubmissions === 'function'
+        ) {
+          const v3Subs = await assignmentService
+            .getStageTaskSubmissions(chapterId, reviewCell.id)
+            .catch(() => []);
+          setSubmissions(
+            v3Subs.map((s) => ({
+              id: s.id,
+              assignmentId: reviewCell.id,
+              chapterId,
+              submittedByUserId: s.submittedByUserId,
+              attemptNumber: s.attemptNumber,
+              status: s.status as SubmissionDto['status'],
+              submittedAt: s.submittedAt,
+              decidedByUserId: s.decidedByUserId ?? undefined,
+              decidedAt: s.decidedAt ?? undefined,
+              decisionComment: s.decisionComment ?? undefined,
+              artworkReferenceIds: s.artworkReferenceIds ?? [],
+            })),
+          );
+        } else {
+          setSubmissions(submissionsRes);
+        }
+      } else {
+        setTaskGrid(null);
+        setGridCommentsByTask({});
+        setChapterAssignments(assignmentsRes);
+        setStageProgressList(progressRes);
+        setSubmissions(submissionsRes);
+      }
+
       setChangeRequests(changeRequestsRes);
-      setSubmissions(submissionsRes);
       setMembers(membersRes);
       setFindings(findingsRes);
       setVisualReport(visualRes);
@@ -589,7 +747,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         }
 
         // Valid box drawn: identify panel & smart target assignment
-        const matchedPanelId = findIntersectingPanelId(box, activePanels);
+        const matchedPanelId = findIntersectingPanelIds(box, activePanels)[0];
         const suggestedTarget = suggestTargetAssignment(
           box,
           currentPageAssignments,
@@ -615,11 +773,203 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     };
   }, [activePanels, activeElements, currentPageAssignments, stages, currentPage]);
 
+  const isGridMode = Boolean(
+    taskGrid && taskGrid.tasks.some((item) => item.status !== 'Cancelled'),
+  );
+
+  const gridReviewTask = useMemo(() => {
+    if (!taskGrid) return null;
+    return (
+      taskGrid.tasks.find((item) => item.id === assignment.id && item.status !== 'Cancelled') ??
+      taskGrid.tasks.find(
+        (item) =>
+          !item.pageId &&
+          item.status !== 'Cancelled' &&
+          item.pipelineStageId === assignment.pipelineStageId,
+      ) ??
+      null
+    );
+  }, [taskGrid, assignment.id, assignment.pipelineStageId]);
+
+  const currentPageGridCells = useMemo(() => {
+    if (!isGridMode || !taskGrid || !currentPage) return [];
+    const enabledIds = new Set(stages.map((s) => s.id));
+    return taskGrid.tasks
+      .filter(
+        (item) =>
+          item.pageId === currentPage.id &&
+          item.status !== 'Cancelled' &&
+          enabledIds.has(item.pipelineStageId),
+      )
+      .sort(
+        (a, b) =>
+          (stageMap.get(a.pipelineStageId)?.stageOrder ?? 99) -
+          (stageMap.get(b.pipelineStageId)?.stageOrder ?? 99),
+      );
+  }, [isGridMode, taskGrid, currentPage, stages, stageMap]);
+
+  const applyUpdatedGridCell = useCallback(
+    (cellId: string, updated?: Partial<StageTaskDto> | null) => {
+      if (!updated) return;
+      setTaskGrid((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tasks: prev.tasks.map((t) => (t.id === cellId ? { ...t, ...updated, id: t.id } : t)),
+        };
+      });
+      if (updated.status) {
+        setChapterAssignments((prev) =>
+          prev.map((a) => (a.id === cellId ? { ...a, status: updated.status as any } : a)),
+        );
+        setStageProgressList((prev) =>
+          prev.map((p) =>
+            p.id.startsWith(`prog-${cellId}-`) ? { ...p, status: updated.status as any } : p,
+          ),
+        );
+      }
+      const inlineComment = updated.lastDecisionComment?.trim();
+      if (inlineComment) {
+        setGridCommentsByTask((prev) => ({ ...prev, [cellId]: inlineComment }));
+      }
+      if (updated.reviewerUserId === null) {
+        setGridReviewerNames((prev) => {
+          if (!(cellId in prev)) return prev;
+          const next = { ...prev };
+          delete next[cellId];
+          return next;
+        });
+      }
+    },
+    [],
+  );
+
+  const handleApproveGridCell = async (cell: StageTaskDto) => {
+    setGridCellBusyId(`approve:${cell.id}`);
+    setBackendBlockError(null);
+    try {
+      await assignmentService.approveStageTask(chapterId, cell.id);
+      const st = stageMap.get(cell.pipelineStageId);
+      toast(
+        'Đã duyệt ô Lưới V3',
+        `${st?.name || 'Stage'} · Trang ${currentPage?.pageNumber ?? ''}`,
+      );
+      await loadChapterData();
+    } catch (err: any) {
+      const msg = extractError(err, 'Không thể duyệt ô công việc.');
+      setBackendBlockError(msg);
+      toast('Không thể duyệt ô', msg);
+      if (err?.status === 409) await loadChapterData();
+    } finally {
+      setGridCellBusyId(null);
+    }
+  };
+
+  const handleRequestChangesGridCell = async (cell: StageTaskDto) => {
+    const trimmed = rejectGridCellComment.trim();
+    if (!trimmed) return;
+    setGridCellBusyId(`reject:${cell.id}`);
+    setBackendBlockError(null);
+    try {
+      const updated = await assignmentService.requestStageTaskChanges(chapterId, cell.id, trimmed);
+      setRejectingGridCellId(null);
+      setRejectGridCellComment('');
+      applyUpdatedGridCell(cell.id, {
+        ...updated,
+        status: updated?.status ?? 'ReworkRequired',
+        lastDecisionComment: updated?.lastDecisionComment ?? trimmed,
+        reviewerUserId: updated?.reviewerUserId ?? null,
+      });
+      const st = stageMap.get(cell.pipelineStageId);
+      toast(
+        'Đã yêu cầu sửa lại',
+        `${st?.name || 'Stage'} · Trang ${currentPage?.pageNumber ?? ''}`,
+      );
+    } catch (err: any) {
+      const msg = extractError(err, 'Không thể gửi yêu cầu sửa ô công việc.');
+      setBackendBlockError(msg);
+      toast('Không thể yêu cầu sửa', msg);
+      if (err?.status === 409) await loadChapterData();
+    } finally {
+      setGridCellBusyId(null);
+    }
+  };
+
+  const handleReleaseGridCellReview = async (cell: StageTaskDto) => {
+    setGridCellBusyId(`release:${cell.id}`);
+    setBackendBlockError(null);
+    try {
+      const updated = await assignmentService.releaseStageTaskReview(chapterId, cell.id);
+      applyUpdatedGridCell(cell.id, {
+        ...updated,
+        status: updated?.status ?? 'Submitted',
+        reviewerUserId: updated?.reviewerUserId ?? null,
+      });
+      const st = stageMap.get(cell.pipelineStageId);
+      toast(
+        t('chapterReview.releaseReviewToast', 'Đã nhả khoá duyệt'),
+        `${st?.name || 'Stage'}${currentPage ? ` · Trang ${currentPage.pageNumber}` : ''}`,
+      );
+    } catch (err: any) {
+      const msg = extractError(err, 'Không thể gỡ khoá duyệt ô công việc.');
+      setBackendBlockError(msg);
+      toast('Không thể gỡ khoá duyệt', msg);
+      if (err?.status === 409) await loadChapterData();
+    } finally {
+      setGridCellBusyId(null);
+    }
+  };
+
   // Handle Submit Return Work
   const handleSubmitReturnWork = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetAssignmentId || !returnDescription.trim()) {
       setFormError('Vui lòng chọn công đoạn và nhập mô tả lỗi.');
+      return;
+    }
+
+    if (isGridMode) {
+      setSubmittingReturn(true);
+      setFormError(null);
+      setAwaitingReviewConflict(null);
+      try {
+        const targetCell = taskGrid?.tasks.find((item) => item.id === targetAssignmentId);
+        const trimmed = returnDescription.trim();
+        const reopened =
+          targetCell?.status === 'Approved' &&
+          String(effectiveRole || '').toUpperCase() === 'PRODUCER' &&
+          typeof assignmentService.reopenStageTask === 'function';
+        if (reopened) {
+          await assignmentService.reopenStageTask(chapterId, targetAssignmentId, trimmed);
+          toast('Đã mở lại ô công việc', 'Đã chuyển ô đã duyệt về trạng thái Cần sửa.');
+        } else {
+          const updated = await assignmentService.requestStageTaskChanges(
+            chapterId,
+            targetAssignmentId,
+            trimmed,
+          );
+          applyUpdatedGridCell(targetAssignmentId, {
+            ...updated,
+            status: updated?.status ?? 'ReworkRequired',
+            lastDecisionComment: updated?.lastDecisionComment ?? trimmed,
+            reviewerUserId: updated?.reviewerUserId ?? null,
+          });
+          toast('Đã trả việc thành công', 'Đã chuyển yêu cầu sửa cho ô trên Lưới V3.');
+        }
+        setReturnDescription('');
+        setReturnDueDate('');
+        setDraftRegion(null);
+        if (reopened) {
+          await loadChapterData();
+        }
+      } catch (err: any) {
+        const msg = extractError(err, 'Không thể gửi yêu cầu sửa.');
+        setFormError(msg);
+        toast('Không thể gửi yêu cầu', msg);
+        if (err?.status === 409) await loadChapterData();
+      } finally {
+        setSubmittingReturn(false);
+      }
       return;
     }
 
@@ -704,11 +1054,44 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     setActionBusy(true);
     setBackendBlockError(null);
     try {
-      await assignmentService.startAssignment(chapterId, assignment.id);
-      toast('Đã bắt đầu', 'Bắt đầu quá trình duyệt toàn chương.');
-      void loadChapterData();
+      if (isGridMode && gridReviewTask) {
+        const updated = await assignmentService.startStageTask(chapterId, gridReviewTask.id);
+        applyUpdatedGridCell(gridReviewTask.id, {
+          ...updated,
+          status: updated?.status ?? 'InProgress',
+        });
+      } else {
+        await assignmentService.startAssignment(chapterId, assignment.id);
+        await loadChapterData();
+      }
+      toast('Đã bắt đầu', 'Bắt đầu kiểm duyệt Gate 2.');
     } catch (err: any) {
-      const msg = extractError(err, 'Không thể bắt đầu duyệt chương.');
+      const msg = extractError(err, 'Không thể bắt đầu kiểm duyệt Gate 2.');
+      setBackendBlockError(msg);
+      toast('Bị chặn', msg);
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleSubmitGate2GridReview = async () => {
+    if (!gridReviewTask) return;
+    setActionBusy(true);
+    setBackendBlockError(null);
+    try {
+      const updatedList = await assignmentService.submitStageTasks(chapterId, [gridReviewTask.id]);
+      toast('Đã nộp Gate 2', 'Đã nộp kết quả thẩm định Gate 2 lên Lưới V3.');
+      if (
+        Array.isArray(updatedList) &&
+        updatedList.length > 0 &&
+        !updatedList.some((u) => u.status === 'Approved')
+      ) {
+        applyUpdatedGridCell(gridReviewTask.id, updatedList[0]);
+      } else {
+        await loadChapterData();
+      }
+    } catch (err: any) {
+      const msg = extractError(err, 'Không thể nộp kết quả Gate 2.');
       setBackendBlockError(msg);
       toast('Bị chặn', msg);
     } finally {
@@ -717,18 +1100,17 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   };
 
   const handleApproveChapter = async () => {
-    // Generate comment with checklist summary if any
-    const checkedLabels = CHECKLIST_ITEMS.filter((item) => checklist[item.id]).map((i) => i.label);
-    const checklistPart =
-      checkedLabels.length > 0 ? `[Checklist đạt: ${checkedLabels.join(', ')}] ` : '';
-    const comment = `${checklistPart}Duyệt hoàn tất nội dung toàn bộ chương.`;
-
     setActionBusy(true);
     setBackendBlockError(null);
     try {
-      await assignmentService.approveAssignment(chapterId, assignment.id);
-      toast('Đã duyệt chương', 'Công đoạn Review đã hoàn tất thành công!');
-      void loadChapterData();
+      if (isGridMode && gridReviewTask) {
+        await assignmentService.approveStageTask(chapterId, gridReviewTask.id);
+        onDecisionMade?.();
+      } else {
+        await assignmentService.approveAssignment(chapterId, assignment.id);
+      }
+      toast('Đã duyệt Gate 2', 'Công đoạn kiểm duyệt Gate 2 đã hoàn tất.');
+      await loadChapterData();
     } catch (err: any) {
       const msg = extractError(err, 'Không thể duyệt công đoạn Review.');
       setBackendBlockError(msg);
@@ -863,19 +1245,37 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       <div className='w-full h-full flex flex-col items-center justify-center bg-[#FAF8F4] gap-3'>
         <Loader2 className='w-8 h-8 animate-spin text-[#171717]' />
         <span className='text-xs font-semibold text-zinc-600'>
-          Đang nạp màn hình duyệt toàn chương...
+          Đang nạp màn hình kiểm duyệt Gate 2...
         </span>
       </div>
     );
   }
 
-  const isApproved = String(assignment.status) === 'Approved';
-  const canApprove =
-    !isApproved &&
-    (effectiveRole === 'EDITOR' ||
-      effectiveRole === 'PRODUCER' ||
-      String(assignment.status) === 'UnderReview' ||
-      String(assignment.status) === 'InProgress');
+  const effectiveReviewStatus = gridReviewTask ? gridReviewTask.status : assignment.status;
+  const isApproved = String(effectiveReviewStatus) === 'Approved';
+  const isSelfGate2Review = Boolean(
+    isGridMode &&
+    gridReviewTask &&
+    currentUserId &&
+    gridReviewTask.assigneeUserId === currentUserId,
+  );
+  const canSubmitGate2Grid = Boolean(
+    isGridMode &&
+    gridReviewTask &&
+    String(effectiveReviewStatus) === 'InProgress' &&
+    isSelfGate2Review,
+  );
+  const canApprove = isGridMode
+    ? !isApproved &&
+      !isSelfGate2Review &&
+      (String(effectiveReviewStatus) === 'Submitted' ||
+        String(effectiveReviewStatus) === 'UnderReview') &&
+      (effectiveRole === 'EDITOR' || effectiveRole === 'PRODUCER' || !effectiveRole)
+    : !isApproved &&
+      (effectiveRole === 'EDITOR' ||
+        effectiveRole === 'PRODUCER' ||
+        String(effectiveReviewStatus) === 'UnderReview' ||
+        String(effectiveReviewStatus) === 'InProgress');
 
   return (
     <div
@@ -888,7 +1288,9 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
           <button
             type='button'
             onClick={() => {
-              if (effectiveWsId && seriesId) {
+              if (onCloseWithoutDecision) {
+                void onCloseWithoutDecision();
+              } else if (effectiveWsId && seriesId) {
                 navigate(`/workspaces/${effectiveWsId}/series/${seriesId}/editor/desk`);
               } else {
                 navigate(-1);
@@ -918,8 +1320,17 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     : 'bg-amber-50 text-amber-800 border border-amber-200'
                 }`}
               >
-                {assignment.status}
+                {effectiveReviewStatus}
               </span>
+              {gridReviewTask?.isInputOutdated && (
+                <span
+                  data-testid='chapter-review-input-outdated-badge'
+                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-xs font-semibold text-amber-900'
+                >
+                  <AlertTriangle className='w-3 h-3 text-amber-700 shrink-0' />
+                  <span>{t('chapterReview.inputOutdatedBadge', 'Đầu vào đã đổi')}</span>
+                </span>
+              )}
             </div>
             <p className='text-[11px] text-[#57534E] font-medium'>
               Vai trò:{' '}
@@ -971,7 +1382,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             <span>Lịch sử ({submissions.length})</span>
           </button>
 
-          {String(assignment.status) === 'Assigned' && (
+          {(String(effectiveReviewStatus) === 'Assigned' ||
+            (isGridMode && String(effectiveReviewStatus) === 'ReworkRequired')) && (
             <button
               type='button'
               disabled={actionBusy}
@@ -983,6 +1395,19 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             </button>
           )}
 
+          {canSubmitGate2Grid && (
+            <button
+              type='button'
+              disabled={actionBusy || !!unfinishedWarning}
+              onClick={() => void handleSubmitGate2GridReview()}
+              data-testid='btn-submit-chapter-review'
+              className='px-4 py-1.5 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-colors'
+            >
+              <Send className='w-3.5 h-3.5' />
+              <span>{t('chapterReview.gate2GridSubmitChapterReview', 'Nộp kết quả Gate 2')}</span>
+            </button>
+          )}
+
           {canApprove && (
             <button
               type='button'
@@ -990,14 +1415,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               onClick={() => void handleApproveChapter()}
               title={
                 unfinishedWarning
-                  ? 'Còn trang chưa xong công đoạn, chưa thể hoàn tất duyệt cả chương.'
-                  : 'Duyệt toàn bộ nội dung chương'
+                  ? 'Còn trang chưa xong công đoạn, chưa thể hoàn tất Gate 2.'
+                  : 'Duyệt công đoạn kiểm duyệt (Gate 2)'
               }
               className='px-5 py-2 flex items-center gap-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-all active:scale-98'
               data-testid='btn-approve-chapter-review'
             >
               <CheckCircle2 className='w-4 h-4' />
-              <span>Duyệt cả chương</span>
+              <span>Duyệt Gate 2</span>
             </button>
           )}
 
@@ -1033,7 +1458,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         >
           <div className='flex items-center gap-2'>
             <AlertTriangle className='w-4 h-4 text-red-600 shrink-0' />
-            <span>{backendBlockError}</span>
+            <span className='whitespace-pre-line break-words'>{backendBlockError}</span>
           </div>
           <button
             type='button'
@@ -1453,6 +1878,259 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
           {/* TAB 1: YÊU CẦU SỬA (CHANGE REQUESTS) */}
           {activeTab === 'changes' && (
             <div className='flex-1 overflow-y-auto p-4 space-y-4'>
+              {/* Lưới V3: Duyệt trực tiếp từng ô của Trang đang chọn qua API task-grid */}
+              {isGridMode && currentPage && currentPageGridCells.length > 0 && (
+                <div
+                  data-testid='gate2-grid-cells-panel'
+                  className='p-3.5 rounded-xl border border-[#D8D2C5] bg-white space-y-2.5 shadow-2xs'
+                >
+                  <div className='flex items-center justify-between gap-2'>
+                    <span className='text-xs font-bold text-[#1C1917] flex items-center gap-1.5'>
+                      <Layers className='w-3.5 h-3.5 text-[#C2410C]' />
+                      <span>
+                        {t('chapterReview.gate2GridTitle', {
+                          page: currentPage.pageNumber,
+                          defaultValue: `Duyệt ô Lưới V3 · Trang ${currentPage.pageNumber}`,
+                        })}
+                      </span>
+                    </span>
+                  </div>
+
+                  <div className='space-y-2'>
+                    {currentPageGridCells.map((cell) => {
+                      const st = stageMap.get(cell.pipelineStageId);
+                      const member = cell.assigneeUserId
+                        ? memberMap.get(cell.assigneeUserId)
+                        : undefined;
+                      const assigneeLabel =
+                        member?.fullName || member?.email || cell.assigneeUserId || 'Chưa giao';
+                      const isReviewable =
+                        cell.status === 'Submitted' || cell.status === 'UnderReview';
+                      const isSelfCell = Boolean(
+                        currentUserId && cell.assigneeUserId === currentUserId,
+                      );
+                      const isCellLockedByOther = Boolean(
+                        cell.status === 'UnderReview' &&
+                        cell.reviewerUserId &&
+                        cell.reviewerUserId !== currentUserId,
+                      );
+                      const reviewerLabel = gridReviewerNames[cell.id] || cell.reviewerUserId || '';
+                      const isProducerViewer =
+                        String(effectiveRole || '').toUpperCase() === 'PRODUCER';
+                      const reworkDisplay = resolveReworkReasonDisplay(
+                        cell,
+                        gridCommentsByTask[cell.id],
+                      );
+
+                      return (
+                        <div
+                          key={cell.id}
+                          data-testid={`gate2-grid-cell-${cell.id}`}
+                          className='rounded-lg border border-zinc-200 bg-[#FCFBF8] p-2.5 space-y-2 text-xs'
+                        >
+                          <div className='flex items-center justify-between gap-2 flex-wrap'>
+                            <div className='min-w-0'>
+                              <div className='font-bold text-zinc-900'>
+                                {st?.stageOrder ? `${st.stageOrder}. ` : ''}
+                                {st?.name || 'Stage'}
+                              </div>
+                              <div className='text-[11px] text-zinc-500 truncate'>
+                                👤 {assigneeLabel}
+                              </div>
+                            </div>
+                            <div className='flex items-center gap-1.5 flex-wrap'>
+                              {cell.isInputOutdated && (
+                                <span
+                                  data-testid={`gate2-cell-input-outdated-${cell.id}`}
+                                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded border border-amber-300 bg-amber-100 text-[11px] font-semibold text-amber-900'
+                                >
+                                  <AlertTriangle className='w-3 h-3 text-amber-700 shrink-0' />
+                                  <span>
+                                    {t('chapterReview.inputOutdatedBadge', 'Đầu vào đã đổi')}
+                                  </span>
+                                </span>
+                              )}
+                              <span className='px-2 py-0.5 rounded border border-zinc-300 bg-white text-[11px] font-semibold text-zinc-800'>
+                                {cell.status}
+                              </span>
+                            </div>
+                          </div>
+
+                          {reworkDisplay && (
+                            <div
+                              data-testid={
+                                reworkDisplay.kind === 'reopen'
+                                  ? `gate2-cell-reopen-reason-${cell.id}`
+                                  : `gate2-cell-last-comment-${cell.id}`
+                              }
+                              title={
+                                reworkDisplay.kind === 'reopen'
+                                  ? `${t('chapterReview.reopenReasonPrefix', 'Producer mở lại:')} ${reworkDisplay.text}`
+                                  : `${t('chapterReview.gate2GridLastComment', 'Nhận xét lần duyệt gần nhất')}: ${reworkDisplay.text}`
+                              }
+                              className='rounded border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] text-rose-900'
+                            >
+                              {reworkDisplay.kind === 'reopen' ? (
+                                <>
+                                  🔄{' '}
+                                  <span className='font-semibold'>
+                                    {t('chapterReview.reopenReasonPrefix', 'Producer mở lại:')}
+                                  </span>{' '}
+                                  {reworkDisplay.text}
+                                </>
+                              ) : (
+                                <>
+                                  💬{' '}
+                                  <span className='font-semibold'>
+                                    {t(
+                                      'chapterReview.gate2GridLastComment',
+                                      'Nhận xét lần duyệt gần nhất',
+                                    )}
+                                    :
+                                  </span>{' '}
+                                  {reworkDisplay.text}
+                                </>
+                              )}
+                            </div>
+                          )}
+
+                          {isCellLockedByOther && (
+                            <div
+                              data-testid={`gate2-cell-locked-by-other-${cell.id}`}
+                              className='rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-900 flex items-center justify-between gap-1.5 flex-wrap'
+                            >
+                              <span className='inline-flex items-center gap-1'>
+                                <Lock className='w-3 h-3 text-amber-600 shrink-0' />
+                                {t('chapterReview.underReviewBy', {
+                                  name: reviewerLabel,
+                                  defaultValue: `Đang được duyệt bởi ${reviewerLabel}`,
+                                })}
+                              </span>
+                              {isProducerViewer && (
+                                <button
+                                  type='button'
+                                  data-testid={`gate2-force-release-cell-${cell.id}`}
+                                  disabled={gridCellBusyId !== null}
+                                  onClick={() => void handleReleaseGridCellReview(cell)}
+                                  className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 text-[11px] font-semibold text-amber-950 cursor-pointer disabled:opacity-50'
+                                >
+                                  <RotateCcw className='w-3 h-3' />
+                                  <span>
+                                    {t('chapterReview.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}
+                                  </span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+
+                          {isReviewable && (
+                            <div className='flex flex-wrap items-center gap-1.5 pt-0.5'>
+                              {isSelfCell ? (
+                                <span
+                                  data-testid={`gate2-cell-self-locked-${cell.id}`}
+                                  className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-900'
+                                >
+                                  <Lock className='w-3 h-3 text-amber-600' />
+                                  <span>
+                                    {t(
+                                      'chapterReview.gate2GridSelfReviewLocked',
+                                      'Không thể tự duyệt bài mình nộp (BR-06)',
+                                    )}
+                                  </span>
+                                </span>
+                              ) : (
+                                <>
+                                  <button
+                                    type='button'
+                                    data-testid={`gate2-approve-cell-${cell.id}`}
+                                    disabled={
+                                      gridCellBusyId !== null ||
+                                      cell.isInputOutdated ||
+                                      isCellLockedByOther
+                                    }
+                                    onClick={() => void handleApproveGridCell(cell)}
+                                    className='inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                                  >
+                                    {gridCellBusyId === `approve:${cell.id}` ? (
+                                      <Loader2 className='w-3 h-3 animate-spin' />
+                                    ) : (
+                                      <CheckCircle2 className='w-3 h-3' />
+                                    )}
+                                    <span>
+                                      {t('chapterReview.gate2GridApproveCell', 'Duyệt ô')}
+                                    </span>
+                                  </button>
+                                  <button
+                                    type='button'
+                                    data-testid={`gate2-request-changes-toggle-${cell.id}`}
+                                    disabled={gridCellBusyId !== null || isCellLockedByOther}
+                                    onClick={() => {
+                                      setRejectingGridCellId((prev) =>
+                                        prev === cell.id ? null : cell.id,
+                                      );
+                                      setRejectGridCellComment('');
+                                    }}
+                                    className='inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2.5 py-1 text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                                  >
+                                    <XCircle className='w-3 h-3' />
+                                    <span>
+                                      {t('chapterReview.gate2GridRequestChanges', 'Yêu cầu sửa')}
+                                    </span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+
+                          {rejectingGridCellId === cell.id && !isSelfCell && (
+                            <div className='rounded-lg border border-rose-200 bg-rose-50/70 p-2 space-y-1.5'>
+                              <textarea
+                                rows={2}
+                                data-testid={`gate2-request-changes-input-${cell.id}`}
+                                value={rejectGridCellComment}
+                                onChange={(e) => setRejectGridCellComment(e.target.value)}
+                                placeholder={t(
+                                  'chapterReview.gate2GridCommentPlaceholder',
+                                  'Nhập nhận xét yêu cầu sửa bắt buộc (BR-06)...',
+                                )}
+                                aria-label={t(
+                                  'chapterReview.gate2GridCommentPlaceholder',
+                                  'Nhập nhận xét yêu cầu sửa bắt buộc (BR-06)...',
+                                )}
+                                className='w-full rounded border border-rose-300 bg-white px-2 py-1.5 text-xs text-zinc-900'
+                              />
+                              <div className='flex items-center justify-end gap-1.5'>
+                                <button
+                                  type='button'
+                                  onClick={() => {
+                                    setRejectingGridCellId(null);
+                                    setRejectGridCellComment('');
+                                  }}
+                                  className='px-2 py-1 rounded border border-zinc-300 bg-white text-xs font-semibold text-zinc-700 cursor-pointer'
+                                >
+                                  Huỷ
+                                </button>
+                                <button
+                                  type='button'
+                                  data-testid={`gate2-confirm-request-changes-${cell.id}`}
+                                  disabled={
+                                    gridCellBusyId !== null || !rejectGridCellComment.trim()
+                                  }
+                                  onClick={() => void handleRequestChangesGridCell(cell)}
+                                  className='px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50'
+                                >
+                                  {t('chapterReview.gate2GridConfirmReturn', 'Xác nhận trả về')}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Form tạo yêu cầu sửa mới cho trang đang chọn */}
               <div className='p-3.5 rounded-xl border border-zinc-200 bg-zinc-50/70 space-y-3'>
                 <div className='flex items-center justify-between'>
@@ -1918,32 +2596,20 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         />
       )}
 
-      {isSubmissionsOpen && (
-        <div
-          role='dialog'
-          aria-modal='true'
-          className='fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4'
-        >
-          <div className='bg-white rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden'>
-            <div className='p-4 border-b border-zinc-200 flex items-center justify-between'>
-              <h3 className='text-sm font-bold text-zinc-900 flex items-center gap-2'>
-                <Clock className='w-4 h-4 text-zinc-600' />
-                Lịch sử các lần nộp Review
-              </h3>
-              <button
-                type='button'
-                onClick={() => setIsSubmissionsOpen(false)}
-                className='p-1 text-zinc-400 hover:text-zinc-700 cursor-pointer'
-              >
-                <X className='w-4 h-4' />
-              </button>
-            </div>
-            <div className='flex-1 overflow-y-auto p-4'>
-              <SubmissionHistory submissions={submissions} />
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={isSubmissionsOpen}
+        onClose={() => setIsSubmissionsOpen(false)}
+        size='md'
+        title={
+          <span className='text-sm font-bold flex items-center gap-2'>
+            <Clock className='w-4 h-4 text-zinc-600' />
+            Lịch sử các lần nộp Review
+          </span>
+        }
+        closeLabel='Đóng'
+      >
+        <SubmissionHistory submissions={submissions} />
+      </Modal>
     </div>
   );
 };

@@ -11,9 +11,15 @@
  */
 import type { JSONContent } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
-import { NarrationMode, SceneDetailDto, ScriptLineKind } from '@/services/scriptLine.service';
+import {
+  NarrationMode,
+  SceneDetailDto,
+  ScriptLineKind,
+  ScriptLineRefInput,
+} from '@/services/scriptLine.service';
 import type { PageDto } from '@/services/page.service';
 import type { PanelDto } from '@/types/pipeline';
+import type { BibleCategory } from '@/services/bible.service';
 import { GnElement, isThoughtParens } from './grammar/scriptGrammar';
 import { MangaBlockType } from './types';
 
@@ -28,6 +34,20 @@ export function generateGuid(): string {
   });
 }
 
+import type {
+  ScriptTreeCast,
+  ScriptTreeLine,
+  ScriptTreePanel,
+  ScriptTreePage,
+  ChapterScriptBody,
+} from '@/services/chapter.service';
+export type { ScriptTreeCast, ScriptTreeLine, ScriptTreePanel, ScriptTreePage, ChapterScriptBody };
+
+export function isValidGuid(id?: string | null): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
 export interface ExtractedScriptLinePayload {
   scriptLineId: string;
   sceneId: string;
@@ -36,13 +56,13 @@ export interface ExtractedScriptLinePayload {
   text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
-  speakerCharacterId?: string | null;
   narrationMode: NarrationMode;
   lineOrder: number;
   blockType?: MangaBlockType;
   panelId?: string | null;
   pageNumber?: number;
   panelNumber?: number;
+  refs?: ScriptLineRefInput[] | null;
 }
 
 export interface ScriptStructurePanelDraft {
@@ -50,6 +70,7 @@ export interface ScriptStructurePanelDraft {
   /** Id Panel trên máy chủ nếu dòng panel đã từng lưu. */
   panelId: string | null;
   direction: string;
+  castRevisions?: { bibleEntryId: string; revisionId: string }[] | null;
 }
 
 export interface ScriptStructurePageDraft {
@@ -60,11 +81,16 @@ export interface ScriptStructurePageDraft {
 export interface ScriptDocSnapshot {
   lines: ExtractedScriptLinePayload[];
   pages: ScriptStructurePageDraft[];
+  tree?: ChapterScriptBody;
 }
 
 // ───────────────────────── máy chủ → editor ─────────────────────────
 
-function toKind(kind: unknown, dialogueText?: string | null, speakerLabel?: string | null): ScriptLineKind {
+function toKind(
+  kind: unknown,
+  dialogueText?: string | null,
+  speakerLabel?: string | null,
+): ScriptLineKind {
   if (typeof kind === 'number' && ScriptLineKind[kind] !== undefined) return kind as ScriptLineKind;
   if (typeof kind === 'string') {
     const byName = (ScriptLineKind as unknown as Record<string, number>)[kind];
@@ -76,12 +102,86 @@ function toKind(kind: unknown, dialogueText?: string | null, speakerLabel?: stri
   return ScriptLineKind.Action;
 }
 
-function line(el: GnElement, text?: string | null, refId: string | null = null): JSONContent {
+function line(
+  el: GnElement,
+  text?: string | null,
+  refId: string | null = null,
+  refs?: ScriptLineRefInput[] | null,
+  castRevisions?: { bibleEntryId: string; revisionId: string }[] | null,
+): JSONContent {
   const value = (text ?? '').trim();
+  const attrs: Record<string, any> = { el, refId };
+  if (castRevisions && castRevisions.length > 0) {
+    attrs.castRevisions = castRevisions;
+  }
+
+  if (!value) {
+    return { type: 'scriptLine', attrs };
+  }
+
+  if (refs && refs.length > 0 && (el === 'action' || el === 'caption' || el === 'sfx')) {
+    type Segment = { from: number; to: number; ref: ScriptLineRefInput };
+    const segments: Segment[] = [];
+    const lowerValue = value.toLowerCase();
+
+    for (const ref of refs) {
+      const lowerTarget = ref.surfaceText.toLowerCase().trim();
+      if (!lowerTarget) continue;
+      let idx = 0;
+      while ((idx = lowerValue.indexOf(lowerTarget, idx)) !== -1) {
+        segments.push({
+          from: idx,
+          to: idx + lowerTarget.length,
+          ref,
+        });
+        idx += lowerTarget.length;
+      }
+    }
+
+    segments.sort((a, b) => a.from - b.from);
+    const nonOverlapping: Segment[] = [];
+    let lastTo = 0;
+    for (const seg of segments) {
+      if (seg.from >= lastTo) {
+        nonOverlapping.push(seg);
+        lastTo = seg.to;
+      }
+    }
+
+    if (nonOverlapping.length > 0) {
+      const content: JSONContent[] = [];
+      let cursor = 0;
+      for (const seg of nonOverlapping) {
+        if (seg.from > cursor) {
+          content.push({ type: 'text', text: value.substring(cursor, seg.from) });
+        }
+        content.push({
+          type: 'text',
+          text: value.substring(seg.from, seg.to),
+          marks: [
+            {
+              type: 'bibleRef',
+              attrs: {
+                entryId: seg.ref.bibleEntryId ?? null,
+                surfaceText: seg.ref.surfaceText,
+                newDraft: seg.ref.newDraft ?? null,
+              },
+            },
+          ],
+        });
+        cursor = seg.to;
+      }
+      if (cursor < value.length) {
+        content.push({ type: 'text', text: value.substring(cursor) });
+      }
+      return { type: 'scriptLine', attrs, content };
+    }
+  }
+
   return {
     type: 'scriptLine',
-    attrs: { el, refId },
-    ...(value ? { content: [{ type: 'text', text: value }] } : {}),
+    attrs,
+    content: [{ type: 'text', text: value }],
   };
 }
 
@@ -100,6 +200,7 @@ interface ServerLine {
   speakerLabel: string | null;
   text: string;
   panelId: string | null;
+  refs?: ScriptLineRefInput[] | null;
 }
 
 function collectLines(scenes: SceneDetailDto[]): ServerLine[] {
@@ -115,6 +216,7 @@ function collectLines(scenes: SceneDetailDto[]): ServerLine[] {
           speakerLabel: l.speakerLabel ?? null,
           text: (l.text ?? l.dialogueText ?? l.stageDirection ?? '').trim(),
           panelId: l.panelId ?? null,
+          refs: (l as any).refs ?? null,
         })),
     )
     .filter((l) => l.text.length > 0);
@@ -144,7 +246,7 @@ function linesToNodes(lines: ServerLine[]): JSONContent[] {
         : l.kind === ScriptLineKind.Sfx
           ? 'sfx'
           : 'action';
-    out.push(line(el, l.text, l.id));
+    out.push(line(el, l.text, l.id, l.refs));
   }
   return out;
 }
@@ -180,7 +282,9 @@ export function scriptToDoc(
       .filter((p) => p.pageId === page.id)
       .sort((a, b) => a.panelNumber - b.panelNumber);
     for (const panel of pagePanels) {
-      content.push(line('panel', panel.direction ?? '', panel.id));
+      content.push(
+        line('panel', panel.direction ?? '', panel.id, null, (panel as any).castRevisions ?? null),
+      );
       content.push(...linesToNodes(byPanel.get(panel.id) ?? []));
     }
   }
@@ -212,6 +316,199 @@ const stripParens = (s: string) =>
     .replace(/\s*\)$/, '')
     .trim();
 
+export function extractRefs(node: PMNode): ScriptLineRefInput[] {
+  const lineRefs: ScriptLineRefInput[] = [];
+  node.descendants((child) => {
+    if (child.isText && child.marks.length > 0) {
+      for (const m of child.marks) {
+        if (m.type.name === 'bibleRef') {
+          const entryId = (m.attrs.entryId as string | null) || null;
+          const surf = (m.attrs.surfaceText as string | null) || child.text || '';
+          const newDraft =
+            (m.attrs.newDraft as { name: string; category?: BibleCategory } | null) || null;
+          if (
+            surf &&
+            !lineRefs.some(
+              (r) =>
+                (entryId && r.bibleEntryId === entryId) ||
+                (!entryId && newDraft && r.newDraft?.name === newDraft.name) ||
+                r.surfaceText.toLowerCase() === surf.toLowerCase(),
+            )
+          ) {
+            lineRefs.push({
+              surfaceText: surf,
+              bibleEntryId: entryId,
+              newDraft: newDraft,
+            });
+          }
+        }
+      }
+    }
+  });
+  return lineRefs;
+}
+
+/**
+ * SCR-14: Xây dựng toàn bộ cây dữ liệu kịch bản (Trang → Panel (kèm direction + castRevisions) → Dòng (kèm refs))
+ * trực tiếp từ tài liệu editor.
+ */
+export function docToScriptTree(
+  doc: PMNode,
+  expectedRevisionId?: string | null,
+): ChapterScriptBody {
+  const pages: ScriptTreePage[] = [];
+  let pageNo = 0;
+  let panelNo = 0;
+  let currentPage: ScriptTreePage | null = null;
+  let currentPanel: ScriptTreePanel | null = null;
+  let speaker: string | null = null;
+  let parens: string | null = null;
+
+  const ensurePage = () => {
+    if (!currentPage) {
+      pageNo += 1;
+      currentPage = {
+        id: null,
+        number: pageNo,
+        panels: [],
+      };
+      pages.push(currentPage);
+    }
+    return currentPage;
+  };
+
+  const ensurePanel = () => {
+    const p = ensurePage();
+    if (!currentPanel) {
+      panelNo += 1;
+      currentPanel = {
+        id: null,
+        number: panelNo,
+        direction: null,
+        castRevisions: null,
+        lines: [],
+      };
+      p.panels = p.panels ?? [];
+      p.panels.push(currentPanel);
+    }
+    return currentPanel;
+  };
+
+  doc.forEach((node) => {
+    const el = node.attrs.el as GnElement;
+    const text = node.textContent.trim();
+    const refId = (node.attrs.refId as string | null) ?? null;
+
+    switch (el) {
+      case 'page': {
+        pageNo += 1;
+        panelNo = 0;
+        currentPanel = null;
+        speaker = null;
+        parens = null;
+        currentPage = {
+          id: isValidGuid(refId) ? refId : null,
+          number: pageNo,
+          panels: [],
+        };
+        pages.push(currentPage);
+        return;
+      }
+      case 'panel': {
+        ensurePage();
+        panelNo += 1;
+        speaker = null;
+        parens = null;
+        const rawCast =
+          (node.attrs.castRevisions as Array<{
+            entryId?: string;
+            bibleEntryId?: string;
+            revisionId: string;
+          }> | null) ?? null;
+        const castRevisions: ScriptTreeCast[] | null =
+          rawCast && rawCast.length > 0
+            ? rawCast
+                .map((c) => ({
+                  entryId: c.entryId || c.bibleEntryId || '',
+                  revisionId: c.revisionId,
+                }))
+                .filter((c) => !!c.entryId && !!c.revisionId)
+            : null;
+
+        currentPanel = {
+          id: isValidGuid(refId) ? refId : null,
+          number: panelNo,
+          direction: text || null,
+          ...(castRevisions && castRevisions.length > 0 ? { castRevisions } : {}),
+          lines: [],
+        };
+        currentPage!.panels = currentPage!.panels ?? [];
+        currentPage!.panels.push(currentPanel);
+        return;
+      }
+      case 'character': {
+        speaker = text ? text.replace(/:+$/, '').trim().toUpperCase() : null;
+        parens = null;
+        return;
+      }
+      case 'parens': {
+        parens = stripParens(text) || null;
+        return;
+      }
+      case 'dialogue': {
+        if (text) {
+          const panel = ensurePanel();
+          const thought = isThoughtParens(parens);
+          const label = speaker
+            ? parens && !thought
+              ? `${speaker} (${parens.toUpperCase()})`
+              : speaker
+            : null;
+          const refs = extractRefs(node);
+          panel.lines = panel.lines ?? [];
+          panel.lines.push({
+            id: isValidGuid(refId) ? refId : null,
+            kind: thought ? ScriptLineKind.Thought : ScriptLineKind.Dialogue,
+            speakerLabel: label,
+            text,
+            refs: refs.length > 0 ? refs : null,
+          });
+        }
+        parens = null;
+        return;
+      }
+      default: {
+        speaker = null;
+        parens = null;
+        if (!text) return;
+        const panel = ensurePanel();
+        const refs = extractRefs(node);
+        const kind =
+          el === 'caption'
+            ? ScriptLineKind.Narration
+            : el === 'sfx'
+              ? ScriptLineKind.Sfx
+              : ScriptLineKind.Action;
+        panel.lines = panel.lines ?? [];
+        panel.lines.push({
+          id: isValidGuid(refId) ? refId : null,
+          kind,
+          speakerLabel: null,
+          text,
+          refs: refs.length > 0 ? refs : null,
+        });
+      }
+    }
+  });
+
+  return {
+    expectedRevisionId: expectedRevisionId ?? null,
+    pages,
+  };
+}
+
+export const docToChapterScript = docToScriptTree;
+
 /** Đọc tài liệu editor thành danh sách dòng + khung Trang/Panel để lưu. Dòng trống bị bỏ qua. */
 export function docToScript(doc: PMNode, sceneId: string): ScriptDocSnapshot {
   const lines: ExtractedScriptLinePayload[] = [];
@@ -235,6 +532,7 @@ export function docToScript(doc: PMNode, sceneId: string): ScriptDocSnapshot {
     refId: string | null,
     blockType: MangaBlockType,
     speakerLabel: string | null = null,
+    refs: ScriptLineRefInput[] | null = null,
   ) => {
     const isSpeech = kind === ScriptLineKind.Dialogue || kind === ScriptLineKind.Thought;
     lines.push({
@@ -245,13 +543,13 @@ export function docToScript(doc: PMNode, sceneId: string): ScriptDocSnapshot {
       text,
       dialogueText: isSpeech ? text : null,
       stageDirection: isSpeech ? null : text,
-      speakerCharacterId: null,
       narrationMode: 'Present',
       lineOrder: lines.length + 1,
       blockType,
       panelId,
       pageNumber: pageNo,
       panelNumber: panelNo,
+      refs: refs && refs.length > 0 ? refs : null,
     });
   };
 
@@ -268,18 +566,23 @@ export function docToScript(doc: PMNode, sceneId: string): ScriptDocSnapshot {
         parens = null;
         pages.push({ pageNumber: pageNo, panels: [] });
         return;
-      case 'panel':
+      case 'panel': {
         ensurePage();
         panelNo += 1;
         panelId = refId;
         speaker = null;
         parens = null;
+        const panelCastRevs =
+          (node.attrs.castRevisions as { bibleEntryId: string; revisionId: string }[] | null) ??
+          null;
         pages[pages.length - 1].panels.push({
           panelNumber: panelNo,
           panelId: refId,
           direction: text,
+          ...(panelCastRevs && panelCastRevs.length > 0 ? { castRevisions: panelCastRevs } : {}),
         });
         return;
+      }
       case 'character':
         speaker = text ? text.replace(/:+$/, '').trim().toUpperCase() : null;
         parens = null;
@@ -310,12 +613,18 @@ export function docToScript(doc: PMNode, sceneId: string): ScriptDocSnapshot {
         speaker = null;
         parens = null;
         if (!text) return;
-        if (el === 'caption') push(ScriptLineKind.Narration, text, refId, BLOCK_TYPE.caption);
-        else if (el === 'sfx') push(ScriptLineKind.Sfx, text, refId, BLOCK_TYPE.sfx);
-        else push(ScriptLineKind.Action, text, refId, BLOCK_TYPE.action);
+
+        // Trích xuất refs từ các mark bibleRef trong dòng (BIB-16, 1A, 2A, 5A)
+        const lineRefs = extractRefs(node);
+
+        if (el === 'caption')
+          push(ScriptLineKind.Narration, text, refId, BLOCK_TYPE.caption, null, lineRefs);
+        else if (el === 'sfx')
+          push(ScriptLineKind.Sfx, text, refId, BLOCK_TYPE.sfx, null, lineRefs);
+        else push(ScriptLineKind.Action, text, refId, BLOCK_TYPE.action, null, lineRefs);
       }
     }
   });
 
-  return { lines, pages };
+  return { lines, pages, tree: docToScriptTree(doc) };
 }

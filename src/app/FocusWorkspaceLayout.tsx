@@ -12,6 +12,7 @@ import {
   Loader2,
   Maximize2,
   Minimize2,
+  RotateCcw,
   Send,
 } from 'lucide-react';
 import { BrandMark } from '@/shared/components/BrandMark';
@@ -47,6 +48,9 @@ export interface FocusHeaderConfig {
   onSubmitStage?: () => void;
   onSelectStage?: (stageIndex: number) => void;
   submitButtonLabel?: string;
+  onWithdrawStage?: () => void;
+  isWithdrawingStage?: boolean;
+  withdrawButtonLabel?: string;
 }
 
 interface FocusHeaderContextValue {
@@ -84,7 +88,6 @@ export interface FocusStudioHeaderBarProps {
 }
 
 function getReadableWorkspaceTitle(pathname: string): string {
-  if (pathname.includes('/artist/workspace')) return 'Không gian vẽ';
   if (pathname.includes('/artist')) return 'Bàn vẽ họa sĩ';
   if (pathname.includes('/script/review')) return 'Duyệt kịch bản';
   if (pathname.includes('/script')) return 'Biên soạn kịch bản';
@@ -332,8 +335,30 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
         )}
       </div>
 
-      {/* Phía phải: Nút Nộp qua công đoạn, Chế độ tập trung, Tìm kiếm nhanh & Tài khoản */}
+      {/* Phía phải: Nút Rút bài / Nộp qua công đoạn, Chế độ tập trung, Tìm kiếm nhanh & Tài khoản */}
       <div className='flex items-center gap-2 shrink-0'>
+        {headerConfig?.onWithdrawStage && (
+          <button
+            type='button'
+            onClick={headerConfig.onWithdrawStage}
+            disabled={Boolean(headerConfig.isWithdrawingStage)}
+            data-testid='artist-withdraw-btn'
+            title='Rút bài nộp để tiếp tục chỉnh sửa'
+            className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0'
+          >
+            {headerConfig.isWithdrawingStage ? (
+              <Loader2 className='w-3.5 h-3.5 animate-spin' />
+            ) : (
+              <RotateCcw className='w-3.5 h-3.5' />
+            )}
+            <span>
+              {headerConfig.isWithdrawingStage
+                ? 'Đang rút...'
+                : headerConfig.withdrawButtonLabel || 'Rút bài'}
+            </span>
+          </button>
+        )}
+
         {headerConfig?.onSubmitStage &&
           (isStageFlowCompleted ? (
             <div

@@ -260,7 +260,8 @@
       "startProduction": "Bắt đầu sản xuất",
       "startConfirm": "Bắt đầu sản xuất Chương {n}? Kịch bản sẽ được chốt (chỉ đọc).",
       "started": "Đã bắt đầu sản xuất",
-      "startFailed": "Không bắt đầu sản xuất được"
+      "startFailed": "Không bắt đầu sản xuất được",
+      "openCommentsWarning": "Còn {count} góp ý tham khảo; không chặn Gate 1"
     },
     "comments": {
       "tab": "Góp ý ({count})",
@@ -312,7 +313,10 @@
       "reopenReason": "Vì sao chưa đạt? (gửi lại cho người làm)",
       "rejectTitle": "Chấp nhận phản hồi của người làm và đóng yêu cầu này",
       "emptyCanDraw": "Chưa có nhận xét. Kéo chuột trên bản nộp để khoanh vùng cần sửa.",
-      "describe": "Mô tả vùng cần sửa"
+      "describe": "Mô tả vùng cần sửa",
+      "layerLabel": "Lớp bị ảnh hưởng",
+      "layerArtwork": "Tranh vẽ",
+      "layerLettering": "Chữ thoại"
     },
     "checks": {
       "title": "Nhất quán hình ảnh",
@@ -357,7 +361,7 @@
   },
   "bibleReview": {
     "title": "Duyệt thiết kế Series Bible",
-    "subtitle": "Đối chiếu bản vẽ Artist nộp với đặc tả và cốt truyện. Bạn xác nhận hoặc yêu cầu vẽ lại; Producer khoá canon.",
+    "subtitle": "Đối chiếu bản vẽ Artist nộp với đặc tả và cốt truyện. Editor khoá Canon hoặc yêu cầu vẽ lại.",
     "listLabel": "Danh sách mục Bible cần xem",
     "emptyTitle": "Chưa có thiết kế nào chờ duyệt",
     "emptyBody": "Khi Artist nộp concept art hoặc model sheet cho một mục Bible, mục đó sẽ hiện ở đây để bạn đối chiếu.",
@@ -365,9 +369,7 @@
       "pending": "Chờ bạn duyệt",
       "pendingHint": "Artist đã nộp bản vẽ.",
       "rework": "Đang vẽ lại",
-      "reworkHint": "Đã yêu cầu sửa, chờ Artist nộp lại.",
-      "endorsed": "Đã xác nhận",
-      "endorsedHint": "Chờ Producer khoá canon."
+      "reworkHint": "Đã yêu cầu sửa, chờ Artist nộp lại."
     },
     "openImage": "Phóng to ảnh kích thước gốc",
     "noImage": "Chưa có ảnh thiết kế",
@@ -385,15 +387,14 @@
       "StyleRule": "Quy tắc mỹ thuật",
       "PlotFact": "Sự kiện cốt truyện"
     },
-    "decisionHint": "Bản vẽ khớp đặc tả và cốt truyện? Sau khi bạn xác nhận, Producer sẽ khoá canon.",
-    "endorse": "Xác nhận thiết kế",
+    "decisionHint": "Bản vẽ khớp đặc tả và cốt truyện? Editor xác nhận sẽ khoá ngay phiên bản này làm Canon.",
+    "lockCanon": "Xác nhận & Khoá Canon",
     "requestRework": "Yêu cầu vẽ lại",
     "reworkReason": "Cần sửa gì? (Artist sẽ thấy nhận xét này)",
-    "waitingProducer": "Đã xác nhận. Chờ Producer khoá canon.",
     "waitingArtist": "Đã yêu cầu vẽ lại. Chờ Artist nộp bản mới.",
     "notReviewer": "Vai trò của bạn chỉ được xem thiết kế.",
     "toast": {
-      "endorsed": "Đã xác nhận thiết kế",
+      "canonLocked": "Đã khoá Canon",
       "reworkRequested": "Đã yêu cầu vẽ lại",
       "failed": "Không lưu được quyết định"
     },
@@ -420,6 +421,22 @@
     "checklist": "Checklist",
     "consistency": "Nhất quán",
     "changeRequests": "Yêu cầu sửa",
-    "returnWork": "Gửi yêu cầu sửa (Trả việc)"
+    "returnWork": "Gửi yêu cầu sửa (Trả việc)",
+    "gate2GridTitle": "Duyệt ô Lưới V3 · Trang {page}",
+    "gate2GridApproveCell": "Duyệt ô",
+    "gate2GridRequestChanges": "Yêu cầu sửa",
+    "gate2GridCommentPlaceholder": "Nhập nhận xét yêu cầu sửa bắt buộc (BR-06)...",
+    "gate2GridConfirmReturn": "Gửi yêu cầu sửa",
+    "gate2GridSubmitChapterReview": "Nộp kết quả Gate 2",
+    "gate2GridSelfReviewLocked": "Không thể tự duyệt ô của mình (BR-06)",
+    "gate2GridLastComment": "Nhận xét duyệt gần nhất",
+    "reopenReasonPrefix": "Producer mở lại:",
+    "openDetailReview": "Mở màn duyệt",
+    "underReviewBy": "Đang được duyệt bởi {name}",
+    "underReviewByYou": "Bạn đang giữ khoá duyệt",
+    "releaseReviewBtn": "Nhả khoá duyệt",
+    "forceReleaseReviewBtn": "Gỡ khoá duyệt",
+    "releaseReviewToast": "Đã nhả khoá duyệt",
+    "inputOutdatedBadge": "Đầu vào đã đổi"
   }
 }

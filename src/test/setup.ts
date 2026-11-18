@@ -43,6 +43,45 @@ globalThis.IntersectionObserver = class IntersectionObserver {
 
 window.scrollTo = () => {};
 
+// Mock HTMLDialogElement methods for JSDOM
+if (typeof HTMLDialogElement !== 'undefined') {
+  if (!HTMLDialogElement.prototype.showModal) {
+    HTMLDialogElement.prototype.showModal = function () {
+      this.setAttribute('open', '');
+    };
+  }
+  if (!HTMLDialogElement.prototype.show) {
+    HTMLDialogElement.prototype.show = function () {
+      this.setAttribute('open', '');
+    };
+  }
+  if (!HTMLDialogElement.prototype.close) {
+    HTMLDialogElement.prototype.close = function () {
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    };
+  }
+}
+
+// Mock Popover API methods for JSDOM
+if (typeof HTMLElement !== 'undefined') {
+  if (!HTMLElement.prototype.showPopover) {
+    HTMLElement.prototype.showPopover = function () {
+      this.classList.add(':popover-open');
+    };
+  }
+  if (!HTMLElement.prototype.hidePopover) {
+    HTMLElement.prototype.hidePopover = function () {
+      this.classList.remove(':popover-open');
+    };
+  }
+  if (!HTMLElement.prototype.togglePopover) {
+    HTMLElement.prototype.togglePopover = function () {
+      return false;
+    };
+  }
+}
+
 if (typeof window !== 'undefined') {
   if (typeof Range !== 'undefined') {
     Range.prototype.getClientRects = Range.prototype.getClientRects || (() => [] as any);

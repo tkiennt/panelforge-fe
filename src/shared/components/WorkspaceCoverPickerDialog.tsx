@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { AlertCircle, Camera, Check, Loader2, RotateCcw, Upload, X } from 'lucide-react';
 import { workspaceService } from '@/services/workspace.service';
 import { WorkspaceDto } from '@/types';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { StudioCoverFallback } from '@/shared/components/StudioCoverFallback';
 import { useTranslation } from '@/lib/i18n';
+import { Alert, Modal } from '@/shared/ui';
 
 interface WorkspaceCoverPickerDialogProps {
   isOpen: boolean;
@@ -34,28 +34,15 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const dialogRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const returnFocusRef = useRef<Element | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
-    returnFocusRef.current = document.activeElement;
     setChoice(null);
     setFilePreview(null);
     setFileError(null);
     setSaveError(null);
     setSaving(false);
-
-    // Auto-focus first interactive element
-    const timer = setTimeout(() => {
-      dialogRef.current?.querySelector<HTMLElement>('button, input')?.focus();
-    }, 50);
-
-    return () => {
-      clearTimeout(timer);
-      (returnFocusRef.current as HTMLElement | null)?.focus?.();
-    };
   }, [isOpen]);
 
   useEffect(() => {
@@ -127,29 +114,6 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      if (!saving) onClose();
-      return;
-    }
-    if (e.key === 'Tab' && dialogRef.current) {
-      const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled])',
-      );
-      if (!focusables.length) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-  };
-
   // Preview content
   const renderPreview = () => {
     if (choice?.type === 'remove') {
@@ -186,21 +150,16 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
   const hasExistingCover = !!workspace.coverUrl;
   const canRevert = hasExistingCover || choice?.type === 'upload';
 
-  return createPortal(
-    <div
-      className='fixed inset-0 z-50 bg-[#1C1917]/60 backdrop-blur-xs flex items-center justify-center p-4'
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !saving) onClose();
-      }}
-      role='dialog'
-      aria-modal='true'
-      aria-labelledby='cover-picker-title'
-      onKeyDown={handleKeyDown}
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel={t('workspace.shelf.cancel')}
+      size='md'
+      title={t('workspace.shelf.changeCoverTitle')}
+      dismissible={!saving}
     >
-      <div
-        ref={dialogRef}
-        className='relative w-full max-w-lg bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-xl overflow-hidden text-[#1C1917] flex flex-col font-sans'
-      >
+      <div className='relative w-full max-w-lg bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-xl overflow-hidden text-[#1C1917] flex flex-col font-sans'>
         {/* Header */}
         <div className='flex items-center justify-between px-6 py-4 border-b border-[#ECE7DD] bg-[#FAF8F5]'>
           <div className='min-w-0 pr-3'>
@@ -302,22 +261,14 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
 
           {/* Error messages */}
           {fileError && (
-            <div
-              role='alert'
-              className='flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700'
-            >
-              <AlertCircle className='w-4 h-4 shrink-0 mt-0.5' aria-hidden='true' />
-              <span>{fileError}</span>
-            </div>
+            <Alert tone='danger' className='text-xs'>
+              {fileError}
+            </Alert>
           )}
           {saveError && (
-            <div
-              role='alert'
-              className='flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700'
-            >
-              <AlertCircle className='w-4 h-4 shrink-0 mt-0.5' aria-hidden='true' />
-              <span>{saveError}</span>
-            </div>
+            <Alert tone='danger' className='text-xs'>
+              {saveError}
+            </Alert>
           )}
         </div>
 
@@ -348,7 +299,6 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
+    </Modal>
   );
 };

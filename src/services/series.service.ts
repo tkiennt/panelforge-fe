@@ -1,5 +1,6 @@
 // src/services/series.service.ts
 import axiosClient from '../api/axiosClient';
+import type { ChapterStatus } from './chapter.service';
 
 // axiosClient mặc định Content-Type JSON → axios 1.x đổi FormData thành JSON (415). Upload file phải ghi rõ multipart (axios tự thêm boundary).
 const MULTIPART = { headers: { 'Content-Type': 'multipart/form-data' } };
@@ -88,7 +89,7 @@ export interface ChapterProgressDto {
   chapterId: string;
   chapterNumber: number;
   title: string | null;
-  status: 'InProduction' | 'Approved' | 'Locked' | 'Published' | string;
+  status: ChapterStatus | string;
   targetReleaseDate: string | null;
   pageCount: number;
   panelCount: number;
@@ -222,20 +223,6 @@ export interface UpdateConsistencyRuleRequest {
   pattern?: string;
   severity?: string;
   configurationJson?: string;
-}
-
-export interface SeriesPresetDto {
-  id: string;
-  seriesId: string;
-  typographyPresetsJson: string;
-  consistencyRulesJson: string;
-  createdAt: string;
-  updatedAt?: string | null;
-}
-
-export interface UpdateSeriesPresetRequest {
-  typographyPresetsJson: string;
-  consistencyRulesJson: string;
 }
 
 // Series Members (UC-04 / RBAC)
@@ -417,24 +404,6 @@ export const seriesService = {
       await axiosClient.delete(`/series/${seriesId}`);
     } catch (err: any) {
       throw new Error(extractError(err, 'Không thể xóa Series.'));
-    }
-  },
-
-  async getPresets(seriesId: string): Promise<SeriesPresetDto> {
-    try {
-      const res = await axiosClient.get(`/series/${seriesId}/presets`);
-      return res.data;
-    } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể tải cấu hình Presets của Series.'));
-    }
-  },
-
-  async updatePresets(seriesId: string, data: UpdateSeriesPresetRequest): Promise<SeriesPresetDto> {
-    try {
-      const res = await axiosClient.put(`/series/${seriesId}/presets`, data);
-      return res.data;
-    } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể lưu cấu hình Presets.'));
     }
   },
 

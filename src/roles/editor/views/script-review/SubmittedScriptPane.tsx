@@ -134,7 +134,8 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
                   {renderQuotedHighlight(
                     text,
                     (composer && composer.scriptLineId === lineId ? composer.quotedText : null) ||
-                      comments?.find((c) => c.scriptLineId === lineId && !c.resolvedAt)?.quotedText ||
+                      comments?.find((c) => c.scriptLineId === lineId && !c.resolvedAt)
+                        ?.quotedText ||
                       null,
                   )}
                 </p>

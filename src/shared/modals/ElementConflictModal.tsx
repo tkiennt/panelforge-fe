@@ -1,5 +1,6 @@
 import React from 'react';
-import { AlertTriangle, RefreshCw, X, ArrowRight, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Modal } from '@/shared/ui';
 
 export interface ElementConflictModalProps {
   isOpen: boolean;
@@ -29,31 +30,15 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
   const currentEntity = entityType || 'Phần tử';
 
   return (
-    <div className='fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='md'
+      title={title || 'Xung Đột Phiên Bản Phần Tử'}
+      description={subtitle || 'Optimistic Concurrency Control — ELEMENT_VERSION_CONFLICT'}
+    >
       <div className='bg-white rounded-2xl border border-red-200 shadow-2xl max-w-lg w-full p-6 space-y-4'>
-        {/* Header */}
-        <div className='flex items-start justify-between border-b border-[#E7E7E7] pb-3'>
-          <div className='flex items-center gap-2.5'>
-            <div className='p-2 bg-red-100 text-red-600 rounded-xl'>
-              <AlertTriangle className='w-5 h-5' />
-            </div>
-            <div>
-              <h3 className='text-sm font-bold text-[#171717]'>
-                {title || 'Xung Đột Phiên Bản Phần Tử'}
-              </h3>
-              <p className='text-xs text-[#737373]'>
-                {subtitle || 'Optimistic Concurrency Control — ELEMENT_VERSION_CONFLICT'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className='p-1 text-[#888888] hover:text-[#171717] rounded-lg transition-colors cursor-pointer'
-          >
-            <X className='w-4 h-4' />
-          </button>
-        </div>
-
         {/* Content */}
         <div className='space-y-3 text-xs'>
           <div className='p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl text-amber-900 space-y-1.5'>
@@ -134,7 +119,7 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

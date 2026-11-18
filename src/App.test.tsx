@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import App from './App';
 import { workspaceService } from './services/workspace.service';
 import { seriesService } from './services/series.service';
-import { WorkspaceDto } from './types';
+import { WorkspaceDto, readCachedWorkspace, writeCachedWorkspace } from './types';
 import axiosClient from './api/axiosClient';
 import { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
@@ -175,17 +175,20 @@ describe('App Integration Smoke Test', () => {
     render(<App />);
 
     // Phải render Admin Console và System Admin Zone
-    await waitFor(() => {
-      expect(screen.getByText('Quản trị hệ thống')).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
-      // Menu của Admin phải hiện đầy đủ
-      expect(screen.getAllByText('Tổng quan').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Người dùng & quyền').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Cấu hình AI').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Nhật ký hệ thống').length).toBeGreaterThan(0);
-      // TUYỆT ĐỐI KHÔNG bị redirect về màn hình danh sách Workspace
-      expect(screen.queryByText('Active Studio Workspaces')).not.toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Quản trị hệ thống')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
+        // Menu của Admin phải hiện đầy đủ
+        expect(screen.getAllByText('Tổng quan').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Người dùng & quyền').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Cấu hình AI').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Nhật ký hệ thống').length).toBeGreaterThan(0);
+        // TUYỆT ĐỐI KHÔNG bị redirect về màn hình danh sách Workspace
+        expect(screen.queryByText('Active Studio Workspaces')).not.toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
   });
 
   it('đăng nhập USER -> điều hướng tới /workspaces và render WorkspaceListView', async () => {
@@ -413,5 +416,87 @@ describe('App Integration Smoke Test', () => {
 
     // Xác nhận tuyệt đối không có toast cảnh báo hết phiên
     expect(screen.queryByText('Phiên đăng nhập đã hết hạn')).not.toBeInTheDocument();
+  });
+
+  it('LỖI 1: bỏ bản cache activeWorkspace thuộc user trước và luôn gọi lại API lấy currentUserRole khi vào /workspaces/:id/...', async () => {
+    // Giả lập Artist (user-artist) đã để lại cache activeWorkspace với currentUserRole = Artist
+    writeCachedWorkspace(
+      {
+        id: 'ws-shared',
+        name: 'Studio Chung',
+        ownerId: 'user-producer',
+        ownerName: 'Producer A',
+        ownerEmail: 'producer@panelforge.com',
+        storageQuotaBytes: 1024,
+        usedStorageBytes: 0,
+        createdAt: '2026-11-14T00:00:00Z',
+        isOwner: false,
+        currentUserRole: 'ARTIST',
+        memberCount: 4,
+      },
+      'user-artist',
+    );
+    localStorage.setItem('workspaceRole', 'ARTIST');
+
+    // Nay Producer (user-producer) đăng nhập và F5 thẳng tại /workspaces/ws-shared/series
+    localStorage.setItem('token', 'mock-user-token');
+    localStorage.setItem('userRole', 'USER');
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        id: 'user-producer',
+        fullName: 'Producer A',
+        email: 'producer@panelforge.com',
+      }),
+    );
+
+    // readCachedWorkspace phát hiện lệch user -> xoá sạch cache của Artist
+    expect(readCachedWorkspace()).toBeNull();
+    expect(localStorage.getItem('activeWorkspace')).toBeNull();
+    expect(localStorage.getItem('workspaceRole')).toBeNull();
+
+    // Kể cả khi còn cache cũ chưa gắn user trong localStorage và Producer F5 vào /workspaces/ws-shared/series:
+    localStorage.setItem(
+      'activeWorkspace',
+      JSON.stringify({
+        id: 'ws-shared',
+        name: 'Studio Chung',
+        isOwner: false,
+        currentUserRole: 'ARTIST',
+      }),
+    );
+    localStorage.setItem('workspaceRole', 'ARTIST');
+    window.history.pushState({}, '', '/workspaces/ws-shared/series');
+
+    const producerWs: WorkspaceDto = {
+      id: 'ws-shared',
+      name: 'Studio Chung',
+      ownerId: 'user-producer',
+      ownerName: 'Producer A',
+      ownerEmail: 'producer@panelforge.com',
+      storageQuotaBytes: 1024,
+      usedStorageBytes: 0,
+      createdAt: '2026-11-14T00:00:00Z',
+      isOwner: true,
+      currentUserRole: 'PRODUCER',
+      memberCount: 4,
+    };
+    const getWsByIdSpy = vi
+      .spyOn(workspaceService, 'getWorkspaceById')
+      .mockResolvedValue(producerWs);
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([producerWs]);
+    vi.spyOn(workspaceService, 'getMembers').mockResolvedValue([]);
+    vi.spyOn(seriesService, 'getSeriesList').mockResolvedValue([]);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(getWsByIdSpy).toHaveBeenCalledWith('ws-shared');
+      expect(localStorage.getItem('workspaceRole')).toBe('PRODUCER');
+    });
+
+    const syncedCache = JSON.parse(localStorage.getItem('activeWorkspace') || '{}');
+    expect(syncedCache.currentUserRole).toBe('PRODUCER');
+    expect(syncedCache.cachedForUserId).toBe('user-producer');
   });
 });

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { BibleEntryDto } from '@/services/bible.service';
 import { DetectedEntityInfo } from './writeSoloExtensions';
+import { CollapsibleSidebar, SidebarSection } from '@/shared/ui';
 
 interface SeriesBibleContextSidebarProps {
   isOpen: boolean;
@@ -53,7 +54,11 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
   const unregisteredEntities = filteredEntities.filter((e) => !e.isRegistered);
 
   return (
-    <aside className='w-[340px] shrink-0 border-l border-[#E7E7E7] bg-white flex flex-col h-full shadow-lg z-20 animate-in slide-in-from-right duration-200 select-none'>
+    <CollapsibleSidebar
+      collapsed={false}
+      label='Series Bible'
+      className='border-l border-[#E7E7E7] bg-white flex flex-col h-full shadow-lg z-20 animate-in slide-in-from-right duration-200 select-none'
+    >
       {/* 1. Header */}
       <div className='p-3.5 border-b border-[#E7E7E7] bg-[#FAF8F5] flex items-center justify-between gap-2'>
         <div className='flex items-center gap-2'>
@@ -122,7 +127,7 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
       <div className='flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar bg-[#FAF8F5]/30'>
         {/* Section 4A: Chưa đăng ký (Unregistered - Write First, Bible Later) */}
         {unregisteredEntities.length > 0 && (
-          <div className='space-y-2'>
+          <SidebarSection className='space-y-2'>
             <div className='flex items-center justify-between text-xs font-bold text-amber-800 uppercase tracking-wider px-1'>
               <span className='flex items-center gap-1.5'>
                 <Sparkles className='w-3.5 h-3.5 text-amber-600' />
@@ -156,11 +161,11 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
                 </div>
               ))}
             </div>
-          </div>
+          </SidebarSection>
         )}
 
         {/* Section 4B: Thực thể đã đăng ký Canon */}
-        <div className='space-y-2'>
+        <SidebarSection className='space-y-2'>
           <div className='flex items-center justify-between text-xs font-bold text-stone-500 uppercase tracking-wider px-1'>
             <span>Thực thể Canon đã khớp ({registeredEntities.length})</span>
           </div>
@@ -173,8 +178,7 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
             registeredEntities.map((ent) => {
               const bible = ent.bibleEntry;
               const isLocation = ent.category === 'Location';
-              const eraBadge =
-                bible?.effectiveRevision?.stageName || 'v1.0 Canon Locked • Ch. 1–14';
+              const variantBadge = bible?.effectiveRevision?.variantLabel || 'Mặc định';
 
               return (
                 <div
@@ -197,11 +201,7 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
                             : 'bg-[#FFF1F2] text-[#E11D48] border-[#E11D48]/30'
                         }`}
                       >
-                        {isLocation ? (
-                          <MapPin className='w-4 h-4' />
-                        ) : (
-                          <User className='w-4 h-4' />
-                        )}
+                        {isLocation ? <MapPin className='w-4 h-4' /> : <User className='w-4 h-4' />}
                       </div>
                     )}
 
@@ -218,17 +218,17 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
                     </div>
                   </div>
 
-                  {/* BR-15 Chapter-Scoped Era Badge */}
+                  {/* Selected design variant */}
                   <div className='flex items-center gap-1.5 pt-1.5 border-t border-stone-100 text-[10px] text-stone-500'>
                     <ShieldCheck className='w-3.5 h-3.5 text-emerald-600 shrink-0' />
-                    <span className='truncate font-medium'>{eraBadge}</span>
+                    <span className='truncate font-medium'>{variantBadge}</span>
                   </div>
                 </div>
               );
             })
           )}
-        </div>
+        </SidebarSection>
       </div>
-    </aside>
+    </CollapsibleSidebar>
   );
 };

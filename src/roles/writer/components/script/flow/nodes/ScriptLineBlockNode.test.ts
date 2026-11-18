@@ -7,6 +7,9 @@ import {
   ScriptDocument,
   ScriptLineBlockNode,
   ScriptTypingBehavior,
+  BibleRefMark,
+  applyBibleRefToLine,
+  removeBibleRefFromLine,
   characterNames,
 } from './ScriptLineBlockNode';
 import type { GnElement } from '../grammar/scriptGrammar';
@@ -17,7 +20,7 @@ const line = (el: GnElement, text = ''): JSONContent => ({
   ...(text ? { content: [{ type: 'text', text }] } : {}),
 });
 
-function createEditor(lines: JSONContent[]) {
+function createEditor(lines: JSONContent[], options?: { bibleSpeakers?: { name: string }[] }) {
   return new Editor({
     extensions: [
       StarterKit.configure({
@@ -36,7 +39,8 @@ function createEditor(lines: JSONContent[]) {
       }),
       ScriptDocument,
       ScriptLineBlockNode,
-      ScriptTypingBehavior,
+      BibleRefMark,
+      ScriptTypingBehavior.configure(options ?? {}),
     ],
     content: { type: 'doc', content: lines },
   });
@@ -49,6 +53,17 @@ function caretAtEndOf(editor: Editor, index: number) {
     if (i === index) pos = offset + 1 + node.content.size;
   });
   editor.commands.setTextSelection(pos);
+}
+
+function selectText(editor: Editor, lineIndex: number, text: string) {
+  editor.state.doc.forEach((node, offset, index) => {
+    if (index !== lineIndex) return;
+    const textOffset = node.textContent.indexOf(text);
+    editor.commands.setTextSelection({
+      from: offset + 1 + textOffset,
+      to: offset + 1 + textOffset + text.length,
+    });
+  });
 }
 
 const els = (editor: Editor) =>
@@ -163,11 +178,7 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
   });
 
   it('gõ ":" sau tên nhân vật thì hoàn thành tên (kèm ":") và chuyển sang Dialogue', () => {
-    const editor = createEditor([
-      line('page'),
-      line('panel'),
-      line('character', 'NARUTO'),
-    ]);
+    const editor = createEditor([line('page'), line('panel'), line('character', 'NARUTO')]);
     caretAtEndOf(editor, 2);
     // Gõ text ":" thông qua someProp handleTextInput
     editor.view.someProp('handleTextInput', (f: any) => f(editor.view, 0, 0, ':'));
@@ -177,15 +188,41 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
   });
 
   it('gõ "TÊN:" trên dòng action thì tự động đổi thành character và chuyển sang Dialogue', () => {
-    const editor = createEditor([
-      line('page'),
-      line('panel'),
-      line('action', 'SASUKE'),
-    ]);
+    const editor = createEditor([line('page'), line('panel'), line('action', 'SASUKE')]);
     caretAtEndOf(editor, 2);
     editor.view.someProp('handleTextInput', (f: any) => f(editor.view, 0, 0, ':'));
     expect(els(editor)).toEqual(['page', 'panel', 'character', 'dialogue']);
     expect(texts(editor)[2]).toBe('SASUKE:');
     expect(activeEl(editor)).toBe('dialogue');
+  });
+
+  it('gắn và gỡ mark bibleRef trên dòng action (BIB-16 & 5A)', () => {
+    const editor = createEditor([
+      line('page'),
+      line('panel'),
+      line('action', 'Naruto chạy đến gặp Sasuke tại thung lũng'),
+    ]);
+    selectText(editor, 2, 'Naruto');
+
+    // Gắn mark cho Naruto
+    const applied = applyBibleRefToLine(editor, 'Naruto', { entryId: 'ent-naruto' });
+    expect(applied).toBe(true);
+
+    const docJson = editor.getJSON();
+    const actionLine = docJson.content?.[2];
+    expect(actionLine?.content).toBeDefined();
+    const narutoSpan = actionLine?.content?.find(
+      (c: any) => c.text === 'Naruto' && c.marks?.some((m: any) => m.type === 'bibleRef'),
+    );
+    expect(narutoSpan).toBeDefined();
+
+    // Gỡ mark
+    const removed = removeBibleRefFromLine(editor, 'Naruto', 'ent-naruto');
+    expect(removed).toBe(true);
+    const updatedLine = editor.getJSON().content?.[2];
+    const stillHasMark = updatedLine?.content?.some((c: any) =>
+      c.marks?.some((m: any) => m.type === 'bibleRef'),
+    );
+    expect(stillHasMark).toBe(false);
   });
 });

@@ -173,6 +173,10 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
             path='/workspaces/:workspaceId/series/:seriesId/dashboard'
             element={<DashboardView />}
           />
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/workspace'
+            element={<div data-testid='grid-v3-workspace-route'>Grid V3 Workspace</div>}
+          />
         </Routes>
       </MemoryRouter>,
     );
@@ -275,7 +279,7 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
     expect(screen.getByText('Thử lại')).toBeInTheDocument();
   });
 
-  it('mở modal Giao việc mới khi Producer bấm nút Giao việc trên thẻ chương', async () => {
+  it('điều hướng thẳng sang Lưới giao việc V3 khi Producer bấm nút Giao việc trên thẻ chương', async () => {
     vi.mocked(seriesService.getSeriesProgress).mockResolvedValueOnce(mockProgress);
     vi.mocked(seriesService.getSeriesById).mockResolvedValueOnce(mockDetail);
 
@@ -287,7 +291,9 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
 
     fireEvent.click(screen.getAllByTitle(/Giao việc mới cho Chương 1/i)[0]);
 
-    expect(screen.getByTestId('create-assignment-modal')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-v3-workspace-route')).toBeInTheDocument();
+    });
   });
 
   it('hiển thị danh sách yêu cầu sửa đổi quá hạn (Change Requests) trên Dashboard', async () => {

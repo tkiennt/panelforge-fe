@@ -46,10 +46,7 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
 }) => {
   const [tab, setTab] = useState<'comments' | 'changes' | 'checks'>(initialTab);
 
-  const openCommentsCount = useMemo(
-    () => comments.filter((c) => !c.resolvedAt).length,
-    [comments],
-  );
+  const openCommentsCount = useMemo(() => comments.filter((c) => !c.resolvedAt).length, [comments]);
 
   // Tra cứu hàng theo scriptLineId
   const lineIndex = useMemo(() => {

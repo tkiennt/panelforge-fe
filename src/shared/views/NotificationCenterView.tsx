@@ -17,6 +17,7 @@ import {
 import { SystemRole, NotificationDto } from '@/types';
 import { notificationService } from '@/services/notification.service';
 import { formatRelativeTime } from '@/shared/features/collaboration/collaborationRules';
+import { resolveNotificationTargetPath } from '@/shared/features/collaboration/notificationBadge';
 
 interface NotificationCenterViewProps {
   onNavigateToWorkspace?: (workspaceId: string, targetView?: string, role?: SystemRole) => void;
@@ -62,6 +63,12 @@ const TYPE_CONFIG: Record<
     icon: AlertTriangle,
     color: 'text-rose-600',
     bg: 'bg-rose-50 border-rose-200',
+  },
+  AssignmentReady: {
+    label: 'Đến lượt bạn',
+    icon: CheckCircle2,
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-50 border-emerald-200',
   },
   ChangeRequestResolved: {
     label: 'Đã giải quyết yêu cầu',
@@ -191,30 +198,10 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
       onClose();
     }
 
-    // Định tuyến thông minh theo loại thông báo và dữ liệu liên quan
-    try {
-      const savedWs = localStorage.getItem('activeWorkspace');
-      const wsId = savedWs ? JSON.parse(savedWs)?.id : undefined;
-
-      if (
-        n.type === 'ChapterReadyForPublication' ||
-        n.type === 'ChapterReopened' ||
-        n.type === 'ChapterPublished'
-      ) {
-        if (wsId) {
-          navigate(`/workspaces/${wsId}/overview`);
-          return;
-        }
-      }
-
-      if (n.chapterId && wsId) {
-        const query = new URLSearchParams({ chapterId: n.chapterId });
-        if (n.assignmentId) query.set('assignmentId', n.assignmentId);
-        navigate(`/workspaces/${wsId}/overview?${query.toString()}`);
-        return;
-      }
-    } catch {
-      // ignore
+    const targetPath = await resolveNotificationTargetPath(n);
+    if (targetPath) {
+      navigate(targetPath);
+      return;
     }
 
     if (onNavigateToWorkspace) {

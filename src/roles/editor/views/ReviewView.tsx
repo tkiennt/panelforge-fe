@@ -1,26 +1,29 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, Minus, Plus, Globe } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Globe, Lock, Minus, Plus, RotateCcw } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import type {
-  AssignmentDto,
-  ChangeRequestDto,
-  SubmissionDto,
-  VisualConsistencyReportDto,
-  VisualDeviationDto,
+import {
+  normalizeWorkspaceRole,
+  parseStageTaskCanvasVersions,
+  parseStageTaskPanelLayout,
+  pickLatestDecisionComment,
+  type AssignmentDto,
+  type ChangeRequestDto,
+  type SubmissionDto,
+  type VisualConsistencyReportDto,
+  type VisualDeviationDto,
 } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
 import { chapterEditionService } from '@/services/chapter-edition.service';
 import { chapterService } from '@/services/chapter.service';
 import { pageService } from '@/services/page.service';
-import { normalizeWorkspaceRole } from '@/types';
 import {
   countUnclosed,
   errorMessage,
   getWorkActions,
 } from '@/shared/features/collaboration/collaborationRules';
 import { ChapterReviewView } from './ChapterReviewView';
-import { findIntersectingPanelId } from './chapterReviewViewUtils';
+import { findIntersectingPanelIds } from './chapterReviewViewUtils';
 import { ArtworkCanvas } from './artwork-review/ArtworkCanvas';
 import { parseRegion, type Box, type CanvasRegion } from './artwork-review/artworkModel';
 import { ArtworkNotesTab, type ArtworkDraft } from './artwork-review/ArtworkNotesTab';
@@ -79,11 +82,21 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [assignment, setAssignment] = useState<AssignmentDto | null>(null);
+  const [isGridTask, setIsGridTask] = useState(false);
+  const [gridIsInputOutdated, setGridIsInputOutdated] = useState(false);
+  const [gridLatestComment, setGridLatestComment] = useState<string | null>(null);
+  const [gridReopenReason, setGridReopenReason] = useState<string | null>(null);
+  const [gridReviewerUserId, setGridReviewerUserId] = useState<string | null>(null);
+  const [gridReviewerName, setGridReviewerName] = useState<string | null>(null);
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
   const [visualReport, setVisualReport] = useState<VisualConsistencyReportDto | null>(null);
   const [chapterNumber, setChapterNumber] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number | null>(null);
+
+  const heldReviewLockRef = useRef(false);
+  const decisionMadeRef = useRef(false);
+  const autoOpenedTaskRef = useRef<string | null>(null);
 
   const [drafts, setDrafts] = useState<ArtworkDraft[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -94,19 +107,188 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const [busy, setBusy] = useState<string | null>(null);
   const [impactDecision, setImpactDecision] = useState<'Keep' | 'Rework' | null>(null);
 
+  useEffect(() => {
+    heldReviewLockRef.current = false;
+    decisionMadeRef.current = false;
+    autoOpenedTaskRef.current = null;
+  }, [chapterId, taskId]);
+
   const loadData = useCallback(async () => {
     if (!chapterId || !taskId) return;
     setLoading(true);
     setLoadError(null);
     try {
-      const [a, crs, subs, report, chapter] = await Promise.all([
-        assignmentService.getAssignmentById(taskId, chapterId),
+      const hasTaskGridApi = typeof assignmentService.getTaskGrid === 'function';
+      const v2Assign =
+        typeof assignmentService.getAssignmentById === 'function'
+          ? await assignmentService.getAssignmentById(taskId, chapterId).catch((err) => {
+              if (!hasTaskGridApi) throw err;
+              return null;
+            })
+          : null;
+
+      if (!v2Assign && hasTaskGridApi) {
+        const [grid, report, chapter] = await Promise.all([
+          assignmentService.getTaskGrid(chapterId),
+          typeof assignmentService.getVisualConsistencyReport === 'function'
+            ? assignmentService.getVisualConsistencyReport(chapterId).catch(() => null)
+            : Promise.resolve(null),
+          chapterService.getChapterById(chapterId).catch(() => null),
+        ]);
+        let cell = grid?.tasks.find((item) => item.id === taskId && item.status !== 'Cancelled');
+        if (!cell) {
+          setIsGridTask(false);
+          setGridIsInputOutdated(false);
+          setGridLatestComment(null);
+          setGridReopenReason(null);
+          setGridReviewerUserId(null);
+          setGridReviewerName(null);
+          heldReviewLockRef.current = false;
+          setAssignment(null);
+          return;
+        }
+        const stg = grid.stages.find((s) => s.id === cell!.pipelineStageId);
+        const lot = cell.lotId ? grid.lots.find((l) => l.id === cell!.lotId) : undefined;
+        const pg = cell.pageId ? grid.pages.find((p) => p.id === cell!.pageId) : undefined;
+
+        const normRole = normalizeWorkspaceRole(workspaceRole);
+        const isReviewerRole = normRole === 'EDITOR' || normRole === 'PRODUCER';
+        const cellAssigneeId = cell.assigneeUserId ?? lot?.assigneeUserId ?? '';
+        const isSelfCell = Boolean(
+          currentUserId && cellAssigneeId && cellAssigneeId === currentUserId,
+        );
+
+        if (
+          cell.status === 'Submitted' &&
+          isReviewerRole &&
+          !isSelfCell &&
+          !cell.isInputOutdated &&
+          autoOpenedTaskRef.current !== cell.id &&
+          typeof assignmentService.openStageTaskReview === 'function'
+        ) {
+          autoOpenedTaskRef.current = cell.id;
+          try {
+            const opened = await assignmentService.openStageTaskReview(chapterId, cell.id);
+            cell = {
+              ...cell,
+              ...opened,
+              id: cell.id,
+              status: opened?.status ?? 'UnderReview',
+              reviewerUserId: opened?.reviewerUserId ?? currentUserId ?? null,
+            };
+            heldReviewLockRef.current = true;
+          } catch (openErr: any) {
+            onShowToast?.(
+              t('scriptReview.toast.openFailed', 'Không thể mở duyệt'),
+              errorMessage(openErr, t('scriptReview.errors.generic')),
+            );
+            if (openErr?.status === 409) {
+              const refreshed = await assignmentService.getTaskGrid(chapterId).catch(() => null);
+              const freshCell = refreshed?.tasks.find(
+                (item) => item.id === taskId && item.status !== 'Cancelled',
+              );
+              if (freshCell) cell = freshCell;
+            }
+          }
+        } else if (
+          cell.status === 'UnderReview' &&
+          currentUserId &&
+          cell.reviewerUserId === currentUserId
+        ) {
+          heldReviewLockRef.current = true;
+        } else {
+          heldReviewLockRef.current = false;
+        }
+
+        let resolvedReviewerName: string | null = null;
+        if (
+          cell.status === 'UnderReview' &&
+          cell.reviewerUserId &&
+          cell.reviewerUserId !== currentUserId
+        ) {
+          if (effectiveWsId && typeof assignmentService.getTaskGridReviewQueue === 'function') {
+            const queue = await assignmentService
+              .getTaskGridReviewQueue(effectiveWsId, seriesId ? { seriesId } : undefined)
+              .catch(() => []);
+            resolvedReviewerName =
+              queue.find((q) => q.taskId === cell!.id)?.reviewerName || cell.reviewerUserId;
+          } else {
+            resolvedReviewerName = cell.reviewerUserId;
+          }
+        }
+
+        const rawSubs =
+          typeof assignmentService.getStageTaskSubmissions === 'function'
+            ? await assignmentService.getStageTaskSubmissions(chapterId, cell.id).catch(() => [])
+            : [];
+        const mappedSubs: SubmissionDto[] = rawSubs.map((s) => ({
+          id: s.id,
+          assignmentId: cell!.id,
+          chapterId,
+          submittedByUserId: s.submittedByUserId,
+          attemptNumber: s.attemptNumber,
+          status: s.status as SubmissionDto['status'],
+          submittedAt: s.submittedAt,
+          decidedByUserId: s.decidedByUserId ?? undefined,
+          decidedAt: s.decidedAt ?? undefined,
+          decisionComment: s.decisionComment ?? undefined,
+          artworkReferenceIds: s.artworkReferenceIds ?? [],
+          panelLayout: parseStageTaskPanelLayout(s.panelLayoutJson),
+          canvasVersions: parseStageTaskCanvasVersions(s.canvasVersionsJson),
+        }));
+
+        setIsGridTask(true);
+        setGridIsInputOutdated(Boolean(cell.isInputOutdated));
+        setGridReviewerUserId(cell.reviewerUserId ?? null);
+        setGridReviewerName(resolvedReviewerName);
+        setGridLatestComment(
+          cell.lastDecisionComment?.trim() || pickLatestDecisionComment(rawSubs) || null,
+        );
+        setGridReopenReason(cell.reopenReason?.trim() || null);
+        setAssignment({
+          id: cell.id,
+          seriesId: seriesId || '',
+          chapterId,
+          entityType: cell.pageId ? 'Page' : 'Chapter',
+          targetEntityId: cell.pageId ?? chapterId,
+          pipelineStageId: cell.pipelineStageId,
+          stageName: stg?.name ?? 'Stage',
+          stageOrder: stg?.stageOrder ?? 99,
+          assigneeUserId: cellAssigneeId,
+          assignedRole: (lot?.assignedRole || stg?.allowedRole || 'Artist') as any,
+          brief:
+            lot?.brief?.trim() ||
+            `${stg?.name ?? 'Stage'} · ${pg ? `Trang ${pg.pageNumber}` : 'Toàn chương'}`,
+          dueDate: lot?.dueDate ?? null,
+          priority: 'Medium' as any,
+          status: cell.status as any,
+          impactReviewReason: cell.isInputOutdated
+            ? cell.outdatedReason || 'Đầu vào từ công đoạn trước đã thay đổi'
+            : null,
+          createdAt: cell.startedAt ?? new Date().toISOString(),
+        });
+        setChangeRequests([]);
+        setSubmissions(mappedSubs);
+        setVisualReport(report);
+        setChapterNumber(chapter?.chapterNumber ?? null);
+        if (pg?.pageNumber != null) setPageNumber(pg.pageNumber);
+        return;
+      }
+
+      const [crs, subs, report, chapter] = await Promise.all([
         assignmentService.getChangeRequests(chapterId, { assignmentId: taskId }),
         assignmentService.getSubmissions(chapterId, taskId),
         assignmentService.getVisualConsistencyReport(chapterId).catch(() => null),
         chapterService.getChapterById(chapterId).catch(() => null),
       ]);
-      setAssignment(a);
+      setIsGridTask(false);
+      setGridIsInputOutdated(false);
+      setGridLatestComment(null);
+      setGridReopenReason(null);
+      setGridReviewerUserId(null);
+      setGridReviewerName(null);
+      heldReviewLockRef.current = false;
+      setAssignment(v2Assign);
       setChangeRequests(crs);
       setSubmissions(subs);
       setVisualReport(report);
@@ -116,7 +298,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [chapterId, taskId, t]);
+  }, [chapterId, currentUserId, effectiveWsId, onShowToast, seriesId, taskId, t, workspaceRole]);
 
   useEffect(() => {
     loadData();
@@ -170,7 +352,33 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         : null,
     [assignment, currentUserId, workspaceRole, changeRequests],
   );
-  const canDecide = (work?.canDecide ?? false) && !assignment?.impactReviewReason;
+  const isProducer = normalizeWorkspaceRole(workspaceRole) === 'PRODUCER';
+  const isLockedByOtherReviewer = Boolean(
+    isGridTask &&
+    String(assignment?.status) === 'UnderReview' &&
+    gridReviewerUserId &&
+    gridReviewerUserId !== currentUserId,
+  );
+  const canDecide = isGridTask
+    ? Boolean(
+        assignment &&
+        (String(assignment.status) === 'Submitted' ||
+          String(assignment.status) === 'UnderReview') &&
+        !isLockedByOtherReviewer &&
+        !work?.isAssignee &&
+        work?.isReviewer &&
+        !assignment.impactReviewReason,
+      )
+    : (work?.canDecide ?? false) && !assignment?.impactReviewReason;
+  const showDecisionBar =
+    canDecide ||
+    Boolean(
+      isGridTask &&
+      isLockedByOtherReviewer &&
+      !work?.isAssignee &&
+      work?.isReviewer &&
+      !assignment?.impactReviewReason,
+    );
 
   // ── Vùng khoanh: yêu cầu sửa nằm trên đúng phiên bản đã khoanh (ảnh thật hoặc ảnh ghép của lần nộp) ──
   const isOnArtwork = useCallback(
@@ -227,7 +435,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       box,
       text: '',
       assetReferenceId: current.id.startsWith('composite-') ? undefined : current.id,
-      panelId: findIntersectingPanelId(box, arts.panels),
+      panelIds: findIntersectingPanelIds(box, arts.panels),
+      layer: 'Artwork',
     };
     updateDrafts([...drafts, draft]);
     setActiveId(draft.id);
@@ -258,6 +467,68 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       t('scriptReview.toast.openFailed'),
     );
 
+  const releaseHeldReviewIfNeeded = useCallback(async () => {
+    if (
+      !heldReviewLockRef.current ||
+      decisionMadeRef.current ||
+      !chapterId ||
+      !taskId ||
+      typeof assignmentService.releaseStageTaskReview !== 'function'
+    ) {
+      return;
+    }
+    heldReviewLockRef.current = false;
+    try {
+      await assignmentService.releaseStageTaskReview(chapterId, taskId);
+    } catch {
+      // Bỏ qua nếu khoá đã được nhả hoặc chuyển trạng thái
+    }
+  }, [chapterId, taskId]);
+
+  useEffect(() => {
+    return () => {
+      if (
+        heldReviewLockRef.current &&
+        !decisionMadeRef.current &&
+        chapterId &&
+        taskId &&
+        typeof assignmentService.releaseStageTaskReview === 'function'
+      ) {
+        heldReviewLockRef.current = false;
+        void assignmentService.releaseStageTaskReview(chapterId, taskId).catch(() => null);
+      }
+    };
+  }, [chapterId, taskId]);
+
+  const handleForceReleaseReview = () =>
+    run(
+      'releaseReview',
+      async () => {
+        const released = await assignmentService.releaseStageTaskReview(chapterId, taskId);
+        heldReviewLockRef.current = false;
+        autoOpenedTaskRef.current = taskId;
+        setGridReviewerUserId(released?.reviewerUserId ?? null);
+        setGridReviewerName(null);
+        if (released?.lastDecisionComment !== undefined) {
+          setGridLatestComment(released.lastDecisionComment?.trim() || null);
+        }
+        if (released?.reopenReason !== undefined) {
+          setGridReopenReason(released.reopenReason?.trim() || null);
+        }
+        if (released?.isInputOutdated !== undefined) {
+          setGridIsInputOutdated(Boolean(released.isInputOutdated));
+        }
+        setAssignment((prev) =>
+          prev ? { ...prev, status: (released?.status ?? 'Submitted') as any } : prev,
+        );
+        onShowToast?.(
+          t('chapterReview.releaseReviewToast', 'Đã nhả khoá duyệt'),
+          assignment?.brief ?? '',
+        );
+      },
+      t('scriptReview.errors.generic'),
+    );
+
   const handleReturn = () =>
     run(
       'return',
@@ -268,18 +539,69 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             action: 'RequestChange',
             comment: summary.trim(),
           });
+        } else if (isGridTask) {
+          const commentParts = [
+            summary.trim(),
+            ...drafts
+              .map((d, idx) => (d.text.trim() ? `[M${idx + 1}] ${d.text.trim()}` : ''))
+              .filter(Boolean),
+          ].filter(Boolean);
+          const commentText = commentParts.join('\n');
+          const updated = await assignmentService.requestStageTaskChanges(
+            chapterId,
+            taskId,
+            commentText,
+          );
+          decisionMadeRef.current = true;
+          heldReviewLockRef.current = false;
+          autoOpenedTaskRef.current = taskId;
+          updateDrafts([]);
+          setSummary('');
+          setGridReviewerUserId(updated?.reviewerUserId ?? null);
+          setGridReviewerName(null);
+          setGridLatestComment(updated?.lastDecisionComment?.trim() || commentText || null);
+          if (updated?.reopenReason !== undefined) {
+            setGridReopenReason(updated.reopenReason?.trim() || null);
+          }
+          if (updated?.isInputOutdated !== undefined) {
+            setGridIsInputOutdated(Boolean(updated.isInputOutdated));
+          }
+          setAssignment((prev) =>
+            prev ? { ...prev, status: (updated?.status ?? 'ReworkRequired') as any } : prev,
+          );
+          setSubmissions((prev) =>
+            prev.map((s) =>
+              isPendingSub(s) ? { ...s, status: 'Rejected', decisionComment: commentText } : s,
+            ),
+          );
+          onShowToast?.(
+            t('artworkReview.toast.returnedTitle'),
+            t('scriptReview.toast.returnedBody', {
+              count: Math.max(
+                drafts.reduce((count, draft) => count + Math.max(draft.panelIds.length, 1), 0),
+                1,
+              ),
+            }),
+          );
+          return;
         } else {
           await assignmentService.requestChanges(chapterId, taskId, {
             comment: summary.trim(),
             expectedSubmissionId: pendingSub?.id,
             changes:
               drafts.length > 0
-                ? drafts.map((d) => ({
-                    description: d.text.trim(),
-                    regionJson: JSON.stringify(d.box),
-                    assetReferenceId: d.assetReferenceId,
-                    panelId: d.panelId,
-                  }))
+                ? drafts.flatMap((d) => {
+                    const panelIds = d.panelIds.length > 0 ? d.panelIds : [undefined];
+                    const groupId = panelIds.length > 1 ? newDraftId() : undefined;
+                    return panelIds.map((panelId) => ({
+                      description: d.text.trim(),
+                      regionJson: JSON.stringify(d.box),
+                      assetReferenceId: d.assetReferenceId,
+                      panelId,
+                      groupId,
+                      layer: d.layer,
+                    }));
+                  })
                 : undefined,
           });
         }
@@ -287,7 +609,12 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         setSummary('');
         onShowToast?.(
           t('artworkReview.toast.returnedTitle'),
-          t('scriptReview.toast.returnedBody', { count: Math.max(drafts.length, 1) }),
+          t('scriptReview.toast.returnedBody', {
+            count: Math.max(
+              drafts.reduce((count, draft) => count + Math.max(draft.panelIds.length, 1), 0),
+              1,
+            ),
+          }),
         );
         await loadData();
       },
@@ -303,11 +630,18 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           await chapterEditionService.reviewEdition(chapterId, langParam, {
             action: 'Approve',
           });
+        } else if (isGridTask) {
+          await assignmentService.approveStageTask(chapterId, taskId);
+          decisionMadeRef.current = true;
+          heldReviewLockRef.current = false;
+          onShowToast?.(t('artworkReview.toast.approvedTitle'), assignment?.brief ?? '');
+          backToDesk();
+          return;
         } else {
           await assignmentService.approveAssignment(chapterId, taskId, pendingSub?.id);
         }
         onShowToast?.(t('artworkReview.toast.approvedTitle'), assignment?.brief ?? '');
-        await loadData();
+        backToDesk();
       },
       t('scriptReview.toast.approveFailed'),
     );
@@ -344,6 +678,34 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       'impact',
       async () => {
         if (!impactDecision) return;
+        if (isGridTask) {
+          const updated = await assignmentService.resolveStageTaskImpact(
+            chapterId,
+            taskId,
+            impactDecision === 'Keep',
+          );
+          setGridIsInputOutdated(Boolean(updated?.isInputOutdated));
+          if (updated?.lastDecisionComment !== undefined) {
+            setGridLatestComment(updated.lastDecisionComment?.trim() || null);
+          }
+          if (updated?.reopenReason !== undefined) {
+            setGridReopenReason(updated.reopenReason?.trim() || null);
+          }
+          setAssignment((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  status: (updated?.status ??
+                    (impactDecision === 'Keep' ? prev.status : 'ReworkRequired')) as any,
+                  impactReviewReason: updated?.isInputOutdated
+                    ? updated.outdatedReason || prev.impactReviewReason
+                    : null,
+                }
+              : prev,
+          );
+          setImpactDecision(null);
+          return;
+        }
         await assignmentService.resolveImpactReview(chapterId, taskId, {
           decision: impactDecision,
           reason,
@@ -357,7 +719,12 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const backToDesk = () =>
     effectiveWsId && seriesId
       ? navigate(`/workspaces/${effectiveWsId}/series/${seriesId}/editor/desk`)
-      : navigate(-1);
+      : navigate('/workspaces');
+
+  const handleCloseWithoutDecision = async () => {
+    await releaseHeldReviewIfNeeded();
+    backToDesk();
+  };
 
   if (!chapterId) {
     return (
@@ -418,6 +785,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         effectiveRole={normalizeWorkspaceRole(workspaceRole) ?? workspaceRole ?? null}
         currentUserId={currentUserId}
         onShowToast={onShowToast}
+        onDecisionMade={() => {
+          decisionMadeRef.current = true;
+          heldReviewLockRef.current = false;
+        }}
+        onCloseWithoutDecision={handleCloseWithoutDecision}
       />
     );
   }
@@ -425,8 +797,19 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   // ── Điều kiện quyết định ──
   const unclosed = countUnclosed(changeRequests, true);
   const emptyDrafts = drafts.filter((d) => !d.text.trim()).length;
-  const approveBlocker =
-    drafts.length > 0
+  const draftRequestCount = drafts.reduce(
+    (count, draft) => count + Math.max(draft.panelIds.length, 1),
+    0,
+  );
+  const lockedByOtherText = isLockedByOtherReviewer
+    ? t('chapterReview.underReviewBy', {
+        name: gridReviewerName || gridReviewerUserId,
+        defaultValue: `Đang được duyệt bởi ${gridReviewerName || gridReviewerUserId}`,
+      })
+    : null;
+  const approveBlocker = lockedByOtherText
+    ? lockedByOtherText
+    : drafts.length > 0
       ? t('scriptReview.decision.blockedByDrafts', { count: drafts.length })
       : unclosed > 0
         ? t('scriptReview.decision.blockedByUnclosed', { count: unclosed })
@@ -440,11 +823,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   ).length;
 
   const notice = (() => {
-    if (assignment.impactReviewReason) return null;
+    if (assignment.impactReviewReason || isLockedByOtherReviewer) return null;
     if (canDecide) return null;
     if (work?.isAssignee) return t('scriptReview.notice.selfReview');
     if (!work?.isReviewer) return t('artworkReview.notice.notReviewer');
-    if (work.canOpenReview) return t('scriptReview.notice.notOpened');
+    if (!isGridTask && work.canOpenReview) return t('scriptReview.notice.notOpened');
     return t('scriptReview.notice.status', {
       status: t(`scriptReview.assignmentStatus.${assignment.status}`, String(assignment.status)),
     });
@@ -467,19 +850,40 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     <div className='flex min-h-0 flex-1 flex-col bg-[#FAF9F5] font-sans text-stone-900'>
       <header className='flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3'>
         <div className='flex min-w-0 items-center gap-3'>
+          <button
+            type='button'
+            data-testid='review-close-btn'
+            onClick={() => void handleCloseWithoutDecision()}
+            aria-label={t('scriptReview.common.backToDesk', 'Quay lại Bàn duyệt')}
+            title={t('scriptReview.common.backToDesk', 'Quay lại Bàn duyệt')}
+            className='flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 cursor-pointer'
+          >
+            <ArrowLeft className='h-4 w-4' />
+          </button>
           <div className='min-w-0'>
-            <div className='flex items-center gap-2'>
+            <div className='flex flex-wrap items-center gap-2'>
               <h1 className='truncate font-serif text-lg font-bold tracking-tight text-stone-900'>
                 {[
                   chapterNumber !== null
                     ? t('scriptReview.header.title', { number: chapterNumber })
                     : null,
-                  pageNumber !== null ? t('artworkReview.header.page', { number: pageNumber }) : null,
+                  pageNumber !== null
+                    ? t('artworkReview.header.page', { number: pageNumber })
+                    : null,
                   assignment.stageName,
                 ]
                   .filter(Boolean)
                   .join(' · ')}
               </h1>
+              {isGridTask && gridIsInputOutdated && (
+                <span
+                  data-testid='review-input-outdated-badge'
+                  className='inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900'
+                >
+                  <AlertTriangle className='h-3 w-3 shrink-0 text-amber-700' aria-hidden='true' />
+                  {t('chapterReview.inputOutdatedBadge', 'Đầu vào đã đổi')}
+                </span>
+              )}
               {langParam && (
                 <span
                   data-testid='edition-review-badge'
@@ -592,10 +996,65 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             </div>
           )}
 
+          {isGridTask &&
+            String(assignment.status) === 'ReworkRequired' &&
+            (gridReopenReason || gridLatestComment) && (
+              <div
+                data-testid={
+                  gridReopenReason
+                    ? 'review-view-reopen-reason'
+                    : 'review-view-last-decision-comment'
+                }
+                className='mx-4 mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-900'
+              >
+                {gridReopenReason ? (
+                  <>
+                    🔄{' '}
+                    <span className='font-semibold'>
+                      {t('chapterReview.reopenReasonPrefix', 'Producer mở lại:')}
+                    </span>{' '}
+                    {gridReopenReason}
+                  </>
+                ) : (
+                  <>
+                    💬{' '}
+                    <span className='font-semibold'>
+                      {t('chapterReview.gate2GridLastComment', 'Nhận xét lần duyệt gần nhất')}:
+                    </span>{' '}
+                    {gridLatestComment}
+                  </>
+                )}
+              </div>
+            )}
+
+          {isLockedByOtherReviewer && lockedByOtherText && (
+            <div
+              data-testid='review-locked-by-other'
+              className='mx-4 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-950'
+            >
+              <span className='flex items-center gap-1.5 font-semibold'>
+                <Lock className='h-3.5 w-3.5 shrink-0 text-amber-700' aria-hidden='true' />
+                {lockedByOtherText}
+              </span>
+              {isProducer && (
+                <button
+                  type='button'
+                  data-testid='review-force-release-btn'
+                  disabled={busy === 'releaseReview'}
+                  onClick={handleForceReleaseReview}
+                  className='inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-400 bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-950 hover:bg-amber-200 disabled:opacity-50 cursor-pointer'
+                >
+                  <RotateCcw className='h-3.5 w-3.5' aria-hidden='true' />
+                  {t('chapterReview.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}
+                </button>
+              )}
+            </div>
+          )}
+
           {notice && (
             <div className='mx-4 mt-4 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5'>
               <p className='text-xs leading-normal text-amber-900'>{notice}</p>
-              {work?.canOpenReview && (
+              {!isGridTask && work?.canOpenReview && (
                 <button
                   type='button'
                   onClick={handleOpenReview}
@@ -676,7 +1135,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 }`}
               >
                 {key === 'notes'
-                  ? t('scriptReview.tabs.notes', { count: drafts.length + liveCrCount })
+                  ? t('scriptReview.tabs.notes', { count: draftRequestCount + liveCrCount })
                   : t('scriptReview.tabs.checks')}
               </button>
             ))}
@@ -694,6 +1153,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 busyId={busy}
                 onDraftText={(id, text) =>
                   updateDrafts(drafts.map((d) => (d.id === id ? { ...d, text } : d)))
+                }
+                onDraftLayer={(id, layer) =>
+                  updateDrafts(drafts.map((d) => (d.id === id ? { ...d, layer } : d)))
                 }
                 onDeleteDraft={(id) => updateDrafts(drafts.filter((d) => d.id !== id))}
                 onVerify={(cr) =>
@@ -722,7 +1184,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             )}
           </div>
 
-          {canDecide && (
+          {showDecisionBar && (
             <DecisionBar
               summary={summary}
               onSummaryChange={setSummary}
@@ -731,8 +1193,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 summaryPlaceholder: t('scriptReview.decision.summaryPlaceholder'),
                 summaryRequired: t('scriptReview.decision.summaryRequired'),
                 returnAction:
-                  drafts.length > 0
-                    ? t('scriptReview.decision.returnWithNotes', { count: drafts.length })
+                  draftRequestCount > 0
+                    ? t('scriptReview.decision.returnWithNotes', { count: draftRequestCount })
                     : t('artworkReview.decision.return'),
                 approve: t('artworkReview.decision.approve'),
               }}
@@ -742,9 +1204,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   : null
               }
               returnBlocker={
-                emptyDrafts > 0
-                  ? t('artworkReview.decision.emptyDrafts', { count: emptyDrafts })
-                  : null
+                lockedByOtherText
+                  ? lockedByOtherText
+                  : emptyDrafts > 0
+                    ? t('artworkReview.decision.emptyDrafts', { count: emptyDrafts })
+                    : null
               }
               approveBlocker={approveBlocker}
               busy={busy === 'return' || busy === 'approve' ? busy : null}

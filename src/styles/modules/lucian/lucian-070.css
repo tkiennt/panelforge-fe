@@ -4,7 +4,7 @@
 .u070-zone {
   position: fixed;
   right: 20px;
-  top: 76px;
+  bottom: 20px;
   width: 380px;
   max-width: calc(100vw - 32px);
   pointer-events: none;
@@ -12,12 +12,23 @@
   outline: none;
 }
 
+.u070-zone[popover] {
+  inset: auto 20px 20px auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  overflow: visible !important;
+}
+
 @media (max-width: 640px) {
-  .u070-zone {
-    right: 16px;
-    left: 16px;
-    top: 76px;
-    width: auto;
+  .u070-zone,
+  .u070-zone[popover] {
+    right: 16px !important;
+    left: 16px !important;
+    bottom: 16px !important;
+    top: auto !important;
+    width: auto !important;
   }
 }
 
@@ -132,6 +143,8 @@
 .u070-tx {
   flex: 1;
   min-width: 0;
+  max-height: min(65vh, 440px);
+  overflow-y: auto;
 }
 
 .u070-tx b {
@@ -141,6 +154,8 @@
   letter-spacing: -0.015em;
   color: #0f172a;
   line-height: 1.3;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .dark .u070-tx b {
@@ -155,6 +170,8 @@
   color: #475569;
   line-height: 1.45;
   text-wrap: pretty;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .dark .u070-tx small {

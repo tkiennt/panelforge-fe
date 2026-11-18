@@ -1,6 +1,6 @@
 // src/services/frameTemplate.service.ts
 import axiosClient from '../api/axiosClient';
-import { PanelDto } from '../types/pipeline';
+import { PageLayoutDto } from '../types/pipeline';
 
 export interface FrameSlot {
   x: number;
@@ -39,7 +39,12 @@ function extractError(error: any, defaultMsg: string): any {
   const message = error.response?.data?.error || error.response?.data?.message || defaultMsg;
   const err: any = new Error(message);
   err.code =
-    error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+    error.response?.data?.code ||
+    (error.response?.status === 403
+      ? 'FORBIDDEN'
+      : error.response?.status === 409
+        ? 'CONFLICT'
+        : undefined);
   err.status = error.response?.status;
   return err;
 }
@@ -90,10 +95,10 @@ export const frameTemplateService = {
   },
 
   /**
-   * Áp dụng Frame Template vào Page (Producer, Artist) -> Trả về danh sách PanelDto đã tạo theo thứ tự đọc
+   * Áp dụng Frame Template vào Page và trả về layout đã thay thế cùng số tranh chưa có khung.
    * POST /api/pages/{pageId}/frame-template
    */
-  async applyFrameTemplate(pageId: string, templateId: string): Promise<PanelDto[]> {
+  async applyFrameTemplate(pageId: string, templateId: string): Promise<PageLayoutDto> {
     try {
       const response = await axiosClient.post(`/pages/${pageId}/frame-template`, { templateId });
       return response.data;

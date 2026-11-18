@@ -96,6 +96,25 @@ describe('AppShell Component', () => {
     expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
   });
 
+  it('hiển thị Bàn duyệt và Duyệt thiết kế Bible cho vai trò EDITOR trong ngữ cảnh Series (Row #12)', () => {
+    const editorUser: CurrentUser = {
+      name: 'Vũ Biên Tập',
+      role: 'USER',
+      workspaceRole: 'EDITOR' as any,
+      activeRoles: ['EDITOR'],
+      avatarInitials: 'VB',
+    };
+
+    renderInRouter(editorUser, '/workspaces/ws-1/series/ser-1/my-work');
+
+    expect(screen.getByText('Bàn duyệt')).toBeInTheDocument();
+    expect(screen.getByText('Duyệt thiết kế Bible')).toBeInTheDocument();
+    expect(screen.getByText('Kịch bản (Script)')).toBeInTheDocument();
+    expect(screen.getByText('Series Bible')).toBeInTheDocument();
+    expect(screen.queryByText('Bàn vẽ & Khung trang')).not.toBeInTheDocument();
+    expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
+  });
+
   it('vai trò PRODUCER trong Series thấy đầy đủ các menu quản lý và sản xuất', () => {
     const producerUser: CurrentUser = {
       name: 'Phạm Nhà Sản Xuất',
@@ -281,6 +300,24 @@ describe('AppShell Component', () => {
     expect(activeLink).toHaveClass('pf-sb-item');
     expect(activeLink).toHaveClass('rounded-xl');
     expect(activeLink.querySelector('span[aria-hidden="true"]')).toBeInTheDocument();
+  });
+
+  it('highlights Quy trình sản xuất on the production page even though its link carries ?chapterId', () => {
+    const producerUser: CurrentUser = {
+      name: 'Phạm Nhà Sản Xuất',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'PN',
+    };
+
+    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/workspace?chapterId=ch-1');
+
+    const current = screen
+      .getAllByRole('link')
+      .filter((l) => l.getAttribute('aria-current') === 'page');
+    expect(current).toHaveLength(1);
+    expect(current[0].getAttribute('href')).toContain('/series/ser-1/workspace?chapterId=ch-1');
   });
 
   it('sidebar áp dụng màu nền Dark Ink #1C1917 và viền phải #292524 chuẩn theme Lucianlab (#040)', () => {

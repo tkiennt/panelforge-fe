@@ -419,16 +419,16 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                           </span>
                           <span
                             className={`px-1.5 py-0.2 rounded text-[10px] font-bold shrink-0 ${
-                              s.latestChapter.status === 'Approved'
+                              s.latestChapter.status === 'ChapterApproved'
                                 ? 'bg-orange-100 text-orange-800 border border-orange-200'
-                                : s.latestChapter.status === 'Published'
+                                : s.latestChapter.status === 'HandedOffAndPublished'
                                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                   : 'bg-stone-200 text-stone-700'
                             }`}
                           >
-                            {s.latestChapter.status === 'Approved'
+                            {s.latestChapter.status === 'ChapterApproved'
                               ? 'Chờ duyệt'
-                              : s.latestChapter.status === 'Published'
+                              : s.latestChapter.status === 'HandedOffAndPublished'
                                 ? 'Đã phát hành'
                                 : s.latestChapter.status}
                           </span>

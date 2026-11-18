@@ -31,9 +31,7 @@ describe('ChapterReaderModal Component', () => {
       readingDirection: 'LeftToRight',
       chapterNumber: 1,
       title: 'Khởi đầu',
-      pages: [
-        { id: 'page-1', pageNumber: 1, imageUrl: 'https://cdn.example.com/page1.jpg' },
-      ],
+      pages: [{ id: 'page-1', pageNumber: 1, imageUrl: 'https://cdn.example.com/page1.jpg' }],
     });
 
     render(

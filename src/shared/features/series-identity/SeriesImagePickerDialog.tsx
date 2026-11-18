@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   Check,
@@ -20,6 +19,7 @@ import {
   SERIES_BANNER_PRESETS,
   SERIES_IMAGE_RULES,
 } from '@/shared/utils/seriesImagePresets';
+import { Alert, Modal } from '@/shared/ui';
 
 interface Props {
   seriesId: string;
@@ -193,10 +193,8 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
   const [zoom, setZoom] = useState<number>(1);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const dialogRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const previewBoxRef = useRef<HTMLDivElement>(null);
-  const returnFocusRef = useRef<Element | null>(null);
 
   // Kéo chuột để di chuyển ảnh trong chế độ 'cover'
   const isDraggingRef = useRef(false);
@@ -209,12 +207,6 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
 
   const title = isAvatar ? 'Đổi avatar Series' : 'Đổi banner Series';
   const ratioClass = isAvatar ? 'aspect-square' : 'aspect-[3/1]';
-
-  useEffect(() => {
-    returnFocusRef.current = document.activeElement;
-    dialogRef.current?.querySelector<HTMLElement>('button, input')?.focus();
-    return () => (returnFocusRef.current as HTMLElement | null)?.focus?.();
-  }, []);
 
   useEffect(
     () => () => {
@@ -351,24 +343,6 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
     }
   };
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      close();
-      return;
-    }
-    if (e.key !== 'Tab' || !dialogRef.current) return;
-    const f = [...dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled])')];
-    if (!f.length) return;
-    if (e.shiftKey && document.activeElement === f[0]) {
-      e.preventDefault();
-      f[f.length - 1].focus();
-    } else if (!e.shiftKey && document.activeElement === f[f.length - 1]) {
-      e.preventDefault();
-      f[0].focus();
-    }
-  };
-
   const selectedPreset =
     choice?.type === 'preset' ? presets.find((p) => p.id === choice.id) : undefined;
   const ring =
@@ -444,20 +418,17 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
       </div>
     );
 
-  return createPortal(
-    <div
-      className='fixed inset-0 z-[70] bg-[#1C1917]/50 flex items-center justify-center p-4'
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) close();
-      }}
+  return (
+    <Modal
+      isOpen
+      onClose={close}
+      closeLabel='Đóng, không lưu'
+      size='lg'
+      title={title}
+      dismissible={!saving}
     >
       <div
-        ref={dialogRef}
-        role='dialog'
-        aria-modal='true'
-        aria-labelledby='series-image-dialog-title'
         data-testid={`series-${kind}-dialog`}
-        onKeyDown={onKeyDown}
         className='w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xl p-5 space-y-4'
       >
         <div className='flex items-start justify-between gap-3'>
@@ -661,17 +632,12 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
         </div>
 
         {(fileError || saveError) && (
-          <p
-            role='alert'
-            data-testid='series-image-error'
-            className='flex items-start gap-2 p-2.5 rounded-lg border border-rose-200 bg-rose-50 text-xs text-rose-800'
-          >
-            <AlertCircle className='w-4 h-4 shrink-0' aria-hidden='true' />
+          <Alert tone='danger' data-testid='series-image-error' className='text-xs'>
             <span>
               {fileError || saveError}
               {saveError && ' Ảnh đang dùng không bị thay đổi. Bấm “Áp dụng” để thử lại.'}
             </span>
-          </p>
+          </Alert>
         )}
 
         <div className='flex justify-end gap-2'>
@@ -695,7 +661,6 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
+    </Modal>
   );
 };

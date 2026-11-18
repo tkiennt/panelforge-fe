@@ -1,7 +1,78 @@
 // src/services/chapter.service.ts
 import axiosClient from '../api/axiosClient';
+import type { ScriptLineKind, ScriptLineRefInput } from './scriptLine.service';
+import type { AssignmentDto } from './assignment.service';
+import type { ChapterCastBlockerDto } from './chapterCast.service';
+import type { StageTaskLotDto } from '@/types/pipeline';
 
-export type ChapterStatus = 'PreProduction' | 'InProduction' | 'Approved' | 'Locked' | 'Published';
+export interface ScriptTreeCast {
+  entryId: string;
+  revisionId: string;
+}
+
+export interface ScriptTreeLine {
+  id?: string | null;
+  kind: ScriptLineKind;
+  speakerLabel?: string | null;
+  text?: string | null;
+  refs?: ScriptLineRefInput[] | null;
+}
+
+export interface ScriptTreePanel {
+  id?: string | null;
+  number: number;
+  direction?: string | null;
+  castRevisions?: ScriptTreeCast[] | null;
+  lines?: ScriptTreeLine[] | null;
+}
+
+export interface ScriptTreePage {
+  id?: string | null;
+  number: number;
+  panels?: ScriptTreePanel[] | null;
+}
+
+export interface ChapterScriptBody {
+  expectedRevisionId?: string | null;
+  pages?: ScriptTreePage[] | null;
+}
+
+export interface SaveChapterScriptResult {
+  revisionId: string;
+  versionNumber: number;
+  created: boolean;
+  warnings: string[];
+}
+
+export interface SubmitChapterScriptResult {
+  revisionId: string;
+  versionNumber: number;
+  created: boolean;
+  warnings: string[];
+  chapter: ChapterDto;
+}
+
+export type ChapterStatus =
+  'PreProduction' | 'InProduction' | 'ChapterApproved' | 'HandedOffAndPublished';
+
+export interface ProductionPageAssignmentRequest {
+  artistId: string;
+  pageFrom: number;
+  pageTo: number;
+}
+
+export interface StartChapterProductionRequest {
+  pageAssignments: ProductionPageAssignmentRequest[];
+  lettererAssignments?: ProductionPageAssignmentRequest[] | null;
+}
+
+export interface StartChapterProductionResultDto {
+  chapter: ChapterDto;
+  /** Luôn rỗng: Gate 1 giao trên Lưới V3 (xem `lots`). */
+  assignments: AssignmentDto[];
+  /** Các lô lưới Gate 1 vừa giao (Pencil + Letterer theo dải trang). */
+  lots: StageTaskLotDto[];
+}
 
 /** D12: vòng đời kịch bản Draft ↔ InReview → Frozen. */
 export type ScriptStatus = 'Draft' | 'InReview' | 'Frozen';
@@ -39,6 +110,16 @@ export interface ChapterDto {
   previousSubmittedVersionId?: string | null;
 }
 
+export interface ScriptVersionRowRef {
+  entryId: string;
+  surfaceText: string;
+}
+
+export interface ScriptVersionRowCast {
+  entryId: string;
+  revisionId: string;
+}
+
 /** Một hàng kịch bản theo thứ tự đọc; `key` ổn định giữa các phiên bản. */
 export interface ScriptVersionRow {
   key: string;
@@ -48,6 +129,8 @@ export interface ScriptVersionRow {
   panel: number;
   label?: string | null;
   text: string;
+  refs?: ScriptVersionRowRef[] | null;
+  castRevisions?: ScriptVersionRowCast[] | null;
 }
 
 /** Lưu = commit, gửi duyệt = push (`submittedAt`). */
@@ -120,6 +203,8 @@ export interface UpdateChapterRequest {
   outline?: string | null;
   isLocked?: boolean;
   priceVnd?: number;
+  /** `versionVector` của chương lúc mở form (BR-11): lệch thì BE trả 409 thay vì đè. */
+  expectedChapterVersion?: number;
 }
 
 export type ChapterReviewAction =
@@ -141,8 +226,11 @@ export type ChapterLockGateCode =
   | 'NOT_IN_PRODUCTION'
   | 'NO_PAGES'
   | 'ASSIGNMENTS_NOT_APPROVED'
+  | 'TASK_GRID_NOT_APPROVED'
   | 'OPEN_CHANGE_REQUESTS'
   | 'BLOCKING_FINDINGS'
+  | 'IMPACT_FLAGS'
+  | 'PAGES_WITHOUT_WORK'
   | 'SCRIPT_NOT_FROZEN'
   | 'PENDING_AI_SUGGESTIONS'
   | string;
@@ -320,7 +408,20 @@ export const chapterService = {
   },
 
   /**
-   * Producer hoặc Publisher mở lại/từ chối chương kèm lý do (POST /api/chapters/{chapterId}/reopen)
+   * Producer bàn giao chương đã duyệt cho Publisher phát hành (POST /api/chapters/{chapterId}/hand-off)
+   * Chuyển trạng thái ChapterApproved -> HandedOff
+   */
+  handOffChapter: async (chapterId: string): Promise<ChapterReviewDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/hand-off`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể bàn giao chương cho Publisher.'));
+    }
+  },
+
+  /**
+   * Producer mở lại chương đã duyệt để sản xuất lại (POST /api/chapters/{chapterId}/reopen)
    * Chuyển trạng thái từ Approved -> InProduction
    */
   reopenChapter: async (chapterId: string, comment: string): Promise<ChapterReviewDto> => {
@@ -328,12 +429,12 @@ export const chapterService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/reopen`, { comment });
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể mở lại/từ chối chương.'));
+      throw new Error(extractError(error, 'Không thể mở lại chương.'));
     }
   },
 
   /**
-   * Publisher xuất bản hoặc lên lịch xuất bản chương (POST /api/chapters/{chapterId}/publish)
+   * Publisher xuất bản / lên lịch ấn bản sau khi Producer bàn giao (POST /api/chapters/{chapterId}/publish)
    * Chuyển trạng thái từ Approved -> Published
    */
   publishChapter: async (
@@ -394,9 +495,13 @@ export const chapterService = {
   updateOutline: async (
     chapterId: string,
     outline: string | null,
+    expectedChapterVersion?: number,
   ): Promise<{ value: string | null }> => {
     try {
-      const response = await axiosClient.put(`/chapters/${chapterId}/outline`, { outline });
+      const response = await axiosClient.put(`/chapters/${chapterId}/outline`, {
+        outline,
+        expectedChapterVersion: expectedChapterVersion ?? null,
+      });
       return response.data;
     } catch (error) {
       throw new Error(extractError(error, 'Không thể cập nhật đề cương chương.'));
@@ -437,15 +542,6 @@ export const chapterService = {
       await axiosClient.delete(`/chapters/${chapterId}/cover`);
     } catch (error) {
       throw new Error(extractError(error, 'Không thể xóa ảnh bìa chương.'));
-    }
-  },
-
-  checkBibleGate: async (chapterId: string): Promise<ChapterBibleGateResultDto> => {
-    try {
-      const response = await axiosClient.get(`/chapters/${chapterId}/bible-gate`);
-      return response.data;
-    } catch (error) {
-      throw new Error(extractError(error, 'Không thể kiểm tra Chapter Bible Gate.'));
     }
   },
 
@@ -514,30 +610,49 @@ export const chapterService = {
     }
   },
 
-  /** Lưu = commit; trùng nội dung bản gần nhất thì máy chủ trả lại bản đó. */
-  commitScriptVersion: async (
+  /**
+   * SCR-14: PUT /api/chapters/{chapterId}/script — lưu cả cây Trang → Panel → dòng của chương trong một request
+   */
+  saveChapterScript: async (
     chapterId: string,
+    body: ChapterScriptBody,
     message?: string,
-  ): Promise<ScriptVersionSummaryDto> => {
+  ): Promise<SaveChapterScriptResult> => {
     try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/script-versions`, {
-        message: message ?? null,
+      const response = await axiosClient.put(`/chapters/${chapterId}/script`, body, {
+        params: message ? { message } : undefined,
       });
       return response.data;
-    } catch (error) {
-      throw new Error(extractError(error, 'Không lưu được phiên bản kịch bản.'));
+    } catch (error: any) {
+      const err: any = new Error(extractError(error, 'Không thể lưu kịch bản.'));
+      err.status = error.response?.status;
+      err.code =
+        error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+      err.response = error.response;
+      throw err;
     }
   },
 
-  /** D12: Writer gửi duyệt (Draft → InReview) = push; kịch bản khoá sửa. */
-  submitScript: async (chapterId: string, message?: string): Promise<ChapterDto> => {
+  /**
+   * SCR-14: POST /api/chapters/{chapterId}/script/submit — lưu cả kịch bản rồi gửi duyệt trong cùng một transaction
+   */
+  submitChapterScript: async (
+    chapterId: string,
+    body: ChapterScriptBody,
+    message?: string,
+  ): Promise<SubmitChapterScriptResult> => {
     try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/submit-script`, {
-        message: message ?? null,
+      const response = await axiosClient.post(`/chapters/${chapterId}/script/submit`, body, {
+        params: message ? { message } : undefined,
       });
       return response.data;
-    } catch (error) {
-      throw new Error(extractError(error, 'Không thể nộp kịch bản.'));
+    } catch (error: any) {
+      const err: any = new Error(extractError(error, 'Không thể gửi duyệt kịch bản.'));
+      err.status = error.response?.status;
+      err.code =
+        error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+      err.response = error.response;
+      throw err;
     }
   },
 
@@ -552,14 +667,27 @@ export const chapterService = {
   },
 
   /**
-   * Gate 1 — Producer bấm Start Production khi kịch bản đang InReview (→ Frozen, chương → InProduction)
+   * Gate 1 — Producer duyệt kịch bản và bắt đầu sản xuất (InReview / PreProduction → InProduction)
+   * POST /api/chapters/{chapterId}/start-production
    */
-  freezeScript: async (chapterId: string): Promise<ChapterDto> => {
+  startProduction: async (
+    chapterId: string,
+    body: StartChapterProductionRequest,
+  ): Promise<StartChapterProductionResultDto> => {
     try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/freeze-script`);
+      const response = await axiosClient.post<StartChapterProductionResultDto>(
+        `/chapters/${chapterId}/start-production`,
+        body,
+      );
       return response.data;
-    } catch (error) {
-      throw new Error(extractError(error, 'Không thể đóng băng kịch bản để bắt đầu sản xuất.'));
+    } catch (error: any) {
+      const msg = extractError(error, 'Không thể bắt đầu sản xuất chương.');
+      const err: any = new Error(msg);
+      err.status = error.response?.status;
+      err.code = error.response?.data?.code;
+      err.blockers = error.response?.data?.blockers;
+      err.response = error.response;
+      throw err;
     }
   },
 
@@ -574,68 +702,4 @@ export const chapterService = {
       throw new Error(extractError(error, 'Không thể mở lại kịch bản.'));
     }
   },
-
-  /**
-   * Writer gửi yêu cầu mở lại kịch bản kèm lý do (POST /api/chapters/{chapterId}/request-script-reopen)
-   */
-  requestScriptReopen: async (chapterId: string, reason: string): Promise<ChapterDto> => {
-    try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/request-script-reopen`, {
-        reason,
-      });
-      return response.data;
-    } catch (error) {
-      throw new Error(extractError(error, 'Không thể gửi yêu cầu mở lại kịch bản.'));
-    }
-  },
-
-  /**
-   * Producer chấp thuận mở lại kịch bản (POST /api/chapters/{chapterId}/approve-script-reopen)
-   */
-  approveScriptReopen: async (chapterId: string): Promise<ChapterDto> => {
-    try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/approve-script-reopen`);
-      return response.data;
-    } catch (error) {
-      throw new Error(extractError(error, 'Không thể phê duyệt mở lại kịch bản.'));
-    }
-  },
-
-  /**
-   * Producer từ chối yêu cầu mở lại kịch bản (POST /api/chapters/{chapterId}/reject-script-reopen)
-   */
-  rejectScriptReopen: async (chapterId: string): Promise<ChapterDto> => {
-    try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/reject-script-reopen`);
-      return response.data;
-    } catch (error) {
-      throw new Error(extractError(error, 'Không thể từ chối mở lại kịch bản.'));
-    }
-  },
 };
-
-export interface ChapterBibleGateItemDto {
-  bibleEntryId: string;
-  code: string;
-  name: string;
-  category: string;
-  isReferencedAsSpeaker: boolean;
-  isReferencedInScriptLink: boolean;
-  hasEffectiveRevision: boolean;
-  isLocked: boolean;
-  effectiveRevisionVersion?: number | null;
-  effectiveFromChapterNumber?: number | null;
-  warningCode?: string | null;
-  warningMessage?: string | null;
-}
-
-export interface ChapterBibleGateResultDto {
-  chapterId?: string;
-  chapterNumber?: number;
-  isPassed: boolean;
-  totalReferenced?: number;
-  totalReferencedEntries?: number;
-  lockedCount: number;
-  pendingCount: number;
-  items: ChapterBibleGateItemDto[];
-}

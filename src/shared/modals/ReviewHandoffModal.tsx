@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Check, Copy, Smartphone, X } from 'lucide-react';
+import { Modal } from '@/shared/ui';
 
 interface ReviewHandoffModalProps {
   token: string;
@@ -27,12 +28,12 @@ export const ReviewHandoffModal: React.FC<ReviewHandoffModalProps> = ({ token, o
   };
 
   return (
-    <div
-      className='fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4'
-      role='dialog'
-      aria-modal='true'
-      aria-labelledby='review-handoff-title'
-      onClick={onClose}
+    <Modal
+      isOpen
+      title='Mở trên App PanelForge Mobile'
+      closeLabel='Đóng'
+      size='sm'
+      onClose={onClose}
       data-testid='review-handoff-modal'
     >
       <div
@@ -95,7 +96,7 @@ export const ReviewHandoffModal: React.FC<ReviewHandoffModalProps> = ({ token, o
           trên ứng dụng PanelForge Mobile.
         </p>
       </div>
-    </div>
+    </Modal>
   );
 };
 

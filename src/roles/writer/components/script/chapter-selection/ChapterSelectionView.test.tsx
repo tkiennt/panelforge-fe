@@ -25,7 +25,7 @@ const mockChapters: ChapterDto[] = [
     chapterNumber: 2,
     title: 'Đêm Tại Shibuya',
     outline: 'Gặp gỡ người đưa tin bí ẩn.',
-    status: 'Approved',
+    status: 'ChapterApproved',
     isScriptFrozen: true,
     scriptContentHash: 'a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0',
     versionVector: 2,

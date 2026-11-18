@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, RefreshCw, Shield, AlertTriangle } from 'lucide-react';
 import { WorkspaceDto } from '@/services/workspace.service';
+import { Modal } from '@/shared/ui';
 
 export interface WorkspaceAuditModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export const WorkspaceAuditModal: React.FC<WorkspaceAuditModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
+    <Modal isOpen={isOpen} onClose={onClose} closeLabel='Đóng' size='xl' title='Nhật ký Studio'>
       <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col p-6 space-y-4'>
         <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
           <div>
@@ -124,7 +125,7 @@ export const WorkspaceAuditModal: React.FC<WorkspaceAuditModalProps> = ({
           </table>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -150,7 +151,13 @@ export const EditMemberAccessModal: React.FC<EditMemberAccessModalProps> = ({
   if (!member) return null;
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150'>
+    <Modal
+      isOpen={Boolean(member)}
+      onClose={onClose}
+      closeLabel='Close'
+      size='sm'
+      title='Edit member access'
+    >
       <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden'>
         <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
           <div className='flex items-center gap-2'>
@@ -229,6 +236,6 @@ export const EditMemberAccessModal: React.FC<EditMemberAccessModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

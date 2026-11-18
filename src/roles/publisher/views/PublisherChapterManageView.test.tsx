@@ -112,6 +112,7 @@ describe('PublisherChapterManageView', () => {
     vi.mocked(monetizationService.getChapterManage).mockResolvedValue({
       ...manage,
       chapterIsLocked: false,
+      languagePrices: manage.languagePrices.map((p) => ({ ...p, priceVnd: 0 })),
     });
     renderView();
 
@@ -132,18 +133,19 @@ describe('PublisherChapterManageView', () => {
     expect(screen.getByText('Chưa đủ ảnh (1/3 trang)')).toBeInTheDocument();
   });
 
-  it('giá theo ngôn ngữ chỉ cho chương trả phí', async () => {
+  it('giá theo ngôn ngữ: thiết lập giá thương mại theo từng ấn bản ngôn ngữ (không bị chặn bởi chapterIsLocked)', async () => {
     const user = userEvent.setup();
     vi.mocked(monetizationService.getChapterManage).mockResolvedValue({
       ...manage,
       chapterIsLocked: false,
+      languagePrices: manage.languagePrices.map((p) => ({ ...p, priceVnd: 0 })),
     });
     renderView();
 
     await user.click(await screen.findByRole('button', { name: /Giá theo ngôn ngữ/i }));
 
-    expect(screen.getByText(/Chương miễn phí/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Lưu giá/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Chương miễn phí: mọi trang mở/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Lưu giá/i })).toBeInTheDocument();
   });
 
   it('Settings lưu số trang đầu xem trước mặc định của bộ truyện', async () => {

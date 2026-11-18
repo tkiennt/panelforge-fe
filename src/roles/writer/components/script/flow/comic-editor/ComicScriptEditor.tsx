@@ -5,7 +5,6 @@ import StarterKit from '@tiptap/starter-kit';
 import {
   FileText,
   Film,
-  User,
   Volume2,
   Scroll,
   HelpCircle,
@@ -37,21 +36,17 @@ import {
   SfxBlockNode,
   CaptionBlockNode,
 } from './nodes';
-import {
-  ComicKeymapExtension,
-  SeriesBibleMentionNode,
-  createComicMentionSuggestion,
-} from './extensions';
+import { ComicKeymapExtension } from './extensions';
 import { getNextPageNumber } from './comicCounting';
-import { AiScriptConvertModal, convertScriptTextToComicBlocks } from '../converter';
+import { convertScriptTextToComicBlocks } from '../converter';
 import { INITIAL_COMIC_SCRIPT_DOC } from './sampleScript';
 import {
   useScriptVersionStore,
   ScriptVersion,
   ScriptDiffViewer,
   VersionHistoryDrawer,
-  VersionPreviewModal,
 } from './versioning';
+import { Modal } from '@/shared/ui';
 
 export interface ComicScriptEditorProps {
   initialContent?: any;
@@ -76,7 +71,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [showCheatsheet, setShowCheatsheet] = useState(false);
-  const [showConvertModal, setShowConvertModal] = useState(false);
   const [lastAction, setLastAction] = useState<string | null>(null);
 
   // Modal yêu cầu sửa của Producer
@@ -175,9 +169,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
       DialogueBlockNode,
       SfxBlockNode,
       CaptionBlockNode,
-      SeriesBibleMentionNode.configure({
-        suggestion: createComicMentionSuggestion(),
-      }),
       ComicKeymapExtension.configure({
         onBlockTransformed: (type, detail) => {
           setLastAction(`${type} (${detail || ''})`);
@@ -189,7 +180,7 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
     editorProps: {
       attributes: {
         class:
-          'focus:outline-none min-h-[550px] px-8 py-10 font-sans text-base leading-relaxed text-slate-900 bg-[#FCFBF8] selection:bg-orange-100 selection:text-orange-950 caret-[#C2410C]',
+          'focus:outline-none min-h-[550px] px-8 py-10 font-sans text-base leading-relaxed text-stone-900 bg-[#FCFBF8] selection:bg-orange-100 selection:text-orange-950 caret-[#C2410C]',
       },
     },
     onUpdate: ({ editor: ed }) => {
@@ -292,11 +283,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
       .run();
   };
 
-  const triggerMention = () => {
-    if (!editor || isLockedOrReadOnly) return;
-    editor.chain().focus().insertContent('@').run();
-  };
-
   const handleCopyMarkdown = () => {
     if (!editor) return;
     const text = editor.getText();
@@ -314,41 +300,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
     editor.commands.setContent(INITIAL_COMIC_SCRIPT_DOC);
     updateDocumentStats(editor);
     notify('Đã khôi phục', 'Đã nạp lại kịch bản mẫu Comic Script.');
-  };
-
-  const handleApplyConvertedScript = (
-    scriptText: string,
-    mode: 'append' | 'insert' | 'replace',
-  ) => {
-    if (!editor || isLockedOrReadOnly) return;
-
-    if (mode === 'replace') {
-      const blocks = convertScriptTextToComicBlocks(scriptText, { startingPageNumber: 1 });
-      editor.commands.setContent({ type: 'doc', content: blocks });
-      updateDocumentStats(editor);
-      notify('Đã ghi đè kịch bản', 'Toàn bộ nội dung đã được thay thế bằng kịch bản mới.');
-      return;
-    }
-
-    if (mode === 'append') {
-      const nextNum = getNextPageNumber(editor.state.doc);
-      const blocks = convertScriptTextToComicBlocks(scriptText, { startingPageNumber: nextNum });
-      const endPos = editor.state.doc.content.size;
-      editor.chain().focus().insertContentAt(endPos, blocks).run();
-      updateDocumentStats(editor);
-      notify('Đã chèn kịch bản', `Đã thêm các trang mới (từ Trang ${nextNum}) vào cuối kịch bản.`);
-      return;
-    }
-
-    if (mode === 'insert') {
-      const currentPos = editor.state.selection.$from.pos;
-      const currentNum = getNextPageNumber(editor.state.doc, currentPos);
-      const blocks = convertScriptTextToComicBlocks(scriptText, { startingPageNumber: currentNum });
-      editor.chain().focus().insertContent(blocks).run();
-      updateDocumentStats(editor);
-      notify('Đã chèn kịch bản', 'Đã chèn nội dung kịch bản mới tại vị trí con trỏ.');
-      return;
-    }
   };
 
   // --- VERSIONING LIFECYCLE HANDLERS ---
@@ -624,22 +575,6 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
               </kbd>
             </button>
 
-            {/* Nút Nhân vật (@) */}
-            <button
-              type='button'
-              disabled={isLockedOrReadOnly}
-              onClick={triggerMention}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-all shadow-2xs ${
-                isLockedOrReadOnly
-                  ? 'opacity-50 cursor-not-allowed bg-stone-100 text-stone-400'
-                  : 'text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 cursor-pointer'
-              }`}
-              title="Chèn thực thể Bible (Phím tắt: gõ '@')"
-            >
-              <User className='w-3.5 h-3.5 text-indigo-600' />
-              <span>@ Nhân vật</span>
-            </button>
-
             {/* Nút SFX */}
             <button
               type='button'
@@ -664,34 +599,18 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
               className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold rounded-lg transition-all ${
                 isLockedOrReadOnly
                   ? 'opacity-50 cursor-not-allowed bg-stone-100 text-stone-400'
-                  : 'text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 cursor-pointer'
+                  : 'text-stone-700 bg-white hover:bg-stone-50 border border-stone-200 cursor-pointer'
               }`}
               title='Chèn lời dẫn truyện (Gõ Caption: rồi Enter)'
             >
-              <Scroll className='w-3.5 h-3.5 text-slate-500' />
+              <Scroll className='w-3.5 h-3.5 text-stone-500' />
               <span className='hidden md:inline'>Lời dẫn</span>
-            </button>
-
-            {/* Nút Smart Convert / Gen AI */}
-            <button
-              type='button'
-              disabled={isLockedOrReadOnly}
-              onClick={() => setShowConvertModal(true)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-white rounded-lg transition-all shadow-2xs group ml-1 ${
-                isLockedOrReadOnly
-                  ? 'opacity-50 cursor-not-allowed bg-stone-400'
-                  : 'bg-gradient-to-r from-[#C2410C] to-indigo-700 hover:from-[#9A3412] hover:to-indigo-800 cursor-pointer'
-              }`}
-              title='Chuyển đổi văn bản thô hoặc AI viết phân cảnh kịch bản'
-            >
-              <Sparkles className='w-3.5 h-3.5 animate-pulse' />
-              <span>⚡ Chuyển đổi / Gen AI</span>
             </button>
           </div>
 
           {/* Phản hồi trạng thái biến đổi O(1) Transaction */}
           {lastAction && (
-            <div className='flex items-center gap-1 text-[11px] font-mono text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-md animate-in fade-in slide-in-from-left-2'>
+            <div className='flex items-center gap-1 text-xs font-mono text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-md animate-in fade-in slide-in-from-left-2'>
               <Zap className='w-3 h-3 text-emerald-600' />
               <span>Đã chuyển thành {lastAction}</span>
             </div>
@@ -707,7 +626,7 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
             className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
               showCheatsheet
                 ? 'bg-[#C2410C] text-white border-transparent shadow-xs'
-                : 'bg-white text-slate-600 hover:text-slate-900 border-[#E5E0D8] hover:bg-[#F3F0E9]'
+                : 'bg-white text-stone-600 hover:text-stone-900 border-[#E5E0D8] hover:bg-[#F3F0E9]'
             }`}
             title='Xem danh sách phím tắt gõ kịch bản tức thì'
           >
@@ -720,10 +639,10 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
             type='button'
             disabled={isLockedOrReadOnly}
             onClick={handleResetSample}
-            className={`p-1.5 rounded-lg transition-colors border border-slate-200 bg-white ${
+            className={`p-1.5 rounded-lg transition-colors border border-stone-200 bg-white ${
               isLockedOrReadOnly
                 ? 'opacity-40 cursor-not-allowed'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 cursor-pointer'
             }`}
             title='Nạp lại kịch bản mẫu ban đầu'
           >
@@ -775,28 +694,28 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
 
             <div className='flex items-center gap-1.5'>
               <span className='font-bold'>3. Thoại Nhân vật:</span>
-              <span className='font-mono text-slate-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
+              <span className='font-mono text-stone-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
                 @Tên: "Thoại" + ↵
               </span>
             </div>
 
             <div className='flex items-center gap-1.5'>
               <span className='font-bold'>4. Âm thanh (SFX):</span>
-              <span className='font-mono text-slate-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
+              <span className='font-mono text-stone-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
                 * BÙM * hoặc SFX: TIẾNG NỔ + ↵
               </span>
             </div>
 
             <div className='flex items-center gap-1.5'>
               <span className='font-bold'>5. Lời dẫn:</span>
-              <span className='font-mono text-slate-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
+              <span className='font-mono text-stone-800 bg-white px-1.5 py-0.5 rounded border border-[#FDBA74]'>
                 Caption: Lời dẫn + ↵
               </span>
             </div>
 
             <div className='flex items-center gap-1.5'>
               <span className='font-bold'>6. Hoàn nguyên:</span>
-              <kbd className='px-1.5 py-0.5 bg-white border border-[#FDBA74] rounded font-mono text-[11px] shadow-2xs'>
+              <kbd className='px-1.5 py-0.5 bg-white border border-[#FDBA74] rounded font-mono text-xs shadow-2xs'>
                 Backspace
               </kbd>
               <span>ở đầu dòng</span>
@@ -821,60 +740,43 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
       </div>
 
       {/* 4. BOTTOM METRIC FOOTER BAR (60 FPS REAL-TIME STATS) */}
-      <footer className='shrink-0 bg-[#FCFBF8] border-t border-[#EBE7DF] px-6 py-2.5 flex items-center justify-between text-xs text-slate-600 font-mono shadow-2xs'>
+      <footer className='shrink-0 bg-[#FCFBF8] border-t border-[#EBE7DF] px-6 py-2.5 flex items-center justify-between text-xs text-stone-600 font-mono shadow-2xs'>
         <div className='flex items-center gap-5'>
           <div className='flex items-center gap-1.5'>
             <span className='w-2 h-2 rounded-full bg-[#C2410C]' />
-            <span className='font-bold text-slate-800'>{stats.pages}</span>
-            <span className='text-slate-500'>Trang</span>
+            <span className='font-bold text-stone-800'>{stats.pages}</span>
+            <span className='text-stone-500'>Trang</span>
           </div>
 
           <div className='flex items-center gap-1.5'>
             <span className='w-2 h-2 rounded-full bg-indigo-600' />
-            <span className='font-bold text-slate-800'>{stats.panels}</span>
-            <span className='text-slate-500'>Panels</span>
+            <span className='font-bold text-stone-800'>{stats.panels}</span>
+            <span className='text-stone-500'>Panels</span>
           </div>
 
           <div className='flex items-center gap-1.5'>
             <span className='w-2 h-2 rounded-full bg-purple-500' />
-            <span className='font-bold text-slate-800'>{stats.dialogues}</span>
-            <span className='text-slate-500'>Thoại</span>
+            <span className='font-bold text-stone-800'>{stats.dialogues}</span>
+            <span className='text-stone-500'>Thoại</span>
           </div>
 
           <div className='flex items-center gap-1.5'>
             <span className='w-2 h-2 rounded-full bg-amber-500' />
-            <span className='font-bold text-slate-800'>{stats.sfx}</span>
-            <span className='text-slate-500'>SFX</span>
+            <span className='font-bold text-stone-800'>{stats.sfx}</span>
+            <span className='text-stone-500'>SFX</span>
           </div>
 
-          <div className='hidden sm:flex items-center gap-1.5 border-l border-slate-200 pl-4'>
-            <span className='font-semibold text-slate-700'>{stats.words}</span>
-            <span className='text-slate-500'>từ</span>
+          <div className='hidden sm:flex items-center gap-1.5 border-l border-stone-200 pl-4'>
+            <span className='font-semibold text-stone-700'>{stats.words}</span>
+            <span className='text-stone-500'>từ</span>
           </div>
         </div>
 
-        <div className='flex items-center gap-2 text-[11px] text-slate-400'>
+        <div className='flex items-center gap-2 text-xs text-stone-500'>
           <span className='inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse' />
           <span>Tiptap ProseMirror 60 FPS Engine · Keyboard-First</span>
         </div>
       </footer>
-
-      {/* 5. MODAL SMART CONVERT & AI BIÊN KỊCH */}
-      <AiScriptConvertModal
-        isOpen={showConvertModal}
-        onClose={() => setShowConvertModal(false)}
-        onApplyScript={handleApplyConvertedScript}
-        initialStartingPageNumber={editor ? getNextPageNumber(editor.state.doc) : 1}
-        seriesBibleContext={{
-          characters: [
-            { name: 'Minh', role: 'Nam chính' },
-            { name: 'Lan', role: 'Nữ chính' },
-            { name: 'Người lạ mặt', role: 'Phản diện bí ẩn' },
-          ],
-          locations: ['Ngã tư Shibuya', 'Hẻm tối Shinjuku', 'Tòa nhà bỏ hoang'],
-        }}
-        onShowToast={notify}
-      />
 
       {/* 6. VERSION HISTORY DRAWER */}
       <VersionHistoryDrawer
@@ -899,64 +801,47 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
         />
       )}
 
-      {/* 8. VERSION PREVIEW MODAL */}
-      {previewVersion && (
-        <VersionPreviewModal
-          version={previewVersion}
-          onClose={() => setPreviewVersion(null)}
-          onRestore={handleRestoreVersion}
-          canRestore={!isLockedOrReadOnly}
-        />
-      )}
-
       {/* 9. PRODUCER REQUEST CHANGES MODAL */}
-      {showFeedbackModal && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4 animate-in fade-in'>
-          <div className='bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 w-full max-w-lg flex flex-col gap-4'>
-            <div className='flex items-center gap-3'>
-              <div className='w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700'>
-                <MessageSquare className='w-5 h-5' />
-              </div>
-              <div>
-                <h3 className='font-bold text-slate-900 text-base'>
-                  Yêu cầu Biên kịch sửa đổi kịch bản
-                </h3>
-                <p className='text-xs text-slate-500'>
-                  Hệ thống sẽ tạo bản nháp mới (v1.1) kế thừa nội dung kèm ghi chú phản hồi của bạn.
-                </p>
-              </div>
-            </div>
-
-            <textarea
-              value={feedbackNotes}
-              onChange={(e) => setFeedbackNotes(e.target.value)}
-              placeholder='Nhập chi tiết các phân cảnh cần sửa (ví dụ: Tăng nhịp độ căng thẳng ở trang 1, sửa lại lời thoại của Minh)...'
-              rows={4}
-              className='w-full text-xs p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500'
-            />
-
-            <div className='flex items-center justify-end gap-2'>
-              <button
-                type='button'
-                onClick={() => {
-                  setShowFeedbackModal(false);
-                  setFeedbackNotes('');
-                }}
-                className='px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer'
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type='button'
-                onClick={handleConfirmRequestChanges}
-                className='px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg cursor-pointer shadow-xs'
-              >
-                Gửi yêu cầu (Tạo v1.1)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showFeedbackModal}
+        onClose={() => {
+          setShowFeedbackModal(false);
+          setFeedbackNotes('');
+        }}
+        size='md'
+        closeLabel='Đóng'
+        title='Yêu cầu Biên kịch sửa đổi kịch bản'
+        description='Hệ thống sẽ tạo bản nháp mới (v1.1) kế thừa nội dung kèm ghi chú phản hồi của bạn.'
+        footer={
+          <>
+            <button
+              type='button'
+              onClick={() => {
+                setShowFeedbackModal(false);
+                setFeedbackNotes('');
+              }}
+              className='px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer'
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type='button'
+              onClick={handleConfirmRequestChanges}
+              className='px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg cursor-pointer shadow-xs'
+            >
+              Gửi yêu cầu (Tạo v1.1)
+            </button>
+          </>
+        }
+      >
+        <textarea
+          value={feedbackNotes}
+          onChange={(e) => setFeedbackNotes(e.target.value)}
+          placeholder='Nhập chi tiết các phân cảnh cần sửa (ví dụ: Tăng nhịp độ căng thẳng ở trang 1, sửa lại lời thoại của Minh)...'
+          rows={4}
+          className='w-full text-xs p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500'
+        />
+      </Modal>
     </div>
   );
 };

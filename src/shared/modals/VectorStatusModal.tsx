@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Layers,
 } from 'lucide-react';
+import { Modal } from '@/shared/ui';
 
 interface VectorStatusModalProps {
   isOpen: boolean;
@@ -24,7 +25,13 @@ export const VectorStatusModal: React.FC<VectorStatusModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Close'
+      size='lg'
+      title='Manga LoRA Engine v4.2 Status'
+    >
       <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150'>
         {/* Header */}
         <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
@@ -137,6 +144,6 @@ export const VectorStatusModal: React.FC<VectorStatusModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

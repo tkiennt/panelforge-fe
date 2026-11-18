@@ -49,7 +49,7 @@ describe('WriteSolo Screenplay & Graphic Novel Architecture', () => {
     expect(recent[0]).toBe('NANCY'); // Nancy nói sau Fred nên ở đầu
   });
 
-  it('xác định chính xác nhân vật nói liên tiếp để thêm CONT\'D', () => {
+  it("xác định chính xác nhân vật nói liên tiếp để thêm CONT'D", () => {
     const mockDoc = {
       descendants: (cb: (node: any, pos: number) => boolean | void) => {
         let pos = 0;
@@ -79,9 +79,7 @@ describe('WriteSolo Screenplay & Graphic Novel Architecture', () => {
     const hasCharacter = INITIAL_WRITESOLO_DOC.content.some(
       (b) => b.attrs.blockType === 'character',
     );
-    const hasDialogue = INITIAL_WRITESOLO_DOC.content.some(
-      (b) => b.attrs.blockType === 'dialogue',
-    );
+    const hasDialogue = INITIAL_WRITESOLO_DOC.content.some((b) => b.attrs.blockType === 'dialogue');
     const hasParenthetical = INITIAL_WRITESOLO_DOC.content.some(
       (b) => b.attrs.blockType === 'parenthetical',
     );

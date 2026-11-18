@@ -200,7 +200,10 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
             id='hero-manuscript-card'
             className='relative w-full h-full rounded-xl bg-[#FFFEFA] border border-stone-300 shadow-[0_20px_50px_rgba(28,25,23,0.14)] overflow-hidden motion-reduce:transform-none'
             role='region'
-            aria-label={t('hero.manuscriptRegionAria', 'Bản thảo manga PanelForge: Trắng đen và Truyện màu')}
+            aria-label={t(
+              'hero.manuscriptRegionAria',
+              'Bản thảo manga PanelForge: Trắng đen và Truyện màu',
+            )}
           >
             {/* Main HD Artwork Image */}
             <img
@@ -273,7 +276,9 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
               <div
                 className={`w-1.5 h-1.5 rounded-full shrink-0 ${highlightTarget === 'editor' ? 'bg-[#F97316]' : 'bg-[#EA580C]'}`}
               />
-              <span className='font-medium'>{t('hero.editorPinLabel', 'Biên tập · Góp ý khung')}</span>
+              <span className='font-medium'>
+                {t('hero.editorPinLabel', 'Biên tập · Góp ý khung')}
+              </span>
             </div>
 
             {/* Điểm nhấn nổi nhẹ quanh nhãn Artist · v3 khi hover nhãn Truy vết phiên bản */}
@@ -302,9 +307,13 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
         </div>
 
         <div className='flex items-center justify-center gap-2.5 text-[12px] sm:text-[13px] font-sans text-[#57534E]'>
-          <span className='text-[#57534E] font-medium'>{t('hero.pipelineStages.script', 'Kịch bản')}</span>
+          <span className='text-[#57534E] font-medium'>
+            {t('hero.pipelineStages.script', 'Kịch bản')}
+          </span>
           <span className='text-stone-300 select-none'>→</span>
-          <span className='text-[#57534E] font-medium'>{t('hero.pipelineStages.sketch', 'Phác thảo')}</span>
+          <span className='text-[#57534E] font-medium'>
+            {t('hero.pipelineStages.sketch', 'Phác thảo')}
+          </span>
           <span className='text-stone-300 select-none'>→</span>
           <span className='inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#FAF8F5] text-[#1C1917] font-semibold border border-[#D8D2C5] shadow-xs'>
             <span className='w-1.5 h-1.5 rounded-full bg-[#F97316]' />

@@ -1,0 +1,54 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { ArtistLayoutToolbar } from './ArtistLayoutToolbar';
+
+const handlers = {
+  onUploadSketch: vi.fn(),
+  onOpenTemplates: vi.fn(),
+  onSplitPanels: vi.fn(),
+  onSaveLayout: vi.fn(),
+};
+
+describe('ArtistLayoutToolbar', () => {
+  it('keeps every action visible and exposes disabled reasons', () => {
+    render(
+      <ArtistLayoutToolbar
+        {...handlers}
+        currentStep={1}
+        hasSketch={false}
+        hasPanels={false}
+        isLayoutDirty={false}
+        isDetectingPanels={false}
+        isSavingLayout={false}
+      />,
+    );
+
+    expect(screen.getByTestId('btn-upload-sketch-simple')).toBeEnabled();
+    expect(screen.getByTestId('btn-open-templates-simple')).toBeEnabled();
+    expect(screen.getByTestId('btn-split-panels-simple')).toHaveAccessibleDescription(
+      'Cần tải phác thảo trước',
+    );
+    expect(screen.getByTestId('canvas-btn-save-layout')).toHaveAccessibleDescription(
+      'Cần chọn mẫu khung hoặc tách khung trước',
+    );
+  });
+
+  it('enables save after a layout change and invokes it', () => {
+    render(
+      <ArtistLayoutToolbar
+        {...handlers}
+        currentStep={3}
+        hasSketch={false}
+        hasPanels={true}
+        isLayoutDirty={true}
+        isDetectingPanels={false}
+        isSavingLayout={false}
+      />,
+    );
+
+    const save = screen.getByTestId('canvas-btn-save-layout');
+    expect(save).toBeEnabled();
+    fireEvent.click(save);
+    expect(handlers.onSaveLayout).toHaveBeenCalledTimes(1);
+  });
+});

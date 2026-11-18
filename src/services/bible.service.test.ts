@@ -39,28 +39,6 @@ describe('bibleService', () => {
     });
   });
 
-  describe('getSeriesBibleAtChapter', () => {
-    it('gọi GET /series/{seriesId}/bible/at-chapter/{chapterNumber}', async () => {
-      const mockEntries = [{ id: 'entry-1', name: 'Hero', category: 0 }] as any[];
-      get.mockResolvedValueOnce({ data: mockEntries });
-
-      const result = await bibleService.getSeriesBibleAtChapter(seriesId, 5);
-
-      expect(get).toHaveBeenCalledWith(`/series/${seriesId}/bible/at-chapter/5`);
-      expect(result).toEqual({ entries: mockEntries });
-    });
-
-    it('gọi GET kèm canonOnly=true khi tham số canonOnly là true', async () => {
-      const mockEntries = [{ id: 'entry-1', name: 'Hero', isLocked: true }] as any[];
-      get.mockResolvedValueOnce({ data: mockEntries });
-
-      const result = await bibleService.getBibleEntriesAtChapter(seriesId, 3, true);
-
-      expect(get).toHaveBeenCalledWith(`/series/${seriesId}/bible/at-chapter/3?canonOnly=true`);
-      expect(result).toEqual(mockEntries);
-    });
-  });
-
   describe('uploadReferenceImage', () => {
     it('gọi POST /series/{seriesId}/bible/assets với FormData', async () => {
       const mockRes = {
@@ -93,8 +71,8 @@ describe('bibleService', () => {
     });
   });
 
-  describe('lockRevision (Việc 5 - Producer khoá Character Sheet)', () => {
-    it('gọi POST /series/{seriesId}/bible/entries/{entryId}/revisions/{revisionId}/lock và trả về revision đã khoá', async () => {
+  describe('confirmRevision (V2.6 Q20 - Editor xác nhận & khoá Canon)', () => {
+    it('gọi POST /series/{seriesId}/bible/entries/{entryId}/revisions/{revisionId}/confirm và trả về revision đã khoá', async () => {
       const mockLockedRev = {
         id: revisionId,
         bibleEntryId: entryId,
@@ -102,7 +80,7 @@ describe('bibleService', () => {
         summary: 'Canon Lock revision',
         snapshotJson: '{}',
         contentHash: 'hash-abc',
-        effectiveFromChapterNumber: 3,
+        variantLabel: 'Mặc định',
         isInitialVersion: false,
         createdAt: '2026-10-06T10:00:00Z',
         isLocked: true,
@@ -111,10 +89,11 @@ describe('bibleService', () => {
       };
       post.mockResolvedValueOnce({ data: mockLockedRev });
 
-      const result = await bibleService.lockRevision(seriesId, entryId, revisionId);
+      const result = await bibleService.confirmRevision(seriesId, entryId, revisionId);
 
       expect(post).toHaveBeenCalledWith(
-        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/lock`,
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/confirm`,
+        {},
       );
       expect(result.isLocked).toBe(true);
       expect(result.lockedAt).toBe('2026-10-06T10:05:00Z');
@@ -129,7 +108,7 @@ describe('bibleService', () => {
         },
       });
 
-      await expect(bibleService.lockRevision(seriesId, entryId, revisionId)).rejects.toThrow(
+      await expect(bibleService.confirmRevision(seriesId, entryId, revisionId)).rejects.toThrow(
         'Phiên bản này đã được khoá trước đó.',
       );
     });
@@ -141,7 +120,7 @@ describe('bibleService', () => {
         summary: 'Bản nâng cấp Arc 2',
         name: 'Kenji Neo',
         description: 'Chi tiết nhân vật Kenji bản Arc 2',
-        effectiveFromChapterNumber: 10,
+        variantLabel: 'Arc 2',
         expectedVersionNumber: 1,
       };
       const mockCreated = {

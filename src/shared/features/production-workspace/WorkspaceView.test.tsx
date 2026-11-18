@@ -10,8 +10,9 @@ vi.mock('@/services/chapter.service', () => ({
   },
 }));
 
-vi.mock('@/shared/features/pipeline-board/ProductionBoard', () => ({
-  ProductionBoard: ({
+// Đã chọn chương thì chỉ còn Lưới Trang × Công đoạn
+vi.mock('@/shared/features/pipeline-board/TaskGridBoard', () => ({
+  TaskGridBoard: ({
     chapterId,
     refreshKey,
     isProducer,
@@ -49,7 +50,7 @@ describe('WorkspaceView (Quy trình sản xuất)', () => {
       seriesId: 'series-1',
       chapterNumber: 2,
       title: 'Đối đầu',
-      status: 'Approved',
+      status: 'ChapterApproved',
       versionVector: 2,
       scenesCount: 3,
       pagesCount: 20,
@@ -102,7 +103,7 @@ describe('WorkspaceView (Quy trình sản xuất)', () => {
 
     fireEvent.change(screen.getByLabelText('Chương:'), { target: { value: 'chap-2' } });
     await waitFor(() => expect(screen.getByText('Board chapter: chap-2')).toBeInTheDocument());
-    expect(screen.getByText('Đã duyệt chương')).toBeInTheDocument();
+    expect(screen.getByText('Đã nghiệm thu (Gate 3)')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Làm mới dữ liệu' }));
     await waitFor(() => expect(screen.getByText('Refresh: 1')).toBeInTheDocument());

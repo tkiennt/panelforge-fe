@@ -3,7 +3,6 @@
 // Kết quả nhận diện chỉ là bản nháp trên FE; chỉ khi Artist bấm Xác nhận mới tạo Panel / element SPEECH_BALLOON
 // bằng các API sẵn có (POST /pages/{id}/panels, POST /pages/{id}/elements). Không xoá / ghi đè dữ liệu cũ.
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
   ArrowDown,
   ArrowUp,
@@ -20,6 +19,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
+import { Modal } from '@/shared/ui';
 import { panelService } from '@/services/panel.service';
 import { elementService } from '@/services/element.service';
 import { artworkService } from '@/services/artwork.service';
@@ -53,6 +53,8 @@ export interface PageArtworkRef {
   id: string;
   versionNumber: number;
   url: string;
+  /** Ảnh chỉ nằm trên máy (blob URL), chưa lưu lên máy chủ: chỉ các khung cắt ra mới được tải lên. */
+  isLocal?: boolean;
 }
 
 interface WorkflowProps {
@@ -153,7 +155,7 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
       ) : artwork ? (
         <div className='flex flex-wrap items-center gap-2'>
           <span className='text-[11px] font-mono font-bold text-[#C2410C] bg-white border border-[#D8D2C5] rounded px-1.5 py-0.5'>
-            Artwork v{artwork.versionNumber}
+            {artwork.isLocal ? 'Ảnh trên máy · chưa lưu' : `Artwork v${artwork.versionNumber}`}
           </span>
           {canEdit && (
             <button
@@ -163,7 +165,8 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
               data-testid='workflow-new-version-btn'
               className='px-2.5 py-1 text-xs font-semibold rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#F3F0E9] text-[#1C1917] flex items-center gap-1 cursor-pointer disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[#F97316]'
             >
-              <Upload className='w-3 h-3' aria-hidden /> Tải phiên bản mới
+              <Upload className='w-3 h-3' aria-hidden />{' '}
+              {artwork.isLocal ? 'Đổi ảnh' : 'Tải phiên bản mới'}
             </button>
           )}
           <button
@@ -668,8 +671,18 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
               undefined,
               panel.id,
             );
-          } catch (cropErr) {
+          } catch (cropErr: any) {
             failedCrops += 1;
+            const cropStatus = cropErr?.status ?? cropErr?.response?.status;
+            if (cropStatus === 403 || cropErr?.code === 'FORBIDDEN') {
+              const forbiddenMsg =
+                cropErr?.response?.data?.message ||
+                cropErr?.response?.data?.error ||
+                cropErr?.message;
+              if (forbiddenMsg) {
+                setError(forbiddenMsg);
+              }
+            }
             console.warn(`Lỗi cắt/tải ảnh cho khung ${next}:`, cropErr);
           }
         }
@@ -702,18 +715,27 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
       setSaveMsg(`Đã lưu ${savedPanels} panel vào trang ${page.pageNumber}.`);
       if (failedCrops > 0) {
         setError(
-          `${failedCrops} khung chưa có tranh (cắt hoặc tải ảnh lỗi). Hãy nạp tranh cho các khung đó ở bàn vẽ.`,
+          (prev) =>
+            prev ||
+            `${failedCrops} khung chưa có tranh (cắt hoặc tải ảnh lỗi). Hãy nạp tranh cho các khung đó ở bàn vẽ.`,
         );
       }
       await onApplied();
     } catch (err: unknown) {
-      const e = err as { status?: number; message?: string; response?: { status?: number } };
+      const e = err as {
+        status?: number;
+        code?: string;
+        message?: string;
+        response?: { status?: number };
+      };
       const status = e.status ?? e.response?.status;
       const done = `Đã lưu ${savedPanels} panel trước khi lỗi.`;
       setError(
-        status === 409
-          ? `Dữ liệu trang vừa thay đổi ở nơi khác (409). ${done} Hãy đóng hộp này, tải lại trang và rà soát phiên bản trước khi lưu tiếp.`
-          : `${e.message || 'Lưu thất bại.'} ${done}`,
+        status === 403 || e.code === 'FORBIDDEN'
+          ? 'Bạn không có ô đang mở cho trang này'
+          : status === 409
+            ? `Dữ liệu trang vừa thay đổi ở nơi khác (409). ${done} Hãy đóng hộp này, tải lại trang và rà soát phiên bản trước khi lưu tiếp.`
+            : `${e.message || 'Lưu thất bại.'} ${done}`,
       );
       if (savedPanels + savedBubbles > 0) await onApplied();
     } finally {
@@ -842,39 +864,43 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
   const iconBtn =
     'p-1.5 rounded-md text-[#57534E] hover:text-[#1C1917] hover:bg-white disabled:opacity-30 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]';
 
-  const content = (
-    <div className='fixed inset-0 z-[1000] bg-stone-900/50 flex items-stretch justify-center sm:p-4'>
-      <div
-        ref={dialogRef}
-        role='dialog'
-        aria-modal='true'
-        aria-labelledby='split-review-title'
-        tabIndex={-1}
-        onKeyDown={onKeyDown}
-        data-testid='split-review-dialog'
-        className='bg-[#FCFBF8] w-full max-w-6xl sm:rounded-2xl border border-[#D8D2C5] shadow-2xl flex flex-col min-h-0 outline-none'
-      >
-        <header className='shrink-0 flex items-start justify-between gap-2 px-4 py-2.5 border-b border-[#D8D2C5]'>
+  return (
+    <Modal
+      isOpen={true}
+      onClose={close}
+      size='full'
+      closeLabel='Đóng'
+      data-testid='split-review-dialog'
+      className='w-full max-w-6xl h-[92vh] flex flex-col'
+      title={
+        <div className='flex items-center justify-between w-full'>
           <div className='min-w-0'>
             <h2 id='split-review-title' className='text-sm font-bold text-[#1C1917]'>
-              Nhận diện panel — Trang {page.pageNumber}, artwork v{artwork.versionNumber}
+              Nhận diện panel — Trang {page.pageNumber},{' '}
+              {artwork.isLocal
+                ? 'ảnh trên máy (chỉ lưu các khung đã cắt)'
+                : `artwork v${artwork.versionNumber}`}
             </h2>
-            <p className='text-[11px] text-[#57534E]'>
-              Gợi ý tự động phù hợp với panel có viền rõ và có thể nhận nhầm vùng trắng; hãy kiểm
-              tra trước khi xác nhận.
-            </p>
           </div>
           <button
             type='button'
             onClick={close}
             aria-label='Đóng'
             data-testid='split-close-btn'
-            className={iconBtn}
+            className='hidden'
           >
             <X className='w-4 h-4' />
           </button>
-        </header>
-
+        </div>
+      }
+      description='Gợi ý tự động phù hợp với panel có viền rõ và có thể nhận nhầm vùng trắng; hãy kiểm tra trước khi xác nhận.'
+    >
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        onKeyDown={onKeyDown}
+        className='flex flex-col flex-1 min-h-0 outline-none'
+      >
         <div className='shrink-0 flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[#D8D2C5] bg-[#F7F4EE]'>
           <fieldset className='inline-flex items-center p-0.5 bg-white rounded-lg border border-[#D8D2C5]'>
             <legend className='sr-only'>Hướng đọc</legend>
@@ -1149,10 +1175,8 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
-
-  return typeof document !== 'undefined' ? createPortal(content, document.body) : content;
 };
 
 const RegionList: React.FC<{

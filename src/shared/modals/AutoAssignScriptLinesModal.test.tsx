@@ -19,9 +19,9 @@ const mockPanels: PanelDto[] = [
 
 const mockLines: SceneScriptLineSummaryDto[] = [
   { id: 'l1', lineOrder: 1, stageDirection: 'Cận cảnh Ren rút kiếm' },
-  { id: 'l2', lineOrder: 2, dialogueText: 'Kẻ nào dám vào đây?', speakerCharacterId: 'c1' },
+  { id: 'l2', lineOrder: 2, dialogueText: 'Kẻ nào dám vào đây?', speakerLabel: 'c1' },
   { id: 'l3', lineOrder: 3, stageDirection: 'Bà Lan lùi lại kinh ngạc' },
-  { id: 'l4', lineOrder: 4, dialogueText: 'Khoan đã Ren!', speakerCharacterId: 'c2' },
+  { id: 'l4', lineOrder: 4, dialogueText: 'Khoan đã Ren!', speakerLabel: 'c2' },
   { id: 'l5', lineOrder: 5, stageDirection: 'Toàn cảnh ngôi đền rung chuyển' },
 ];
 

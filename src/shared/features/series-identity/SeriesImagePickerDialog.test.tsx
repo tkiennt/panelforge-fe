@@ -29,7 +29,7 @@ describe('SeriesImagePickerDialog', () => {
   it('renders avatar dialog title and controls correctly', () => {
     render(<SeriesImagePickerDialog {...defaultProps} />);
 
-    expect(screen.getByText('Đổi avatar Series')).toBeInTheDocument();
+    expect(screen.getAllByText('Đổi avatar Series')[0]).toBeInTheDocument();
     expect(screen.getByText(/Ảnh vuông 1:1/)).toBeInTheDocument();
     expect(screen.getByTestId('series-image-preview')).toBeInTheDocument();
   });

@@ -967,6 +967,70 @@ describe('CreateAssignmentModal', () => {
     });
   });
 
+  it('chọn dải trang và gửi đúng các page id trong dải', async () => {
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        initialPipelineStageId='stage-thumbnail'
+        initialEntityType='Page'
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText(/Giao hàng loạt \(Bulk\)/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('checkbox', { name: /Giao hàng loạt \(Bulk\)/i }));
+    fireEvent.change(screen.getByLabelText('Từ trang'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Đến trang'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText(/Yêu cầu công việc/i), {
+      target: { value: 'Vẽ trang cuối' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Giao việc hàng loạt/i }));
+
+    await waitFor(() =>
+      expect(assignmentService.createBulkAssignments).toHaveBeenCalledWith(
+        'chap-1',
+        expect.objectContaining({ pageIds: ['page-guid-002'], dryRun: false }),
+      ),
+    );
+  });
+
+  it('pre-check chặn dải trang chồng lấn trong cùng công đoạn', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValueOnce([
+      {
+        id: 'assign-existing',
+        chapterId: 'chap-1',
+        pipelineStageId: 'stage-thumbnail',
+        entityType: 'Page',
+        targetEntityId: 'page-guid-002',
+        status: 'Assigned',
+      } as any,
+    ]);
+
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        initialPipelineStageId='stage-thumbnail'
+        initialEntityType='Page'
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText(/Giao hàng loạt \(Bulk\)/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('checkbox', { name: /Giao hàng loạt \(Bulk\)/i }));
+
+    expect(
+      await screen.findAllByText(/Dải trang chồng lấn ở trang 2 với phân công hiện có/i),
+    ).not.toHaveLength(0);
+    expect(screen.getByRole('button', { name: /Giao việc hàng loạt/i })).toBeDisabled();
+    expect(assignmentService.createBulkAssignments).not.toHaveBeenCalled();
+  });
+
   it('chặn chọn ngày quá khứ cho hạn hoàn thành (Due Date) bằng thuộc tính min và validation', async () => {
     render(
       <CreateAssignmentModal

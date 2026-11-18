@@ -5,7 +5,7 @@ import type { AssetReferenceDto, PanelDto } from '@/types';
 import type { ElementSnapshotDto } from '@/services/element.service';
 import { IMAGE_LAYER_TYPES } from '@/services/element.service';
 import { parseBoundingBox, type ParsedBoundingBox } from '@/shared/utils/panelBoundingBox';
-import { canvasFont, resolveTextStyle } from '@/roles/letterer/lib/textStyle';
+import { canvasFont, resolveTextStyle } from '@/shared/lib/lettering/textStyle';
 import {
   appearanceFromStyle,
   balloonPath,
@@ -14,7 +14,7 @@ import {
   layoutText,
   resolveAppearance,
   type BalloonAppearance,
-} from '@/roles/letterer/lib/balloonRender';
+} from '@/shared/lib/lettering/balloonRender';
 
 /** Phần tối thiểu của một khung để ghép trang (dùng chung cho PanelDto và SubmissionPanelDto). */
 export type CompositePanel = Pick<PanelDto, 'id' | 'boundingBox'>;

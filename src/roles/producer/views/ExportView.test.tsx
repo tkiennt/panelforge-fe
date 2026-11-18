@@ -51,8 +51,8 @@ describe('ExportView (UC-12)', () => {
     (chapterService.getChaptersBySeries as any).mockResolvedValue({
       items: [
         { id: 'chap-1', chapterNumber: 1, status: 'InProduction' },
-        { id: 'chap-2', chapterNumber: 2, title: 'Bão', status: 'Approved' },
-        { id: 'chap-3', chapterNumber: 3, status: 'Published' },
+        { id: 'chap-2', chapterNumber: 2, title: 'Bão', status: 'ChapterApproved' },
+        { id: 'chap-3', chapterNumber: 3, status: 'HandedOffAndPublished' },
       ],
     });
     (exportService.getExports as any).mockResolvedValue([]);

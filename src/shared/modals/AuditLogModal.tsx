@@ -11,6 +11,7 @@ import {
   User,
   Activity,
 } from 'lucide-react';
+import { Modal } from '@/shared/ui';
 import { ProvenanceLogItem } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
 import { adminService } from '@/services/admin.service';
@@ -226,7 +227,13 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='lg'
+      title='Nhật Ký Hoạt Động & Kiểm Toán (Audit Logs)'
+    >
       <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[88vh]'>
         {/* Header */}
         <div className='p-4 bg-[#F8F6F0] border-b border-[#D8D2C5] flex items-center justify-between shrink-0'>
@@ -417,6 +424,6 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

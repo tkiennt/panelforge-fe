@@ -7,7 +7,14 @@ export type BibleCategory =
 export type BiblePriority = 'Low' | 'Standard' | 'StrictCheck' | 'High' | 'CanonCritical' | number;
 
 export type BibleRevisionEventType =
-  'Created' | 'ConceptSubmitted' | 'ReworkRequested' | 'Endorsed' | 'Locked' | 'Superseded';
+  | 'Created'
+  | 'ConceptSubmitted'
+  | 'ReworkRequested'
+  | 'Endorsed'
+  | 'Locked'
+  | 'Superseded'
+  /** BE 2026-11-17: Writer định nghĩa lại bản nháp v1 tạo từ stub (không phải bước duyệt). */
+  | 'DraftOverwritten';
 
 export interface BibleRevisionEventDto {
   id: string;
@@ -17,10 +24,11 @@ export interface BibleRevisionEventDto {
   imageUrl: string | null;
   eventHash: string;
   createdAt: string;
+  conceptVersionNumber?: number | null;
+  assetSha256?: string | null;
 }
 
-export type BibleReviewStatus =
-  'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'WriterEndorsed' | 'CanonLocked' | number;
+export type BibleReviewStatus = 'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'CanonLocked';
 
 export interface BibleEntryRevisionDto {
   id: string;
@@ -34,17 +42,18 @@ export interface BibleEntryRevisionDto {
   reviewStatus?: BibleReviewStatus;
   reworkFeedback?: string | null;
   associatedChapterId?: string | null;
-  effectiveFromChapterNumber: number;
   isInitialVersion: boolean;
   createdAt: string;
   isLocked?: boolean;
   lockedAt?: string | null;
   lockedById?: string | null;
-  stageName?: string | null;
-  effectiveToChapterNumber?: number | null;
+  variantLabel: string;
   referenceImageUrl?: string | null;
   conceptImageUrl?: string | null;
   events?: BibleRevisionEventDto[] | null;
+  supersedesRevisionId?: string | null;
+  currentConceptEventId?: string | null;
+  currentConceptVersionNumber?: number | null;
 }
 
 export interface BibleEntryDto {
@@ -63,6 +72,9 @@ export interface BibleEntryDto {
   effectiveRevision?: BibleEntryRevisionDto | null;
   createdAt: string;
   updatedAt?: string | null;
+  isStub?: boolean;
+  isCrowd?: boolean;
+  latestDraftVersionNumber?: number | null;
 }
 
 export interface SeriesBibleDto {
@@ -85,9 +97,48 @@ export interface CreateBibleEntryRequest {
   referenceImageUrl?: string;
   priority?: BiblePriority;
   strictCheck?: boolean;
-  effectiveFromChapterNumber?: number;
-  stageName?: string | null;
-  effectiveToChapterNumber?: number | null;
+  variantLabel: string;
+  isCrowd?: boolean;
+}
+
+export interface DefineBibleEntryRequest {
+  name: string;
+  description: string;
+  subtitle?: string;
+  detailsJson?: string;
+  referenceImageUrl?: string;
+  priority?: BiblePriority;
+  strictCheck?: boolean;
+  code?: string;
+}
+
+export interface ConfirmBibleRevisionRequest {
+  conceptEventId?: string;
+}
+
+export interface BibleConceptCommentDto {
+  id: string;
+  revisionId: string;
+  conceptEventId: string;
+  parentCommentId?: string | null;
+  authorId: string;
+  body: string;
+  region?: string | null;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+  replies: BibleConceptCommentDto[];
+}
+
+export interface CreateConceptCommentRequest {
+  body: string;
+  conceptEventId?: string;
+  region?: string;
+}
+
+export interface ReplyConceptCommentRequest {
+  body: string;
 }
 
 export interface BibleReferenceImageDto {
@@ -107,15 +158,13 @@ export interface AddBibleEntryRevisionRequest {
   referenceImageUrl?: string;
   priority?: BiblePriority;
   strictCheck?: boolean;
-  effectiveFromChapterNumber?: number;
-  stageName?: string | null;
-  effectiveToChapterNumber?: number | null;
+  variantLabel: string;
 }
 
 /** Producer thay thế bản đã khoá: nội dung mới + lý do; chương hiệu lực lấy theo bản bị thay. */
 export type SupersedeBibleEntryRevisionRequest = Omit<
   AddBibleEntryRevisionRequest,
-  'summary' | 'effectiveFromChapterNumber'
+  'summary' | 'variantLabel'
 > & { reason: string };
 
 function extractError(error: any, defaultMsg: string): any {
@@ -145,48 +194,6 @@ export const bibleService = {
     } catch (error) {
       throw extractError(error, 'Không thể xóa phiên bản.');
     }
-  },
-
-  async deleteEra(
-    seriesId: string,
-    entryId: string,
-    chapterNumber: number,
-    stageName?: string | null,
-  ): Promise<void> {
-    try {
-      const query = new URLSearchParams({ chapterNumber: chapterNumber.toString() });
-      if (stageName) query.append('stageName', stageName);
-      await axiosClient.delete(
-        `/series/${seriesId}/bible/entries/${entryId}/eras?${query.toString()}`,
-      );
-    } catch (error) {
-      throw extractError(error, 'Không thể xóa thời kỳ.');
-    }
-  },
-
-  async getBibleEntriesAtChapter(
-    seriesId: string,
-    chapterNumber: number,
-    canonOnly?: boolean,
-  ): Promise<BibleEntryDto[]> {
-    try {
-      const url = `/series/${seriesId}/bible/at-chapter/${chapterNumber}${
-        canonOnly ? '?canonOnly=true' : ''
-      }`;
-      const response = await axiosClient.get(url);
-      return response.data;
-    } catch (error) {
-      throw extractError(error, `Không thể tải Bible cho Chapter ${chapterNumber}.`);
-    }
-  },
-
-  async getSeriesBibleAtChapter(
-    seriesId: string,
-    chapterNumber: number,
-    canonOnly?: boolean,
-  ): Promise<{ entries: BibleEntryDto[] }> {
-    const entries = await this.getBibleEntriesAtChapter(seriesId, chapterNumber, canonOnly);
-    return { entries };
   },
 
   /**
@@ -266,24 +273,6 @@ export const bibleService = {
   },
 
   /**
-   * Producer duyệt và khoá một revision của mục Nhân vật (POST /api/series/{seriesId}/bible/entries/{entryId}/revisions/{revisionId}/lock)
-   */
-  async lockRevision(
-    seriesId: string,
-    entryId: string,
-    revisionId: string,
-  ): Promise<BibleEntryRevisionDto> {
-    try {
-      const response = await axiosClient.post(
-        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/lock`,
-      );
-      return response.data;
-    } catch (error) {
-      throw extractError(error, 'Không thể khoá phiên bản mục Bible.');
-    }
-  },
-
-  /**
    * Producer thay thế một bản đã khoá (POST .../revisions/{revisionId}/supersede): tạo bản mới cùng chương, khoá luôn.
    * Bản cũ giữ nguyên trong lịch sử, không có thao tác mở khoá (V1.2).
    */
@@ -336,28 +325,139 @@ export const bibleService = {
   },
 
   /**
-   * Writer/Editor xác nhận thiết kế (Endorse)
+   * V2.6 (Q20): Editor xác nhận bản vẽ Concept = khoá Canon (chỉ Editor; Editor khác Artist đã nộp).
    */
-  async endorseRevision(
+  async confirmRevision(
     seriesId: string,
     entryId: string,
     revisionId: string,
-    data?: EndorseBibleRevisionRequest,
+    data?: ConfirmBibleRevisionRequest,
   ): Promise<BibleEntryRevisionDto> {
     try {
-      const payload = data
-        ? {
-            note: data.note || data.endorsementNote,
-            endorsementNote: data.endorsementNote || data.note,
-          }
-        : {};
       const response = await axiosClient.post(
-        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/endorse`,
-        payload,
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/confirm`,
+        data || {},
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể xác nhận thiết kế.');
+      throw extractError(error, 'Không thể xác nhận và khoá Canon.');
+    }
+  },
+
+  /**
+   * Writer bật/tắt cờ Quần chúng cho mục Bible (BIB-13, 7A, Q19).
+   */
+  async setBibleEntryCrowd(
+    seriesId: string,
+    entryId: string,
+    isCrowd: boolean,
+  ): Promise<BibleEntryDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/crowd`,
+        { isCrowd },
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể cập nhật cờ Quần chúng.');
+    }
+  },
+
+  /**
+   * Writer viết định nghĩa cho mục nháp (IsStub) (BIB-13, 4A, Q19).
+   */
+  async defineBibleEntry(
+    seriesId: string,
+    entryId: string,
+    data: DefineBibleEntryRequest,
+  ): Promise<BibleEntryDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/define`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể định nghĩa mục Bible.');
+    }
+  },
+
+  /**
+   * Lấy danh sách góp ý và thảo luận của một revision (BIB-10).
+   */
+  async getConceptComments(
+    seriesId: string,
+    entryId: string,
+    revisionId: string,
+  ): Promise<BibleConceptCommentDto[]> {
+    try {
+      const response = await axiosClient.get(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/comments`,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tải góp ý concept.');
+    }
+  },
+
+  /**
+   * Thêm góp ý gốc cho một phiên bản ConceptArt (chỉ Writer và Editor).
+   */
+  async createConceptComment(
+    seriesId: string,
+    entryId: string,
+    revisionId: string,
+    data: CreateConceptCommentRequest,
+  ): Promise<BibleConceptCommentDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/comments`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể gửi góp ý concept.');
+    }
+  },
+
+  /**
+   * Trả lời góp ý (chỉ Writer, Editor, Artist).
+   */
+  async replyConceptComment(
+    seriesId: string,
+    entryId: string,
+    revisionId: string,
+    commentId: string,
+    data: ReplyConceptCommentRequest,
+  ): Promise<BibleConceptCommentDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/comments/${commentId}/replies`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể gửi câu trả lời góp ý.');
+    }
+  },
+
+  /**
+   * Đánh dấu góp ý đã được xử lý (chỉ Writer và Editor).
+   */
+  async resolveConceptComment(
+    seriesId: string,
+    entryId: string,
+    revisionId: string,
+    commentId: string,
+    resolve: boolean = true,
+  ): Promise<BibleConceptCommentDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/comments/${commentId}/resolve?resolve=${resolve}`,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể cập nhật trạng thái xử lý góp ý.');
     }
   },
 
@@ -407,32 +507,28 @@ export interface BibleDesignQueueItemDto {
   reworkFeedback?: string | null;
   artistUserId?: string | null;
   referenceImageUrl?: string | null;
-  effectiveFromChapterNumber: number;
-  stageName?: string | null;
+  variantLabel: string;
   versionNumber?: number;
   createdAt?: string;
   updatedAt: string;
+  isStub?: boolean;
+  waitingChapterNumbers?: number[] | null;
 }
 
 export interface SubmitConceptArtRequest {
   imageAssetUrl?: string;
   referenceImageUrl?: string;
   imageSha256?: string;
-  stageName?: string;
+  assetSha256?: string;
+  variantLabel?: string;
   note?: string;
   summary?: string;
   name?: string;
   description?: string;
   subtitle?: string;
   detailsJson?: string;
-  effectiveFromChapterNumber?: number;
-  effectiveToChapterNumber?: number;
   expectedVersionNumber?: number;
-}
-
-export interface EndorseBibleRevisionRequest {
-  note?: string;
-  endorsementNote?: string;
+  revisionId?: string;
 }
 
 export interface RequestReworkBibleRevisionRequest {

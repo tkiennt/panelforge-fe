@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  X,
   Sparkles,
   AlertTriangle,
   Loader2,
@@ -11,6 +10,7 @@ import {
 } from 'lucide-react';
 import { pageService, AutoAssignScriptLinesResult } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
+import { Alert, Modal } from '@/shared/ui';
 import { SceneScriptLineSummaryDto } from '@/services/scriptLine.service';
 
 interface Props {
@@ -100,45 +100,23 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
   };
 
   return (
-    <div
-      role='dialog'
-      aria-modal='true'
-      aria-labelledby='auto-assign-modal-title'
+    <Modal
+      isOpen
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='lg'
+      title={
+        <span className='flex items-center gap-2'>
+          Tự Động Phân Bổ Kịch Bản
+          <span className='rounded-full border border-[#FDBA74] bg-[#FFF2E6] px-2 py-0.5 font-mono text-xs font-bold text-[#C2410C]'>
+            Trang #{pageNumber}
+          </span>
+        </span>
+      }
+      description='Gom dòng chỉ dẫn & thoại theo sau thành cụm, gán lần lượt vào các khung theo thứ tự đọc'
       data-testid='auto-assign-script-lines-modal'
-      className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200'
     >
       <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden'>
-        {/* Header */}
-        <div className='p-4 border-b border-[#D8D2C5] flex items-center justify-between bg-[#F8F6F0]'>
-          <div className='flex items-center gap-2.5'>
-            <div className='p-2 bg-[#FFF2E6] text-[#C2410C] rounded-xl border border-[#FDBA74]'>
-              <Sparkles className='w-5 h-5' />
-            </div>
-            <div>
-              <h2
-                id='auto-assign-modal-title'
-                className='font-bold text-sm text-[#1C1917] flex items-center gap-2'
-              >
-                <span>Tự Động Phân Bổ Kịch Bản</span>
-                <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74]'>
-                  Trang #{pageNumber}
-                </span>
-              </h2>
-              <p className='text-xs text-[#57534E]'>
-                Gom dòng chỉ dẫn & thoại theo sau thành cụm, gán lần lượt vào các khung theo thứ tự
-                đọc
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={applying}
-            className='p-1.5 rounded-lg text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917] cursor-pointer transition-colors disabled:opacity-50'
-          >
-            <X className='w-5 h-5' />
-          </button>
-        </div>
-
         {/* Body */}
         <div className='p-5 space-y-4 overflow-y-auto flex-1 custom-scrollbar'>
           {sceneHeading && (
@@ -150,13 +128,9 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
           )}
 
           {errorMsg && (
-            <div
-              role='alert'
-              className='p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-start gap-2 leading-relaxed'
-            >
-              <AlertTriangle className='w-4 h-4 shrink-0 mt-0.5 text-rose-600' />
-              <span>{errorMsg}</span>
-            </div>
+            <Alert tone='danger' className='text-xs leading-relaxed'>
+              {errorMsg}
+            </Alert>
           )}
 
           {loadingPreview ? (
@@ -242,11 +216,12 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                           const line = linesById.get(lid);
                           if (!line) return null;
                           const isDialogue = Boolean(
-                            line.speakerCharacterId || line.dialogueText?.trim(),
+                            line.speakerLabel || line.dialogueText?.trim(),
                           );
-                          const characterName = line.speakerCharacterId
-                            ? bibleNameById[line.speakerCharacterId] || 'Nhân vật'
-                            : 'Lời thoại';
+                          const characterName =
+                            (line.speakerLabel && bibleNameById[line.speakerLabel]) ||
+                            line.speakerLabel ||
+                            'Lời thoại';
                           return (
                             <div
                               key={lid}
@@ -339,6 +314,6 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

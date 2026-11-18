@@ -32,6 +32,7 @@ import {
   type ProvenanceReportResponse,
   type SceneLite,
 } from '@/services/aiAgents.service';
+import { Alert, Modal } from '@/shared/ui';
 import {
   EVENT_LABEL,
   canViewProvenanceReport,
@@ -145,13 +146,9 @@ const Loading: React.FC<{ text: string }> = ({ text }) => (
 );
 
 const ErrorBox: React.FC<{ text: string }> = ({ text }) => (
-  <div
-    role='alert'
-    className='p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-2xl flex items-start gap-2.5 shadow-soft-xs'
-  >
-    <AlertTriangle className='w-4 h-4 shrink-0 text-rose-600 mt-0.5' />
+  <Alert tone='danger' className='text-xs'>
     <span className='font-medium'>{text}</span>
-  </div>
+  </Alert>
 );
 
 const Empty: React.FC<{ text: string }> = ({ text }) => (
@@ -319,13 +316,14 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[60] flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200'>
-      <div
-        role='dialog'
-        aria-modal='true'
-        aria-label={`Lịch sử và nguồn gốc chương ${chapterNumber ?? ''}`.trim()}
-        className='bg-white border border-stone-200/90 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]'
-      >
+    <Modal
+      isOpen
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='xl'
+      title='Lịch Sử & Nguồn Gốc Nội Dung'
+    >
+      <div className='bg-white border border-stone-200/90 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]'>
         {/* Header */}
         <div className='px-5 py-4 bg-gradient-to-r from-[#FAF8F5] via-[#FFFDF9] to-[#FAF8F5] border-b border-stone-200 flex items-center justify-between'>
           <div className='flex items-center gap-3'>
@@ -1141,6 +1139,6 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

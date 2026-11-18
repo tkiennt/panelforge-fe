@@ -56,6 +56,9 @@ export interface BibleEntity {
   colors?: string[];
   isLocked?: boolean;
   lockedAt?: string | null;
+  latestDraftVersionNumber?: number | null;
+  isCrowd?: boolean;
+  isStub?: boolean;
   gallery?: Array<{ url: string; label?: string; sha256?: string }>;
   attributes?: Record<string, any>;
 }

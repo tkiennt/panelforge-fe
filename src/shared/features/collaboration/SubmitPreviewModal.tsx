@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, Send, X } from 'lucide-react';
 import type { AssetReferenceDto, PanelDto } from '@/types';
 import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
 import { elementService, type ElementSnapshotDto } from '@/services/element.service';
 import { buildPageComposite } from '@/shared/utils/compositePageRenderer';
 import { panelArtworkCoverage } from './collaborationRules';
+import { Modal } from '@/shared/ui';
 
 interface SubmitPreviewModalProps {
   chapterId: string;
@@ -88,21 +88,14 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
     };
   }, [chapterId, pageId, panels, artworks]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  return createPortal(
-    <div
-      role='dialog'
-      aria-modal='true'
-      aria-label='Xem trước trang truyện'
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='lg'
+      title='Xem trước trang truyện'
       data-testid='submit-preview-modal'
-      className='fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4'
     >
       <div className='bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden'>
         <div className='flex items-center justify-between px-5 py-3 border-b border-[#E7E7E7]'>
@@ -190,7 +183,6 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
           </div>
         </div>
       </div>
-    </div>,
-    document.body,
+    </Modal>
   );
 };

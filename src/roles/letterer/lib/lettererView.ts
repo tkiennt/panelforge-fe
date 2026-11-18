@@ -1,4 +1,21 @@
 // src/roles/letterer/lib/lettererView.ts
+import {
+  LETTERING_CHAR_WIDTH_EM,
+  LETTERING_FONT_PX,
+  LETTERING_LINE_HEIGHT_EM,
+  LETTERING_PADDING_PX,
+  MIN_LETTERING_FONT_PX,
+  createShoutBalloonPath,
+} from '@/shared/lib/lettering/letteringPrimitives';
+
+export {
+  LETTERING_CHAR_WIDTH_EM,
+  LETTERING_FONT_PX,
+  LETTERING_LINE_HEIGHT_EM,
+  LETTERING_PADDING_PX,
+  MIN_LETTERING_FONT_PX,
+  createShoutBalloonPath,
+};
 // Phép biến đổi zoom/pan và ước lượng hộp chữ của màn Letterer. Hàm thuần để kiểm thử được và để
 // artwork + lớp lettering dùng CHUNG một hệ toạ độ trang (px trang gốc, vd 1200×1800).
 
@@ -88,11 +105,6 @@ export function keepCenter(view: ViewState, from: Size, to: Size): ViewState {
 }
 
 // ── Chữ trong bóng: dùng cùng hằng số với Backend (LetteringLimits.cs) để cảnh báo khớp nhau ──
-export const LETTERING_FONT_PX = 26;
-export const LETTERING_CHAR_WIDTH_EM = 0.55;
-export const LETTERING_LINE_HEIGHT_EM = 1.3;
-export const LETTERING_PADDING_PX = 12;
-
 /** Số dòng chữ ước lượng khi ngắt theo bề rộng hộp (mỗi đoạn xuống dòng tính riêng). */
 export function estimateTextLines(text: string, boxWidth: number): number {
   const perLine = Math.max(
@@ -186,7 +198,6 @@ export function nudgeDelta(key: string, shift: boolean): Point | null {
 
 // ── P1–P5: Tiện ích Manga Lettering (Bóng thoại, Vùng cấm, Thứ tự đọc, Hồi tưởng) ──
 
-export const MIN_LETTERING_FONT_PX = 14;
 export const MAX_WORDS_PER_BALLOON = 30;
 
 export interface Rect {
@@ -494,26 +505,4 @@ export function createThoughtTailDots(
     cy: startY + (tailY - startY) * d.t,
     r: d.r,
   }));
-}
-
-/** Sinh SVG path cho bóng hét / SFX mạnh (spiky polygon / bóng răng cưa). */
-export function createShoutBalloonPath(w: number, h: number): string {
-  const cx = w / 2;
-  const cy = h / 2;
-  const rx = w / 2;
-  const ry = h / 2;
-  const spikes = 18;
-  let d = '';
-
-  for (let i = 0; i < spikes * 2; i++) {
-    const angle = (i * Math.PI) / spikes;
-    const isOuter = i % 2 === 0;
-    const factor = isOuter ? 1.05 : 0.82;
-    const px = cx + rx * factor * Math.cos(angle);
-    const py = cy + ry * factor * Math.sin(angle);
-    if (i === 0) d += `M ${px},${py}`;
-    else d += ` L ${px},${py}`;
-  }
-  d += ' Z';
-  return d;
 }

@@ -5,7 +5,7 @@ import type {
 
 export type LineLike = Pick<
   ScriptRevisionLineDto,
-  'lineOrder' | 'speakerCharacterId' | 'dialogueText' | 'stageDirection'
+  'lineOrder' | 'speakerLabel' | 'dialogueText' | 'stageDirection'
 >;
 
 export type LineDiffStatus = 'same' | 'changed' | 'added' | 'removed';
@@ -25,7 +25,7 @@ const norm = (v?: string | null) => (v ?? '').trim();
 const sameContent = (a: LineLike, b: LineLike) =>
   norm(a.dialogueText) === norm(b.dialogueText) &&
   norm(a.stageDirection) === norm(b.stageDirection) &&
-  (a.speakerCharacterId ?? null) === (b.speakerCharacterId ?? null) &&
+  norm(a.speakerLabel) === norm(b.speakerLabel) &&
   a.lineOrder === b.lineOrder;
 
 /**

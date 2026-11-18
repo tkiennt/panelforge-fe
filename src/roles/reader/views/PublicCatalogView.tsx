@@ -19,6 +19,7 @@ import {
   resolveCatalogImageUrl,
 } from '@/services/catalog.service';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
+import { Modal } from '@/shared/ui';
 
 interface PublicCatalogViewProps {
   onBackToWorkspaces?: () => void;
@@ -296,34 +297,46 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
       </main>
 
       {/* Series Detail Modal */}
-      {selectedSeries && (
-        <div className='fixed inset-0 z-50 bg-[#1C1917]/50 backdrop-blur-sm flex items-center justify-center p-4'>
-          <div className='bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-2xl max-w-xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200'>
-            <div className='flex items-start justify-between border-b border-[#D8D2C5] pb-3.5'>
-              <div>
-                <span className='px-2.5 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] font-mono text-xs font-medium border border-[#FDBA74]/60'>
-                  {selectedSeries.genre}
-                </span>
-                <h2 className='text-xl font-serif font-bold text-[#1C1917] mt-2'>
-                  {selectedSeries.title}
-                </h2>
-                <span className='text-xs text-[#57534E] font-mono mt-0.5 block'>
-                  Studio: {selectedSeries.studioName} • {selectedSeries.format}
-                </span>
+      <Modal
+        isOpen={!!selectedSeries}
+        onClose={() => setSelectedSeries(null)}
+        size='md'
+        title={
+          selectedSeries ? (
+            <div>
+              <span className='px-2.5 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] font-mono text-xs font-medium border border-[#FDBA74]/60'>
+                {selectedSeries.genre}
+              </span>
+              <div className='text-xl font-serif font-bold text-[#1C1917] mt-2'>
+                {selectedSeries.title}
               </div>
-              <button
-                onClick={() => setSelectedSeries(null)}
-                className='text-[#57534E] hover:text-[#1C1917] p-1.5 rounded-full hover:bg-[#EFECE6] transition-colors cursor-pointer'
-              >
-                <X className='w-5 h-5' />
-              </button>
             </div>
-
+          ) : (
+            ''
+          )
+        }
+        description={
+          selectedSeries
+            ? `Studio: ${selectedSeries.studioName} • ${selectedSeries.format}`
+            : undefined
+        }
+        closeLabel='Đóng'
+        footer={
+          <button
+            onClick={() => setSelectedSeries(null)}
+            className='px-4 py-1.5 rounded-full bg-[#1C1917] hover:bg-[#292524] text-white text-xs font-semibold cursor-pointer transition-colors'
+          >
+            Đóng
+          </button>
+        }
+      >
+        {selectedSeries && (
+          <div className='space-y-4'>
             <p className='text-xs text-[#57534E] leading-relaxed'>
               {selectedSeries.synopsis || 'Chưa có thông tin tóm tắt.'}
             </p>
 
-            <div className='space-y-2 flex-1 overflow-y-auto border border-[#D8D2C5] rounded-xl p-3.5 bg-[#F8F6F0]'>
+            <div className='space-y-2 border border-[#D8D2C5] rounded-xl p-3.5 bg-[#F8F6F0]'>
               <div className='text-xs font-semibold text-[#1C1917] flex items-center gap-1.5'>
                 <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
                 <span>Danh Sách Chương Đã Phát Hành ({selectedSeries.chapters.length})</span>
@@ -387,18 +400,9 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                 </div>
               )}
             </div>
-
-            <div className='flex justify-end pt-2 border-t border-[#D8D2C5]'>
-              <button
-                onClick={() => setSelectedSeries(null)}
-                className='px-4 py-1.5 rounded-full bg-[#1C1917] hover:bg-[#292524] text-white text-xs font-semibold cursor-pointer transition-colors'
-              >
-                Đóng
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Chapter Reader Modal */}
       {readingChapterId && (

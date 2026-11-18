@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
-import { ProductionBoard } from '@/shared/features/pipeline-board/ProductionBoard';
+import { useTranslation } from '@/lib/i18n';
+import { TaskGridBoard } from '@/shared/features/pipeline-board/TaskGridBoard';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
-import { CreateAssignmentModal } from '@/roles/producer/modals/CreateAssignmentModal';
-import { SystemRole, WorkspaceRole } from '@/types';
+import { SystemRole, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { BookOpen, RefreshCw, ArrowUpRight, ShieldAlert, Lock, ChevronRight } from 'lucide-react';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { workspaceService } from '@/services/workspace.service';
@@ -24,8 +24,14 @@ const CHAPTER_STATUS_META: Record<string, { label: string; cls: string }> = {
     cls: 'text-stone-800 bg-stone-50 border-stone-300',
   },
   InProduction: { label: 'Đang sản xuất', cls: 'text-amber-900 bg-amber-50 border-amber-300' },
-  Approved: { label: 'Đã duyệt chương', cls: 'text-emerald-900 bg-emerald-50 border-emerald-300' },
-  Published: { label: 'Đã xuất bản', cls: 'text-violet-900 bg-violet-50 border-violet-300' },
+  ChapterApproved: {
+    label: 'Đã nghiệm thu (Gate 3)',
+    cls: 'text-emerald-900 bg-emerald-50 border-emerald-300',
+  },
+  HandedOffAndPublished: {
+    label: 'Đã bàn giao & phát hành',
+    cls: 'text-violet-900 bg-violet-50 border-violet-300',
+  },
 };
 
 const focusRing =
@@ -39,22 +45,28 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   onShowToast,
   isReaderMode = false,
 }) => {
+  const { t } = useTranslation('pipeline');
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const chapterIdFromUrl = searchParams.get('chapterId');
 
+  const normalizedWsRole = useMemo(
+    () => normalizeWorkspaceRole(currentUserRole),
+    [currentUserRole],
+  );
+
   const effectiveRoles = useMemo(() => {
-    return userRoles.length > 0
-      ? userRoles
-      : [...(systemRole ? [systemRole] : []), ...(currentUserRole ? [currentUserRole] : [])];
-  }, [userRoles, systemRole, currentUserRole]);
+    if (normalizedWsRole) {
+      return [normalizedWsRole, ...(systemRole ? [systemRole] : [])];
+    }
+    return userRoles.length > 0 ? userRoles : systemRole ? [systemRole] : [];
+  }, [normalizedWsRole, userRoles, systemRole]);
 
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [currentChapterId, setCurrentChapterId] = useState<string>('');
   const [loadingChapters, setLoadingChapters] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Metadata cho breadcrumb Studio / Series
@@ -63,8 +75,13 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
   const isReaderOnly = effectiveRoles.length === 1 && effectiveRoles[0] === 'READER';
   const isProducer = useMemo(() => {
-    return effectiveRoles.some((r) => r.toUpperCase() === 'PRODUCER');
-  }, [effectiveRoles]);
+    if (normalizedWsRole) return normalizedWsRole === 'PRODUCER';
+    return userRoles.some((r) => r.toUpperCase() === 'PRODUCER');
+  }, [normalizedWsRole, userRoles]);
+  const isEditor = useMemo(() => {
+    if (normalizedWsRole) return normalizedWsRole === 'EDITOR';
+    return userRoles.some((r) => r.toUpperCase() === 'EDITOR');
+  }, [normalizedWsRole, userRoles]);
 
   // Nạp metadata ngữ cảnh Studio và Series
   useEffect(() => {
@@ -208,9 +225,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
             {/* Nhãn chức năng phụ + Tên chương nổi bật */}
             <div className='flex items-center gap-2 mb-1.5'>
-              <h1 className='inline-flex items-center rounded border border-stone-300 bg-stone-200/70 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-stone-700'>
-                Quy trình sản xuất
-              </h1>
+              <h1 className='text-sm font-semibold text-landing-ink-muted'>Quy trình sản xuất</h1>
               {statusMeta && (
                 <span
                   className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${statusMeta.cls}`}
@@ -219,7 +234,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 </span>
               )}
               {currentChapter &&
-                ['Approved', 'Published'].includes(String(currentChapter.status)) && (
+                ['ChapterApproved', 'Approved', 'HandedOffAndPublished', 'Published'].includes(
+                  String(currentChapter.status),
+                ) && (
                   <span className='inline-flex items-center gap-1 text-xs text-landing-ink-muted'>
                     <Lock className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
                     <span className='hidden sm:inline'>
@@ -244,7 +261,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 <BookOpen className='h-4 w-4 shrink-0 text-landing-ink-muted' aria-hidden='true' />
                 <label
                   htmlFor='pipeline-chapter-select'
-                  className='text-xs font-semibold text-landing-ink-muted uppercase tracking-wider'
+                  className='text-xs font-semibold text-landing-ink-muted'
                 >
                   Chương:
                 </label>
@@ -306,34 +323,39 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         </header>
 
         {/* Bàn điều phối sản xuất */}
-        <ProductionBoard
-          chapterId={currentChapterId}
-          refreshKey={refreshKey}
-          currentUserRole={currentUserRole}
-          isProducer={isProducer}
-          currentUserId={currentUserId}
-          onShowToast={onShowToast}
-          onOpenCreateAssignment={() => setIsCreateModalOpen(true)}
-        />
+        {/* Chỉ còn Lưới Trang × Công đoạn; chưa chọn chương thì bảng cũ lo phần chọn chương */}
+        {currentChapterId ? (
+          <TaskGridBoard
+            chapterId={currentChapterId}
+            seriesId={seriesId}
+            workspaceId={workspaceId}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            isProducer={isProducer}
+            isEditor={isEditor}
+            refreshKey={refreshKey}
+            onShowToast={onShowToast}
+            isChapterLocked={[
+              'ChapterApproved',
+              'Approved',
+              'HandedOffAndPublished',
+              'Published',
+            ].includes(String(currentChapter?.status))}
+          />
+        ) : (
+          <div className='rounded-xl border border-dashed border-landing-border bg-[#FCFBF8] p-10 text-center'>
+            <div className='font-semibold text-landing-ink'>
+              {t('taskGridV3.noChapterSelectedTitle', 'Chưa chọn chương')}
+            </div>
+            <p className='mt-1 text-sm text-landing-ink-muted'>
+              {t(
+                'taskGridV3.noChapterSelectedDesc',
+                'Chọn một chương ở phía trên để xem Lưới Giao Việc.',
+              )}
+            </p>
+          </div>
+        )}
       </div>
-
-      {/* Modal giao việc trực tiếp */}
-      {workspaceId && seriesId && currentChapterId && isCreateModalOpen && (
-        <CreateAssignmentModal
-          isOpen={isCreateModalOpen}
-          workspaceId={workspaceId}
-          seriesId={seriesId}
-          chapterId={currentChapterId}
-          chapterNumber={currentChapter?.chapterNumber}
-          onClose={() => setIsCreateModalOpen(false)}
-          onSuccess={() => {
-            setIsCreateModalOpen(false);
-            setRefreshKey((k) => k + 1);
-            onShowToast('Giao việc thành công', 'Nhiệm vụ mới đã được thêm vào bảng tiến độ');
-          }}
-          onShowToast={onShowToast}
-        />
-      )}
     </div>
   );
 };

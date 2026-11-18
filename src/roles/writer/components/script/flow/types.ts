@@ -18,29 +18,11 @@ export interface ScriptLineBlockAttrs {
   scriptLineId: string;
   sceneId: string;
   blockType: MangaBlockType;
-  speakerCharacterId: string | null;
   speakerName: string | null;
   narrationMode: NarrationMode;
   lineOrder: number;
   panelId: string | null;
   pageNumber?: number;
   panelNumber?: number;
-  hasThumbnail?: boolean;
-}
-
-export interface MentionSuggestionItem {
-  id: string;
-  name: string;
-  subtitle?: string | null;
-  category: BibleCategory | 'Panel' | string;
-  code: string;
-  isLocked: boolean;
-  avatarUrl?: string | null;
-  stageName?: string | null;
-  isStub?: boolean;
-  description?: string | null;
-  pageNumber?: number;
-  panelNumber?: number;
-  panelId?: string;
   hasThumbnail?: boolean;
 }

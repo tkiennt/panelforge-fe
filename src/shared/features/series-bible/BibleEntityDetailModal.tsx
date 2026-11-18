@@ -6,56 +6,54 @@ import {
   History,
   GitCommit,
   Eye,
-  Image as ImageIcon,
   Layers,
   Palette,
   CheckCircle2,
   MessageSquare,
-  AlertTriangle,
   Plus,
   RotateCcw,
   Upload,
-  HelpCircle,
   Clock,
   ArrowLeft,
   User,
-  Info,
   FileText,
   Edit3,
-  Trash2,
-  ShieldCheck,
+  Send,
+  CornerDownRight,
+  Check,
 } from 'lucide-react';
 import { BibleEntity, normalizeWorkspaceRole } from '@/types';
-import { BibleEntryDto, BibleEntryRevisionDto, bibleService } from '@/services/bible.service';
+import {
+  BibleEntryDto,
+  BibleEntryRevisionDto,
+  BibleConceptCommentDto,
+  bibleService,
+} from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
-import { LucianInlineAlert } from '@/shared/components/lucian/LucianInlineAlert';
-import { LucianConfirmModal } from '@/shared/components/lucian/LucianConfirmModal';
+import { Alert, CollapsibleSidebar, SidebarSection } from '@/shared/ui';
+import { useTranslation, translate } from '@/lib/i18n';
 import { getCategoryLabel, getCategoryBadgeStyle } from './bibleCategory';
 import { SPEC_DELIVERABLES, SPEC_SCHEMA, specCategoryOf, specCompleteness } from './bibleSpec';
 import type { BibleEntryUsageDto } from '@/services/bible.service';
 
-export interface CharacterEraStage {
-  stageKey: string;
-  stageName: string;
-  effectiveFromChapterNumber: number;
-  effectiveToChapterNumber?: number | null;
+export interface CharacterVariant {
+  variantKey: string;
+  variantLabel: string;
   latestRevision: BibleEntryRevisionDto;
   revisions: BibleEntryRevisionDto[];
   isLocked: boolean;
 }
 
-export function groupRevisionsIntoStages(
+export function groupRevisionsIntoVariants(
   revisions: BibleEntryRevisionDto[],
   fallbackRevision?: BibleEntryRevisionDto | null,
-): CharacterEraStage[] {
+): CharacterVariant[] {
   const all: BibleEntryRevisionDto[] = [];
   const seenIds = new Set<string>();
 
   const addRev = (rev: BibleEntryRevisionDto | null | undefined) => {
     if (!rev) return;
-    const idKey = rev.id
-      ? String(rev.id)
-      : `v${rev.versionNumber}-ch${rev.effectiveFromChapterNumber}-${rev.stageName || ''}`;
+    const idKey = rev.id ? String(rev.id) : `v${rev.versionNumber}-${rev.variantLabel}`;
     if (!seenIds.has(idKey)) {
       seenIds.add(idKey);
       all.push(rev);
@@ -73,38 +71,17 @@ export function groupRevisionsIntoStages(
     return [];
   }
 
-  // 1. Tìm stageName chính thức của Chapter 1 (nếu có revision nào ở ch 1 được đặt tên riêng)
-  const ch1NamedRev = all.find(
-    (r) =>
-      (r.effectiveFromChapterNumber || 1) === 1 && r.stageName && r.stageName.trim().length > 0,
-  );
-  const ch1DefaultStageName = ch1NamedRev?.stageName?.trim() || null;
-
-  // 2. Nhóm các revision thành từng Narrative Era:
-  // Nếu ở Chapter 1 mà có revision chưa đặt tên, ta gộp nó vào Era của Chapter 1 thay vì tách thành "Giai đoạn chuẩn" riêng biệt
   const groupMap = new Map<string, BibleEntryRevisionDto[]>();
   for (const rev of all) {
-    const ch =
-      typeof rev.effectiveFromChapterNumber === 'number' ? rev.effectiveFromChapterNumber : 1;
-    let sName = (rev.stageName || '').trim().toLowerCase();
-
-    // Nếu ở Chapter 1 và revision chưa có tên, kế thừa tên stageName của ch 1 nếu đã có
-    if (ch === 1 && !sName && ch1DefaultStageName) {
-      sName = ch1DefaultStageName.toLowerCase();
-    }
-
-    const groupKey = sName ? `ch_${ch}_stage_${sName}` : `ch_${ch}`;
+    const groupKey = rev.variantLabel.trim().toLocaleLowerCase();
     if (!groupMap.has(groupKey)) {
       groupMap.set(groupKey, []);
     }
     groupMap.get(groupKey)!.push(rev);
   }
 
-  const stages: CharacterEraStage[] = [];
+  const variants: CharacterVariant[] = [];
   const sortedGroupKeys = Array.from(groupMap.keys()).sort((a, b) => {
-    const chA = groupMap.get(a)![0]?.effectiveFromChapterNumber || 1;
-    const chB = groupMap.get(b)![0]?.effectiveFromChapterNumber || 1;
-    if (chA !== chB) return chA - chB;
     const minVerA = Math.min(...groupMap.get(a)!.map((r) => r.versionNumber || 0));
     const minVerB = Math.min(...groupMap.get(b)!.map((r) => r.versionNumber || 0));
     return minVerA - minVerB;
@@ -114,30 +91,20 @@ export function groupRevisionsIntoStages(
     const revList = groupMap.get(groupKey)!;
     const sortedRevs = [...revList].sort((a, b) => (b.versionNumber || 0) - (a.versionNumber || 0));
     const latest = sortedRevs[0];
-    const isLocked = sortedRevs.some((r) => r.isLocked);
-    const ch = latest.effectiveFromChapterNumber || 1;
-
-    // Ưu tiên lấy tên giai đoạn từ revision có stageName
-    const namedRev = sortedRevs.find((r) => r.stageName && r.stageName.trim().length > 0);
-    const stageName =
-      namedRev?.stageName?.trim() ||
-      (ch === 1 ? ch1DefaultStageName || 'Giai đoạn chuẩn' : `Giai đoạn từ Ch.${ch}`);
-
-    stages.push({
-      stageKey: `stage-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
-      stageName,
-      effectiveFromChapterNumber: ch,
-      effectiveToChapterNumber: latest.effectiveToChapterNumber,
+    const isLocked = sortedRevs.some((r) => r.reviewStatus === 'CanonLocked');
+    variants.push({
+      variantKey: `variant-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+      variantLabel: latest.variantLabel,
       latestRevision: latest,
       revisions: sortedRevs,
       isLocked,
     });
   }
 
-  return stages;
+  return variants;
 }
 
-const getStageIcon = (name?: string | null, category?: string | number) => {
+const getVariantIcon = (name?: string | null, category?: string | number) => {
   const cat = String(category || '').toLowerCase();
   if (cat.includes('loc') || cat === '2') return '🗺️';
   if (cat.includes('prop') || cat === '3') return '🗡️';
@@ -183,6 +150,7 @@ interface BibleEntityDetailModalProps {
   latestSavedRevision?: BibleEntryRevisionDto | null;
   isProducer: boolean;
   isArtist?: boolean;
+  isWriter?: boolean;
   canCreateDraft?: boolean;
   canEndorse?: boolean;
   canRequestRework?: boolean;
@@ -193,18 +161,15 @@ interface BibleEntityDetailModalProps {
     entity: BibleEntity,
     supersede?: BibleEntryRevisionDto | null,
     fromQueue?: boolean,
-    queueEffectiveChapter?: number,
     reworkFeedback?: string,
     isResubmit?: boolean,
-    isNewEra?: boolean,
+    isNewVariant?: boolean,
   ) => void;
-  onEndorseRevision?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => Promise<void>;
   onRequestRework?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => void;
-  onLockRevision?: (rev: BibleEntryRevisionDto) => Promise<void>;
+  onConfirmCanon?: (rev: BibleEntryRevisionDto) => Promise<void>;
   onShowToast: (title: string, desc: string) => void;
   onZoomImage: (image: { url: string; title: string }) => void;
   onDeleteRevision?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => Promise<void>;
-  onDeleteEra?: (entity: BibleEntity, stage: CharacterEraStage) => Promise<void>;
   /** Danh sách mục của Bible để chuyển nhanh sang mục cùng danh mục ở sidebar. */
   entities?: BibleEntity[];
   onSelectEntity?: (entity: BibleEntity) => void;
@@ -216,6 +181,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   latestSavedRevision,
   isProducer,
   isArtist = false,
+  isWriter = false,
   canCreateDraft = true,
   canEndorse = false,
   canRequestRework = canEndorse,
@@ -223,39 +189,44 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   onClose,
   onOpenHistory,
   onOpenAddRevision,
-  onEndorseRevision,
   onRequestRework,
-  onLockRevision,
+  onConfirmCanon,
   onShowToast,
   onZoomImage,
-  onDeleteRevision,
-  onDeleteEra,
   entities = [],
   onSelectEntity,
 }) => {
-  const [showConceptGuide, setShowConceptGuide] = useState(false);
+  const { t } = useTranslation();
   const [activeArtTab, setActiveArtTab] = useState<'turnaround' | 'action'>('turnaround');
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-  // Revisions & Era Stages State
+  // Concept Review: Versions & Comments State (BIB-10 FE)
+  const [selectedConceptEventId, setSelectedConceptEventId] = useState<string | null>(null);
+  const [conceptComments, setConceptComments] = useState<BibleConceptCommentDto[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  // Revisions & design variants state
   const [allRevisions, setAllRevisions] = useState<BibleEntryRevisionDto[]>(() => {
     return latestSavedRevision && latestSavedRevision.bibleEntryId === entity.id
       ? [latestSavedRevision]
       : [];
   });
-  const [isEndorsing, setIsEndorsing] = useState(false);
   const [isLocking, setIsLocking] = useState(false);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(() => {
     return latestSavedRevision && latestSavedRevision.bibleEntryId === entity.id
       ? latestSavedRevision.id
       : null;
   });
-  const [selectedStageKey, setSelectedStageKey] = useState<string>(() => {
+  const [selectedVariantKey, setSelectedVariantKey] = useState<string>(() => {
     if (latestSavedRevision && latestSavedRevision.bibleEntryId === entity.id) {
-      const ch = latestSavedRevision.effectiveFromChapterNumber || 1;
-      const sName = (latestSavedRevision.stageName || '').trim().toLowerCase();
-      const groupKey = sName ? `ch_${ch}_stage_${sName}` : `ch_${ch}`;
-      return `stage-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+      return `variant-${latestSavedRevision.variantLabel
+        .trim()
+        .toLocaleLowerCase()
+        .replace(/[^a-zA-Z0-9_-]/g, '_')}`;
     }
     return '';
   });
@@ -267,22 +238,24 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         return [latestSavedRevision, ...filtered];
       });
       setSelectedVersionId(latestSavedRevision.id);
-      const ch = latestSavedRevision.effectiveFromChapterNumber || 1;
-      const sName = (latestSavedRevision.stageName || '').trim().toLowerCase();
-      const groupKey = sName ? `ch_${ch}_stage_${sName}` : `ch_${ch}`;
-      setSelectedStageKey(`stage-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
+      setSelectedVariantKey(
+        `variant-${latestSavedRevision.variantLabel
+          .trim()
+          .toLocaleLowerCase()
+          .replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+      );
     }
   }, [latestSavedRevision, entity.id]);
-  const [revisionToDelete, setRevisionToDelete] = useState<BibleEntryRevisionDto | null>(null);
-  const [eraToDelete, setEraToDelete] = useState<CharacterEraStage | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // User workspace role detection
   const currentRole = useMemo(() => {
     try {
       const rawWs = localStorage.getItem('activeWorkspace');
       const ws = rawWs ? JSON.parse(rawWs) : null;
-      return normalizeWorkspaceRole(ws?.currentUserRole);
+      return (
+        normalizeWorkspaceRole(ws?.currentUserRole || ws?.role || ws?.userRole) ||
+        normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
+      );
     } catch {
       return null;
     }
@@ -290,9 +263,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
   const isProducerUser = isProducer || currentRole === 'PRODUCER';
   const isArtistUser = isArtist || currentRole === 'ARTIST';
+  const isEditorUser = currentRole === 'EDITOR' || (!isProducerUser && canEndorse);
   const isWriterUser =
-    currentRole === 'WRITER' || (!isProducerUser && canCreateDraft && !isArtistUser);
-  const isEditorUser = currentRole === 'EDITOR' || (!isProducerUser && !isWriterUser && canEndorse);
+    Boolean(isWriter) ||
+    currentRole === 'WRITER' ||
+    (!isProducerUser && canCreateDraft && !isArtistUser && !isEditorUser);
+
+  const effectiveCanCreateDraft = canCreateDraft || isWriterUser;
 
   useEffect(() => {
     if (!seriesId || !entity.id) return;
@@ -337,33 +314,42 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     [entities, entity.category],
   );
 
-  const stages = useMemo(() => {
+  const variants = useMemo(() => {
     const fallback = rawEntry?.effectiveRevision || null;
-    return groupRevisionsIntoStages(allRevisions, fallback);
+    return groupRevisionsIntoVariants(allRevisions, fallback);
   }, [allRevisions, rawEntry?.effectiveRevision]);
 
   useEffect(() => {
     if (
-      stages.length > 0 &&
-      (!selectedStageKey || !stages.some((s) => s.stageKey === selectedStageKey))
+      variants.length > 0 &&
+      (!selectedVariantKey ||
+        !variants.some((variant) => variant.variantKey === selectedVariantKey))
     ) {
       const eff = rawEntry?.effectiveRevision;
-      const matching = eff ? stages.find((s) => s.revisions.some((r) => r.id === eff.id)) : null;
-      setSelectedStageKey(matching ? matching.stageKey : stages[stages.length - 1].stageKey);
+      const matching = eff
+        ? variants.find((variant) => variant.revisions.some((revision) => revision.id === eff.id))
+        : null;
+      setSelectedVariantKey(
+        matching ? matching.variantKey : variants[variants.length - 1].variantKey,
+      );
     }
-  }, [stages, rawEntry?.effectiveRevision, selectedStageKey]);
+  }, [variants, rawEntry?.effectiveRevision, selectedVariantKey]);
 
-  const activeStage = useMemo(() => {
-    return stages.find((s) => s.stageKey === selectedStageKey) || stages[0];
-  }, [stages, selectedStageKey]);
+  const activeVariant = useMemo(() => {
+    return variants.find((variant) => variant.variantKey === selectedVariantKey) || variants[0];
+  }, [variants, selectedVariantKey]);
 
   const activeRevision = useMemo(() => {
-    if (selectedVersionId && activeStage?.revisions) {
-      const found = activeStage.revisions.find((r) => r.id === selectedVersionId);
+    if (selectedVersionId && activeVariant?.revisions) {
+      const found = activeVariant.revisions.find((r) => r.id === selectedVersionId);
       if (found) return found;
     }
-    return activeStage?.latestRevision || rawEntry?.effectiveRevision || null;
-  }, [selectedVersionId, activeStage, rawEntry?.effectiveRevision]);
+    const effective = rawEntry?.effectiveRevision;
+    if (effective && activeVariant?.revisions.some((revision) => revision.id === effective.id)) {
+      return effective;
+    }
+    return activeVariant?.latestRevision || effective || null;
+  }, [selectedVersionId, activeVariant, rawEntry?.effectiveRevision]);
 
   // Turnaround / Character Sheet Gallery Active View State
   const initialUrl = entity.imageUrl || (entity.gallery?.[0]?.url ?? '');
@@ -376,8 +362,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const [selectedImageTitle, setSelectedImageTitle] = useState<string>(initialTitle);
 
   useEffect(() => {
-    let img = activeRevision?.conceptImageUrl || activeRevision?.referenceImageUrl;
-    if (!img && activeRevision?.snapshotJson) {
+    const showCanonDto =
+      !selectedVersionId && activeRevision?.id === rawEntry?.effectiveRevision?.id;
+    let img = showCanonDto
+      ? entity.imageUrl
+      : activeRevision?.conceptImageUrl || activeRevision?.referenceImageUrl;
+    if (!img && !showCanonDto && activeRevision?.snapshotJson) {
       try {
         const snap = JSON.parse(activeRevision.snapshotJson);
         img =
@@ -391,7 +381,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     }
     if (img) {
       setSelectedImageUrl(img);
-      setSelectedImageTitle(`${entity.name} - ${activeStage?.stageName || 'Model Sheet'}`);
+      setSelectedImageTitle(
+        showCanonDto
+          ? entity.name
+          : `${entity.name} - ${activeVariant?.variantLabel || 'Model Sheet'}`,
+      );
     } else {
       setSelectedImageUrl(entity.imageUrl || (entity.gallery?.[0]?.url ?? ''));
       setSelectedImageTitle(
@@ -402,12 +396,132 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             : entity.name,
       );
     }
-  }, [activeRevision, activeStage?.stageName, entity.imageUrl, entity.gallery, entity.name]);
+  }, [
+    activeRevision,
+    activeVariant?.variantLabel,
+    entity.imageUrl,
+    entity.gallery,
+    entity.name,
+    rawEntry?.effectiveRevision?.id,
+    selectedVersionId,
+  ]);
+
+  // Concept versions list from revision events (BIB-10 FE)
+  const conceptVersions = useMemo(() => {
+    return (activeRevision?.events || []).filter((e) => e.type === 'ConceptSubmitted');
+  }, [activeRevision?.events]);
+
+  const fetchComments = async () => {
+    if (!seriesId || !entity.id || !activeRevision?.id) {
+      setConceptComments([]);
+      return;
+    }
+    setLoadingComments(true);
+    try {
+      const comments = await bibleService.getConceptComments(
+        seriesId,
+        entity.id,
+        activeRevision.id,
+      );
+      setConceptComments(comments || []);
+    } catch {
+      setConceptComments([]);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchComments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seriesId, entity.id, activeRevision?.id]);
+
+  const handleCreateComment = async () => {
+    if (!seriesId || !entity.id || !activeRevision?.id || !newCommentText.trim()) return;
+    setSubmittingComment(true);
+    try {
+      await bibleService.createConceptComment(seriesId, entity.id, activeRevision.id, {
+        body: newCommentText.trim(),
+        conceptEventId: selectedConceptEventId || activeRevision.currentConceptEventId || undefined,
+      });
+      setNewCommentText('');
+      await fetchComments();
+      onShowToast(
+        t('bible.detailModal.commentSuccess', 'Đã gửi nhận xét'),
+        t(
+          'bible.detailModal.commentSuccessDesc',
+          'Nhận xét về bản vẽ Concept Art đã được ghi nhận.',
+        ),
+      );
+    } catch (err: any) {
+      onShowToast(
+        t('bible.detailModal.commentError', 'Lỗi gửi nhận xét'),
+        err.message || t('bible.detailModal.commentError', 'Không thể gửi nhận xét.'),
+      );
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleReplyComment = async (parentCommentId: string) => {
+    const text = replyTextMap[parentCommentId]?.trim();
+    if (!seriesId || !entity.id || !activeRevision?.id || !text) return;
+    setSubmittingComment(true);
+    try {
+      await bibleService.replyConceptComment(
+        seriesId,
+        entity.id,
+        activeRevision.id,
+        parentCommentId,
+        { body: text },
+      );
+      setReplyTextMap((prev) => ({ ...prev, [parentCommentId]: '' }));
+      setActiveReplyId(null);
+      await fetchComments();
+      onShowToast(
+        t('bible.detailModal.replySuccess', 'Đã gửi phản hồi'),
+        t('bible.detailModal.replySuccessDesc', 'Phản hồi của bạn đã được gửi thành công.'),
+      );
+    } catch (err: any) {
+      onShowToast(
+        t('bible.detailModal.replyError', 'Lỗi gửi phản hồi'),
+        err.message || t('bible.detailModal.replyError', 'Không thể gửi phản hồi.'),
+      );
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleResolveComment = async (commentId: string, currentResolved: boolean) => {
+    if (!seriesId || !entity.id || !activeRevision?.id) return;
+    try {
+      await bibleService.resolveConceptComment(
+        seriesId,
+        entity.id,
+        activeRevision.id,
+        commentId,
+        !currentResolved,
+      );
+      await fetchComments();
+      onShowToast(
+        !currentResolved
+          ? t('bible.detailModal.resolveComment', 'Đã giải quyết nhận xét')
+          : t('bible.detailModal.reopenComment', 'Đã mở lại nhận xét'),
+        '',
+      );
+    } catch (err: any) {
+      onShowToast(
+        t('bible.detailModal.updateCommentError', 'Lỗi cập nhật nhận xét'),
+        err.message ||
+          t('bible.detailModal.updateCommentErrorDesc', 'Không thể cập nhật trạng thái nhận xét.'),
+      );
+    }
+  };
 
   // Visual Diff: Previous Revision & Before/After Image Resolution
   const previousRevision = useMemo(() => {
-    if (!activeStage?.revisions || activeStage.revisions.length <= 1) return null;
-    const sorted = [...activeStage.revisions].sort(
+    if (!activeVariant?.revisions || activeVariant.revisions.length <= 1) return null;
+    const sorted = [...activeVariant.revisions].sort(
       (a, b) => (b.versionNumber || 0) - (a.versionNumber || 0),
     );
     const currentIndex = sorted.findIndex((r) => r.id === activeRevision?.id);
@@ -415,7 +529,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       return sorted[currentIndex + 1];
     }
     return sorted[sorted.length - 1].id !== activeRevision?.id ? sorted[sorted.length - 1] : null;
-  }, [activeStage?.revisions, activeRevision?.id]);
+  }, [activeVariant?.revisions, activeRevision?.id]);
 
   const beforeImageUrl = useMemo(() => {
     let prevImg = previousRevision?.conceptImageUrl || previousRevision?.referenceImageUrl;
@@ -440,20 +554,20 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
   const beforeVersionLabel = useMemo(() => {
     if (previousRevision) {
-      return `v${previousRevision.versionNumber} (${previousRevision.reviewStatus || 'Trước'})`;
+      return `v${previousRevision.versionNumber} (${previousRevision.reviewStatus || t('bible.detailModal.reviewStatusBefore', 'Trước')})`;
     }
     if (entity.gallery?.[0]?.url && entity.gallery[0].url !== selectedImageUrl) {
-      return 'Bản phác thảo (Before)';
+      return t('bible.detailModal.beforeDraft', 'Bản phác thảo (Before)');
     }
-    return 'Bản phác thảo (Before)';
-  }, [previousRevision, entity.gallery, selectedImageUrl]);
+    return t('bible.detailModal.beforeDraft', 'Bản phác thảo (Before)');
+  }, [previousRevision, entity.gallery, selectedImageUrl, t]);
 
   const afterVersionLabel = useMemo(() => {
     if (activeRevision) {
-      return `v${activeRevision.versionNumber} (Hiện tại)`;
+      return `v${activeRevision.versionNumber}${t('bible.detailModal.currentLabel', ' (Hiện tại)')}`;
     }
-    return 'Bản hoàn thiện (After)';
-  }, [activeRevision]);
+    return t('bible.detailModal.afterFinal', 'Bản hoàn thiện (After)');
+  }, [activeRevision, t]);
 
   // Entity Category detection
   const normalizedCategory = useMemo(
@@ -467,8 +581,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const isTerminology = normalizedCategory === 'terminology';
   const isStyleRule = normalizedCategory === 'style';
 
-  // Stage attributes parsing (No hardcoded mock defaults)
-  const stageAttributes = useMemo(() => {
+  // Variant attributes parsing (No hardcoded mock defaults)
+  const variantAttributes = useMemo(() => {
     let parsed: Record<string, any> = {};
     if (activeRevision?.snapshotJson) {
       try {
@@ -572,7 +686,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       plotImpact: combined.plotImpact || combined['tác động'] || combined['vai trò'] || '',
 
       // Style fields
-      strictness: rawEntry?.strictCheck ? 'Khắt khe (Strict Check)' : 'Tiêu chuẩn',
+      strictness: rawEntry?.strictCheck
+        ? t('bible.detailModal.strictCheck', 'Khắt khe (Strict Check)')
+        : t('bible.detailModal.standardCheck', 'Tiêu chuẩn'),
       colorPalette: combined.colorPalette || combined.palette || combined['bảng màu'] || '',
       lineArtRules:
         combined.lineArtRules ||
@@ -595,82 +711,139 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     isProp,
     isTerminology,
     isStyleRule,
+    t,
   ]);
 
   const card1Title = useMemo(() => {
-    const stage = activeStage?.stageName || 'Giai đoạn chuẩn';
-    if (isLocation) return `Thông số không gian & Bối cảnh (${stage})`;
-    if (isProp) return `Thông số đạo cụ & Vật phẩm (${stage})`;
-    if (isTerminology) return `Đặc tả thuật ngữ & Khái niệm (${stage})`;
-    if (isStyleRule) return `Quy chuẩn mỹ thuật (${stage})`;
-    return `Thông số thời kỳ (${stage})`;
-  }, [isLocation, isProp, isTerminology, isStyleRule, activeStage]);
+    const variant =
+      activeVariant?.variantLabel || t('bible.detailModal.defaultVariant', 'Mặc định');
+    if (isLocation)
+      return t(
+        'bible.detailModal.card1TitleLocation',
+        { variant },
+        `Thông số không gian & Bối cảnh (${variant})`,
+      );
+    if (isProp)
+      return t(
+        'bible.detailModal.card1TitleProp',
+        { variant },
+        `Thông số đạo cụ & Vật phẩm (${variant})`,
+      );
+    if (isTerminology)
+      return t(
+        'bible.detailModal.card1TitleTerminology',
+        { variant },
+        `Đặc tả thuật ngữ & Khái niệm (${variant})`,
+      );
+    if (isStyleRule)
+      return t('bible.detailModal.card1TitleStyle', { variant }, `Quy chuẩn mỹ thuật (${variant})`);
+    return t(
+      'bible.detailModal.card1TitleCharacter',
+      { variant },
+      `Thông số nhân vật (${variant})`,
+    );
+  }, [isLocation, isProp, isTerminology, isStyleRule, activeVariant, t]);
 
   const visualCardInfo = useMemo(() => {
     if (isLocation) {
       return {
-        title: 'Bản vẽ Concept Bối cảnh',
-        badge: 'Concept Bối cảnh',
-        subtitle: 'Bản vẽ tham chiếu không gian và ánh sáng cho đội ngũ sáng tác',
-        tab1: 'Toàn cảnh (Wide Shot)',
-        tab2: 'Góc cận cảnh (Close-up)',
-        emptyWriterPrompt:
+        title: t('bible.detailModal.visualLocTitle', 'Bản vẽ Concept Bối cảnh'),
+        badge: t('bible.detailModal.visualLocBadge', 'Concept Bối cảnh'),
+        subtitle: t(
+          'bible.detailModal.visualLocSubtitle',
+          'Bản vẽ tham chiếu không gian và ánh sáng cho đội ngũ sáng tác',
+        ),
+        tab1: t('bible.detailModal.visualLocTab1', 'Toàn cảnh (Wide Shot)'),
+        tab2: t('bible.detailModal.visualLocTab2', 'Góc cận cảnh (Close-up)'),
+        emptyWriterPrompt: t(
+          'bible.detailModal.visualLocEmptyWriter',
           'Biên kịch (Writer) và Biên tập viên có thể cập nhật thông số bối cảnh để Họa sĩ nắm bắt chính xác không gian trước khi vẽ.',
-        emptyArtistPrompt:
+        ),
+        emptyArtistPrompt: t(
+          'bible.detailModal.visualLocEmptyArtist',
           'Bạn hãy tải lên bản phác thảo Concept Bối cảnh theo thông số không gian phía trên để bắt đầu chu trình kiểm duyệt.',
+        ),
       };
     }
     if (isProp) {
       return {
-        title: 'Bản vẽ Thiết kế Đạo cụ',
-        badge: 'Thiết kế Đạo cụ',
-        subtitle: 'Bản vẽ tham chiếu cấu tạo và chi tiết vật phẩm cho đội ngũ sáng tác',
-        tab1: 'Tổng thể (Overview)',
-        tab2: 'Cơ chế & Chi tiết',
-        emptyWriterPrompt:
+        title: t('bible.detailModal.visualPropTitle', 'Bản vẽ Thiết kế Đạo cụ'),
+        badge: t('bible.detailModal.visualPropBadge', 'Thiết kế Đạo cụ'),
+        subtitle: t(
+          'bible.detailModal.visualPropSubtitle',
+          'Bản vẽ tham chiếu cấu tạo và chi tiết vật phẩm cho đội ngũ sáng tác',
+        ),
+        tab1: t('bible.detailModal.visualPropTab1', 'Tổng thể (Overview)'),
+        tab2: t('bible.detailModal.visualPropTab2', 'Cơ chế & Chi tiết'),
+        emptyWriterPrompt: t(
+          'bible.detailModal.visualPropEmptyWriter',
           'Biên kịch (Writer) và Biên tập viên có thể cập nhật thông số vật phẩm để Họa sĩ nắm bắt cấu tạo trước khi vẽ.',
-        emptyArtistPrompt:
+        ),
+        emptyArtistPrompt: t(
+          'bible.detailModal.visualPropEmptyArtist',
           'Bạn hãy tải lên bản phác thảo Thiết kế Đạo cụ theo thông số vật phẩm phía trên để bắt đầu chu trình kiểm duyệt.',
+        ),
       };
     }
     if (isTerminology) {
       return {
-        title: 'Sơ đồ & Minh họa Khái niệm',
-        badge: 'Tài liệu trực quan',
-        subtitle: 'Sơ đồ, biểu tượng hoặc hình ảnh minh họa cho thuật ngữ cốt truyện',
-        tab1: 'Minh họa chính',
-        tab2: 'Sơ đồ & Chi tiết',
-        emptyWriterPrompt:
+        title: t('bible.detailModal.visualTermTitle', 'Sơ đồ & Minh họa Khái niệm'),
+        badge: t('bible.detailModal.visualTermBadge', 'Tài liệu trực quan'),
+        subtitle: t(
+          'bible.detailModal.visualTermSubtitle',
+          'Sơ đồ, biểu tượng hoặc hình ảnh minh họa cho thuật ngữ cốt truyện',
+        ),
+        tab1: t('bible.detailModal.visualTermTab1', 'Minh họa chính'),
+        tab2: t('bible.detailModal.visualTermTab2', 'Sơ đồ & Chi tiết'),
+        emptyWriterPrompt: t(
+          'bible.detailModal.visualTermEmptyWriter',
           'Biên kịch (Writer) và Biên tập viên có thể cập nhật mô tả thuật ngữ để Họa sĩ thiết kế hình ảnh minh họa phù hợp.',
-        emptyArtistPrompt:
+        ),
+        emptyArtistPrompt: t(
+          'bible.detailModal.visualTermEmptyArtist',
           'Bạn hãy tải lên sơ đồ hoặc hình ảnh minh họa cho khái niệm này để làm tài liệu tham chiếu.',
+        ),
       };
     }
     if (isStyleRule) {
       return {
-        title: 'Quy chuẩn Phong cách Mỹ thuật',
-        badge: 'Style Guide Sheet',
-        subtitle: 'Mẫu tham chiếu bảng màu, nét vẽ và hiệu ứng phân khung cho toàn bộ truyện',
-        tab1: 'Bảng màu & Nét vẽ',
-        tab2: 'Minh họa quy chuẩn',
-        emptyWriterPrompt:
+        title: t('bible.detailModal.visualStyleTitle', 'Quy chuẩn Phong cách Mỹ thuật'),
+        badge: t('bible.detailModal.visualStyleBadge', 'Style Guide Sheet'),
+        subtitle: t(
+          'bible.detailModal.visualStyleSubtitle',
+          'Mẫu tham chiếu bảng màu, nét vẽ và hiệu ứng phân khung cho toàn bộ truyện',
+        ),
+        tab1: t('bible.detailModal.visualStyleTab1', 'Bảng màu & Nét vẽ'),
+        tab2: t('bible.detailModal.visualStyleTab2', 'Minh họa quy chuẩn'),
+        emptyWriterPrompt: t(
+          'bible.detailModal.visualStyleEmptyWriter',
           'Biên tập viên mỹ thuật có thể cập nhật thông số quy chuẩn để họa sĩ tuân thủ nhất quán phong cách.',
-        emptyArtistPrompt:
+        ),
+        emptyArtistPrompt: t(
+          'bible.detailModal.visualStyleEmptyArtist',
           'Bạn hãy tải lên bảng mẫu Style Guide tham chiếu cho quy tắc mỹ thuật này.',
+        ),
       };
     }
     return {
-      title: 'Bản vẽ Model Sheet',
-      badge: 'Chuẩn tham chiếu',
-      subtitle: 'Bản vẽ tham chiếu chuẩn cho đội ngũ sáng tác',
-      tab1: 'Turnaround',
-      tab2: 'Góc nhìn & Biểu cảm',
-      emptyWriterPrompt:
+      title: t('bible.detailModal.visualCharTitle', 'Bản vẽ Model Sheet'),
+      badge: t('bible.detailModal.visualCharBadge', 'Chuẩn tham chiếu'),
+      subtitle: t(
+        'bible.detailModal.visualCharSubtitle',
+        'Bản vẽ tham chiếu chuẩn cho đội ngũ sáng tác',
+      ),
+      tab1: t('bible.detailModal.visualCharTab1', 'Turnaround'),
+      tab2: t('bible.detailModal.visualCharTab2', 'Góc nhìn & Biểu cảm'),
+      emptyWriterPrompt: t(
+        'bible.detailModal.visualCharEmptyWriter',
         'Biên kịch (Writer) và Biên tập viên có thể cập nhật thông số đặc tả kịch bản để Họa sĩ nắm bắt chính xác tạo hình trước khi vẽ.',
-      emptyArtistPrompt:
-        'Bạn hãy tải lên bản phác thảo Model Sheet theo thông số thời kỳ phía trên để bắt đầu chu trình kiểm duyệt.',
+      ),
+      emptyArtistPrompt: t(
+        'bible.detailModal.visualCharEmptyArtist',
+        'Bạn hãy tải lên bản phác thảo Model Sheet theo thông số phía trên để bắt đầu chu trình kiểm duyệt.',
+      ),
     };
-  }, [isLocation, isProp, isTerminology, isStyleRule]);
+  }, [isLocation, isProp, isTerminology, isStyleRule, t]);
 
   // Dynamic Audit logs for SHA-256 Provenance & Revision Events
   const auditLogs = useMemo(() => {
@@ -680,38 +853,62 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     if (activeRevision?.events && activeRevision.events.length > 0) {
       activeRevision.events.forEach((evt) => {
         let actionDesc = '';
-        let actorDesc = 'Hệ thống';
+        let actorDesc = t('bible.detailModal.actorSystem', 'Hệ thống');
         switch (evt.type) {
           case 'Created':
-            actorDesc = 'Khởi tạo';
-            actionDesc = `Khởi tạo phiên bản v${activeRevision.versionNumber}`;
+            actorDesc = t('bible.detailModal.actorCreator', 'Khởi tạo');
+            actionDesc = t(
+              'bible.detailModal.actionCreated',
+              { version: activeRevision.versionNumber },
+              `Khởi tạo phiên bản v${activeRevision.versionNumber}`,
+            );
             break;
           case 'ConceptSubmitted':
-            actorDesc = 'Họa sĩ';
-            actionDesc = `Đã nộp Concept Art${evt.comment ? `: "${evt.comment}"` : ''}`;
+            actorDesc = t('bible.detailModal.actorArtist', 'Họa sĩ');
+            actionDesc = `${t('bible.detailModal.actionConceptSubmitted', 'Đã nộp Concept Art')}${evt.comment ? `: "${evt.comment}"` : ''}`;
             break;
           case 'ReworkRequested':
-            actorDesc = 'Biên kịch / Biên tập';
-            actionDesc = `Yêu cầu sửa${evt.comment ? `: "${evt.comment}"` : ''}`;
+            actorDesc = t('bible.detailModal.actorWriterEditor', 'Biên kịch / Biên tập');
+            actionDesc = `${t('bible.detailModal.actionReworkRequested', 'Yêu cầu sửa')}${evt.comment ? `: "${evt.comment}"` : ''}`;
             break;
           case 'Endorsed':
-            actorDesc = 'Biên kịch / Biên tập';
-            actionDesc = 'Đã duyệt thiết kế sáng tác';
+            actorDesc = t('bible.detailModal.actorEditor', 'Biên tập viên');
+            actionDesc = t(
+              'bible.detailModal.actionEndorsed',
+              'Đã xác nhận & khoá Canon thiết kế sáng tác',
+            );
             break;
           case 'Locked':
-            actorDesc = 'Nhà sản xuất';
-            actionDesc = `Ban hành quy chuẩn chính thức cho Ch.${activeRevision.effectiveFromChapterNumber}+`;
+            actorDesc = t('bible.detailModal.actorEditor', 'Biên tập viên');
+            actionDesc = t(
+              'bible.detailModal.actionLocked',
+              { target: activeRevision.variantLabel || entity.name },
+              `Ban hành quy chuẩn chính thức cho ${activeRevision.variantLabel || entity.name}`,
+            );
             break;
           case 'Superseded':
-            actorDesc = 'Nhà sản xuất';
-            actionDesc = `Thay thế bởi phiên bản mới${evt.comment ? `: "${evt.comment}"` : ''}`;
+            actorDesc = t('bible.detailModal.actorSystem', 'Hệ thống');
+            actionDesc = `${t('bible.detailModal.actionSuperseded', 'Thay thế bởi phiên bản mới')}${evt.comment ? `: "${evt.comment}"` : ''}`;
+            break;
+          case 'DraftOverwritten':
+            actorDesc = t('bible.detailModal.actorWriterEditor', 'Biên kịch / Biên tập');
+            actionDesc = t(
+              'bible.detailModal.actionDraftOverwritten',
+              'Writer định nghĩa lại nội dung bản nháp',
+            );
             break;
           default:
-            actionDesc = `Sự kiện ${evt.type}`;
+            actionDesc = t(
+              'bible.detailModal.actionDefaultEvent',
+              { type: evt.type },
+              `Sự kiện ${evt.type}`,
+            );
         }
 
         list.push({
-          time: evt.createdAt ? new Date(evt.createdAt).toLocaleDateString('vi-VN') : 'Mới',
+          time: evt.createdAt
+            ? new Date(evt.createdAt).toLocaleDateString('vi-VN')
+            : t('bible.detailModal.timeNew', 'Mới'),
           actor: actorDesc,
           action: actionDesc,
           hash: '',
@@ -720,29 +917,33 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       return [...list].reverse();
     }
 
-    if (activeStage?.revisions) {
-      activeStage.revisions.forEach((rev) => {
-        if (rev.isLocked || rev.reviewStatus === 'CanonLocked') {
+    if (activeVariant?.revisions) {
+      activeVariant.revisions.forEach((rev) => {
+        if (rev.reviewStatus === 'CanonLocked') {
           list.push({
-            time: rev.lockedAt ? new Date(rev.lockedAt).toLocaleDateString('vi-VN') : 'Đã duyệt',
-            actor: 'Nhà sản xuất',
-            action: `Ban hành quy chuẩn chính thức cho Ch.${rev.effectiveFromChapterNumber}+ (v${rev.versionNumber})`,
-            hash: '',
-          });
-        }
-        if (rev.reviewStatus === 'WriterEndorsed') {
-          list.push({
-            time: rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
-            actor: 'Biên kịch',
-            action: `Đã duyệt thiết kế sáng tác cho phiên bản v${rev.versionNumber}`,
+            time: rev.lockedAt
+              ? new Date(rev.lockedAt).toLocaleDateString('vi-VN')
+              : t('bible.detailModal.timeApproved', 'Đã duyệt'),
+            actor: t('bible.detailModal.actorEditor', 'Biên tập viên'),
+            action: t(
+              'bible.detailModal.actionLocked',
+              { target: `${rev.variantLabel || entity.name} (v${rev.versionNumber})` },
+              `Ban hành quy chuẩn chính thức cho ${rev.variantLabel || entity.name} (v${rev.versionNumber})`,
+            ),
             hash: '',
           });
         }
         if (rev.reviewStatus === 'ConceptSubmitted') {
           list.push({
-            time: rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
-            actor: 'Họa sĩ',
-            action: `Đã nộp bản vẽ thiết kế cho phiên bản v${rev.versionNumber}`,
+            time: rev.createdAt
+              ? new Date(rev.createdAt).toLocaleDateString('vi-VN')
+              : t('bible.detailModal.timeRecent', 'Gần đây'),
+            actor: t('bible.detailModal.actorArtist', 'Họa sĩ'),
+            action: t(
+              'bible.detailModal.actionConceptSubmittedVer',
+              { version: rev.versionNumber },
+              `Đã nộp bản vẽ thiết kế cho phiên bản v${rev.versionNumber}`,
+            ),
             hash: '',
           });
         }
@@ -752,14 +953,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       list.push({
         time: rawEntry?.createdAt
           ? new Date(rawEntry.createdAt).toLocaleDateString('vi-VN')
-          : 'Khởi tạo',
-        actor: 'Hệ thống',
-        action: 'Khởi tạo hồ sơ lưu trữ thiết kế sáng tác',
+          : t('bible.detailModal.timeCreated', 'Khởi tạo'),
+        actor: t('bible.detailModal.actorSystem', 'Hệ thống'),
+        action: t('bible.detailModal.actionInitialLog', 'Khởi tạo hồ sơ lưu trữ thiết kế sáng tác'),
         hash: '',
       });
     }
     return list;
-  }, [activeRevision, activeStage, rawEntry]);
+  }, [activeRevision, activeVariant, rawEntry, entity.name, t]);
 
   const modalContainerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -799,34 +1000,27 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   // Clipboard paste listener for quick Model Sheet upload via Ctrl+V
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
-      if (!canCreateDraft) return;
+      if (!effectiveCanCreateDraft) return;
       const items = e.clipboardData?.items;
       if (!items) return;
       for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf('image') !== -1) {
           e.preventDefault();
           onOpenAddRevision(entity, activeRevision);
-          onShowToast('Đã nhận diện ảnh dán', 'Đang mở giao diện nộp bản vẽ Model Sheet mới...');
+          onShowToast(
+            t('bible.detailModal.imagePastedTitle', 'Đã nhận diện ảnh dán'),
+            t(
+              'bible.detailModal.imagePastedDesc',
+              'Đang mở giao diện nộp bản vẽ Model Sheet mới...',
+            ),
+          );
           break;
         }
       }
     };
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [canCreateDraft, entity, activeRevision, onOpenAddRevision, onShowToast]);
-
-  const handleEndorse = async (rev: BibleEntryRevisionDto) => {
-    if (!onEndorseRevision) return;
-    setIsEndorsing(true);
-    try {
-      await onEndorseRevision(entity, rev);
-      setAllRevisions((prev) =>
-        prev.map((r) => (r.id === rev.id ? { ...r, reviewStatus: 'WriterEndorsed' } : r)),
-      );
-    } finally {
-      setIsEndorsing(false);
-    }
-  };
+  }, [effectiveCanCreateDraft, entity, activeRevision, onOpenAddRevision, onShowToast, t]);
 
   const handleRequestRework = (rev: BibleEntryRevisionDto) => {
     if (!onRequestRework) return;
@@ -837,14 +1031,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   };
 
   const handleLock = async (rev: BibleEntryRevisionDto) => {
-    if (!onLockRevision) return;
+    if (!onConfirmCanon) return;
     setIsLocking(true);
     try {
-      await onLockRevision(rev);
+      await onConfirmCanon(rev);
       setAllRevisions((prev) =>
-        prev.map((r) =>
-          r.id === rev.id ? { ...r, isLocked: true, reviewStatus: 'CanonLocked' } : r,
-        ),
+        prev.map((r) => (r.id === rev.id ? { ...r, reviewStatus: 'CanonLocked' } : r)),
       );
     } finally {
       setIsLocking(false);
@@ -853,29 +1045,22 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
   // Spec V2.6 §5.2: vòng đời của giai đoạn đang chọn và "bóng đang ở chân ai"
   const isVisualDesign = ['character', 'location', 'prop'].includes(normalizedCategory);
-  const lifecycleStatus = (():
-    'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'WriterEndorsed' | 'CanonLocked' => {
+  const lifecycleStatus = ((): 'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'CanonLocked' => {
     if (!activeRevision) return 'Draft';
-    if (activeRevision.isLocked) return 'CanonLocked';
-    const st = activeRevision.reviewStatus as string | number | undefined;
-    const byNumber = [
-      '',
-      'Draft',
-      'ConceptSubmitted',
-      'ReworkRequired',
-      'WriterEndorsed',
-      'CanonLocked',
-    ];
-    const name = typeof st === 'number' ? byNumber[st] : st;
-    return (name as 'Draft') || 'Draft';
+    return activeRevision.reviewStatus || 'Draft';
   })();
   const lifecycleSteps = isVisualDesign
-    ? ['Bản nháp', 'Đã nộp Concept', 'Đã xác nhận', 'Canon Locked']
-    : ['Bản nháp', 'Đã xác nhận'];
-  const lifecycleIndex = isVisualDesign
-    ? { Draft: 0, ConceptSubmitted: 1, ReworkRequired: 1, WriterEndorsed: 2, CanonLocked: 3 }[
-        lifecycleStatus
+    ? [
+        t('bible.detailModal.stepDraft', 'Bản nháp'),
+        t('bible.detailModal.stepConceptSubmitted', 'Đã nộp Concept'),
+        t('bible.detailModal.stepCanonLocked', 'Canon Locked'),
       ]
+    : [
+        t('bible.detailModal.stepDraft', 'Bản nháp'),
+        t('bible.detailModal.stepConfirmed', 'Đã xác nhận'),
+      ];
+  const lifecycleIndex = isVisualDesign
+    ? { Draft: 0, ConceptSubmitted: 1, ReworkRequired: 1, CanonLocked: 2 }[lifecycleStatus]
     : lifecycleStatus === 'Draft'
       ? 0
       : 1;
@@ -884,19 +1069,26 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     : lifecycleStatus !== 'Draft';
   const waitingFor = {
     Draft: isVisualDesign
-      ? 'Artist tải Model Sheet theo đặc tả'
-      : 'Writer / Editor xác nhận nội dung',
-    ConceptSubmitted: 'Writer / Editor đối chiếu bản vẽ với đặc tả',
-    ReworkRequired: 'Artist vẽ lại theo nhận xét',
-    WriterEndorsed: isVisualDesign ? 'Producer khoá Canon' : 'Đã có hiệu lực',
-    CanonLocked: 'Đã khoá. Muốn thay đổi hãy tạo giai đoạn mới',
+      ? t('bible.detailModal.waitingDraftVisual', 'Artist tải Model Sheet theo đặc tả')
+      : t('bible.detailModal.waitingDraftNonVisual', 'Writer / Editor xác nhận nội dung'),
+    ConceptSubmitted: t(
+      'bible.detailModal.waitingConceptSubmitted',
+      'Editor xác nhận (khoá Canon) hoặc yêu cầu vẽ lại',
+    ),
+    ReworkRequired: t('bible.detailModal.waitingReworkRequired', 'Artist vẽ lại theo nhận xét'),
+    CanonLocked: t(
+      'bible.detailModal.waitingCanonLocked',
+      'Đã khoá. Muốn thay đổi hãy tạo giai đoạn mới',
+    ),
   }[lifecycleStatus];
   const isMyTurn =
     (lifecycleStatus === 'Draft' && (isVisualDesign ? isArtistUser : canEndorse)) ||
     (lifecycleStatus === 'ConceptSubmitted' && canEndorse) ||
-    (lifecycleStatus === 'ReworkRequired' && isArtistUser) ||
-    (lifecycleStatus === 'WriterEndorsed' && isVisualDesign && isProducerUser);
+    (lifecycleStatus === 'ReworkRequired' && isArtistUser);
   const specDescription = (() => {
+    if (!selectedVersionId && activeRevision?.id === rawEntry?.effectiveRevision?.id) {
+      return entity.description ?? '';
+    }
     try {
       const snap = JSON.parse(activeRevision?.snapshotJson || '{}');
       return (snap.Description ?? snap.description ?? entity.description ?? '') as string;
@@ -904,7 +1096,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       return entity.description ?? '';
     }
   })();
-  const specProgress = specCompleteness(normalizedCategory, stageAttributes.raw);
+  const specProgress = specCompleteness(normalizedCategory, variantAttributes.raw);
 
   const modalContent = (
     <section
@@ -920,41 +1112,31 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             type='button'
             onClick={onClose}
             className='inline-flex items-center gap-1.5 text-sm font-semibold text-stone-600 hover:text-[#C2410C] transition-colors cursor-pointer'
-            title='Quay lại danh sách Series Bible (Esc)'
+            title={t('bible.detailModal.backToBibleTitle', 'Quay lại danh sách Series Bible (Esc)')}
           >
             <ArrowLeft className='w-4 h-4' />
-            <span>Series Bible</span>
+            <span>{t('bible.detailModal.backToBible', 'Series Bible')}</span>
           </button>
           <div className='flex items-center gap-2'>
-            <button
-              type='button'
-              onClick={() => setShowConceptGuide((v) => !v)}
-              aria-pressed={showConceptGuide}
-              className='px-3 py-1.5 rounded-full border border-[#E7E5E4] bg-white hover:bg-[#F5F5F4] text-xs font-semibold text-stone-700 transition-colors flex items-center gap-1.5 cursor-pointer'
-              title='Phân biệt Giai đoạn cốt truyện và Phiên bản mỹ thuật'
-            >
-              <HelpCircle className='w-3.5 h-3.5 text-stone-500' />
-              <span className='hidden sm:inline'>Quy ước Giai đoạn</span>
-            </button>
             <span className='px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 bg-stone-100 text-stone-700 border-stone-200'>
               <User className='w-3.5 h-3.5 text-stone-500' />
               {isProducerUser
-                ? 'Nhà sản xuất'
+                ? t('bible.detailModal.roleProducer', 'Nhà sản xuất')
                 : isWriterUser
-                  ? 'Biên kịch'
+                  ? t('bible.detailModal.roleWriter', 'Biên kịch')
                   : isArtistUser
-                    ? 'Họa sĩ'
+                    ? t('bible.detailModal.roleArtist', 'Họa sĩ')
                     : isEditorUser
-                      ? 'Biên tập viên'
-                      : 'Người xem'}
+                      ? t('bible.detailModal.roleEditor', 'Biên tập viên')
+                      : t('bible.detailModal.roleViewer', 'Người xem')}
             </span>
             <button
               ref={closeButtonRef}
               type='button'
               onClick={onClose}
               className='p-1.5 rounded-full hover:bg-stone-200 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer'
-              title='Đóng (Esc)'
-              aria-label='Đóng cửa sổ chi tiết'
+              title={t('bible.detailModal.closeTitle', 'Đóng (Esc)')}
+              aria-label={t('bible.detailModal.closeAria', 'Đóng cửa sổ chi tiết')}
             >
               <X className='w-4 h-4' />
             </button>
@@ -979,6 +1161,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             >
               {entity.name}
             </h2>
+            {entity.latestDraftVersionNumber != null && (
+              <span
+                className='inline-flex px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium'
+                data-testid='pending-draft-badge-detail'
+              >
+                {t('bible.view.pendingDraftBadge', { n: entity.latestDraftVersionNumber })}
+              </span>
+            )}
             {entity.subtitle && <p className='text-sm text-stone-600'>{entity.subtitle}</p>}
           </div>
 
@@ -989,21 +1179,30 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               className='px-4 py-2 rounded-full bg-white hover:bg-[#F5F5F4] text-[#292524] border border-[#E7E5E4] text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
             >
               <History className='w-4 h-4 text-stone-500' />
-              <span>Lịch sử phiên bản</span>
+              <span>{t('bible.detailModal.historyBtn', 'Lịch sử phiên bản')}</span>
             </button>
-            {canCreateDraft ? (
+            {effectiveCanCreateDraft ? (
               <button
                 type='button'
                 onClick={() => onOpenAddRevision(entity)}
                 className='px-4 py-2 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
               >
                 <GitCommit className='w-4 h-4' />
-                <span>{isProducer ? 'Tạo phiên bản mới' : 'Tạo bản nháp mới'}</span>
+                <span>
+                  {isProducer
+                    ? t('bible.detailModal.createRevisionBtn', 'Tạo phiên bản mới')
+                    : t('bible.detailModal.createDraftBtn', 'Tạo bản nháp mới')}
+                </span>
               </button>
             ) : (
               <span className='px-3 py-1.5 rounded-full bg-stone-100 border border-stone-200 text-stone-600 text-xs font-medium flex items-center gap-1.5'>
                 <Lock className='w-3.5 h-3.5 text-stone-500' />
-                {isArtist ? 'Họa sĩ nộp Concept Art theo từng giai đoạn' : 'Chế độ chỉ xem'}
+                {isArtist
+                  ? t(
+                      'bible.detailModal.artistVariantsNotice',
+                      'Họa sĩ nộp Concept Art theo từng giai đoạn',
+                    )
+                  : t('bible.detailModal.readOnlyNotice', 'Chế độ chỉ xem')}
               </span>
             )}
           </div>
@@ -1012,126 +1211,95 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
       {/* ================= WORKSPACE BODY CONTAINER ================= */}
       <div className='space-y-4'>
-        {/* ================= COLLAPSIBLE CONCEPT NOTICE BANNER ================= */}
-        {showConceptGuide && (
-          <div className='bg-white border border-stone-200/80 rounded-xl p-4 shadow-xs relative transition-all animate-in fade-in duration-200'>
-            <button
-              type='button'
-              onClick={() => setShowConceptGuide(false)}
-              className='absolute top-2.5 right-2.5 p-1 rounded-full text-stone-500 hover:text-stone-800 hover:bg-stone-100'
-              aria-label='Đóng hướng dẫn'
-            >
-              <X className='w-3.5 h-3.5' />
-            </button>
-            <div className='flex items-start gap-3'>
-              <div className='w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0 mt-0.5'>
-                <Info className='w-4 h-4' />
-              </div>
-              <div className='text-xs space-y-1.5 pr-4'>
-                <div className='font-bold text-stone-900 text-xs sm:text-sm'>
-                  Hiểu đúng cấu trúc: Narrative Era (Thời kỳ) vs. Asset Version (Phiên bản mỹ thuật)
-                </div>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1 text-stone-600 text-xs'>
-                  <div className='bg-stone-50 p-2.5 rounded-lg border border-stone-200'>
-                    <span className='font-bold text-[#C2410C] uppercase tracking-wider text-xs block mb-0.5'>
-                      Trục Cốt Truyện — ERA (Narrative Timeline)
-                    </span>
-                    Nhân vật thay đổi theo cốt truyện (Tuổi, Timeskip, Sẹo, Dạng quỷ). Gắn với{' '}
-                    <strong>Mốc chương hiệu lực (Effective from Chapter)</strong> để Họa sĩ và ban
-                    biên kịch đảm bảo tính nhất quán hình thái.
-                  </div>
-                  <div className='bg-stone-50 p-2.5 rounded-lg border border-stone-200'>
-                    <span className='font-bold text-emerald-700 uppercase tracking-wider text-xs block mb-0.5'>
-                      Tiến trình phiên bản thiết kế
-                    </span>
-                    Vòng đời phê duyệt: Bản thảo ➔ Kiểm duyệt ➔ Đã khóa chuẩn (Canon Locked). Theo
-                    quy tắc bảo toàn nguồn gốc: Bản đã khóa chuẩn không thể sửa đè, chỉ có thể tạo
-                    bản kế thừa tiếp theo (Supersede).
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className='grid grid-cols-1 xl:grid-cols-[272px_minmax(0,1fr)] gap-5 items-start'>
           {/* ================= SIDEBAR: mục cùng danh mục · giai đoạn · xuất hiện trong kịch bản ================= */}
-          <aside
+          <CollapsibleSidebar
+            collapsed={false}
+            label={t('bible.detailModal.navSidebarAria', 'Điều hướng mục Series Bible')}
             className='space-y-4 xl:sticky xl:top-5'
-            aria-label='Điều hướng mục Series Bible'
             data-testid='bible-workbench-sidebar'
           >
             {siblings.length > 1 && onSelectEntity && (
               <nav
                 className='bg-white border border-stone-200/80 rounded-xl shadow-xs p-2'
-                aria-label='Mục cùng danh mục'
+                aria-label={t('bible.detailModal.navSameCategoryAria', 'Mục cùng danh mục')}
               >
                 <p className='px-2.5 pt-1.5 pb-2 text-xs font-semibold uppercase tracking-wider text-stone-500'>
-                  Cùng danh mục · {siblings.length}
+                  {t(
+                    'bible.detailModal.sameCategoryTitle',
+                    { count: siblings.length },
+                    `Cùng danh mục · ${siblings.length}`,
+                  )}
                 </p>
-                <ul className='max-h-64 overflow-y-auto space-y-0.5'>
-                  {siblings.map((e) => {
-                    const isActive = e.id === entity.id;
-                    return (
-                      <li key={e.id}>
-                        <button
-                          type='button'
-                          onClick={() => !isActive && onSelectEntity(e)}
-                          aria-current={isActive ? 'true' : undefined}
-                          className={`w-full px-2.5 py-2 rounded-lg text-left flex items-center gap-2 border-l-4 transition-all duration-150 cursor-pointer ${
-                            isActive
-                              ? 'bg-orange-50 border-orange-500 text-orange-800'
-                              : 'border-transparent text-stone-700 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className='font-mono text-xs text-stone-500 shrink-0'>
-                            {e.code}
-                          </span>
-                          <span className='text-sm font-medium truncate flex-1'>{e.name}</span>
-                          {e.isLocked && (
-                            <Lock
-                              className='w-3.5 h-3.5 text-emerald-600 shrink-0'
-                              aria-label='Đã khoá Canon'
-                            />
-                          )}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <SidebarSection className='max-h-64 overflow-y-auto space-y-0.5'>
+                  <ul>
+                    {siblings.map((e) => {
+                      const isActive = e.id === entity.id;
+                      return (
+                        <li key={e.id}>
+                          <button
+                            type='button'
+                            onClick={() => !isActive && onSelectEntity(e)}
+                            aria-current={isActive ? 'true' : undefined}
+                            className={`w-full px-2.5 py-2 rounded-lg text-left flex items-center gap-2 border-l-4 transition-all duration-150 cursor-pointer ${
+                              isActive
+                                ? 'bg-orange-50 border-orange-500 text-orange-800'
+                                : 'border-transparent text-stone-700 hover:bg-stone-100'
+                            }`}
+                          >
+                            <span className='font-mono text-xs text-stone-500 shrink-0'>
+                              {e.code}
+                            </span>
+                            <span className='text-sm font-medium truncate flex-1'>{e.name}</span>
+                            {e.isLocked && (
+                              <Lock
+                                className='w-3.5 h-3.5 text-emerald-600 shrink-0'
+                                aria-label={t('bible.detailModal.canonLockedAria', 'Đã khoá Canon')}
+                              />
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </SidebarSection>
               </nav>
             )}
 
-            <section className='space-y-3' data-testid='era-stages-selector'>
+            <section className='space-y-3' data-testid='variant-selector'>
               <div className='bg-white border border-stone-200/80 rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
                 <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                   <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
                     <Layers className='w-4 h-4 text-[#F97316]' />
-                    <span>Thời kỳ &amp; Giai đoạn</span>
+                    <span>{t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}</span>
                   </div>
                   <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600'>
-                    {stages.length} giai đoạn
+                    {t(
+                      'bible.detailModal.variantCount',
+                      { count: variants.length },
+                      `${variants.length} biến thể`,
+                    )}
                   </span>
                 </div>
 
-                {/* Vertical list of era stages */}
+                {/* Vertical list of variants */}
                 <div className='space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5'>
-                  {stages.map((stage) => {
-                    const isActive = selectedStageKey === stage.stageKey;
-                    const isStandardStage =
-                      stage.stageName === 'Giai đoạn chuẩn' ||
-                      stage.stageName.toLowerCase().includes('chuẩn');
-                    const stageIcon = isStandardStage
+                  {variants.map((variant) => {
+                    const isActive = selectedVariantKey === variant.variantKey;
+                    const isDefaultVariant =
+                      variant.variantLabel.toLowerCase().includes('chuẩn') ||
+                      variant.variantLabel.toLowerCase().includes('mặc định');
+                    const variantIcon = isDefaultVariant
                       ? null
-                      : getStageIcon(stage.stageName, entity.category);
+                      : getVariantIcon(variant.variantLabel, entity.category);
                     return (
                       <div
-                        key={stage.stageKey}
+                        key={variant.variantKey}
                         onClick={() => {
-                          setSelectedStageKey(stage.stageKey);
+                          setSelectedVariantKey(variant.variantKey);
                           setSelectedVersionId(null);
                         }}
-                        data-testid={`era-tab-${stage.stageKey}`}
+                        data-testid={`variant-tab-${variant.variantKey}`}
                         className={`p-3 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
                           isActive
                             ? 'bg-[#FFF7ED] text-[#EA580C] border-2 border-[#F97316] shadow-xs'
@@ -1140,29 +1308,30 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       >
                         <div className='flex items-center justify-between gap-1.5'>
                           <div className='flex items-center gap-1.5 min-w-0 font-semibold text-xs sm:text-sm'>
-                            {stageIcon && <span>{stageIcon}</span>}
-                            <span className='truncate'>{stage.stageName}</span>
+                            {variantIcon && <span>{variantIcon}</span>}
+                            <span className='truncate'>{variant.variantLabel}</span>
                           </div>
-                          {stage.isLocked ? (
+                          {variant.isLocked ? (
                             <span className='text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0'>
-                              Chính thức
+                              {t('bible.detailModal.officialBadge', 'Chính thức')}
                             </span>
                           ) : (
                             <span className='text-xs font-medium px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 shrink-0'>
-                              Bản nháp
+                              {t('bible.detailModal.draftBadge', 'Bản nháp')}
                             </span>
                           )}
                         </div>
 
                         <div className='flex items-center justify-between text-xs text-stone-500'>
-                          <span className='font-mono font-medium text-xs bg-stone-100 px-2 py-0.5 rounded-full'>
-                            Ch.{stage.effectiveFromChapterNumber}
-                            {stage.effectiveToChapterNumber
-                              ? `–${stage.effectiveToChapterNumber}`
-                              : '+'}
+                          <span className='font-medium text-xs bg-stone-100 px-2 py-0.5 rounded-full text-stone-600'>
+                            {variant.variantLabel}
                           </span>
                           <span className='text-xs text-stone-400'>
-                            {stage.revisions.length} phiên bản
+                            {t(
+                              'bible.detailModal.revisionCount',
+                              { count: variant.revisions.length },
+                              `${variant.revisions.length} phiên bản`,
+                            )}
                           </span>
                         </div>
                       </div>
@@ -1170,19 +1339,22 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   })}
                 </div>
 
-                {/* Bottom Quick Create Stage Action */}
-                {canCreateDraft && (
+                {/* Bottom quick-create variant action */}
+                {effectiveCanCreateDraft && (
                   <button
                     type='button'
                     onClick={() => {
-                      onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
+                      onOpenAddRevision(entity, null, false, undefined, false, true);
                     }}
-                    data-testid='add-new-era-btn'
+                    data-testid='add-new-variant-btn'
                     className='w-full py-2 border-2 border-dashed border-stone-300 hover:border-orange-400 text-stone-600 hover:text-[#C2410C] hover:bg-orange-50/60 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer'
-                    title='Thêm giai đoạn cốt truyện mới'
+                    title={t(
+                      'bible.detailModal.createNewVariantTitle',
+                      'Thêm biến thể thiết kế mới',
+                    )}
                   >
                     <Plus className='w-4 h-4' />
-                    <span>Tạo giai đoạn mới</span>
+                    <span>{t('bible.detailModal.createNewVariant', 'Tạo biến thể mới')}</span>
                   </button>
                 )}
               </div>
@@ -1195,15 +1367,20 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               >
                 <p className='text-sm font-bold text-stone-900 flex items-center gap-1.5'>
                   <FileText className='w-4 h-4 text-orange-600' />
-                  Xuất hiện trong kịch bản
+                  {t('bible.detailModal.scriptAppearances', 'Xuất hiện trong kịch bản')}
                 </p>
                 {usages === null ? (
-                  <p className='text-xs text-stone-500'>Đang tải…</p>
+                  <p className='text-xs text-stone-500'>{t('common.loading', 'Đang tải…')}</p>
                 ) : usages === 'error' ? (
-                  <p className='text-xs text-rose-700'>Không tải được danh sách chương.</p>
+                  <p className='text-xs text-rose-700'>
+                    {t('bible.detailModal.loadUsagesError', 'Không tải được danh sách chương.')}
+                  </p>
                 ) : usages.length === 0 ? (
                   <p className='text-xs text-stone-500'>
-                    Chưa được @Tag hay làm người nói trong kịch bản nào.
+                    {t(
+                      'bible.detailModal.noUsagesFound',
+                      'Chưa được @Tag hay làm người nói trong kịch bản nào.',
+                    )}
                   </p>
                 ) : (
                   <ul className='space-y-2'>
@@ -1214,11 +1391,18 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             Ch.{u.chapterNumber}
                           </span>
                           <span className='text-sm text-stone-800'>
-                            {u.chapterTitle || 'Chưa đặt tên'}
+                            {u.chapterTitle ||
+                              t('bible.detailModal.untitledChapter', 'Chưa đặt tên')}
                           </span>
                           <span className='block text-xs text-stone-500'>
-                            {u.lineCount} dòng kịch bản
-                            {u.isScriptFrozen ? ' · đã chốt kịch bản' : ''}
+                            {t(
+                              'bible.detailModal.lineCount',
+                              { count: u.lineCount },
+                              `${u.lineCount} dòng kịch bản`,
+                            )}
+                            {u.isScriptFrozen
+                              ? t('bible.detailModal.scriptFrozen', ' · đã chốt kịch bản')
+                              : ''}
                           </span>
                         </span>
                         <span
@@ -1229,10 +1413,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           }`}
                         >
                           {u.isCanonSatisfied
-                            ? 'Đạt Canon'
+                            ? t('bible.detailModal.canonSatisfied', 'Đạt Canon')
                             : isVisualDesign
-                              ? 'Chưa khoá Canon'
-                              : 'Chưa có bản hiệu lực'}
+                              ? t('bible.detailModal.notCanonLocked', 'Chưa khoá Canon')
+                              : t('bible.detailModal.noEffectiveVersion', 'Chưa có bản hiệu lực')}
                         </span>
                       </li>
                     ))}
@@ -1241,12 +1425,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 {Array.isArray(usages) &&
                   usages.some((u) => !u.isCanonSatisfied && !u.isScriptFrozen) && (
                     <p className='text-xs text-rose-700 border-t border-stone-100 pt-2'>
-                      Chương chưa đạt sẽ bị chặn ở Gate 1 khi Producer chốt kịch bản (BR-21).
+                      {t(
+                        'bible.detailModal.gate1Warning',
+                        'Chương chưa đạt sẽ bị chặn ở Gate 1 khi Producer chốt kịch bản (BR-21).',
+                      )}
                     </p>
                   )}
               </section>
             )}
-          </aside>
+          </CollapsibleSidebar>
 
           {/* ================= MAIN: trạng thái · Đặc tả | Bản vẽ · Phiên bản ================= */}
           <div className='min-w-0 space-y-4'>
@@ -1256,7 +1443,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             >
               <ol
                 className='flex items-center gap-2 overflow-x-auto'
-                aria-label='Vòng đời phiên bản'
+                aria-label={t('bible.detailModal.lifecycleTitle', 'Vòng đời phiên bản')}
               >
                 {lifecycleSteps.map((label, i) => {
                   const done = lifecycleDone || i < lifecycleIndex;
@@ -1284,7 +1471,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <span
                         className={`text-sm ${current ? 'font-semibold text-stone-900' : 'text-stone-500'}`}
                       >
-                        {rework ? 'Cần vẽ lại' : label}
+                        {rework ? t('bible.detailModal.stepRework', 'Cần vẽ lại') : label}
                       </span>
                       {i < lifecycleSteps.length - 1 && (
                         <span className='w-8 h-px bg-stone-300' aria-hidden='true' />
@@ -1294,11 +1481,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 })}
               </ol>
               <div className='flex items-center gap-2 flex-wrap text-sm'>
-                <span className='text-stone-500'>Đang chờ:</span>
+                <span className='text-stone-500'>
+                  {t('bible.detailModal.waitingFor', 'Đang chờ:')}
+                </span>
                 <span className='font-semibold text-stone-800'>{waitingFor}</span>
                 {isMyTurn && (
                   <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 text-xs font-semibold'>
-                    Đến lượt bạn
+                    {t('bible.detailModal.yourTurn', 'Đến lượt bạn')}
                   </span>
                 )}
               </div>
@@ -1306,57 +1495,86 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
             {/* ================= SINGLE CONTEXTUAL STATUS ALERT (LUCIAN INLINE ALERT) ================= */}
             {activeRevision?.reviewStatus === 'ReworkRequired' ? (
-              <LucianInlineAlert
-                type='warning'
-                title='Yêu cầu chỉnh sửa bản vẽ từ Writer / Editor'
-                description={
-                  activeRevision.reworkFeedback ||
-                  'Writer yêu cầu chỉnh sửa lại thiết kế cho giai đoạn này.'
-                }
-                details={`Giai đoạn: "${activeStage?.stageName || 'Chuẩn'}" · Hiệu lực từ Chương ${activeStage?.effectiveFromChapterNumber ?? 1} đến ${activeStage?.effectiveToChapterNumber || 'hết truyện'}. Vui lòng chỉnh sửa nét vẽ theo yêu cầu trên và nộp lại.`}
-                dismissible={false}
-              />
-            ) : activeRevision?.reviewStatus === 'ConceptSubmitted' && !activeRevision.isLocked ? (
-              <LucianInlineAlert
-                type='info'
-                title='Bản vẽ Model Sheet đã nộp – Đang chờ kiểm duyệt'
-                description='Bản thiết kế đang chờ Writer/Editor xác nhận. Nếu bạn phát hiện đã tải nhầm ảnh hoặc muốn cập nhật nét vẽ tốt hơn trước khi được duyệt, bạn có thể nộp lại ngay.'
-                details={`Giai đoạn: "${activeStage?.stageName || 'Chuẩn'}" · Lần sửa #${activeRevision.versionNumber}.`}
-                dismissible={false}
-              />
-            ) : activeRevision?.isLocked || activeRevision?.reviewStatus === 'CanonLocked' ? (
-              <div className='p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-start gap-3 text-sm text-emerald-950 shadow-2xs'>
-                <div className='w-8 h-8 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0'>
-                  <Lock className='w-4 h-4' />
-                </div>
+              <Alert
+                tone='warning'
+                title={t(
+                  'bible.detailModal.reworkAlertTitle',
+                  'Yêu cầu chỉnh sửa bản vẽ từ Writer / Editor',
+                )}
+              >
+                {activeRevision.reworkFeedback ||
+                  t(
+                    'bible.detailModal.reworkAlertDefault',
+                    'Writer yêu cầu chỉnh sửa lại thiết kế cho giai đoạn này.',
+                  )}{' '}
+                {t(
+                  'bible.detailModal.reworkAlertDetails',
+                  {
+                    variant:
+                      activeVariant?.variantLabel ||
+                      t('bible.detailModal.defaultVariant', 'Mặc định'),
+                  },
+                  `Biến thể: "${activeVariant?.variantLabel || t('bible.detailModal.defaultVariant', 'Mặc định')}". Vui lòng chỉnh sửa nét vẽ theo yêu cầu trên và nộp lại.`,
+                )}
+              </Alert>
+            ) : activeRevision?.reviewStatus === 'ConceptSubmitted' ? (
+              <Alert
+                tone='info'
+                title={t(
+                  'bible.detailModal.submittedAlertTitle',
+                  'Bản vẽ Model Sheet đã nộp – Đang chờ kiểm duyệt',
+                )}
+              >
+                {t(
+                  'bible.detailModal.submittedAlertDesc',
+                  'Bản thiết kế đang chờ Writer/Editor xác nhận. Nếu bạn phát hiện đã tải nhầm ảnh hoặc muốn cập nhật nét vẽ tốt hơn trước khi được duyệt, bạn có thể nộp lại ngay.',
+                )}{' '}
+                {t(
+                  'bible.detailModal.submittedAlertDetails',
+                  {
+                    variant: activeVariant?.variantLabel || 'Mặc định',
+                    version: activeRevision.versionNumber,
+                  },
+                  `Biến thể: "${activeVariant?.variantLabel || 'Mặc định'}" · Lần sửa #${activeRevision.versionNumber}.`,
+                )}
+              </Alert>
+            ) : activeRevision?.reviewStatus === 'CanonLocked' ? (
+              <Alert
+                tone='success'
+                title={t('bible.detailModal.canonLockedBadge', 'Đã khóa chuẩn (Canon Locked)')}
+              >
                 <div className='space-y-1 flex-1 min-w-0'>
                   <div className='flex items-center gap-2 flex-wrap'>
-                    <span className='font-bold uppercase tracking-wider text-xs bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full'>
-                      Đã khóa chuẩn (Canon Locked)
-                    </span>
-                    <span className='text-xs font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
-                      {activeStage?.stageName ? `${activeStage.stageName} · ` : ''}
-                      Ch.{activeRevision?.effectiveFromChapterNumber ?? 1}
-                      {activeRevision?.effectiveToChapterNumber
-                        ? `–${activeRevision.effectiveToChapterNumber}`
-                        : ' → hết'}
-                    </span>
+                    {activeVariant?.variantLabel && (
+                      <span className='text-xs font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
+                        {activeVariant.variantLabel}
+                      </span>
+                    )}
                     <span className='font-mono font-bold text-xs bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded'>
-                      Lần sửa #{activeRevision.versionNumber}
+                      {t(
+                        'bible.detailModal.revisionNumber',
+                        { number: activeRevision.versionNumber },
+                        `Lần sửa #${activeRevision.versionNumber}`,
+                      )}
                     </span>
                     {activeRevision.lockedAt && (
                       <span className='text-xs font-medium text-amber-800'>
-                        • Đã duyệt {new Date(activeRevision.lockedAt).toLocaleDateString('vi-VN')}
+                        {t(
+                          'bible.detailModal.approvedAt',
+                          { date: new Date(activeRevision.lockedAt).toLocaleDateString('vi-VN') },
+                          `• Đã duyệt ${new Date(activeRevision.lockedAt).toLocaleDateString('vi-VN')}`,
+                        )}
                       </span>
                     )}
                   </div>
                   <p className='text-xs text-amber-900/90 leading-relaxed'>
-                    Bản thiết kế cho giai đoạn này đã được Producer phê duyệt chính thức (Canon
-                    Locked). Toàn bộ đội ngũ sản xuất sử dụng bản vẽ này làm quy chuẩn tham chiếu
-                    thống nhất.
+                    {t(
+                      'bible.detailModal.canonLockedDesc',
+                      'Bản thiết kế cho giai đoạn này đã được Editor xác nhận chính thức (Canon Locked). Toàn bộ đội ngũ sản xuất sử dụng bản vẽ này làm quy chuẩn tham chiếu thống nhất.',
+                    )}
                   </p>
                 </div>
-              </div>
+              </Alert>
             ) : null}
 
             <div
@@ -1371,39 +1589,30 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <span>{card1Title}</span>
                       <span
                         className='px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200 text-xs font-mono font-medium'
-                        title='Số trường đặc tả đã điền'
+                        title={t(
+                          'bible.detailModal.specFilledCountTitle',
+                          'Số trường đặc tả đã điền',
+                        )}
                         data-testid='spec-completeness'
                       >
                         {specProgress.filled}/{specProgress.total}
                       </span>
                     </div>
                     <div className='flex items-center gap-1.5'>
-                      {canCreateDraft && (
+                      {effectiveCanCreateDraft && (
                         <button
                           type='button'
                           onClick={() => onOpenAddRevision(entity, activeRevision)}
                           className='inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-orange-50 border border-stone-200 hover:border-orange-300 text-stone-700 hover:text-orange-700 text-xs font-semibold rounded-lg transition-all cursor-pointer shadow-2xs'
-                          title='Cập nhật đặc tả thông số cho mục này'
+                          title={t(
+                            'bible.detailModal.editSpecTitle',
+                            'Cập nhật đặc tả thông số cho mục này',
+                          )}
                         >
                           <Edit3 className='w-3 h-3 text-orange-600' />
-                          <span>Sửa</span>
+                          <span>{t('bible.detailModal.editSpecBtn', 'Sửa')}</span>
                         </button>
                       )}
-                      {canCreateDraft &&
-                        activeStage &&
-                        !activeStage.isLocked &&
-                        !activeStage.revisions.some((r) => r.isInitialVersion) &&
-                        onDeleteEra && (
-                          <button
-                            type='button'
-                            onClick={() => setEraToDelete(activeStage)}
-                            className='p-1 bg-white hover:bg-rose-50 border border-stone-200 hover:border-rose-300 text-stone-600 hover:text-rose-600 rounded-lg transition-all cursor-pointer shadow-2xs'
-                            title='Xóa toàn bộ thời kỳ này'
-                            data-testid='delete-era-btn'
-                          >
-                            <Trash2 className='w-3 h-3' />
-                          </button>
-                        )}
                     </div>
                   </div>
 
@@ -1420,7 +1629,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         </p>
                         <dl className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
                           {group.fields.map((field) => {
-                            const value = String(stageAttributes.raw[field.key] ?? '').trim();
+                            const value = String(variantAttributes.raw[field.key] ?? '').trim();
                             const isForbidden = field.key === 'forbidden' && value !== '';
                             return (
                               <div
@@ -1441,7 +1650,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                       : 'mt-0.5 text-xs italic text-stone-500'
                                   }
                                 >
-                                  {value || 'Chưa thiết lập'}
+                                  {value || t('bible.detailModal.notConfigured', 'Chưa thiết lập')}
                                 </dd>
                               </div>
                             );
@@ -1457,7 +1666,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 <section className='min-w-0 space-y-3.5' data-testid='bible-artwork-column'>
                   {SPEC_DELIVERABLES[normalizedCategory] && (
                     <div className='bg-amber-50/60 border border-amber-200 rounded-xl px-3.5 py-2.5 text-sm text-amber-900 flex items-center gap-2 flex-wrap'>
-                      <span className='font-semibold'>Artist cần nộp:</span>
+                      <span className='font-semibold'>
+                        {t('bible.detailModal.artistMustSubmit', 'Artist cần nộp:')}
+                      </span>
                       {SPEC_DELIVERABLES[normalizedCategory]!.map((d) => (
                         <span
                           key={d}
@@ -1519,7 +1730,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               })
                             }
                             className='p-1.5 rounded-lg border border-stone-200 hover:bg-white text-stone-600 hover:text-orange-600 transition shadow-2xs cursor-pointer'
-                            title='Phóng to ảnh'
+                            title={t('bible.detailModal.zoomImageTitle', 'Phóng to ảnh')}
                           >
                             <Eye className='w-4 h-4' />
                           </button>
@@ -1554,7 +1765,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           />
                           <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5 backdrop-blur-[1px]'>
                             <Eye className='w-4 h-4' />
-                            <span>Bấm để phóng to xem đầy đủ</span>
+                            <span>
+                              {t('bible.detailModal.zoomToViewFull', 'Bấm để phóng to xem đầy đủ')}
+                            </span>
                           </div>
                         </div>
 
@@ -1562,8 +1775,16 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         {entity.gallery && entity.gallery.length > 0 && (
                           <div className='space-y-1.5 pt-2 border-t border-stone-200/80'>
                             <div className='flex items-center justify-between text-xs font-semibold text-stone-700'>
-                              <span>Góc nhìn &amp; Biểu cảm ({entity.gallery.length}):</span>
-                              <span className='text-xs text-stone-500'>Bấm để đổi góc xem</span>
+                              <span>
+                                {t(
+                                  'bible.detailModal.anglesAndExpressions',
+                                  { count: entity.gallery.length },
+                                  `Góc nhìn & Biểu cảm (${entity.gallery.length}):`,
+                                )}
+                              </span>
+                              <span className='text-xs text-stone-500'>
+                                {t('bible.detailModal.clickToChangeAngle', 'Bấm để đổi góc xem')}
+                              </span>
                             </div>
                             <div className='flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar'>
                               {entity.imageUrl && (
@@ -1571,7 +1792,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                   type='button'
                                   onClick={() => {
                                     setSelectedImageUrl(entity.imageUrl!);
-                                    setSelectedImageTitle(`${entity.name} - Mặt chính diện`);
+                                    setSelectedImageTitle(
+                                      `${entity.name} - ${t('bible.detailModal.frontView', 'Mặt chính diện')}`,
+                                    );
                                   }}
                                   className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border shrink-0 transition-all cursor-pointer ${
                                     selectedImageUrl === entity.imageUrl
@@ -1587,7 +1810,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                     />
                                   </div>
                                   <span className='text-xs font-medium text-stone-800'>
-                                    Mặt chính diện
+                                    {t('bible.detailModal.frontView', 'Mặt chính diện')}
                                   </span>
                                 </button>
                               )}
@@ -1598,7 +1821,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                   onClick={() => {
                                     setSelectedImageUrl(img.url);
                                     setSelectedImageTitle(
-                                      `${entity.name} - ${img.label || `Góc ${i + 1}`}`,
+                                      `${entity.name} - ${img.label || t('bible.detailModal.angleNumber', { number: i + 1 }, `Góc ${i + 1}`)}`,
                                     );
                                   }}
                                   className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border shrink-0 transition-all cursor-pointer ${
@@ -1615,7 +1838,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                     />
                                   </div>
                                   <span className='text-xs font-medium text-stone-800'>
-                                    {img.label || `Góc ${i + 1}`}
+                                    {img.label ||
+                                      t(
+                                        'bible.detailModal.angleNumber',
+                                        { number: i + 1 },
+                                        `Góc ${i + 1}`,
+                                      )}
                                   </span>
                                 </button>
                               ))}
@@ -1627,13 +1855,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <div
                         onDragOver={(e) => {
                           e.preventDefault();
-                          if (canCreateDraft) setIsDraggingOver(true);
+                          if (effectiveCanCreateDraft) setIsDraggingOver(true);
                         }}
                         onDragLeave={() => setIsDraggingOver(false)}
                         onDrop={(e) => {
                           e.preventDefault();
                           setIsDraggingOver(false);
-                          if (canCreateDraft) {
+                          if (effectiveCanCreateDraft) {
                             onOpenAddRevision(entity, activeRevision);
                           }
                         }}
@@ -1648,7 +1876,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         </div>
                         <div className='max-w-md space-y-1.5'>
                           <div className='text-sm sm:text-base font-bold text-stone-900'>
-                            Chưa có ảnh Reference Sheet cho mục này
+                            {t(
+                              'bible.detailModal.noReferenceImage',
+                              'Chưa có ảnh Reference Sheet cho mục này',
+                            )}
                           </div>
                           <p className='text-xs text-stone-500 leading-relaxed'>
                             {isArtistUser
@@ -1656,7 +1887,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               : visualCardInfo.emptyWriterPrompt}
                           </p>
                         </div>
-                        {canCreateDraft && (
+                        {effectiveCanCreateDraft && (
                           <div className='flex flex-col items-center gap-2 pt-2'>
                             <button
                               type='button'
@@ -1664,17 +1895,27 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                 onOpenAddRevision(entity, activeRevision);
                               }}
                               className='inline-flex items-center gap-2 px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-[0.98]'
-                              title='Tải lên bản vẽ tham chiếu Model Sheet mới'
+                              title={t(
+                                'bible.detailModal.uploadModelSheetTitle',
+                                'Tải lên bản vẽ tham chiếu Model Sheet mới',
+                              )}
                             >
                               <Upload className='w-4 h-4' />
-                              <span>Tải lên Model Sheet</span>
+                              <span>
+                                {t('bible.detailModal.uploadModelSheet', 'Tải lên Model Sheet')}
+                              </span>
                             </button>
                             <div className='flex items-center gap-1.5 text-xs text-stone-400'>
-                              <span>Kéo thả file ảnh vào đây hoặc nhấn</span>
+                              <span>
+                                {t(
+                                  'bible.detailModal.dragDropOrPaste',
+                                  'Kéo thả file ảnh vào đây hoặc nhấn',
+                                )}
+                              </span>
                               <kbd className='px-1.5 py-0.5 bg-stone-200/80 border border-stone-300 rounded font-mono text-xs text-stone-700 font-semibold'>
                                 Ctrl + V
                               </kbd>
-                              <span>để dán</span>
+                              <span>{t('bible.detailModal.toPaste', 'để dán')}</span>
                             </div>
                             <button
                               type='button'
@@ -1686,8 +1927,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               <Edit3 className='w-3 h-3 text-stone-500' />
                               <span>
                                 {isWriterUser
-                                  ? 'Chỉnh sửa đặc tả / Cập nhật kịch bản'
-                                  : 'Tạo phiên bản mới để thêm ảnh'}
+                                  ? t(
+                                      'bible.detailModal.editSpecOrNewVerWriter',
+                                      'Chỉnh sửa đặc tả / Cập nhật kịch bản',
+                                    )
+                                  : t(
+                                      'bible.detailModal.editSpecOrNewVerArtist',
+                                      'Tạo phiên bản mới để thêm ảnh',
+                                    )}
                               </span>
                             </button>
                           </div>
@@ -1702,23 +1949,30 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         {!selectedImageUrl ? (
                           <span className='inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200'>
                             <Clock className='w-3 h-3 text-amber-600' />
-                            Chờ Họa sĩ tải lên bản vẽ
+                            {t(
+                              'bible.detailModal.waitingArtistUpload',
+                              'Chờ Họa sĩ tải lên bản vẽ',
+                            )}
+                          </span>
+                        ) : activeRevision?.reviewStatus === 'CanonLocked' ? (
+                          <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200'>
+                            <CheckCircle2 className='w-3 h-3 text-emerald-600' />
+                            {t('bible.detailModal.canonLockedOfficial', 'Đã khoá Canon chính thức')}
                           </span>
                         ) : activeRevision?.reviewStatus === 'Draft' ? (
                           <span className='inline-flex items-center gap-1 text-xs font-medium text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200'>
-                            Bản thảo (Chưa nộp duyệt)
+                            {t('bible.detailModal.draftUnsubmitted', 'Bản thảo (Chưa nộp duyệt)')}
                           </span>
                         ) : activeRevision?.reviewStatus === 'ConceptSubmitted' ? (
                           <span className='inline-flex items-center gap-1 text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 animate-pulse'>
-                            ● Chờ Writer / Editor duyệt thiết kế
-                          </span>
-                        ) : activeRevision?.reviewStatus === 'WriterEndorsed' ? (
-                          <span className='inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200'>
-                            Writer/Editor đã xác nhận (chờ Producer khoá Canon)
+                            {t(
+                              'bible.detailModal.waitingEditorConfirm',
+                              '● Chờ Editor xác nhận & khoá Canon',
+                            )}
                           </span>
                         ) : activeRevision?.reviewStatus === 'ReworkRequired' ? (
                           <span className='inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200'>
-                            ↺ Yêu cầu vẽ lại
+                            {t('bible.detailModal.reworkRequested', '↺ Yêu cầu vẽ lại')}
                           </span>
                         ) : null}
                       </div>
@@ -1731,20 +1985,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               <button
                                 type='button'
                                 onClick={() => {
-                                  onOpenAddRevision(
-                                    entity,
-                                    null,
-                                    true,
-                                    activeRevision.effectiveFromChapterNumber,
-                                    undefined,
-                                    true,
-                                  );
+                                  onOpenAddRevision(entity, null, true, undefined, true);
                                 }}
                                 className='px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
                                 data-testid='detail-artist-resubmit-btn'
                               >
                                 <RotateCcw className='w-3.5 h-3.5' />
-                                <span>🔄 Nộp lại bản vẽ</span>
+                                <span>
+                                  {t('bible.detailModal.artistResubmitBtn', '🔄 Nộp lại bản vẽ')}
+                                </span>
                               </button>
                             )}
                             {activeRevision?.reviewStatus === 'ReworkRequired' && (
@@ -1755,7 +2004,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                     entity,
                                     null,
                                     true,
-                                    activeRevision.effectiveFromChapterNumber,
                                     activeRevision.reworkFeedback || undefined,
                                     false,
                                   );
@@ -1764,104 +2012,371 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                 data-testid='detail-artist-rework-btn'
                               >
                                 <RotateCcw className='w-3.5 h-3.5' />
-                                <span>Nộp bản vẽ sửa đổi</span>
+                                <span>
+                                  {t('bible.detailModal.artistReworkBtn', 'Nộp bản vẽ sửa đổi')}
+                                </span>
                               </button>
                             )}
                           </>
                         )}
 
-                        {/* Review Actions (Writer/Editor Endorse & Request Rework) */}
-                        {canRequestRework && activeRevision && (
-                          <div className='flex items-center gap-2'>
-                            {canEndorse && (
-                              <button
-                                type='button'
-                                disabled={
-                                  isEndorsing || activeRevision.reviewStatus === 'WriterEndorsed'
-                                }
-                                onClick={() => void handleEndorse(activeRevision)}
-                                className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-xs transition-all ${
-                                  activeRevision.reviewStatus === 'WriterEndorsed'
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-default'
-                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-[0.98]'
-                                } disabled:opacity-60`}
-                                data-testid='detail-endorse-btn'
-                              >
-                                <CheckCircle2 className='w-3.5 h-3.5' />
-                                <span>
-                                  {isEndorsing
-                                    ? 'Đang duyệt...'
-                                    : activeRevision.reviewStatus === 'WriterEndorsed'
-                                      ? 'Đã duyệt thiết kế'
-                                      : 'Duyệt thiết kế'}
-                                </span>
-                              </button>
-                            )}
-                            <button
-                              type='button'
-                              disabled={
-                                activeRevision.reviewStatus === 'WriterEndorsed' ||
-                                activeRevision.isLocked ||
-                                isEndorsing
-                              }
-                              onClick={() => handleRequestRework(activeRevision)}
-                              className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all ${
-                                activeRevision.reviewStatus === 'WriterEndorsed' ||
-                                activeRevision.isLocked
-                                  ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed opacity-50'
-                                  : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer active:scale-[0.98]'
-                              }`}
-                              title={
-                                activeRevision.reviewStatus === 'WriterEndorsed' ||
-                                activeRevision.isLocked
-                                  ? 'Phiên bản này đã được duyệt/khoá, không thể yêu cầu vẽ lại.'
-                                  : 'Yêu cầu Artist chỉnh sửa lại bản vẽ'
-                              }
-                              data-testid='detail-rework-btn'
-                            >
-                              <MessageSquare className='w-3.5 h-3.5' />
-                              <span>Yêu cầu sửa</span>
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Producer Canon Lock Action */}
-                        {isProducerUser &&
-                          (entity.isVisualDesign ?? isCharacter) &&
+                        {/* Editor Confirm (= Lock Canon) Action per Q20/Q22 */}
+                        {isEditorUser &&
+                          !isProducerUser &&
+                          (entity.isVisualDesign ?? (isCharacter || isLocation || isProp)) &&
                           activeRevision &&
-                          !activeRevision.isLocked &&
                           activeRevision.reviewStatus !== 'CanonLocked' && (
                             <button
                               type='button'
                               disabled={
-                                isLocking ||
-                                (activeRevision.reviewStatus !== 'WriterEndorsed' &&
-                                  activeRevision.reviewStatus !== 4)
+                                isLocking || activeRevision.reviewStatus === 'ReworkRequired'
                               }
                               onClick={() => void handleLock(activeRevision)}
-                              className='px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow transition-all cursor-pointer disabled:opacity-50'
-                              data-testid='detail-lock-btn'
+                              className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-xs transition-all ${
+                                activeRevision.reviewStatus === 'ReworkRequired'
+                                  ? 'bg-stone-200 text-stone-500 cursor-not-allowed opacity-60'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-[0.98]'
+                              }`}
                               title={
-                                activeRevision.reviewStatus !== 'WriterEndorsed' &&
-                                activeRevision.reviewStatus !== 4
-                                  ? 'Chỉ có thể khoá Canon phiên bản đã được Writer/Editor xác nhận (WriterEndorsed) (BR-01)'
-                                  : 'Khóa phiên bản này làm quy chuẩn chính thức cho toàn bộ dự án'
+                                activeRevision.reviewStatus === 'ReworkRequired'
+                                  ? t(
+                                      'bible.detailModal.confirmAndLockReworkWarning',
+                                      'Bản vẽ đang bị yêu cầu vẽ lại; cần Artist nộp lại concept trước khi duyệt',
+                                    )
+                                  : t(
+                                      'bible.detailModal.confirmAndLockTitle',
+                                      'Xác nhận thiết kế và khoá Canon',
+                                    )
                               }
+                              data-testid='detail-confirm-btn'
                             >
-                              <Lock className='w-3.5 h-3.5' />
-                              <span>{isLocking ? 'Đang khóa...' : 'Khóa Canon chính thức'}</span>
+                              <span className='inline-flex items-center gap-1.5'>
+                                <CheckCircle2 className='w-3.5 h-3.5' />
+                                <span>
+                                  {isLocking
+                                    ? t('bible.detailModal.confirmingLock', 'Đang xác nhận...')
+                                    : t(
+                                        'bible.detailModal.confirmAndLockBtn',
+                                        'Xác nhận & khoá Canon',
+                                      )}
+                                </span>
+                              </span>
                             </button>
                           )}
 
+                        {/* Request Rework Action (Writer + Editor + Producer per Q22) */}
+                        {canRequestRework && activeRevision && (
+                          <button
+                            type='button'
+                            disabled={activeRevision.reviewStatus === 'CanonLocked' || isLocking}
+                            onClick={() => handleRequestRework(activeRevision)}
+                            className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all ${
+                              activeRevision.reviewStatus === 'CanonLocked'
+                                ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed opacity-50'
+                                : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer active:scale-[0.98]'
+                            }`}
+                            title={
+                              activeRevision.reviewStatus === 'CanonLocked'
+                                ? t(
+                                    'bible.detailModal.reworkLockedNotice',
+                                    'Phiên bản này đã khoá Canon, không thể yêu cầu vẽ lại.',
+                                  )
+                                : t(
+                                    'bible.detailModal.requestArtistRework',
+                                    'Yêu cầu Artist chỉnh sửa lại bản vẽ',
+                                  )
+                            }
+                            data-testid='detail-rework-btn'
+                          >
+                            <MessageSquare className='w-3.5 h-3.5' />
+                            <span>{t('bible.detailModal.reworkBtn', 'Yêu cầu sửa')}</span>
+                          </button>
+                        )}
+
                         {/* Canon locked status badge */}
-                        {(activeRevision?.isLocked ||
-                          activeRevision?.reviewStatus === 'CanonLocked' ||
+                        {(activeRevision?.reviewStatus === 'CanonLocked' ||
                           !(entity.isVisualDesign ?? isCharacter)) && (
                           <div className='px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center gap-1.5'>
                             <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                            <span>Tham chiếu {getCategoryLabel(entity.category)}</span>
+                            <span>
+                              {t(
+                                'bible.detailModal.referenceForCategory',
+                                { category: getCategoryLabel(entity.category) },
+                                `Tham chiếu ${getCategoryLabel(entity.category)}`,
+                              )}
+                            </span>
                           </div>
                         )}
+                      </div>
+                    </div>
+
+                    {/* CONCEPT REVIEW: VERSIONS LIST (BIB-10 FE) */}
+                    {conceptVersions.length > 0 && (
+                      <div
+                        className='mt-4 pt-3 border-t border-stone-200/80 space-y-2'
+                        data-testid='concept-versions-list'
+                      >
+                        <div className='flex items-center justify-between text-xs font-bold text-stone-700'>
+                          <div className='flex items-center gap-1.5'>
+                            <History className='w-3.5 h-3.5 text-orange-600' />
+                            <span>
+                              {t(
+                                'bible.detailModal.conceptSubmissions',
+                                { count: conceptVersions.length },
+                                `Các bản nộp Concept Art (${conceptVersions.length})`,
+                              )}
+                            </span>
+                          </div>
+                          <span className='text-stone-400 font-normal'>
+                            {t(
+                              'bible.detailModal.clickToReviewSubmissions',
+                              'Nhấn để xem lại từng bản nộp',
+                            )}
+                          </span>
+                        </div>
+                        <div className='flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar'>
+                          {conceptVersions.map((evt, idx) => {
+                            const verNum = evt.conceptVersionNumber ?? idx + 1;
+                            const isSelected =
+                              selectedConceptEventId === evt.id ||
+                              (!selectedConceptEventId && idx === conceptVersions.length - 1);
+                            return (
+                              <button
+                                key={evt.id || idx}
+                                type='button'
+                                title={evt.comment || undefined}
+                                onClick={() => {
+                                  setSelectedConceptEventId(evt.id || null);
+                                }}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-medium border shrink-0 transition-all cursor-pointer flex items-center gap-2 ${
+                                  isSelected
+                                    ? 'bg-orange-50 border-orange-500 text-orange-800 shadow-2xs font-bold ring-1 ring-orange-500/30'
+                                    : 'bg-white border-stone-200 text-stone-700 hover:border-stone-300'
+                                }`}
+                                data-testid={`concept-version-item-${verNum}`}
+                              >
+                                <span className='w-2 h-2 rounded-full bg-orange-500' />
+                                <span>Concept v{verNum}</span>
+                                <span className='text-stone-400 font-mono text-xs'>
+                                  {evt.createdAt
+                                    ? new Date(evt.createdAt).toLocaleDateString('vi-VN')
+                                    : ''}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CONCEPT REVIEW: COMMENTS SECTION (BIB-10 FE) */}
+                    <div
+                      className='mt-4 pt-4 border-t border-stone-200/80 space-y-3'
+                      data-testid='concept-comments-section'
+                    >
+                      <div className='flex items-center justify-between'>
+                        <div className='flex items-center gap-2 text-xs sm:text-sm font-bold text-stone-900'>
+                          <MessageSquare className='w-4 h-4 text-[#F97316]' />
+                          <span>
+                            {t('bible.detailModal.conceptCommentsTitle', 'Nhận xét Concept Art')}
+                          </span>
+                          <span className='px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold'>
+                            {conceptComments.length}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Comments List */}
+                      {loadingComments ? (
+                        <div className='py-4 text-center text-xs text-stone-500'>
+                          {t('bible.detailModal.loadingComments', 'Đang tải nhận xét...')}
+                        </div>
+                      ) : conceptComments.length === 0 ? (
+                        <div className='p-3 text-center text-xs text-stone-400 italic bg-stone-50/60 rounded-xl border border-stone-200/60'>
+                          {t(
+                            'bible.detailModal.noCommentsYet',
+                            'Chưa có nhận xét nào cho bản vẽ này.',
+                          )}
+                        </div>
+                      ) : (
+                        <div className='space-y-2.5 max-h-80 overflow-y-auto custom-scrollbar pr-1'>
+                          {conceptComments.map((c) => {
+                            const isResolved = Boolean(c.resolvedAt);
+                            return (
+                              <div
+                                key={c.id}
+                                className={`p-3 rounded-xl border text-xs space-y-2 transition-all ${
+                                  isResolved
+                                    ? 'bg-stone-50/70 border-stone-200 text-stone-500 opacity-80'
+                                    : 'bg-white border-stone-200 shadow-2xs text-stone-800'
+                                }`}
+                                data-testid={`concept-comment-${c.id}`}
+                              >
+                                <div className='flex items-center justify-between gap-2'>
+                                  <div className='flex items-center gap-2 min-w-0'>
+                                    <span className='font-bold text-stone-900 truncate'>
+                                      {c.authorId
+                                        ? t(
+                                            'bible.detailModal.memberWithId',
+                                            { id: c.authorId.slice(0, 8) },
+                                            `Thành viên (${c.authorId.slice(0, 8)})`,
+                                          )
+                                        : t('bible.detailModal.memberLabel', 'Thành viên')}
+                                    </span>
+                                    <span className='text-stone-400 font-mono text-xs'>
+                                      {new Date(c.createdAt).toLocaleDateString('vi-VN')}
+                                    </span>
+                                  </div>
+                                  <div className='flex items-center gap-1.5 shrink-0'>
+                                    {isResolved && (
+                                      <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200'>
+                                        <Check className='w-3 h-3 text-emerald-600' />
+                                        {t('bible.detailModal.resolvedBadge', 'Đã giải quyết')}
+                                      </span>
+                                    )}
+                                    {(isWriterUser || isEditorUser) && (
+                                      <button
+                                        type='button'
+                                        onClick={() => void handleResolveComment(c.id, isResolved)}
+                                        className='px-2 py-0.5 text-xs font-medium text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded border border-stone-200 transition cursor-pointer'
+                                        data-testid={`resolve-comment-btn-${c.id}`}
+                                        title={
+                                          isResolved
+                                            ? t(
+                                                'bible.detailModal.reopenCommentTitle',
+                                                'Mở lại nhận xét',
+                                              )
+                                            : t(
+                                                'bible.detailModal.resolveCommentTitle',
+                                                'Đánh dấu đã giải quyết',
+                                              )
+                                        }
+                                      >
+                                        {isResolved
+                                          ? t('bible.detailModal.reopenBtn', 'Mở lại')
+                                          : t('bible.detailModal.resolveBtn', 'Giải quyết')}
+                                      </button>
+                                    )}
+                                    <button
+                                      type='button'
+                                      onClick={() =>
+                                        setActiveReplyId(activeReplyId === c.id ? null : c.id)
+                                      }
+                                      className='px-2 py-0.5 text-xs font-medium text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 rounded border border-orange-200 transition cursor-pointer flex items-center gap-1'
+                                      data-testid={`reply-comment-btn-${c.id}`}
+                                    >
+                                      <CornerDownRight className='w-3 h-3' />
+                                      <span>{t('bible.detailModal.replyBtn', 'Trả lời')}</span>
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <p className='text-xs leading-relaxed text-stone-800 whitespace-pre-wrap'>
+                                  {c.body}
+                                </p>
+
+                                {/* Nested Replies */}
+                                {c.replies && c.replies.length > 0 && (
+                                  <div className='pl-3 border-l-2 border-stone-200 space-y-1.5 pt-1 mt-1'>
+                                    {c.replies.map((r) => (
+                                      <div
+                                        key={r.id}
+                                        className='bg-stone-50 p-2 rounded-lg text-xs space-y-1'
+                                      >
+                                        <div className='flex items-center gap-2 text-xs text-stone-500'>
+                                          <span className='font-bold text-stone-800'>
+                                            {r.authorId
+                                              ? t(
+                                                  'bible.detailModal.memberWithId',
+                                                  { id: r.authorId.slice(0, 8) },
+                                                  `Thành viên (${r.authorId.slice(0, 8)})`,
+                                                )
+                                              : t('bible.detailModal.memberLabel', 'Thành viên')}
+                                          </span>
+                                          <span className='font-mono'>
+                                            {new Date(r.createdAt).toLocaleDateString('vi-VN')}
+                                          </span>
+                                        </div>
+                                        <p className='text-stone-700'>{r.body}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Inline Reply Box */}
+                                {activeReplyId === c.id && (
+                                  <div className='pt-2 flex items-center gap-2'>
+                                    <input
+                                      type='text'
+                                      value={replyTextMap[c.id] || ''}
+                                      onChange={(e) =>
+                                        setReplyTextMap((prev) => ({
+                                          ...prev,
+                                          [c.id]: e.target.value,
+                                        }))
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                          if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
+                                          e.preventDefault();
+                                          void handleReplyComment(c.id);
+                                        }
+                                      }}
+                                      placeholder={t(
+                                        'bible.detailModal.replyPlaceholder',
+                                        'Viết câu trả lời...',
+                                      )}
+                                      className='flex-1 px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F97316]'
+                                      data-testid={`reply-input-${c.id}`}
+                                    />
+                                    <button
+                                      type='button'
+                                      disabled={submittingComment || !replyTextMap[c.id]?.trim()}
+                                      onClick={() => void handleReplyComment(c.id)}
+                                      className='px-3 py-1.5 bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition cursor-pointer flex items-center gap-1'
+                                      data-testid={`submit-reply-btn-${c.id}`}
+                                    >
+                                      <Send className='w-3 h-3' />
+                                      <span>{t('bible.detailModal.sendReply', 'Gửi')}</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Add Comment Input */}
+                      <div className='pt-2 flex items-center gap-2'>
+                        <input
+                          type='text'
+                          value={newCommentText}
+                          onChange={(e) => setNewCommentText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
+                              e.preventDefault();
+                              void handleCreateComment();
+                            }
+                          }}
+                          placeholder={t(
+                            'bible.detailModal.newCommentPlaceholder',
+                            'Thêm nhận xét về bản vẽ Concept Art...',
+                          )}
+                          className='flex-1 px-3.5 py-2 text-xs bg-stone-50 hover:bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#F97316] transition'
+                          data-testid='create-concept-comment-input'
+                        />
+                        <button
+                          type='button'
+                          disabled={submittingComment || !newCommentText.trim()}
+                          onClick={() => void handleCreateComment()}
+                          className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-[0.98]'
+                          data-testid='create-concept-comment-btn'
+                        >
+                          <Send className='w-3.5 h-3.5' />
+                          <span>{t('bible.detailModal.sendComment', 'Gửi nhận xét')}</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1874,23 +2389,23 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                 <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
                   <History className='w-4 h-4 text-[#F97316]' />
-                  <span>Phiên bản &amp; Nhật ký</span>
+                  <span>{t('bible.detailModal.versionsAndAudit', 'Phiên bản & Nhật ký')}</span>
                 </div>
                 <button
                   type='button'
                   onClick={() => onOpenHistory(entity)}
                   className='text-xs font-semibold text-stone-600 hover:text-stone-900 px-2 py-0.5 rounded-md border border-stone-200 hover:bg-stone-50 transition cursor-pointer'
                 >
-                  Lịch sử
+                  {t('bible.detailModal.historyQuickBtn', 'Lịch sử')}
                 </button>
               </div>
 
               {/* Version list */}
               <div className='space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-0.5'>
-                {activeStage?.revisions && activeStage.revisions.length > 0 ? (
-                  activeStage.revisions.map((rev) => {
+                {activeVariant?.revisions && activeVariant.revisions.length > 0 ? (
+                  activeVariant.revisions.map((rev) => {
                     const isSelected = rev.id === activeRevision?.id;
-                    const isCanon = rev.isLocked || rev.reviewStatus === 'CanonLocked';
+                    const isCanon = rev.reviewStatus === 'CanonLocked';
                     return (
                       <div
                         key={rev.id}
@@ -1911,22 +2426,18 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold'
                                 : rev.reviewStatus === 'ConceptSubmitted'
                                   ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : rev.reviewStatus === 'WriterEndorsed'
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                    : rev.reviewStatus === 'ReworkRequired'
-                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                      : 'bg-stone-100 text-stone-600 border-stone-200'
+                                  : rev.reviewStatus === 'ReworkRequired'
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : 'bg-stone-100 text-stone-600 border-stone-200'
                             }`}
                           >
                             {isCanon
-                              ? 'Chính thức'
+                              ? t('bible.detailModal.officialBadge', 'Chính thức')
                               : rev.reviewStatus === 'ConceptSubmitted'
-                                ? 'Chờ thẩm định'
-                                : rev.reviewStatus === 'WriterEndorsed'
-                                  ? 'Biên kịch đã duyệt'
-                                  : rev.reviewStatus === 'ReworkRequired'
-                                    ? 'Yêu cầu sửa'
-                                    : 'Bản nháp'}
+                                ? t('bible.detailModal.pendingReview', 'Chờ thẩm định')
+                                : rev.reviewStatus === 'ReworkRequired'
+                                  ? t('bible.detailModal.stepRework', 'Yêu cầu sửa')
+                                  : t('bible.detailModal.draftBadge', 'Bản nháp')}
                           </span>
                         </div>
                         <span className='text-xs text-stone-400 font-mono'>
@@ -1937,7 +2448,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   })
                 ) : (
                   <div className='p-2 text-center text-xs text-stone-400 italic'>
-                    Chưa có phiên bản
+                    {t('bible.detailModal.noRevisions', 'Chưa có phiên bản')}
                   </div>
                 )}
               </div>
@@ -1948,35 +2459,42 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   <span className='font-bold text-stone-800 flex items-center gap-1.5'>
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        activeRevision?.isLocked ? 'bg-emerald-500' : 'bg-amber-500'
+                        activeRevision?.reviewStatus === 'CanonLocked'
+                          ? 'bg-emerald-500'
+                          : 'bg-amber-500'
                       }`}
                     />
                     v{activeRevision?.versionNumber ?? 1} (
-                    {activeRevision?.isLocked
-                      ? 'Chính thức'
+                    {activeRevision?.reviewStatus === 'CanonLocked'
+                      ? t('bible.detailModal.officialBadge', 'Chính thức')
                       : activeRevision?.reviewStatus === 'ConceptSubmitted'
-                        ? 'Chờ thẩm định'
-                        : activeRevision?.reviewStatus === 'WriterEndorsed'
-                          ? 'Biên kịch đã duyệt'
-                          : activeRevision?.reviewStatus === 'ReworkRequired'
-                            ? 'Yêu cầu sửa'
-                            : 'Bản nháp'}
+                        ? t('bible.detailModal.pendingReview', 'Chờ thẩm định')
+                        : activeRevision?.reviewStatus === 'ReworkRequired'
+                          ? t('bible.detailModal.stepRework', 'Yêu cầu sửa')
+                          : t('bible.detailModal.draftBadge', 'Bản nháp')}
                     )
                   </span>
                   <span className='text-xs text-stone-500 font-medium'>
-                    {activeRevision?.isLocked ? 'Bất biến' : 'Có thể chỉnh sửa'}
+                    {activeRevision?.reviewStatus === 'CanonLocked'
+                      ? t('bible.detailModal.immutable', 'Bất biến')
+                      : t('bible.detailModal.editable', 'Có thể chỉnh sửa')}
                   </span>
                 </div>
 
-                {activeRevision?.isLocked && canCreateDraft && (
+                {activeRevision?.reviewStatus === 'CanonLocked' && effectiveCanCreateDraft && (
                   <button
                     type='button'
                     onClick={() => onOpenAddRevision(entity, activeRevision)}
                     className='w-full py-1.5 px-2 bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 font-semibold text-xs rounded-lg transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer mt-1'
-                    title='Tạo phiên bản kế thừa tiếp theo mà không ghi đè bản gốc đã khóa chuẩn'
+                    title={t(
+                      'bible.detailModal.supersedeLockedTitle',
+                      'Tạo phiên bản kế thừa tiếp theo mà không ghi đè bản gốc đã khóa chuẩn',
+                    )}
                   >
                     <Plus className='w-3 h-3' />
-                    <span>Thay thế bản khóa (Supersede)</span>
+                    <span>
+                      {t('bible.detailModal.supersedeLockedBtn', 'Thay thế bản khóa (Supersede)')}
+                    </span>
                   </button>
                 )}
               </div>
@@ -1984,9 +2502,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               {/* AUDIT TRAIL GỘP TRỰC TIẾP VÀO VERSION CARD */}
               <div className='space-y-2 pt-2 border-t border-stone-200/80'>
                 <div className='font-bold text-xs uppercase tracking-wider text-stone-700 flex items-center justify-between'>
-                  <span>Lịch sử thay đổi</span>
+                  <span>{t('bible.detailModal.changeHistoryTitle', 'Lịch sử thay đổi')}</span>
                   <span className='text-xs font-normal text-stone-400'>
-                    {auditLogs.length} sự kiện
+                    {t(
+                      'bible.detailModal.eventCount',
+                      { count: auditLogs.length },
+                      `${auditLogs.length} sự kiện`,
+                    )}
                   </span>
                 </div>
 
@@ -2025,60 +2547,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       >
         <div className='max-w-[1600px] mx-auto px-4 py-5 sm:px-6 lg:px-8'>{modalContent}</div>
       </div>
-
-      {/* Confirm Delete Revision Modal */}
-      <LucianConfirmModal
-        isOpen={!!revisionToDelete}
-        title='Xóa phiên bản'
-        description={`Bạn có chắc chắn muốn xóa phiên bản v${revisionToDelete?.versionNumber || ''} này không? Thao tác này không thể hoàn tác.`}
-        confirmText={isDeleting ? 'Đang xóa...' : 'Xóa phiên bản'}
-        cancelText='Hủy'
-        variant='danger'
-        onCancel={() => setRevisionToDelete(null)}
-        onConfirm={async () => {
-          if (!revisionToDelete || !onDeleteRevision) return;
-          try {
-            setIsDeleting(true);
-            await onDeleteRevision(entity, revisionToDelete);
-            setRevisionToDelete(null);
-            setAllRevisions((prev) => prev.filter((r) => r.id !== revisionToDelete.id));
-            if (selectedVersionId === revisionToDelete.id) {
-              setSelectedVersionId(null);
-            }
-          } catch (err: any) {
-            onShowToast('Lỗi', err.message || 'Không thể xóa phiên bản.');
-          } finally {
-            setIsDeleting(false);
-          }
-        }}
-      />
-
-      {/* Confirm Delete Era Modal */}
-      <LucianConfirmModal
-        isOpen={!!eraToDelete}
-        title='Xóa giai đoạn nhân vật'
-        description={`Bạn có chắc chắn muốn xóa thời kỳ "${eraToDelete?.stageName || ''}" (Chương ${eraToDelete?.effectiveFromChapterNumber || 1}) và tất cả các phiên bản liên quan chưa khóa? Thao tác này không thể hoàn tác.`}
-        confirmText={isDeleting ? 'Đang xóa...' : 'Xóa thời kỳ'}
-        cancelText='Hủy'
-        variant='danger'
-        onCancel={() => setEraToDelete(null)}
-        onConfirm={async () => {
-          if (!eraToDelete || !onDeleteEra) return;
-          try {
-            setIsDeleting(true);
-            await onDeleteEra(entity, eraToDelete);
-            const eraRevIds = new Set(eraToDelete.revisions.map((r) => r.id));
-            setEraToDelete(null);
-            setAllRevisions((prev) => prev.filter((r) => !eraRevIds.has(r.id)));
-            setSelectedStageKey('');
-            setSelectedVersionId(null);
-          } catch (err: any) {
-            onShowToast('Lỗi', err.message || 'Không thể xóa thời kỳ.');
-          } finally {
-            setIsDeleting(false);
-          }
-        }}
-      />
     </>
   );
 

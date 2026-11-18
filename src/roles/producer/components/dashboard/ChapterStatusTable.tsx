@@ -26,7 +26,7 @@ const ChapterRow: React.FC<{
   const hasPanels = (ch.panelCount || 0) > 0;
   const barTone = isSelected
     ? 'bg-studio-accent'
-    : ch.status === 'Approved' || ch.status === 'Published'
+    : ch.status === 'ChapterApproved' || ch.status === 'HandedOffAndPublished'
       ? 'bg-emerald-600'
       : 'bg-stone-400';
 
@@ -38,6 +38,7 @@ const ChapterRow: React.FC<{
       aria-pressed={isSelected}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
+          if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
           e.preventDefault();
           onSelect();
         }

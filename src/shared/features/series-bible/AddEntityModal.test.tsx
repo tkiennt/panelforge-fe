@@ -65,6 +65,9 @@ describe('AddEntityModal UX/UI improvements', () => {
     fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
       target: { value: 'Cố nhân của Tần Mục tại Diên Khang.' },
     });
+    fireEvent.change(screen.getByLabelText(/Nhãn biến thể tạo hình/i), {
+      target: { value: 'Mặc định' },
+    });
 
     const submitBtn = screen.getByRole('button', {
       name: /Lưu vào Series Bible/i,
@@ -82,7 +85,7 @@ describe('AddEntityModal UX/UI improvements', () => {
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  it('handles stageName and chapter range inputs and submits them', async () => {
+  it('handles variant label and crowd flag and submits them', async () => {
     render(<AddEntityModal {...defaultProps} isProducer={true} />);
 
     fireEvent.change(screen.getByLabelText(/Tên mục/i), {
@@ -91,15 +94,12 @@ describe('AddEntityModal UX/UI improvements', () => {
     fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
       target: { value: 'Chiến binh Saiyan' },
     });
-    fireEvent.change(screen.getByLabelText(/Tên giai đoạn \(Tùy chọn\)/i), {
+    fireEvent.change(screen.getByLabelText(/Nhãn biến thể tạo hình/i), {
       target: { value: 'Lúc nhỏ' },
     });
-    fireEvent.change(screen.getByLabelText(/Hiệu lực từ Chương số \*/i), {
-      target: { value: '1' },
-    });
-    fireEvent.change(screen.getByLabelText(/Đến Chương \(Để trống = tới hết truyện\)/i), {
-      target: { value: '19' },
-    });
+
+    const crowdCheckbox = screen.getByLabelText(/Cờ Quần chúng/i);
+    fireEvent.click(crowdCheckbox);
 
     const submitBtn = screen.getByRole('button', {
       name: /Lưu vào Series Bible/i,
@@ -110,9 +110,8 @@ describe('AddEntityModal UX/UI improvements', () => {
     expect(defaultProps.onAdd).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Goku',
-        stageName: 'Lúc nhỏ',
-        effectiveFromChapterNumber: 1,
-        effectiveToChapterNumber: 19,
+        variantLabel: 'Lúc nhỏ',
+        isCrowd: true,
       }),
     );
   });
@@ -122,31 +121,6 @@ describe('AddEntityModal UX/UI improvements', () => {
 
     expect(screen.getByText(/Bản nháp \(Hướng B\)/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Tạo bản nháp mới/i })).toBeInTheDocument();
-  });
-
-  it('validates chapter range: disables submit when to < from', async () => {
-    render(<AddEntityModal {...defaultProps} isProducer={true} />);
-
-    fireEvent.change(screen.getByLabelText(/Tên mục/i), {
-      target: { value: 'Goku' },
-    });
-    fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
-      target: { value: 'Chiến binh Saiyan' },
-    });
-    fireEvent.change(screen.getByLabelText(/Hiệu lực từ Chương số \*/i), {
-      target: { value: '20' },
-    });
-    fireEvent.change(screen.getByLabelText(/Đến Chương \(Để trống = tới hết truyện\)/i), {
-      target: { value: '10' },
-    });
-
-    expect(
-      screen.getByText(/Chương kết thúc \(10\) phải lớn hơn hoặc bằng chương bắt đầu \(20\)/i),
-    ).toBeInTheDocument();
-    const submitBtn = screen.getByRole('button', {
-      name: /Lưu vào Series Bible/i,
-    }) as HTMLButtonElement;
-    expect(submitBtn.disabled).toBe(true);
   });
 
   it('renders character sheet gallery section and adds turnaround sketches (Step 3)', async () => {
@@ -161,6 +135,9 @@ describe('AddEntityModal UX/UI improvements', () => {
     fireEvent.change(screen.getByLabelText(/Tên mục/i), { target: { value: 'Luffy' } });
     fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
       target: { value: 'Mũ rơm' },
+    });
+    fireEvent.change(screen.getByLabelText(/Nhãn biến thể tạo hình/i), {
+      target: { value: 'Mặc định' },
     });
 
     const submitBtn = screen.getByRole('button', { name: /Lưu vào Series Bible/i });

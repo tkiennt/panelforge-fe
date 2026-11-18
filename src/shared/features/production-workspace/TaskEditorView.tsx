@@ -13,13 +13,12 @@ import {
   Loader2,
 } from 'lucide-react';
 
-import { ScriptEditor } from '@/roles/writer/components/ScriptEditor';
 import { ArtworkCanvas } from '@/roles/artist/components/ArtworkCanvas';
-import { LetteringWorkspace } from '@/roles/letterer/views/LetteringWorkspace';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { canViewProvenanceReport } from '@/shared/features/provenance/provenanceRules';
 import { KanbanCard, AssignmentDto } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
+import { buildArtistDeskUrl, buildScriptEditorUrl, buildTaskReviewUrl } from '@/app/routePaths';
 
 interface TaskEditorProps {
   activeRoles: string[];
@@ -72,6 +71,31 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
               ? 'letter'
               : 'ink';
 
+          const effectiveChapterId = chapterId || liveAssignment.chapterId || '';
+          if (workspaceId && seriesId) {
+            if (detectedStage === 'script') {
+              navigate(
+                buildScriptEditorUrl(workspaceId, seriesId, {
+                  chapterId: effectiveChapterId || undefined,
+                  assignmentId: liveAssignment.id,
+                }),
+                { replace: true },
+              );
+              return;
+            }
+            if (detectedStage === 'letter') {
+              navigate(
+                buildArtistDeskUrl(workspaceId, seriesId, {
+                  chapterId: effectiveChapterId || undefined,
+                  assignmentId: liveAssignment.id,
+                  tab: 'lettering',
+                }),
+                { replace: true },
+              );
+              return;
+            }
+          }
+
           setTask({
             id: liveAssignment.id,
             title: liveAssignment.brief || `Nhiệm vụ #${liveAssignment.id.substring(0, 8)}`,
@@ -89,15 +113,41 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
           });
         } else {
           // Fallback task construct
+          const fallbackStage = taskId.includes('letter')
+            ? 'letter'
+            : taskId.includes('script')
+              ? 'script'
+              : 'ink';
+
+          if (workspaceId && seriesId) {
+            if (fallbackStage === 'script') {
+              navigate(
+                buildScriptEditorUrl(workspaceId, seriesId, {
+                  chapterId: chapterId || undefined,
+                  assignmentId: taskId,
+                }),
+                { replace: true },
+              );
+              return;
+            }
+            if (fallbackStage === 'letter') {
+              navigate(
+                buildArtistDeskUrl(workspaceId, seriesId, {
+                  chapterId: chapterId || undefined,
+                  assignmentId: taskId,
+                  tab: 'lettering',
+                }),
+                { replace: true },
+              );
+              return;
+            }
+          }
+
           setTask({
             id: taskId,
             title: `Task: ${taskId}`,
             pageNumber: 'Page 1',
-            stage: taskId.includes('letter')
-              ? 'letter'
-              : taskId.includes('script')
-                ? 'script'
-                : 'ink',
+            stage: fallbackStage,
             assignee: 'Assigned User',
             assigneeRole: '',
             assigneeInitials: 'AU',
@@ -116,7 +166,7 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [taskId, chapterId, workspaceId]);
+  }, [taskId, chapterId, workspaceId, seriesId, navigate]);
 
   if (loading && !task) {
     return (
@@ -147,27 +197,64 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
     switch (task.stage) {
       case 'script':
         return (
-          <ScriptEditor
-            isReadOnly={!isWriter}
-            onAIBreakdown={() =>
-              isWriter ? onShowToast('AI Breakdown', 'Đang phân tích kịch bản...') : null
-            }
-          />
+          <div className='flex-1 flex flex-col items-center justify-center p-8 text-stone-600 gap-3'>
+            <p className='text-sm'>Tác vụ kịch bản được thực hiện trong Script Editor.</p>
+            {workspaceId && seriesId && (
+              <button
+                onClick={() =>
+                  navigate(
+                    buildScriptEditorUrl(workspaceId, seriesId, {
+                      chapterId: chapterId || undefined,
+                      assignmentId: task.id,
+                    }),
+                  )
+                }
+                className='px-4 py-2 bg-[#EA580C] text-white rounded font-medium text-xs hover:bg-[#C2410C] transition-colors cursor-pointer'
+              >
+                Mở Script Editor
+              </button>
+            )}
+          </div>
         );
-      case 'thumbnail':
       case 'pencil':
       case 'ink':
       case 'color':
         return <ArtworkCanvas isReadOnly={!isArtist} />;
       case 'letter':
-        return <LetteringWorkspace isReadOnly={!isLetterer} />;
+        return (
+          <div className='flex-1 flex flex-col items-center justify-center p-8 text-stone-600 gap-3'>
+            <p className='text-sm'>Tác vụ chèn chữ được thực hiện trong Artist Desk (Lettering).</p>
+            {workspaceId && seriesId && (
+              <button
+                onClick={() =>
+                  navigate(
+                    buildArtistDeskUrl(workspaceId, seriesId, {
+                      chapterId: chapterId || undefined,
+                      assignmentId: task.id,
+                      tab: 'lettering',
+                    }),
+                  )
+                }
+                className='px-4 py-2 bg-[#EA580C] text-white rounded font-medium text-xs hover:bg-[#C2410C] transition-colors cursor-pointer'
+              >
+                Mở Artist Desk (Lettering)
+              </button>
+            )}
+          </div>
+        );
       case 'review':
       case 'approved':
         return (
           <div className='flex-1 flex flex-col items-center justify-center text-[#737373]'>
             <p>Task đang ở trạng thái {task.stage}.</p>
             <button
-              onClick={() => navigate(`/review/${task.id}`)}
+              onClick={() => {
+                if (workspaceId && seriesId) {
+                  navigate(buildTaskReviewUrl(workspaceId, seriesId, task.id));
+                } else {
+                  navigate(`/review/${task.id}`);
+                }
+              }}
               className='mt-4 px-4 py-2 bg-[#171717] text-white rounded font-bold'
             >
               Chuyển tới màn hình Review
@@ -181,7 +268,7 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
 
   const canEdit =
     (task.stage === 'script' && isWriter) ||
-    (['thumbnail', 'pencil', 'ink', 'color'].includes(task.stage) && isArtist) ||
+    (['pencil', 'ink', 'color'].includes(task.stage) && isArtist) ||
     (task.stage === 'letter' && isLetterer);
 
   const handleStartWork = async () => {

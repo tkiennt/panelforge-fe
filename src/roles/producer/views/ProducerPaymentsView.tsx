@@ -33,6 +33,7 @@ import { seriesService, SeriesDto } from '@/services/series.service';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
 import { useTranslation } from '@/lib/i18n';
+import { Modal } from '@/shared/ui';
 
 const POPULAR_VIETNAM_BANKS = [
   { bin: '970422', code: 'MB', name: 'MB Bank' },
@@ -498,14 +499,6 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
             />
             <span>{refreshing ? t('refreshing') : t('refresh')}</span>
           </button>
-          <button
-            type='button'
-            onClick={openBankModal}
-            className='inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#171717] hover:bg-black text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer'
-          >
-            <Building2 className='w-4 h-4 text-[#F97316]' />
-            <span>{t('configBank')}</span>
-          </button>
         </div>
       </div>
 
@@ -875,12 +868,15 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
 
       {/* ─── MODAL: VietQR bank settings ─── */}
       {showBankModal && (
-        <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150'>
-          <div
-            role='dialog'
-            aria-modal='true'
-            className='bg-white w-full max-w-2xl rounded-2xl border border-[#E7E7E7] shadow-2xl overflow-hidden'
-          >
+        <Modal
+          isOpen={showBankModal}
+          onClose={() => setShowBankModal(false)}
+          size='lg'
+          title={t('bank.modalTitle')}
+          description={t('bank.modalSubtitle')}
+          closeLabel={t('actions.close')}
+        >
+          <div className='bg-white w-full max-w-2xl rounded-2xl border border-[#E7E7E7] shadow-2xl overflow-hidden'>
             <div className='p-5 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5]'>
               <div className='flex items-center gap-2'>
                 <div className='p-1.5 rounded-lg bg-[#F97316]/10 text-[#F97316]'>
@@ -1045,17 +1041,20 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* ─── MODAL: Transaction QR preview ─── */}
       {previewQrTx && (
-        <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150'>
-          <div
-            role='dialog'
-            aria-modal='true'
-            className='bg-white w-full max-w-sm rounded-2xl border border-[#E7E7E7] shadow-2xl p-6 text-center space-y-4'
-          >
+        <Modal
+          isOpen={Boolean(previewQrTx)}
+          onClose={() => setPreviewQrTx(null)}
+          size='sm'
+          title={t('qrModal.title', { orderCode: previewQrTx.orderCode })}
+          description={previewQrTx.readerName}
+          closeLabel={t('actions.close')}
+        >
+          <div className='bg-white w-full max-w-sm rounded-2xl border border-[#E7E7E7] shadow-2xl p-6 text-center space-y-4'>
             <div className='flex items-center justify-between pb-2 border-b border-[#E7E7E7]'>
               <div className='text-left'>
                 <div className='font-bold text-sm text-[#171717]'>
@@ -1103,17 +1102,20 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
               {t('actions.close')}
             </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* ─── MODAL: Reject transaction ─── */}
       {rejectTx && (
-        <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150'>
-          <div
-            role='dialog'
-            aria-modal='true'
-            className='bg-white w-full max-w-md rounded-2xl border border-[#E7E7E7] shadow-2xl p-6 space-y-4'
-          >
+        <Modal
+          isOpen={Boolean(rejectTx)}
+          onClose={() => setRejectTx(null)}
+          size='sm'
+          title={t('reject.title', { orderCode: rejectTx.orderCode })}
+          description={t('reject.description')}
+          closeLabel={t('actions.close')}
+        >
+          <div className='bg-white w-full max-w-md rounded-2xl border border-[#E7E7E7] shadow-2xl p-6 space-y-4'>
             <div className='flex items-center justify-between pb-2 border-b border-[#E7E7E7]'>
               <div className='flex items-center gap-2 text-rose-600 font-bold text-sm'>
                 <XCircle className='w-4 h-4' />
@@ -1160,7 +1162,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

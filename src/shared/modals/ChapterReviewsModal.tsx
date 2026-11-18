@@ -10,6 +10,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { chapterService, ChapterReviewDto, ChapterReviewAction } from '@/services/chapter.service';
+import { Modal } from '@/shared/ui';
 
 interface ChapterReviewsModalProps {
   isOpen: boolean;
@@ -121,7 +122,13 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[60] flex items-center justify-center p-4 animate-in fade-in duration-150'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='lg'
+      title='Lịch Sử Phê Duyệt & Xuất Bản'
+    >
       <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]'>
         {/* Header */}
         <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
@@ -232,6 +239,6 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

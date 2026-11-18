@@ -446,7 +446,10 @@ export const ScriptEditorWorkspace: React.FC<ScriptEditorWorkspaceProps> = ({
         <footer className='shrink-0 h-7 bg-[#2D3748] text-stone-300 text-xs px-4 flex items-center justify-between select-none border-t border-[#1A202C]'>
           <div className='flex items-center gap-2 text-[11px] font-mono'>
             <span className='w-2 h-2 rounded-full bg-emerald-400 inline-block' />
-            <span>WriteSolo Screenplay Flow: Scene $\rightarrow$ Action $\rightarrow$ Character $\rightarrow$ Dialogue</span>
+            <span>
+              WriteSolo Screenplay Flow: Scene $\rightarrow$ Action $\rightarrow$ Character
+              $\rightarrow$ Dialogue
+            </span>
           </div>
 
           <div className='hidden sm:flex items-center gap-3 text-[10px] font-mono text-stone-400'>

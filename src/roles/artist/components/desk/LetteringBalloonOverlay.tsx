@@ -17,8 +17,8 @@ import {
   fillRgba,
   textSafeArea,
   defaultTail,
-} from '@/shared/utils/balloonRender';
-import { resolveTextStyle, textStyleCss } from '@/shared/utils/textStyle';
+} from '@/shared/lib/lettering/balloonRender';
+import { resolveTextStyle, textStyleCss } from '@/shared/lib/lettering/textStyle';
 import type { ResizeHandle } from '../../hooks/useLetteringBalloons';
 
 const HANDLES: { id: ResizeHandle; position: string; cursor: string }[] = [
@@ -123,6 +123,7 @@ interface LetteringBalloonOverlayProps {
   activeLang?: string;
   selectedId: string | null;
   activeGestureId: string | null;
+  readOnly?: boolean;
   onSelect: (elementId: string) => void;
   onScale: (elementId: string, factor: number) => void;
   onCopy: (element: ElementSnapshotDto) => void;
@@ -194,6 +195,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
   activeLang,
   selectedId,
   activeGestureId,
+  readOnly = false,
   onSelect,
   onScale,
   onCopy,
@@ -218,10 +220,10 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
             e.stopPropagation();
             onSelect(b.elementId);
           }}
-          onPointerDown={(e) => onDragStart(e, b.elementId)}
-          onPointerMove={onDragMove}
-          onPointerUp={onDragEnd}
-          className={`absolute pointer-events-auto cursor-move select-none touch-none ${
+          onPointerDown={(e) => !readOnly && onDragStart(e, b.elementId)}
+          onPointerMove={!readOnly ? onDragMove : undefined}
+          onPointerUp={!readOnly ? onDragEnd : undefined}
+          className={`absolute pointer-events-auto ${readOnly ? 'cursor-default' : 'cursor-move'} select-none touch-none ${
             isActive ? 'z-40 shadow-lg' : 'transition-shadow'
           } ${isSelected ? 'ring-2 ring-orange-500 z-30' : 'z-20 hover:ring-1 hover:ring-orange-400'}`}
           style={{
@@ -231,7 +233,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
             height: `${(b.height / pageHeight) * 100}%`,
           }}
         >
-          {isSelected && (
+          {isSelected && !readOnly && (
             <SelectedChrome
               element={b}
               label={`Thoại ${b.readingOrder ?? idx + 1}`}
@@ -244,6 +246,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
           )}
 
           {isSelected &&
+            !readOnly &&
             HANDLES.map((h) => (
               <div
                 key={h.id}

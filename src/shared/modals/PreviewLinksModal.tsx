@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X,
   Share2,
@@ -24,9 +24,11 @@ import {
   PreviewFeedbackStatus,
 } from '@/services/previewLink.service';
 import { assignmentService } from '@/services/assignment.service';
-import type { AssignmentDto } from '@/types/pipeline';
+import { pageService } from '@/services/page.service';
+import type { AssignmentDto, StageTaskDto, TaskGridDto } from '@/types/pipeline';
 import { WorkspaceRole } from '@/types';
 import { useConfirm } from '@/shared/context/ConfirmContext';
+import { Modal } from '@/shared/ui';
 
 export interface PreviewLinksModalProps {
   isOpen: boolean;
@@ -71,8 +73,10 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
   const [triageNotes, setTriageNotes] = useState<Record<string, string>>({});
   const [triagingId, setTriagingId] = useState<string | null>(null);
 
-  // 5.7: phản hồi NeedsChange → yêu cầu sửa của một việc (sau khi chương mở lại)
+  // 5.7: phản hồi NeedsChange → yêu cầu sửa của một việc (Assignment cũ hoặc ô Lưới V3 sau khi chương mở lại)
   const [assignments, setAssignments] = useState<AssignmentDto[]>([]);
+  const [taskGrid, setTaskGrid] = useState<TaskGridDto | null>(null);
+  const [pages, setPages] = useState<Array<{ id: string; pageNumber: number }>>([]);
   const [crAssignment, setCrAssignment] = useState<Record<string, string>>({});
   const [creatingCrId, setCreatingCrId] = useState<string | null>(null);
   const isInProduction = chapterStatus === 'InProduction';
@@ -107,19 +111,45 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchLinks();
-      fetchFeedback();
     }
-  }, [isOpen, fetchLinks, fetchFeedback]);
+  }, [isOpen, fetchLinks]);
 
   useEffect(() => {
-    if (isOpen && isInProduction && chapterId) {
-      assignmentService.getAssignments(chapterId).then(setAssignments);
+    if (isOpen) {
+      fetchFeedback();
+    }
+  }, [isOpen, fetchFeedback]);
+
+  useEffect(() => {
+    if (!isOpen || !chapterId) {
+      setPages([]);
+      return;
+    }
+    Promise.resolve(pageService.getPagesByChapter?.(chapterId))
+      .then((res) => setPages(res || []))
+      .catch(() => setPages([]));
+  }, [isOpen, chapterId]);
+
+  useEffect(() => {
+    if (!isOpen || !chapterId) return;
+    Promise.resolve(assignmentService.getTaskGrid?.(chapterId))
+      .then((res) => setTaskGrid(res || null))
+      .catch(() => setTaskGrid(null));
+    if (isInProduction) {
+      Promise.resolve(assignmentService.getAssignments?.(chapterId))
+        .then((res) => setAssignments(res || []))
+        .catch(() => setAssignments([]));
     }
   }, [isOpen, isInProduction, chapterId]);
 
   if (!isOpen) return null;
 
-  const isApproved = chapterStatus === 'Approved';
+  const pageNumberById = new Map<string, number>();
+  for (const p of pages) pageNumberById.set(p.id, p.pageNumber);
+  for (const p of taskGrid?.pages ?? []) pageNumberById.set(p.id, p.pageNumber);
+
+  const isApproved =
+    chapterStatus === 'ChapterApproved' || chapterStatus === 'HandedOffAndPublished';
 
   const handleCreateLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,15 +253,25 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
         { assignmentId },
       );
       setFeedbacks((prev) => prev.map((f) => (f.id === feedbackId ? updated : f)));
-      assignmentService.getAssignments(chapterId).then(setAssignments);
+      Promise.resolve(assignmentService.getAssignments?.(chapterId))
+        .then((res) => setAssignments(res || []))
+        .catch(() => {});
+      Promise.resolve(assignmentService.getTaskGrid?.(chapterId))
+        .then((res) => setTaskGrid(res || null))
+        .catch(() => {});
       onShowToast?.(
-        'Đã tạo yêu cầu sửa',
-        'Việc được chọn đã nhận yêu cầu sửa; người làm đã được thông báo.',
+        updated.stageTaskId ? 'Đã chuyển vào Lưới V3' : 'Đã tạo yêu cầu sửa',
+        updated.stageTaskId
+          ? 'Ô công việc trên Lưới V3 đã nhận yêu cầu sửa; người làm đã được thông báo.'
+          : 'Việc được chọn đã nhận yêu cầu sửa; người làm đã được thông báo.',
       );
     } catch (err: any) {
       onShowToast?.(
         'Không tạo được yêu cầu sửa',
-        err?.response?.data?.error || 'Vui lòng thử lại.',
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          'Vui lòng thử lại.',
       );
     } finally {
       setCreatingCrId(null);
@@ -246,11 +286,34 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
         Number([fb.panelId, fb.pageId].includes(a.targetEntityId)),
     );
 
+  /** Ô Lưới V3 đã giao người làm (không lấy Unassigned/Cancelled vì BE trả 409), ưu tiên đúng trang của phản hồi. */
+  const gridTaskOptions = (fb: PreviewFeedbackDto): StageTaskDto[] => {
+    if (!taskGrid?.tasks?.length) return [];
+    const stageOrder = new Map(taskGrid.stages.map((s) => [s.id, s.stageOrder]));
+    return taskGrid.tasks
+      .filter((t) => t.status !== 'Unassigned' && t.status !== 'Cancelled')
+      .sort((a, b) => {
+        const matchA = fb.pageId ? Number(a.pageId === fb.pageId) : Number(!a.pageId);
+        const matchB = fb.pageId ? Number(b.pageId === fb.pageId) : Number(!b.pageId);
+        if (matchA !== matchB) return matchB - matchA;
+        const sa = stageOrder.get(a.pipelineStageId) ?? 999;
+        const sb = stageOrder.get(b.pipelineStageId) ?? 999;
+        if (sa !== sb) return sa - sb;
+        return (
+          (pageNumberById.get(a.pageId || '') ?? 0) - (pageNumberById.get(b.pageId || '') ?? 0)
+        );
+      });
+  };
+
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
 
   return (
-    <div
-      className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150'
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='xl'
+      title='Chia sẻ bản xem trước'
       data-testid='preview-links-modal'
     >
       <div className='bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl border border-[#E7E7E7] overflow-hidden text-xs text-[#171717]'>
@@ -302,7 +365,10 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
 
           <button
             type='button'
-            onClick={() => setActiveTab('feedback')}
+            onClick={() => {
+              setActiveTab('feedback');
+              void fetchFeedback();
+            }}
             className={`py-3 flex items-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'feedback'
                 ? 'border-[#F97316] text-[#F97316]'
@@ -618,11 +684,26 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                   {feedbacks.map((fb) => {
                     const noteValue = triageNotes[fb.id] || '';
                     const isTriaging = triagingId === fb.id;
-                    const scopeLabel = fb.panelId
-                      ? `Khung #${fb.panelId.slice(0, 6)} (Trang #${fb.pageId?.slice(0, 6)})`
-                      : fb.pageId
-                        ? `Trang #${fb.pageId.slice(0, 6)}`
-                        : 'Toàn Chương';
+                    const pageNum =
+                      fb.pageNumber ?? (fb.pageId ? pageNumberById.get(fb.pageId) : undefined);
+                    const pageText =
+                      pageNum !== undefined
+                        ? `Trang ${pageNum}`
+                        : fb.pageId
+                          ? `Trang #${fb.pageId.slice(0, 6)}`
+                          : null;
+                    const panelNum = fb.panelNumber ?? undefined;
+                    const panelText = fb.panelId
+                      ? panelNum !== undefined
+                        ? `Khung #${panelNum}`
+                        : `Khung #${fb.panelId.slice(0, 6)}`
+                      : null;
+                    const scopeLabel = panelText
+                      ? pageText
+                        ? `${panelText} (${pageText})`
+                        : panelText
+                      : (pageText ?? 'Toàn Chương');
+                    const artworkVersion = fb.artworkVersionNumber ?? undefined;
 
                     return (
                       <div
@@ -639,9 +720,9 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                               {fb.reviewerName ? `${fb.reviewerName} · ` : ''}
                               {fb.recipientEmail}
                             </span>
-                            {fb.assetReferenceId && (
+                            {artworkVersion !== undefined && (
                               <span className='text-xs font-mono text-[#888888]'>
-                                (Bản v{fb.chapterVersion})
+                                (Bản v{artworkVersion})
                               </span>
                             )}
                           </div>
@@ -687,22 +768,23 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                           </div>
                         )}
 
-                        {/* Đã thành yêu cầu sửa: không phân loại lại được (BE trả 409) */}
-                        {fb.changeRequestId && (
+                        {/* Đã thành yêu cầu sửa (Assignment cũ hoặc ô Lưới V3): không phân loại lại được (BE trả 409) */}
+                        {Boolean(fb.changeRequestId || fb.stageTaskId) && (
                           <div
                             className='pt-2 border-t border-[#E7E7E7] flex items-center gap-1.5 text-xs text-emerald-800'
                             data-testid={`feedback-cr-linked-${fb.id}`}
                           >
                             <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
                             <span>
-                              Đã chuyển thành yêu cầu sửa. Theo dõi tiến độ ở danh sách Yêu cầu sửa
-                              của chương.
+                              {fb.stageTaskId
+                                ? 'Đã chuyển thành yêu cầu sửa trên Lưới V3 (ô công việc đã mở lại / thông báo người làm).'
+                                : 'Đã chuyển thành yêu cầu sửa. Theo dõi tiến độ ở danh sách Yêu cầu sửa của chương.'}
                             </span>
                           </div>
                         )}
 
                         {/* Triage Actions Form */}
-                        {!fb.changeRequestId && (
+                        {!fb.changeRequestId && !fb.stageTaskId && (
                           <div className='pt-2 border-t border-[#E7E7E7] flex flex-col sm:flex-row items-stretch sm:items-center gap-2'>
                             <input
                               type='text'
@@ -750,6 +832,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
 
                         {/* Gợi ý mở lại chương khi phản hồi là NeedsChange (chỉ chương Approved mới mở lại được) */}
                         {!fb.changeRequestId &&
+                          !fb.stageTaskId &&
                           (fb.status === 'NeedsChange' || noteValue) &&
                           isApproved &&
                           onReopenChapter && (
@@ -772,47 +855,91 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                             </div>
                           )}
 
-                        {/* 5.7: chương đã mở lại → chuyển phản hồi thành yêu cầu sửa của một việc */}
-                        {!fb.changeRequestId && fb.status === 'NeedsChange' && isInProduction && (
-                          <div className='p-2.5 bg-orange-50/70 border border-orange-200 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 text-orange-950'>
-                            <label htmlFor={`cr-assignment-${fb.id}`} className='text-xs shrink-0'>
-                              Giao sửa cho việc:
-                            </label>
-                            <select
-                              id={`cr-assignment-${fb.id}`}
-                              value={crAssignment[fb.id] || ''}
-                              onChange={(e) =>
-                                setCrAssignment((prev) => ({ ...prev, [fb.id]: e.target.value }))
-                              }
-                              className='flex-1 min-w-0 px-2 py-1.5 bg-white border border-orange-200 rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
-                              data-testid={`cr-assignment-select-${fb.id}`}
-                            >
-                              <option value=''>-- Chọn việc cần sửa --</option>
-                              {assignmentOptions(fb).map((a) => {
-                                const waiting =
-                                  a.status === 'Submitted' || a.status === 'UnderReview';
-                                return (
-                                  <option key={a.id} value={a.id} disabled={waiting}>
-                                    {a.assignedRole} · {a.brief.slice(0, 60)} (
-                                    {waiting ? 'đang chờ duyệt' : a.status})
-                                  </option>
-                                );
-                              })}
-                            </select>
-                            <button
-                              type='button'
-                              disabled={!crAssignment[fb.id] || creatingCrId === fb.id}
-                              onClick={() => handleCreateChangeRequest(fb.id, crAssignment[fb.id])}
-                              className='px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-50 text-white font-semibold text-xs flex items-center gap-1 shrink-0 transition-colors cursor-pointer'
-                              data-testid={`create-cr-from-feedback-btn-${fb.id}`}
-                            >
-                              {creatingCrId === fb.id && (
-                                <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                              )}
-                              <span>Tạo yêu cầu sửa</span>
-                            </button>
-                          </div>
-                        )}
+                        {/* 5.7: chương đã mở lại → chuyển phản hồi thành yêu cầu sửa của một việc (Assignment cũ hoặc ô Lưới V3) */}
+                        {!fb.changeRequestId &&
+                          !fb.stageTaskId &&
+                          fb.status === 'NeedsChange' &&
+                          isInProduction && (
+                            <div className='p-2.5 bg-orange-50/70 border border-orange-200 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 text-orange-950'>
+                              <label
+                                htmlFor={`cr-assignment-${fb.id}`}
+                                className='text-xs shrink-0'
+                              >
+                                Giao sửa cho việc:
+                              </label>
+                              <select
+                                id={`cr-assignment-${fb.id}`}
+                                value={crAssignment[fb.id] || ''}
+                                onChange={(e) =>
+                                  setCrAssignment((prev) => ({ ...prev, [fb.id]: e.target.value }))
+                                }
+                                className='flex-1 min-w-0 px-2 py-1.5 bg-white border border-orange-200 rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
+                                data-testid={`cr-assignment-select-${fb.id}`}
+                              >
+                                <option value=''>-- Chọn việc cần sửa --</option>
+                                {assignmentOptions(fb).map((a) => {
+                                  const waiting =
+                                    a.status === 'Submitted' || a.status === 'UnderReview';
+                                  return (
+                                    <option key={a.id} value={a.id} disabled={waiting}>
+                                      {a.assignedRole} · {a.brief.slice(0, 60)} (
+                                      {waiting ? 'đang chờ duyệt' : a.status})
+                                    </option>
+                                  );
+                                })}
+                                {gridTaskOptions(fb).map((t) => {
+                                  const waiting =
+                                    t.status === 'Submitted' || t.status === 'UnderReview';
+                                  const stg = taskGrid?.stages.find(
+                                    (s) => s.id === t.pipelineStageId,
+                                  );
+                                  const pageNum = t.pageId
+                                    ? pageNumberById.get(t.pageId)
+                                    : undefined;
+                                  const lot = t.lotId
+                                    ? taskGrid?.lots.find((l) => l.id === t.lotId)
+                                    : null;
+                                  const stageLabel = stg
+                                    ? `${stg.stageOrder}. ${stg.name}`
+                                    : 'Công đoạn';
+                                  const pageLabel = pageNum
+                                    ? `Trang ${pageNum}`
+                                    : t.pageId
+                                      ? `Trang #${t.pageId.slice(0, 6)}`
+                                      : 'Toàn chương';
+                                  const rolePrefix = lot?.assignedRole
+                                    ? `${lot.assignedRole} · `
+                                    : '';
+                                  return (
+                                    <option key={t.id} value={t.id} disabled={waiting}>
+                                      [Lưới V3] {rolePrefix}
+                                      {stageLabel} · {pageLabel} (
+                                      {waiting
+                                        ? 'đang chờ duyệt'
+                                        : t.status === 'Approved'
+                                          ? 'Đã duyệt → mở lại'
+                                          : t.status}
+                                      )
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                              <button
+                                type='button'
+                                disabled={!crAssignment[fb.id] || creatingCrId === fb.id}
+                                onClick={() =>
+                                  handleCreateChangeRequest(fb.id, crAssignment[fb.id])
+                                }
+                                className='px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-50 text-white font-semibold text-xs flex items-center gap-1 shrink-0 transition-colors cursor-pointer'
+                                data-testid={`create-cr-from-feedback-btn-${fb.id}`}
+                              >
+                                {creatingCrId === fb.id && (
+                                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                                )}
+                                <span>Tạo yêu cầu sửa</span>
+                              </button>
+                            </div>
+                          )}
                       </div>
                     );
                   })}
@@ -822,7 +949,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 export default PreviewLinksModal;

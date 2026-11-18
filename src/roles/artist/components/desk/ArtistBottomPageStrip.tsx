@@ -81,7 +81,11 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                     tabIndex={0}
                     onClick={() => onSelectPage(page)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') onSelectPage(page);
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
+                        e.preventDefault();
+                        onSelectPage(page);
+                      }
                     }}
                     className={`relative w-[58px] h-[82px] rounded-[3px] bg-white border cursor-pointer transition-all duration-200 flex flex-col items-center justify-center shadow-xs overflow-hidden ${
                       isSelected

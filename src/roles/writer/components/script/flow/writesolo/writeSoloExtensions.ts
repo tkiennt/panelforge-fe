@@ -81,7 +81,10 @@ export function shouldAddContd(doc: any, currentPos: number, characterName: stri
   doc.descendants((node: any, pos: number) => {
     if (pos >= currentPos) return false;
     const isWriteSolo = node.type?.name === 'writeSoloBlock' || node.type === 'writeSoloBlock';
-    if (isWriteSolo && (node.attrs?.blockType === 'character' || node.attrs?.blockType === 'dialogue')) {
+    if (
+      isWriteSolo &&
+      (node.attrs?.blockType === 'character' || node.attrs?.blockType === 'dialogue')
+    ) {
       const spk = (node.attrs?.speakerName || node.textContent || '').trim().toUpperCase();
       if (spk) lastSpeaker = spk;
     }
@@ -340,23 +343,21 @@ export const WriteSoloExtension = Extension.create<WriteSoloExtensionOptions>({
   },
 
   addProseMirrorPlugins() {
-    const extension = this;
-
     return [
       new Plugin({
         key: writeSoloEntityPluginKey,
         state: {
-          init(_, state) {
-            return scanEntitiesAndBuildDecorations(state.doc, extension.options.getBibleEntries());
+          init: (_, state) => {
+            return scanEntitiesAndBuildDecorations(state.doc, this.options.getBibleEntries());
           },
-          apply(tr, oldPluginState, _, newState) {
+          apply: (tr, oldPluginState, _, newState) => {
             if (!tr.docChanged) return oldPluginState;
             const res = scanEntitiesAndBuildDecorations(
               newState.doc,
-              extension.options.getBibleEntries(),
+              this.options.getBibleEntries(),
             );
-            if (extension.options.onEntitiesDetected) {
-              extension.options.onEntitiesDetected(res.detectedEntities);
+            if (this.options.onEntitiesDetected) {
+              this.options.onEntitiesDetected(res.detectedEntities);
             }
             return res;
           },
@@ -366,7 +367,7 @@ export const WriteSoloExtension = Extension.create<WriteSoloExtensionOptions>({
             return writeSoloEntityPluginKey.getState(state)?.decorations ?? DecorationSet.empty;
           },
           // Tự động nhận diện INT./EXT. khi gõ để chuyển thành Scene Heading
-          handleTextInput(view, from, to, text) {
+          handleTextInput: (view, from, to, text) => {
             if (text === ' ' || text === '.') {
               const { state } = view;
               const { $from } = state.selection;
@@ -390,7 +391,7 @@ export const WriteSoloExtension = Extension.create<WriteSoloExtensionOptions>({
                       blockType: 'scene_heading',
                     }),
                   );
-                  extension.options.onActiveBlockChange?.('scene_heading');
+                  this.options.onActiveBlockChange?.('scene_heading');
                 }
               }
             }
@@ -833,9 +834,18 @@ function scanEntitiesAndBuildDecorations(
             }
           } else if (
             rawName.length >= 3 &&
-            !['PANEL', 'TRANG', 'PAGE', 'SFX', 'THOẠI', 'CAPTION', 'INT', 'EXT', 'DAY', 'NIGHT'].includes(
-              rawName.toUpperCase(),
-            )
+            ![
+              'PANEL',
+              'TRANG',
+              'PAGE',
+              'SFX',
+              'THOẠI',
+              'CAPTION',
+              'INT',
+              'EXT',
+              'DAY',
+              'NIGHT',
+            ].includes(rawName.toUpperCase())
           ) {
             decos.push(
               Decoration.inline(from, to, {

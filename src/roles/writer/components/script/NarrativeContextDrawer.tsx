@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   Compass,
   BookOpen,
@@ -47,6 +48,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
   isStoryArcDirty,
   isOutlineDirty,
 }) => {
+  const { t } = useTranslation('production');
   const [tab, setTab] = useState<'both' | 'storyArc' | 'outline'>('both');
   const [isExpandedHeight, setIsExpandedHeight] = useState(false);
 
@@ -119,7 +121,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                 : 'text-[#57534E] hover:text-[#1C1917]'
             }`}
           >
-            Cả hai
+            {t('scriptStudio.narrative.both', 'Cả hai')}
           </button>
           <button
             type='button'
@@ -130,7 +132,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                 : 'text-[#57534E] hover:text-[#1C1917]'
             }`}
           >
-            <span>Story Arc</span>
+            <span>{t('scriptStudio.narrative.storyArc', 'Story Arc')}</span>
             {isStoryArcDirty && <span className='w-1.5 h-1.5 rounded-full bg-amber-500' />}
           </button>
           <button
@@ -142,14 +144,19 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                 : 'text-[#57534E] hover:text-[#1C1917]'
             }`}
           >
-            <span>Đề cương Ch.{currentChapter?.chapterNumber ?? ''}</span>
+            <span>
+              {t('scriptStudio.narrative.outlineWithChapter', {
+                n: currentChapter?.chapterNumber ?? '',
+                defaultValue: `Đề cương Ch.${currentChapter?.chapterNumber ?? ''}`,
+              })}
+            </span>
             {isOutlineDirty && <span className='w-1.5 h-1.5 rounded-full bg-amber-500' />}
           </button>
         </div>
 
         {(isStoryArcDirty || isOutlineDirty) && (
           <span className='text-xs text-amber-700 font-semibold bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-md'>
-            Có sửa đổi chưa lưu
+            {t('scriptStudio.narrative.hasChanges', 'Có sửa đổi chưa lưu')}
           </span>
         )}
       </div>
@@ -163,8 +170,12 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
               <div className='flex items-center gap-2'>
                 <BookOpen className='w-4 h-4 text-[#C2410C]' />
                 <div>
-                  <h4 className='text-xs font-bold text-[#1C1917]'>Story Arc của Series</h4>
-                  <p className='text-xs text-[#57534E]'>Cung truyện dài hạn</p>
+                  <h4 className='text-xs font-bold text-[#1C1917]'>
+                    {t('scriptStudio.narrative.seriesStoryArc', 'Story Arc của Series')}
+                  </h4>
+                  <p className='text-xs text-[#57534E]'>
+                    {t('scriptStudio.narrative.seriesStoryArcDesc', 'Cung truyện dài hạn')}
+                  </p>
                 </div>
               </div>
 
@@ -177,7 +188,11 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                   className='btn-cta-primary'
                 >
                   <Save className='w-3.5 h-3.5' />
-                  <span>{savingStoryArc ? 'Đang lưu...' : 'Lưu Story Arc'}</span>
+                  <span>
+                    {savingStoryArc
+                      ? t('scriptStudio.narrative.saving', 'Đang lưu...')
+                      : t('scriptStudio.narrative.saveStoryArc', 'Lưu Story Arc')}
+                  </span>
                 </button>
               )}
             </div>
@@ -187,16 +202,20 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
               value={storyArcInput}
               onChange={(e) => setStoryArcInput(e.target.value)}
               disabled={!canEditScript}
-              placeholder='Nhập tóm lược Story Arc của Series (ví dụ: Hành trình khám phá bí mật cổ xưa...)'
+              placeholder={t(
+                'scriptStudio.narrative.storyArcPlaceholder',
+                'Nhập tóm lược Story Arc của Series (ví dụ: Hành trình khám phá bí mật cổ xưa...)',
+              )}
               data-testid='story-arc-textarea'
               className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] disabled:bg-[#F3F0E9] disabled:cursor-not-allowed resize-y transition-all text-[#1C1917]'
             />
 
             <div className='flex items-center justify-between text-xs text-[#57534E]'>
               <span>
-                {storyArcWordCount} từ · {storyArcInput.length} ký tự
+                {storyArcWordCount} {t('scriptStudio.narrative.words', 'từ')} · {storyArcInput.length}{' '}
+                {t('scriptStudio.narrative.chars', 'ký tự')}
               </span>
-              <span>Dùng làm bối cảnh chính cho Writer AI</span>
+              <span>{t('scriptStudio.narrative.storyArcAiHint', 'Dùng làm bối cảnh chính cho Writer AI')}</span>
             </div>
           </div>
         )}
@@ -209,9 +228,14 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                 <FileText className='w-4 h-4 text-blue-600' />
                 <div>
                   <h4 className='text-xs font-bold text-[#1C1917]'>
-                    Đề cương Chương {currentChapter?.chapterNumber ?? ''} (Outline)
+                    {t('scriptStudio.narrative.chapterOutline', {
+                      n: currentChapter?.chapterNumber ?? '',
+                      defaultValue: `Đề cương Chương ${currentChapter?.chapterNumber ?? ''} (Outline)`,
+                    })}
                   </h4>
-                  <p className='text-xs text-[#57534E]'>Dàn ý và diễn biến then chốt</p>
+                  <p className='text-xs text-[#57534E]'>
+                    {t('scriptStudio.narrative.chapterOutlineDesc', 'Dàn ý và diễn biến then chốt')}
+                  </p>
                 </div>
               </div>
 
@@ -224,7 +248,11 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                   className='btn-cta-primary'
                 >
                   <Save className='w-3.5 h-3.5' />
-                  <span>{savingOutline ? 'Đang lưu...' : 'Lưu Đề Cương'}</span>
+                  <span>
+                    {savingOutline
+                      ? t('scriptStudio.narrative.saving', 'Đang lưu...')
+                      : t('scriptStudio.narrative.saveOutline', 'Lưu Đề Cương')}
+                  </span>
                 </button>
               )}
             </div>
@@ -234,16 +262,20 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
               value={outlineInput}
               onChange={(e) => setOutlineInput(e.target.value)}
               disabled={!canEditScript || isChapterLocked}
-              placeholder='Nhập đề cương phân cảnh / nhịp điệu của chương...'
+              placeholder={t(
+                'scriptStudio.narrative.outlinePlaceholder',
+                'Nhập đề cương phân cảnh / nhịp điệu của chương...',
+              )}
               data-testid='chapter-outline-textarea'
               className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] disabled:bg-[#F3F0E9] disabled:cursor-not-allowed resize-y transition-all text-[#1C1917]'
             />
 
             <div className='flex items-center justify-between text-xs text-[#57534E]'>
               <span>
-                {outlineWordCount} từ · {outlineInput.length} ký tự
+                {outlineWordCount} {t('scriptStudio.narrative.words', 'từ')} · {outlineInput.length}{' '}
+                {t('scriptStudio.narrative.chars', 'ký tự')}
               </span>
-              <span>Tự động đưa vào prompt khi viết kịch bản AI</span>
+              <span>{t('scriptStudio.narrative.outlineAiHint', 'Tự động đưa vào prompt khi viết kịch bản AI')}</span>
             </div>
           </div>
         )}

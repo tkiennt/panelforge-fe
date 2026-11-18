@@ -5,21 +5,23 @@ import {
   PanelDetailDto,
   CreatePanelRequest,
   UpdatePanelCoordinatesRequest,
-  UpdatePanelDirectionRequest,
   AssignPanelSceneRequest,
   AssignPanelScriptLinesRequest,
   ImageConsistencyResultDto,
   PanelSplitResult,
+  PageLayoutDto,
 } from '../types/pipeline';
 
+const FALLBACK_FORBIDDEN_MSG = 'Phần này thuộc việc của người khác / đang chờ duyệt';
+
 function extractError(error: any, defaultMsg: string): any {
-  let message = error.response?.data?.error || error.response?.data?.message || defaultMsg;
-  if (error.response?.status === 403 || error.response?.data?.code === 'FORBIDDEN') {
-    message = 'Phần này thuộc việc của người khác / đang chờ duyệt';
-  }
+  const data = error.response?.data;
+  const serverMsg = (data?.error || data?.message || '').trim();
+  const isForbidden = error.response?.status === 403 || data?.code === 'FORBIDDEN';
+  const message = serverMsg || (isForbidden ? FALLBACK_FORBIDDEN_MSG : defaultMsg);
   const err: any = new Error(message);
   err.code =
-    error.response?.data?.code ||
+    data?.code ||
     (error.response?.status === 403
       ? 'FORBIDDEN'
       : error.response?.status === 409
@@ -40,6 +42,16 @@ export const panelService = {
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể tạo panel mới trên trang.');
+    }
+  },
+
+  /** Replace every panel on a page atomically and carry artwork by reading order. */
+  async replacePageLayout(pageId: string, panels: CreatePanelRequest[]): Promise<PageLayoutDto> {
+    try {
+      const response = await axiosClient.put(`/pages/${pageId}/panels/layout`, panels);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể thay thế bố cục trang.');
     }
   },
 
@@ -82,22 +94,6 @@ export const panelService = {
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể cập nhật tọa độ panel.');
-    }
-  },
-
-  /**
-   * Cập nhật mô tả hướng vẽ / chỉ dẫn hình ảnh của Panel (V1.2 / SCR-07)
-   * PUT /api/panels/{panelId}/direction
-   */
-  async updatePanelDirection(
-    panelId: string,
-    data: UpdatePanelDirectionRequest,
-  ): Promise<PanelDto> {
-    try {
-      const response = await axiosClient.put(`/panels/${panelId}/direction`, data);
-      return response.data;
-    } catch (error) {
-      throw extractError(error, 'Không thể cập nhật chỉ dẫn hình ảnh panel.');
     }
   },
 

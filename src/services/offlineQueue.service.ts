@@ -187,7 +187,11 @@ class OfflineQueueService {
       } catch (err: any) {
         const status = err.response?.status;
         const isNetworkError = !err.response || err.code === 'ERR_NETWORK';
-        item.lastError = err.response?.data?.message || err.message || 'Lỗi gửi yêu cầu';
+        item.lastError =
+          err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          'Lỗi gửi yêu cầu';
 
         if (isNetworkError) {
           this.isOnline = false;
@@ -204,7 +208,10 @@ class OfflineQueueService {
                 detail: {
                   item,
                   status,
-                  message: 'Phần này thuộc việc của người khác / đang chờ duyệt',
+                  message:
+                    err.response?.data?.error ||
+                    err.response?.data?.message ||
+                    'Phần này thuộc việc của người khác / đang chờ duyệt',
                 },
               }),
             );

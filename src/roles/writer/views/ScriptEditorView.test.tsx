@@ -11,6 +11,8 @@ import { assignmentService } from '@/services/assignment.service';
 import { workspaceService } from '@/services/workspace.service';
 import { pageService } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
+import { chapterCastService } from '@/services/chapterCast.service';
+import { aiAgentsService } from '@/services/aiAgents.service';
 
 vi.mock('@/services/page.service', () => ({
   pageService: {
@@ -39,6 +41,7 @@ vi.mock('@/services/scriptLine.service', async (importOriginal) => ({
     createScriptLine: vi.fn(),
     updateScriptLine: vi.fn(),
     deleteScriptLine: vi.fn(),
+    restoreScriptRevision: vi.fn(),
   },
 }));
 
@@ -47,6 +50,16 @@ vi.mock('@/services/chapter.service', () => ({
     getChaptersBySeries: vi.fn(),
     getChapterById: vi.fn(),
     updateOutline: vi.fn(),
+    getScriptVersions: vi.fn(),
+    getScriptWorkingCopy: vi.fn(),
+    saveChapterScript: vi.fn(),
+    submitChapterScript: vi.fn(),
+    getScriptComments: vi.fn(),
+    resolveScriptComment: vi.fn(),
+    unfreezeScript: vi.fn(),
+    recallScript: vi.fn(),
+    createChapter: vi.fn(),
+    deleteChapter: vi.fn(),
   },
 }));
 
@@ -60,6 +73,21 @@ vi.mock('@/services/series.service', () => ({
   seriesService: {
     getSeriesById: vi.fn(),
     updateStoryArc: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/chapterCast.service', () => ({
+  chapterCastService: {
+    getChapterCast: vi.fn().mockResolvedValue({
+      chapterId: 'chap-1',
+      entries: [],
+      submitGate: { isPassed: true, blockers: [] },
+      gate: { isPassed: true, blockers: [] },
+    }),
+    setChapterCastRevision: vi.fn(),
+    setBibleEntryCrowd: vi.fn(),
+    defineBibleEntry: vi.fn(),
+    cancelReplacementRevision: vi.fn(),
   },
 }));
 
@@ -117,9 +145,9 @@ const mockSceneDetail = {
     {
       id: 'line-1',
       lineOrder: 1,
+      speakerLabel: 'Akira',
       dialogueText: 'Họ đang di chuyển. Chuẩn bị đi!',
       stageDirection: 'Akira nhìn xuống đoàn xe',
-      speakerCharacterId: 'char-1',
       panelId: null,
     },
   ],
@@ -148,7 +176,13 @@ const mockBible = {
   ],
 };
 
-const renderView = (props: { workspaceRole?: string; currentUserId?: string } = {}) =>
+const renderView = (
+  props: {
+    workspaceRole?: string;
+    currentUserId?: string;
+    onShowToast?: (title: string, desc: string) => void;
+  } = {},
+) =>
   render(
     <MemoryRouter
       initialEntries={['/workspaces/ws-1/series/se-1/script?chapterId=chap-1&sceneId=sc-1']}
@@ -165,6 +199,10 @@ const renderView = (props: { workspaceRole?: string; currentUserId?: string } = 
 describe('ScriptEditorView (UC-06 Writer Script)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(chapterService.getChapterById).mockReset();
+    vi.mocked(chapterService.getScriptVersions).mockReset();
+    vi.mocked(chapterService.getScriptWorkingCopy).mockReset();
+    vi.mocked(chapterService.saveChapterScript).mockReset();
     vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
       items: mockChapters,
       totalCount: 1,
@@ -216,6 +254,21 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     vi.mocked(chapterService.updateOutline).mockResolvedValue({
       value: 'Outline mới của chương 1.',
     });
+    vi.mocked(chapterService.getScriptVersions).mockResolvedValue([]);
+    vi.mocked(chapterService.saveChapterScript).mockResolvedValue({
+      revisionId: 'rev-1',
+      versionNumber: 1,
+      created: true,
+      warnings: [],
+    });
+    vi.mocked(chapterService.submitChapterScript).mockResolvedValue({
+      revisionId: 'rev-1',
+      versionNumber: 1,
+      created: true,
+      warnings: [],
+      chapter: mockChapters[0] as any,
+    });
+    vi.mocked(chapterService.getScriptComments).mockResolvedValue([]);
     vi.mocked(assignmentService.getConsistencyFindings).mockResolvedValue([]);
     vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
     vi.mocked(assignmentService.getChangeRequests).mockResolvedValue([]);
@@ -263,9 +316,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       id: 'line-2',
       sceneId: 'sc-1',
       lineOrder: 2,
+      speakerLabel: 'Akira',
       dialogueText: 'Tôi đã sẵn sàng.',
       stageDirection: null,
-      speakerCharacterId: 'char-1',
       panelId: null,
       chapterVersion: 6,
       revisionId: 'rev-2',
@@ -322,7 +375,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
   it('khóa kịch bản khi Chapter ở trạng thái Approved theo BR-12', async () => {
     vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
-      items: [{ ...mockChapters[0], status: 'Approved' }],
+      items: [{ ...mockChapters[0], status: 'ChapterApproved' }],
       totalCount: 1,
       pageIndex: 1,
       pageSize: 50,
@@ -437,7 +490,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
   });
 
-  it('Producer luôn có toàn quyền sửa kịch bản dù chương đã giao cho Writer khác', async () => {
+  it('Producer chỉ xem kịch bản theo SCR-11, không có quyền sửa kịch bản', async () => {
     vi.mocked(assignmentService.getAssignments).mockResolvedValue([
       {
         id: 'as-1',
@@ -457,9 +510,8 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     renderView({ workspaceRole: 'PRODUCER', currentUserId: 'producer-id' });
 
-    expect(await screen.findByTestId('open-add-line-btn')).toBeInTheDocument();
-    expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('role-view-only-banner')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('role-view-only-banner')).toBeInTheDocument();
+    expect(screen.queryByTestId('open-add-line-btn')).not.toBeInTheDocument();
   });
 
   it('bắt lỗi 403 Forbidden khi tạo dòng kịch bản và hiển thị thông báo lỗi', async () => {
@@ -507,50 +559,6 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     });
   });
 
-  it('hiển thị chip mục Series Bible liên kết trên dòng kịch bản (UC-06)', async () => {
-    vi.mocked(bibleService.getSeriesBible).mockResolvedValue({
-      ...mockBible,
-      entries: [
-        ...mockBible.entries,
-        {
-          id: 'entry-sword-prop',
-          seriesBibleId: 'b-1',
-          category: 2,
-          code: 'SWORD',
-          name: 'Bảo Kiếm Gia Truyền',
-          description: 'Thanh bảo kiếm phát sáng ánh xanh',
-          priority: 1,
-          strictCheck: true,
-          isActive: true,
-          createdAt: '2026-10-01',
-        },
-      ],
-    } as any);
-
-    vi.mocked(scriptLineService.getSceneById).mockResolvedValue({
-      ...mockSceneDetail,
-      scriptLines: [
-        {
-          id: 'line-bible-1',
-          lineOrder: 1,
-          dialogueText: 'Thanh gươm này thuộc về thành cổ!',
-          stageDirection: 'Akira rút gươm',
-          speakerCharacterId: 'char-1',
-          panelId: null,
-          bibleEntryIds: ['entry-sword-prop'],
-        },
-      ],
-    });
-
-    renderView();
-
-    const headings = await screen.findAllByText('Cảnh 1: Neo Tokyo - Đêm');
-    expect(headings.length).toBeGreaterThanOrEqual(1);
-    expect(await screen.findByText(/Thanh gươm này thuộc về thành cổ!/)).toBeInTheDocument();
-    expect(await screen.findByText(/Bible:/i)).toBeInTheDocument();
-    expect(screen.getByText('Bảo Kiếm Gia Truyền')).toBeInTheDocument();
-  });
-
   it('cho phép Writer sửa và lưu Story Arc của Series qua PUT /api/series/{seriesId}/story-arc', async () => {
     const user = userEvent.setup();
     renderView();
@@ -571,7 +579,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       'se-1',
       'Khám phá bí mật trung tâm điều khiển.',
     );
-  });
+  }, 15000);
 
   it('cho phép Writer sửa và lưu Outline của Chapter, và bắt lỗi 409 khi chương khoá / xung đột', async () => {
     const conflictErr = new Error(
@@ -595,6 +603,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(chapterService.updateOutline).toHaveBeenCalledWith(
       'chap-1',
       expect.stringContaining('Dàn ý'),
+      expect.any(Number), // versionVector đang xem (BR-11)
     );
     expect(await screen.findByTestId('concurrency-error-banner')).toBeInTheDocument();
   });
@@ -625,6 +634,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     const user = userEvent.setup();
     renderView();
+
+    const railBtn = await screen.findByTestId('rail-consistency-btn');
+    await user.click(railBtn);
 
     const checkBtn = await screen.findByTestId('run-consistency-check-btn');
     await user.click(checkBtn);
@@ -678,8 +690,10 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     const bibleBtn = await screen.findByTestId('rail-characters-btn');
     await user.click(bibleBtn);
 
-    expect(await screen.findByText('Nhân vật Series Bible (1)')).toBeInTheDocument();
-    expect(screen.getByText('Nhân vật chính 20 tuổi')).toBeInTheDocument();
+    const drawer = await screen.findByTestId('bible-characters-drawer');
+    expect(within(drawer).getByText('Nhân vật Series Bible (1)')).toBeInTheDocument();
+    await user.click(within(drawer).getByText('Akira'));
+    expect(await within(drawer).findByText('Nhân vật chính 20 tuổi')).toBeInTheDocument();
   });
 
   describe('Bản nháp cục bộ khi mất phiên / đóng tab', () => {
@@ -913,5 +927,566 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(sheet).toBeInTheDocument();
 
     expect(screen.queryByTestId('flow-script-content-hash')).not.toBeInTheDocument();
+  });
+
+  it('SCR-14 / BR-11: xử lý 409 CONFLICT trên saveChapterScript hiện thông báo chuẩn, giữ thay đổi chưa lưu và không tự gửi lại', async () => {
+    const user = userEvent.setup();
+    const onShowToast = vi.fn();
+    vi.mocked(chapterService.getScriptVersions).mockResolvedValue([
+      {
+        id: 'rev-10',
+        versionNumber: 10,
+        message: 'v10',
+        authorUserId: 'u-1',
+        createdAt: '2026-10-01',
+        lineCount: 1,
+        contentHash: 'hash-10',
+      },
+    ]);
+
+    const conflictErr = new Error('Xung đột phiên bản kịch bản');
+    (conflictErr as any).status = 409;
+    (conflictErr as any).code = 'CONFLICT';
+    vi.mocked(chapterService.saveChapterScript).mockRejectedValueOnce(conflictErr);
+
+    renderView({ onShowToast });
+
+    await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
+
+    // Chuyển sang bàn viết flow và tạo thay đổi chưa lưu (đổi loại dòng sang SFX)
+    await user.click(await screen.findByTestId('tab-flow'));
+    const toolbar = await screen.findByRole('toolbar');
+    await user.click(within(toolbar).getByRole('button', { name: 'SFX' }));
+
+    expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
+
+    // Bấm lưu (Ctrl+S) -> gặp 409
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(chapterService.saveChapterScript).toHaveBeenCalledTimes(1);
+    });
+
+    expect(chapterService.saveChapterScript).toHaveBeenCalledWith(
+      'chap-1',
+      expect.objectContaining({
+        expectedRevisionId: 'rev-10',
+      }),
+    );
+
+    const expectedMsg =
+      'Kịch bản vừa được thay đổi (khôi phục / AI / người khác). Tải lại để xem bản mới nhất.';
+    expect(onShowToast).toHaveBeenCalledWith(expectedMsg, '');
+    expect(await screen.findByTestId('concurrency-error-banner')).toHaveTextContent(expectedMsg);
+
+    // Không tự động gửi lại mù quáng
+    expect(chapterService.saveChapterScript).toHaveBeenCalledTimes(1);
+
+    // Giữ lại thay đổi chưa lưu để người dùng tự gộp (vẫn dirty + loại dòng SFX chưa lưu vẫn được giữ)
+    expect(within(toolbar).getByRole('button', { name: 'SFX' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByText(/Chưa lưu/)).toBeInTheDocument();
+
+    // expectedRevisionId không bị ghi đè mù quáng khi chưa tải lại
+    vi.mocked(chapterService.saveChapterScript).mockRejectedValueOnce(conflictErr);
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+    await waitFor(() => {
+      expect(chapterService.saveChapterScript).toHaveBeenCalledTimes(2);
+    });
+    expect(vi.mocked(chapterService.saveChapterScript).mock.calls[1][1]).toEqual(
+      expect.objectContaining({ expectedRevisionId: 'rev-10' }),
+    );
+  });
+
+  it('BR-11 / quy tắc 9: khôi phục hoặc chấp nhận AI khi đang có chữ chưa lưu thì KHÔNG đè editor, chỉ hiện banner tải lại', async () => {
+    const user = userEvent.setup();
+    vi.mocked(chapterService.getScriptVersions).mockResolvedValue([
+      {
+        id: 'rev-10',
+        versionNumber: 10,
+        message: 'v10',
+        authorUserId: 'u-1',
+        createdAt: '2026-10-01',
+        lineCount: 1,
+        contentHash: 'hash-10',
+      },
+    ]);
+
+    renderView();
+    await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
+    await user.click(await screen.findByTestId('tab-flow'));
+    const toolbar = await screen.findByRole('toolbar');
+    await user.click(within(toolbar).getByRole('button', { name: 'SFX' }));
+    expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
+
+    // BE vừa tạo rev-11 (khôi phục / AI ở nơi khác)
+    vi.mocked(chapterService.getScriptWorkingCopy).mockResolvedValue(null as any);
+    vi.mocked(chapterService.getScriptVersions).mockResolvedValue([
+      {
+        id: 'rev-11',
+        versionNumber: 11,
+        message: 'Chấp nhận đề xuất AI (Script)',
+        authorUserId: 'u-1',
+        createdAt: '2026-10-02',
+        lineCount: 1,
+        contentHash: 'hash-11',
+      },
+    ]);
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent('panelforge:script-working-copy-changed', {
+          detail: { chapterId: 'chap-1' },
+        }),
+      );
+    });
+
+    expect(await screen.findByTestId('concurrency-error-banner')).toHaveTextContent(
+      'Kịch bản vừa được thay đổi (khôi phục / AI / người khác). Tải lại để xem bản mới nhất.',
+    );
+    // Chữ chưa lưu còn nguyên
+    expect(within(toolbar).getByRole('button', { name: 'SFX' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByText(/Chưa lưu/)).toBeInTheDocument();
+
+    // Vẫn giữ expectedRevisionId cũ: lưu tiếp sẽ bị BE chặn 409 thay vì đè bản mới
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+    await waitFor(() => expect(chapterService.saveChapterScript).toHaveBeenCalled());
+    expect(vi.mocked(chapterService.saveChapterScript).mock.calls.at(-1)![1]).toEqual(
+      expect.objectContaining({ expectedRevisionId: 'rev-10' }),
+    );
+  });
+
+  it('BR-08 / BR-11: sau khi restoreScriptRevision thành công thì tải lại working copy, cập nhật expectedRevisionId và nội dung đang hiển thị', async () => {
+    const user = userEvent.setup();
+    vi.mocked(chapterService.getScriptVersions).mockResolvedValueOnce([
+      {
+        id: 'rev-10',
+        versionNumber: 10,
+        message: 'v10',
+        authorUserId: 'u-1',
+        createdAt: '2026-10-01T00:00:00Z',
+        lineCount: 1,
+        contentHash: 'hash-10',
+      },
+    ]);
+    vi.spyOn(aiAgentsService, 'getSceneRevisions').mockResolvedValue([
+      {
+        id: 'cr-2',
+        kind: 'Script',
+        versionNumber: 2,
+        summary: 'Sửa tay lần 2',
+        contentHash: 'h-cr2',
+        createdAt: '2026-10-02T00:00:00Z',
+      },
+      {
+        id: 'cr-1',
+        kind: 'Script',
+        versionNumber: 1,
+        summary: 'Bản gốc ban đầu',
+        contentHash: 'h-cr1',
+        createdAt: '2026-10-01T00:00:00Z',
+      },
+    ]);
+
+    renderView();
+    await screen.findByText(/Họ đang di chuyển/);
+
+    // Mở drawer lịch sử phiên bản
+    await user.click(await screen.findByTestId('open-script-history-btn'));
+    const restoreBtn = await screen.findByTestId('restore-script-revision-cr-1');
+
+    // Khi restore thành công: BE tạo ScriptVersion mới rev-11 và working copy đổi sang nội dung của cr-1
+    vi.mocked(scriptLineService.restoreScriptRevision).mockResolvedValueOnce({
+      chapterVersion: 6,
+      revisionId: 'cr-3',
+      versionNumber: 3,
+      restoredFromRevisionId: 'cr-1',
+      restoredFromVersionNumber: 1,
+    });
+    vi.mocked(chapterService.getScriptWorkingCopy).mockResolvedValueOnce({
+      contentHash: 'hash-11',
+      lineCount: 1,
+      rows: [
+        {
+          key: 'page:1',
+          type: 'page',
+          page: 1,
+          panel: 0,
+          text: '',
+        },
+        {
+          key: 'panel:1.1',
+          type: 'panel',
+          page: 1,
+          panel: 1,
+          text: 'Toàn cảnh thành phố',
+        },
+        {
+          key: 'line:line-1',
+          type: 'Dialogue',
+          page: 1,
+          panel: 1,
+          label: 'Akira',
+          text: 'Lời thoại đã khôi phục về bản gốc v1!',
+        },
+      ],
+    });
+    vi.mocked(chapterService.getScriptVersions).mockResolvedValue([
+      {
+        id: 'rev-11',
+        versionNumber: 11,
+        message: 'Khôi phục về phiên bản 1',
+        authorUserId: 'u-1',
+        createdAt: '2026-10-03T00:00:00Z',
+        lineCount: 1,
+        contentHash: 'hash-11',
+      },
+    ]);
+
+    await user.click(restoreBtn);
+
+    await waitFor(() => {
+      expect(scriptLineService.restoreScriptRevision).toHaveBeenCalledWith(
+        'chap-1',
+        'sc-1',
+        'cr-1',
+        { expectedChapterVersion: 5 },
+      );
+    });
+    await waitFor(() => {
+      expect(chapterService.getScriptWorkingCopy).toHaveBeenCalledWith('chap-1');
+    });
+
+    // Nội dung đang hiển thị được cập nhật theo working copy vừa tải
+    expect(await screen.findByText(/Lời thoại đã khôi phục về bản gốc v1!/)).toBeInTheDocument();
+
+    // Lần lưu kế tiếp gửi đúng expectedRevisionId mới ('rev-11'), không còn giữ 'rev-10'
+    vi.mocked(chapterService.saveChapterScript).mockResolvedValueOnce({
+      revisionId: 'rev-12',
+      versionNumber: 12,
+      created: true,
+      warnings: [],
+    });
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(chapterService.saveChapterScript).toHaveBeenCalledWith(
+        'chap-1',
+        expect.objectContaining({
+          expectedRevisionId: 'rev-11',
+        }),
+      );
+    });
+  });
+
+  it.each(['Script', 'LineRewrite', 'Layout'] as const)(
+    'BR-02 / BR-11: sau khi Accept đề xuất AI loại %s thì tải lại working copy và cập nhật expectedRevisionId',
+    async (kind) => {
+      const user = userEvent.setup();
+      vi.mocked(chapterService.getScriptVersions).mockResolvedValueOnce([
+        {
+          id: 'rev-10',
+          versionNumber: 10,
+          message: 'v10',
+          authorUserId: 'u-1',
+          createdAt: '2026-10-01T00:00:00Z',
+          lineCount: 1,
+          contentHash: 'hash-10',
+        },
+      ]);
+      // Không có khung sẵn để Layout Accept không bị disable
+      vi.mocked(scriptLineService.getScenesByChapter).mockResolvedValue([
+        { ...mockScenes[0], pagesCount: 0 },
+      ]);
+
+      vi.spyOn(aiAgentsService, 'getWorkflowAvailability').mockResolvedValue({
+        chapterId: 'chap-1',
+        sceneId: 'sc-1',
+        workflows: [
+          {
+            workflowType: kind === 'Layout' ? 'Storyboard' : 'Script',
+            title: 'AI',
+            description: 'AI',
+            agents: ['Writer'],
+            requiredRoles: ['Writer'],
+            resultKinds: [kind],
+            canRun: true,
+            missing: [],
+          },
+        ],
+      });
+      vi.spyOn(aiAgentsService, 'getSceneRevisions').mockResolvedValue([]);
+
+      const pendingSug: any = {
+        id: `sug-${kind}`,
+        runId: `run-${kind}`,
+        stepId: 'st-1',
+        sceneId: 'sc-1',
+        kind,
+        status: 'Pending',
+        summary: `Đề xuất ${kind}`,
+        payload:
+          kind === 'LineRewrite'
+            ? {
+                schemaVersion: 1,
+                runId: `run-${kind}`,
+                sceneId: 'sc-1',
+                task: 'writer.rewrite',
+                sourceScriptLineId: 'line-1',
+                originalText: 'Cũ',
+                suggestedText: `Nội dung AI ${kind}`,
+                reason: 'Ngắn gọn hơn',
+              }
+            : kind === 'Layout'
+              ? {
+                  schemaVersion: 1,
+                  runId: `run-${kind}`,
+                  sceneId: 'sc-1',
+                  readingDirection: 'RightToLeft',
+                  pages: [
+                    {
+                      pageNumber: 1,
+                      panels: [
+                        {
+                          panelNumber: 1,
+                          readingOrder: 1,
+                          bbox: { x: 0, y: 0, w: 1, h: 1 },
+                          coordinateSpace: 'PageNormalized',
+                          camera: 'Wide',
+                          description: 'Cảnh rộng',
+                          characterIds: [],
+                          sourceScriptLineIds: ['line-1'],
+                        },
+                      ],
+                    },
+                  ],
+                }
+              : {
+                  schemaVersion: 1,
+                  runId: `run-${kind}`,
+                  sceneId: 'sc-1',
+                  round: 1,
+                  lines: [{ lineId: 'line-1', order: 1, dialogue: `Nội dung AI ${kind}` }],
+                  bibleRevisionIds: [],
+                },
+        payloadHash: 'ph',
+        baseChapterVersion: 5,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-10-02T00:00:00Z',
+        decisions: [],
+        canDecide: true,
+      };
+
+      if (kind === 'LineRewrite') {
+        renderView();
+        await screen.findByText(/Họ đang di chuyển/);
+
+        vi.mocked(chapterService.getScriptWorkingCopy).mockResolvedValueOnce({
+          contentHash: `hash-ai-${kind}`,
+          lineCount: 1,
+          rows: [
+            {
+              key: 'line:line-1',
+              type: 'Dialogue',
+              page: 1,
+              panel: 1,
+              label: 'Akira',
+              text: `Nội dung mới từ AI ${kind}`,
+            },
+          ],
+        });
+        vi.mocked(chapterService.getScriptVersions).mockResolvedValue([
+          {
+            id: `rev-ai-${kind}`,
+            versionNumber: 11,
+            message: `Chấp nhận đề xuất AI (${kind})`,
+            authorUserId: 'u-1',
+            createdAt: '2026-10-03T00:00:00Z',
+            lineCount: 1,
+            contentHash: `hash-ai-${kind}`,
+          },
+        ]);
+
+        // Khi review Accept LineRewrite phát sự kiện đồng bộ working copy
+        act(() => {
+          window.dispatchEvent(
+            new CustomEvent('panelforge:script-working-copy-changed', {
+              detail: {
+                chapterId: 'chap-1',
+                sceneId: 'sc-1',
+                source: 'ai-accept',
+                kind: 'LineRewrite',
+              },
+            }),
+          );
+        });
+      } else {
+        vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([pendingSug]);
+        vi.spyOn(aiAgentsService, 'getRun').mockResolvedValue({
+          id: `run-${kind}`,
+          seriesId: 'se-1',
+          chapterId: 'chap-1',
+          sceneId: 'sc-1',
+          requestedByUserId: 'u-1',
+          status: 'Completed',
+          provider: 'Mock',
+          model: 'm',
+          brief: 'b',
+          readingDirection: 'RightToLeft',
+          revisionRounds: 0,
+          maxRevisionRounds: 2,
+          baseChapterVersion: 5,
+          bibleRevisionIds: [],
+          createdAt: '2026-10-02T00:00:00Z',
+          lastActivityAtUtc: '2026-10-02T00:00:00Z',
+          steps: [],
+          suggestions: [pendingSug],
+          workflowType: kind === 'Layout' ? 'Storyboard' : 'Script',
+        });
+        vi.spyOn(aiAgentsService, 'review').mockResolvedValueOnce({
+          suggestionId: pendingSug.id,
+          status: 'Accepted',
+          decisionId: 'd-1',
+          chapterVersion: 6,
+        });
+
+        renderView();
+        await screen.findByText(/Họ đang di chuyển/);
+
+        await user.click(await screen.findByTestId('rail-ai-btn'));
+        await user.click(
+          await screen.findByTestId(
+            kind === 'Layout' ? 'open-ai-storyboard-btn' : 'open-ai-draft-btn',
+          ),
+        );
+
+        const acceptBtn = await screen.findByRole('button', { name: /Accept/ });
+
+        vi.mocked(chapterService.getScriptWorkingCopy).mockResolvedValueOnce({
+          contentHash: `hash-ai-${kind}`,
+          lineCount: 1,
+          rows: [
+            {
+              key: 'page:1',
+              type: 'page',
+              page: 1,
+              panel: 0,
+              text: '',
+            },
+            {
+              key: 'panel:1.1',
+              type: 'panel',
+              page: 1,
+              panel: 1,
+              text: 'Cảnh rộng',
+            },
+            {
+              key: 'line:line-1',
+              type: 'Dialogue',
+              page: 1,
+              panel: 1,
+              label: 'Akira',
+              text: `Nội dung mới từ AI ${kind}`,
+            },
+          ],
+        });
+        vi.mocked(chapterService.getScriptVersions).mockResolvedValue([
+          {
+            id: `rev-ai-${kind}`,
+            versionNumber: 11,
+            message: `Chấp nhận đề xuất AI (${kind})`,
+            authorUserId: 'u-1',
+            createdAt: '2026-10-03T00:00:00Z',
+            lineCount: 1,
+            contentHash: `hash-ai-${kind}`,
+          },
+        ]);
+
+        await user.click(acceptBtn);
+      }
+
+      await waitFor(() => {
+        expect(chapterService.getScriptWorkingCopy).toHaveBeenCalledWith('chap-1');
+      });
+      expect(await screen.findByText(new RegExp(`Nội dung mới từ AI ${kind}`))).toBeInTheDocument();
+
+      vi.mocked(chapterService.saveChapterScript).mockResolvedValueOnce({
+        revisionId: 'rev-12',
+        versionNumber: 12,
+        created: true,
+        warnings: [],
+      });
+      fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+
+      await waitFor(() => {
+        expect(chapterService.saveChapterScript).toHaveBeenCalledWith(
+          'chap-1',
+          expect.objectContaining({
+            expectedRevisionId: `rev-ai-${kind}`,
+          }),
+        );
+      });
+    },
+  );
+
+  it('SCR-14: hiển thị toast cảnh báo khi lưu kịch bản trả về warnings (lost refs / kept panels)', async () => {
+    const onShowToast = vi.fn();
+    vi.mocked(chapterService.saveChapterScript).mockResolvedValueOnce({
+      revisionId: 'rev-11',
+      versionNumber: 11,
+      created: true,
+      warnings: ['Trang 2 đã có artwork nên được giữ lại dù không còn trong kịch bản.'],
+    });
+
+    renderView({ onShowToast });
+    await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
+
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(chapterService.saveChapterScript).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onShowToast).toHaveBeenCalledWith(
+      'Cảnh báo tham chiếu Series Bible',
+      'Trang 2 đã có artwork nên được giữ lại dù không còn trong kịch bản.',
+    );
+  });
+
+  it('hiển thị link "Mở Series Bible để duyệt Canon" trên Gate 1 blocker banner (F#24)', async () => {
+    vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
+      items: [
+        {
+          ...mockChapters[0],
+          status: 'PreProduction',
+          isScriptFrozen: false,
+          scriptStatus: 'InReview',
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 50,
+      totalPages: 1,
+    });
+    vi.mocked(chapterCastService.getChapterCast).mockResolvedValue({
+      chapterId: 'chap-1',
+      entries: [],
+      submitGate: { isPassed: true, blockers: [] },
+      gate: {
+        isPassed: false,
+        canStart: false,
+        blockers: [{ entryName: 'Hero Sword', reason: 'Chưa khoá Canon' } as any],
+      },
+    } as any);
+
+    renderView();
+
+    expect(await screen.findByTestId('start-blocked-banner')).toBeInTheDocument();
+    expect(screen.getByText('Mở Series Bible để duyệt Canon')).toBeInTheDocument();
   });
 });

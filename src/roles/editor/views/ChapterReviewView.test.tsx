@@ -240,6 +240,7 @@ describe('ChapterReviewView Component', () => {
     expect(screen.getByText(/Editor duyệt/i)).toBeInTheDocument();
     expect(screen.getByText(/Producer duyệt/i)).toBeInTheDocument();
     expect(screen.getByText(/Publisher phát hành/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Duyệt Gate 2' })).toBeInTheDocument();
   });
 
   it('allows switching active page', async () => {
@@ -386,5 +387,135 @@ describe('ChapterReviewView Component', () => {
       ).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Mở duyệt việc này/i })).toBeInTheDocument();
     });
+  });
+
+  it('Gate 2 trên Lưới V3: dùng API approveStageTask / requestStageTaskChanges thay cho Assignment V2 và refetch getTaskGrid sau khi duyệt', async () => {
+    const getTaskGridMock = vi.fn().mockResolvedValue({
+      chapterId: 'chap-1',
+      stages: [
+        {
+          id: 'stage-ink',
+          name: 'Ink',
+          stageOrder: 3,
+          track: 'A',
+          allowedRole: 'Artist',
+          isApprovalGate: true,
+          granularity: 'Page',
+          isEnabled: true,
+          prerequisiteStageIds: [],
+        },
+        {
+          id: 'stage-color-off',
+          name: 'Color',
+          stageOrder: 4,
+          track: 'A',
+          allowedRole: 'Artist',
+          isApprovalGate: true,
+          granularity: 'Page',
+          isEnabled: false,
+          prerequisiteStageIds: [],
+        },
+        {
+          id: 'stage-review',
+          name: 'Review',
+          stageOrder: 7,
+          track: null,
+          allowedRole: 'Editor',
+          isApprovalGate: true,
+          granularity: 'Chapter',
+          isEnabled: true,
+          prerequisiteStageIds: ['stage-ink'],
+        },
+      ],
+      pages: [{ id: 'page-1', pageNumber: 1 }],
+      lots: [],
+      tasks: [
+        {
+          id: 'grid-cell-ink-p1',
+          pipelineStageId: 'stage-ink',
+          pageId: 'page-1',
+          status: 'Submitted',
+          lotId: 'lot-ink',
+          assigneeUserId: 'artist-1',
+          isInputOutdated: false,
+          isStartable: true,
+          rowVersion: 1,
+        },
+        {
+          id: 'review-assign-1',
+          pipelineStageId: 'stage-review',
+          pageId: null,
+          status: 'Submitted',
+          lotId: 'lot-review',
+          assigneeUserId: 'other-editor',
+          isInputOutdated: false,
+          isStartable: true,
+          rowVersion: 1,
+        },
+      ],
+    });
+    const approveStageTaskMock = vi
+      .fn()
+      .mockResolvedValue({ id: 'grid-cell-ink-p1', status: 'Approved' });
+    const requestStageTaskChangesMock = vi.fn().mockResolvedValue({
+      id: 'grid-cell-ink-p1',
+      status: 'ReworkRequired',
+      lastDecisionComment: 'Nét mực khung 2 bị đứt nét',
+    });
+
+    (assignmentService as any).getTaskGrid = getTaskGridMock;
+    (assignmentService as any).approveStageTask = approveStageTaskMock;
+    (assignmentService as any).requestStageTaskChanges = requestStageTaskChangesMock;
+
+    try {
+      render(
+        <MemoryRouter>
+          <ChapterReviewView
+            assignment={mockAssignment}
+            chapterId='chap-1'
+            seriesId='series-1'
+            effectiveWsId='ws-1'
+            effectiveRole='EDITOR'
+            currentUserId='editor-1'
+          />
+        </MemoryRouter>,
+      );
+
+      const gridPanel = await screen.findByTestId('gate2-grid-cells-panel');
+      expect(gridPanel).toBeInTheDocument();
+      // Không hiện công đoạn Color đang tắt
+      expect(screen.queryByText(/Color/)).not.toBeInTheDocument();
+
+      // 1) Duyệt ô gọi approveStageTask + refetch getTaskGrid
+      fireEvent.click(screen.getByTestId('gate2-approve-cell-grid-cell-ink-p1'));
+      await waitFor(() => {
+        expect(approveStageTaskMock).toHaveBeenCalledWith('chap-1', 'grid-cell-ink-p1');
+        expect(getTaskGridMock).toHaveBeenCalledTimes(2);
+      });
+
+      // 2) Yêu cầu sửa kèm comment bắt buộc gọi requestStageTaskChanges + refetch getTaskGrid
+      fireEvent.click(screen.getByTestId('gate2-request-changes-toggle-grid-cell-ink-p1'));
+      fireEvent.change(screen.getByTestId('gate2-request-changes-input-grid-cell-ink-p1'), {
+        target: { value: 'Nét mực khung 2 bị đứt nét' },
+      });
+      fireEvent.click(screen.getByTestId('gate2-confirm-request-changes-grid-cell-ink-p1'));
+
+      await waitFor(() => {
+        expect(requestStageTaskChangesMock).toHaveBeenCalledWith(
+          'chap-1',
+          'grid-cell-ink-p1',
+          'Nét mực khung 2 bị đứt nét',
+        );
+        expect(screen.getByTestId('gate2-cell-last-comment-grid-cell-ink-p1')).toHaveTextContent(
+          'Nét mực khung 2 bị đứt nét',
+        );
+      });
+      expect(getTaskGridMock).toHaveBeenCalledTimes(2);
+      expect(assignmentService.returnWorkFromReview).not.toHaveBeenCalled();
+    } finally {
+      delete (assignmentService as any).getTaskGrid;
+      delete (assignmentService as any).approveStageTask;
+      delete (assignmentService as any).requestStageTaskChanges;
+    }
   });
 });

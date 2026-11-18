@@ -101,12 +101,16 @@ describe('frameTemplateService', () => {
         createdAt: '2026-10-08T03:00:00Z',
       },
     ];
-    post.mockResolvedValue({ status: 201, data: mockPanels });
+    post.mockResolvedValue({
+      status: 200,
+      data: { panels: mockPanels, unassignedArtworkCount: 1 },
+    });
 
     const result = await frameTemplateService.applyFrameTemplate('page-1', 'tpl-1');
 
-    expect(result.length).toBe(1);
-    expect(result[0].panelNumber).toBe(1);
+    expect(result.panels).toHaveLength(1);
+    expect(result.panels[0].panelNumber).toBe(1);
+    expect(result.unassignedArtworkCount).toBe(1);
     expect(post).toHaveBeenCalledWith('/pages/page-1/frame-template', { templateId: 'tpl-1' });
   });
 

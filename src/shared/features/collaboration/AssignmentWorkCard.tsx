@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Alert } from '@/shared/ui';
+import { Link, useParams } from 'react-router-dom';
+import { buildArtistDeskUrl, buildScriptEditorUrl } from '@/app/routePaths';
 import {
   AlertTriangle,
   BookOpen,
@@ -108,6 +110,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   onToast,
   relatedAssignments,
 }) => {
+  const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
   const [artworks, setArtworks] = useState<AssetReferenceDto[]>([]);
@@ -411,13 +414,9 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
       </div>
 
       {error && (
-        <div
-          role='alert'
-          className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2'
-        >
-          <AlertTriangle className='w-4 h-4 shrink-0 text-red-500' />
-          <span>{error}</span>
-        </div>
+        <Alert tone='danger' className='text-xs'>
+          {error}
+        </Alert>
       )}
 
       {(actions.canStart || actions.isAssignee) && status !== 'Approved' && (
@@ -461,8 +460,15 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
             <>
               {String(assignment.assignedRole).toUpperCase() === 'WRITER' && (
                 <Link
-                  to={`../script?chapterId=${chapterId}&assignmentId=${assignment.id}`}
-                  relative='path'
+                  to={
+                    workspaceId && seriesId
+                      ? buildScriptEditorUrl(workspaceId, seriesId, {
+                          chapterId,
+                          assignmentId: assignment.id,
+                        })
+                      : `../script/editor?chapterId=${chapterId}&assignmentId=${assignment.id}`
+                  }
+                  relative={workspaceId && seriesId ? undefined : 'path'}
                   data-testid='open-writer-desk'
                   className='h-9 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
@@ -472,8 +478,16 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               )}
               {String(assignment.assignedRole).toUpperCase() === 'ARTIST' && (
                 <Link
-                  to={`../artist?chapterId=${chapterId}&assignmentId=${assignment.id}`}
-                  relative='path'
+                  to={
+                    workspaceId && seriesId
+                      ? buildArtistDeskUrl(workspaceId, seriesId, {
+                          chapterId,
+                          assignmentId: assignment.id,
+                          page: pageId ?? undefined,
+                        })
+                      : `../artist/desk?chapterId=${chapterId}&assignmentId=${assignment.id}${pageId ? `&page=${pageId}` : ''}`
+                  }
+                  relative={workspaceId && seriesId ? undefined : 'path'}
                   data-testid='open-artist-desk'
                   className='h-9 px-3.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
@@ -483,8 +497,17 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               )}
               {String(assignment.assignedRole).toUpperCase() === 'LETTERER' && (
                 <Link
-                  to={`../letterer?chapterId=${chapterId}&assignmentId=${assignment.id}`}
-                  relative='path'
+                  to={
+                    workspaceId && seriesId
+                      ? buildArtistDeskUrl(workspaceId, seriesId, {
+                          chapterId,
+                          assignmentId: assignment.id,
+                          tab: 'lettering',
+                          page: pageId ?? undefined,
+                        })
+                      : `../artist/desk?chapterId=${chapterId}&assignmentId=${assignment.id}&tab=lettering${pageId ? `&page=${pageId}` : ''}`
+                  }
+                  relative={workspaceId && seriesId ? undefined : 'path'}
                   data-testid='open-letterer-desk'
                   className='h-9 px-3.5 py-1.5 rounded-xl border border-pink-200 bg-pink-50 hover:bg-pink-100 text-pink-900 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >

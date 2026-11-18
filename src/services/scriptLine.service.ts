@@ -40,9 +40,7 @@ export interface SceneScriptLineSummaryDto {
   text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
-  speakerCharacterId?: string | null;
   panelId?: string | null;
-  bibleEntryIds?: string[];
   narrationMode?: NarrationMode;
 }
 
@@ -72,13 +70,11 @@ export interface ScriptLineDto {
   kind?: ScriptLineKind | number | string;
   speakerLabel?: string | null;
   text?: string | null;
-  speakerCharacterId?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
   panelId?: string | null;
   chapterVersion: number;
   revisionId: string;
-  bibleEntryIds?: string[];
   replayed?: boolean;
   narrationMode?: NarrationMode;
 }
@@ -109,10 +105,8 @@ export interface CreateScriptLineRequest {
   text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
-  speakerCharacterId?: string | null;
   lineOrder?: number | null;
   expectedChapterVersion?: number | null;
-  bibleEntryIds?: string[] | null;
   clientLineId?: string | null;
   narrationMode?: NarrationMode | null;
 }
@@ -123,9 +117,7 @@ export interface UpdateScriptLineRequest {
   text?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
-  speakerCharacterId?: string | null;
   expectedChapterVersion?: number | null;
-  bibleEntryIds?: string[] | null;
   narrationMode?: NarrationMode | null;
 }
 
@@ -134,39 +126,20 @@ export interface DeleteScriptLineResult {
   revisionId: string;
 }
 
-export interface BatchScriptLineItem {
-  id?: string | null;
-  lineOrder: number;
-  kind?: ScriptLineKind | number;
-  speakerLabel?: string | null;
-  text?: string | null;
-  dialogueText?: string | null;
-  stageDirection?: string | null;
-  speakerCharacterId?: string | null;
-  bibleEntryIds?: string[] | null;
-  narrationMode?: NarrationMode | null;
-  clientLineId?: string | null;
-  panelId?: string | null;
-}
-
-export interface BatchSaveScriptLinesRequest {
-  lines: BatchScriptLineItem[];
-  expectedChapterVersion?: number | null;
-  summary?: string | null;
-  rawText?: string | null;
-}
-
-export interface BatchSaveScriptLinesResult {
-  chapterVersion: number;
-  revisionId: string;
-  lines: ScriptLineDto[];
+export interface ScriptLineRefInput {
+  surfaceText: string;
+  bibleEntryId?: string | null;
+  newDraft?: {
+    name: string;
+    category?: import('./bible.service').BibleCategory;
+  } | null;
 }
 
 /** Một dòng trong nội dung revision script (GET .../script-revisions/{revisionId}), đã sắp theo lineOrder. */
 export interface ScriptRevisionLineDto {
   lineId: string;
   lineOrder: number;
-  speakerCharacterId?: string | null;
+  speakerLabel?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
 }
@@ -184,6 +157,15 @@ export interface ScriptRevisionDetailDto {
   createdAt: string;
   createdBy?: string | null;
   lines: ScriptRevisionLineDto[];
+}
+
+export const SCRIPT_WORKING_COPY_CHANGED_EVENT = 'panelforge:script-working-copy-changed';
+
+export interface ScriptWorkingCopyChangedDetail {
+  chapterId: string;
+  sceneId?: string | null;
+  source: 'restore' | 'ai-accept';
+  kind?: string;
 }
 
 export interface RestoreScriptRevisionRequest {
@@ -360,25 +342,6 @@ export const scriptLineService = {
   },
 
   /**
-   * Lưu đồng bộ hàng loạt các dòng kịch bản trong 1 giao dịch duy nhất (POST /api/chapters/{chapterId}/scenes/{sceneId}/script-lines/batch)
-   */
-  async batchSaveScriptLines(
-    chapterId: string,
-    sceneId: string,
-    data: BatchSaveScriptLinesRequest,
-  ): Promise<BatchSaveScriptLinesResult> {
-    try {
-      const response = await axiosClient.post(
-        `/chapters/${chapterId}/scenes/${sceneId}/script-lines/batch`,
-        data,
-      );
-      return response.data;
-    } catch (error) {
-      throw extractError(error, 'Không thể lưu đồng bộ dòng kịch bản.');
-    }
-  },
-
-  /**
    * Xem nội dung một revision script (GET /api/chapters/{chapterId}/scenes/{sceneId}/script-revisions/{revisionId}).
    * Quyền: mọi thành viên Workspace. Danh sách revision lấy từ aiAgentsService.getSceneRevisions (kind = Script).
    */
@@ -413,38 +376,19 @@ export const scriptLineService = {
         request,
         { headers: { 'Content-Type': 'application/json' } },
       );
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent<ScriptWorkingCopyChangedDetail>(SCRIPT_WORKING_COPY_CHANGED_EVENT, {
+            detail: { chapterId, sceneId, source: 'restore' },
+          }),
+        );
+      }
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể khôi phục phiên bản kịch bản.');
     }
   },
-
-  /**
-   * V2.5: Gắn liên kết @-mentions từ kịch bản vào Series Bible (POST /api/chapters/{chapterId}/script-lines/{lineId}/bible-links)
-   */
-  async linkBibleEntries(
-    chapterId: string,
-    lineId: string,
-    mentions: ScriptMentionItemDto[],
-  ): Promise<ScriptLineBibleLinkDto[]> {
-    try {
-      const response = await axiosClient.post(
-        `/chapters/${chapterId}/script-lines/${lineId}/bible-links`,
-        { mentions },
-      );
-      return response.data;
-    } catch (error) {
-      throw extractError(error, 'Không thể liên kết thực thể Bible với dòng kịch bản.');
-    }
-  },
 };
-
-export interface ScriptMentionItemDto {
-  bibleEntryId?: string | null;
-  rawText?: string | null;
-  categoryHint?: string | null;
-  resolvedRevisionId?: string | null;
-}
 
 export interface ScriptLineBibleLinkDto {
   id: string;

@@ -1,6 +1,5 @@
 // src/roles/producer/modals/CreateAssignmentModal.tsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import {
   X,
   History,
@@ -41,6 +40,7 @@ import { panelService } from '@/services/panel.service';
 import { PanelDto } from '@/types/pipeline';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { DependencySelector } from '../components/DependencySelector';
+import { Modal } from '@/shared/ui';
 
 interface CreateAssignmentModalProps {
   isOpen: boolean;
@@ -107,6 +107,8 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   // Chế độ giao việc hàng loạt (Bulk Assignment)
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [bulkPageIds, setBulkPageIds] = useState<string[]>([]);
+  const [pageRangeFrom, setPageRangeFrom] = useState<number | null>(null);
+  const [pageRangeTo, setPageRangeTo] = useState<number | null>(null);
   const [dryRunLoading, setDryRunLoading] = useState(false);
   const [dryRunResult, setDryRunResult] = useState<BulkAssignmentResultDto | null>(null);
 
@@ -259,9 +261,12 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
         const loadedPages = pagesData || [];
         setPages(loadedPages);
         if (loadedPages.length > 0) {
+          const pageNumbers = loadedPages.map((page) => page.pageNumber);
           setSelectedPageId(loadedPages[0].id);
           setSelectedTargetIds([loadedPages[0].id]);
           setBulkPageIds(loadedPages.map((p) => p.id));
+          setPageRangeFrom(Math.min(...pageNumbers));
+          setPageRangeTo(Math.max(...pageNumbers));
         }
       })
       .catch((err) => {
@@ -450,6 +455,26 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     );
   }, [existingAtStage]);
 
+  const pageRangeConflict = useMemo(() => {
+    if (!isBulkMode || entityType !== 'Page') return null;
+    if (pageRangeFrom === null || pageRangeTo === null || pageRangeFrom > pageRangeTo) {
+      return 'Dải trang không hợp lệ: trang bắt đầu phải nhỏ hơn hoặc bằng trang kết thúc.';
+    }
+
+    const selectedPages = pages.filter(
+      (page) => page.pageNumber >= pageRangeFrom && page.pageNumber <= pageRangeTo,
+    );
+    if (selectedPages.length === 0) return 'Dải trang đã chọn không có trang nào trong chương.';
+
+    const overlappingNumbers = selectedPages
+      .filter((page) => assignedPageIdsAtStage.has(page.id))
+      .map((page) => page.pageNumber);
+    if (overlappingNumbers.length > 0) {
+      return `Dải trang chồng lấn ở trang ${overlappingNumbers.join(', ')} với phân công hiện có trong cùng công đoạn.`;
+    }
+    return null;
+  }, [assignedPageIdsAtStage, entityType, isBulkMode, pageRangeFrom, pageRangeTo, pages]);
+
   const hasAnyPageOrPanelAssignedAtStage = useMemo(
     () => assignedPageIdsAtStage.size > 0 || assignedPanelIdsAtStage.size > 0,
     [assignedPageIdsAtStage, assignedPanelIdsAtStage],
@@ -465,6 +490,8 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   // Kiểm tra xung đột phạm vi giao việc theo quy tắc ScopeOverlap của Backend (tránh lỗi 409 CONFLICT)
   const scopeOverlapWarning = useMemo((): string | null => {
     if (!pipelineStageId) return null;
+
+    if (pageRangeConflict) return pageRangeConflict;
 
     if (isChapterAssignedAtStage) {
       if (entityType === 'Chapter') {
@@ -518,6 +545,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     panels,
     assignedPanelIdsAtStage,
     selectedPanelId,
+    pageRangeConflict,
   ]);
 
   // Tự động chuyển sang trang chưa được giao việc nếu trang đang chọn bị trùng ở stage này
@@ -544,22 +572,14 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     }
   }, [entityType, panels, assignedPanelIdsAtStage, selectedPanelId]);
 
-  // Đóng modal khi nhấn phím Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   // Kiểm tra xung đột trước khi giao việc hàng loạt (POST /assignments/bulk kèm dryRun = true)
   const handleDryRun = async () => {
+    if (pageRangeConflict) {
+      setError(pageRangeConflict);
+      return;
+    }
     if (!pipelineStageId || !assigneeUserId || !brief.trim()) {
       setError(
         'Vui lòng chọn công đoạn, người nhận và nhập yêu cầu công việc (Brief) trước khi kiểm tra xung đột.',
@@ -923,44 +943,15 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     }
   };
 
-  const modalContent = (
-    <div
-      role='dialog'
-      aria-modal='true'
-      className='fixed inset-0 bg-stone-900/50 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4'
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size='lg'
+      title={`Giao Việc Mới${chapterNumber ? ` – Chương ${chapterNumber}` : ''}`}
+      closeLabel='Đóng cửa sổ giao việc'
     >
       <div className='bg-[#FCFBF8] border border-stone-200/90 rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden'>
-        {/* Header */}
-        <div className='p-4 sm:p-5 border-b border-stone-200 flex items-center justify-between bg-[#FAF8F5] rounded-t-2xl shrink-0'>
-          <div className='flex items-center gap-3.5'>
-            <div className='w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 shadow-xs shrink-0'>
-              <UserCheck className='w-5 h-5' />
-            </div>
-            <div>
-              <div className='flex items-center gap-2'>
-                <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 font-semibold text-xs uppercase tracking-wider'>
-                  Giao việc mới
-                </span>
-                {chapterNumber && (
-                  <span className='px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200 font-medium text-xs'>
-                    Chương {chapterNumber}
-                  </span>
-                )}
-              </div>
-              <h2 className='text-lg font-serif font-bold text-stone-900 mt-0.5'>
-                Giao Việc Mới {chapterNumber ? `– Chương ${chapterNumber}` : ''}
-              </h2>
-            </div>
-          </div>
-          <button
-            type='button'
-            onClick={onClose}
-            aria-label='Đóng cửa sổ giao việc'
-            className='w-8 h-8 rounded-xl hover:bg-stone-200/60 border border-transparent hover:border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-studio cursor-pointer'
-          >
-            <X className='w-4 h-4' />
-          </button>
-        </div>
         {/* Mode Switcher Tabs */}
         <div className='px-4 sm:px-5 py-2.5 bg-[#FAF8F5] border-b border-stone-200 flex items-center justify-between gap-3 shrink-0'>
           <div className='flex items-center gap-1 p-1 bg-stone-200/60 rounded-xl border border-stone-200/80'>
@@ -1437,6 +1428,87 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                               className='space-y-2.5 bg-white p-3 rounded-xl border border-stone-200/80 shadow-xs'
                               data-testid='bulk-page-section'
                             >
+                              <div className='grid grid-cols-2 gap-2'>
+                                <div>
+                                  <label
+                                    htmlFor='assignment-page-range-from'
+                                    className='mb-1 block text-xs font-semibold text-stone-700'
+                                  >
+                                    Từ trang
+                                  </label>
+                                  <select
+                                    id='assignment-page-range-from'
+                                    aria-label='Từ trang'
+                                    value={pageRangeFrom ?? ''}
+                                    onChange={(event) => {
+                                      const from = Number(event.target.value);
+                                      setPageRangeFrom(from);
+                                      setBulkPageIds(
+                                        pages
+                                          .filter(
+                                            (page) =>
+                                              page.pageNumber >= from &&
+                                              page.pageNumber <= (pageRangeTo ?? from),
+                                          )
+                                          .map((page) => page.id),
+                                      );
+                                      setDryRunResult(null);
+                                    }}
+                                    className='w-full rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-xs font-medium text-stone-800'
+                                  >
+                                    {pages.map((page) => (
+                                      <option key={page.id} value={page.pageNumber}>
+                                        Trang {page.pageNumber}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label
+                                    htmlFor='assignment-page-range-to'
+                                    className='mb-1 block text-xs font-semibold text-stone-700'
+                                  >
+                                    Đến trang
+                                  </label>
+                                  <select
+                                    id='assignment-page-range-to'
+                                    aria-label='Đến trang'
+                                    value={pageRangeTo ?? ''}
+                                    onChange={(event) => {
+                                      const to = Number(event.target.value);
+                                      setPageRangeTo(to);
+                                      setBulkPageIds(
+                                        pages
+                                          .filter(
+                                            (page) =>
+                                              page.pageNumber >= (pageRangeFrom ?? to) &&
+                                              page.pageNumber <= to,
+                                          )
+                                          .map((page) => page.id),
+                                      );
+                                      setDryRunResult(null);
+                                    }}
+                                    className='w-full rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-xs font-medium text-stone-800'
+                                  >
+                                    {pages.map((page) => (
+                                      <option key={page.id} value={page.pageNumber}>
+                                        Trang {page.pageNumber}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              {pageRangeConflict && (
+                                <div
+                                  role='alert'
+                                  className='flex items-start gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-xs font-medium text-rose-700'
+                                >
+                                  <AlertCircle className='mt-0.5 h-3.5 w-3.5 shrink-0' />
+                                  <span>{pageRangeConflict}</span>
+                                </div>
+                              )}
+
                               <div className='flex items-center justify-between text-xs'>
                                 <span className='font-semibold text-stone-700 font-mono'>
                                   Đã chọn {bulkPageIds.length}/{pages.length} trang
@@ -1539,7 +1611,11 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                                 <button
                                   type='button'
                                   onClick={handleDryRun}
-                                  disabled={dryRunLoading || bulkPageIds.length === 0}
+                                  disabled={
+                                    dryRunLoading ||
+                                    bulkPageIds.length === 0 ||
+                                    Boolean(pageRangeConflict)
+                                  }
                                   className='btn-cta-secondary px-3 py-1.5 text-xs font-semibold rounded-full flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-studio'
                                 >
                                   {dryRunLoading ? (
@@ -2215,8 +2291,6 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
-
-  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

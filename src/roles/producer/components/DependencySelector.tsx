@@ -787,6 +787,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
         onClick={() => handleToggle(a.id)}
         onKeyDown={(e) => {
           if (e.key === ' ' || e.key === 'Enter') {
+            if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
             e.preventDefault();
             handleToggle(a.id);
           }

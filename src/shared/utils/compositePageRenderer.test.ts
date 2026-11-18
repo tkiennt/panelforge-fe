@@ -14,8 +14,8 @@ import {
 } from './compositePageRenderer';
 import { parseBoundingBox } from './panelBoundingBox';
 import { panelArtworkCoverage } from '@/shared/features/collaboration/collaborationRules';
-import { layoutText, resolveAppearance } from '@/roles/letterer/lib/balloonRender';
-import { resolveTextStyle } from '@/roles/letterer/lib/textStyle';
+import { layoutText, resolveAppearance } from '@/shared/lib/lettering/balloonRender';
+import { resolveTextStyle } from '@/shared/lib/lettering/textStyle';
 
 const rectBox = JSON.stringify({
   x: 100,

@@ -1,4 +1,5 @@
 import axiosClient from '../api/axiosClient';
+import type { ChapterStatus } from './chapter.service';
 
 export interface PublisherChapterDto {
   id: string;
@@ -15,7 +16,7 @@ export interface PublisherChapterDto {
   createdBy?: string | null;
   scenesCount: number;
   pagesCount: number;
-  status: 'InProduction' | 'Approved' | 'Published';
+  status: ChapterStatus;
   publishedAt?: string | null;
   outline?: string | null;
   isScriptFrozen?: boolean;
@@ -67,7 +68,7 @@ export interface PublisherManagedChapterDto {
   id: string;
   chapterNumber: number;
   title?: string | null;
-  status: 'InProduction' | 'Approved' | 'Published' | string;
+  status: ChapterStatus | string;
   publishAt?: string | null;
   publishedAt?: string | null;
   pageCount: number;

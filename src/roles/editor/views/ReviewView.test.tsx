@@ -48,6 +48,14 @@ vi.mock('@/services/assignment.service', () => ({
     getVisualConsistencyReport: vi.fn(),
     runVisualConsistencyCheck: vi.fn(),
     resolveImpactReview: vi.fn(),
+    getTaskGrid: vi.fn(),
+    getTaskGridReviewQueue: vi.fn(),
+    getStageTaskSubmissions: vi.fn(),
+    openStageTaskReview: vi.fn(),
+    releaseStageTaskReview: vi.fn(),
+    approveStageTask: vi.fn(),
+    requestStageTaskChanges: vi.fn(),
+    resolveStageTaskImpact: vi.fn(),
   },
 }));
 
@@ -114,6 +122,7 @@ const renderView = (role = 'EDITOR', userId = 'editor-1') =>
           path='/review/:taskId'
           element={<ReviewView currentUserId={userId} workspaceRole={role} />}
         />
+        <Route path='/workspaces' element={<p>Editor queue</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -151,6 +160,7 @@ describe('ReviewView (CF3: duyệt bản nộp tranh)', () => {
     vi.mocked(assignmentService.getStageProgress).mockResolvedValue([]);
     vi.mocked(assignmentService.getVisualConsistencyReport).mockResolvedValue(null as any);
     vi.mocked(assignmentService.requestChanges).mockResolvedValue(assignment as any);
+    vi.mocked(assignmentService.approveAssignment).mockResolvedValue(assignment as any);
     vi.mocked(panelService.getPanelsByPage).mockResolvedValue([]);
     vi.mocked(artworkService.getArtworks).mockResolvedValue([
       art('r1', 1),
@@ -201,6 +211,8 @@ describe('ReviewView (CF3: duyệt bản nộp tranh)', () => {
             regionJson: JSON.stringify({ x: 0.1, y: 0.2, w: 0.3, h: 0.4 }),
             assetReferenceId: 'r2',
             panelId: undefined,
+            groupId: undefined,
+            layer: 'Artwork',
           },
         ],
       }),
@@ -240,6 +252,18 @@ describe('ReviewView (CF3: duyệt bản nộp tranh)', () => {
     renderView();
     fireEvent.click(await screen.findByRole('button', { name: 'Mở duyệt' }));
     await waitFor(() => expect(assignmentService.openReview).toHaveBeenCalledWith('c1', 'a1'));
+  });
+
+  it('returns to the editor queue after approving the submission', async () => {
+    const user = userEvent.setup();
+    renderView();
+
+    await user.click(await screen.findByRole('button', { name: 'Duyệt bản nộp' }));
+
+    await waitFor(() =>
+      expect(assignmentService.approveAssignment).toHaveBeenCalledWith('c1', 'a1', 's2'),
+    );
+    expect(await screen.findByText('Editor queue')).toBeInTheDocument();
   });
 
   it('verifies or reopens (reason required) a resolved change request; approve waits until closed', async () => {
@@ -312,6 +336,53 @@ describe('ReviewView (CF3: duyệt bản nộp tranh)', () => {
     const change = vi.mocked(assignmentService.requestChanges).mock.calls[0][2].changes![0];
     expect(change.assetReferenceId).toBeUndefined();
     expect(change.panelId).toBe('panel-1');
+    expect(change.layer).toBe('Artwork');
+  });
+
+  it('creates grouped change requests for every panel with at least 15% overlap', async () => {
+    const user = userEvent.setup();
+    vi.mocked(artworkService.getArtworks).mockResolvedValue([
+      art('pa1', 1, 'panel-1'),
+      art('pa2', 1, 'panel-2'),
+    ] as any);
+    vi.mocked(assignmentService.getSubmissions).mockResolvedValue([
+      {
+        id: 's9',
+        attemptNumber: 1,
+        status: 'Pending',
+        artworkReferenceIds: ['pa1', 'pa2'],
+        submittedAt: '2026-10-09T00:00:00Z',
+      },
+    ] as any);
+    vi.mocked(panelService.getPanelsByPage).mockResolvedValue([
+      {
+        id: 'panel-1',
+        pageId: 'p1',
+        panelNumber: 1,
+        boundingBox: JSON.stringify({ x: 0, y: 0, width: 1200, height: 720 }),
+      },
+      {
+        id: 'panel-2',
+        pageId: 'p1',
+        panelNumber: 2,
+        boundingBox: JSON.stringify({ x: 0, y: 720, width: 1200, height: 1080 }),
+      },
+    ] as any);
+    renderView();
+
+    drawBox(await screen.findByTestId('review-current-image'));
+    await user.type(screen.getByLabelText('Mô tả vùng cần sửa'), 'Sửa cả tranh và chữ');
+    await user.click(screen.getByLabelText('Chữ thoại'));
+    await user.type(screen.getByPlaceholderText(/Đánh giá tổng quát/), 'Cần sửa hai khung');
+    await user.click(screen.getByRole('button', { name: /Trả bài · 2 yêu cầu sửa/ }));
+
+    await waitFor(() => expect(assignmentService.requestChanges).toHaveBeenCalled());
+    const changes = vi.mocked(assignmentService.requestChanges).mock.calls[0][2].changes!;
+    expect(changes).toHaveLength(2);
+    expect(changes.map((change) => change.panelId)).toEqual(['panel-1', 'panel-2']);
+    expect(changes[0].groupId).toBeTruthy();
+    expect(changes[1].groupId).toBe(changes[0].groupId);
+    expect(changes.every((change) => change.layer === 'Lettering')).toBe(true);
   });
 
   it('requires a reason to ignore a visual deviation (BR-21)', async () => {
@@ -374,5 +445,185 @@ describe('ReviewView (CF3: duyệt bản nộp tranh)', () => {
         action: 'Approve',
       }),
     );
+  });
+
+  it('V3 Grid: calls openStageTaskReview when opening a Submitted cell and releaseStageTaskReview when closed without decision', async () => {
+    const user = userEvent.setup();
+    vi.mocked(assignmentService.getAssignmentById).mockRejectedValue(new Error('404'));
+    vi.mocked(assignmentService.getTaskGrid).mockResolvedValue({
+      stages: [{ id: 'st1', name: 'Ink', stageOrder: 2, allowedRole: 'Artist', isEnabled: true }],
+      pages: [{ id: 'p1', pageNumber: 4 }],
+      lots: [],
+      tasks: [
+        {
+          id: 'a1',
+          pipelineStageId: 'st1',
+          pageId: 'p1',
+          status: 'Submitted',
+          assigneeUserId: 'artist-1',
+          isStartable: false,
+          isInputOutdated: false,
+          attemptCount: 1,
+        },
+      ],
+    } as any);
+    vi.mocked(assignmentService.getStageTaskSubmissions).mockResolvedValue([
+      {
+        id: 's2',
+        attemptNumber: 1,
+        status: 'Pending',
+        submittedByUserId: 'artist-1',
+        submittedAt: '2026-10-09T00:00:00Z',
+        artworkReferenceIds: ['r2'],
+      },
+    ] as any);
+    vi.mocked(assignmentService.openStageTaskReview).mockResolvedValue({
+      id: 'a1',
+      status: 'UnderReview',
+      reviewerUserId: 'editor-1',
+    } as any);
+    vi.mocked(assignmentService.releaseStageTaskReview).mockResolvedValue({
+      id: 'a1',
+      status: 'Submitted',
+    } as any);
+
+    renderView('EDITOR', 'editor-1');
+
+    await waitFor(() => {
+      expect(assignmentService.openStageTaskReview).toHaveBeenCalledWith('c1', 'a1');
+    });
+
+    await user.click(await screen.findByTestId('review-close-btn'));
+
+    await waitFor(() => {
+      expect(assignmentService.releaseStageTaskReview).toHaveBeenCalledTimes(1);
+      expect(assignmentService.releaseStageTaskReview).toHaveBeenCalledWith('c1', 'a1');
+    });
+    expect(await screen.findByText('Editor queue')).toBeInTheDocument();
+  });
+
+  it('V3 Grid: does NOT call releaseStageTaskReview after approving a cell', async () => {
+    const user = userEvent.setup();
+    vi.mocked(assignmentService.getAssignmentById).mockRejectedValue(new Error('404'));
+    vi.mocked(assignmentService.getTaskGrid).mockResolvedValue({
+      stages: [{ id: 'st1', name: 'Ink', stageOrder: 2, allowedRole: 'Artist', isEnabled: true }],
+      pages: [{ id: 'p1', pageNumber: 4 }],
+      lots: [],
+      tasks: [
+        {
+          id: 'a1',
+          pipelineStageId: 'st1',
+          pageId: 'p1',
+          status: 'Submitted',
+          assigneeUserId: 'artist-1',
+          isStartable: false,
+          isInputOutdated: false,
+        },
+      ],
+    } as any);
+    vi.mocked(assignmentService.getStageTaskSubmissions).mockResolvedValue([
+      {
+        id: 's2',
+        attemptNumber: 1,
+        status: 'Pending',
+        submittedByUserId: 'artist-1',
+        submittedAt: '2026-10-09T00:00:00Z',
+        artworkReferenceIds: ['r2'],
+      },
+    ] as any);
+    vi.mocked(assignmentService.openStageTaskReview).mockResolvedValue({
+      id: 'a1',
+      status: 'UnderReview',
+      reviewerUserId: 'editor-1',
+    } as any);
+    vi.mocked(assignmentService.approveStageTask).mockResolvedValue({
+      id: 'a1',
+      status: 'Approved',
+    } as any);
+    vi.mocked(assignmentService.releaseStageTaskReview).mockResolvedValue({} as any);
+
+    renderView('EDITOR', 'editor-1');
+
+    await user.click(await screen.findByRole('button', { name: 'Duyệt bản nộp' }));
+
+    await waitFor(() => {
+      expect(assignmentService.approveStageTask).toHaveBeenCalledWith('c1', 'a1');
+    });
+    expect(await screen.findByText('Editor queue')).toBeInTheDocument();
+    expect(assignmentService.releaseStageTaskReview).not.toHaveBeenCalled();
+  });
+
+  it('V3 Grid: locks decision buttons when UnderReview by another Editor and lets Producer force-release', async () => {
+    const user = userEvent.setup();
+    vi.mocked(assignmentService.getAssignmentById).mockRejectedValue(new Error('404'));
+    vi.mocked(assignmentService.getTaskGridReviewQueue).mockResolvedValue([
+      {
+        taskId: 'a1',
+        reviewerUserId: 'editor-other',
+        reviewerName: 'Editor Lan',
+        isInputOutdated: false,
+      },
+    ] as any);
+    vi.mocked(assignmentService.getTaskGrid).mockResolvedValue({
+      stages: [{ id: 'st1', name: 'Ink', stageOrder: 2, allowedRole: 'Artist', isEnabled: true }],
+      pages: [{ id: 'p1', pageNumber: 4 }],
+      lots: [],
+      tasks: [
+        {
+          id: 'a1',
+          pipelineStageId: 'st1',
+          pageId: 'p1',
+          status: 'UnderReview',
+          assigneeUserId: 'artist-1',
+          reviewerUserId: 'editor-other',
+          isStartable: false,
+          isInputOutdated: false,
+        },
+      ],
+    } as any);
+    vi.mocked(assignmentService.getStageTaskSubmissions).mockResolvedValue([
+      {
+        id: 's2',
+        attemptNumber: 1,
+        status: 'Pending',
+        submittedByUserId: 'artist-1',
+        submittedAt: '2026-10-09T00:00:00Z',
+        artworkReferenceIds: ['r2'],
+      },
+    ] as any);
+    vi.mocked(assignmentService.releaseStageTaskReview).mockResolvedValue({
+      id: 'a1',
+      status: 'Submitted',
+    } as any);
+
+    const renderWithWs = (role: string, userId: string) =>
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/s1/chapters/c1/review/a1']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/chapters/:chapterId/review/:taskId'
+              element={<ReviewView currentUserId={userId} workspaceRole={role} />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+    const { unmount } = renderWithWs('EDITOR', 'editor-1');
+
+    expect(await screen.findByTestId('review-locked-by-other')).toHaveTextContent(
+      /Đang được duyệt bởi Editor Lan/i,
+    );
+    expect(screen.getByRole('button', { name: 'Duyệt bản nộp' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Trả bài/ })).toBeDisabled();
+    expect(screen.queryByTestId('review-force-release-btn')).not.toBeInTheDocument();
+
+    unmount();
+
+    renderWithWs('PRODUCER', 'producer-1');
+    const forceReleaseBtn = await screen.findByTestId('review-force-release-btn');
+    await user.click(forceReleaseBtn);
+    await waitFor(() => {
+      expect(assignmentService.releaseStageTaskReview).toHaveBeenCalledWith('c1', 'a1');
+    });
   });
 });
