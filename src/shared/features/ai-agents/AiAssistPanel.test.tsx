@@ -9,6 +9,7 @@ import {
   AiWorkflowAvailability,
   aiAgentsService,
 } from '@/services/aiAgents.service';
+import { aiStreamService } from '@/services/aiStream.service';
 import { AiAssistPanel, POLL_INTERVAL_MS } from './AiAssistPanel';
 
 const avail = (over: Partial<AiWorkflowAvailability> = {}): AiWorkflowAvailability => ({
@@ -231,6 +232,66 @@ describe('AiAssistPanel (Writer · Script)', () => {
       await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 3);
     });
     expect(getRun).toHaveBeenCalledTimes(2);
+  });
+
+  it('cập nhật lượt chạy qua SignalR StepRecorded và RunStatusChanged mà không dùng TokenChunk', async () => {
+    expect('onTokenChunk' in aiStreamService).toBe(false);
+
+    const joinRun = vi.spyOn(aiStreamService, 'joinRun').mockResolvedValue(undefined);
+    const leaveRun = vi.spyOn(aiStreamService, 'leaveRun').mockResolvedValue(undefined);
+    let stepListener: ((e: any) => void | Promise<void>) | undefined;
+    let statusListener: ((e: any) => void | Promise<void>) | undefined;
+    const unsubStep = vi.fn();
+    const unsubStatus = vi.fn();
+
+    vi.spyOn(aiStreamService, 'onStepRecorded').mockImplementation((cb) => {
+      stepListener = cb;
+      return unsubStep;
+    });
+    vi.spyOn(aiStreamService, 'onRunStatusChanged').mockImplementation((cb) => {
+      statusListener = cb;
+      return unsubStatus;
+    });
+
+    sessionStorage.setItem('ai-run:sc1:Script', 'r1');
+    const getRun = vi
+      .spyOn(aiAgentsService, 'getRun')
+      .mockResolvedValueOnce(run({ id: 'r1', status: 'Running', steps: [], suggestions: [] }))
+      .mockResolvedValueOnce(
+        run({ id: 'r1', status: 'Running', steps: [writerStep], suggestions: [] }),
+      )
+      .mockResolvedValue(run({ id: 'r1', status: 'Completed' }));
+
+    renderPanel();
+
+    await waitFor(() => expect(joinRun).toHaveBeenCalledWith('r1'));
+    expect(screen.queryByTestId('ai-live-stream')).not.toBeInTheDocument();
+
+    await act(async () => {
+      await stepListener?.({
+        runId: 'R1',
+        stepIndex: 1,
+        agent: 'Writer',
+        round: 0,
+        succeeded: true,
+        runStatus: 'Running',
+      });
+    });
+
+    expect(await screen.findByTestId('ai-draft')).toBeInTheDocument();
+
+    await act(async () => {
+      await statusListener?.({
+        runId: 'R1',
+        status: 'Completed',
+      });
+    });
+
+    expect(await screen.findByText('Hoàn tất')).toBeInTheDocument();
+    expect(getRun).toHaveBeenCalledTimes(3);
+    expect(leaveRun).toHaveBeenCalledWith('r1');
+    expect(unsubStep).toHaveBeenCalledTimes(1);
+    expect(unsubStatus).toHaveBeenCalledTimes(1);
   });
 
   it('baseScriptRevisionId = null khi Scene chưa có revision Script', async () => {
