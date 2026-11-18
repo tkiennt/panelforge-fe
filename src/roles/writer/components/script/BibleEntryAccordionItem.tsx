@@ -55,6 +55,8 @@ export interface BibleEntryAccordionItemProps {
   isOpen: boolean;
   onToggle: () => void;
   canEditScript?: boolean;
+  isInChapter?: boolean;
+  onOpenDefine?: () => void;
   seriesId?: string;
   isActing?: boolean;
   onSaveDraft?: (
@@ -80,6 +82,8 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
   isOpen,
   onToggle,
   canEditScript = true,
+  isInChapter,
+  onOpenDefine,
   isActing = false,
   onSaveDraft,
   onChangeRevision,
@@ -175,12 +179,82 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
     [specCat, initialAttributes],
   );
 
+  const renderStatusBadge = () => {
+    // 1. Trạng thái Màu Vàng: Chưa định nghĩa
+    if (entity.isStub || entity.bibleStatus === 'PendingDefinition') {
+      return (
+        <span
+          data-testid='status-badge-stub'
+          className='text-xs px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-900 border border-amber-300 shrink-0'
+        >
+          {t('production.cast.pendingDefinition', 'Chưa định nghĩa')}
+        </span>
+      );
+    }
+
+    // 2. Trạng thái Màu Xanh Lá: Canon
+    if (entity.isCanonLocked || entity.bibleStatus === 'CanonLocked' || boundRev?.isCanonLocked) {
+      return (
+        <span
+          data-testid='status-badge-canon'
+          className='text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300 shrink-0'
+        >
+          Canon
+        </span>
+      );
+    }
+
+    const revStatus = boundRev?.status;
+
+    // 3. Trạng thái Màu Xanh Lá: Chờ xác nhận
+    if (
+      entity.bibleStatus === 'WaitingForConfirmation' ||
+      revStatus === 'ConceptSubmitted' ||
+      (revStatus as any) === 2
+    ) {
+      return (
+        <span
+          data-testid='status-badge-confirm'
+          className='text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-50/70 text-emerald-800 border border-emerald-200 shrink-0'
+        >
+          {t('production.cast.waitingForConfirmation', 'Chờ xác nhận')}
+        </span>
+      );
+    }
+
+    // 4. Trạng thái Màu Vàng: Cần vẽ lại
+    if (
+      entity.bibleStatus === 'ReworkRequired' ||
+      revStatus === 'ReworkRequired' ||
+      (revStatus as any) === 3
+    ) {
+      return (
+        <span
+          data-testid='status-badge-rework'
+          className='text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-900 border border-amber-300 shrink-0'
+        >
+          {t('production.cast.reworkRequired', 'Cần vẽ lại')}
+        </span>
+      );
+    }
+
+    // 5. Trạng thái Màu Vàng: Chưa vẽ phác thảo
+    return (
+      <span
+        data-testid='status-badge-draft'
+        className='text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 text-amber-800 border border-amber-200 shrink-0'
+      >
+        {t('production.cast.noSketch', 'Chưa vẽ phác thảo')}
+      </span>
+    );
+  };
+
   return (
     <div
       data-testid='bible-entry-accordion-item'
       className='rounded-xl border border-stone-200/90 bg-white shadow-xs overflow-hidden transition-all hover:border-orange-300/80'
     >
-      {/* 1. Header (Collapsed View - Shows ONLY entity name, category icon, status badge) */}
+      {/* 1. Header (Collapsed View - Shows ONLY entity name, category icon, in/out chapter badge, status badge) */}
       <button
         type='button'
         onClick={onToggle}
@@ -200,37 +274,51 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
             {entity.code && (
               <span className='text-xs font-mono text-stone-400 shrink-0'>{entity.code}</span>
             )}
+            {/* Huy hiệu Trong chương / Ngoài chương */}
+            {isInChapter !== undefined && (
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
+                  isInChapter
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold'
+                    : 'bg-stone-100 text-stone-600 border border-stone-200'
+                }`}
+              >
+                {isInChapter
+                  ? t('production.cast.inChapter', 'Trong chương')
+                  : t('production.cast.outOfChapter', 'Ngoài chương')}
+              </span>
+            )}
           </div>
         </div>
 
         <div className='flex items-center gap-1.5 shrink-0'>
-          {/* Status Badge */}
-          {entity.isStub ? (
-            <span
-              data-testid='status-badge-stub'
-              className='text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700 border border-amber-200 shrink-0'
-            >
-              {t('production.cast.pendingDefinition', 'Chờ định nghĩa')}
-            </span>
-          ) : entity.isCanonLocked || entity.bibleStatus === 'CanonLocked' ? (
-            <span
-              data-testid='status-badge-canon'
-              className='text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'
-            >
-              Canon
-            </span>
-          ) : (
-            <span
-              data-testid='status-badge-draft'
-              className='text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 border border-blue-200 shrink-0'
-            >
-              {entity.bibleStatus || t('production.cast.draft', 'Bản nháp')}
-            </span>
-          )}
+          {/* Note trạng thái màu vàng / màu xanh lá */}
+          {renderStatusBadge()}
 
           {entity.isCrowd && (
             <span className='text-xs px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
               {t('production.cast.crowd', 'Quần chúng')}
+            </span>
+          )}
+
+          {/* Nút Định nghĩa nhanh cho mục nháp */}
+          {entity.isStub && onOpenDefine && canEditScript && (
+            <span
+              role='button'
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenDefine();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                  onOpenDefine();
+                }
+              }}
+              className='text-xs px-2 py-0.5 rounded-md font-semibold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer transition-colors shadow-2xs'
+            >
+              {t('production.cast.writeDefinition', 'Định nghĩa')}
             </span>
           )}
 

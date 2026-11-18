@@ -354,39 +354,6 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
         </div>
       </div>
 
-      {/* Gate Blockers Summary Alerts */}
-      {(submitBlockers.length > 0 || startBlockers.length > 0) && (
-        <div className='p-3 bg-amber-50/80 border-b border-amber-200 text-xs text-amber-900 space-y-1.5'>
-          {submitBlockers.length > 0 && (
-            <div className='flex items-start gap-1.5'>
-              <AlertTriangle className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
-              <div>
-                <span className='font-bold text-amber-950'>
-                  {t('production.cast.submitBlockedTitle', 'Chặn Gửi duyệt')} (
-                  {submitBlockers.length}):
-                </span>
-                <span className='ml-1 text-xs text-amber-800'>
-                  {submitBlockers.map((b) => `${b.entryName} (${b.reason})`).join(', ')}
-                </span>
-              </div>
-            </div>
-          )}
-          {startBlockers.length > 0 && (
-            <div className='flex items-start gap-1.5'>
-              <Clock className='w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5' />
-              <div>
-                <span className='font-bold text-blue-950'>
-                  {t('production.cast.startBlockedTitle', 'Chờ Gate 1')} ({startBlockers.length}):
-                </span>
-                <span className='ml-1 text-xs text-blue-800'>
-                  {startBlockers.map((b) => `${b.entryName} (${b.reason})`).join(', ')}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Search Input */}
       {entities.length > 2 && (
         <div className='p-3 border-b border-stone-200/80 bg-white'>
@@ -459,6 +426,16 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
               <BibleEntryAccordionItem
                 key={entry.bibleEntryId}
                 entity={accordionEntity}
+                isInChapter={true}
+                onOpenDefine={
+                  entry.isStub
+                    ? () => {
+                        setStubToDefine(entry);
+                        setDefineDesc('');
+                        setDefineSubtitle('');
+                      }
+                    : undefined
+                }
                 isOpen={expandedEntryId === entry.bibleEntryId}
                 onToggle={() =>
                   setExpandedEntryId((prev) =>
