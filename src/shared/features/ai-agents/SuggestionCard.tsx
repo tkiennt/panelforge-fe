@@ -154,6 +154,7 @@ export const SuggestionCard: React.FC<Props> = ({
   const [form, setForm] = useState<'reject' | 'request-changes' | null>(null);
   const [reason, setReason] = useState('');
   const inlineOpenByDefault =
+    s.kind === 'LineRewrite' ||
     s.kind === 'BibleStub' ||
     s.kind === 'ImpactRipple' ||
     (s.kind === 'Lettering' && isBubbleShortenPayload(s.payload));

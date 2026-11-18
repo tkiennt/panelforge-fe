@@ -1490,4 +1490,132 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(await screen.findByTestId('start-blocked-banner')).toBeInTheDocument();
     expect(screen.getByText('Mở Series Bible để duyệt Canon')).toBeInTheDocument();
   });
+
+  describe('AI Copilot viết lại dòng thoại (writer.rewrite)', () => {
+    it('Writer bấm "Viết lại bằng AI" gọi runCopilot(writer.rewrite, lineId), hiện SuggestionCard và tải lại sau Accept', async () => {
+      const user = userEvent.setup();
+      const lineSuggestion = {
+        id: 'sug-rw-1',
+        runId: 'run-rw-1',
+        stepId: 'step-rw-1',
+        sceneId: 'sc-1',
+        kind: 'LineRewrite' as const,
+        status: 'Pending' as const,
+        summary: 'Viết lại thoại theo giọng nhân vật',
+        payload: {
+          schemaVersion: 1,
+          runId: 'run-rw-1',
+          sceneId: 'sc-1',
+          task: 'writer.rewrite',
+          sourceScriptLineId: 'line-1',
+          originalText: 'Họ đang di chuyển. Chuẩn bị đi!',
+          suggestedText: 'Đoàn xe chuyển bánh rồi. Sẵn sàng ngay!',
+          reason: 'Sắc gọn theo tính cách Akira',
+        },
+        payloadHash: 'hash-rw-1234',
+        baseChapterVersion: 5,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-11-18T10:00:00Z',
+        decisions: [],
+        canDecide: true,
+        canAccept: true,
+      };
+      const runCopilotSpy = vi
+        .spyOn(aiAgentsService, 'runCopilot')
+        .mockResolvedValueOnce(lineSuggestion);
+      const reviewSpy = vi.spyOn(aiAgentsService, 'review').mockResolvedValueOnce({
+        suggestionId: 'sug-rw-1',
+        status: 'Accepted',
+        decisionId: 'dec-rw-1',
+        resultRevisionId: 'rev-rw-1',
+        chapterVersion: 6,
+      });
+
+      renderView({ workspaceRole: 'WRITER' });
+      await screen.findByText(/Họ đang di chuyển/);
+
+      const rewriteBtn = screen.getByRole('button', { name: /Viết lại bằng AI/i });
+      await user.click(rewriteBtn);
+
+      expect(runCopilotSpy).toHaveBeenCalledWith('se-1', {
+        task: 'writer.rewrite',
+        lineId: 'line-1',
+      });
+      expect(await screen.findByText('Đề xuất Viết lại / Rút gọn thoại')).toBeInTheDocument();
+
+      vi.mocked(chapterService.getScriptWorkingCopy).mockResolvedValueOnce({
+        contentHash: 'hash-after-rw',
+        lineCount: 1,
+        rows: [
+          {
+            key: 'line:line-1',
+            type: 'Dialogue',
+            page: 1,
+            panel: 1,
+            label: 'Akira',
+            text: 'Đoàn xe chuyển bánh rồi. Sẵn sàng ngay!',
+          },
+        ],
+      });
+
+      await user.click(screen.getByRole('button', { name: /Accept \(cập nhật dòng thoại\)/ }));
+
+      expect(reviewSpy).toHaveBeenCalledWith('se-1', 'sug-rw-1', 'accept', {
+        chapterVersion: 5,
+      });
+      expect(await screen.findByText(/Đoàn xe chuyển bánh rồi/)).toBeInTheDocument();
+    });
+
+    it('ẩn nút "Viết lại bằng AI" khi kịch bản Frozen hoặc người dùng không phải Writer', async () => {
+      vi.mocked(chapterService.getChaptersBySeries).mockResolvedValueOnce({
+        items: [{ ...mockChapters[0], isScriptFrozen: true, scriptStatus: 'Frozen' }],
+        totalCount: 1,
+        pageIndex: 1,
+        pageSize: 50,
+        totalPages: 1,
+      });
+      vi.mocked(chapterService.getChapterById).mockResolvedValueOnce({
+        ...mockChapters[0],
+        isScriptFrozen: true,
+        scriptStatus: 'Frozen',
+      });
+
+      const frozenRender = renderView({ workspaceRole: 'WRITER' });
+      await screen.findByText(/Họ đang di chuyển/);
+      expect(screen.queryByRole('button', { name: /Viết lại bằng AI/i })).not.toBeInTheDocument();
+      frozenRender.unmount();
+
+      renderView({ workspaceRole: 'PRODUCER' });
+      await screen.findByText(/Họ đang di chuyển/);
+      expect(screen.queryByRole('button', { name: /Viết lại bằng AI/i })).not.toBeInTheDocument();
+    });
+
+    it('hiển thị nguyên văn message lỗi 403 và 409 từ Backend khi gọi Viết lại bằng AI', async () => {
+      const user = userEvent.setup();
+      const { AiApiError } = await import('@/services/aiAgents.service');
+      const runCopilotSpy = vi
+        .spyOn(aiAgentsService, 'runCopilot')
+        .mockRejectedValueOnce(
+          new AiApiError('Bạn chưa được phân công viết chương này.', 'FORBIDDEN', 403),
+        )
+        .mockRejectedValueOnce(
+          new AiApiError('Kịch bản chương này đã đóng băng (Frozen).', 'CONFLICT', 409),
+        );
+
+      renderView({ workspaceRole: 'WRITER' });
+      await screen.findByText(/Họ đang di chuyển/);
+
+      await user.click(screen.getByRole('button', { name: /Viết lại bằng AI/i }));
+      expect(
+        await screen.findByText('Bạn chưa được phân công viết chương này.'),
+      ).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /Viết lại bằng AI/i }));
+      expect(runCopilotSpy).toHaveBeenCalledTimes(2);
+      expect(
+        (await screen.findAllByText('Kịch bản chương này đã đóng băng (Frozen).')).length,
+      ).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

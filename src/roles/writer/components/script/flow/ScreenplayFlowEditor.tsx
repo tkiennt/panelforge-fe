@@ -10,7 +10,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { Loader2, MessageSquare, Save } from 'lucide-react';
+import { Loader2, MessageSquare, Save, Sparkles } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { SceneDetailDto } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
@@ -70,6 +70,9 @@ export interface ScreenplayFlowEditorProps {
   activeLineId?: string | null;
   activePanel?: { pageNumber?: number | null; panelNumber?: number | null } | null;
   allBibleEntries?: BibleEntryDto[];
+  onRewriteLineId?: (lineId: string) => void;
+  rewritingLineId?: string | null;
+  flowAiSlot?: React.ReactNode;
   registerSetPanelStage?: (
     fn:
       | ((
@@ -136,6 +139,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   activeLineId,
   activePanel,
   allBibleEntries,
+  onRewriteLineId,
+  rewritingLineId,
+  flowAiSlot,
   registerSetPanelStage,
 }) => {
   const { t } = useTranslation('production');
@@ -144,6 +150,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [active, setActive] = useState<GnElement | null>(null);
+  const [activeDialogueLineId, setActiveDialogueLineId] = useState<string | null>(null);
   /** Menu chọn loại dòng (Enter trên dòng trống): vị trí neo theo con trỏ + mục đang chọn. */
   const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
   const dirtyRef = useRef(false);
@@ -282,9 +289,31 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       onUpdate: ({ transaction }) => {
         if (transaction.docChanged && !loadingRef.current) markDirty(true);
       },
-      onSelectionUpdate: ({ editor: ed }) => setActive(activeElement(ed)),
+      onSelectionUpdate: ({ editor: ed }) => {
+        setActive(activeElement(ed));
+        const parent = ed.state.selection.$from.parent;
+        const refId = parent.attrs?.refId ? String(parent.attrs.refId) : '';
+        setActiveDialogueLineId(
+          parent.attrs?.el === 'dialogue' &&
+            Boolean(parent.textContent.trim()) &&
+            Boolean(refId) &&
+            !refId.startsWith('wc-')
+            ? refId
+            : null,
+        );
+      },
       onTransaction: ({ editor: ed }) => {
         setActive(activeElement(ed));
+        const parent = ed.state.selection.$from.parent;
+        const refId = parent.attrs?.refId ? String(parent.attrs.refId) : '';
+        setActiveDialogueLineId(
+          parent.attrs?.el === 'dialogue' &&
+            Boolean(parent.textContent.trim()) &&
+            Boolean(refId) &&
+            !refId.startsWith('wc-')
+            ? refId
+            : null,
+        );
         const m = getElementMenu(ed.state);
         if (!m.open) {
           setMenu(null);
@@ -554,6 +583,24 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           })}
         </div>
 
+        {!isReadOnly && activeDialogueLineId && onRewriteLineId && (
+          <button
+            type='button'
+            data-testid={`ai-rewrite-line-${activeDialogueLineId}`}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onRewriteLineId(activeDialogueLineId)}
+            disabled={rewritingLineId === activeDialogueLineId}
+            className='shrink-0 inline-flex items-center gap-1.5 rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-[#C2410C] hover:bg-orange-100 cursor-pointer disabled:opacity-50'
+          >
+            {rewritingLineId === activeDialogueLineId ? (
+              <Loader2 className='w-3.5 h-3.5 animate-spin' />
+            ) : (
+              <Sparkles className='w-3.5 h-3.5' />
+            )}
+            Viết lại bằng AI
+          </button>
+        )}
+
         {comments && comments.length > 0 && (
           <button
             type='button'
@@ -596,6 +643,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           </button>
         )}
       </div>
+
+      {flowAiSlot && (
+        <div className='shrink-0 border-b border-[#D4CBBF] bg-[#FAF8F5] px-4 py-3'>
+          <div className='mx-auto max-w-[760px]'>{flowAiSlot}</div>
+        </div>
+      )}
 
       <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-6 sm:py-10 pb-32'>
         <div className='max-w-[1240px] mx-auto flex items-start justify-center gap-6'>

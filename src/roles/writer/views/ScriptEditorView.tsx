@@ -70,7 +70,12 @@ import {
   ScriptVersionDetailDto,
   type ScriptWorkingCopyDto,
 } from '@/services/chapter.service';
-import { createsScriptVersionOnAccept, type AiSuggestionKind } from '@/services/aiAgents.service';
+import {
+  aiAgentsService,
+  createsScriptVersionOnAccept,
+  type AiSuggestionDto,
+  type AiSuggestionKind,
+} from '@/services/aiAgents.service';
 import { pageService, PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { PanelDto } from '@/types/pipeline';
@@ -86,6 +91,7 @@ import {
 } from '@/services/assignment.service';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { AiAssistPanel } from '@/shared/features/ai-agents/AiAssistPanel';
+import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
 import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
@@ -104,7 +110,12 @@ import { ScriptStudioRail, type ScriptRailItem } from '../components/script/Scri
 import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
 import { ScriptChaptersDrawer } from '../components/script/ScriptChaptersDrawer';
 import { ScriptStatusDrawer } from '../components/script/ScriptStatusDrawer';
-import { useScriptDrawers, isTestEnvironment, type LeftDrawer, type RightDrawer } from '../components/script/useScriptDrawers';
+import {
+  useScriptDrawers,
+  isTestEnvironment,
+  type LeftDrawer,
+  type RightDrawer,
+} from '../components/script/useScriptDrawers';
 import { ScriptStatusBar } from '../components/script/ScriptStatusBar';
 import { ScriptHeader } from '../components/script/ScriptHeader';
 import { useFocusHeaderContext } from '@/app/FocusWorkspaceLayout';
@@ -1391,10 +1402,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         t('scriptStudio.narrative.updateSuccess', 'Đã cập nhật Story Arc của Series.'),
       );
     } catch (err: any) {
-      notify(
-        t('scriptStudio.narrative.updateError', 'Lỗi cập nhật Story Arc'),
-        err.message,
-      );
+      notify(t('scriptStudio.narrative.updateError', 'Lỗi cập nhật Story Arc'), err.message);
       if (err.message?.includes('409') || err.message?.includes('xung đột')) {
         setConcurrencyError(err.message);
       }
@@ -2133,9 +2141,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       const run = (async () => {
         const [workingCopy, versions] = await Promise.all([
           typeof chapterService.getScriptWorkingCopy === 'function'
-            ? chapterService.getScriptWorkingCopy(chapId).catch(() => null)
+            ? Promise.resolve(chapterService.getScriptWorkingCopy(chapId)).catch(() => null)
             : Promise.resolve(null),
-          chapterService.getScriptVersions(chapId).catch(() => null),
+          Promise.resolve(chapterService.getScriptVersions(chapId)).catch(() => null),
           refreshChapterDetail(chapId),
         ]);
 
@@ -2326,6 +2334,101 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       forceEditorSync: !flowDirtyRef.current,
       targetSceneId: selectedScene?.id,
     });
+  };
+
+  // Copilot viết lại 1 dòng thoại (task: writer.rewrite)
+  const [rewritingLineId, setRewritingLineId] = useState<string | null>(null);
+  const [decidingLineId, setDecidingLineId] = useState<string | null>(null);
+  const [activeCopilotLineId, setActiveCopilotLineId] = useState<string | null>(null);
+  const [lineCopilotSuggestions, setLineCopilotSuggestions] = useState<
+    Record<string, AiSuggestionDto>
+  >({});
+  const [lineCopilotErrors, setLineCopilotErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setLineCopilotSuggestions({});
+    setLineCopilotErrors({});
+    setActiveCopilotLineId(null);
+  }, [currentChapter?.id]);
+
+  const handleRewriteLineById = async (lineId: string) => {
+    const effectiveSeriesId = seriesId || currentChapter?.seriesId;
+    if (!effectiveSeriesId || !lineId) return;
+    setRewritingLineId(lineId);
+    setActiveCopilotLineId(lineId);
+    setLineCopilotErrors((prev) => {
+      const next = { ...prev };
+      delete next[lineId];
+      return next;
+    });
+    try {
+      const sug = await aiAgentsService.runCopilot(effectiveSeriesId, {
+        task: 'writer.rewrite',
+        lineId,
+      });
+      setLineCopilotSuggestions((prev) => ({ ...prev, [lineId]: sug }));
+    } catch (err: any) {
+      const msg = err?.message || 'Không thể chạy AI Copilot.';
+      setLineCopilotErrors((prev) => ({ ...prev, [lineId]: msg }));
+      notify('Lỗi AI Copilot', msg);
+      if (err?.status === 409) {
+        setConcurrencyError(msg);
+        await handleAiReload();
+      }
+    } finally {
+      setRewritingLineId((cur) => (cur === lineId ? null : cur));
+    }
+  };
+
+  const handleDecideLineCopilot = async (
+    lineId: string,
+    suggestion: AiSuggestionDto,
+    decision: 'accept' | 'reject' | 'request-changes',
+    reason?: string,
+  ) => {
+    const effectiveSeriesId = seriesId || currentChapter?.seriesId;
+    if (!effectiveSeriesId || !currentChapter) return;
+    setDecidingLineId(lineId);
+    setLineCopilotErrors((prev) => {
+      const next = { ...prev };
+      delete next[lineId];
+      return next;
+    });
+    try {
+      const res = await aiAgentsService.review(effectiveSeriesId, suggestion.id, decision, {
+        ...(reason ? { reason } : {}),
+        chapterVersion: currentChapter.versionVector,
+      });
+      if (decision === 'accept') {
+        setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : prev));
+        setLineCopilotSuggestions((prev) => {
+          const next = { ...prev };
+          delete next[lineId];
+          return next;
+        });
+        await handleAiReload('LineRewrite');
+      } else {
+        setLineCopilotSuggestions((prev) => ({
+          ...prev,
+          [lineId]: {
+            ...suggestion,
+            status: res.status,
+            canDecide: false,
+            canAccept: false,
+          },
+        }));
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'Không thể ghi quyết định.';
+      setLineCopilotErrors((prev) => ({ ...prev, [lineId]: msg }));
+      notify('Lỗi quyết định đề xuất AI', msg);
+      if (err?.status === 409) {
+        setConcurrencyError(msg);
+        await handleAiReload();
+      }
+    } finally {
+      setDecidingLineId((cur) => (cur === lineId ? null : cur));
+    }
   };
 
   const currentSceneDto = useMemo(
@@ -2573,7 +2676,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       tooltip: !canEditScript
         ? t('scriptStudio.railTooltip.importDisabledRole', 'Chỉ xem - không có quyền nhập kịch bản')
         : isChapterLocked
-          ? t('scriptStudio.railTooltip.importDisabledLocked', 'Chương đã đóng băng - không thể nhập kịch bản')
+          ? t(
+              'scriptStudio.railTooltip.importDisabledLocked',
+              'Chương đã đóng băng - không thể nhập kịch bản',
+            )
           : t('scriptStudio.railTooltip.import', 'Nhập kịch bản từ tệp bên ngoài'),
       icon: FileInput,
       disabled: !canEditScript || isChapterLocked,
@@ -2589,7 +2695,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       tooltip: !canEditScript
         ? t('scriptStudio.railTooltip.aiDisabledRole', 'Chỉ xem - không có quyền dùng Trợ lý AI')
         : isChapterLocked
-          ? t('scriptStudio.railTooltip.aiDisabledLocked', 'Chương đã đóng băng - không thể dùng Trợ lý AI')
+          ? t(
+              'scriptStudio.railTooltip.aiDisabledLocked',
+              'Chương đã đóng băng - không thể dùng Trợ lý AI',
+            )
           : t('scriptStudio.railTooltip.ai', 'Trợ lý AI viết nháp và phân khung'),
       icon: Sparkles,
       active: activeRightDrawer === 'ai-draft' || activeRightDrawer === 'ai-storyboard',
@@ -2754,6 +2863,46 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               activeLineId={activeCommentLineId}
               activePanel={activePanelJump}
               allBibleEntries={allBibleEntries}
+              onRewriteLineId={
+                canEditScript && !isChapterLocked ? handleRewriteLineById : undefined
+              }
+              rewritingLineId={rewritingLineId}
+              flowAiSlot={
+                activeCopilotLineId &&
+                (lineCopilotErrors[activeCopilotLineId] ||
+                  (canEditScript &&
+                    !isChapterLocked &&
+                    lineCopilotSuggestions[activeCopilotLineId])) ? (
+                  <div className='space-y-2'>
+                    {lineCopilotErrors[activeCopilotLineId] && (
+                      <div
+                        role='alert'
+                        className='rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800'
+                      >
+                        {lineCopilotErrors[activeCopilotLineId]}
+                      </div>
+                    )}
+                    {canEditScript &&
+                      !isChapterLocked &&
+                      lineCopilotSuggestions[activeCopilotLineId] && (
+                        <SuggestionCard
+                          suggestion={lineCopilotSuggestions[activeCopilotLineId]}
+                          seriesId={seriesId || currentChapter?.seriesId}
+                          busy={decidingLineId === activeCopilotLineId}
+                          nameById={aiNameById}
+                          onDecide={(decision, reason) =>
+                            void handleDecideLineCopilot(
+                              activeCopilotLineId,
+                              lineCopilotSuggestions[activeCopilotLineId],
+                              decision,
+                              reason,
+                            )
+                          }
+                        />
+                      )}
+                  </div>
+                ) : undefined
+              }
               registerSetPanelStage={(fn) => {
                 setPanelStageRef.current = fn;
               }}
@@ -2854,6 +3003,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                             onMoveLine={handleMoveLine}
                             onEditLine={handleOpenEditLine}
                             onDeleteLine={handleDeleteLine}
+                            onRewriteLine={
+                              canEditScript && !isChapterLocked
+                                ? (l) => void handleRewriteLineById(l.id)
+                                : undefined
+                            }
+                            isRewriting={rewritingLineId === line.id}
+                            copilotSuggestion={lineCopilotSuggestions[line.id] ?? null}
+                            copilotBusy={decidingLineId === line.id}
+                            copilotError={lineCopilotErrors[line.id] ?? null}
+                            seriesId={seriesId || currentChapter?.seriesId}
+                            aiNameById={aiNameById}
+                            onDecideCopilot={(decision, reason) => {
+                              const sug = lineCopilotSuggestions[line.id];
+                              if (sug) void handleDecideLineCopilot(line.id, sug, decision, reason);
+                            }}
                           />
                         );
                       })
@@ -3051,26 +3215,29 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       )}
 
       {/* Trợ lý AI Phân khung Storyboard */}
-      {activeRightDrawer === 'ai-storyboard' && seriesId && currentChapter?.id && selectedScene?.id && (
-        <AiAssistPanel
-          key={`storyboard-${selectedScene.id}`}
-          seriesId={seriesId}
-          chapterId={currentChapter.id}
-          sceneId={selectedScene.id}
-          workflowType='Storyboard'
-          suggestionKind='Layout'
-          title='Trợ lý AI · Phân khung Storyboard'
-          briefLabel='Brief / Định hướng phân khung (tối đa 4000 ký tự)'
-          briefPlaceholder='Mô tả định hướng phân khung: số khung mong muốn, nhịp điệu (nhanh/chậm), khung cao trào...'
-          runLabel='Phân khung'
-          readingDirection={aiReadingDirection}
-          chapterVersion={currentChapter.versionVector}
-          nameById={aiNameById}
-          hasPanels={sceneHasPanels}
-          onClose={() => setActiveRightDrawer(null)}
-          onReload={handleAiReload}
-        />
-      )}
+      {activeRightDrawer === 'ai-storyboard' &&
+        seriesId &&
+        currentChapter?.id &&
+        selectedScene?.id && (
+          <AiAssistPanel
+            key={`storyboard-${selectedScene.id}`}
+            seriesId={seriesId}
+            chapterId={currentChapter.id}
+            sceneId={selectedScene.id}
+            workflowType='Storyboard'
+            suggestionKind='Layout'
+            title='Trợ lý AI · Phân khung Storyboard'
+            briefLabel='Brief / Định hướng phân khung (tối đa 4000 ký tự)'
+            briefPlaceholder='Mô tả định hướng phân khung: số khung mong muốn, nhịp điệu (nhanh/chậm), khung cao trào...'
+            runLabel='Phân khung'
+            readingDirection={aiReadingDirection}
+            chapterVersion={currentChapter.versionVector}
+            nameById={aiNameById}
+            hasPanels={sceneHasPanels}
+            onClose={() => setActiveRightDrawer(null)}
+            onReload={handleAiReload}
+          />
+        )}
 
       {/* MODAL: Tạo / Sửa Phân cảnh */}
       <Modal
