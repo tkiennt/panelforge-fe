@@ -143,12 +143,16 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
                     )}
                   </button>
 
-                  {canEdit && isSelected && (
+                  {canEdit && (
                     <div className='flex items-center gap-1 mt-2 -ml-2'>
                       <button
                         type='button'
                         data-testid='edit-scene-heading-btn'
-                        onClick={onRenameSelected}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelect(s);
+                          onRenameSelected();
+                        }}
                         className='inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-stone-600 hover:text-stone-900 hover:bg-white cursor-pointer'
                       >
                         <Edit2 className='w-3.5 h-3.5' /> {t('scriptStudio.scenes.rename', 'Sửa')}
@@ -156,7 +160,10 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
                       <button
                         type='button'
                         data-testid={`delete-scene-${s.sceneNumber}-btn`}
-                        onClick={() => onDelete(s)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(s);
+                        }}
                         className='inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-rose-600 hover:bg-rose-50 cursor-pointer'
                       >
                         <Trash2 className='w-3.5 h-3.5' /> {t('scriptStudio.scenes.delete', 'Xoá')}

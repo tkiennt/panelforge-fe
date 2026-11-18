@@ -518,6 +518,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Trạng thái xoá Phân cảnh & Chương (Lucian #269 Modals)
   const [sceneToDelete, setSceneToDelete] = useState<any>(null);
+  const userDeletedSceneRef = useRef(false);
   const [isDeletingScene, setIsDeletingScene] = useState(false);
   const [chapterToDelete, setChapterToDelete] = useState<ChapterDto | null>(null);
   const [isDeletingChapter, setIsDeletingChapter] = useState(false);
@@ -1082,11 +1083,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (!sceneToDelete || !currentChapter) return;
     setIsDeletingScene(true);
     try {
+      userDeletedSceneRef.current = true;
       await scriptLineService.deleteScene(sceneToDelete.id);
       notify(
         'Đã xoá phân cảnh',
         `Cảnh ${sceneToDelete.sceneNumber} đã được xoá an toàn. Kịch bản và các panel vẫn được giữ nguyên.`,
       );
+      if (selectedScene?.id === sceneToDelete.id) {
+        setSelectedScene(null);
+      }
       setSceneToDelete(null);
       await loadScenes();
     } catch (err: any) {
@@ -1213,8 +1218,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           const matched = sceneIdFromUrl ? validDetails.find((s) => s.id === sceneIdFromUrl) : null;
           return matched || validDetails[0] || null;
         });
-      } else if (canEditScript && !isChapterLocked) {
-        // Tự động khởi tạo phân cảnh đầu tiên để Writer vào thẳng trình soạn thảo, bỏ qua bước chọn / tạo phân cảnh thủ công
+      } else if (canEditScript && !isChapterLocked && !userDeletedSceneRef.current) {
+        // Tự động khởi tạo phân cảnh đầu tiên để Writer vào thẳng trình soạn thảo
         try {
           const defaultScene = await scriptLineService.createScene(currentChapter.id, {
             sceneNumber: 1,
@@ -1311,6 +1316,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
     const matched = chapters.find((c) => c.id.toLowerCase() === chapId.toLowerCase());
     if (matched) {
+      userDeletedSceneRef.current = false;
       setCurrentChapter(matched);
       setOutlineInput(matched.outline || '');
       setSearchParams((prev) => {
@@ -1993,14 +1999,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const handleSubmitScript = async () => {
     if (!currentChapter?.id) return;
 
-    // BIB-16 item 6: kiểm tra blockers của Gửi duyệt (mục nháp IsStub chưa định nghĩa)
+    // Cho phép nộp kịch bản trước khi hoàn thành series bible (submitGate ghi nhận cảnh báo nếu có, không chặn)
     if (chapterCast?.submitGate && !chapterCast.submitGate.canSubmit) {
-      notify(
-        t('scriptStudio.cast.submitBlockedTitle', 'Chặn Gửi duyệt do vướng mắc Bible'),
-        chapterCast.submitGate.blockers.map((b) => `${b.entryName}: ${b.reason}`).join('\n'),
+      console.warn(
+        'Series Bible chưa hoàn thành trước khi nộp kịch bản:',
+        chapterCast.submitGate.blockers.map((b) => `${b.entryName}: ${b.reason}`).join('; '),
       );
-      setActiveRightDrawer('characters');
-      return;
     }
 
     const n = currentChapter.chapterNumber;
@@ -2390,17 +2394,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         : isWriterRole && isScriptInReview
           ? 'resubmit'
           : null;
-  // BIB-16 item 6: kiểm tra blockers của submitGate và gate
-  const isSubmitBlocked =
-    (scriptAction === 'submit' || scriptAction === 'resubmit') &&
-    chapterCast?.submitGate?.canSubmit === false;
+  // Cho phép nộp kịch bản trước khi hoàn thành series bible (submitGate không chặn nộp kịch bản)
+  const isSubmitBlocked = false;
   const isStartBlocked = !isScriptFrozen && chapterCast?.gate?.canStart === false;
 
-  // Gửi lại chỉ khi đã lưu thay đổi sau lần gửi duyệt gần nhất; và không bị chặn bởi gate blockers
+  // Gửi lại chỉ khi đã lưu thay đổi sau lần gửi duyệt gần nhất
   const canSubmitScript =
     scriptAction !== null &&
-    (scriptAction !== 'resubmit' || hasUnpushedChanges) &&
-    !isSubmitBlocked;
+    (scriptAction !== 'resubmit' || hasUnpushedChanges);
   const scriptStageIndex = isScriptFrozen ? 2 : isScriptInReview ? 1 : 0;
 
   const submitScriptRef = React.useRef<() => void>(() => {});

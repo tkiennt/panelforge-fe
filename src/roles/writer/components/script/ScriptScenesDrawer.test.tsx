@@ -92,7 +92,7 @@ describe('ScriptScenesDrawer', () => {
       />,
     );
 
-    fireEvent.click(screen.getByTestId('edit-scene-heading-btn'));
+    fireEvent.click(screen.getAllByTestId('edit-scene-heading-btn')[0]);
     expect(onRenameSelected).toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('add-scene-btn'));
