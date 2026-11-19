@@ -89,9 +89,13 @@ export const SidebarItem = forwardRef<HTMLAnchorElement | HTMLButtonElement, Sid
     },
     ref,
   ) {
-    const normalizedPath = currentPath?.replace(/\/$/, '');
-    const normalizedHref = href?.replace(/^#/, '').split('?')[0].replace(/\/$/, '');
-    const active = !!normalizedHref && normalizedPath === normalizedHref;
+    const normalizedPath = currentPath?.split('?')[0].replace(/\/$/, '') ?? '';
+    const normalizedHref = href?.replace(/^#/, '').split('?')[0].replace(/\/$/, '') ?? '';
+    const active =
+      !!normalizedHref &&
+      (normalizedPath === normalizedHref ||
+        normalizedPath.endsWith(normalizedHref) ||
+        (normalizedHref !== '' && normalizedHref !== '/' && normalizedPath.includes(normalizedHref)));
     const classes = cn(
       'pf-sb-item group relative flex min-h-10 items-center rounded-xl text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-focus-ring)]',
       collapsed ? 'mx-auto size-10 justify-center' : 'gap-3 px-4 py-2.5',

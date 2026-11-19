@@ -312,13 +312,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         <div className='p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4'>
           {/* Context Alert for Rework or Resubmit */}
           {revisionReworkFeedback ? (
-            <Alert tone='warning' title='Yêu cầu chỉnh sửa từ Biên kịch / Biên tập viên'>
-              “{revisionReworkFeedback}” Vui lòng điều chỉnh thiết kế theo góp ý trên và tải lên bản
-              vẽ mới.
+            <Alert tone='warning' title='Yêu cầu chỉnh sửa'>
+              “{revisionReworkFeedback}” — Chỉnh sửa thiết kế theo góp ý và tải lên bản vẽ mới.
             </Alert>
           ) : isArtistResubmit ? (
-            <Alert tone='info' title='Nộp lại bản vẽ Concept Art (Sửa nộp nhầm)'>
-              Bản vẽ mới sẽ thay thế bản vẽ đang chờ duyệt mà không làm mất lịch sử phiên bản.
+            <Alert tone='info' title='Nộp lại bản vẽ Concept Art'>
+              Bản vẽ mới sẽ thay thế bản vẽ chờ duyệt.
             </Alert>
           ) : null}
 

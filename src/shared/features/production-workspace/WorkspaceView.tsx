@@ -164,11 +164,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           <ShieldAlert className='w-8 h-8' />
         </div>
         <h2 className='text-xl font-serif font-semibold text-zinc-900 mb-2'>
-          Khu Vực Sản Xuất Giới Hạn
+          Khu vực giới hạn
         </h2>
         <p className='text-sm text-zinc-500 max-w-md mb-4'>
-          Bạn không có quyền truy cập khu vực sản xuất Pipeline. Vui lòng quay lại danh mục truyện
-          để đọc bản phát hành công khai.
+          Không có quyền truy cập sản xuất. Quay lại danh mục truyện để đọc bản phát hành.
         </p>
         <button
           type='button'

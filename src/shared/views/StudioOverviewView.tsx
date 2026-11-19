@@ -353,7 +353,7 @@ export const StudioOverviewView: React.FC = () => {
   const handleCreateSeries = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeWorkspace) {
-      showToast('Lỗi', 'Vui lòng chọn hoặc tạo một Studio Workspace trước.');
+      showToast('Lỗi', 'Chọn hoặc tạo Studio Workspace trước.');
       return;
     }
     if (!newSeriesTitle.trim()) return;

@@ -59,11 +59,13 @@ export function resolveCurrentWorkspaceRole(
 export function isRoleAllowed(
   effectiveRole: string,
   allowedRoles: (WorkspaceRole | SystemRole | string)[],
+  activeRoles?: string[],
+  currentRole?: string,
 ): boolean {
   const normEffective = effectiveRole.toUpperCase();
   const normalizedAllowed = allowedRoles.map((r) => String(r).toUpperCase());
 
-  // Support ADMIN and ADMINISTRATOR equivalence
+  // 1. Support ADMIN and ADMINISTRATOR equivalence
   const effectiveMatchesAdmin = normEffective === 'ADMIN' || normEffective === 'ADMINISTRATOR';
   const allowedIncludesAdmin =
     normalizedAllowed.includes('ADMIN') || normalizedAllowed.includes('ADMINISTRATOR');
@@ -72,5 +74,30 @@ export function isRoleAllowed(
     return true;
   }
 
-  return normalizedAllowed.includes(normEffective);
+  // System administrator has access to all workspace features
+  if (effectiveMatchesAdmin) {
+    return true;
+  }
+  if (currentRole) {
+    const normCur = String(currentRole).toUpperCase();
+    if (normCur === 'ADMIN' || normCur === 'ADMINISTRATOR') return true;
+  }
+
+  // 2. Check effective role
+  if (normalizedAllowed.includes(normEffective)) {
+    return true;
+  }
+
+  // 3. Producer (studio director) has access across all production desk screens (except publisher-only)
+  if (normEffective === 'PRODUCER' && !normalizedAllowed.includes('PUBLISHER')) {
+    return true;
+  }
+
+  // 4. Check if user has any active role that matches allowedRoles
+  if (activeRoles && activeRoles.length > 0) {
+    const hasMatch = activeRoles.some((r) => normalizedAllowed.includes(String(r).toUpperCase()));
+    if (hasMatch) return true;
+  }
+
+  return false;
 }

@@ -317,7 +317,7 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
   // QUY TẮC C: Producer Request Changes
   const handleConfirmRequestChanges = () => {
     if (!feedbackNotes.trim()) {
-      notify('Lỗi', 'Vui lòng nhập ghi chú phản hồi cho biên kịch.');
+      notify('Lỗi', 'Nhập ghi chú phản hồi trước khi gửi.');
       return;
     }
     requestChanges(feedbackNotes.trim());
@@ -827,9 +827,9 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
             <button
               type='button'
               onClick={handleConfirmRequestChanges}
-              className='px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg cursor-pointer shadow-xs'
+              className='btn-cta-primary'
             >
-              Gửi yêu cầu (Tạo v1.1)
+              Gửi yêu cầu
             </button>
           </>
         }
@@ -837,9 +837,9 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
         <textarea
           value={feedbackNotes}
           onChange={(e) => setFeedbackNotes(e.target.value)}
-          placeholder='Nhập chi tiết các phân cảnh cần sửa (ví dụ: Tăng nhịp độ căng thẳng ở trang 1, sửa lại lời thoại của Minh)...'
+          placeholder='vd: Tăng nhịp độ căng thẳng trang 1, rút ngắn lời thoại Minh...'
           rows={4}
-          className='w-full text-xs p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500'
+          className='w-full text-xs p-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#C2410C]'
         />
       </Modal>
     </div>

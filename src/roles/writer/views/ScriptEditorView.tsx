@@ -110,6 +110,7 @@ import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawe
 import { ScriptVersionsDrawer } from '../components/script/versions/ScriptVersionsDrawer';
 import { ScriptStudioRail, type ScriptRailItem } from '../components/script/ScriptStudioRail';
 import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
+import { parseScenePanelRange, formatSceneSummaryWithPanels } from '../utils/sceneUtils';
 import { ScriptChaptersDrawer } from '../components/script/ScriptChaptersDrawer';
 import { ScriptStatusDrawer } from '../components/script/ScriptStatusDrawer';
 import {
@@ -530,6 +531,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Trạng thái xoá Phân cảnh & Chương (Lucian #269 Modals)
   const [sceneToDelete, setSceneToDelete] = useState<any>(null);
+  const userDeletedSceneRef = useRef(false);
   const [isDeletingScene, setIsDeletingScene] = useState(false);
   const [chapterToDelete, setChapterToDelete] = useState<ChapterDto | null>(null);
   const [isDeletingChapter, setIsDeletingChapter] = useState(false);
@@ -543,6 +545,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [isEditingScene, setIsEditingScene] = useState(false);
   const [sceneNumberInput, setSceneNumberInput] = useState<number>(1);
   const [sceneHeadingInput, setSceneHeadingInput] = useState<string>('');
+  const [fromPanelInput, setFromPanelInput] = useState<number>(1);
+  const [toPanelInput, setToPanelInput] = useState<number>(1);
   const [sceneSummaryInput, setSceneSummaryInput] = useState<string>('');
   const [sceneDefaultNarrationMode, setSceneDefaultNarrationMode] =
     useState<NarrationMode>('Present');
@@ -779,7 +783,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }
 
         if (chapterList.length > 0) {
-          const matched = chapterList.find((c) => c.id === chapterIdFromUrl);
+          const matched = chapterList.find((c) =>
+            chapterIdFromUrl ? c.id.toLowerCase() === chapterIdFromUrl.toLowerCase() : false,
+          );
           if (matched) {
             setCurrentChapter(matched);
             setOutlineInput(matched.outline || '');
@@ -814,8 +820,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       }
       return;
     }
-    if (currentChapter?.id !== chapterIdFromUrl) {
-      const found = chapters.find((c) => c.id === chapterIdFromUrl);
+    if (!currentChapter || currentChapter.id.toLowerCase() !== chapterIdFromUrl.toLowerCase()) {
+      const found = chapters.find((c) => c.id.toLowerCase() === chapterIdFromUrl.toLowerCase());
       if (found) {
         setCurrentChapter(found);
         setOutlineInput(found.outline || '');
@@ -1090,11 +1096,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (!sceneToDelete || !currentChapter) return;
     setIsDeletingScene(true);
     try {
+      userDeletedSceneRef.current = true;
       await scriptLineService.deleteScene(sceneToDelete.id);
       notify(
         'Đã xoá phân cảnh',
-        `Cảnh ${sceneToDelete.sceneNumber} đã được xoá an toàn khỏi chuỗi sản xuất.`,
+        `Cảnh ${sceneToDelete.sceneNumber} đã được xoá an toàn. Kịch bản và các panel vẫn được giữ nguyên.`,
       );
+      if (selectedScene?.id === sceneToDelete.id) {
+        setSelectedScene(null);
+      }
       setSceneToDelete(null);
       await loadScenes();
     } catch (err: any) {
@@ -1221,8 +1231,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           const matched = sceneIdFromUrl ? validDetails.find((s) => s.id === sceneIdFromUrl) : null;
           return matched || validDetails[0] || null;
         });
-      } else if (canEditScript && !isChapterLocked) {
-        // Tự động khởi tạo phân cảnh đầu tiên để Writer vào thẳng trình soạn thảo, bỏ qua bước chọn / tạo phân cảnh thủ công
+      } else if (canEditScript && !isChapterLocked && !userDeletedSceneRef.current) {
+        // Tự động khởi tạo phân cảnh đầu tiên để Writer vào thẳng trình soạn thảo
         try {
           const defaultScene = await scriptLineService.createScene(currentChapter.id, {
             sceneNumber: 1,
@@ -1317,8 +1327,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setFindings([]);
     setConsistencyResult(null);
 
-    const matched = chapters.find((c) => c.id === chapId);
+    const matched = chapters.find((c) => c.id.toLowerCase() === chapId.toLowerCase());
     if (matched) {
+      userDeletedSceneRef.current = false;
       setCurrentChapter(matched);
       setOutlineInput(matched.outline || '');
       setSearchParams((prev) => {
@@ -1524,11 +1535,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }, 4500);
   };
 
-  // --- CRUD SCENE ---
+  // --- CRUD SCENE (Note phân cảnh, không ảnh hưởng logic hay luồng) ---
   const handleOpenCreateScene = () => {
     setIsEditingScene(false);
     setSceneNumberInput(scenes.length + 1);
     setSceneHeadingInput('');
+    setFromPanelInput(1);
+    setToPanelInput(chapterPanels.length > 0 ? chapterPanels.length : 1);
     setSceneSummaryInput('');
     setSceneDefaultNarrationMode('Present');
     setSceneModalOpen(true);
@@ -1539,7 +1552,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setIsEditingScene(true);
     setSceneNumberInput(selectedScene.sceneNumber);
     setSceneHeadingInput(selectedScene.heading || '');
-    setSceneSummaryInput(selectedScene.summary || '');
+    const rangeInfo = parseScenePanelRange(selectedScene.summary);
+    setFromPanelInput(rangeInfo.fromPanel || 1);
+    setToPanelInput(rangeInfo.toPanel || (chapterPanels.length > 0 ? chapterPanels.length : 1));
+    setSceneSummaryInput(rangeInfo.cleanSummary);
     setSceneDefaultNarrationMode(selectedScene.defaultNarrationMode || 'Present');
     setSceneModalOpen(true);
   };
@@ -1549,10 +1565,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (!currentChapter?.id) return;
     setSubmitting(true);
     try {
+      const formattedSummary = formatSceneSummaryWithPanels(
+        fromPanelInput,
+        toPanelInput,
+        sceneSummaryInput,
+      );
+
       if (isEditingScene && selectedScene) {
         const req: UpdateSceneRequest = {
           heading: sceneHeadingInput.trim() || null,
-          summary: sceneSummaryInput.trim() || null,
+          summary: formattedSummary,
           defaultNarrationMode: sceneDefaultNarrationMode,
           expectedVersion: selectedScene.version,
         };
@@ -1576,7 +1598,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         const req: CreateSceneRequest = {
           sceneNumber: sceneNumberInput,
           heading: sceneHeadingInput.trim() || null,
-          summary: sceneSummaryInput.trim() || null,
+          summary: formattedSummary,
           defaultNarrationMode: sceneDefaultNarrationMode,
         };
         const created = await scriptLineService.createScene(currentChapter.id, req);
@@ -1605,13 +1627,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleDeleteScene = () => {
-    notify(
-      'Không thể xoá phân cảnh',
-      'Hệ thống không cho phép xoá phân cảnh để đảm bảo tính liên tục của mạch truyện. Bạn chỉ có thể sửa tiêu đề phân cảnh.',
-    );
   };
 
   // --- CRUD SCRIPT LINE (UC-06) ---
@@ -1644,7 +1659,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (!currentChapter?.id || !selectedScene?.id) return;
 
     if (!lineDialogue.trim() && !lineStageDirection.trim()) {
-      notify('Thiếu nội dung', 'Vui lòng nhập lời thoại hoặc chỉ dẫn cảnh (ít nhất một trường).');
+      notify('Thiếu nội dung', 'Nhập lời thoại hoặc chỉ dẫn cảnh.');
       return;
     }
 
@@ -1994,14 +2009,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const handleSubmitScript = async () => {
     if (!currentChapter?.id) return;
 
-    // BIB-16 item 6: kiểm tra blockers của Gửi duyệt (mục nháp IsStub chưa định nghĩa)
+    // Cho phép nộp kịch bản trước khi hoàn thành series bible (submitGate ghi nhận cảnh báo nếu có, không chặn)
     if (chapterCast?.submitGate && !chapterCast.submitGate.canSubmit) {
-      notify(
-        t('scriptStudio.cast.submitBlockedTitle', 'Chặn Gửi duyệt do vướng mắc Bible'),
-        chapterCast.submitGate.blockers.map((b) => `${b.entryName}: ${b.reason}`).join('\n'),
+      console.warn(
+        'Series Bible chưa hoàn thành trước khi nộp kịch bản:',
+        chapterCast.submitGate.blockers.map((b) => `${b.entryName}: ${b.reason}`).join('; '),
       );
-      setActiveRightDrawer('characters');
-      return;
     }
 
     const n = currentChapter.chapterNumber;
@@ -2497,17 +2510,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         : isWriterRole && isScriptInReview
           ? 'resubmit'
           : null;
-  // BIB-16 item 6: kiểm tra blockers của submitGate và gate
-  const isSubmitBlocked =
-    (scriptAction === 'submit' || scriptAction === 'resubmit') &&
-    chapterCast?.submitGate?.canSubmit === false;
+  // Cho phép nộp kịch bản trước khi hoàn thành series bible (submitGate không chặn nộp kịch bản)
+  const isSubmitBlocked = false;
   const isStartBlocked = !isScriptFrozen && chapterCast?.gate?.canStart === false;
 
-  // Gửi lại chỉ khi đã lưu thay đổi sau lần gửi duyệt gần nhất; và không bị chặn bởi gate blockers
+  // Gửi lại chỉ khi đã lưu thay đổi sau lần gửi duyệt gần nhất
   const canSubmitScript =
     scriptAction !== null &&
-    (scriptAction !== 'resubmit' || hasUnpushedChanges) &&
-    !isSubmitBlocked;
+    (scriptAction !== 'resubmit' || hasUnpushedChanges);
   const scriptStageIndex = isScriptFrozen ? 2 : isScriptInReview ? 1 : 0;
 
   const submitScriptRef = React.useRef<() => void>(() => {});
@@ -2948,9 +2958,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <div className='flex-1 min-h-0 flex flex-col'>
               <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar'>
                 {!selectedScene ? (
-                  <p className='text-center text-sm text-stone-500 py-20'>
-                    {t('scriptStudio.ai.needScene')}
-                  </p>
+                  <div className='flex flex-col items-center justify-center py-20 text-center text-stone-500'>
+                    <p className='text-sm font-medium text-stone-700'>
+                      {scenes.length === 0
+                        ? 'Chương này chưa có phân cảnh kịch bản nào.'
+                        : t('scriptStudio.ai.needScene')}
+                    </p>
+                    {scenes.length === 0 && !canEditScript && (
+                      <p className='text-xs text-stone-400 mt-1 max-w-sm'>
+                        Biên kịch chưa tạo phân cảnh hoặc kịch bản đang được chuẩn bị.
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <div className='max-w-3xl mx-auto w-full px-4 py-8 space-y-3'>
                     <div className='flex items-center justify-between gap-3 pb-2'>
@@ -3119,6 +3138,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             characters={characters}
             chapterId={currentChapter?.id}
             seriesId={seriesId || currentChapter?.seriesId}
+            workspaceId={workspaceId}
             canEditScript={canEditScript}
             chapterNumber={currentChapter?.chapterNumber}
             chapterTitle={currentChapter?.title}
@@ -3262,51 +3282,76 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           />
         )}
 
-      {/* MODAL: Tạo / Sửa Phân cảnh */}
+      {/* MODAL: Tạo / Sửa Phân cảnh (Ghi chú phân đoạn từ panel đến panel) */}
       <Modal
         isOpen={sceneModalOpen}
         onClose={() => setSceneModalOpen(false)}
         size='sm'
         closeLabel='Đóng'
-        title={isEditingScene ? 'Sửa Phân Cảnh' : 'Tạo Phân Cảnh Mới'}
+        title={isEditingScene ? 'Sửa Phân Cảnh (Ghi chú)' : 'Tạo Phân Cảnh Mới (Ghi chú)'}
       >
         <form onSubmit={handleSubmitScene} className='space-y-4'>
-          {!isEditingScene && (
-            <div>
-              <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-                Số thứ tự cảnh (Scene Number)
-              </label>
-              <input
-                type='number'
-                min={1}
-                value={sceneNumberInput}
-                onChange={(e) => setSceneNumberInput(parseInt(e.target.value, 10) || 1)}
-                className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
-                required
-              />
-            </div>
-          )}
-
-          <div>
-            <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-              Tiêu đề phân cảnh (Heading)
-            </label>
-            <input
-              type='text'
-              placeholder='Ví dụ: Cảnh 1: Neo Tokyo - Đêm tuyết rơi'
-              value={sceneHeadingInput}
-              onChange={(e) => setSceneHeadingInput(e.target.value)}
-              className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
-            />
+          <div className='p-2.5 bg-orange-50/80 border border-orange-200/70 rounded-xl text-xs text-orange-950'>
+            💡 Cảnh là phần ghi chú phân đoạn, cho phép định nghĩa tên cảnh và phạm vi từ panel đến panel, không ảnh hưởng đến logic và luồng kịch bản.
           </div>
 
           <div>
             <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-              Tóm tắt phân cảnh (Summary)
+              Tên cảnh / Tiêu đề phân cảnh *
+            </label>
+            <input
+              type='text'
+              placeholder='vd: Cảnh 1: Neo Tokyo - Đêm tuyết rơi'
+              value={sceneHeadingInput}
+              onChange={(e) => setSceneHeadingInput(e.target.value)}
+              className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
+              required
+            />
+          </div>
+
+          {/* Phạm vi panel: Từ panel nào đến panel nào */}
+          <div className='grid grid-cols-2 gap-3'>
+            <div>
+              <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
+                Từ panel
+              </label>
+              <input
+                type='number'
+                min={1}
+                value={fromPanelInput}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10) || 1;
+                  setFromPanelInput(val);
+                  if (toPanelInput < val) {
+                    setToPanelInput(val);
+                  }
+                }}
+                className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
+                required
+              />
+            </div>
+            <div>
+              <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
+                Đến panel
+              </label>
+              <input
+                type='number'
+                min={fromPanelInput || 1}
+                value={toPanelInput}
+                onChange={(e) => setToPanelInput(parseInt(e.target.value, 10) || fromPanelInput || 1)}
+                className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
+              Ghi chú cảnh (Note)
             </label>
             <textarea
               rows={3}
-              placeholder='Mô tả ngắn gọn bối cảnh và diễn biến trong cảnh này...'
+              placeholder='Ghi chú bối cảnh, lưu ý góc máy, tâm lý nhân vật (tùy chọn)...'
               value={sceneSummaryInput}
               onChange={(e) => setSceneSummaryInput(e.target.value)}
               className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] resize-none'
@@ -3334,10 +3379,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 Người kể không đáng tin (Unreliable Narrator)
               </option>
             </select>
-            <p className='text-xs text-[#57534E] mt-1'>
-              Các dòng kịch bản mới thêm vào phân cảnh này sẽ tự động kế thừa chế độ kể chuyện tương
-              ứng.
-            </p>
           </div>
 
           <div className='flex justify-end gap-2 pt-2 border-t border-[#D8D2C5]'>
@@ -3449,7 +3490,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               </label>
               <textarea
                 rows={3}
-                placeholder='Nhập lời thoại của nhân vật...'
+                placeholder='vd: Chúng ta phải đi ngay!'
                 value={lineDialogue}
                 onChange={(e) => setLineDialogue(e.target.value)}
                 maxLength={4000}
@@ -3461,11 +3502,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <div>
               <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
                 <Clapperboard className='w-3.5 h-3.5 text-[#57534E]' />
-                <span>Chỉ dẫn cảnh / Hành động (Stage Direction)</span>
+                <span>Chỉ dẫn cảnh / Hành động</span>
               </label>
               <textarea
                 rows={2}
-                placeholder='Ví dụ: (Akira quay đầu lại nhìn với vẻ kinh ngạc, tay nắm chặt thanh kiếm...)'
+                placeholder='vd: Akira quay đầu nhìn, tay rút kiếm...'
                 value={lineStageDirection}
                 onChange={(e) => setLineStageDirection(e.target.value)}
                 maxLength={4000}
@@ -3535,29 +3576,52 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         <TypeToConfirmModal
           isOpen={Boolean(chapterToDelete)}
           targetName={`Chương ${chapterToDelete.chapterNumber}`}
-          title={`Xoá vĩnh viễn Chương ${chapterToDelete.chapterNumber}?`}
-          description={`Cảnh báo: Hành động này sẽ xoá mềm toàn bộ phân cảnh và kịch bản của Chương ${chapterToDelete.chapterNumber}. Để xác nhận, vui lòng nhập chính xác:`}
-          confirmButtonText={isDeletingChapter ? 'Đang xoá...' : 'Xoá chương vĩnh viễn'}
-          cancelButtonText='Huỷ bỏ'
+          title={`Xoá Chương ${chapterToDelete.chapterNumber}`}
+          description={`Toàn bộ phân cảnh và kịch bản Chương ${chapterToDelete.chapterNumber} sẽ bị xoá. Nhập để xác nhận:`}
+          confirmButtonText={isDeletingChapter ? 'Đang xoá...' : 'Xoá chương'}
+          cancelButtonText='Huỷ'
           isDeleting={isDeletingChapter}
           onConfirm={handleConfirmDeleteChapter}
           onCancel={() => setChapterToDelete(null)}
         />
       )}
 
-      {/* Lucian #269: Type-to-Confirm Modal Xoá Phân Cảnh (Destructive Scene Delete) */}
+      {/* Modal Xoá Phân Cảnh (Note phân cảnh, không ảnh hưởng logic kịch bản) */}
       {sceneToDelete && (
-        <TypeToConfirmModal
+        <Modal
           isOpen={Boolean(sceneToDelete)}
-          targetName={`Cảnh ${sceneToDelete.sceneNumber}`}
-          title={`Xoá Cảnh ${sceneToDelete.sceneNumber}?`}
-          description={`Cảnh báo: Hành động này sẽ xoá Cảnh ${sceneToDelete.sceneNumber} (${sceneToDelete.heading || 'Chưa đặt tiêu đề'}) và toàn bộ dòng kịch bản thuộc phân cảnh này. Để xác nhận, vui lòng nhập chính xác:`}
-          confirmButtonText={isDeletingScene ? 'Đang xoá...' : 'Xoá phân cảnh vĩnh viễn'}
-          cancelButtonText='Huỷ bỏ'
-          isDeleting={isDeletingScene}
-          onConfirm={handleConfirmDeleteScene}
-          onCancel={() => setSceneToDelete(null)}
-        />
+          onClose={() => setSceneToDelete(null)}
+          title={`Xoá Cảnh ${sceneToDelete.sceneNumber}`}
+          size='sm'
+          closeLabel='Đóng'
+        >
+          <div className='space-y-3 text-xs text-stone-700'>
+            <p>
+              Bạn có chắc muốn xoá <strong>{sceneToDelete.heading || `Cảnh ${sceneToDelete.sceneNumber}`}</strong>?
+            </p>
+            <p className='text-stone-500 bg-stone-50 p-2.5 rounded-xl border border-stone-200/80'>
+              💡 Cảnh chỉ là phần ghi chú phân đoạn. Việc xoá cảnh diễn ra an toàn và không làm thay đổi hay mất nội dung kịch bản và các panel.
+            </p>
+            <div className='flex justify-end gap-2 pt-2 border-t border-stone-200'>
+              <button
+                type='button'
+                onClick={() => setSceneToDelete(null)}
+                className='px-3.5 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl cursor-pointer'
+              >
+                Huỷ
+              </button>
+              <button
+                type='button'
+                data-testid='confirm-delete-scene-btn'
+                disabled={isDeletingScene}
+                onClick={handleConfirmDeleteScene}
+                className='px-3.5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-2xs disabled:opacity-50 cursor-pointer'
+              >
+                {isDeletingScene ? 'Đang xoá...' : 'Xoá cảnh'}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Modal Đặt giai đoạn theo Panel (BIB-16 & 5, Q24) */}

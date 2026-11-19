@@ -16,6 +16,7 @@ import {
   Send,
 } from 'lucide-react';
 import { CurrentUser } from './AppShell';
+import { getRoleDefaultPath } from '@/roles/roles';
 import { SeriesDto } from '@/services/series.service';
 import { seriesService } from '@/services/series.service';
 import { BrandMark } from '@/shared/components/BrandMark';
@@ -484,10 +485,12 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                             onClick={(e) => {
                               setSeriesPos(null);
                               onSelectSeries?.(s.id);
-                              handleNavClick(
-                                e,
-                                `/workspaces/${workspaceId}/series/${s.id}/dashboard`,
+                              const target = getRoleDefaultPath(
+                                currentUser.workspaceRole || currentUser.role,
+                                workspaceId,
+                                s.id,
                               );
+                              handleNavClick(e, target);
                             }}
                             aria-current={isSelected ? 'page' : undefined}
                             className='pf-sb-item w-full px-3 py-2 text-xs flex items-center justify-between cursor-pointer text-left'

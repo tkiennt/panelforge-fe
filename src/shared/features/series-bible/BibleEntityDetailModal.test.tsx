@@ -867,5 +867,98 @@ describe('BibleEntityDetailModal UX/UI', () => {
       expect(screen.getByTestId('bible-entity-workbench')).toBeInTheDocument();
       expect(await screen.findAllByText('Mặc định')).not.toHaveLength(0);
     });
+
+    it('hiển thị nút Yêu cầu vẽ lại Artwork và Yêu cầu sửa thông tin cho Editor', async () => {
+      const conceptRev: BibleEntryRevisionDto = {
+        id: 'rev-concept',
+        bibleEntryId: mockEntityWithImage.id,
+        versionNumber: 1,
+        summary: 'Bản vẽ concept',
+        snapshotJson: '{}',
+        contentHash: 'hash-concept-123',
+        variantLabel: 'Mặc định',
+        isInitialVersion: true,
+        createdAt: '2026-11-04T10:00:00Z',
+        isLocked: false,
+        reviewStatus: 'ConceptSubmitted',
+        referenceImageUrl: 'https://example.com/concept.png',
+      };
+
+      const conceptEntry: BibleEntryDto = {
+        id: mockEntityWithImage.id,
+        seriesBibleId: 'sb-1',
+        code: mockEntityWithImage.code,
+        name: mockEntityWithImage.name,
+        description: mockEntityWithImage.description,
+        detailsJson: '{}',
+        category: 'Character',
+        priority: 'Standard',
+        strictCheck: false,
+        isActive: true,
+        effectiveRevision: conceptRev,
+        createdAt: '2026-10-01T00:00:00Z',
+      };
+
+      const mockToast = vi.fn();
+      const mockRework = vi.fn();
+      const addCommentSpy = vi
+        .spyOn(bibleService, 'createConceptComment')
+        .mockResolvedValue({ id: 'c-1', body: 'test' } as any);
+
+      render(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          seriesId='series-123'
+          isEditor={true}
+          isProducer={false}
+          canEndorse={true}
+          canRequestRework={true}
+          entity={mockEntityWithImage}
+          rawEntry={conceptEntry}
+          latestSavedRevision={conceptRev}
+          onRequestRework={mockRework}
+          onShowToast={mockToast}
+        />,
+      );
+
+      // Verify artwork rework button
+      const artworkBtn = screen.getByTestId('detail-rework-btn');
+      expect(artworkBtn).toBeInTheDocument();
+      expect(artworkBtn.textContent).toContain('Yêu cầu vẽ lại Artwork');
+
+      fireEvent.click(artworkBtn);
+      expect(mockRework).toHaveBeenCalledWith(mockEntityWithImage, conceptRev);
+
+      // Verify info request button
+      const infoBtn = screen.getByTestId('detail-request-info-btn');
+      expect(infoBtn).toBeInTheDocument();
+      expect(infoBtn.textContent).toContain('Yêu cầu sửa thông tin');
+
+      // Click info request button to open modal
+      fireEvent.click(infoBtn);
+      expect(screen.getByText('Yêu cầu sửa thông tin đặc tả')).toBeInTheDocument();
+
+      // Enter details and submit
+      const textarea = screen.getByPlaceholderText(/Cần làm rõ thêm tính cách/i);
+      fireEvent.change(textarea, { target: { value: 'Cần bổ sung nguồn gốc xuất thân của nhân vật' } });
+
+      const submitBtn = screen.getByTestId('submit-request-info-btn');
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(addCommentSpy).toHaveBeenCalledWith(
+          'series-123',
+          mockEntityWithImage.id,
+          'rev-concept',
+          expect.objectContaining({
+            body: expect.stringContaining('Cần bổ sung nguồn gốc xuất thân của nhân vật'),
+          }),
+        );
+        expect(mockToast).toHaveBeenCalledWith(
+          'Đã gửi yêu cầu sửa thông tin',
+          expect.stringContaining('Mô tả đặc tả'),
+        );
+      });
+    });
   });
 });

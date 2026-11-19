@@ -67,6 +67,6 @@ export function getApiErrorMessage(error: unknown, fallbackKey = 'common.errors.
     'errors.unknown',
     undefined,
     undefined,
-    'Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.',
+    'Lỗi ngoài dự kiến. Thử lại sau ít phút.',
   );
 }

@@ -45,7 +45,7 @@ export const ROLE_MANIFEST = {
     label: 'Editor',
     scope: 'workspace',
     folder: 'roles/editor',
-    defaultRoute: 'editor/desk',
+    defaultRoute: 'dashboard',
   },
   PUBLISHER: {
     label: 'Publisher',

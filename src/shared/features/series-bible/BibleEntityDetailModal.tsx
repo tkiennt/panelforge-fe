@@ -21,6 +21,7 @@ import {
   Send,
   CornerDownRight,
   Check,
+  Users,
 } from 'lucide-react';
 import { BibleEntity, normalizeWorkspaceRole } from '@/types';
 import {
@@ -30,7 +31,7 @@ import {
   bibleService,
 } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
-import { Alert, CollapsibleSidebar, SidebarSection } from '@/shared/ui';
+import { Alert, CollapsibleSidebar, Modal, SidebarSection } from '@/shared/ui';
 import { useTranslation, translate } from '@/lib/i18n';
 import { getCategoryLabel, getCategoryBadgeStyle } from './bibleCategory';
 import { SPEC_DELIVERABLES, SPEC_SCHEMA, specCategoryOf, specCompleteness } from './bibleSpec';
@@ -164,6 +165,7 @@ interface BibleEntityDetailModalProps {
   isProducer: boolean;
   isArtist?: boolean;
   isWriter?: boolean;
+  isEditor?: boolean;
   canCreateDraft?: boolean;
   canEndorse?: boolean;
   canRequestRework?: boolean;
@@ -183,6 +185,7 @@ interface BibleEntityDetailModalProps {
   onShowToast: (title: string, desc: string) => void;
   onZoomImage: (image: { url: string; title: string }) => void;
   onDeleteRevision?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => Promise<void>;
+  onToggleCrowd?: (entity: BibleEntity) => void;
   /** Danh sách mục của Bible để chuyển nhanh sang mục cùng danh mục ở sidebar. */
   entities?: BibleEntity[];
   onSelectEntity?: (entity: BibleEntity) => void;
@@ -206,6 +209,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   isProducer,
   isArtist = false,
   isWriter = false,
+  isEditor = false,
   canCreateDraft = true,
   canEndorse = false,
   canRequestRework = canEndorse,
@@ -218,12 +222,20 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   onConfirmCanon,
   onShowToast,
   onZoomImage,
+  onDeleteRevision,
+  onToggleCrowd,
   entities = [],
   onSelectEntity,
 }) => {
   const { t } = useTranslation();
   const [activeArtTab, setActiveArtTab] = useState<'turnaround' | 'action'>('turnaround');
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  // Request Info Changes state (Editor/Producer -> Writer)
+  const [isRequestInfoOpen, setIsRequestInfoOpen] = useState(false);
+  const [requestInfoField, setRequestInfoField] = useState('Mô tả đặc tả');
+  const [requestInfoNote, setRequestInfoNote] = useState('');
+  const [submittingInfoRequest, setSubmittingInfoRequest] = useState(false);
 
   // Concept Review: Versions & Comments State (BIB-10 FE)
   const [selectedConceptEventId, setSelectedConceptEventId] = useState<string | null>(null);
@@ -286,7 +298,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
   const isProducerUser = isProducer || currentRole === 'PRODUCER';
   const isArtistUser = isArtist || currentRole === 'ARTIST';
-  const isEditorUser = currentRole === 'EDITOR' || (!isProducerUser && canEndorse);
+  const isEditorUser = isEditor || currentRole === 'EDITOR' || (!isProducerUser && canEndorse);
   const isWriterUser =
     Boolean(isWriter) ||
     currentRole === 'WRITER' ||
@@ -1070,6 +1082,36 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     }
   };
 
+  const handleSendRequestInfo = async () => {
+    if (!seriesId || !requestInfoNote.trim()) return;
+    setSubmittingInfoRequest(true);
+    try {
+      const targetRevId = activeRevision?.id || rawEntry?.effectiveRevision?.id;
+      const formattedBody = `[Yêu cầu sửa thông tin - ${requestInfoField}]: ${requestInfoNote.trim()}`;
+      if (targetRevId) {
+        await bibleService.createConceptComment(seriesId, entity.id, targetRevId, {
+          body: formattedBody,
+          conceptEventId:
+            selectedConceptEventId || activeRevision?.currentConceptEventId || undefined,
+        });
+        await fetchComments();
+      }
+      onShowToast(
+        'Đã gửi yêu cầu sửa thông tin',
+        `Yêu cầu chỉnh sửa trường "${requestInfoField}" của "${entity.name}" đã được chuyển cho Biên kịch.`,
+      );
+      setIsRequestInfoOpen(false);
+      setRequestInfoNote('');
+    } catch (err: any) {
+      onShowToast(
+        'Không thể gửi yêu cầu',
+        err?.message || 'Có lỗi xảy ra khi gửi yêu cầu sửa thông tin.',
+      );
+    } finally {
+      setSubmittingInfoRequest(false);
+    }
+  };
+
   // Spec V2.6 §5.2: vòng đời của giai đoạn đang chọn và "bóng đang ở chân ai"
   const isVisualDesign = ['character', 'location', 'prop'].includes(normalizedCategory);
   const lifecycleStatus = ((): 'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'CanonLocked' => {
@@ -1204,6 +1246,16 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 <span className='font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200'>
                   {entity.code}
                 </span>
+                {entity.isCrowd && (
+                  <span
+                    data-testid='crowd-badge-detail'
+                    className='px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center gap-1 shadow-2xs'
+                    title={t('bible.isCrowdHelp', 'Thực thể quần chúng không bắt buộc Model Sheet')}
+                  >
+                    <Users className='w-3.5 h-3.5 text-emerald-600' />
+                    {t('production.cast.crowd', 'Quần chúng')}
+                  </span>
+                )}
               </div>
               <h2
                 id='bible-entity-title'
@@ -1237,6 +1289,30 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       ? t('bible.detailModal.roleEditor', 'Biên tập viên')
                       : t('bible.detailModal.roleViewer', 'Người xem')}
             </span>
+            {onToggleCrowd && (
+              <button
+                type='button'
+                onClick={() => onToggleCrowd(entity)}
+                data-testid='detail-toggle-crowd-btn'
+                title={
+                  entity.isCrowd
+                    ? t('production.cast.crowdMarked', '✓ Quần chúng (bấm để huỷ)')
+                    : t('production.cast.setCrowd', '+ Đặt Quần chúng')
+                }
+                className={`px-3 py-2 rounded-full text-sm font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shadow-xs ${
+                  entity.isCrowd
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                    : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
+                }`}
+              >
+                <Users className={`w-4 h-4 ${entity.isCrowd ? 'text-emerald-600' : 'text-stone-500'}`} />
+                <span>
+                  {entity.isCrowd
+                    ? t('production.cast.crowdMarked', '✓ Quần chúng')
+                    : t('production.cast.setCrowd', '+ Quần chúng')}
+                </span>
+              </button>
+            )}
             <button
               type='button'
               onClick={() => onOpenHistory(entity)}
@@ -1734,7 +1810,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       activeVariant?.variantLabel ||
                       t('bible.detailModal.defaultVariant', 'Mặc định'),
                   },
-                  `Biến thể: "${activeVariant?.variantLabel || t('bible.detailModal.defaultVariant', 'Mặc định')}". Vui lòng chỉnh sửa nét vẽ theo yêu cầu trên và nộp lại.`,
+                  `Biến thể: "${activeVariant?.variantLabel || t('bible.detailModal.defaultVariant', 'Mặc định')}". Chỉnh sửa nét vẽ và nộp lại.`,
                 )}
               </Alert>
             ) : activeRevision?.reviewStatus === 'ConceptSubmitted' ? (
@@ -1747,7 +1823,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               >
                 {t(
                   'bible.detailModal.submittedAlertDesc',
-                  'Bản thiết kế đang chờ Writer/Editor xác nhận. Nếu bạn phát hiện đã tải nhầm ảnh hoặc muốn cập nhật nét vẽ tốt hơn trước khi được duyệt, bạn có thể nộp lại ngay.',
+                  'Bản thiết kế đang chờ duyệt. Có thể nộp lại bản vẽ mới bất kỳ lúc nào trước khi duyệt.',
                 )}{' '}
                 {t(
                   'bible.detailModal.submittedAlertDetails',
@@ -2438,8 +2514,27 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             }
                             data-testid='detail-rework-btn'
                           >
-                            <MessageSquare className='w-3.5 h-3.5' />
-                            <span>{t('bible.detailModal.reworkBtn', 'Yêu cầu sửa')}</span>
+                            <Palette className='w-3.5 h-3.5 text-rose-600' />
+                            <span>{t('bible.detailModal.reworkArtworkBtn', 'Yêu cầu vẽ lại Artwork')}</span>
+                          </button>
+                        )}
+
+                        {/* Request Info Changes (Editor + Producer) */}
+                        {(isEditorUser || canEndorse || isProducerUser) && (
+                          <button
+                            type='button'
+                            disabled={isLocking}
+                            onClick={() => {
+                              setRequestInfoField('Mô tả đặc tả');
+                              setRequestInfoNote('');
+                              setIsRequestInfoOpen(true);
+                            }}
+                            className='px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 cursor-pointer active:scale-[0.98]'
+                            title='Yêu cầu Biên kịch (Writer) chỉnh sửa hoặc bổ sung các trường thông tin đặc tả'
+                            data-testid='detail-request-info-btn'
+                          >
+                            <Edit3 className='w-3.5 h-3.5 text-amber-700' />
+                            <span>{t('bible.detailModal.requestInfoBtn', 'Yêu cầu sửa thông tin')}</span>
                           </button>
                         )}
 
@@ -2754,6 +2849,69 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       >
         <div className='max-w-[1600px] mx-auto px-4 py-5 sm:px-6 lg:px-8'>{modalContent}</div>
       </div>
+
+      {/* REQUEST INFO CHANGE MODAL */}
+      <Modal
+        isOpen={isRequestInfoOpen}
+        onClose={() => setIsRequestInfoOpen(false)}
+        title='Yêu cầu sửa thông tin đặc tả'
+        size='md'
+        closeLabel='Đóng'
+      >
+        <div className='p-5 space-y-4 text-stone-900'>
+          <p className='text-xs text-stone-600 leading-relaxed'>
+            Gửi yêu cầu góp ý tới Biên kịch (Writer) để điều chỉnh các trường thông tin của thực thể{' '}
+            <strong className='font-bold text-stone-900'>{entity.name}</strong>.
+          </p>
+          <div>
+            <label className='block text-xs font-bold text-stone-700 mb-1.5'>
+              Trường thông tin cần sửa
+            </label>
+            <select
+              value={requestInfoField}
+              onChange={(e) => setRequestInfoField(e.target.value)}
+              className='w-full px-3 py-2 text-xs border border-stone-300 rounded-lg bg-white focus:outline-none focus:border-amber-500'
+            >
+              <option value='Mô tả đặc tả'>Mô tả đặc tả (Description)</option>
+              <option value='Tên thực thể'>Tên thực thể (Name)</option>
+              <option value='Phụ đề / Bí danh'>Phụ đề / Bí danh (Subtitle)</option>
+              <option value='Thuộc tính / Chi tiết'>Thuộc tính / Chi tiết (Attributes)</option>
+              <option value='Toàn bộ thông tin'>Toàn bộ thông tin</option>
+            </select>
+          </div>
+          <div>
+            <label className='block text-xs font-bold text-stone-700 mb-1.5'>
+              Chi tiết nội dung cần sửa
+            </label>
+            <textarea
+              rows={4}
+              value={requestInfoNote}
+              onChange={(e) => setRequestInfoNote(e.target.value)}
+              placeholder='Ví dụ: Cần làm rõ thêm tính cách và vũ khí sở trường của nhân vật...'
+              className='w-full px-3 py-2 text-xs border border-stone-300 rounded-lg bg-white focus:outline-none focus:border-amber-500'
+            />
+          </div>
+          <div className='flex items-center justify-end gap-2 pt-2 border-t border-stone-200'>
+            <button
+              type='button'
+              onClick={() => setIsRequestInfoOpen(false)}
+              className='px-3 py-1.5 text-xs font-semibold text-stone-600 hover:text-stone-800'
+            >
+              Hủy
+            </button>
+            <button
+              type='button'
+              disabled={!requestInfoNote.trim() || submittingInfoRequest}
+              onClick={handleSendRequestInfo}
+              className='px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold disabled:opacity-50 flex items-center gap-1.5 cursor-pointer'
+              data-testid='submit-request-info-btn'
+            >
+              <Send className='w-3.5 h-3.5' />
+              <span>Gửi yêu cầu sửa</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 

@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { BibleCharactersDrawer } from './BibleCharactersDrawer';
 import { BibleEntryDto } from '@/services/bible.service';
+import { ChapterCastDto } from '@/services/chapterCast.service';
 
 describe('BibleCharactersDrawer Component', () => {
   const mockCharacters: BibleEntryDto[] = [
@@ -36,6 +37,30 @@ describe('BibleCharactersDrawer Component', () => {
     },
   ];
 
+  const mockChapterCast: ChapterCastDto = {
+    chapterId: 'chap-1',
+    chapterNumber: 1,
+    chapterTitle: 'Chapter 1',
+    entities: [
+      {
+        bibleEntryId: 'char-1',
+        code: 'KAITO',
+        name: 'Kaito',
+        category: 'Character',
+        isStub: false,
+        isCrowd: false,
+        source: 'Speaker',
+        bibleStatus: 'Draft',
+        chosenByWriter: false,
+        panelRevisions: [],
+        availableRevisions: [],
+        mentions: [],
+      },
+    ],
+    submitGate: { canSubmit: true, blockers: [] },
+    gate: { canStart: true, blockers: [] },
+  };
+
   it('renders closed drawer as null', () => {
     const { container } = render(
       <BibleCharactersDrawer isOpen={false} onClose={vi.fn()} characters={mockCharacters} />,
@@ -43,8 +68,55 @@ describe('BibleCharactersDrawer Component', () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it('renders subtabs in order: Trong chương -> Ngoài chương -> Tất cả, with Trong chương default active', () => {
+    render(
+      <BibleCharactersDrawer
+        isOpen={true}
+        onClose={vi.fn()}
+        characters={mockCharacters}
+        chapterCast={mockChapterCast}
+      />,
+    );
+
+    const castTab = screen.getByTestId('filter-tab-cast');
+    const nonCastTab = screen.getByTestId('filter-tab-nonCast');
+    const allTab = screen.getByTestId('filter-tab-all');
+
+    expect(castTab).toBeInTheDocument();
+    expect(nonCastTab).toBeInTheDocument();
+    expect(allTab).toBeInTheDocument();
+
+    // Verify ordering in DOM: Trong chương comes before Ngoài chương, which comes before Tất cả
+    expect(castTab.compareDocumentPosition(nonCastTab) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(nonCastTab.compareDocumentPosition(allTab) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // Default tab is "Trong chương" (cast)
+    expect(castTab.className).toContain('bg-orange-100');
+    expect(screen.getByText('Kaito')).toBeInTheDocument();
+    expect(screen.queryByText('Aiko')).not.toBeInTheDocument();
+
+    // Switch to "Ngoài chương"
+    fireEvent.click(nonCastTab);
+    expect(nonCastTab.className).toContain('bg-orange-100');
+    expect(screen.queryByText('Kaito')).not.toBeInTheDocument();
+    expect(screen.getByText('Aiko')).toBeInTheDocument();
+
+    // Switch to "Tất cả"
+    fireEvent.click(allTab);
+    expect(allTab.className).toContain('bg-orange-100');
+    expect(screen.getByText('Kaito')).toBeInTheDocument();
+    expect(screen.getByText('Aiko')).toBeInTheDocument();
+  });
+
   it('renders characters list with accordions and expands one row at a time', () => {
-    render(<BibleCharactersDrawer isOpen={true} onClose={vi.fn()} characters={mockCharacters} />);
+    render(
+      <BibleCharactersDrawer
+        isOpen={true}
+        onClose={vi.fn()}
+        characters={mockCharacters}
+        defaultTab='all'
+      />,
+    );
 
     expect(screen.getByTestId('bible-characters-drawer')).toBeInTheDocument();
     expect(screen.getByText('Kaito')).toBeInTheDocument();

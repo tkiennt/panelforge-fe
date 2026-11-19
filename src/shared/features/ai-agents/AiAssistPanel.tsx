@@ -531,11 +531,10 @@ export const AiAssistPanel: React.FC<Props> = ({
           >
             <AlertTriangle className='mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600' />
             <div>
-              <p className='font-semibold'>Phân cảnh này đã có khung tranh (panel)</p>
+              <p className='font-semibold'>Phân cảnh này đã có khung tranh</p>
               <p className='mt-0.5 text-[11px] text-amber-800 leading-relaxed'>
-                Đề xuất phân khung Storyboard chỉ có thể áp dụng cho phân cảnh chưa có khung tranh.
-                Để chia lại dòng kịch bản cho các khung có sẵn, vui lòng mở màn{' '}
-                <strong>Bàn vẽ & Khung trang</strong> (Artist Desk) và dùng tính năng{' '}
+                Storyboard chỉ áp dụng cho phân cảnh chưa có khung. Để chia lại thoại cho khung có
+                sẵn, mở <strong>Bàn vẽ Artist</strong> và dùng{' '}
                 <strong>Tự động phân bổ kịch bản</strong>.
               </p>
             </div>
