@@ -176,10 +176,9 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                 <div className='p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 leading-relaxed flex items-start gap-2'>
                   <AlertTriangle className='w-4 h-4 shrink-0 mt-0.5 text-amber-600' />
                   <div>
-                    <strong>Lưu ý:</strong> Kịch bản có nhiều cụm hơn số khung hiện tại trên trang.
-                    Có <strong>{previewResult.unassignedLineIds.length} dòng kịch bản</strong> sẽ
-                    chưa được gán. Bạn có thể thêm {previewResult.missingPanels} khung nữa vào trang
-                    sau đó.
+                    Thiếu {previewResult.missingPanels} khung tranh. Còn{' '}
+                    <strong>{previewResult.unassignedLineIds.length} dòng kịch bản</strong> chưa
+                    được gán.
                   </div>
                 </div>
               )}

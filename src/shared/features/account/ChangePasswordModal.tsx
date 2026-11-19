@@ -68,7 +68,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       setCountdown(60);
     } catch (err: any) {
       console.error('Lỗi gửi OTP đổi mật khẩu:', err);
-      setError(err.message || 'Không thể gửi mã OTP. Vui lòng thử lại sau.');
+      setError(err.message || 'Không thể gửi mã OTP. Thử lại sau.');
     } finally {
       setIsSendingOtp(false);
     }
@@ -90,12 +90,12 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     }
 
     if (emailOtp.trim().length !== 6 && !emailOtp.trim()) {
-      setError('Vui lòng gửi và nhập mã OTP 6 chữ số từ email.');
+      setError('Nhập mã OTP 6 chữ số từ email.');
       return;
     }
 
     if (is2FA && otpCode.trim().length !== 6) {
-      setError('2FA is enabled. Please enter the 6-digit code from your Authenticator app.');
+      setError('2FA is enabled. Enter the 6-digit code from Authenticator.');
       return;
     }
 

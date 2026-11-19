@@ -146,7 +146,7 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
       setMembers((prev) => [newMember, ...prev]);
       setEmailInput('');
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Không thể gửi lời mời. Vui lòng thử lại.');
+      setErrorMessage(err?.message || 'Không thể gửi lời mời. Thử lại sau ít phút.');
     } finally {
       setIsSubmitting(false);
     }

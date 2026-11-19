@@ -190,9 +190,9 @@
     "cancel": "Hủy",
     "create": "Tạo Studio",
     "creating": "Đang tạo...",
-    "errorEmptyName": "Vui lòng nhập tên Workspace / Studio.",
-    "errorCreateFailed": "Không thể tạo Workspace. Vui lòng thử lại.",
-    "successTitle": "Tạo Studio thành công",
+    "errorEmptyName": "Nhập tên Studio Workspace.",
+    "errorCreateFailed": "Không thể tạo Workspace. Thử lại sau ít phút.",
+    "successTitle": "Đã tạo Studio",
     "successDesc": "Đã tạo workspace \"{name}\""
   }
 }

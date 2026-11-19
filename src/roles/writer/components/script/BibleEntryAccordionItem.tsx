@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
+import { buildBibleUrl } from '@/app/routePaths';
 import {
+  AlertTriangle,
+  ExternalLink,
   User,
   MapPin,
   Box,
@@ -55,6 +58,8 @@ export interface BibleEntryAccordionItemProps {
   isOpen: boolean;
   onToggle: () => void;
   canEditScript?: boolean;
+  isInChapter?: boolean;
+  workspaceId?: string;
   seriesId?: string;
   isActing?: boolean;
   onSaveDraft?: (
@@ -80,6 +85,9 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
   isOpen,
   onToggle,
   canEditScript = true,
+  isInChapter,
+  workspaceId,
+  seriesId,
   isActing = false,
   onSaveDraft,
   onChangeRevision,
@@ -90,6 +98,22 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
   t: propT,
 }) => {
   const { t: i18nT } = useTranslation();
+  const effectiveWorkspaceId =
+    workspaceId ||
+    (typeof window !== 'undefined'
+      ? window.location.pathname.match(/\/workspaces\/([^/]+)/)?.[1]
+      : undefined);
+  const effectiveSeriesId =
+    seriesId ||
+    (typeof window !== 'undefined'
+      ? window.location.pathname.match(/\/series\/([^/]+)/)?.[1]
+      : undefined);
+
+  const bibleUrl =
+    effectiveWorkspaceId && effectiveSeriesId
+      ? buildBibleUrl(effectiveWorkspaceId, effectiveSeriesId, entity.name)
+      : '#';
+
   const t = (key: string, fallbackOrParams?: any, explicitFallback?: string) => {
     if (propT) return propT(key, fallbackOrParams, explicitFallback);
     return i18nT(key, fallbackOrParams, explicitFallback);
@@ -126,6 +150,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
 
   // Sync edit state when entity changes
   const handleOpenEdit = () => {
+    if (entity.isStub) return;
     setEditSubtitle(entity.subtitle || '');
     setEditDescription(entity.description || '');
     const vals: Record<string, string> = {};
@@ -175,12 +200,82 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
     [specCat, initialAttributes],
   );
 
+  const renderStatusBadge = () => {
+    // 1. Trạng thái Màu Vàng: Chưa định nghĩa
+    if (entity.isStub || entity.bibleStatus === 'PendingDefinition') {
+      return (
+        <span
+          data-testid='status-badge-stub'
+          className='text-xs px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-900 border border-amber-300 shrink-0'
+        >
+          {t('production.cast.pendingDefinition', 'Chưa định nghĩa')}
+        </span>
+      );
+    }
+
+    // 2. Trạng thái Màu Xanh Lá: Canon
+    if (entity.isCanonLocked || entity.bibleStatus === 'CanonLocked' || boundRev?.isCanonLocked) {
+      return (
+        <span
+          data-testid='status-badge-canon'
+          className='text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300 shrink-0'
+        >
+          Canon
+        </span>
+      );
+    }
+
+    const revStatus = boundRev?.status;
+
+    // 3. Trạng thái Màu Xanh Lá: Chờ xác nhận
+    if (
+      entity.bibleStatus === 'WaitingForConfirmation' ||
+      revStatus === 'ConceptSubmitted' ||
+      (revStatus as any) === 2
+    ) {
+      return (
+        <span
+          data-testid='status-badge-confirm'
+          className='text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-50/70 text-emerald-800 border border-emerald-200 shrink-0'
+        >
+          {t('production.cast.waitingForConfirmation', 'Chờ xác nhận')}
+        </span>
+      );
+    }
+
+    // 4. Trạng thái Màu Vàng: Cần vẽ lại
+    if (
+      entity.bibleStatus === 'ReworkRequired' ||
+      revStatus === 'ReworkRequired' ||
+      (revStatus as any) === 3
+    ) {
+      return (
+        <span
+          data-testid='status-badge-rework'
+          className='text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-900 border border-amber-300 shrink-0'
+        >
+          {t('production.cast.reworkRequired', 'Cần vẽ lại')}
+        </span>
+      );
+    }
+
+    // 5. Trạng thái Màu Vàng: Chưa vẽ phác thảo
+    return (
+      <span
+        data-testid='status-badge-draft'
+        className='text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 text-amber-800 border border-amber-200 shrink-0'
+      >
+        {t('production.cast.noSketch', 'Chưa vẽ phác thảo')}
+      </span>
+    );
+  };
+
   return (
     <div
       data-testid='bible-entry-accordion-item'
       className='rounded-xl border border-stone-200/90 bg-white shadow-xs overflow-hidden transition-all hover:border-orange-300/80'
     >
-      {/* 1. Header (Collapsed View - Shows ONLY entity name, category icon, status badge) */}
+      {/* 1. Header (Collapsed View - Shows ONLY entity name, category icon, in/out chapter badge, status badge) */}
       <button
         type='button'
         onClick={onToggle}
@@ -200,33 +295,26 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
             {entity.code && (
               <span className='text-xs font-mono text-stone-400 shrink-0'>{entity.code}</span>
             )}
+            {/* Huy hiệu Trong chương / Ngoài chương */}
+            {isInChapter !== undefined && (
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
+                  isInChapter
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold'
+                    : 'bg-stone-100 text-stone-600 border border-stone-200'
+                }`}
+              >
+                {isInChapter
+                  ? t('production.cast.inChapter', 'Trong chương')
+                  : t('production.cast.outOfChapter', 'Ngoài chương')}
+              </span>
+            )}
           </div>
         </div>
 
         <div className='flex items-center gap-1.5 shrink-0'>
-          {/* Status Badge */}
-          {entity.isStub ? (
-            <span
-              data-testid='status-badge-stub'
-              className='text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700 border border-amber-200 shrink-0'
-            >
-              {t('production.cast.pendingDefinition', 'Chờ định nghĩa')}
-            </span>
-          ) : entity.isCanonLocked || entity.bibleStatus === 'CanonLocked' ? (
-            <span
-              data-testid='status-badge-canon'
-              className='text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'
-            >
-              Canon
-            </span>
-          ) : (
-            <span
-              data-testid='status-badge-draft'
-              className='text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 border border-blue-200 shrink-0'
-            >
-              {entity.bibleStatus || t('production.cast.draft', 'Bản nháp')}
-            </span>
-          )}
+          {/* Note trạng thái màu vàng / màu xanh lá */}
+          {renderStatusBadge()}
 
           {entity.isCrowd && (
             <span className='text-xs px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
@@ -260,8 +348,23 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
             </div>
           )}
 
-          {/* EDIT FORM (When writer clicks edit) */}
-          {isEditing ? (
+          {/* STUB NOTICE: Tối giản, ít chữ */}
+          {entity.isStub ? (
+            <div className='p-2.5 bg-amber-50/80 border border-amber-200/90 rounded-xl flex items-center justify-between gap-2.5 text-xs'>
+              <span className='text-amber-900 font-medium'>
+                {t('production.cast.stubNoticeShort', 'Chưa có định nghĩa')}
+              </span>
+              {bibleUrl !== '#' && (
+                <a
+                  href={bibleUrl}
+                  className='inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors shrink-0 shadow-2xs'
+                >
+                  <ExternalLink className='w-3 h-3' />
+                  <span>{t('production.cast.openSeriesBibleShort', 'Định nghĩa')}</span>
+                </a>
+              )}
+            </div>
+          ) : isEditing ? (
             <form
               onSubmit={handleSave}
               className='p-3 bg-white rounded-xl border border-stone-200/90 shadow-2xs space-y-3'
@@ -374,18 +477,17 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                 </p>
               ) : (
                 <p className='text-xs italic text-stone-400'>
-                  {t('production.cast.noDescription', 'Chưa có mô tả chi tiết.')}
+                  {t('production.cast.noDescriptionShort', '(Chưa có mô tả)')}
                 </p>
               )}
 
               {/* Spec completeness badge & quick specs view */}
               <div className='flex items-center justify-between text-xs text-stone-500 pt-1'>
                 <span className='font-medium'>
-                  {t('production.cast.specFilledCount', 'Đặc tả:')} {specStats.filled}/
-                  {specStats.total} {t('production.cast.fields', 'trường')}
+                  {t('production.cast.specFilledCount', 'Đặc tả:')} {specStats.filled}/{specStats.total}
                 </span>
 
-                {canEditScript && onSaveDraft && (
+                {canEditScript && onSaveDraft && !entity.isStub && (
                   <button
                     type='button'
                     onClick={handleOpenEdit}
@@ -393,11 +495,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                     className='px-2.5 py-1 text-xs rounded-lg border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
                   >
                     <Edit3 className='w-3.5 h-3.5' />
-                    <span>
-                      {entity.isStub
-                        ? t('production.cast.writeDefinition', 'Viết định nghĩa')
-                        : t('production.cast.editSpecBtn', 'Sửa thông tin')}
-                    </span>
+                    <span>{t('production.cast.editSpecBtnShort', 'Sửa')}</span>
                   </button>
                 )}
               </div>
@@ -452,37 +550,39 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
           )}
 
           {/* Writer Chapter Cast Controls (Revision selector, crowd, cancel replacement) */}
-          {canEditScript && availableRevs.length > 0 && onChangeRevision && (
+          {canEditScript && (availableRevs.length > 0 || onToggleCrowd) && (
             <div className='pt-1 border-t border-stone-100 space-y-2'>
               {/* Revision Selector */}
-              <div>
-                <label className='text-xs text-stone-500 font-medium block mb-1'>
-                  {t('production.cast.changeChapterRevision', 'Đổi bản tạo hình chương:')}
-                </label>
-                <select
-                  disabled={isActing}
-                  value={entity.chosenByWriter && boundRev ? boundRev.revisionId : '__INHERITED__'}
-                  onChange={(e) => onChangeRevision(entity.id, e.target.value)}
-                  className='w-full p-1.5 text-xs bg-white border border-stone-200 rounded-lg outline-none focus:border-orange-500 text-stone-800 font-medium disabled:opacity-60 cursor-pointer'
-                >
-                  <option value='__INHERITED__'>
-                    {entity.inheritedFromChapterNumber
-                      ? t(
-                          'production.cast.autoInheritFrom',
-                          { number: entity.inheritedFromChapterNumber },
-                          `Kế thừa tự động (từ Ch. ${entity.inheritedFromChapterNumber})`,
-                        )
-                      : t('production.cast.autoInheritDefault', 'Kế thừa tự động (bản mặc định)')}
-                  </option>
-                  {availableRevs.map((rev) => (
-                    <option key={rev.revisionId} value={rev.revisionId}>
-                      v{rev.versionNumber} ·{' '}
-                      {rev.variantLabel || t('production.cast.defaultVariant', 'Mặc định')} (
-                      {rev.isCanonLocked ? 'CanonLocked' : rev.status})
+              {availableRevs.length > 0 && onChangeRevision && (
+                <div>
+                  <label className='text-xs text-stone-500 font-medium block mb-1'>
+                    {t('production.cast.changeChapterRevision', 'Đổi bản tạo hình chương:')}
+                  </label>
+                  <select
+                    disabled={isActing}
+                    value={entity.chosenByWriter && boundRev ? boundRev.revisionId : '__INHERITED__'}
+                    onChange={(e) => onChangeRevision(entity.id, e.target.value)}
+                    className='w-full p-1.5 text-xs bg-white border border-stone-200 rounded-lg outline-none focus:border-orange-500 text-stone-800 font-medium disabled:opacity-60 cursor-pointer'
+                  >
+                    <option value='__INHERITED__'>
+                      {entity.inheritedFromChapterNumber
+                        ? t(
+                            'production.cast.autoInheritFrom',
+                            { number: entity.inheritedFromChapterNumber },
+                            `Kế thừa tự động (từ Ch. ${entity.inheritedFromChapterNumber})`,
+                          )
+                        : t('production.cast.autoInheritDefault', 'Kế thừa tự động (bản mặc định)')}
                     </option>
-                  ))}
-                </select>
-              </div>
+                    {availableRevs.map((rev) => (
+                      <option key={rev.revisionId} value={rev.revisionId}>
+                        v{rev.versionNumber} ·{' '}
+                        {rev.variantLabel || t('production.cast.defaultVariant', 'Mặc định')} (
+                        {rev.isCanonLocked ? 'CanonLocked' : rev.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Action buttons bar */}
               <div className='flex items-center justify-between gap-1.5 flex-wrap pt-1'>

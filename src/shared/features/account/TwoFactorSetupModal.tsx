@@ -141,7 +141,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (code.trim().length !== 6) {
-      setErrorMessage('Vui lòng nhập đầy đủ 6 chữ số OTP');
+      setErrorMessage('Nhập đủ 6 chữ số OTP.');
       return;
     }
 
@@ -170,7 +170,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   const handleDisable = async (e: React.FormEvent) => {
     e.preventDefault();
     if (disableCode.trim().length !== 6) {
-      setErrorMessage('Vui lòng nhập đầy đủ 6 chữ số OTP');
+      setErrorMessage('Nhập đủ 6 chữ số OTP.');
       return;
     }
     setIsDisabling(true);
@@ -562,8 +562,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
               <div>
                 <h3 className='text-xl font-bold font-serif text-[#171717]'>Đã tắt 2FA</h3>
                 <p className='text-xs text-[#555555] mt-2 max-w-md mx-auto leading-relaxed'>
-                  Khóa bí mật và mọi thiết bị tin cậy đã bị xóa. Bạn có thể bật lại 2FA bất cứ lúc
-                  nào để thiết lập Authenticator mới.
+                  Khóa bí mật và thiết bị tin cậy đã xóa. Có thể bật lại 2FA bất cứ lúc nào.
                 </p>
               </div>
               <button
@@ -571,7 +570,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                 onClick={handleClose}
                 className='bg-[#171717] hover:bg-[#262626] text-white text-xs font-semibold px-8 py-2.5 rounded-lg transition-colors cursor-pointer'
               >
-                Hoàn tất & Đóng
+                Đóng
               </button>
             </div>
           )}

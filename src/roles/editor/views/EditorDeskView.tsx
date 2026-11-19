@@ -209,7 +209,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
   // Helper to determine destination review URL
   const getReviewUrl = (item: EditorReviewQueueItemDto) => {
     return item.stageSlug === 'script'
-      ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${item.chapterId}/script/review?assignmentId=${item.assignmentId}`
+      ? `/workspaces/${workspaceId}/series/${seriesId}/script?chapterId=${item.chapterId}&view=review`
       : `/workspaces/${workspaceId}/series/${seriesId}/chapters/${item.chapterId}/review/${item.assignmentId}?chapterId=${item.chapterId}`;
   };
 
@@ -419,7 +419,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
           <div className='flex items-center gap-2 self-start md:self-auto'>
             <button
               type='button'
-              onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/editor/bible`)}
+              onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible?tab=review`)}
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer'
             >
               <Palette className='w-3.5 h-3.5 text-[#C2410C]' />
@@ -595,7 +595,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                       type='button'
                       onClick={() =>
                         navigate(
-                          `/workspaces/${workspaceId}/series/${seriesId}/chapters/${c.id}/script/review`,
+                          `/workspaces/${workspaceId}/series/${seriesId}/script?chapterId=${c.id}&view=review`,
                         )
                       }
                       className='shrink-0 rounded-full bg-[#EA580C] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C]'

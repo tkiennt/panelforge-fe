@@ -84,7 +84,7 @@ interface GlobalAppShellProps {
 }
 
 const getRoleNavConfig = (
-  t: (k: string) => string,
+  t: (k: string, fallback?: string) => string,
 ): Record<string, { section: string; items: any[] }[]> => ({
   ADMINISTRATOR: [
     {
@@ -174,8 +174,16 @@ const getRoleNavConfig = (
       section: t('navigation.sections.desk'),
       items: [
         { icon: ShieldCheck, label: t('navigation.menu.reviewDesk'), href: '/editor/desk' },
-        { icon: Palette, label: t('navigation.menu.bibleReview'), href: '/editor/bible' },
+        { icon: FileText, label: t('navigation.menu.script'), href: '/script' },
+        { icon: Layers, label: t('navigation.menu.workAndReview'), href: '/my-work' },
         { icon: BookMarked, label: t('navigation.menu.bible'), href: '/bible' },
+      ],
+    },
+    {
+      section: t('navigation.sections.productionUtilities'),
+      items: [
+        { icon: LayoutDashboard, label: t('navigation.menu.seriesDashboard'), href: '/dashboard' },
+        { icon: Kanban, label: t('navigation.menu.production'), href: '/workspace' },
       ],
     },
   ],
@@ -274,6 +282,11 @@ export function AppShell({
                 label: t('navigation.menu.seriesDashboard'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
               },
+              {
+                icon: BookOpen,
+                label: 'Quản lý chương',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
+              },
 
               {
                 icon: Kanban,
@@ -371,9 +384,84 @@ export function AppShell({
       ];
     }
 
+    if (effectiveRole === 'EDITOR') {
+      if (isSeriesContext) {
+        return [
+          {
+            section: t('navigation.sections.desk'),
+            items: [
+              {
+                icon: ShieldCheck,
+                label: t('navigation.menu.reviewDesk'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk`,
+              },
+              {
+                icon: FileText,
+                label: t('navigation.menu.script'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+              },
+              {
+                icon: Layers,
+                label: t('navigation.menu.workAndReview'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              },
+              {
+                icon: BookMarked,
+                label: t('navigation.menu.bible'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+                badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
+              },
+            ],
+          },
+          {
+            section: t('navigation.sections.productionUtilities', 'TIẾN ĐỘ & PHÂN CÔNG'),
+            items: [
+              {
+                icon: LayoutDashboard,
+                label: t('navigation.menu.seriesDashboard'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
+              },
+              {
+                icon: BookOpen,
+                label: 'Quản lý chương',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
+              },
+              {
+                icon: Kanban,
+                label: t('navigation.menu.production'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
+              },
+            ],
+          },
+        ];
+      } else {
+        return [
+          {
+            section: t('navigation.sections.desk'),
+            items: [
+              {
+                icon: LayoutDashboard,
+                label: t('navigation.menu.studioWorkspaces'),
+                href: seriesListHref,
+              },
+              {
+                icon: ShieldCheck,
+                label: t('navigation.menu.reviewDesk'),
+                href: '/editor/desk',
+              },
+              {
+                icon: Layers,
+                label: t('navigation.menu.workAndReview'),
+                href: '/my-work',
+              },
+            ],
+          },
+        ];
+      }
+    }
+
     if (
       effectiveRole === 'WRITER' ||
-      effectiveRole === 'EDITOR' ||
       effectiveRole === 'ARTIST' ||
       effectiveRole === 'LETTERER'
     ) {
@@ -408,20 +496,6 @@ export function AppShell({
                       icon: Type,
                       label: t('navigation.menu.lettering'),
                       href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
-                    },
-                  ]
-                : []),
-              ...(effectiveRole === 'EDITOR'
-                ? [
-                    {
-                      icon: ShieldCheck,
-                      label: t('navigation.menu.reviewDesk'),
-                      href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk`,
-                    },
-                    {
-                      icon: Palette,
-                      label: t('navigation.menu.bibleReview'),
-                      href: `/workspaces/${workspaceId}/series/${seriesId}/editor/bible`,
                     },
                   ]
                 : []),

@@ -126,17 +126,17 @@ describe('ChapterCastDrawer Component', () => {
       />,
     );
 
-    // Expand stub row
-    const toggleStub = screen.getByTestId('accordion-toggle-stub-1');
-    fireEvent.click(toggleStub);
+    // Expand non-stub row (Kaito)
+    const toggleKaito = screen.getByTestId('accordion-toggle-char-1');
+    fireEvent.click(toggleKaito);
 
-    // Click edit/define
+    // Click edit
     const editBtn = screen.getByTestId('edit-entry-btn');
     fireEvent.click(editBtn);
 
     // Name must be read-only
     const readonlyName = screen.getByTestId('define-entity-name-readonly');
-    expect(readonlyName).toHaveTextContent('Hắc Y Nhân');
+    expect(readonlyName).toHaveTextContent('Kaito');
     expect(readonlyName.tagName.toLowerCase()).not.toBe('input');
   });
 });

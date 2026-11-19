@@ -342,6 +342,7 @@ describe('EditorDeskView Component', () => {
         'grid-task-1',
         'Chỉnh lại tỉ lệ bàn tay ở khung 2',
       );
+      expect(screen.queryByTestId('editor-confirm-reject-grid-task-1')).not.toBeInTheDocument();
     });
 
     // Duyệt trực tiếp ô Lưới V3

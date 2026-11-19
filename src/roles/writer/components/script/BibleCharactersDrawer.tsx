@@ -1,19 +1,15 @@
 // src/roles/writer/components/script/BibleCharactersDrawer.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
-  AlertTriangle,
-  Clock,
   Layers,
   Loader2,
-  Plus,
   Search,
   User,
-  UserCheck,
-  UserMinus,
   Users,
   X,
 } from 'lucide-react';
-import { BibleEntryDto, bibleService } from '@/services/bible.service';
+import { BibleEntryDto } from '@/services/bible.service';
 import {
   ChapterCastDto,
   ChapterCastItemDto,
@@ -21,15 +17,16 @@ import {
 } from '@/services/chapterCast.service';
 import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
-import { Modal } from '@/shared/ui';
 import { BibleEntryAccordionItem, BibleAccordionEntity } from './BibleEntryAccordionItem';
 
 export interface BibleCharactersDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   characters: BibleEntryDto[];
+  defaultTab?: 'cast' | 'all' | 'nonCast';
   chapterId?: string;
   seriesId?: string;
+  workspaceId?: string;
   canEditScript?: boolean;
   chapterNumber?: number;
   chapterTitle?: string;
@@ -49,8 +46,10 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
   isOpen,
   onClose,
   characters,
+  defaultTab = 'cast',
   chapterId,
   seriesId,
+  workspaceId,
   canEditScript = true,
   chapterNumber,
   chapterTitle,
@@ -66,6 +65,9 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
   t: propT,
 }) => {
   const { t: i18nT } = useTranslation();
+  const routeParams = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const effectiveWorkspaceId = workspaceId || routeParams.workspaceId;
+  const effectiveSeriesId = seriesId || routeParams.seriesId;
   const confirm = useConfirm();
   const t = (key: string, fallbackOrParams?: any, explicitFallback?: string) => {
     if (propT) return propT(key, fallbackOrParams, explicitFallback);
@@ -73,15 +75,15 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
   };
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterTab, setFilterTab] = useState<'all' | 'cast' | 'nonCast' | 'stubs'>('all');
+  const [filterTab, setFilterTab] = useState<'cast' | 'all' | 'nonCast'>(defaultTab);
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
   const [actingEntryId, setActingEntryId] = useState<string | null>(null);
 
-  // Modal Định nghĩa mục nháp (IsStub)
-  const [stubToDefine, setStubToDefine] = useState<ChapterCastItemDto | null>(null);
-  const [defineDesc, setDefineDesc] = useState('');
-  const [defineSubtitle, setDefineSubtitle] = useState('');
-  const [isDefining, setIsDefining] = useState(false);
+  useEffect(() => {
+    if (isOpen) {
+      setFilterTab(defaultTab);
+    }
+  }, [isOpen, defaultTab]);
 
   if (!isOpen) return null;
 
@@ -110,12 +112,11 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
 
   const allCharacters = [...characters, ...stubsNotInBible];
 
-  // Lọc theo search và tab
+  // Lọc theo search và tab (Không cho định nghĩa nhân vật trong màn hình viết script)
   const filtered = allCharacters.filter((char) => {
     const inCast = castEntityIds.has(char.id) || Boolean(char.isStub);
     if (filterTab === 'cast' && !inCast) return false;
     if (filterTab === 'nonCast' && inCast) return false;
-    if (filterTab === 'stubs' && !char.isStub) return false;
 
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
@@ -129,58 +130,6 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
 
   const submitBlockers = chapterCast?.submitGate?.blockers || [];
   const startBlockers = chapterCast?.gate?.blockers || [];
-
-  // Thao tác Thêm / Bỏ khỏi cast của chương
-  const handleToggleCast = async (charId: string, currentlyInCast: boolean) => {
-    if (!chapterId) {
-      if (onShowToast) {
-        onShowToast(
-          t('production.cast.noChapterSelected', 'Chưa chọn chương'),
-          t('production.cast.selectChapterHint', 'Hãy chọn một chương trước khi thay đổi cast.'),
-        );
-      }
-      return;
-    }
-
-    setActingEntryId(charId);
-    try {
-      if (currentlyInCast) {
-        // Bỏ khỏi cast: đặt bound revision về null
-        await chapterCastService.setChapterCastRevision(chapterId, charId, null);
-        if (onShowToast) {
-          onShowToast(
-            t('production.cast.removedFromCastSuccess', 'Đã bỏ nhân vật khỏi cast'),
-            t(
-              'production.cast.removedFromCastSuccessDesc',
-              'Nhân vật đã được đưa về trạng thái ngoài cast chương.',
-            ),
-          );
-        }
-      } else {
-        // Thêm vào cast: liên kết thực thể với chương
-        await chapterCastService.setChapterCastRevision(chapterId, charId, null);
-        if (onShowToast) {
-          onShowToast(
-            t('production.cast.addedToCastSuccess', 'Đã thêm nhân vật vào cast'),
-            t(
-              'production.cast.addedToCastSuccessDesc',
-              'Nhân vật đã được gắn vào danh sách phân vai của chương.',
-            ),
-          );
-        }
-      }
-      if (onRefreshCast) await onRefreshCast();
-    } catch (err: any) {
-      if (onShowToast) {
-        onShowToast(
-          t('production.cast.toggleCastFailed', 'Thao tác phân vai thất bại'),
-          err?.message || t('common.errorOccurred', 'Có lỗi xảy ra'),
-        );
-      }
-    } finally {
-      setActingEntryId(null);
-    }
-  };
 
   // Đổi bản tạo hình gắn cho chương
   const handleRevisionChange = async (entryId: string, revId: string) => {
@@ -287,87 +236,6 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
     }
   };
 
-  // Submit Định nghĩa mục nháp từ Modal
-  const handleSubmitDefine = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stubToDefine || !defineDesc.trim() || !seriesId) return;
-
-    setIsDefining(true);
-    try {
-      await chapterCastService.defineBibleEntry(seriesId, stubToDefine.bibleEntryId, {
-        name: stubToDefine.name,
-        description: defineDesc.trim(),
-        subtitle: defineSubtitle.trim() || undefined,
-      });
-
-      if (onRefreshCast) await onRefreshCast();
-      if (onRefreshBible) await onRefreshBible();
-      setStubToDefine(null);
-      if (onShowToast) {
-        onShowToast(
-          t('production.cast.defineSuccess', 'Đã định nghĩa thực thể'),
-          t('production.cast.defineSuccessDesc', 'Mục nháp đã trở thành bản ghi Series Bible chính thức.'),
-        );
-      }
-    } catch (err: any) {
-      if (onShowToast) {
-        onShowToast(t('production.cast.defineFailed', 'Định nghĩa thực thể thất bại'), err?.message);
-      }
-    } finally {
-      setIsDefining(false);
-    }
-  };
-
-  // Lưu bản nháp (Draft Revision)
-  const handleSaveDraft = async (
-    entryId: string,
-    payload: {
-      name: string;
-      description: string;
-      subtitle?: string;
-      detailsJson?: string;
-      isStub?: boolean;
-    },
-  ) => {
-    if (!seriesId) return;
-    try {
-      if (payload.isStub) {
-        await chapterCastService.defineBibleEntry(seriesId, entryId, {
-          name: payload.name,
-          description: payload.description,
-          subtitle: payload.subtitle,
-          detailsJson: payload.detailsJson,
-        });
-      } else {
-        await bibleService.addRevision(seriesId, entryId, {
-          summary: t('production.cast.draftSummaryDefault', 'Cập nhật đặc tả từ kịch bản'),
-          name: payload.name,
-          description: payload.description,
-          subtitle: payload.subtitle,
-          detailsJson: payload.detailsJson,
-          variantLabel: 'Mặc định',
-        });
-      }
-
-      if (onRefreshBible) await onRefreshBible();
-      if (onRefreshCast) await onRefreshCast();
-
-      if (onShowToast) {
-        onShowToast(
-          t('production.cast.saveDraftSuccess', 'Đã lưu bản nháp Series Bible'),
-          t('production.cast.saveDraftSuccessDesc', 'Đặc tả đã được cập nhật thành phiên bản nháp mới.'),
-        );
-      }
-    } catch (err: any) {
-      if (onShowToast) {
-        onShowToast(
-          t('production.cast.saveDraftFailed', 'Lưu bản nháp thất bại'),
-          err?.message || t('common.errorOccurred', 'Có lỗi xảy ra'),
-        );
-      }
-    }
-  };
-
   return (
     <aside
       data-testid='bible-characters-drawer'
@@ -382,11 +250,10 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           </div>
           <div className='min-w-0'>
             <h3 className='text-sm font-bold text-stone-900 truncate font-serif'>
-              {t('production.cast.charactersDrawerTitle', 'Nhân vật Series Bible')} ({characters.length})
+              {`${t('production.cast.charactersDrawerTitle', 'Nhân vật Series Bible')} (${allCharacters.length})`}
             </h3>
             <p className='text-xs text-stone-500 truncate'>
-              {t('production.cast.charactersDrawerDesc', 'Danh sách nhân vật Canon đối chiếu kịch bản')}
-              {castEntities.length > 0 && ` · ${castEntities.length} trong cast`}
+              {castEntities.length} {t('production.cast.inChapter', 'Trong chương').toLowerCase()} · {allCharacters.length} {t('production.cast.total', 'tổng số')}
             </p>
           </div>
         </div>
@@ -413,42 +280,36 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
         </div>
       </div>
 
-      {/* Gate Blockers Summary Alerts (Submit Gate & Start Gate) */}
-      {(submitBlockers.length > 0 || startBlockers.length > 0) && (
-        <div className='p-3 bg-amber-50/90 border-b border-amber-200 text-xs text-amber-900 space-y-1.5 shadow-xs'>
-          {submitBlockers.length > 0 && (
-            <div className='flex items-start gap-1.5'>
-              <AlertTriangle className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
-              <div>
-                <span className='font-bold text-amber-950'>
-                  {t('production.cast.submitBlockedTitle', 'Chặn Gửi duyệt')} ({submitBlockers.length}):
-                </span>
-                <span className='ml-1 text-xs text-amber-800 leading-relaxed'>
-                  {submitBlockers.map((b) => `${b.entryName} (${b.reason})`).join(', ')}
-                </span>
-              </div>
-            </div>
-          )}
-          {startBlockers.length > 0 && (
-            <div className='flex items-start gap-1.5'>
-              <Clock className='w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5' />
-              <div>
-                <span className='font-bold text-blue-950'>
-                  {t('production.cast.startBlockedTitle', 'Chờ Gate 1')} ({startBlockers.length}):
-                </span>
-                <span className='ml-1 text-xs text-blue-800 leading-relaxed'>
-                  {startBlockers.map((b) => `${b.entryName} (${b.reason})`).join(', ')}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Filter Tabs */}
+      {/* Filter Tabs: Thứ tự: Trong chương -> Ngoài chương -> Tất cả */}
       <div className='px-4 pt-3 pb-2 border-b border-stone-200/80 bg-white flex items-center gap-1 overflow-x-auto'>
         <button
           type='button'
+          data-testid='filter-tab-cast'
+          onClick={() => setFilterTab('cast')}
+          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+            filterTab === 'cast'
+              ? 'bg-orange-100 text-orange-900'
+              : 'text-stone-600 hover:bg-stone-100'
+          }`}
+        >
+          {t('production.cast.inChapterFilter', 'Trong chương')} ({castEntities.length})
+        </button>
+        <button
+          type='button'
+          data-testid='filter-tab-nonCast'
+          onClick={() => setFilterTab('nonCast')}
+          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+            filterTab === 'nonCast'
+              ? 'bg-orange-100 text-orange-900'
+              : 'text-stone-600 hover:bg-stone-100'
+          }`}
+        >
+          {t('production.cast.outOfChapterFilter', 'Ngoài chương')} (
+          {Math.max(0, allCharacters.length - castEntities.length)})
+        </button>
+        <button
+          type='button'
+          data-testid='filter-tab-all'
           onClick={() => setFilterTab('all')}
           className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
             filterTab === 'all'
@@ -458,42 +319,6 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
         >
           {t('production.cast.allFilter', 'Tất cả')} ({allCharacters.length})
         </button>
-        <button
-          type='button'
-          onClick={() => setFilterTab('cast')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-            filterTab === 'cast'
-              ? 'bg-orange-100 text-orange-900'
-              : 'text-stone-600 hover:bg-stone-100'
-          }`}
-        >
-          {t('production.cast.inCastFilter', 'Trong cast')} ({castEntities.length})
-        </button>
-        <button
-          type='button'
-          onClick={() => setFilterTab('nonCast')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-            filterTab === 'nonCast'
-              ? 'bg-orange-100 text-orange-900'
-              : 'text-stone-600 hover:bg-stone-100'
-          }`}
-        >
-          {t('production.cast.notInCastFilter', 'Chưa vào cast')} (
-          {Math.max(0, allCharacters.length - castEntities.length)})
-        </button>
-        {stubsNotInBible.length > 0 && (
-          <button
-            type='button'
-            onClick={() => setFilterTab('stubs')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-              filterTab === 'stubs'
-                ? 'bg-amber-100 text-amber-900'
-                : 'text-amber-700 hover:bg-amber-50'
-            }`}
-          >
-            {t('production.cast.stubsFilter', 'Mục nháp')} ({stubsNotInBible.length})
-          </button>
-        )}
       </div>
 
       {/* Search Input */}
@@ -504,7 +329,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
             type='text'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('production.cast.searchCharacter', 'Tìm kiếm nhân vật...')}
+            placeholder={t('production.cast.searchCharacter', 'Tìm nhân vật...')}
             className='w-full pl-8 pr-3 py-1.5 text-xs border border-stone-200 rounded-xl outline-none focus:border-orange-500 bg-stone-50 text-stone-900'
           />
         </div>
@@ -566,162 +391,29 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
             };
 
             return (
-              <div
+              <BibleEntryAccordionItem
                 key={char.id}
-                className='border border-stone-200/80 rounded-2xl bg-white overflow-hidden shadow-xs'
-              >
-                {/* Header dải gộp: Huy hiệu Cast & Nút Thao tác Thêm / Bỏ khỏi cast */}
-                <div className='px-3.5 py-2 bg-stone-50/70 border-b border-stone-100 flex items-center justify-between gap-2 text-xs'>
-                  <div className='flex items-center gap-1.5 min-w-0'>
-                    {inCast ? (
-                      <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200 text-xs font-bold'>
-                        <UserCheck className='w-3 h-3' />
-                        {t('production.cast.inCastBadge', 'Thuộc cast')}
-                      </span>
-                    ) : (
-                      <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200 text-xs font-medium'>
-                        <User className='w-3 h-3' />
-                        {t('production.cast.notInCastBadge', 'Chưa vào cast')}
-                      </span>
-                    )}
-
-                    {isStub && (
-                      <span className='px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs'>
-                        Mục nháp
-                      </span>
-                    )}
-                  </div>
-
-                  <div className='flex items-center gap-1.5 shrink-0'>
-                    {isStub && castEntity && canEditScript && (
-                      <button
-                        type='button'
-                        onClick={() => {
-                          setStubToDefine(castEntity);
-                          setDefineDesc(char.description || '');
-                          setDefineSubtitle(char.subtitle || '');
-                        }}
-                        className='px-2 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold cursor-pointer transition-colors shadow-2xs'
-                      >
-                        Định nghĩa
-                      </button>
-                    )}
-
-                    {canEditScript && (
-                      <button
-                        type='button'
-                        disabled={actingEntryId === char.id}
-                        onClick={() => handleToggleCast(char.id, inCast)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-2xs disabled:opacity-50 ${
-                          inCast
-                            ? 'bg-stone-100 hover:bg-rose-50 text-stone-700 hover:text-rose-700 border border-stone-200 hover:border-rose-300'
-                            : 'bg-orange-600 hover:bg-orange-700 text-white border border-transparent'
-                        }`}
-                      >
-                        {actingEntryId === char.id ? (
-                          <Loader2 className='w-3 h-3 animate-spin' />
-                        ) : inCast ? (
-                          <>
-                            <UserMinus className='w-3 h-3' />
-                            <span>{t('production.cast.removeFromCastBtn', 'Bỏ khỏi cast')}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Plus className='w-3 h-3' />
-                            <span>{t('production.cast.addToCastBtn', '+ Thêm vào cast')}</span>
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Accordion Chi tiết nhân vật */}
-                <BibleEntryAccordionItem
-                  entity={accordionEntity}
-                  isOpen={expandedEntryId === char.id}
-                  onToggle={() =>
-                    setExpandedEntryId((prev) => (prev === char.id ? null : char.id))
-                  }
-                  canEditScript={canEditScript}
-                  seriesId={seriesId}
-                  isActing={actingEntryId === char.id}
-                  onSaveDraft={handleSaveDraft}
-                  onChangeRevision={handleRevisionChange}
-                  onToggleCrowd={handleToggleCrowd}
-                  onCancelReplacement={handleCancelReplacement}
-                  onJumpToLine={onJumpToLine}
-                  onJumpToPanel={onJumpToPanel}
-                  t={t}
-                />
-              </div>
+                entity={accordionEntity}
+                isInChapter={filterTab === 'all' ? inCast : undefined}
+                isOpen={expandedEntryId === char.id}
+                onToggle={() =>
+                  setExpandedEntryId((prev) => (prev === char.id ? null : char.id))
+                }
+                canEditScript={canEditScript}
+                workspaceId={effectiveWorkspaceId}
+                seriesId={effectiveSeriesId}
+                isActing={actingEntryId === char.id}
+                onChangeRevision={handleRevisionChange}
+                onToggleCrowd={handleToggleCrowd}
+                onCancelReplacement={handleCancelReplacement}
+                onJumpToLine={onJumpToLine}
+                onJumpToPanel={onJumpToPanel}
+                t={t}
+              />
             );
           })
         )}
       </div>
-
-      {/* Modal định nghĩa mục nháp IsStub */}
-      {stubToDefine && (
-        <Modal
-          isOpen={true}
-          onClose={() => setStubToDefine(null)}
-          title={`Định nghĩa nhân vật: ${stubToDefine.name}`}
-          size='md'
-          closeLabel='Hủy'
-        >
-          <form onSubmit={handleSubmitDefine} className='p-4 space-y-3.5 text-xs text-stone-800'>
-            <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900'>
-              Tên nhân vật: <strong>{stubToDefine.name}</strong> ({stubToDefine.code}). Tên này là
-              bất biến theo quy chuẩn BIB-13.
-            </div>
-
-            <div>
-              <label className='block font-semibold mb-1 text-stone-700'>
-                Danh xưng / Phụ đề (Subtitle):
-              </label>
-              <input
-                type='text'
-                value={defineSubtitle}
-                onChange={(e) => setDefineSubtitle(e.target.value)}
-                placeholder='vd: Nữ kiếm sĩ tập sự'
-                className='w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs outline-none focus:border-orange-500 bg-white text-stone-900'
-              />
-            </div>
-
-            <div>
-              <label className='block font-semibold mb-1 text-stone-700'>
-                Mô tả nhân vật (Description) <span className='text-rose-500'>*</span>:
-              </label>
-              <textarea
-                rows={3}
-                required
-                value={defineDesc}
-                onChange={(e) => setDefineDesc(e.target.value)}
-                placeholder='Nhập mô tả xuất thân, ngoại hình, tính cách...'
-                className='w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs outline-none focus:border-orange-500 bg-white text-stone-900 resize-none'
-              />
-            </div>
-
-            <div className='flex items-center justify-end gap-2 pt-2 border-t border-stone-200'>
-              <button
-                type='button'
-                onClick={() => setStubToDefine(null)}
-                className='px-3 py-1.5 rounded-lg border border-stone-300 text-stone-700 font-semibold hover:bg-stone-100 cursor-pointer'
-              >
-                Hủy
-              </button>
-              <button
-                type='submit'
-                disabled={isDefining || !defineDesc.trim()}
-                className='px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold cursor-pointer disabled:opacity-50 flex items-center gap-1.5'
-              >
-                {isDefining && <Loader2 className='w-3.5 h-3.5 animate-spin' />}
-                <span>Lưu định nghĩa</span>
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
     </aside>
   );
 };

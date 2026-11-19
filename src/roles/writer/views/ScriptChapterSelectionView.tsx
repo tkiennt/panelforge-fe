@@ -1,9 +1,10 @@
 // src/roles/writer/views/ScriptChapterSelectionView.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { chapterService, ChapterDto, CreateChapterRequest } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { ChapterSelectionView } from '../components/script/chapter-selection';
+import { ScriptReviewView } from '@/roles/editor/views/ScriptReviewView';
 import { normalizeWorkspaceRole } from '@/types/auth';
 
 interface ScriptChapterSelectionViewProps {
@@ -16,7 +17,10 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
   workspaceRole,
 }) => {
   const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const chapterIdParam = searchParams.get('chapterId');
 
   const [seriesDetail, setSeriesDetail] = useState<SeriesDetailDto | null>(null);
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
@@ -66,6 +70,17 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
 
   const handleSelectChapter = (chapter: ChapterDto) => {
     if (!workspaceId || !seriesId) return;
+    if (effectiveRole === 'EDITOR') {
+      const next = new URLSearchParams(searchParams);
+      next.set('chapterId', chapter.id);
+      next.set('view', 'review');
+      setSearchParams(next);
+      return;
+    }
+    if (effectiveRole === 'PRODUCER') {
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters?chapterId=${chapter.id}`);
+      return;
+    }
     // Chuyển sang Focus Workspace (ẩn Sidebar chính của app, mở bàn làm việc toàn màn hình)
     navigate(`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${chapter.id}`);
   };
@@ -75,6 +90,29 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
     await chapterService.createChapter(seriesId, data);
     await loadData();
   };
+
+  if (chapterIdParam) {
+    return (
+      <ScriptReviewView
+        chapterIdProp={chapterIdParam}
+        workspaceRole={effectiveRole || undefined}
+        onShowToast={notify}
+        onBackToChapters={() => {
+          const next = new URLSearchParams(searchParams);
+          next.delete('chapterId');
+          next.delete('view');
+          setSearchParams(next);
+        }}
+        chaptersList={chapters}
+        onSelectChapter={(id) => {
+          const next = new URLSearchParams(searchParams);
+          next.set('chapterId', id);
+          next.set('view', 'review');
+          setSearchParams(next);
+        }}
+      />
+    );
+  }
 
   return (
     <ChapterSelectionView

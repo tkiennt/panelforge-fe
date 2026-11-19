@@ -11,7 +11,6 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import { Modal } from '@/shared/ui';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import {
   ChapterCastDto,
@@ -70,12 +69,6 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [actingEntryId, setActingEntryId] = useState<string | null>(null);
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
-
-  // Modal Định nghĩa mục nháp (IsStub)
-  const [stubToDefine, setStubToDefine] = useState<ChapterCastItemDto | null>(null);
-  const [defineDesc, setDefineDesc] = useState('');
-  const [defineSubtitle, setDefineSubtitle] = useState('');
-  const [isDefining, setIsDefining] = useState(false);
 
   if (!isOpen) return null;
 
@@ -170,44 +163,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
     }
   };
 
-  // 3. Submit Định nghĩa mục nháp từ Modal
-  const handleSubmitDefine = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stubToDefine || !defineDesc.trim()) return;
-
-    setIsDefining(true);
-    try {
-      await chapterCastService.defineBibleEntry(seriesId, stubToDefine.bibleEntryId, {
-        name: stubToDefine.name, // Name is immutable!
-        description: defineDesc.trim(),
-        subtitle: defineSubtitle.trim() || undefined,
-      });
-
-      await onRefreshCast();
-      if (onRefreshBible) await onRefreshBible();
-      setStubToDefine(null);
-      if (onShowToast) {
-        onShowToast(
-          t('production.cast.defineSuccess', 'Đã hoàn thành định nghĩa thực thể'),
-          t(
-            'production.cast.defineSuccessDesc',
-            'Mục đã được chuyển sang hàng đợi để Artist thiết kế concept.',
-          ),
-        );
-      }
-    } catch (err: any) {
-      if (onShowToast) {
-        onShowToast(
-          t('production.cast.defineFailed', 'Định nghĩa thực thể thất bại'),
-          err?.message,
-        );
-      }
-    } finally {
-      setIsDefining(false);
-    }
-  };
-
-  // 4. Lưu bản nháp (Draft Revision) trực tiếp từ accordion row
+  // 3. Lưu bản nháp (Draft Revision) trực tiếp từ accordion row
   const handleSaveDraft = async (
     entryId: string,
     payload: {
@@ -354,39 +310,6 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
         </div>
       </div>
 
-      {/* Gate Blockers Summary Alerts */}
-      {(submitBlockers.length > 0 || startBlockers.length > 0) && (
-        <div className='p-3 bg-amber-50/80 border-b border-amber-200 text-xs text-amber-900 space-y-1.5'>
-          {submitBlockers.length > 0 && (
-            <div className='flex items-start gap-1.5'>
-              <AlertTriangle className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
-              <div>
-                <span className='font-bold text-amber-950'>
-                  {t('production.cast.submitBlockedTitle', 'Chặn Gửi duyệt')} (
-                  {submitBlockers.length}):
-                </span>
-                <span className='ml-1 text-xs text-amber-800'>
-                  {submitBlockers.map((b) => `${b.entryName} (${b.reason})`).join(', ')}
-                </span>
-              </div>
-            </div>
-          )}
-          {startBlockers.length > 0 && (
-            <div className='flex items-start gap-1.5'>
-              <Clock className='w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5' />
-              <div>
-                <span className='font-bold text-blue-950'>
-                  {t('production.cast.startBlockedTitle', 'Chờ Gate 1')} ({startBlockers.length}):
-                </span>
-                <span className='ml-1 text-xs text-blue-800'>
-                  {startBlockers.map((b) => `${b.entryName} (${b.reason})`).join(', ')}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Search Input */}
       {entities.length > 2 && (
         <div className='p-3 border-b border-stone-200/80 bg-white'>
@@ -479,92 +402,6 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
             );
           })}
       </div>
-
-      {/* Modal Định nghĩa mục nháp (IsStub) - Name is IMMUTABLE */}
-      <Modal
-        isOpen={Boolean(stubToDefine)}
-        onClose={() => setStubToDefine(null)}
-        size='sm'
-        closeLabel={t('common.close', 'Đóng')}
-        title={t('production.cast.defineTitle', 'Định nghĩa thực thể Bible')}
-        description={t(
-          'production.cast.defineDesc',
-          'Mục tự động tạo từ kịch bản cần mô tả trước khi Artist vẽ concept',
-        )}
-      >
-        {stubToDefine && (
-          <form onSubmit={handleSubmitDefine} className='flex flex-col text-stone-900'>
-            <div className='space-y-3.5 text-xs p-5'>
-              <div>
-                <label className='font-semibold text-stone-700 block mb-1'>
-                  {t('production.cast.entityNameReadonly', 'Tên thực thể (Bất biến)')}
-                </label>
-                <div
-                  data-testid='define-entity-name-readonly'
-                  className='w-full p-2 bg-stone-100 border border-stone-200 rounded-lg text-xs font-bold text-stone-700 select-none cursor-not-allowed'
-                >
-                  {stubToDefine.name}
-                </div>
-              </div>
-
-              <div>
-                <label className='font-semibold text-stone-700 block mb-1'>
-                  {t('production.cast.visualDescriptionRequired', 'Mô tả & Đặc điểm nhận diện *')}
-                </label>
-                <textarea
-                  rows={4}
-                  value={defineDesc}
-                  onChange={(e) => setDefineDesc(e.target.value)}
-                  placeholder={t(
-                    'production.cast.visualDescriptionPlaceholder',
-                    'Ngoại hình, trang phục, vũ khí hoặc đặc điểm nhận diện chính...',
-                  )}
-                  className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-normal custom-scrollbar'
-                  required
-                />
-              </div>
-
-              <div>
-                <label className='font-semibold text-stone-700 block mb-1'>
-                  {t('production.cast.subtitleLabel', 'Tiêu đề phụ / Vai trò')}
-                </label>
-                <input
-                  type='text'
-                  value={defineSubtitle}
-                  onChange={(e) => setDefineSubtitle(e.target.value)}
-                  placeholder={t(
-                    'production.cast.subtitlePlaceholder',
-                    'Ví dụ: Kiếm sĩ lang thang',
-                  )}
-                  className='w-full p-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-orange-500 font-normal'
-                />
-              </div>
-            </div>
-
-            <div className='p-4 border-t border-stone-100 bg-stone-50/40 flex items-center justify-end gap-2'>
-              <button
-                type='button'
-                onClick={() => setStubToDefine(null)}
-                className='px-3 py-2 rounded-xl border border-stone-200 hover:bg-stone-100 text-stone-600 text-xs font-semibold cursor-pointer'
-              >
-                {t('common.cancel', 'Huỷ')}
-              </button>
-              <button
-                type='submit'
-                disabled={isDefining || !defineDesc.trim()}
-                className='px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50'
-              >
-                {isDefining ? (
-                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                ) : (
-                  <CheckCircle2 className='w-3.5 h-3.5' />
-                )}
-                {t('production.cast.saveDefinition', 'Lưu định nghĩa')}
-              </button>
-            </div>
-          </form>
-        )}
-      </Modal>
     </div>
   );
 };

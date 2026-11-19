@@ -10,6 +10,7 @@ interface ChapterStatusTableProps {
   selectedChapterId?: string;
   onSelect: (chapterId: string) => void;
   onAssign: (chapter: ChapterProgressDto) => void;
+  onManageChapter?: (chapter: ChapterProgressDto) => void;
 }
 
 const ChapterRow: React.FC<{
@@ -17,7 +18,8 @@ const ChapterRow: React.FC<{
   isSelected: boolean;
   onSelect: () => void;
   onAssign: () => void;
-}> = ({ chapter: ch, isSelected, onSelect, onAssign }) => {
+  onManage?: () => void;
+}> = ({ chapter: ch, isSelected, onSelect, onAssign, onManage }) => {
   const statusStyle = CHAPTER_STATUS_STYLE[ch.status] || {
     label: ch.status,
     className: NEUTRAL_BADGE,
@@ -117,6 +119,20 @@ const ChapterRow: React.FC<{
           <span className='text-xs font-mono font-bold tabular-nums text-stone-900 min-w-10 text-right'>
             {hasPanels ? `${ch.percentComplete}%` : '–'}
           </span>
+          {onManage && (
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation();
+                onManage();
+              }}
+              className='focus-ring h-9 px-2.5 rounded-lg bg-white hover:bg-stone-50 text-stone-800 border border-stone-200 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer'
+              title={`Quản lý chương, đọc kịch bản và xem Art Bible Chương ${ch.chapterNumber}`}
+            >
+              <BookOpen className='w-3.5 h-3.5 text-orange-600' aria-hidden='true' />
+              <span>Quản lý</span>
+            </button>
+          )}
           <button
             type='button'
             onClick={(e) => {
@@ -151,6 +167,7 @@ export const ChapterStatusTable: React.FC<ChapterStatusTableProps> = ({
   selectedChapterId,
   onSelect,
   onAssign,
+  onManageChapter,
 }) => {
   const selected = chapters.find((c) => c.chapterId === selectedChapterId);
 
@@ -191,6 +208,7 @@ export const ChapterStatusTable: React.FC<ChapterStatusTableProps> = ({
               isSelected={ch.chapterId === selectedChapterId}
               onSelect={() => onSelect(ch.chapterId)}
               onAssign={() => onAssign(ch)}
+              onManage={onManageChapter ? () => onManageChapter(ch) : undefined}
             />
           ))}
         </div>

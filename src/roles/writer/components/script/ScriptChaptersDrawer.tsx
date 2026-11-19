@@ -170,7 +170,8 @@ export const ScriptChaptersDrawer: React.FC<ScriptChaptersDrawerProps> = ({
               <div
                 key={chap.id}
                 data-testid={`chapter-item-${chap.id}`}
-                className={`w-full rounded-xl p-3 border transition-all ${
+                onClick={() => onSelectChapter(chap.id)}
+                className={`w-full rounded-xl p-3 border transition-all cursor-pointer ${
                   isSelected
                     ? 'bg-orange-50/70 border-orange-200 shadow-[inset_3px_0_0_#C2410C]'
                     : 'bg-white hover:bg-stone-50 border-stone-200/80 hover:border-stone-300'
@@ -179,14 +180,12 @@ export const ScriptChaptersDrawer: React.FC<ScriptChaptersDrawerProps> = ({
                 <div
                   role='button'
                   tabIndex={0}
-                  onClick={() => onSelectChapter(chap.id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       onSelectChapter(chap.id);
                     }
                   }}
-                  className='cursor-pointer'
                 >
                   <div className='flex items-center justify-between gap-2 mb-1'>
                     <span className='font-mono text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1.5'>
@@ -309,7 +308,7 @@ export const ScriptChaptersDrawer: React.FC<ScriptChaptersDrawerProps> = ({
                                       <span>{t('scriptStudio.scenes.rename', 'Đổi tên')}</span>
                                     </button>
                                   )}
-                                  {scenes.length > 1 && onDeleteScene && (
+                                  {onDeleteScene && (
                                     <button
                                       type='button'
                                       data-testid={`delete-scene-${s.sceneNumber}-btn`}

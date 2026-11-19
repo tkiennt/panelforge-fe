@@ -522,14 +522,14 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     <div className='relative flex-1 min-h-0 flex flex-col bg-[#DDD5C7]'>
       <style>{SHEET_CSS}</style>
 
-      {/* Thanh loại dòng: bấm không làm mất con trỏ trong trang */}
-      <div className='shrink-0 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-[#D4CBBF] bg-[#F4EFEA]/95 text-stone-900 px-3 py-1.5'>
+      {/* Thanh loại dòng: bấm không làm mất con trỏ trong trang, giữ cố định khi mở tab */}
+      <div className='shrink-0 flex items-center gap-x-2 border-b border-[#D4CBBF] bg-[#F4EFEA]/95 text-stone-900 px-3 py-1.5 flex-nowrap overflow-x-auto custom-scrollbar'>
         {dockLeading}
         {dockLeading && <span className='w-px h-6 bg-[#D4CBBF] shrink-0' aria-hidden='true' />}
         <div
           role='toolbar'
           aria-label={t('scriptStudio.gn.toolbar')}
-          className='flex flex-wrap items-center gap-0.5 min-w-0'
+          className='flex items-center gap-0.5 min-w-0 shrink-0 flex-nowrap'
         >
           {GN_ELEMENTS.map((el, i) => {
             const isActive = active === el;
@@ -542,7 +542,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                 title={`${t(`scriptStudio.gn.el.${el}`)} · Ctrl+${i + 1}`}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor && setLineElement(editor, el)}
-                className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 ${
+                className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 whitespace-nowrap ${
                   isActive
                     ? 'bg-orange-100 text-[#C2410C] font-semibold ring-1 ring-orange-300'
                     : 'text-stone-700 hover:bg-stone-200/80 hover:text-stone-900'

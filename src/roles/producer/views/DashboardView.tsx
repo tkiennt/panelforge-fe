@@ -154,6 +154,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           selectedChapterId={selectedChapter?.chapterId}
           onSelect={dashboard.setSelectedChapterId}
           onAssign={openAssign}
+          onManageChapter={
+            canRoute
+              ? (ch) =>
+                  navigate(
+                    `/workspaces/${workspaceId}/series/${seriesId}/chapters?chapterId=${ch.chapterId}`,
+                  )
+              : undefined
+          }
         />
       )}
 

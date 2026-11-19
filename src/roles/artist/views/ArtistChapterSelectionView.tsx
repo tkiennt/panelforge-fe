@@ -483,13 +483,13 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
           </div>
           <h3 className='text-sm font-bold font-serif text-[#1C1917]'>
             {chapters.length === 0
-              ? 'Chưa có chương nào trong bộ truyện'
-              : 'Không tìm thấy chương phù hợp'}
+              ? 'Chưa có chương'
+              : 'Không tìm thấy chương'}
           </h3>
           <p className='text-xs text-[#78716C] leading-relaxed'>
             {chapters.length === 0
-              ? 'Bộ truyện này chưa được khởi tạo chương. Vui lòng liên hệ Producer để thêm chương và phân bổ công việc.'
-              : 'Thử thay đổi từ khóa tìm kiếm hoặc chọn bộ lọc trạng thái khác để xem danh sách chương.'}
+              ? 'Liên hệ Producer để thêm chương và phân bổ công việc.'
+              : 'Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc trạng thái.'}
           </p>
           {chapters.length > 0 && (searchQuery || statusFilter !== 'all') && (
             <button
