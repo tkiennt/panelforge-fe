@@ -26,6 +26,8 @@ export interface ChapterEditionDto {
   version: number;
   createdAt: string;
   updatedAt?: string | null;
+  /** D4: Publisher đã chốt Free/Trả phí (Producer chỉ xem). */
+  isMonetizationConfigured?: boolean;
 }
 
 export interface ReviewEditionRequest {

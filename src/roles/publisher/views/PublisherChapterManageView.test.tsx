@@ -12,39 +12,60 @@ vi.mock('@/services/payment.service', async (importOriginal) => {
     monetizationService: {
       getChapterManage: vi.fn(),
       getSeriesInsights: vi.fn(),
-      setPreviewPages: vi.fn(),
-      resetPreviewPages: vi.fn(),
-      setLanguagePrices: vi.fn(),
-      updateSeriesSettings: vi.fn(),
+      setEditionMonetization: vi.fn(),
+      publishLanguageEdition: vi.fn(),
     },
   };
 });
 
-/** Chương trả phí 3 trang: mặc định bộ truyện 1 trang đầu xem trước. */
+/**
+ * Chương 3 trang. BR-33: mỗi ấn bản có loại/giá/N riêng.
+ * vi: đã phát hành, Trả phí 10.000đ, 1 trang đầu xem trước. en: đã nghiệm thu nhưng chưa đặt giá (D4). ja: Free.
+ */
 const manage: ChapterManageDto = {
   chapterId: 'chap-1',
   seriesId: 'series-1',
   chapterNumber: 3,
   title: 'Cao trào',
   isPublished: true,
-  chapterIsLocked: true,
-  basePriceVnd: 10000,
-  previewPagesCustomized: false,
-  seriesDefaultPreviewPageCount: 1,
-  languagePrices: [
-    { language: 'vi', priceVnd: 10000, isCustom: false },
-    { language: 'en', priceVnd: 10000, isCustom: false },
-    { language: 'ja', priceVnd: 10000, isCustom: false },
-  ],
+  minPriceVnd: 1000,
+  maxPriceVnd: 1000000,
   languages: [
-    { language: 'vi', translatedPages: 3, isAvailable: true },
-    { language: 'en', translatedPages: 1, isAvailable: false },
-    { language: 'ja', translatedPages: 0, isAvailable: false },
+    {
+      language: 'vi',
+      translatedPages: 3,
+      isAvailable: true,
+      editionStatus: 'Published',
+      isMonetizationConfigured: true,
+      isPaid: true,
+      priceVnd: 10000,
+      freePreviewPages: 1,
+    },
+    {
+      language: 'en',
+      translatedPages: 3,
+      isAvailable: false,
+      editionStatus: 'Approved',
+      isMonetizationConfigured: false,
+      isPaid: false,
+      priceVnd: 0,
+      freePreviewPages: 0,
+    },
+    {
+      language: 'ja',
+      translatedPages: 0,
+      isAvailable: false,
+      editionStatus: 'Draft',
+      isMonetizationConfigured: true,
+      isPaid: false,
+      priceVnd: 0,
+      freePreviewPages: 0,
+    },
   ],
   pages: [
-    { pageId: 'p1', pageNumber: 1, isPreview: true, imageUrls: {} },
-    { pageId: 'p2', pageNumber: 2, isPreview: false, imageUrls: {} },
-    { pageId: 'p3', pageNumber: 3, isPreview: false, imageUrls: {} },
+    { pageId: 'p1', pageNumber: 1, imageUrls: {} },
+    { pageId: 'p2', pageNumber: 2, imageUrls: {} },
+    { pageId: 'p3', pageNumber: 3, imageUrls: {} },
   ],
 };
 
@@ -60,10 +81,14 @@ const renderView = () =>
     </MemoryRouter>,
   );
 
-describe('PublisherChapterManageView', () => {
+const openEditions = async (user: ReturnType<typeof userEvent.setup>) =>
+  user.click(await screen.findByRole('button', { name: /Ấn bản & giá/i }));
+
+describe('PublisherChapterManageView — ấn bản & giá (BR-33 / D4)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(monetizationService.getChapterManage).mockResolvedValue(manage);
+    vi.mocked(monetizationService.setEditionMonetization).mockResolvedValue(manage);
     vi.mocked(monetizationService.getSeriesInsights).mockResolvedValue({
       seriesId: 'series-1',
       title: 'Moon',
@@ -80,130 +105,102 @@ describe('PublisherChapterManageView', () => {
       },
       byLanguage: [],
       chapters: [],
-      defaultPreviewPageCount: 1,
     });
   });
 
-  it('lưới trang: bấm thumbnail chọn thêm trang xem trước rồi lưu danh sách trang xem trước', async () => {
+  it('xem trước là N trang đầu: bấm trang 2 → xem trước trang 1–2, lưu N = 2 cho đúng ấn bản', async () => {
     const user = userEvent.setup();
-    vi.mocked(monetizationService.setPreviewPages).mockResolvedValue({
-      ...manage,
-      previewPagesCustomized: true,
-    });
     renderView();
+    await openEditions(user);
 
-    await user.click(await screen.findByRole('button', { name: /^Trang xem trước$/i }));
-    expect(screen.getByText(/theo mặc định bộ truyện: 1 trang đầu xem trước/i)).toBeInTheDocument();
-    expect(screen.getByText('1 trang xem trước · 2 trang khóa')).toBeInTheDocument();
+    expect(screen.getByText('1 trang đầu xem trước · 2 trang khóa')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Trang 2' }));
+    expect(screen.getByText('2 trang đầu xem trước · 1 trang khóa')).toBeInTheDocument();
 
-    const page2 = screen.getByRole('button', { name: 'Trang 2' });
-    expect(page2).toHaveAttribute('aria-pressed', 'false');
-    await user.click(page2);
-    expect(page2).toHaveAttribute('aria-pressed', 'true');
-    await user.click(screen.getByRole('button', { name: /Lưu trang xem trước/i }));
+    // Bấm trang cuối (3) vẫn chừa ít nhất một trang khóa.
+    await user.click(screen.getByRole('button', { name: 'Trang 3' }));
+    expect(screen.getByText('2 trang đầu xem trước · 1 trang khóa')).toBeInTheDocument();
 
+    await user.click(screen.getByRole('button', { name: 'Lưu cấu hình' }));
     await waitFor(() =>
-      expect(monetizationService.setPreviewPages).toHaveBeenCalledWith('chap-1', ['p1', 'p2']),
-    );
-  });
-
-  it('chương miễn phí: không chọn được trang xem trước', async () => {
-    const user = userEvent.setup();
-    vi.mocked(monetizationService.getChapterManage).mockResolvedValue({
-      ...manage,
-      chapterIsLocked: false,
-      languagePrices: manage.languagePrices.map((p) => ({ ...p, priceVnd: 0 })),
-    });
-    renderView();
-
-    await user.click(await screen.findByRole('button', { name: /^Trang xem trước$/i }));
-
-    expect(screen.getByText(/Chương miễn phí: mọi trang mở/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Trang 1' })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: /Lưu trang xem trước/i })).not.toBeInTheDocument();
-  });
-
-  it('bản dịch chưa đủ ảnh hiện tiến độ theo ngôn ngữ', async () => {
-    const user = userEvent.setup();
-    renderView();
-
-    await user.click(await screen.findByRole('button', { name: /^Trang xem trước$/i }));
-    await user.click(screen.getByRole('button', { name: 'English' }));
-
-    expect(screen.getByText('Chưa đủ ảnh (1/3 trang)')).toBeInTheDocument();
-  });
-
-  it('giá theo ngôn ngữ: thiết lập giá thương mại theo từng ấn bản ngôn ngữ (không bị chặn bởi chapterIsLocked)', async () => {
-    const user = userEvent.setup();
-    vi.mocked(monetizationService.getChapterManage).mockResolvedValue({
-      ...manage,
-      chapterIsLocked: false,
-      languagePrices: manage.languagePrices.map((p) => ({ ...p, priceVnd: 0 })),
-    });
-    renderView();
-
-    await user.click(await screen.findByRole('button', { name: /Giá theo ngôn ngữ/i }));
-
-    expect(screen.queryByText(/Chương miễn phí: mọi trang mở/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Lưu giá/i })).toBeInTheDocument();
-  });
-
-  it('Settings lưu số trang đầu xem trước mặc định của bộ truyện', async () => {
-    const user = userEvent.setup();
-    vi.mocked(monetizationService.updateSeriesSettings).mockResolvedValue({
-      seriesId: 'series-1',
-      defaultPreviewPageCount: 3,
-      maxDefaultPreviewPageCount: 50,
-    });
-    renderView();
-
-    await user.click(await screen.findByRole('button', { name: 'Settings' }));
-    const count = screen.getByLabelText(/Số trang đầu xem trước/i);
-    await user.clear(count);
-    await user.type(count, '3');
-    await user.click(screen.getByRole('button', { name: /Lưu settings/i }));
-
-    await waitFor(() =>
-      expect(monetizationService.updateSeriesSettings).toHaveBeenCalledWith('series-1', {
-        defaultPreviewPageCount: 3,
+      expect(monetizationService.setEditionMonetization).toHaveBeenCalledWith('chap-1', 'vi', {
+        isPaid: true,
+        priceVnd: 10000,
+        freePreviewPages: 2,
+        reason: undefined,
       }),
     );
   });
 
-  it('bật chế độ trả phí và cập nhật giá gốc từ chương miễn phí', async () => {
+  it('ấn bản đã phát hành: đổi giá bắt buộc nhập lý do', async () => {
     const user = userEvent.setup();
-    vi.mocked(monetizationService.getChapterManage).mockResolvedValue({
-      ...manage,
-      chapterIsLocked: false,
-      basePriceVnd: 0,
-      languagePrices: manage.languagePrices.map((p) => ({ ...p, priceVnd: 0 })),
-    });
-    vi.mocked(monetizationService.setLanguagePrices).mockResolvedValue({
-      ...manage,
-      chapterIsLocked: true,
-      basePriceVnd: 15000,
-    });
     renderView();
-
-    await user.click(await screen.findByRole('button', { name: /Giá theo ngôn ngữ/i }));
-    const toggle = screen.getByRole('switch');
-    expect(toggle).toHaveAttribute('aria-checked', 'false');
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    await openEditions(user);
 
     await user.click(screen.getByRole('button', { name: '15.000đ' }));
-    await user.click(screen.getByRole('button', { name: /Lưu giá/i }));
+    const save = screen.getByRole('button', { name: 'Lưu cấu hình' });
+    expect(save).toBeDisabled();
+
+    await user.type(screen.getByLabelText(/Lý do thay đổi/i), 'Tăng giá theo thị trường');
+    expect(save).toBeEnabled();
+    await user.click(save);
 
     await waitFor(() =>
-      expect(monetizationService.setLanguagePrices).toHaveBeenCalledWith(
-        'chap-1',
-        [
-          { language: 'vi', priceVnd: null },
-          { language: 'en', priceVnd: null },
-          { language: 'ja', priceVnd: null },
-        ],
-        { isLocked: true, basePriceVnd: 15000 },
-      ),
+      expect(monetizationService.setEditionMonetization).toHaveBeenCalledWith('chap-1', 'vi', {
+        isPaid: true,
+        priceVnd: 15000,
+        freePreviewPages: 1,
+        reason: 'Tăng giá theo thị trường',
+      }),
     );
+  });
+
+  it('D4: ấn bản chưa đặt giá không chọn sẵn Free, chặn phát hành tới khi Publisher chọn loại', async () => {
+    const user = userEvent.setup();
+    renderView();
+    await openEditions(user);
+    await user.click(screen.getByRole('tab', { name: /English/ }));
+
+    expect(screen.getByRole('radio', { name: 'Free' })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Trả phí' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Lưu cấu hình' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Phát hành bản EN/i })).toBeDisabled();
+    expect(screen.getByText('Cần đặt giá trước khi phát hành.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('radio', { name: 'Free' }));
+    await user.click(screen.getByRole('button', { name: 'Lưu cấu hình' }));
+
+    await waitFor(() =>
+      expect(monetizationService.setEditionMonetization).toHaveBeenCalledWith('chap-1', 'en', {
+        isPaid: false,
+        priceVnd: 0,
+        freePreviewPages: 0,
+        reason: undefined,
+      }),
+    );
+  });
+
+  it('ấn bản Free: mọi trang mở, không chọn được trang xem trước', async () => {
+    const user = userEvent.setup();
+    renderView();
+    await openEditions(user);
+    await user.click(screen.getByRole('tab', { name: /日本語/ }));
+
+    expect(screen.getByRole('radio', { name: 'Free' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Trang 1' })).toBeDisabled();
+    expect(screen.queryByLabelText(/Số trang đầu xem trước/i)).not.toBeInTheDocument();
+  });
+
+  it('giá ngoài khoảng cho phép thì không lưu được', async () => {
+    const user = userEvent.setup();
+    renderView();
+    await openEditions(user);
+
+    const price = screen.getByLabelText(/Giá mở khóa/i);
+    await user.clear(price);
+    await user.type(price, '500');
+
+    expect(screen.getByText(/Giá phải là số nguyên từ/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lưu cấu hình' })).toBeDisabled();
   });
 });

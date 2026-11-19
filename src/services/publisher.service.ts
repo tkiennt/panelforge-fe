@@ -26,8 +26,11 @@ export interface PublisherChapterDto {
   scriptReopenReason?: string | null;
   coverUrl?: string | null;
   scriptContentHash?: string | null;
+  /** BR-33: Free/Trả phí và giá của ấn bản ngôn ngữ gốc. */
   isLocked?: boolean;
   priceVnd?: number;
+  /** D4: false → Publisher chưa đặt giá ấn bản gốc. */
+  isMonetizationConfigured?: boolean;
 }
 
 export interface PublisherLatestChapterDto {
@@ -75,8 +78,11 @@ export interface PublisherManagedChapterDto {
   pagesCount: number;
   approvedAt?: string | null;
   approvedBy?: string | null;
+  /** BR-33: Free/Trả phí và giá của ấn bản ngôn ngữ gốc. */
   isLocked?: boolean;
   priceVnd?: number;
+  /** D4: false → Publisher chưa đặt giá ấn bản gốc. */
+  isMonetizationConfigured?: boolean;
 }
 
 export interface PublisherSeriesDetailDto {

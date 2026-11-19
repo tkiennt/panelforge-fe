@@ -101,8 +101,6 @@ export interface ChapterDto {
   scriptReopenRequestedById?: string | null;
   scriptReopenRequestedAt?: string | null;
   scriptContentHash?: string | null;
-  isLocked?: boolean;
-  priceVnd?: number;
   scriptStatus?: ScriptStatus;
   scriptSubmittedAt?: string | null;
   /** Phiên bản đã gửi duyệt (push) gần nhất và lần trước — để so sánh từng dòng. */
@@ -192,8 +190,6 @@ export interface CreateChapterRequest {
   title?: string | null;
   targetReleaseDate?: string | null; // YYYY-MM-DD
   outline?: string | null;
-  isLocked?: boolean;
-  priceVnd?: number;
 }
 
 export interface UpdateChapterRequest {
@@ -201,8 +197,6 @@ export interface UpdateChapterRequest {
   targetReleaseDate?: string | null; // YYYY-MM-DD
   incrementVersion?: boolean;
   outline?: string | null;
-  isLocked?: boolean;
-  priceVnd?: number;
   /** `versionVector` của chương lúc mở form (BR-11): lệch thì BE trả 409 thay vì đè. */
   expectedChapterVersion?: number;
 }

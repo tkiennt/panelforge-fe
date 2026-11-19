@@ -437,7 +437,11 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                           {chap.title || 'Chưa đặt tiêu đề'}
                         </h3>
 
-                        <ChapterPriceBadge isLocked={chap.isLocked} priceVnd={chap.priceVnd} />
+                        <ChapterPriceBadge
+                          isLocked={chap.isLocked}
+                          priceVnd={chap.priceVnd}
+                          isMonetizationConfigured={chap.isMonetizationConfigured}
+                        />
 
                         {chap.status === 'ChapterApproved' && (
                           <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1'>
