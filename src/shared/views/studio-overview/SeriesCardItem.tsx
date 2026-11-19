@@ -9,6 +9,8 @@ import {
   Trash2,
   Users,
   ArrowRight,
+  PenTool,
+  Lock,
 } from 'lucide-react';
 import { SeriesDto } from '@/services/series.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
@@ -31,7 +33,7 @@ export interface SeriesCardItemProps {
   openLabel?: string;
 }
 
-/** Thẻ bộ truyện tối giản: bấm ảnh bìa để mở, bên dưới chỉ có thể loại, tên và số chương. */
+/** Thẻ bộ truyện Stitch phong cách Manga Studio Editorial */
 export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
   series: s,
   isProducerOrAdmin,
@@ -49,174 +51,255 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
 }) => {
   const displayCoverUrl = s.coverUrl || s.avatarUrl;
   const initial = (
-    <span className='absolute inset-0 flex items-center justify-center font-serif text-5xl font-bold text-stone-400/70 group-hover:text-orange-500/70 transition-colors select-none'>
+    <span className='font-serif text-5xl font-bold text-stone-400 select-none'>
       {s.title.trim().charAt(0).toUpperCase()}
     </span>
   );
 
-  return (
-    <article className='group relative min-w-0'>
-      <div className='relative'>
-        <button
-          type='button'
-          onClick={() => onOpenSeries(s.id)}
-          aria-label={`${openLabel}: ${s.title}`}
-          title={`${openLabel}: ${s.title}`}
-          className='focus-ring relative block w-full aspect-[3/4] overflow-hidden rounded-xl border border-stone-200/80 bg-gradient-to-br from-stone-100 via-[#FCFBF8] to-stone-200/80 shadow-soft-xs transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-orange-300 group-hover:shadow-soft-md cursor-pointer'
-        >
-          {displayCoverUrl ? (
-            <AuthenticatedImage
-              src={displayCoverUrl}
-              alt=''
-              loading='lazy'
-              className='absolute inset-0 w-full h-full object-cover'
-              fallback={initial}
-            />
-          ) : (
-            initial
-          )}
-        </button>
-        <div className='absolute top-2 right-2'>
-          {/* Accessible 3-dots Menu for Producer / Admin */}
-          {isProducerOrAdmin && (
-            <div className='relative shrink-0' data-series-options-menu>
-              <button
-                type='button'
-                onClick={onToggleMenu}
-                className='p-1.5 rounded-lg text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center'
-                aria-label={`Tùy chọn cho bộ truyện ${s.title}`}
-                aria-haspopup='menu'
-                aria-expanded={isOpenMenu}
-              >
-                <MoreVertical className='w-4 h-4' />
-              </button>
+  const isCompleted = s.isCompleted;
+  const isPreProd = !isCompleted && (s.chaptersCount ?? 0) === 0;
 
-              {isOpenMenu && (
-                <div
-                  role='menu'
-                  aria-label={`Tùy chọn ${s.title}`}
-                  className='absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-xl border border-stone-200 z-20 py-1 overflow-hidden'
-                >
-                  <button
-                    type='button'
-                    role='menuitem'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenPipeline({ id: s.id, title: s.title });
-                    }}
-                    className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
-                  >
-                    <Sliders className='w-3.5 h-3.5 text-blue-500' />
-                    <span>Cấu hình Pipeline</span>
-                  </button>
-                  <button
-                    type='button'
-                    role='menuitem'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenPresets({ id: s.id, title: s.title });
-                    }}
-                    className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
-                  >
-                    <ListOrdered className='w-3.5 h-3.5 text-purple-500' />
-                    <span>Typography Presets</span>
-                  </button>
-                  {onOpenMembers && (
-                    <button
-                      type='button'
-                      role='menuitem'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenMembers({ id: s.id, title: s.title });
-                      }}
-                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
-                    >
-                      <Users className='w-3.5 h-3.5 text-emerald-600' />
-                      <span>Đội ngũ Series</span>
-                    </button>
-                  )}
-                  <div className='border-t border-stone-100 my-1' />
-                  <button
-                    type='button'
-                    role='menuitem'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPickCover({ id: s.id, title: s.title });
-                    }}
-                    className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
-                  >
-                    <ImagePlus className='w-3.5 h-3.5 text-orange-500' />
-                    <span>{s.coverUrl ? 'Đổi ảnh bìa' : 'Thêm ảnh bìa'}</span>
-                  </button>
-                  {s.coverUrl && (
-                    <button
-                      type='button'
-                      role='menuitem'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onClearCover(s.id);
-                      }}
-                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
-                    >
-                      <ImageOff className='w-3.5 h-3.5 text-stone-500' />
-                      <span>Xoá ảnh bìa</span>
-                    </button>
-                  )}
-                  <button
-                    type='button'
-                    role='menuitem'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEditSeries(s);
-                    }}
-                    className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
-                  >
-                    <Edit2 className='w-3.5 h-3.5 text-stone-600' />
-                    <span>Chỉnh sửa thông tin</span>
-                  </button>
-                  <button
-                    type='button'
-                    role='menuitem'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteSeries(s);
-                    }}
-                    className='w-full text-left px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer'
-                  >
-                    <Trash2 className='w-3.5 h-3.5' />
-                    <span>Xóa bộ truyện</span>
-                  </button>
-                </div>
-              )}
+  return (
+    <article className='series-card group relative bg-white border border-stone-200 rounded-2xl shadow-xs overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow min-w-0'>
+      <div>
+        {/* Cover Header Banner */}
+        <div className='relative w-full h-48 bg-stone-100 overflow-hidden'>
+          <button
+            type='button'
+            onClick={() => onOpenSeries(s.id)}
+            aria-label={`${openLabel}: ${s.title}`}
+            title={`${openLabel}: ${s.title}`}
+            className='focus-ring block w-full h-full relative cursor-pointer text-left'
+          >
+            {displayCoverUrl ? (
+              <AuthenticatedImage
+                src={displayCoverUrl}
+                alt=''
+                loading='lazy'
+                className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300'
+                fallback={
+                  <div className='w-full h-full bg-gradient-to-br from-stone-200 via-stone-100 to-orange-50 flex items-center justify-center'>
+                    {initial}
+                  </div>
+                }
+              />
+            ) : (
+              <div className='w-full h-full bg-gradient-to-br from-stone-200 via-stone-100 to-orange-50 flex items-center justify-center'>
+                {initial}
+              </div>
+            )}
+            <div className='absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent pointer-events-none' />
+
+            {/* Bottom Title & Synopsis Over Cover */}
+            <div className='absolute bottom-3 left-3 right-3 pointer-events-none'>
+              <h3 className='text-lg font-serif font-bold text-white drop-shadow-sm line-clamp-1'>
+                {s.title}
+              </h3>
+              <p className='text-[11px] text-stone-200 line-clamp-1 mt-0.5'>
+                {s.synopsis || `${s.chaptersCount ?? 0} chương · Bản thảo sản xuất`}
+              </p>
             </div>
-          )}
+          </button>
+
+          {/* Top Left Badges */}
+          <div className='absolute top-3 left-3 flex flex-wrap gap-1.5 z-10 pointer-events-none'>
+            <span className='px-2 py-0.5 rounded-md bg-white/95 backdrop-blur text-[11px] font-semibold text-stone-800 shadow-xs'>
+              {formatGenre(s.genre || s.format)}
+            </span>
+            <span className='px-2 py-0.5 rounded-md bg-white/95 backdrop-blur text-[11px] font-medium text-stone-600 shadow-xs'>
+              {formatReadingDirection(s.readingDirection).label}
+            </span>
+          </div>
+
+          {/* Top Right Status Badge & Menu */}
+          <div className='absolute top-3 right-3 flex items-center gap-1.5 z-10'>
+            <span
+              className={`px-2 py-0.5 rounded-md text-[11px] font-semibold shadow-xs flex items-center gap-1 ${
+                isCompleted
+                  ? 'bg-blue-600 text-white'
+                  : isPreProd
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-emerald-600 text-white'
+              }`}
+            >
+              {isCompleted ? 'Hoàn thành' : isPreProd ? 'Tiền kỳ' : 'Đang sản xuất'}
+            </span>
+
+            {/* Accessible 3-dots Menu for Producer / Admin */}
+            {isProducerOrAdmin && (
+              <div className='relative shrink-0' data-series-options-menu>
+                <button
+                  type='button'
+                  onClick={onToggleMenu}
+                  className='p-1.5 rounded-lg bg-white/90 hover:bg-white text-stone-700 hover:text-stone-900 shadow-xs transition-colors cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center'
+                  aria-label={`Tùy chọn cho bộ truyện ${s.title}`}
+                  aria-haspopup='menu'
+                  aria-expanded={isOpenMenu}
+                >
+                  <MoreVertical className='w-4 h-4' />
+                </button>
+
+                {isOpenMenu && (
+                  <div
+                    role='menu'
+                    aria-label={`Tùy chọn ${s.title}`}
+                    className='absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-stone-200 z-30 py-1 overflow-hidden animate-in fade-in-50 zoom-in-95'
+                  >
+                    <button
+                      type='button'
+                      role='menuitem'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenPipeline({ id: s.id, title: s.title });
+                      }}
+                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                    >
+                      <Sliders className='w-3.5 h-3.5 text-blue-500' />
+                      <span>Cấu hình Pipeline</span>
+                    </button>
+                    <button
+                      type='button'
+                      role='menuitem'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenPresets({ id: s.id, title: s.title });
+                      }}
+                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                    >
+                      <ListOrdered className='w-3.5 h-3.5 text-purple-500' />
+                      <span>Typography Presets</span>
+                    </button>
+                    {onOpenMembers && (
+                      <button
+                        type='button'
+                        role='menuitem'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenMembers({ id: s.id, title: s.title });
+                        }}
+                        className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                      >
+                        <Users className='w-3.5 h-3.5 text-emerald-600' />
+                        <span>Đội ngũ Series</span>
+                      </button>
+                    )}
+                    <div className='border-t border-stone-100 my-1' />
+                    <button
+                      type='button'
+                      role='menuitem'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPickCover({ id: s.id, title: s.title });
+                      }}
+                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                    >
+                      <ImagePlus className='w-3.5 h-3.5 text-orange-500' />
+                      <span>{s.coverUrl ? 'Đổi ảnh bìa' : 'Thêm ảnh bìa'}</span>
+                    </button>
+                    {s.coverUrl && (
+                      <button
+                        type='button'
+                        role='menuitem'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onClearCover(s.id);
+                        }}
+                        className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                      >
+                        <ImageOff className='w-3.5 h-3.5 text-stone-500' />
+                        <span>Xoá ảnh bìa</span>
+                      </button>
+                    )}
+                    <button
+                      type='button'
+                      role='menuitem'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditSeries(s);
+                      }}
+                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                    >
+                      <Edit2 className='w-3.5 h-3.5 text-stone-600' />
+                      <span>Chỉnh sửa thông tin</span>
+                    </button>
+                    <button
+                      type='button'
+                      role='menuitem'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteSeries(s);
+                      }}
+                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer'
+                    >
+                      <Trash2 className='w-3.5 h-3.5' />
+                      <span>Xóa bộ truyện</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card Body */}
+        <div className='p-4 flex flex-col gap-3.5'>
+          {/* Progress Block */}
+          <div className='flex flex-col gap-1.5'>
+            <div className='flex items-center justify-between text-xs'>
+              <span className='font-semibold text-stone-800 flex items-center gap-1.5'>
+                <PenTool className='w-3.5 h-3.5 text-orange-600' />
+                <span>Tiến độ:</span>
+              </span>
+              <span className='text-xs text-stone-500'>
+                <span className='font-mono font-bold text-stone-800'>{s.chaptersCount ?? 0}</span>{' '}
+                chương · {formatReadingDirection(s.readingDirection).label}
+              </span>
+            </div>
+            <div className='w-full bg-stone-100 h-2 rounded-full overflow-hidden'>
+              <div
+                className='bg-orange-600 h-full rounded-full transition-all duration-500'
+                style={{
+                  width: `${
+                    isCompleted ? 100 : Math.min(100, Math.max(15, (s.chaptersCount ?? 0) * 12))
+                  }%`,
+                }}
+              />
+            </div>
+            <div className='flex items-center justify-between text-[11px] text-stone-500'>
+              <span className='text-stone-700 font-medium truncate'>
+                {(s.chaptersCount ?? 0) > 0
+                  ? `Đang thực hiện ${s.chaptersCount} chương bản thảo`
+                  : 'Giai đoạn thiết kế kịch bản & nhân vật'}
+              </span>
+            </div>
+          </div>
+
+          {/* Meta Box */}
+          <div className='flex items-center justify-between bg-[#FAF9F5] px-3 py-2 rounded-lg border border-stone-200 text-xs'>
+            <div className='flex items-center gap-1.5 text-stone-700 font-medium truncate'>
+              <Lock className='w-3.5 h-3.5 text-sky-600 shrink-0' />
+              <span className='truncate'>Khóa chuẩn nhân vật</span>
+            </div>
+            <span className='text-[11px] text-emerald-700 font-semibold shrink-0'>
+              Chuẩn xuất bản B5
+            </span>
+          </div>
         </div>
       </div>
 
-      <p className='mt-2.5 text-xs font-medium text-orange-700 truncate'>
-        {formatGenre(s.genre || s.format)}
-      </p>
-      <h3
-        className='mt-0.5 font-serif text-base font-bold leading-snug text-stone-900 line-clamp-2 break-words'
-        title={s.title}
-      >
-        {s.title}
-      </h3>
-      <p className='mt-1 text-xs text-stone-500 truncate'>
-        <span className='font-mono tabular-nums text-stone-700'>{s.chaptersCount ?? 0}</span> chương
-        · {formatReadingDirection(s.readingDirection).label}
-      </p>
-
-      <button
-        type='button'
-        onClick={() => onOpenSeries(s.id)}
-        aria-label={`Không gian làm việc: ${s.title}`}
-        className='mt-3.5 w-full btn-cta-primary focus-ring min-h-9 py-2 px-3 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer'
-        data-testid={`open-series-btn-${s.id}`}
-      >
-        <span>Mở không gian truyện</span>
-        <ArrowRight className='w-3.5 h-3.5' />
-      </button>
+      {/* Card Bottom CTA */}
+      <div className='p-4 pt-0'>
+        <button
+          type='button'
+          onClick={() => onOpenSeries(s.id)}
+          aria-label={`Không gian làm việc: ${s.title}`}
+          className='w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer'
+          data-testid={`open-series-btn-${s.id}`}
+        >
+          <span>Mở không gian truyện</span>
+          <ArrowRight className='w-3.5 h-3.5' />
+        </button>
+      </div>
     </article>
   );
 };

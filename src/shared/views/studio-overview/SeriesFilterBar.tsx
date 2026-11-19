@@ -2,6 +2,8 @@ import React from 'react';
 import { Search, X } from 'lucide-react';
 import { formatGenre } from './formatters';
 
+export type SeriesStatusFilter = 'ALL' | 'IN_PROD' | 'PRE_PROD' | 'COMPLETED';
+
 export interface SeriesFilterBarProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
@@ -11,6 +13,9 @@ export interface SeriesFilterBarProps {
   availableGenres: string[];
   directionFilter: string;
   onDirectionFilterChange: (value: string) => void;
+  statusFilter?: SeriesStatusFilter;
+  onStatusFilterChange?: (value: SeriesStatusFilter) => void;
+  statusCounts?: { all: number; inProd: number; preProd: number; completed: number };
   sortBy: 'recent' | 'az' | 'za' | 'chapters';
   onSortByChange: (value: 'recent' | 'az' | 'za' | 'chapters') => void;
   isFiltering: boolean;
@@ -28,6 +33,9 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
   availableGenres,
   directionFilter,
   onDirectionFilterChange,
+  statusFilter = 'ALL',
+  onStatusFilterChange,
+  statusCounts,
   sortBy,
   onSortByChange,
   isFiltering,
@@ -36,8 +44,60 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
   totalCount,
 }) => {
   return (
-    <div className='space-y-2'>
-      <div className='p-3.5 sm:p-4 bg-white/90 backdrop-blur-xs rounded-2xl border border-stone-200/80 shadow-soft-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3'>
+    <div className='space-y-3'>
+      {/* Stitch Status Filter Pills Bar */}
+      {onStatusFilterChange && statusCounts && (
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <div className='flex items-center bg-stone-200/60 p-1 rounded-xl text-xs'>
+            <button
+              type='button'
+              onClick={() => onStatusFilterChange('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'ALL'
+                  ? 'bg-white text-stone-900 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              Tất cả ({statusCounts.all})
+            </button>
+            <button
+              type='button'
+              onClick={() => onStatusFilterChange('IN_PROD')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'IN_PROD'
+                  ? 'bg-white text-stone-900 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              Đang sản xuất ({statusCounts.inProd})
+            </button>
+            <button
+              type='button'
+              onClick={() => onStatusFilterChange('PRE_PROD')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'PRE_PROD'
+                  ? 'bg-white text-stone-900 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              Tiền kỳ ({statusCounts.preProd})
+            </button>
+            <button
+              type='button'
+              onClick={() => onStatusFilterChange('COMPLETED')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'COMPLETED'
+                  ? 'bg-white text-stone-900 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              Hoàn thành ({statusCounts.completed})
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className='p-3.5 sm:p-4 bg-white rounded-2xl border border-stone-200 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3'>
         <div className='flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5'>
           {/* Search Input */}
           <div className='relative flex-1 min-w-[200px]'>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Briefcase,
@@ -32,7 +32,7 @@ import { getRoleDefaultPath } from '@/roles/roles';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { readCachedWorkspace, writeCachedWorkspace } from '@/types/workspace';
 import { StudioGovernanceBar } from './studio-overview/StudioGovernanceBar';
-import { SeriesFilterBar } from './studio-overview/SeriesFilterBar';
+import { SeriesFilterBar, type SeriesStatusFilter } from './studio-overview/SeriesFilterBar';
 import { SeriesShelf } from './studio-overview/SeriesShelf';
 import { MembersTabContent } from './studio-overview/MembersTabContent';
 import { StudioScheduleTab } from './studio-overview/StudioScheduleTab';
@@ -141,6 +141,7 @@ export const StudioOverviewView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [genreFilter, setGenreFilter] = useState('ALL');
   const [directionFilter, setDirectionFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState<SeriesStatusFilter>('ALL');
   const [sortBy, setSortBy] = useState<'recent' | 'az' | 'za' | 'chapters'>('recent');
   const [isResourcesExpanded, setIsResourcesExpanded] = useState(false);
   const [openMenuSeriesId, setOpenMenuSeriesId] = useState<string | null>(null);
@@ -672,7 +673,16 @@ export const StudioOverviewView: React.FC = () => {
           (directionFilter === 'LTR' && dirInfo.type === 'ltr') ||
           (directionFilter === 'VERTICAL' && dirInfo.type === 'vertical');
 
-        return matchesSearch && matchesGenre && matchesDirection;
+        const isCompleted = s.isCompleted;
+        const isPreProd = !isCompleted && (s.chaptersCount ?? 0) === 0;
+        const isInProd = !isCompleted && (s.chaptersCount ?? 0) > 0;
+        const matchesStatus =
+          statusFilter === 'ALL' ||
+          (statusFilter === 'COMPLETED' && isCompleted) ||
+          (statusFilter === 'IN_PROD' && isInProd) ||
+          (statusFilter === 'PRE_PROD' && isPreProd);
+
+        return matchesSearch && matchesGenre && matchesDirection && matchesStatus;
       })
       .sort((a, b) => {
         if (sortBy === 'recent') {
@@ -691,15 +701,36 @@ export const StudioOverviewView: React.FC = () => {
         }
         return 0;
       });
-  }, [seriesList, searchQuery, genreFilter, directionFilter, sortBy]);
+  }, [seriesList, searchQuery, genreFilter, directionFilter, statusFilter, sortBy]);
+
+  const statusCounts = useMemo(() => {
+    let inProd = 0;
+    let preProd = 0;
+    let completed = 0;
+    seriesList.forEach((s) => {
+      if (s.isCompleted) completed++;
+      else if ((s.chaptersCount ?? 0) > 0) inProd++;
+      else preProd++;
+    });
+    return {
+      all: seriesList.length,
+      inProd,
+      preProd,
+      completed,
+    };
+  }, [seriesList]);
 
   const isFiltering =
-    searchQuery.trim() !== '' || genreFilter !== 'ALL' || directionFilter !== 'ALL';
+    searchQuery.trim() !== '' ||
+    genreFilter !== 'ALL' ||
+    directionFilter !== 'ALL' ||
+    statusFilter !== 'ALL';
 
   const handleClearFilters = () => {
     setSearchQuery('');
     setGenreFilter('ALL');
     setDirectionFilter('ALL');
+    setStatusFilter('ALL');
   };
 
   return (
@@ -1010,6 +1041,9 @@ export const StudioOverviewView: React.FC = () => {
               availableGenres={availableGenres}
               directionFilter={directionFilter}
               onDirectionFilterChange={setDirectionFilter}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              statusCounts={statusCounts}
               sortBy={sortBy}
               onSortByChange={setSortBy}
               isFiltering={isFiltering}
