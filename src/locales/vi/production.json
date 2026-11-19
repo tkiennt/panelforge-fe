@@ -88,7 +88,29 @@
       "error": "Lỗi khi dịch thoại",
       "applyError": "Không thể đổ bản dịch vào bóng thoại.",
       "batchPartial": "Một số dòng dịch không thành công, vui lòng kiểm tra lại.",
-      "batchFailed": "Không thể hoàn tất dịch toàn bộ trang."
+      "batchFailed": "Không thể hoàn tất dịch toàn bộ trang.",
+      "unsupportedPairTooltip": "Dịch tự động chỉ hỗ trợ Anh ↔ Việt",
+      "fallbackWarning": "Dịch vụ dịch chưa sẵn sàng — đang hiển thị câu gốc"
+    },
+    "edition": {
+      "label": "Ấn bản",
+      "submitBtn": "Nộp ấn bản {lang}",
+      "submittingBtn": "Đang nộp...",
+      "confirmTitle": "Nộp ấn bản {lang}?",
+      "confirmDescription": "Tất cả bóng thoại đã có bản dịch {lang}. Gửi ấn bản này cho Editor thẩm định?",
+      "confirmMissingWarning": "Cảnh báo: Còn {count} bóng thoại chưa có bản dịch cho ngôn ngữ {lang}. Bạn có chắc muốn nộp ấn bản {lang} không?",
+      "submitSuccessTitle": "Đã nộp ấn bản {lang}",
+      "submitSuccessDesc": "Ấn bản {lang} đã chuyển sang trạng thái chờ Editor thẩm định.",
+      "submitErrorTitle": "Không thể nộp ấn bản",
+      "translationModeAllowedBanner": "Chế độ dịch ({lang}) — Cho phép chỉnh sửa bản dịch; khung tranh và chữ gốc chỉ đọc",
+      "status": {
+        "Draft": "Bản nháp",
+        "ReworkRequired": "Cần sửa lại",
+        "InReview": "Chờ Editor duyệt",
+        "EditorApproved": "Editor đã duyệt",
+        "Approved": "Producer đã duyệt",
+        "Published": "Đã phát hành"
+      }
     }
   },
   "template": {

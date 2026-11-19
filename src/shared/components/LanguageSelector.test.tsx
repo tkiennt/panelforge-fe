@@ -18,34 +18,33 @@ describe('LanguageSelector', () => {
     const handleChange = vi.fn();
     render(
       <LanguageSelector
-        languages={['vi', 'en', 'ja']}
-        activeLang="en"
+        languages={['vi', 'en']}
+        activeLang='en'
         onChange={handleChange}
-        originalLang="vi"
-      />
+        originalLang='vi'
+      />,
     );
 
     expect(screen.getByTestId('lettering-language-selector')).toBeInTheDocument();
     expect(screen.getByText('VI (Gốc)')).toBeInTheDocument();
     expect(screen.getByText('EN')).toBeInTheDocument();
-    expect(screen.getByText('JA')).toBeInTheDocument();
+    expect(screen.queryByText('JA')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('JA'));
-    expect(handleChange).toHaveBeenCalledWith('ja');
+    fireEvent.click(screen.getByText('VI (Gốc)'));
+    expect(handleChange).toHaveBeenCalledWith('vi');
   });
 
   it('displays counts for untranslated balloons', () => {
     render(
       <LanguageSelector
         languages={['vi', 'en']}
-        activeLang="vi"
+        activeLang='vi'
         onChange={() => {}}
-        originalLang="vi"
+        originalLang='vi'
         counts={{ en: 5 }}
-      />
+      />,
     );
 
     expect(screen.getByText('5')).toBeInTheDocument();
   });
 });
-

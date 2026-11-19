@@ -192,10 +192,10 @@ export function buildVietQrImageUrl(opts: {
 
 // ─── Ngôn ngữ bản phát hành (ContentLanguages) ───────────────────────────────
 
-/** vi = bản gốc Studio; en/ja = bản dịch Publisher upload ảnh từng trang. */
-export type ContentLanguage = 'vi' | 'en' | 'ja';
-export const CONTENT_LANGUAGES: ContentLanguage[] = ['vi', 'en', 'ja'];
-export const TRANSLATION_LANGUAGES: ContentLanguage[] = ['en', 'ja'];
+/** vi = bản gốc Studio; en = bản dịch. */
+export type ContentLanguage = 'vi' | 'en';
+export const CONTENT_LANGUAGES: ContentLanguage[] = ['vi', 'en'];
+export const TRANSLATION_LANGUAGES: ContentLanguage[] = ['en'];
 
 // ─── Publisher: Manage chương (PublisherMonetizationController) ──────────────
 

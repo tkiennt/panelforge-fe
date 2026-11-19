@@ -20,7 +20,7 @@ vi.mock('@/services/payment.service', async (importOriginal) => {
 
 /**
  * Chương 3 trang. BR-33: mỗi ấn bản có loại/giá/N riêng.
- * vi: đã phát hành, Trả phí 10.000đ, 1 trang đầu xem trước. en: đã nghiệm thu nhưng chưa đặt giá (D4). ja: Free.
+ * vi: đã phát hành, Trả phí 10.000đ, 1 trang đầu xem trước. en: đã nghiệm thu nhưng chưa đặt giá (D4).
  */
 const manage: ChapterManageDto = {
   chapterId: 'chap-1',
@@ -47,16 +47,6 @@ const manage: ChapterManageDto = {
       isAvailable: false,
       editionStatus: 'Approved',
       isMonetizationConfigured: false,
-      isPaid: false,
-      priceVnd: 0,
-      freePreviewPages: 0,
-    },
-    {
-      language: 'ja',
-      translatedPages: 0,
-      isAvailable: false,
-      editionStatus: 'Draft',
-      isMonetizationConfigured: true,
       isPaid: false,
       priceVnd: 0,
       freePreviewPages: 0,
@@ -181,10 +171,16 @@ describe('PublisherChapterManageView — ấn bản & giá (BR-33 / D4)', () => 
   });
 
   it('ấn bản Free: mọi trang mở, không chọn được trang xem trước', async () => {
+    vi.mocked(monetizationService.getChapterManage).mockResolvedValue({
+      ...manage,
+      languages: manage.languages.map((l) =>
+        l.language === 'en' ? { ...l, editionStatus: 'Draft', isMonetizationConfigured: true } : l,
+      ),
+    });
     const user = userEvent.setup();
     renderView();
     await openEditions(user);
-    await user.click(screen.getByRole('tab', { name: /日本語/ }));
+    await user.click(screen.getByRole('tab', { name: /English/ }));
 
     expect(screen.getByRole('radio', { name: 'Free' })).toBeChecked();
     expect(screen.getByRole('button', { name: 'Trang 1' })).toBeDisabled();
