@@ -703,7 +703,7 @@ export const StudioOverviewView: React.FC = () => {
   };
 
   return (
-    <div className='flex-1 bg-[#F3F0E9] min-h-screen p-4 md:p-6 space-y-5 text-[#1C1917] font-sans'>
+    <div className='flex-1 bg-[#FAF9F5] min-h-screen p-4 md:p-6 space-y-5 text-stone-900 font-sans'>
       {/* Chọn ảnh bìa có sẵn của hệ thống */}
       <CoverPickerModal
         series={coverPickerSeries}
@@ -713,7 +713,7 @@ export const StudioOverviewView: React.FC = () => {
       />
 
       {/* Header Banner: Studio Series Library Header */}
-      <div className='bg-[#FCFBF8] p-4 sm:p-5 rounded-xl border border-[#D8D2C5] shadow-2xs space-y-4'>
+      <div className='bg-white p-5 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4'>
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
           <div>
             <div className='flex items-center gap-2.5 mb-2'>
@@ -729,10 +729,10 @@ export const StudioOverviewView: React.FC = () => {
                 }}
               />
             </div>
-            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#1C1917] tracking-tight mt-1'>
+            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight mt-1'>
               {t('workspace.library.title')}
             </h1>
-            <p className='text-xs sm:text-sm text-[#57534E] mt-1 leading-relaxed max-w-2xl'>
+            <p className='text-xs sm:text-sm text-stone-600 mt-1 leading-relaxed max-w-2xl'>
               {t(
                 `workspace.library.subtitle.${isProducer ? 'PRODUCER' : (wsRole ?? 'default')}`,
                 t('workspace.library.subtitle.default'),
@@ -745,7 +745,7 @@ export const StudioOverviewView: React.FC = () => {
               <button
                 type='button'
                 onClick={() => setCreateSeriesModalOpen(true)}
-                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs sm:text-sm font-semibold shadow-2xs active:scale-[0.98] transition-all cursor-pointer'
+                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-semibold shadow-xs active:scale-[0.98] transition-all cursor-pointer'
               >
                 <Plus className='w-4 h-4' />
                 <span>Tạo bộ truyện</span>
@@ -757,7 +757,7 @@ export const StudioOverviewView: React.FC = () => {
 
         {/* Quick Studio Operational Metrics (Stitch Architecture) */}
         <div className='grid grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1'>
-          <div className='bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200/80 shadow-2xs space-y-1.5'>
+          <div className='bg-[#FAF9F5] p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-2xs space-y-1.5'>
             <div className='flex items-center justify-between text-xs text-stone-500 font-semibold'>
               <span>Bộ truyện</span>
               <BookOpen className='w-4 h-4 text-orange-600' />
@@ -772,7 +772,7 @@ export const StudioOverviewView: React.FC = () => {
             </div>
           </div>
 
-          <div className='bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200/80 shadow-2xs space-y-1.5'>
+          <div className='bg-[#FAF9F5] p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-2xs space-y-1.5'>
             <div className='flex items-center justify-between text-xs text-stone-500 font-semibold'>
               <span>Lưu trữ Studio</span>
               <HardDrive className='w-4 h-4 text-sky-600' />
@@ -811,7 +811,7 @@ export const StudioOverviewView: React.FC = () => {
             </div>
           </div>
 
-          <div className='bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200/80 shadow-2xs space-y-1.5'>
+          <div className='bg-[#FAF9F5] p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-2xs space-y-1.5'>
             <div className='flex items-center justify-between text-xs text-stone-500 font-semibold'>
               <span>Nhân sự Studio</span>
               <Users className='w-4 h-4 text-emerald-600' />
@@ -825,7 +825,7 @@ export const StudioOverviewView: React.FC = () => {
             </div>
           </div>
 
-          <div className='bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200/80 shadow-2xs space-y-1.5'>
+          <div className='bg-[#FAF9F5] p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-2xs space-y-1.5'>
             <div className='flex items-center justify-between text-xs text-stone-500 font-semibold'>
               <span>Tổng số chương</span>
               <Layers className='w-4 h-4 text-purple-600' />
@@ -868,17 +868,19 @@ export const StudioOverviewView: React.FC = () => {
               onClick={() => setActiveTab('series')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 activeTab === 'series'
-                  ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-2xs'
-                  : 'bg-[#FCFBF8] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
+                  ? 'bg-orange-50 text-stone-900 border border-orange-500 shadow-2xs'
+                  : 'bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-50 border border-stone-200'
               }`}
             >
               <BookOpen
-                className={`w-4 h-4 ${activeTab === 'series' ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
+                className={`w-4 h-4 ${activeTab === 'series' ? 'text-orange-600' : 'text-stone-400'}`}
               />
               <span>Bộ truyện</span>
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
-                  activeTab === 'series' ? 'bg-[#F97316] text-white' : 'bg-[#F3F0E9] text-[#57534E]'
+                  activeTab === 'series'
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-stone-100 text-stone-600'
                 }`}
               >
                 {seriesList.length}
@@ -895,19 +897,19 @@ export const StudioOverviewView: React.FC = () => {
                 onClick={() => setActiveTab('members')}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   activeTab === 'members'
-                    ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-2xs'
-                    : 'bg-[#FCFBF8] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
+                    ? 'bg-orange-50 text-stone-900 border border-orange-500 shadow-2xs'
+                    : 'bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-50 border border-stone-200'
                 }`}
               >
                 <Users
-                  className={`w-4 h-4 ${activeTab === 'members' ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
+                  className={`w-4 h-4 ${activeTab === 'members' ? 'text-orange-600' : 'text-stone-400'}`}
                 />
                 <span>Thành viên Studio</span>
                 <span
                   className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
                     activeTab === 'members'
-                      ? 'bg-[#F97316] text-white'
-                      : 'bg-[#F3F0E9] text-[#57534E]'
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-stone-100 text-stone-600'
                   }`}
                 >
                   {members.length}
@@ -925,12 +927,12 @@ export const StudioOverviewView: React.FC = () => {
               onClick={() => setActiveTab('schedule')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 activeTab === 'schedule'
-                  ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-2xs'
-                  : 'bg-[#FCFBF8] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
+                  ? 'bg-orange-50 text-stone-900 border border-orange-500 shadow-2xs'
+                  : 'bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-50 border border-stone-200'
               }`}
             >
               <Calendar
-                className={`w-4 h-4 ${activeTab === 'schedule' ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
+                className={`w-4 h-4 ${activeTab === 'schedule' ? 'text-orange-600' : 'text-stone-400'}`}
               />
               <span>Lịch phát hành</span>
             </button>
@@ -946,12 +948,12 @@ export const StudioOverviewView: React.FC = () => {
                 onClick={() => setActiveTab('audit')}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   activeTab === 'audit'
-                    ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-2xs'
-                    : 'bg-[#FCFBF8] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
+                    ? 'bg-orange-50 text-stone-900 border border-orange-500 shadow-2xs'
+                    : 'bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-50 border border-stone-200'
                 }`}
               >
                 <History
-                  className={`w-4 h-4 ${activeTab === 'audit' ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
+                  className={`w-4 h-4 ${activeTab === 'audit' ? 'text-orange-600' : 'text-stone-400'}`}
                 />
                 <span>Nhật ký hoạt động</span>
               </button>
@@ -964,7 +966,7 @@ export const StudioOverviewView: React.FC = () => {
               <button
                 type='button'
                 onClick={() => setInviteModalOpen(true)}
-                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer'
+                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer'
               >
                 <UserPlus className='w-4 h-4' />
                 <span>Mời thành viên mới</span>
