@@ -90,7 +90,7 @@
       "batchPartial": "Một số dòng dịch không thành công, vui lòng kiểm tra lại.",
       "batchFailed": "Không thể hoàn tất dịch toàn bộ trang.",
       "unsupportedPairTooltip": "Dịch tự động chỉ hỗ trợ Anh ↔ Việt",
-      "fallbackWarning": "Dịch vụ dịch chưa sẵn sàng — đang hiển thị câu gốc"
+      "fallbackWarning": "Dịch vụ dịch chưa sẵn sàng — chưa dịch được, hãy thử lại sau"
     },
     "edition": {
       "label": "Ấn bản",
@@ -110,7 +110,8 @@
         "EditorApproved": "Editor đã duyệt",
         "Approved": "Producer đã duyệt",
         "Published": "Đã phát hành"
-      }
+      },
+      "confirmNoBalloons": "Chương chưa có bóng thoại nào để dịch. Vẫn gửi ấn bản {lang} cho Editor thẩm định?"
     }
   },
   "template": {

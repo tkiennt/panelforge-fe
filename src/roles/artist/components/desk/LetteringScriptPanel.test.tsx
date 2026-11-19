@@ -253,7 +253,7 @@ describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)
     fireEvent.click(screen.getByTestId('lettering-translate-line-l-speech'));
 
     const warning = await screen.findByTestId('lettering-translate-fallback-l-speech');
-    expect(warning).toHaveTextContent('Dịch vụ dịch chưa sẵn sàng — đang hiển thị câu gốc');
+    expect(warning).toHaveTextContent('Dịch vụ dịch chưa sẵn sàng — chưa dịch được, hãy thử lại sau');
     expect(screen.queryByTestId('lettering-preview-input-l-speech')).not.toBeInTheDocument();
   });
 
@@ -272,7 +272,7 @@ describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)
     fireEvent.click(screen.getByTestId('lettering-batch-translate-page'));
 
     const batchFallback = await screen.findByTestId('lettering-batch-translate-fallback');
-    expect(batchFallback).toHaveTextContent('Dịch vụ dịch chưa sẵn sàng — đang hiển thị câu gốc');
+    expect(batchFallback).toHaveTextContent('Dịch vụ dịch chưa sẵn sàng — chưa dịch được, hãy thử lại sau');
     expect(screen.queryByTestId('lettering-preview-input-l-speech')).not.toBeInTheDocument();
     expect(await screen.findByTestId('lettering-preview-input-l-narr')).toHaveValue(
       'Three years later...',

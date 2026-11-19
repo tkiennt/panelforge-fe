@@ -2528,17 +2528,23 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       }).length;
 
     const description =
-      missingCount > 0
+      chapterLoadedBalloons.length === 0
         ? t(
-            'production:lettering.edition.confirmMissingWarning',
-            { count: missingCount, lang: langUpper },
-            `Cảnh báo: Còn ${missingCount} bóng thoại chưa có bản dịch cho ngôn ngữ ${langUpper}. Bạn có chắc muốn nộp ấn bản ${langUpper} không?`,
-          )
-        : t(
-            'production:lettering.edition.confirmDescription',
+            'production:lettering.edition.confirmNoBalloons',
             { lang: langUpper },
-            `Tất cả bóng thoại đã có bản dịch ${langUpper}. Gửi ấn bản này cho Editor thẩm định?`,
-          );
+            `Chương chưa có bóng thoại nào để dịch. Vẫn gửi ấn bản ${langUpper} cho Editor thẩm định?`,
+          )
+        : missingCount > 0
+          ? t(
+              'production:lettering.edition.confirmMissingWarning',
+              { count: missingCount, lang: langUpper },
+              `Cảnh báo: Còn ${missingCount} bóng thoại chưa có bản dịch cho ngôn ngữ ${langUpper}. Bạn có chắc muốn nộp ấn bản ${langUpper} không?`,
+            )
+          : t(
+              'production:lettering.edition.confirmDescription',
+              { lang: langUpper },
+              `Tất cả bóng thoại đã có bản dịch ${langUpper}. Gửi ấn bản này cho Editor thẩm định?`,
+            );
 
     const accepted = await confirm({
       title: t(

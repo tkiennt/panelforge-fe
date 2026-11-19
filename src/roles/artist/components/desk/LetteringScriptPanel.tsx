@@ -151,7 +151,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   );
   const fallbackWarningMessage = t(
     'lettering.translate.fallbackWarning',
-    'Dịch vụ dịch chưa sẵn sàng — đang hiển thị câu gốc',
+    'Dịch vụ dịch chưa sẵn sàng — chưa dịch được, hãy thử lại sau',
   );
   const missingTranslations = isTranslating
     ? elements.filter((el) => !el.texts?.[activeLang!]?.trim()).length

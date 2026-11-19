@@ -90,7 +90,7 @@
       "batchPartial": "Some lines failed to translate, please check them.",
       "batchFailed": "Could not finish translating the page.",
       "unsupportedPairTooltip": "Auto-translate only supports English ↔ Vietnamese",
-      "fallbackWarning": "Translation service is not ready — showing original text"
+      "fallbackWarning": "Translation service is not ready — could not translate, please try again later"
     },
     "edition": {
       "label": "Edition",
@@ -110,7 +110,8 @@
         "EditorApproved": "Editor approved",
         "Approved": "Approved",
         "Published": "Published"
-      }
+      },
+      "confirmNoBalloons": "This chapter has no balloons to translate yet. Submit the {lang} edition for Editor review anyway?"
     }
   },
   "template": {
