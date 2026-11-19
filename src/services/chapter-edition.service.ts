@@ -1,12 +1,7 @@
 // src/services/chapter-edition.service.ts
 import axiosClient from '../api/axiosClient';
 
-export type EditionStatus =
-  | 'Draft'
-  | 'InReview'
-  | 'EditorApproved'
-  | 'Approved'
-  | 'Published';
+export type EditionStatus = 'Draft' | 'InReview' | 'EditorApproved' | 'Approved' | 'Published';
 
 export interface ChapterEditionDto {
   id: string;
@@ -26,6 +21,8 @@ export interface ChapterEditionDto {
   version: number;
   createdAt: string;
   updatedAt?: string | null;
+  /** D4: Publisher đã chốt Free/Trả phí (Producer chỉ xem). */
+  isMonetizationConfigured?: boolean;
 }
 
 export interface ReviewEditionRequest {
@@ -56,10 +53,7 @@ export const chapterEditionService = {
     }
   },
 
-  submitEditionTranslation: async (
-    chapterId: string,
-    lang: string,
-  ): Promise<ChapterEditionDto> => {
+  submitEditionTranslation: async (chapterId: string, lang: string): Promise<ChapterEditionDto> => {
     try {
       const res = await axiosClient.post(`/chapters/${chapterId}/editions/${lang}/submit`);
       return res.data;
@@ -85,10 +79,7 @@ export const chapterEditionService = {
     }
   },
 
-  approveEdition: async (
-    chapterId: string,
-    lang: string,
-  ): Promise<ChapterEditionDto> => {
+  approveEdition: async (chapterId: string, lang: string): Promise<ChapterEditionDto> => {
     try {
       const res = await axiosClient.post(`/chapters/${chapterId}/editions/${lang}/approve`);
       return res.data;
@@ -97,10 +88,7 @@ export const chapterEditionService = {
     }
   },
 
-  publishEdition: async (
-    chapterId: string,
-    lang: string,
-  ): Promise<ChapterEditionDto> => {
+  publishEdition: async (chapterId: string, lang: string): Promise<ChapterEditionDto> => {
     try {
       const res = await axiosClient.post(`/chapters/${chapterId}/editions/${lang}/publish`);
       return res.data;
@@ -116,7 +104,9 @@ export const chapterEditionService = {
   ): Promise<ChapterEditionDto> => {
     try {
       const reason = typeof reqOrReason === 'string' ? reqOrReason : reqOrReason.reason;
-      const res = await axiosClient.post(`/chapters/${chapterId}/editions/${lang}/reopen`, { reason });
+      const res = await axiosClient.post(`/chapters/${chapterId}/editions/${lang}/reopen`, {
+        reason,
+      });
       return res.data;
     } catch (err: any) {
       throw new Error(extractError(err, 'Mở lại ấn bản dịch thất bại.'));

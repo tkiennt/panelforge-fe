@@ -57,7 +57,7 @@ export interface ElementSnapshotDto {
   bibleEntryId?: string | null;
   /** Kiểu chữ Letterer chọn; null = mặc định theo loại element. */
   style?: TextStyleDto | null;
-  /** Bản dịch theo từng ngôn ngữ (BR-34): { vi: '...', en: '...', ja: '...' } */
+  /** Bản dịch theo từng ngôn ngữ (BR-34): { vi: '...', en: '...' } */
   texts?: Record<string, string> | null;
 }
 
