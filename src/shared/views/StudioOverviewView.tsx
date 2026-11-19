@@ -10,6 +10,10 @@ import {
   UserPlus,
   AlertTriangle,
   Search,
+  HardDrive,
+  Layers,
+  Calendar,
+  History,
 } from 'lucide-react';
 import {
   workspaceService,
@@ -31,6 +35,9 @@ import { StudioGovernanceBar } from './studio-overview/StudioGovernanceBar';
 import { SeriesFilterBar } from './studio-overview/SeriesFilterBar';
 import { SeriesShelf } from './studio-overview/SeriesShelf';
 import { MembersTabContent } from './studio-overview/MembersTabContent';
+import { StudioScheduleTab } from './studio-overview/StudioScheduleTab';
+import { StudioAuditTab } from './studio-overview/StudioAuditTab';
+import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
 import { Alert } from '@/shared/ui';
 import {
   CoverPickerModal,
@@ -62,7 +69,7 @@ export const StudioOverviewView: React.FC = () => {
 
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
-  const [activeTab, setActiveTab] = useState<'series' | 'members'>('series');
+  const [activeTab, setActiveTab] = useState<'series' | 'members' | 'schedule' | 'audit'>('series');
   const [loading, setLoading] = useState(false);
 
   // Selected series for UC-03 Modals
@@ -561,6 +568,12 @@ export const StudioOverviewView: React.FC = () => {
     }
   }, [auditModalOpen, loadWorkspaceAudit]);
 
+  useEffect(() => {
+    if (activeTab === 'audit' && auditLogs.length === 0 && activeWorkspace) {
+      loadWorkspaceAudit();
+    }
+  }, [activeTab, activeWorkspace, auditLogs.length, loadWorkspaceAudit]);
+
   const handleResendInvitation = async (userId: string) => {
     if (!activeWorkspace) return;
     try {
@@ -703,9 +716,18 @@ export const StudioOverviewView: React.FC = () => {
       <div className='bg-[#FCFBF8] p-4 sm:p-5 rounded-xl border border-[#D8D2C5] shadow-2xs space-y-4'>
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
           <div>
-            <div className='flex items-center gap-2 text-xs font-semibold text-[#57534E]'>
-              <Briefcase className='w-4 h-4 text-[#F97316] shrink-0' />
-              <span>{activeWorkspace?.name || 'Studio Workspace'}</span>
+            <div className='flex items-center gap-2.5 mb-2'>
+              <StudioSwitcher
+                activeWorkspaceId={activeWorkspace?.id || workspaceId}
+                activeWorkspaceName={activeWorkspace?.name}
+                onCreateNewStudio={() => navigate('/workspaces?create=true')}
+                onSelectStudio={(ws) => {
+                  const normalizedWs = ws as any;
+                  setActiveWorkspace(normalizedWs);
+                  writeCachedWorkspace(normalizedWs, currentUser?.id);
+                  navigate(`/workspaces/${ws.id}`);
+                }}
+              />
             </div>
             <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#1C1917] tracking-tight mt-1'>
               {t('workspace.library.title')}
@@ -731,6 +753,89 @@ export const StudioOverviewView: React.FC = () => {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Quick Studio Operational Metrics (Stitch Architecture) */}
+        <div className='grid grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1'>
+          <div className='bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200/80 shadow-2xs space-y-1.5'>
+            <div className='flex items-center justify-between text-xs text-stone-500 font-semibold'>
+              <span>Bộ truyện</span>
+              <BookOpen className='w-4 h-4 text-orange-600' />
+            </div>
+            <div className='text-xl sm:text-2xl font-mono font-bold text-stone-900'>
+              {seriesList.length}{' '}
+              <span className='text-xs font-sans text-stone-500 font-normal'>Dự án</span>
+            </div>
+            <div className='text-[11px] text-emerald-700 font-semibold flex items-center gap-1 truncate'>
+              <span className='w-1.5 h-1.5 rounded-full bg-emerald-600' />
+              <span>{seriesList.filter((s) => !s.isCompleted).length} Đang sản xuất</span>
+            </div>
+          </div>
+
+          <div className='bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200/80 shadow-2xs space-y-1.5'>
+            <div className='flex items-center justify-between text-xs text-stone-500 font-semibold'>
+              <span>Lưu trữ Studio</span>
+              <HardDrive className='w-4 h-4 text-sky-600' />
+            </div>
+            <div className='text-xl sm:text-2xl font-mono font-bold text-stone-900'>
+              {(() => {
+                const used = workspaceUsage
+                  ? workspaceUsage.storage.used
+                  : activeWorkspace?.usedStorageBytes || 0;
+                const quota = workspaceUsage
+                  ? workspaceUsage.storage.quota
+                  : activeWorkspace?.storageQuotaBytes || 0;
+                const pct = quota > 0 ? Math.round((used / quota) * 100) : 0;
+                return `${pct}%`;
+              })()}
+              <span className='text-xs font-sans text-stone-500 font-normal ml-1.5'>đã dùng</span>
+            </div>
+            <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden'>
+              <div
+                className='bg-sky-600 h-full rounded-full transition-all duration-300'
+                style={{
+                  width: `${Math.min(
+                    100,
+                    (() => {
+                      const used = workspaceUsage
+                        ? workspaceUsage.storage.used
+                        : activeWorkspace?.usedStorageBytes || 0;
+                      const quota = workspaceUsage
+                        ? workspaceUsage.storage.quota
+                        : activeWorkspace?.storageQuotaBytes || 0;
+                      return quota > 0 ? (used / quota) * 100 : 0;
+                    })(),
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
+
+          <div className='bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200/80 shadow-2xs space-y-1.5'>
+            <div className='flex items-center justify-between text-xs text-stone-500 font-semibold'>
+              <span>Nhân sự Studio</span>
+              <Users className='w-4 h-4 text-emerald-600' />
+            </div>
+            <div className='text-xl sm:text-2xl font-mono font-bold text-stone-900'>
+              {members.length}{' '}
+              <span className='text-xs font-sans text-stone-500 font-normal'>Thành viên</span>
+            </div>
+            <div className='text-[11px] text-stone-600 font-medium truncate'>
+              {members.filter((m) => m.isEmailConfirmed !== false).length} Đang hoạt động
+            </div>
+          </div>
+
+          <div className='bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200/80 shadow-2xs space-y-1.5'>
+            <div className='flex items-center justify-between text-xs text-stone-500 font-semibold'>
+              <span>Tổng số chương</span>
+              <Layers className='w-4 h-4 text-purple-600' />
+            </div>
+            <div className='text-xl sm:text-2xl font-mono font-bold text-stone-900'>
+              {seriesList.reduce((acc, s) => acc + (s.chaptersCount ?? 0), 0)}{' '}
+              <span className='text-xs font-sans text-stone-500 font-normal'>Chương</span>
+            </div>
+            <div className='text-[11px] text-stone-600 font-medium truncate'>Toàn bộ tác phẩm</div>
+          </div>
         </div>
 
         {/* Studio Resource Governance (Compact & Collapsible) - Shown for Producer */}
@@ -807,6 +912,48 @@ export const StudioOverviewView: React.FC = () => {
                 >
                   {members.length}
                 </span>
+              </button>
+            )}
+
+            {/* Tab 3: Lịch phát hành tổng */}
+            <button
+              type='button'
+              role='tab'
+              id='tab-schedule'
+              aria-selected={activeTab === 'schedule'}
+              aria-controls='tabpanel-schedule'
+              onClick={() => setActiveTab('schedule')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                activeTab === 'schedule'
+                  ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-2xs'
+                  : 'bg-[#FCFBF8] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
+              }`}
+            >
+              <Calendar
+                className={`w-4 h-4 ${activeTab === 'schedule' ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
+              />
+              <span>Lịch phát hành</span>
+            </button>
+
+            {/* Tab 4: Nhật ký hoạt động */}
+            {isProducerOrAdmin && (
+              <button
+                type='button'
+                role='tab'
+                id='tab-audit'
+                aria-selected={activeTab === 'audit'}
+                aria-controls='tabpanel-audit'
+                onClick={() => setActiveTab('audit')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'audit'
+                    ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-2xs'
+                    : 'bg-[#FCFBF8] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
+                }`}
+              >
+                <History
+                  className={`w-4 h-4 ${activeTab === 'audit' ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
+                />
+                <span>Nhật ký hoạt động</span>
               </button>
             )}
           </div>
@@ -907,6 +1054,27 @@ export const StudioOverviewView: React.FC = () => {
             onResendInvitation={handleResendInvitation}
             onOpenEditAccess={handleOpenEditAccess}
             onDeleteMember={handleDeleteMember}
+          />
+        )}
+
+        {/* TAB 3: Release Schedule View */}
+        {activeTab === 'schedule' && (
+          <StudioScheduleTab
+            seriesList={seriesList}
+            workspaceId={activeWorkspace?.id || workspaceId}
+            isProducer={isProducer}
+          />
+        )}
+
+        {/* TAB 4: Audit Logs View */}
+        {activeTab === 'audit' && (
+          <StudioAuditTab
+            logs={auditLogs}
+            loading={auditLoading}
+            filterEntity={auditFilterEntity}
+            onFilterChange={setAuditFilterEntity}
+            onRefresh={loadWorkspaceAudit}
+            workspaceName={activeWorkspace?.name}
           />
         )}
       </div>

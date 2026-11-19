@@ -1,0 +1,148 @@
+import React from 'react';
+import { History, RefreshCw, Search, ShieldCheck, AlertCircle, Clock, User } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
+
+export interface StudioAuditTabProps {
+  logs: any[];
+  loading: boolean;
+  filterEntity: string;
+  onFilterChange: (val: string) => void;
+  onRefresh: () => void;
+  workspaceName?: string;
+}
+
+export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
+  logs,
+  loading,
+  filterEntity,
+  onFilterChange,
+  onRefresh,
+  workspaceName,
+}) => {
+  const { t } = useTranslation();
+
+  const filteredLogs = React.useMemo(() => {
+    if (!filterEntity.trim()) return logs;
+    const q = filterEntity.toLowerCase().trim();
+    return logs.filter((log) => {
+      const entity = (log.entityName || log.targetType || '').toLowerCase();
+      const action = (log.action || log.operation || '').toLowerCase();
+      const user = (log.actorName || log.userName || '').toLowerCase();
+      const desc = (log.description || log.details || '').toLowerCase();
+      return entity.includes(q) || action.includes(q) || user.includes(q) || desc.includes(q);
+    });
+  }, [logs, filterEntity]);
+
+  return (
+    <div className='space-y-4 animate-in fade-in duration-200'>
+      {/* Header & Controls */}
+      <div className='bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+        <div>
+          <div className='flex items-center gap-2'>
+            <History className='w-4 h-4 text-orange-600' />
+            <h3 className='font-serif text-base font-bold text-stone-900'>
+              Nhật ký hoạt động kiểm soát biên tập
+            </h3>
+          </div>
+          <p className='text-xs text-stone-500 mt-0.5'>
+            Dòng thời gian sự kiện, phân quyền và kiểm soát sản xuất trong Studio{' '}
+            {workspaceName ? `"${workspaceName}"` : ''}
+          </p>
+        </div>
+
+        {/* Filter Controls */}
+        <div className='flex items-center gap-2.5'>
+          <div className='relative flex-1 sm:w-64'>
+            <Search className='w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2' />
+            <input
+              type='text'
+              value={filterEntity}
+              onChange={(e) => onFilterChange(e.target.value)}
+              placeholder='Lọc theo thao tác, nhân sự, dự án...'
+              className='w-full pl-9 pr-3 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-orange-500 transition-colors'
+            />
+          </div>
+          <button
+            type='button'
+            onClick={onRefresh}
+            disabled={loading}
+            className='focus-ring min-h-9 px-3.5 text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 border border-stone-200/80 rounded-xl inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
+            title='Làm mới nhật ký'
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-orange-600' : ''}`} />
+            <span className='hidden sm:inline'>Làm mới</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Logs Table / List */}
+      <div className='bg-white rounded-2xl border border-stone-200/80 shadow-2xs overflow-hidden'>
+        {loading && logs.length === 0 ? (
+          <div className='py-12 flex flex-col items-center justify-center gap-2 text-stone-500 text-xs'>
+            <RefreshCw className='w-5 h-5 animate-spin text-orange-600' />
+            <span>Đang tải dữ liệu nhật ký kiểm soát...</span>
+          </div>
+        ) : filteredLogs.length === 0 ? (
+          <div className='py-12 px-4 text-center space-y-2'>
+            <ShieldCheck className='w-8 h-8 text-stone-400 mx-auto' />
+            <h4 className='text-sm font-bold text-stone-800'>Chưa có bản ghi nhật ký</h4>
+            <p className='text-xs text-stone-500 max-w-sm mx-auto'>
+              {filterEntity
+                ? 'Không tìm thấy sự kiện nào khớp với từ khóa tìm kiếm.'
+                : 'Mọi hoạt động tạo dự án, phân công và kiểm soát biên tập sẽ được ghi nhận tại đây.'}
+            </p>
+          </div>
+        ) : (
+          <div className='overflow-x-auto'>
+            <table className='w-full text-left text-xs'>
+              <thead className='bg-stone-50/80 border-b border-stone-200 text-stone-600 font-semibold uppercase tracking-wider text-[11px]'>
+                <tr>
+                  <th className='py-3 px-4'>Thời gian</th>
+                  <th className='py-3 px-4'>Nhân sự thực hiện</th>
+                  <th className='py-3 px-4'>Hành động</th>
+                  <th className='py-3 px-4'>Đối tượng</th>
+                  <th className='py-3 px-4'>Chi tiết</th>
+                </tr>
+              </thead>
+              <tbody className='divide-y divide-stone-100 text-stone-800'>
+                {filteredLogs.map((log, idx) => {
+                  const time = log.timestamp || log.createdAt || log.createdUtc;
+                  const formattedTime = time ? new Date(time).toLocaleString('vi-VN') : '—';
+                  const actor = log.actorName || log.userName || log.userEmail || 'Hệ thống';
+                  const action = log.action || log.operation || 'Cập nhật';
+                  const target = log.entityName || log.targetType || log.entityType || '—';
+                  const details = log.description || log.details || log.metadataJson || '—';
+
+                  return (
+                    <tr key={log.id || idx} className='hover:bg-stone-50/70 transition-colors'>
+                      <td className='py-3 px-4 font-mono text-stone-500 whitespace-nowrap text-[11px]'>
+                        {formattedTime}
+                      </td>
+                      <td className='py-3 px-4 font-medium text-stone-900 whitespace-nowrap'>
+                        <div className='flex items-center gap-1.5'>
+                          <User className='w-3.5 h-3.5 text-stone-400' />
+                          <span>{actor}</span>
+                        </div>
+                      </td>
+                      <td className='py-3 px-4 whitespace-nowrap'>
+                        <span className='px-2 py-0.5 rounded-md bg-orange-50 text-orange-800 border border-orange-200 font-semibold text-[11px]'>
+                          {action}
+                        </span>
+                      </td>
+                      <td className='py-3 px-4 font-medium text-stone-700 whitespace-nowrap'>
+                        {target}
+                      </td>
+                      <td className='py-3 px-4 text-stone-600 max-w-xs truncate' title={details}>
+                        {details}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

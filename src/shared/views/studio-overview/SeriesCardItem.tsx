@@ -8,6 +8,7 @@ import {
   Edit2,
   Trash2,
   Users,
+  ArrowRight,
 } from 'lucide-react';
 import { SeriesDto } from '@/services/series.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
@@ -205,6 +206,17 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
         <span className='font-mono tabular-nums text-stone-700'>{s.chaptersCount ?? 0}</span> chương
         · {formatReadingDirection(s.readingDirection).label}
       </p>
+
+      <button
+        type='button'
+        onClick={() => onOpenSeries(s.id)}
+        aria-label={`Không gian làm việc: ${s.title}`}
+        className='mt-3.5 w-full btn-cta-primary focus-ring min-h-9 py-2 px-3 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer'
+        data-testid={`open-series-btn-${s.id}`}
+      >
+        <span>Mở không gian truyện</span>
+        <ArrowRight className='w-3.5 h-3.5' />
+      </button>
     </article>
   );
 };

@@ -56,6 +56,7 @@ import { LanguageSwitcher, useTranslation } from '@/lib/i18n';
 import { notificationService } from '@/services/notification.service';
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 import { RouteFallback } from '@/shared/components/RouteFallback';
+import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
 
 export interface CurrentUser {
   name: string;
@@ -836,16 +837,15 @@ export function AppShell({
                 </button>
                 <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
 
-                {/* Studio / Series Name Segment */}
-                <button
-                  type='button'
-                  onClick={() => navigate(seriesListHref)}
-                  className='text-[#1C1917] hover:text-black cursor-pointer transition-all truncate px-2.5 py-1 rounded-full hover:bg-[#FFF2E6] hover:shadow-2xs flex items-center gap-1 font-bold'
-                  title={t('navigation.header.openSeriesList', 'Mở danh sách Series của Workspace')}
-                >
-                  <Briefcase className='w-3.5 h-3.5 text-[#57534E]' />
-                  <span className='truncate'>{activeWorkspace?.name || 'Studio Workspace'}</span>
-                </button>
+                {/* Studio Switcher Dropdown (2-tier Navigation) */}
+                <StudioSwitcher
+                  activeWorkspaceId={activeWorkspace?.id || workspaceId}
+                  activeWorkspaceName={activeWorkspace?.name}
+                  onSelectStudio={(ws) => {
+                    navigate(`/workspaces/${ws.id}`);
+                  }}
+                  onCreateNewStudio={() => navigate('/workspaces?create=true')}
+                />
                 {isSeriesContext && (
                   <>
                     <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
