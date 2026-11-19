@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { SeriesBibleView } from './SeriesBibleView';
 import { bibleService } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
+import { aiAgentsService, AiApiError } from '@/services/aiAgents.service';
 import { ConfirmProvider } from '@/shared/context/ConfirmContext';
 
 const render = (ui: React.ReactElement, options?: any) =>
@@ -14,6 +15,7 @@ vi.mock('@/services/bible.service', () => ({
   bibleService: {
     getSeriesBible: vi.fn(),
     createBibleEntry: vi.fn(),
+    defineBibleEntry: vi.fn().mockResolvedValue({}),
     createRevision: vi.fn(),
     getRevisions: vi.fn(),
     confirmRevision: vi.fn().mockResolvedValue({}),
@@ -712,6 +714,271 @@ describe('SeriesBibleView UX/UI improvements', () => {
       await waitFor(() => expect(screen.getByText('Tần Mục')).toBeDefined());
 
       expect(screen.getByText('✓ Quần chúng')).toBeDefined();
+    });
+  });
+
+  describe('Bible Stub Definition & Harvester (Series Bible)', () => {
+    const stubEntry = {
+      id: 'stub-1',
+      seriesBibleId: 'bible-1',
+      category: 0,
+      code: 'HAC_Y',
+      name: 'Hắc Y Nhân',
+      subtitle: '',
+      description: '',
+      detailsJson: '{}',
+      referenceImageUrl: null,
+      priority: 1,
+      strictCheck: true,
+      isActive: true,
+      isStub: true,
+      createdAt: '2026-11-18T00:00:00Z',
+      effectiveRevision: null,
+    };
+
+    beforeEach(() => {
+      (bibleService as any).getBibleDesignQueue = vi.fn().mockResolvedValue([]);
+      (bibleService.getSeriesBible as any).mockResolvedValue({
+        id: 'bible-1',
+        seriesId: 'series-123',
+        workspaceId: 'ws-1',
+        name: 'Series Bible',
+        version: 1,
+        entries: [stubEntry, mockEntries[0]],
+      });
+    });
+
+    it('applies bible?search=<name> from URL, lets Writer request AI draft with citations, pour via "Dùng làm nháp", edit manually, and save once via defineBibleEntry', async () => {
+      const onShowToast = vi.fn();
+      const runStubSpy = vi.spyOn(aiAgentsService, 'runBibleStubDraft').mockResolvedValueOnce({
+        id: 'sug-stub-1',
+        runId: 'run-stub-1',
+        stepId: 'step-stub-1',
+        sceneId: 'sc-1',
+        kind: 'BibleStub',
+        status: 'Pending',
+        summary: 'Hồ sơ nháp cho Hắc Y Nhân',
+        payload: {
+          entryId: 'stub-1',
+          name: 'Hắc Y Nhân',
+          draft: {
+            description: 'Sát thủ mặc áo choàng đen xuất hiện trên mái ngói.',
+            subtitle: 'Sát thủ bí ẩn',
+            citations: [
+              {
+                claim: 'Mặc áo choàng đen trên mái ngói',
+                lineId: 'line-1',
+                quote: 'Hắc Y Nhân đứng lặng trên mái ngói, tà áo choàng đen bay trong mưa.',
+              },
+            ],
+          },
+          reason: 'Tổng hợp từ dòng kịch bản 1',
+        },
+        payloadHash: 'hash-stub-1',
+        baseChapterVersion: 2,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-11-18T10:00:00Z',
+        decisions: [],
+        canDecide: true,
+        canAccept: true,
+      });
+      const reviewSpy = vi.spyOn(aiAgentsService, 'review').mockResolvedValueOnce({
+        suggestionId: 'sug-stub-1',
+        status: 'Accepted',
+        decisionId: 'dec-stub-1',
+        resultRevisionId: null,
+        chapterVersion: 2,
+      });
+
+      let resolveDefine!: (val: any) => void;
+      (bibleService.defineBibleEntry as any).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveDefine = resolve;
+          }),
+      );
+
+      rtlRender(<SeriesBibleView activeProject={mockSeries as any} onShowToast={onShowToast} />, {
+        wrapper: ({ children }) => (
+          <MemoryRouter
+            initialEntries={[
+              '/workspaces/ws-1/series/series-123/bible?search=H%E1%BA%AFc%20Y%20Nh%C3%A2n',
+            ]}
+          >
+            {children}
+          </MemoryRouter>
+        ),
+      });
+
+      // URL search param filters directly to Hắc Y Nhân (hides Tần Mục)
+      expect(await screen.findByText('Hắc Y Nhân')).toBeInTheDocument();
+      expect(screen.queryByText('Tần Mục')).toBeNull();
+      expect((screen.getByTestId('bible-search-input') as HTMLInputElement).value).toBe(
+        'Hắc Y Nhân',
+      );
+
+      // Stub does NOT offer normal create-revision; offers "Định nghĩa"
+      expect(screen.queryByTestId('add-revision-btn-stub-1')).toBeNull();
+      fireEvent.click(screen.getByTestId('define-stub-btn-stub-1'));
+
+      // Read-only entity name
+      const readonlyName = screen.getByTestId('define-entity-name-readonly');
+      expect(readonlyName).toHaveTextContent('Hắc Y Nhân');
+      expect(readonlyName.tagName.toLowerCase()).not.toBe('input');
+
+      // Request AI draft from script
+      fireEvent.click(screen.getByRole('button', { name: /Soạn nháp từ kịch bản/i }));
+      await waitFor(() => {
+        expect(runStubSpy).toHaveBeenCalledWith('series-123', 'stub-1', undefined);
+      });
+
+      // Displays verbatim citation claim & quote
+      expect(await screen.findByText('Mặc áo choàng đen trên mái ngói')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Hắc Y Nhân đứng lặng trên mái ngói, tà áo choàng đen bay trong mưa\./),
+      ).toBeInTheDocument();
+
+      // Must not auto-save before user saves
+      expect(bibleService.defineBibleEntry).not.toHaveBeenCalled();
+
+      // Click "Dùng làm nháp" -> records Accept and fills form fields only
+      fireEvent.click(screen.getByRole('button', { name: /Dùng làm nháp/i }));
+      await waitFor(() => {
+        expect(reviewSpy).toHaveBeenCalledWith('series-123', 'sug-stub-1', 'accept', {});
+      });
+
+      const subtitleInput = screen.getByTestId('define-entity-subtitle-input') as HTMLInputElement;
+      const descInput = screen.getByTestId(
+        'define-entity-description-input',
+      ) as HTMLTextAreaElement;
+      expect(subtitleInput.value).toBe('Sát thủ bí ẩn');
+      expect(descInput.value).toBe('Sát thủ mặc áo choàng đen xuất hiện trên mái ngói.');
+      expect(bibleService.defineBibleEntry).not.toHaveBeenCalled();
+
+      // IME composition Enter on subtitle input must be ignored
+      fireEvent.keyDown(subtitleInput, { key: 'Enter', isComposing: true });
+      expect(bibleService.defineBibleEntry).not.toHaveBeenCalled();
+
+      // Writer edits description manually and saves; double-click must not double-submit
+      fireEvent.change(descInput, {
+        target: { value: 'Sát thủ mặc áo choàng đen, mang mặt nạ bạc.' },
+      });
+      const saveBtn = screen.getByTestId('save-define-stub-btn');
+      fireEvent.click(saveBtn);
+      fireEvent.click(saveBtn);
+
+      expect(bibleService.defineBibleEntry).toHaveBeenCalledTimes(1);
+      expect(bibleService.defineBibleEntry).toHaveBeenCalledWith('series-123', 'stub-1', {
+        name: 'Hắc Y Nhân',
+        description: 'Sát thủ mặc áo choàng đen, mang mặt nạ bạc.',
+        subtitle: 'Sát thủ bí ẩn',
+      });
+
+      const callsBeforeResolve = (bibleService.getSeriesBible as any).mock.calls.length;
+      resolveDefine({
+        ...stubEntry,
+        isStub: false,
+        subtitle: 'Sát thủ bí ẩn',
+        description: 'Sát thủ mặc áo choàng đen, mang mặt nạ bạc.',
+      });
+
+      await waitFor(() => {
+        expect((bibleService.getSeriesBible as any).mock.calls.length).toBeGreaterThan(
+          callsBeforeResolve,
+        );
+        expect(onShowToast).toHaveBeenCalledWith(
+          'Đã định nghĩa thực thể',
+          expect.stringContaining('Hắc Y Nhân'),
+        );
+      });
+    });
+
+    it('shows verbatim 403/409 backend errors for AI draft and defineBibleEntry and keeps form open on failure', async () => {
+      const onShowToast = vi.fn();
+      vi.spyOn(aiAgentsService, 'runBibleStubDraft')
+        .mockRejectedValueOnce(
+          new AiApiError('Chỉ Writer của Workspace mới được xin hồ sơ nháp.', 'FORBIDDEN', 403),
+        )
+        .mockRejectedValueOnce(
+          new AiApiError(
+            'Chưa có dòng kịch bản nào nhắc tới mục này, nên không có căn cứ để soạn.',
+            'CONFLICT',
+            409,
+          ),
+        );
+      (bibleService.defineBibleEntry as any).mockRejectedValueOnce({
+        status: 409,
+        code: 'CONFLICT',
+        message: 'Mục này đã được định nghĩa trước đó.',
+      });
+
+      render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={onShowToast} />);
+
+      fireEvent.click(await screen.findByTestId('define-stub-btn-stub-1'));
+
+      const draftBtn = screen.getByRole('button', { name: /Soạn nháp từ kịch bản/i });
+      fireEvent.click(draftBtn);
+      expect(
+        await screen.findByText('Chỉ Writer của Workspace mới được xin hồ sơ nháp.'),
+      ).toBeInTheDocument();
+
+      fireEvent.click(draftBtn);
+      expect(
+        await screen.findByText(
+          'Chưa có dòng kịch bản nào nhắc tới mục này, nên không có căn cứ để soạn.',
+        ),
+      ).toBeInTheDocument();
+
+      // Failing defineBibleEntry shows backend message verbatim and keeps form open
+      const descInput = screen.getByTestId(
+        'define-entity-description-input',
+      ) as HTMLTextAreaElement;
+      fireEvent.change(descInput, { target: { value: 'Mô tả thử nghiệm khi xung đột' } });
+      fireEvent.click(screen.getByTestId('save-define-stub-btn'));
+
+      expect(await screen.findByText('Mục này đã được định nghĩa trước đó.')).toBeInTheDocument();
+      expect(onShowToast).toHaveBeenCalledWith(
+        expect.any(String),
+        'Mục này đã được định nghĩa trước đó.',
+      );
+      expect(screen.getByTestId('define-entity-description-input')).toHaveValue(
+        'Mô tả thử nghiệm khi xung đột',
+      );
+    });
+
+    it('hides stub define action & Harvester for non-Writers and only shows Harvester on stub entries', async () => {
+      // Non-stub entry opened by Writer in AddRevisionModal must NOT show stub Harvester
+      const writerRender = render(
+        <SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />,
+      );
+      await screen.findByText('Hắc Y Nhân');
+
+      expect(screen.getByTestId('define-stub-btn-stub-1')).toBeInTheDocument();
+      expect(screen.queryByTestId('define-stub-btn-entry-chr-1')).toBeNull();
+      fireEvent.click(screen.getByTestId('add-revision-btn-entry-chr-1'));
+      expect(
+        screen.queryByRole('button', { name: /Soạn nháp từ kịch bản/i }),
+      ).not.toBeInTheDocument();
+      writerRender.unmount();
+
+      // Non-Writers (EDITOR, PRODUCER, ARTIST) do NOT see "Định nghĩa" or normal create-revision on stubs
+      for (const role of ['EDITOR', 'PRODUCER', 'ARTIST']) {
+        localStorage.setItem(
+          'activeWorkspace',
+          JSON.stringify({ id: 'ws-1', currentUserRole: role, isOwner: role === 'PRODUCER' }),
+        );
+        const { unmount } = render(
+          <SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />,
+        );
+        await screen.findByText('Hắc Y Nhân');
+        expect(screen.queryByTestId('define-stub-btn-stub-1')).toBeNull();
+        expect(screen.queryByTestId('add-revision-btn-stub-1')).toBeNull();
+        expect(
+          screen.queryByRole('button', { name: /Soạn nháp từ kịch bản/i }),
+        ).not.toBeInTheDocument();
+        unmount();
+      }
     });
   });
 });

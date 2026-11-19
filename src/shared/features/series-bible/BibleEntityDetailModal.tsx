@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -22,6 +22,7 @@ import {
   CornerDownRight,
   Check,
   Users,
+  Loader2,
 } from 'lucide-react';
 import { BibleEntity, normalizeWorkspaceRole } from '@/types';
 import {
@@ -32,8 +33,9 @@ import {
 } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { Alert, CollapsibleSidebar, Modal, SidebarSection } from '@/shared/ui';
-import { useTranslation, translate } from '@/lib/i18n';
-import { getCategoryLabel, getCategoryBadgeStyle } from './bibleCategory';
+import { useTranslation } from '@/lib/i18n';
+import { BibleStubAiDraftSection } from './BibleStubAiDraftSection';
+import { getCategoryLabel } from './bibleCategory';
 import { SPEC_DELIVERABLES, SPEC_SCHEMA, specCategoryOf, specCompleteness } from './bibleSpec';
 import type { BibleEntryUsageDto } from '@/services/bible.service';
 
@@ -158,6 +160,250 @@ const getVariantIcon = (name?: string | null, category?: string | number) => {
   return '👤';
 };
 
+export interface DefineStubModalProps {
+  isOpen: boolean;
+  entity: BibleEntity | null;
+  seriesId?: string;
+  isWriter: boolean;
+  onClose: () => void;
+  onDefined: (
+    entity: BibleEntity,
+    defined: { description: string; subtitle: string; dto?: BibleEntryDto },
+  ) => void | Promise<void>;
+  onShowToast: (title: string, desc: string) => void;
+}
+
+export const DefineStubModal: React.FC<DefineStubModalProps> = ({
+  isOpen,
+  entity,
+  seriesId,
+  isWriter,
+  onClose,
+  onDefined,
+  onShowToast,
+}) => {
+  const { t } = useTranslation();
+  const subtitleInputId = useId();
+  const descriptionInputId = useId();
+  const [subtitle, setSubtitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const initializedEntityIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen || !entity) {
+      initializedEntityIdRef.current = null;
+      return;
+    }
+    if (initializedEntityIdRef.current !== entity.id) {
+      initializedEntityIdRef.current = entity.id;
+      setSubtitle(entity.subtitle || '');
+      setDescription(entity.description || '');
+      setSubmitError(null);
+      setIsSubmitting(false);
+      submittingRef.current = false;
+    }
+  }, [isOpen, entity]);
+
+  if (!isOpen || !entity) return null;
+
+  const runSubmit = async () => {
+    if (submittingRef.current || !seriesId) return;
+    const trimmedDescription = description.trim();
+    if (!trimmedDescription) return;
+    const trimmedSubtitle = subtitle.trim();
+
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const updatedDto = await bibleService.defineBibleEntry(seriesId, entity.id, {
+        name: entity.name,
+        description: trimmedDescription,
+        subtitle: trimmedSubtitle || undefined,
+      });
+      await onDefined(entity, {
+        description: trimmedDescription,
+        subtitle: trimmedSubtitle,
+        dto: updatedDto,
+      });
+      onShowToast(
+        t('bible.defineStub.successTitle', 'Đã định nghĩa thực thể'),
+        t(
+          'bible.defineStub.successDesc',
+          { name: entity.name },
+          `Đã lưu mô tả đặc tả cho "${entity.name}".`,
+        ),
+      );
+      onClose();
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        t('bible.defineStub.errorDesc', 'Không thể định nghĩa mục Series Bible.');
+      setSubmitError(message);
+      onShowToast(t('bible.defineStub.errorTitle', 'Định nghĩa thực thể thất bại'), message);
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void runSubmit();
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      dismissible={!isSubmitting}
+      size='md'
+      closeLabel={t('common.close', 'Đóng')}
+      data-child-modal='true'
+      title={t('bible.defineStub.modalTitle', 'Định nghĩa thực thể Series Bible')}
+      description={t(
+        'bible.defineStub.modalSubtitle',
+        'Mục tự động tạo từ kịch bản cần có mô tả đặc tả trước khi đưa vào thiết kế.',
+      )}
+    >
+      <form onSubmit={handleSubmit} className='space-y-4'>
+        <BibleStubAiDraftSection
+          seriesId={seriesId}
+          entryId={entity.id}
+          canUseAi={isWriter}
+          onApplyDraft={({ description: draftDesc, subtitle: draftSub }) => {
+            setDescription(draftDesc);
+            setSubtitle(draftSub);
+            setSubmitError(null);
+          }}
+        />
+
+        <div>
+          <span className='block text-xs font-semibold text-stone-700 mb-1'>
+            {t('bible.defineStub.nameLabel', 'Tên thực thể (Bất biến)')}
+          </span>
+          <div
+            data-testid='define-entity-name-readonly'
+            className='w-full px-3 py-2 bg-stone-100 border border-stone-200 rounded-lg text-xs font-bold text-stone-700 select-none cursor-not-allowed'
+          >
+            {entity.name}
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor={subtitleInputId}
+            className='block text-xs font-semibold text-stone-700 mb-1'
+          >
+            {t('bible.defineStub.subtitleLabel', 'Tiêu đề phụ / Vai trò')}
+          </label>
+          <input
+            id={subtitleInputId}
+            name='subtitle'
+            type='text'
+            value={subtitle}
+            disabled={isSubmitting}
+            onChange={(e) => setSubtitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) {
+                  e.preventDefault();
+                  return;
+                }
+                e.preventDefault();
+                void runSubmit();
+              }
+            }}
+            placeholder={t('bible.defineStub.subtitlePlaceholder', 'Ví dụ: Kiếm sĩ lang thang')}
+            data-testid='define-entity-subtitle-input'
+            className='w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-[#F97316] disabled:opacity-60'
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor={descriptionInputId}
+            className='block text-xs font-semibold text-stone-700 mb-1'
+          >
+            {t('bible.defineStub.descriptionLabel', 'Mô tả & Đặc điểm nhận diện *')}
+          </label>
+          <textarea
+            id={descriptionInputId}
+            name='description'
+            rows={4}
+            required
+            autoFocus
+            value={description}
+            disabled={isSubmitting}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              if (submitError) setSubmitError(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) {
+                  return;
+                }
+                e.preventDefault();
+                void runSubmit();
+              }
+            }}
+            placeholder={t(
+              'bible.defineStub.descriptionPlaceholder',
+              'Ngoại hình, trang phục, vũ khí hoặc đặc điểm nhận diện chính...',
+            )}
+            data-testid='define-entity-description-input'
+            className='w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-[#F97316] disabled:opacity-60'
+          />
+        </div>
+
+        {submitError && (
+          <div
+            role='alert'
+            data-testid='define-stub-error'
+            className='rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800'
+          >
+            {submitError}
+          </div>
+        )}
+
+        <div className='flex items-center justify-end gap-2 pt-3 border-t border-stone-200'>
+          <button
+            type='button'
+            disabled={isSubmitting}
+            onClick={onClose}
+            className='px-3.5 py-1.5 rounded-lg border border-stone-200 hover:bg-stone-50 text-stone-600 text-xs font-semibold cursor-pointer disabled:opacity-50'
+          >
+            {t('bible.defineStub.cancel', 'Hủy')}
+          </button>
+          <button
+            type='submit'
+            disabled={isSubmitting || !description.trim()}
+            data-testid='save-define-stub-btn'
+            className='px-4 py-1.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed'
+          >
+            {isSubmitting ? (
+              <Loader2 className='w-3.5 h-3.5 animate-spin' />
+            ) : (
+              <CheckCircle2 className='w-3.5 h-3.5' />
+            )}
+            <span>
+              {isSubmitting
+                ? t('bible.defineStub.saving', 'Đang lưu...')
+                : t('bible.defineStub.save', 'Lưu định nghĩa')}
+            </span>
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
 interface BibleEntityDetailModalProps {
   entity: BibleEntity;
   rawEntry?: BibleEntryDto;
@@ -180,6 +426,8 @@ interface BibleEntityDetailModalProps {
     isResubmit?: boolean,
     isNewVariant?: boolean,
   ) => void;
+  onOpenDefineStub?: (entity: BibleEntity) => void;
+  onDefinedStub?: () => void;
   onRequestRework?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => void;
   onConfirmCanon?: (rev: BibleEntryRevisionDto) => Promise<void>;
   onShowToast: (title: string, desc: string) => void;
@@ -218,6 +466,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   onClose,
   onOpenHistory,
   onOpenAddRevision,
+  onOpenDefineStub,
+  onDefinedStub,
   onRequestRework,
   onConfirmCanon,
   onShowToast,
@@ -305,6 +555,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     (!isProducerUser && canCreateDraft && !isArtistUser && !isEditorUser);
 
   const effectiveCanCreateDraft = canCreateDraft || isWriterUser;
+  const [localDefinedForId, setLocalDefinedForId] = useState<string | null>(null);
+  const [isLocalDefineOpen, setIsLocalDefineOpen] = useState(false);
+  const isStubEntity =
+    localDefinedForId !== entity.id && Boolean(entity.isStub ?? rawEntry?.isStub);
+  const canDefineStub = isStubEntity && isWriterUser && canCreateDraft;
 
   useEffect(() => {
     if (!seriesId || !entity.id) return;
@@ -1039,7 +1294,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   // Clipboard paste listener for quick Model Sheet upload via Ctrl+V
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
-      if (!effectiveCanCreateDraft) return;
+      if (!effectiveCanCreateDraft || isStubEntity) return;
       const items = e.clipboardData?.items;
       if (!items) return;
       for (let i = 0; i < items.length; i++) {
@@ -1059,7 +1314,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     };
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [effectiveCanCreateDraft, entity, activeRevision, onOpenAddRevision, onShowToast, t]);
+  }, [
+    effectiveCanCreateDraft,
+    isStubEntity,
+    entity,
+    activeRevision,
+    onOpenAddRevision,
+    onShowToast,
+    t,
+  ]);
 
   const handleRequestRework = (rev: BibleEntryRevisionDto) => {
     if (!onRequestRework) return;
@@ -1164,7 +1427,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     setEditingSpecKeys(new Set());
   }, [activeRevision?.id]);
   const canInlineEditSpec =
-    effectiveCanCreateDraft && !!onSaveSpecFields && activeRevision?.reviewStatus !== 'CanonLocked';
+    !isStubEntity &&
+    effectiveCanCreateDraft &&
+    !!onSaveSpecFields &&
+    activeRevision?.reviewStatus !== 'CanonLocked';
   const [editingSpecKeys, setEditingSpecKeys] = useState<Set<string>>(new Set());
   const specDraftDirty = Object.entries(specDraft).some(
     ([k, v]) => v.trim() !== String(variantAttributes.raw[k] ?? '').trim(),
@@ -1246,6 +1512,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 <span className='font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200'>
                   {entity.code}
                 </span>
+                {isStubEntity && (
+                  <span
+                    data-testid='stub-badge-detail'
+                    className='px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold flex items-center gap-1 shadow-2xs'
+                  >
+                    {t('bible.defineStub.badge', 'Chưa định nghĩa')}
+                  </span>
+                )}
                 {entity.isCrowd && (
                   <span
                     data-testid='crowd-badge-detail'
@@ -1305,7 +1579,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
                 }`}
               >
-                <Users className={`w-4 h-4 ${entity.isCrowd ? 'text-emerald-600' : 'text-stone-500'}`} />
+                <Users
+                  className={`w-4 h-4 ${entity.isCrowd ? 'text-emerald-600' : 'text-stone-500'}`}
+                />
                 <span>
                   {entity.isCrowd
                     ? t('production.cast.crowdMarked', '✓ Quần chúng')
@@ -1321,7 +1597,27 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               <History className='w-4 h-4 text-stone-500' />
               <span>{t('bible.detailModal.historyBtn', 'Lịch sử phiên bản')}</span>
             </button>
-            {effectiveCanCreateDraft ? (
+            {isStubEntity ? (
+              canDefineStub ? (
+                <button
+                  type='button'
+                  onClick={() => {
+                    if (onOpenDefineStub) onOpenDefineStub(entity);
+                    else setIsLocalDefineOpen(true);
+                  }}
+                  data-testid='detail-define-stub-btn'
+                  className='px-3.5 py-1.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
+                >
+                  <Edit3 className='w-4 h-4' />
+                  <span>{t('bible.defineStub.action', 'Định nghĩa')}</span>
+                </button>
+              ) : (
+                <span className='px-3 py-1.5 rounded-full bg-stone-100 border border-stone-200 text-stone-600 text-xs font-medium flex items-center gap-1.5'>
+                  <Lock className='w-3.5 h-3.5 text-stone-500' />
+                  {t('bible.detailModal.readOnlyNotice', 'Chế độ chỉ xem')}
+                </span>
+              )
+            ) : effectiveCanCreateDraft ? (
               <button
                 type='button'
                 onClick={() => onOpenAddRevision(entity)}
@@ -1541,7 +1837,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </div>
 
                 {/* Bottom quick-create variant action */}
-                {effectiveCanCreateDraft && (
+                {effectiveCanCreateDraft && !isStubEntity && (
                   <button
                     type='button'
                     onClick={() => {
@@ -1735,22 +2031,27 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     </span>
                   </div>
 
-                  {activeRevision?.reviewStatus === 'CanonLocked' && effectiveCanCreateDraft && (
-                    <button
-                      type='button'
-                      onClick={() => onOpenAddRevision(entity, activeRevision)}
-                      className='w-full py-1.5 px-2 bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 font-semibold text-xs rounded-lg transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer mt-1'
-                      title={t(
-                        'bible.detailModal.supersedeLockedTitle',
-                        'Tạo phiên bản kế thừa tiếp theo mà không ghi đè bản gốc đã khóa chuẩn',
-                      )}
-                    >
-                      <Plus className='w-3 h-3' />
-                      <span>
-                        {t('bible.detailModal.supersedeLockedBtn', 'Thay thế bản khóa (Supersede)')}
-                      </span>
-                    </button>
-                  )}
+                  {activeRevision?.reviewStatus === 'CanonLocked' &&
+                    effectiveCanCreateDraft &&
+                    !isStubEntity && (
+                      <button
+                        type='button'
+                        onClick={() => onOpenAddRevision(entity, activeRevision)}
+                        className='w-full py-1.5 px-2 bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 font-semibold text-xs rounded-lg transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer mt-1'
+                        title={t(
+                          'bible.detailModal.supersedeLockedTitle',
+                          'Tạo phiên bản kế thừa tiếp theo mà không ghi đè bản gốc đã khóa chuẩn',
+                        )}
+                      >
+                        <Plus className='w-3 h-3' />
+                        <span>
+                          {t(
+                            'bible.detailModal.supersedeLockedBtn',
+                            'Thay thế bản khóa (Supersede)',
+                          )}
+                        </span>
+                      </button>
+                    )}
                 </div>
               )}
 
@@ -1790,7 +2091,22 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           {/* ================= MAIN: trạng thái · Đặc tả | Bản vẽ · Phiên bản ================= */}
           <div className='min-w-0 space-y-4'>
             {/* ================= SINGLE CONTEXTUAL STATUS ALERT (LUCIAN INLINE ALERT) ================= */}
-            {activeRevision?.reviewStatus === 'ReworkRequired' ? (
+            {isStubEntity ? (
+              <Alert
+                tone='warning'
+                title={t('bible.defineStub.detailAlertTitle', 'Thực thể chưa được định nghĩa')}
+              >
+                {canDefineStub
+                  ? t(
+                      'bible.defineStub.detailAlertDescWriter',
+                      'Mục này được tự động tạo từ kịch bản. Hãy bấm "Định nghĩa" để bổ sung mô tả đặc tả trước khi thiết kế.',
+                    )
+                  : t(
+                      'bible.defineStub.detailAlertDescReadOnly',
+                      'Mục này được tự động tạo từ kịch bản và đang chờ Biên kịch (Writer) định nghĩa mô tả.',
+                    )}
+              </Alert>
+            ) : activeRevision?.reviewStatus === 'ReworkRequired' ? (
               <Alert
                 tone='warning'
                 title={t(
@@ -2281,13 +2597,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <div
                         onDragOver={(e) => {
                           e.preventDefault();
-                          if (effectiveCanCreateDraft) setIsDraggingOver(true);
+                          if (effectiveCanCreateDraft && !isStubEntity) setIsDraggingOver(true);
                         }}
                         onDragLeave={() => setIsDraggingOver(false)}
                         onDrop={(e) => {
                           e.preventDefault();
                           setIsDraggingOver(false);
-                          if (effectiveCanCreateDraft) {
+                          if (effectiveCanCreateDraft && !isStubEntity) {
                             onOpenAddRevision(entity, activeRevision);
                           }
                         }}
@@ -2313,7 +2629,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               : visualCardInfo.emptyWriterPrompt}
                           </p>
                         </div>
-                        {effectiveCanCreateDraft && (
+                        {effectiveCanCreateDraft && !isStubEntity && (
                           <div className='flex flex-col items-center gap-2 pt-2'>
                             <button
                               type='button'
@@ -2515,7 +2831,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             data-testid='detail-rework-btn'
                           >
                             <Palette className='w-3.5 h-3.5 text-rose-600' />
-                            <span>{t('bible.detailModal.reworkArtworkBtn', 'Yêu cầu vẽ lại Artwork')}</span>
+                            <span>
+                              {t('bible.detailModal.reworkArtworkBtn', 'Yêu cầu vẽ lại Artwork')}
+                            </span>
                           </button>
                         )}
 
@@ -2534,7 +2852,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             data-testid='detail-request-info-btn'
                           >
                             <Edit3 className='w-3.5 h-3.5 text-amber-700' />
-                            <span>{t('bible.detailModal.requestInfoBtn', 'Yêu cầu sửa thông tin')}</span>
+                            <span>
+                              {t('bible.detailModal.requestInfoBtn', 'Yêu cầu sửa thông tin')}
+                            </span>
                           </button>
                         )}
 
@@ -2912,6 +3232,29 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           </div>
         </div>
       </Modal>
+
+      {!onOpenDefineStub && (
+        <DefineStubModal
+          isOpen={isLocalDefineOpen}
+          entity={entity}
+          seriesId={seriesId}
+          isWriter={canDefineStub}
+          onClose={() => setIsLocalDefineOpen(false)}
+          onDefined={async () => {
+            setLocalDefinedForId(entity.id);
+            onDefinedStub?.();
+            if (seriesId) {
+              try {
+                const revs = await bibleService.getEntryHistory(seriesId, entity.id);
+                if (revs && revs.length > 0) setAllRevisions(revs);
+              } catch {
+                // ignore
+              }
+            }
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
     </>
   );
 
