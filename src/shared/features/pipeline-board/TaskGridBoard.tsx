@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import {
   assignmentService,
+  type AssignStageTaskLotsRequest,
   type AutoAssignPlanDto,
   type StageTaskDto,
   type StageTaskLotDto,
@@ -60,6 +61,7 @@ import {
 } from '@/shared/components/image-viewer/ImageViewerLightbox';
 import { aiAgentsService, type AiSuggestionDto } from '@/services/aiAgents.service';
 import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 import { AutoAssignModal } from './AutoAssignModal';
 
 const SCRIPT_CHANGED_REASON = 'Kịch bản của trang đã được sửa sau khi mở lại kịch bản.';
@@ -126,12 +128,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   isChapterLocked = false,
 }) => {
   const { t } = useTranslation('pipeline');
+  const confirm = useConfirm();
   const [grid, setGrid] = useState<TaskGridDto | null>(null);
   const [reworkCommentsByTask, setReworkCommentsByTask] = useState<Record<string, string>>({});
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorIsConflict, setErrorIsConflict] = useState(false);
 
   // Ô Unassigned được Producer chọn để giao lô
   const [selectedUnassignedIds, setSelectedUnassignedIds] = useState<Set<string>>(new Set());
@@ -213,9 +217,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     setAutoAssignConflict(false);
   }, [chapterId]);
 
-  // Phân quyền điều phối: Producer và Editor có toàn quyền giao lô, bỏ gán và quản lý lưới việc
+  // Phân quyền tách biệt (Lưới V3):
+  // - Producer-only: sinh/đồng bộ ô, bỏ gán, mở lại, xử lý Impact Review (+ Smart Ripple AI), đổi người (reassign)
+  // - Producer + Editor: xem/giao tự động, giao thủ công ô chưa giao, sửa brief/hạn lô, duyệt bài
   const normalizedUserRole = currentUserRole ? String(currentUserRole).trim().toUpperCase() : '';
-  const effectiveIsProducer =
+  const isProducerOnly =
+    !isChapterLocked &&
+    (normalizedUserRole ? normalizedUserRole === 'PRODUCER' : Boolean(isProducer));
+  const canCoordinateAssign =
     !isChapterLocked &&
     (normalizedUserRole
       ? normalizedUserRole === 'PRODUCER' || normalizedUserRole === 'EDITOR'
@@ -225,27 +234,35 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     : Boolean(isProducer || isEditor);
 
   useEffect(() => {
-    if (!effectiveIsProducer) {
+    if (!canCoordinateAssign) {
       setSelectedUnassignedIds(new Set());
-      setSelectedUnassignIds(new Set());
-      setReopeningTaskId(null);
-      setReassigningTaskId(null);
       setEditingLotId(null);
       setDryRunPreview(null);
-      setImpactSuggestionsByTask({});
-      setImpactErrorsByTask({});
       setAutoAssignOpen(false);
       setAutoAssignPlan(null);
       setAutoAssignError(null);
       setAutoAssignConflict(false);
     }
-  }, [effectiveIsProducer]);
+  }, [canCoordinateAssign]);
+
+  useEffect(() => {
+    if (!isProducerOnly) {
+      setSelectedUnassignIds(new Set());
+      setReopeningTaskId(null);
+      setReassigningTaskId(null);
+      setImpactSuggestionsByTask({});
+      setImpactErrorsByTask({});
+    }
+  }, [isProducerOnly]);
 
   const loadGrid = useCallback(
     async (preserveError = false) => {
       if (!chapterId) return;
       setLoading(true);
-      if (!preserveError) setError(null);
+      if (!preserveError) {
+        setError(null);
+        setErrorIsConflict(false);
+      }
       try {
         const [gridRes, membersRes] = await Promise.all([
           assignmentService.getTaskGrid(chapterId),
@@ -473,32 +490,42 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     );
   };
 
-  // Chia đều các ô đã chọn trong từng cột cho danh sách người nhận đã chọn
+  // Chia đều các ô đã chọn trong từng cột thành các dãy trang liên tiếp theo thứ tự trang
   const buildLotRequests = (): StageTaskLotRequest[] => {
     if (selectedAssigneeIds.length === 0 || selectedTasksByStage.size === 0) return [];
     const requests: StageTaskLotRequest[] = [];
     const dueIso = lotDueDate ? new Date(lotDueDate).toISOString() : null;
     const briefVal = lotBrief.trim() || null;
+    const pageOrderById = new Map<string, number>();
+    for (const p of grid?.pages ?? []) {
+      pageOrderById.set(p.id, p.pageNumber);
+    }
 
     for (const [stageId, stageTasks] of selectedTasksByStage.entries()) {
-      const buckets = new Map<string, string[]>();
-      selectedAssigneeIds.forEach((uid) => buckets.set(uid, []));
-
-      stageTasks.forEach((task, index) => {
-        const assigneeId = selectedAssigneeIds[index % selectedAssigneeIds.length];
-        buckets.get(assigneeId)!.push(task.id);
+      const orderedTasks = [...stageTasks].sort((a, b) => {
+        const orderA = a.pageId ? (pageOrderById.get(a.pageId) ?? Number.MAX_SAFE_INTEGER) : -1;
+        const orderB = b.pageId ? (pageOrderById.get(b.pageId) ?? Number.MAX_SAFE_INTEGER) : -1;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.id.localeCompare(b.id);
       });
 
-      for (const [assigneeUserId, taskIds] of buckets.entries()) {
-        if (taskIds.length > 0) {
-          requests.push({
-            pipelineStageId: stageId,
-            assigneeUserId,
-            taskIds,
-            brief: briefVal,
-            dueDate: dueIso,
-          });
-        }
+      const assigneeCount = selectedAssigneeIds.length;
+      const baseSize = Math.floor(orderedTasks.length / assigneeCount);
+      const remainder = orderedTasks.length % assigneeCount;
+      let offset = 0;
+
+      for (let i = 0; i < assigneeCount; i++) {
+        const chunkSize = baseSize + (i < remainder ? 1 : 0);
+        if (chunkSize <= 0) continue;
+        const chunk = orderedTasks.slice(offset, offset + chunkSize);
+        offset += chunkSize;
+        requests.push({
+          pipelineStageId: stageId,
+          assigneeUserId: selectedAssigneeIds[i],
+          taskIds: chunk.map((task) => task.id),
+          brief: briefVal,
+          dueDate: dueIso,
+        });
       }
     }
     return requests;
@@ -856,14 +883,38 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
   const handleReassignTask = async (task: StageTaskDto, stage: TaskGridStageDto) => {
     if (!reassignUserId) {
-      setError('Chọn thành viên nhận việc mới.');
+      setError(t('taskGridV3.reassignSelectRequired', 'Chọn thành viên nhận việc mới.'));
+      setErrorIsConflict(false);
       return;
     }
+
+    const isStartedWork = task.status === 'InProgress' || task.status === 'ReworkRequired';
+    if (isStartedWork) {
+      const statusLabel = STATUS_STYLE[task.status]?.label ?? task.status;
+      const confirmed = await confirm({
+        title: t('taskGridV3.reassignStartedTitle', 'Xác nhận đổi người ô đang thực hiện'),
+        description: t(
+          'taskGridV3.reassignStartedDesc',
+          {
+            status: statusLabel,
+            currentAssignee: getMemberName(task.assigneeUserId),
+            nextAssignee: getMemberName(reassignUserId),
+          },
+          'Ô này đang ở trạng thái {status}. {currentAssignee} sẽ bị gỡ khỏi ô và phần việc sẽ chuyển sang {nextAssignee}. Bạn có chắc muốn tiếp tục?',
+        ),
+        confirmLabel: t('taskGridV3.reassignStartedConfirmBtn', 'Gỡ người cũ & Đổi người'),
+        cancelLabel: t('taskGridV3.reassignCancelBtn', 'Huỷ'),
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+    }
+
     setActionLoading(`reassign:${task.id}`);
     setError(null);
+    setErrorIsConflict(false);
     try {
       const dueIso = reassignDueDate ? new Date(`${reassignDueDate}T23:59:59`).toISOString() : null;
-      await assignmentService.assignTaskGridLots(chapterId, {
+      const request: AssignStageTaskLotsRequest = {
         lots: [
           {
             pipelineStageId: stage.id,
@@ -875,7 +926,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         ],
         dryRun: false,
         reassign: true,
-      });
+        ...(isStartedWork
+          ? {
+              confirmStartedWork: true,
+              expectedRowVersions: { [task.id]: task.rowVersion },
+            }
+          : {}),
+      };
+      await assignmentService.assignTaskGridLots(chapterId, request);
       setReassigningTaskId(null);
       onShowToast?.(
         t('taskGridV3.reassignSuccessTitle', 'Đã đổi người nhận'),
@@ -883,10 +941,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       );
       await loadGrid();
     } catch (err: any) {
-      const msg = err?.message || 'Không thể đổi người nhận ô công việc.';
+      const msg =
+        err?.message ||
+        t('taskGridV3.reassignErrorFallback', 'Không thể đổi người nhận ô công việc.');
+      const isConflict = err?.status === 409 || err?.code === 'CONFLICT';
       setError(msg);
-      onShowToast?.('Lỗi đổi người nhận', msg);
-      if (err?.status === 409) void loadGrid(true);
+      setErrorIsConflict(isConflict);
+      onShowToast?.(t('taskGridV3.reassignErrorTitle', 'Lỗi đổi người nhận'), msg);
     } finally {
       setActionLoading(null);
     }
@@ -1302,15 +1363,15 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     };
     const isStageEnabled = stage.isEnabled !== false && enabledStageIds.has(stage.id);
     const isMine = Boolean(currentUserId && task.assigneeUserId === currentUserId);
-    const canSelectForLot = isStageEnabled && effectiveIsProducer && task.status === 'Unassigned';
+    const canSelectForLot = isStageEnabled && canCoordinateAssign && task.status === 'Unassigned';
     const canUnassign =
-      effectiveIsProducer &&
+      isProducerOnly &&
       (task.status === 'Assigned' ||
         task.status === 'InProgress' ||
         task.status === 'ReworkRequired');
     const canReassign =
       isStageEnabled &&
-      effectiveIsProducer &&
+      isProducerOnly &&
       (task.status === 'Assigned' ||
         task.status === 'InProgress' ||
         task.status === 'ReworkRequired');
@@ -1330,7 +1391,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       Boolean(!task.assigneeUserId || (currentUserId && task.assigneeUserId !== currentUserId));
     const canForceReleaseReview =
       isStageEnabled &&
-      effectiveIsProducer &&
+      isProducerOnly &&
       task.status === 'UnderReview' &&
       Boolean(task.reviewerUserId && task.reviewerUserId !== currentUserId);
     const canReleaseOwnReview =
@@ -1339,16 +1400,11 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       task.status === 'UnderReview' &&
       Boolean(currentUserId && task.reviewerUserId === currentUserId);
     const canReopen =
-      isStageEnabled && effectiveIsProducer && task.status === 'Approved' && !task.isInputOutdated;
-    const canResolveImpact = isStageEnabled && effectiveIsProducer && task.isInputOutdated;
+      isStageEnabled && isProducerOnly && task.status === 'Approved' && !task.isInputOutdated;
+    const canResolveImpact = isStageEnabled && isProducerOnly && task.isInputOutdated;
     const prereqReadyForImpact = canResolveImpact ? arePrerequisitesApproved(task, stage) : false;
-    // Backend chỉ cho Producer xin gợi ý AI, dù Editor cũng được xử lý ô lỗi thời
-    const isProducerRole = normalizedUserRole ? normalizedUserRole === 'PRODUCER' : Boolean(isProducer);
     const canSuggestImpactAi = Boolean(
-      canResolveImpact &&
-        isProducerRole &&
-        task.pageId &&
-        task.outdatedReason === SCRIPT_CHANGED_REASON,
+      canResolveImpact && task.pageId && task.outdatedReason === SCRIPT_CHANGED_REASON,
     );
     const impactSuggestion = impactSuggestionsByTask[task.id] ?? null;
     const impactAiError = impactErrorsByTask[task.id] ?? null;
@@ -2102,7 +2158,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         </div>
 
         <div className='flex flex-wrap items-center gap-2'>
-          {effectiveIsProducer && selectedUnassignIds.size > 0 && (
+          {isProducerOnly && selectedUnassignIds.size > 0 && (
             <button
               type='button'
               disabled={actionLoading === 'unassignBatch'}
@@ -2134,36 +2190,37 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             </button>
           )}
 
-          {effectiveIsProducer && (
-            <>
-              <button
-                type='button'
-                data-testid='auto-assign-btn'
-                disabled={autoAssignLoading}
-                onClick={handleOpenAutoAssign}
-                className='inline-flex items-center gap-1.5 rounded-lg border border-[#FDBA74] bg-[#FFF7ED] hover:bg-orange-100 text-[#C2410C] px-3 py-1.5 text-xs font-semibold cursor-pointer shadow-xs disabled:opacity-50'
-              >
-                {autoAssignLoading ? (
-                  <Loader2 className='h-3.5 w-3.5 animate-spin' />
-                ) : (
-                  <Wand2 className='h-3.5 w-3.5' />
-                )}
-                <span>{t('taskGridV3.autoAssign.btn', 'Giao tự động')}</span>
-              </button>
-              <button
-                type='button'
-                disabled={actionLoading === 'generate'}
-                onClick={handleGenerate}
-                className='inline-flex items-center gap-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white px-3 py-1.5 text-xs font-semibold cursor-pointer shadow-xs disabled:opacity-50'
-              >
-                {actionLoading === 'generate' ? (
-                  <Loader2 className='h-3.5 w-3.5 animate-spin' />
-                ) : (
-                  <Sparkles className='h-3.5 w-3.5' />
-                )}
-                <span>Sinh / Đồng bộ ô việc</span>
-              </button>
-            </>
+          {canCoordinateAssign && (
+            <button
+              type='button'
+              data-testid='auto-assign-btn'
+              disabled={autoAssignLoading}
+              onClick={handleOpenAutoAssign}
+              className='inline-flex items-center gap-1.5 rounded-lg border border-[#FDBA74] bg-[#FFF7ED] hover:bg-orange-100 text-[#C2410C] px-3 py-1.5 text-xs font-semibold cursor-pointer shadow-xs disabled:opacity-50'
+            >
+              {autoAssignLoading ? (
+                <Loader2 className='h-3.5 w-3.5 animate-spin' />
+              ) : (
+                <Wand2 className='h-3.5 w-3.5' />
+              )}
+              <span>{t('taskGridV3.autoAssign.btn', 'Giao tự động')}</span>
+            </button>
+          )}
+
+          {isProducerOnly && (
+            <button
+              type='button'
+              disabled={actionLoading === 'generate'}
+              onClick={handleGenerate}
+              className='inline-flex items-center gap-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white px-3 py-1.5 text-xs font-semibold cursor-pointer shadow-xs disabled:opacity-50'
+            >
+              {actionLoading === 'generate' ? (
+                <Loader2 className='h-3.5 w-3.5 animate-spin' />
+              ) : (
+                <Sparkles className='h-3.5 w-3.5' />
+              )}
+              <span>Sinh / Đồng bộ ô việc</span>
+            </button>
           )}
 
           <button
@@ -2181,27 +2238,42 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       {error && (
         <div
           role='alert'
-          className='flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800'
+          data-testid='task-grid-error'
+          className='flex flex-wrap items-start justify-between gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800'
         >
-          <AlertCircle className='h-4 w-4 shrink-0 text-rose-600 mt-0.5' />
-          {error.includes('\n') ? (
-            <ul className='list-disc pl-4 space-y-0.5 whitespace-pre-line break-words'>
-              {error
-                .split(/\r?\n/)
-                .map((line) => line.trim())
-                .filter(Boolean)
-                .map((line, idx) => (
-                  <li key={idx}>{line}</li>
-                ))}
-            </ul>
-          ) : (
-            <span className='whitespace-pre-line break-words'>{error}</span>
+          <div className='flex items-start gap-2 min-w-0 flex-1'>
+            <AlertCircle className='h-4 w-4 shrink-0 text-rose-600 mt-0.5' />
+            {error.includes('\n') ? (
+              <ul className='list-disc pl-4 space-y-0.5 whitespace-pre-line break-words'>
+                {error
+                  .split(/\r?\n/)
+                  .map((line) => line.trim())
+                  .filter(Boolean)
+                  .map((line, idx) => (
+                    <li key={idx}>{line}</li>
+                  ))}
+              </ul>
+            ) : (
+              <span className='whitespace-pre-line break-words'>{error}</span>
+            )}
+          </div>
+          {errorIsConflict && (
+            <button
+              type='button'
+              data-testid='error-reload-grid-btn'
+              disabled={loading}
+              onClick={() => void loadGrid()}
+              className='inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-white hover:bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-900 disabled:opacity-50 cursor-pointer shrink-0'
+            >
+              <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+              <span>{t('taskGridV3.reloadGridBtn', 'Tải lại lưới')}</span>
+            </button>
           )}
         </div>
       )}
 
-      {/* Bảng điều khiển Giao Lô / Chia Đều cho Producer khi có chọn ô Unassigned */}
-      {effectiveIsProducer && selectedUnassignedIds.size > 0 && (
+      {/* Bảng điều khiển Giao Lô / Chia Đều cho Producer / Editor khi có chọn ô Unassigned */}
+      {canCoordinateAssign && selectedUnassignedIds.size > 0 && (
         <div className='rounded-xl border border-[#FDBA74] bg-[#FFF7ED] p-4 space-y-3 shadow-xs'>
           <div className='flex flex-wrap items-center justify-between gap-2'>
             <div className='flex items-center gap-2 text-xs font-bold text-stone-900'>
@@ -2412,7 +2484,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                         “{lot.brief}”
                       </span>
                     )}
-                    {effectiveIsProducer && lot.status !== 'Closed' && (
+                    {canCoordinateAssign && lot.status !== 'Closed' && (
                       <button
                         type='button'
                         data-testid={`edit-lot-btn-${lot.id}`}
@@ -2431,7 +2503,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               })}
           </div>
 
-          {effectiveIsProducer &&
+          {canCoordinateAssign &&
             editingLotId &&
             (() => {
               const editingLot = grid.lots.find((l) => l.id === editingLotId);
@@ -2522,7 +2594,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             Chương này chưa có ô công việc nào trên lưới V3
           </div>
           <p className='text-xs text-stone-500'>
-            {effectiveIsProducer
+            {isProducerOnly
               ? 'Bấm "Sinh / Đồng bộ ô việc" ở góc trên để khởi tạo lưới Trang × Công đoạn cho chương.'
               : 'Producer chưa khởi tạo lưới ô công việc cho chương này.'}
           </p>
@@ -2572,7 +2644,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                           </span>
                         )}
                       </div>
-                      {effectiveIsProducer && unassignedCount > 0 && (
+                      {canCoordinateAssign && unassignedCount > 0 && (
                         <button
                           type='button'
                           onClick={() => toggleSelectStageColumn(stage.id)}

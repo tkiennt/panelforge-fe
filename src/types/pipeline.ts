@@ -780,6 +780,8 @@ export interface AssignStageTaskLotsRequest {
   lots: StageTaskLotRequest[];
   dryRun?: boolean;
   reassign?: boolean;
+  confirmStartedWork?: boolean;
+  expectedRowVersions?: Record<string, number> | null;
 }
 
 export interface UpdateStageTaskLotRequest {
@@ -805,6 +807,9 @@ export interface AutoAssignPlanLotDto {
   taskIds: string[];
   pageNumbers: number[];
   openTaskCount: number;
+  workUnits?: number;
+  openWorkUnits?: number;
+  suggestedDueDate?: string | null;
 }
 
 export interface AutoAssignPlanSkippedStageDto {

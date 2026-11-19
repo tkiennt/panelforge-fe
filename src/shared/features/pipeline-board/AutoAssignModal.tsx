@@ -11,6 +11,39 @@ import type { WorkspaceMemberDto } from '@/services/workspace.service';
 
 export interface EditableAutoAssignLot extends AutoAssignPlanLotDto {
   clientKey: string;
+  dueDateInput: string;
+  briefInput: string;
+}
+
+function formatLocalDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function isoToLocalDateInput(iso?: string | null): string {
+  if (!iso) return '';
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return formatLocalDateInput(parsed);
+}
+
+function localDateInputToUtcIso(dateStr: string): string | null {
+  const trimmed = dateStr.trim();
+  if (!trimmed) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) return null;
+  const localEndOfDay = new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+    23,
+    59,
+    59,
+  );
+  if (Number.isNaN(localEndOfDay.getTime())) return null;
+  return localEndOfDay.toISOString();
 }
 
 /** Rút gọn dãy số trang tăng dần thành dạng "1–8, 11". */
@@ -38,10 +71,21 @@ function formatCompactPageNumbers(pageNumbers: number[]): string {
 
 /** Gộp các lô cùng công đoạn và cùng người nhận trước khi gửi POST /task-grid/lots. */
 function mergeAutoAssignLots(lots: EditableAutoAssignLot[]): StageTaskLotRequest[] {
-  const merged = new Map<string, StageTaskLotRequest>();
+  const merged = new Map<
+    string,
+    {
+      pipelineStageId: string;
+      assigneeUserId: string;
+      taskIds: string[];
+      dueDates: string[];
+      briefs: string[];
+    }
+  >();
   for (const lot of lots) {
     if (!lot.assigneeUserId || lot.taskIds.length === 0) continue;
     const key = `${lot.pipelineStageId}::${lot.assigneeUserId}`;
+    const dueIso = localDateInputToUtcIso(lot.dueDateInput);
+    const briefTrimmed = lot.briefInput.trim();
     const existing = merged.get(key);
     if (existing) {
       const seen = new Set(existing.taskIds);
@@ -51,15 +95,37 @@ function mergeAutoAssignLots(lots: EditableAutoAssignLot[]): StageTaskLotRequest
           seen.add(id);
         }
       }
+      if (dueIso) {
+        existing.dueDates.push(dueIso);
+      }
+      if (briefTrimmed && !existing.briefs.includes(briefTrimmed)) {
+        existing.briefs.push(briefTrimmed);
+      }
     } else {
       merged.set(key, {
         pipelineStageId: lot.pipelineStageId,
         assigneeUserId: lot.assigneeUserId,
         taskIds: [...lot.taskIds],
+        dueDates: dueIso ? [dueIso] : [],
+        briefs: briefTrimmed ? [briefTrimmed] : [],
       });
     }
   }
-  return [...merged.values()];
+  return [...merged.values()].map((item) => {
+    let earliestDueDate: string | null = null;
+    for (const d of item.dueDates) {
+      if (!earliestDueDate || Date.parse(d) < Date.parse(earliestDueDate)) {
+        earliestDueDate = d;
+      }
+    }
+    return {
+      pipelineStageId: item.pipelineStageId,
+      assigneeUserId: item.assigneeUserId,
+      taskIds: item.taskIds,
+      brief: item.briefs.length > 0 ? item.briefs.join('; ') : null,
+      dueDate: earliestDueDate,
+    };
+  });
 }
 
 export interface AutoAssignModalProps {
@@ -102,20 +168,27 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
             taskIds: [...(lot.taskIds ?? [])],
             pageNumbers: [...(lot.pageNumbers ?? [])],
             clientKey: `${lot.pipelineStageId}:${lot.assigneeUserId}:${idx}`,
+            dueDateInput: isoToLocalDateInput(lot.suggestedDueDate),
+            briefInput: '',
           }))
         : [],
     );
   }
 
-  const openTaskCountByUserId = useMemo(() => {
-    const map = new Map<string, number>();
+  const openLoadByUserId = useMemo(() => {
+    const map = new Map<string, { openTaskCount: number; openWorkUnits?: number }>();
     for (const lot of plan?.lots ?? []) {
       if (lot.assigneeUserId && typeof lot.openTaskCount === 'number') {
-        map.set(lot.assigneeUserId, lot.openTaskCount);
+        map.set(lot.assigneeUserId, {
+          openTaskCount: lot.openTaskCount,
+          openWorkUnits: typeof lot.openWorkUnits === 'number' ? lot.openWorkUnits : undefined,
+        });
       }
     }
     return map;
   }, [plan]);
+
+  const todayDateInput = formatLocalDateInput(new Date());
 
   const groupedStages = useMemo(() => {
     const groups = new Map<
@@ -176,6 +249,18 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
           ? { ...lot, assigneeUserId: nextUserId, assigneeName: nextName }
           : lot,
       ),
+    );
+  };
+
+  const handleChangeDueDate = (clientKey: string, dueDateInput: string) => {
+    setEditableLots((prev) =>
+      prev.map((lot) => (lot.clientKey === clientKey ? { ...lot, dueDateInput } : lot)),
+    );
+  };
+
+  const handleChangeBrief = (clientKey: string, briefInput: string) => {
+    setEditableLots((prev) =>
+      prev.map((lot) => (lot.clientKey === clientKey ? { ...lot, briefInput } : lot)),
     );
   };
 
@@ -372,74 +457,167 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                         );
                         const fallbackLabel =
                           lot.assigneeName?.trim() || getMemberName(lot.assigneeUserId);
-                        const openCount = openTaskCountByUserId.get(lot.assigneeUserId);
+                        const openLoad = openLoadByUserId.get(lot.assigneeUserId);
+                        const isDueDateInPast = Boolean(
+                          lot.dueDateInput && lot.dueDateInput < todayDateInput,
+                        );
+                        const dueInputId = `auto-assign-due-${lot.clientKey}`;
+                        const briefInputId = `auto-assign-brief-${lot.clientKey}`;
 
                         return (
                           <div
                             key={lot.clientKey}
                             data-testid={`auto-assign-lot-${lot.clientKey}`}
-                            className='flex flex-wrap items-center justify-between gap-2.5 px-3.5 py-2.5 text-xs'
+                            className='space-y-2 px-3.5 py-2.5 text-xs'
                           >
-                            <div className='min-w-0 flex-1 space-y-1'>
-                              <div className='flex flex-wrap items-center gap-2'>
-                                <span className='font-semibold text-stone-900'>{scopeLabel}</span>
-                                <span className='rounded bg-stone-100 border border-stone-200 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-stone-700'>
-                                  {t(
-                                    'taskGridV3.autoAssign.cellCount',
-                                    { count: lot.taskIds.length },
-                                    '{count} ô',
-                                  )}
-                                </span>
-                                {openCount !== undefined && (
-                                  <span className='text-[11px] text-stone-500'>
+                            <div className='flex flex-wrap items-center justify-between gap-2.5'>
+                              <div className='min-w-0 flex-1 space-y-1'>
+                                <div className='flex flex-wrap items-center gap-2'>
+                                  <span className='font-semibold text-stone-900'>{scopeLabel}</span>
+                                  <span className='rounded bg-stone-100 border border-stone-200 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-stone-700'>
                                     {t(
-                                      'taskGridV3.autoAssign.openTaskCount',
-                                      { count: openCount },
-                                      'đang có {count} việc',
+                                      'taskGridV3.autoAssign.cellCount',
+                                      { count: lot.taskIds.length },
+                                      '{count} ô',
                                     )}
                                   </span>
-                                )}
+                                  {typeof lot.workUnits === 'number' && (
+                                    <span className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-orange-800'>
+                                      {t(
+                                        'taskGridV3.autoAssign.workUnits',
+                                        { count: lot.workUnits },
+                                        '{count} panel',
+                                      )}
+                                    </span>
+                                  )}
+                                  {openLoad !== undefined && (
+                                    <span className='text-[11px] text-stone-500'>
+                                      {openLoad.openWorkUnits !== undefined
+                                        ? t(
+                                            'taskGridV3.autoAssign.openLoadWithUnits',
+                                            {
+                                              tasks: openLoad.openTaskCount,
+                                              units: openLoad.openWorkUnits,
+                                            },
+                                            'đang có {tasks} việc ({units} panel)',
+                                          )
+                                        : t(
+                                            'taskGridV3.autoAssign.openTaskCount',
+                                            { count: openLoad.openTaskCount },
+                                            'đang có {count} việc',
+                                          )}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className='flex items-center gap-2'>
+                                <select
+                                  aria-label={t(
+                                    'taskGridV3.autoAssign.assigneeSelectLabel',
+                                    { stage: lot.stageName, scope: scopeLabel },
+                                    'Người nhận cho {stage} ({scope})',
+                                  )}
+                                  value={lot.assigneeUserId}
+                                  disabled={submitting}
+                                  onChange={(e) =>
+                                    handleChangeAssignee(lot.clientKey, e.target.value)
+                                  }
+                                  className='rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs text-stone-900 min-w-[160px] disabled:opacity-50'
+                                >
+                                  {!hasCurrentInEligible && lot.assigneeUserId && (
+                                    <option value={lot.assigneeUserId}>{fallbackLabel}</option>
+                                  )}
+                                  {eligible.map((m) => (
+                                    <option key={m.userId} value={m.userId}>
+                                      {m.fullName || m.email.split('@')[0]}
+                                    </option>
+                                  ))}
+                                </select>
+
+                                <button
+                                  type='button'
+                                  disabled={submitting}
+                                  aria-label={t(
+                                    'taskGridV3.autoAssign.removeLotLabel',
+                                    { stage: lot.stageName, scope: scopeLabel },
+                                    'Bỏ lô {stage} ({scope})',
+                                  )}
+                                  onClick={() => handleRemoveLot(lot.clientKey)}
+                                  className='inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 px-2 py-1 text-[11px] font-medium text-stone-600 disabled:opacity-50 cursor-pointer'
+                                >
+                                  <Trash2 className='h-3 w-3' />
+                                  <span>{t('taskGridV3.autoAssign.removeLotBtn', 'Bỏ lô')}</span>
+                                </button>
                               </div>
                             </div>
 
-                            <div className='flex items-center gap-2'>
-                              <select
-                                aria-label={t(
-                                  'taskGridV3.autoAssign.assigneeSelectLabel',
-                                  { stage: lot.stageName, scope: scopeLabel },
-                                  'Người nhận cho {stage} ({scope})',
+                            <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5'>
+                              <div className='space-y-1'>
+                                <label
+                                  htmlFor={dueInputId}
+                                  className='block text-[11px] font-medium text-stone-600'
+                                >
+                                  {t('taskGridV3.autoAssign.dueDateLabel', 'Hạn hoàn thành')}
+                                </label>
+                                <input
+                                  id={dueInputId}
+                                  type='date'
+                                  aria-label={t(
+                                    'taskGridV3.autoAssign.dueDateAriaLabel',
+                                    { stage: lot.stageName, scope: scopeLabel },
+                                    'Hạn hoàn thành cho {stage} ({scope})',
+                                  )}
+                                  value={lot.dueDateInput}
+                                  disabled={submitting}
+                                  onChange={(e) =>
+                                    handleChangeDueDate(lot.clientKey, e.target.value)
+                                  }
+                                  className={`w-full rounded-lg border bg-white px-2.5 py-1 text-xs text-stone-900 disabled:opacity-50 ${
+                                    isDueDateInPast ? 'border-amber-400' : 'border-stone-300'
+                                  }`}
+                                />
+                                {isDueDateInPast && (
+                                  <div
+                                    data-testid={`auto-assign-past-due-${lot.clientKey}`}
+                                    className='flex items-center gap-1 text-[11px] text-amber-700'
+                                  >
+                                    <AlertTriangle className='h-3 w-3 shrink-0' />
+                                    <span>
+                                      {t(
+                                        'taskGridV3.autoAssign.pastDueWarning',
+                                        'Hạn đề xuất đã qua — bạn có thể chỉnh lại ngày.',
+                                      )}
+                                    </span>
+                                  </div>
                                 )}
-                                value={lot.assigneeUserId}
-                                disabled={submitting}
-                                onChange={(e) =>
-                                  handleChangeAssignee(lot.clientKey, e.target.value)
-                                }
-                                className='rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs text-stone-900 min-w-[160px] disabled:opacity-50'
-                              >
-                                {!hasCurrentInEligible && lot.assigneeUserId && (
-                                  <option value={lot.assigneeUserId}>{fallbackLabel}</option>
-                                )}
-                                {eligible.map((m) => (
-                                  <option key={m.userId} value={m.userId}>
-                                    {m.fullName || m.email.split('@')[0]}
-                                  </option>
-                                ))}
-                              </select>
+                              </div>
 
-                              <button
-                                type='button'
-                                disabled={submitting}
-                                aria-label={t(
-                                  'taskGridV3.autoAssign.removeLotLabel',
-                                  { stage: lot.stageName, scope: scopeLabel },
-                                  'Bỏ lô {stage} ({scope})',
-                                )}
-                                onClick={() => handleRemoveLot(lot.clientKey)}
-                                className='inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 px-2 py-1 text-[11px] font-medium text-stone-600 disabled:opacity-50 cursor-pointer'
-                              >
-                                <Trash2 className='h-3 w-3' />
-                                <span>{t('taskGridV3.autoAssign.removeLotBtn', 'Bỏ lô')}</span>
-                              </button>
+                              <div className='space-y-1'>
+                                <label
+                                  htmlFor={briefInputId}
+                                  className='block text-[11px] font-medium text-stone-600'
+                                >
+                                  {t('taskGridV3.autoAssign.briefLabel', 'Ghi chú (Brief)')}
+                                </label>
+                                <input
+                                  id={briefInputId}
+                                  type='text'
+                                  aria-label={t(
+                                    'taskGridV3.autoAssign.briefAriaLabel',
+                                    { stage: lot.stageName, scope: scopeLabel },
+                                    'Ghi chú (Brief) cho {stage} ({scope})',
+                                  )}
+                                  value={lot.briefInput}
+                                  disabled={submitting}
+                                  onChange={(e) => handleChangeBrief(lot.clientKey, e.target.value)}
+                                  placeholder={t(
+                                    'taskGridV3.autoAssign.briefPlaceholder',
+                                    'Hướng dẫn ngắn cho lô việc (tuỳ chọn)...',
+                                  )}
+                                  className='w-full rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs text-stone-900 disabled:opacity-50'
+                                />
+                              </div>
                             </div>
                           </div>
                         );

@@ -854,6 +854,12 @@ export const assignmentService = {
         lots: request.lots,
         dryRun: request.dryRun ?? false,
         ...(request.reassign !== undefined ? { reassign: request.reassign } : {}),
+        ...(request.confirmStartedWork !== undefined
+          ? { confirmStartedWork: request.confirmStartedWork }
+          : {}),
+        ...(request.expectedRowVersions !== undefined
+          ? { expectedRowVersions: request.expectedRowVersions }
+          : {}),
       };
       const response = await axiosClient.post(`/chapters/${chapterId}/task-grid/lots`, payload);
       return response.data;
