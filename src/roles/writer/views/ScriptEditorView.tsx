@@ -90,7 +90,10 @@ import {
   ConsistencyCheckResultDto,
 } from '@/services/assignment.service';
 import { normalizeWorkspaceRole } from '@/types/auth';
-import { AiAssistPanel } from '@/shared/features/ai-agents/AiAssistPanel';
+import {
+  AiAssistPanel,
+  type AiScriptDraftContext,
+} from '@/shared/features/ai-agents/AiAssistPanel';
 import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
 import { toAiReadingDirection } from '@/shared/features/ai-agents/aiViewUtils';
 import { ScriptDiffPreview } from '../components/script/flow/ScriptDiffPreview';
@@ -501,6 +504,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   }, [currentChapter?.id, openScriptComments.length > 0]);
   const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
   const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
+  const [bibleLoaded, setBibleLoaded] = useState(false);
   const [submittingToEditor, setSubmittingToEditor] = useState(false);
 
   // SCR-11 & BIB-16: canEditScript must not fail open when role is unknown; only Writer edits.
@@ -609,6 +613,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     toggleRightDrawer,
   } = useScriptDrawers();
   const [importRequestKey, setImportRequestKey] = useState(0);
+  const [narrativeDefaultTab, setNarrativeDefaultTab] = useState<'outline' | 'storyArc'>('outline');
 
   // BIB-16: Nạp danh sách thực thể chương (Chapter Cast)
   const loadChapterCast = useCallback(
@@ -634,6 +639,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       const bibleRes = await bibleService.getSeriesBible(seriesId);
       if (bibleRes && bibleRes.entries) {
         setAllBibleEntries(bibleRes.entries);
+        setBibleLoaded(true);
         const charList = bibleRes.entries.filter(
           (e) => String(e.category) === 'Character' || e.category === 0,
         );
@@ -758,6 +764,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     let isMounted = true;
     setLoadingChapters(true);
     setLoadError(null);
+    setBibleLoaded(false);
 
     Promise.all([
       chapterService.getChaptersBySeries(seriesId, 1, 50),
@@ -776,6 +783,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
         if (bibleRes && bibleRes.entries) {
           setAllBibleEntries(bibleRes.entries);
+          setBibleLoaded(true);
           const charList = bibleRes.entries.filter(
             (entry) => mapCategoryToTab(entry.category) === 'characters',
           );
@@ -1026,6 +1034,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           if (seriesId) {
             const freshBible = await bibleService.getSeriesBible(seriesId);
             setAllBibleEntries(freshBible.entries);
+            setBibleLoaded(true);
             setCharacters(
               freshBible.entries.filter(
                 (entry) => mapCategoryToTab(entry.category) === 'characters',
@@ -2473,6 +2482,48 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     allBibleEntries.map((e) => [e.id, getBibleEntryNameWithStage(e)]),
   );
 
+  const scriptAiContext = useMemo<AiScriptDraftContext | undefined>(() => {
+    if (!selectedScene) return undefined;
+    const parsedSummary = parseScenePanelRange(selectedScene.summary);
+    const sceneLines = Array.isArray(selectedScene.scriptLines) ? selectedScene.scriptLines : null;
+    return {
+      sceneTitle:
+        selectedScene.heading || t('scriptStudio.scenes.scene', { n: selectedScene.sceneNumber }),
+      sceneSummary: parsedSummary.cleanSummary || selectedScene.summary?.trim() || null,
+      onOpenScenes: () => setActiveLeftDrawer('scenes'),
+      hasStoryArc: seriesDetail ? Boolean(seriesDetail.storyArc?.trim()) : undefined,
+      hasChapterOutline: currentChapter ? Boolean(currentChapter.outline?.trim()) : undefined,
+      chapterOutline: outlineInput.trim() || currentChapter?.outline?.trim() || '',
+      bibleEntryCount: bibleLoaded
+        ? allBibleEntries.filter((e) => e.isActive !== false).length
+        : undefined,
+      sceneLineCount: sceneLines ? sceneLines.length : undefined,
+      linkedPanelLineCount: sceneLines
+        ? sceneLines.filter((l) => l.panelId != null && l.panelId !== '').length
+        : undefined,
+      bibleCharacters: characters
+        .filter((c) => c.isActive !== false)
+        .map((c) => ({ id: c.id, name: getBibleEntryNameWithStage(c) })),
+      onOpenNarrative: (tab = 'outline') => {
+        setNarrativeDefaultTab(tab);
+        setActiveRightDrawer('narrative');
+      },
+      onOpenBible: () => setActiveRightDrawer('characters'),
+      onOpenStoryboard: () => setActiveRightDrawer('ai-storyboard'),
+    };
+  }, [
+    selectedScene,
+    t,
+    setActiveLeftDrawer,
+    seriesDetail,
+    currentChapter,
+    outlineInput,
+    bibleLoaded,
+    allBibleEntries,
+    characters,
+    setActiveRightDrawer,
+  ]);
+
   // Số lượng vấn đề nhất quán
   const openFindingsCount = findings.filter(
     (f) => f.status === 'Open' || f.status === 'NeedsClarification',
@@ -3114,6 +3165,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             onSaveOutline={handleSaveOutline}
             isStoryArcDirty={isStoryArcDirty}
             isOutlineDirty={isOutlineDirty}
+            defaultTab={narrativeDefaultTab}
           />
         )}
 
@@ -3251,6 +3303,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           readingDirection={aiReadingDirection}
           chapterVersion={currentChapter.versionVector}
           nameById={aiNameById}
+          scriptContext={scriptAiContext}
           onClose={() => setActiveRightDrawer(null)}
           onReload={handleAiReload}
           onScriptPreview={setAiScriptPreview}
