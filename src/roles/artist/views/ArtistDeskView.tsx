@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Loader2, Send } from 'lucide-react';
 import { pageService, PageDto, PageHistoryDto, isGuid } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
+import {
+  chapterEditionService,
+  type ChapterEditionDto,
+  type EditionStatus,
+} from '@/services/chapter-edition.service';
+import { IMAGE_LAYER_TYPES } from '@/services/element.service';
 import { scriptLineService } from '@/services/scriptLine.service';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
@@ -68,6 +75,62 @@ export interface ArtistDeskViewProps {
   initialScriptLines?: ScriptLineItem[];
   initialBibleEntities?: BibleEntityItem[];
   initialSidebarTab?: CanvaSidebarTab;
+}
+
+const EDITION_STATUS_STYLES: Record<
+  string,
+  { fallbackLabel: string; bg: string; text: string; border: string }
+> = {
+  Draft: {
+    fallbackLabel: 'Bản nháp',
+    bg: 'bg-stone-100',
+    text: 'text-stone-700',
+    border: 'border-stone-300',
+  },
+  ReworkRequired: {
+    fallbackLabel: 'Cần sửa lại',
+    bg: 'bg-rose-50',
+    text: 'text-rose-700',
+    border: 'border-rose-200',
+  },
+  InReview: {
+    fallbackLabel: 'Chờ Editor duyệt',
+    bg: 'bg-amber-50',
+    text: 'text-amber-800',
+    border: 'border-amber-200',
+  },
+  EditorApproved: {
+    fallbackLabel: 'Editor đã duyệt',
+    bg: 'bg-orange-50',
+    text: 'text-orange-800',
+    border: 'border-orange-300',
+  },
+  Approved: {
+    fallbackLabel: 'Producer đã duyệt',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-800',
+    border: 'border-emerald-300',
+  },
+  Published: {
+    fallbackLabel: 'Đã phát hành',
+    bg: 'bg-stone-900',
+    text: 'text-stone-50',
+    border: 'border-stone-800',
+  },
+};
+
+function normalizeEditionStatus(status?: EditionStatus | string | number | null): string {
+  if (status === null || status === undefined || status === 0) return 'Draft';
+  if (status === 1) return 'InReview';
+  if (status === 2) return 'EditorApproved';
+  if (status === 3) return 'Approved';
+  if (status === 4) return 'Published';
+  return String(status).trim() || 'Draft';
+}
+
+function isEditionEditableStatus(status?: EditionStatus | string | number | null): boolean {
+  const norm = normalizeEditionStatus(status);
+  return norm === 'Draft' || norm === 'ReworkRequired' || norm === 'ChangesRequested';
 }
 
 function carryArtworksByReadingOrder(
@@ -192,9 +255,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [previewArtwork, setPreviewArtwork] = useState<{ imageUrl: string; title: string } | null>(
     null,
   );
-  const [seriesLanguages, setSeriesLanguages] = useState<string[]>(['vi', 'en', 'ja']);
+  const [seriesLanguages, setSeriesLanguages] = useState<string[]>(['vi', 'en']);
   const [originalLang, setOriginalLang] = useState<string>('vi');
   const [activeLang, setActiveLang] = useState<string>('vi');
+  const [chapterEditions, setChapterEditions] = useState<ChapterEditionDto[]>([]);
+  const [isSubmittingEdition, setIsSubmittingEdition] = useState<boolean>(false);
 
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
   const [selectedPanelNumberOverride, setSelectedPanelNumberOverride] = useState<number | null>(
@@ -787,6 +852,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   }, []);
 
+  // Tải danh sách ấn bản ngôn ngữ của chương (BR-34)
+  const loadChapterEditions = useCallback(async (chapId: string) => {
+    if (!chapId || !chapterEditionService?.getChapterEditions) return;
+    try {
+      const list = await chapterEditionService.getChapterEditions(chapId);
+      if (Array.isArray(list)) {
+        setChapterEditions(list);
+      }
+    } catch {
+      // Giữ danh sách ấn bản hiện có nếu chưa kết nối backend
+    }
+  }, []);
+
   // Tải lịch sử phiên bản của trang được chọn
   const loadPageHistory = useCallback(async (pgId: string) => {
     if (!pageService?.getPageHistory || !isGuid(pgId)) {
@@ -940,8 +1018,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       loadPages(currentChapterId);
       loadScriptLines(currentChapterId);
       loadChangeRequests(currentChapterId);
+      loadChapterEditions(currentChapterId);
+    } else {
+      setChapterEditions([]);
     }
-  }, [currentChapterId, loadPages, loadScriptLines, loadChangeRequests]);
+  }, [currentChapterId, loadPages, loadScriptLines, loadChangeRequests, loadChapterEditions]);
 
   const currentStage = artistStages[currentStageIndex];
   const currentStageId =
@@ -2392,9 +2473,169 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     [balloons.linkedByScriptLine],
   );
 
+  const isTranslationMode = Boolean(
+    activeLang && originalLang && activeLang.toLowerCase() !== originalLang.toLowerCase(),
+  );
+  const activeEdition = useMemo(
+    () =>
+      chapterEditions.find(
+        (ed) => ed.languageCode.toLowerCase() === (activeLang || '').toLowerCase(),
+      ) ?? null,
+    [chapterEditions, activeLang],
+  );
+  const activeEditionStatus = normalizeEditionStatus(activeEdition?.status);
+  const isActiveEditionEditable = isEditionEditableStatus(activeEdition?.status);
+  const canEditCurrentTranslation = isTranslationMode && isActiveEditionEditable;
+  const editionBadgeStyle =
+    EDITION_STATUS_STYLES[activeEditionStatus] || EDITION_STATUS_STYLES.Draft;
+
+  // Tính số bóng thoại chưa có bản dịch trên các trang đã nạp của chương hiện tại (theo từng ngôn ngữ phát hành khác ngôn ngữ gốc)
+  const currentChapterPageIds = useMemo(() => new Set(pages.map((p) => p.id)), [pages]);
+  const chapterLoadedBalloons = useMemo(() => {
+    const entries = Object.entries(balloons.elementsByPageId || {});
+    const matching = entries.filter(([pageId]) => currentChapterPageIds.has(pageId));
+    const list = (matching.length > 0 ? matching : entries).flatMap(([, els]) => els);
+    return list.filter(
+      (el) =>
+        !el.isRemoved &&
+        !IMAGE_LAYER_TYPES.includes(el.elementType as any) &&
+        el.elementType !== 'KEY_ARTWORK_REGION',
+    );
+  }, [balloons.elementsByPageId, currentChapterPageIds]);
+
+  const untranslatedCounts = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = {};
+    const origLower = (originalLang || 'vi').toLowerCase();
+    for (const lang of seriesLanguages) {
+      if (!lang || lang.toLowerCase() === origLower) continue;
+      const missing = chapterLoadedBalloons.filter((el) => {
+        const val =
+          el.texts?.[lang] ?? el.texts?.[lang.toLowerCase()] ?? el.texts?.[lang.toUpperCase()];
+        return !val || !val.trim();
+      }).length;
+      counts[lang] = missing;
+    }
+    return counts;
+  }, [seriesLanguages, originalLang, chapterLoadedBalloons]);
+
+  const handleSubmitEditionTranslation = useCallback(async () => {
+    if (
+      !currentChapterId ||
+      !isTranslationMode ||
+      !isActiveEditionEditable ||
+      isSubmittingEdition
+    ) {
+      return;
+    }
+    const langUpper = activeLang.toUpperCase();
+    const missingCount =
+      untranslatedCounts[activeLang] ??
+      untranslatedCounts[activeLang.toLowerCase()] ??
+      chapterLoadedBalloons.filter((el) => {
+        const val =
+          el.texts?.[activeLang] ??
+          el.texts?.[activeLang.toLowerCase()] ??
+          el.texts?.[activeLang.toUpperCase()];
+        return !val || !val.trim();
+      }).length;
+
+    const description =
+      chapterLoadedBalloons.length === 0
+        ? t(
+            'production:lettering.edition.confirmNoBalloons',
+            { lang: langUpper },
+            `Chương chưa có bóng thoại nào để dịch. Vẫn gửi ấn bản ${langUpper} cho Editor thẩm định?`,
+          )
+        : missingCount > 0
+          ? t(
+              'production:lettering.edition.confirmMissingWarning',
+              { count: missingCount, lang: langUpper },
+              `Cảnh báo: Còn ${missingCount} bóng thoại chưa có bản dịch cho ngôn ngữ ${langUpper}. Bạn có chắc muốn nộp ấn bản ${langUpper} không?`,
+            )
+          : t(
+              'production:lettering.edition.confirmDescription',
+              { lang: langUpper },
+              `Tất cả bóng thoại đã có bản dịch ${langUpper}. Gửi ấn bản này cho Editor thẩm định?`,
+            );
+
+    const accepted = await confirm({
+      title: t(
+        'production:lettering.edition.confirmTitle',
+        { lang: langUpper },
+        `Nộp ấn bản ${langUpper}?`,
+      ),
+      description,
+      confirmLabel: t(
+        'production:lettering.edition.submitBtn',
+        { lang: langUpper },
+        `Nộp ấn bản ${langUpper}`,
+      ),
+      cancelLabel: t('common:actions.cancel', 'Hủy'),
+      variant: missingCount > 0 ? 'warning' : 'default',
+    });
+    if (!accepted) return;
+
+    setIsSubmittingEdition(true);
+    try {
+      const updated = await chapterEditionService.submitEditionTranslation(
+        currentChapterId,
+        activeLang,
+      );
+      if (updated && updated.languageCode) {
+        setChapterEditions((prev) => {
+          const exists = prev.some(
+            (e) => e.languageCode.toLowerCase() === updated.languageCode.toLowerCase(),
+          );
+          return exists
+            ? prev.map((e) =>
+                e.languageCode.toLowerCase() === updated.languageCode.toLowerCase() ? updated : e,
+              )
+            : [...prev, updated];
+        });
+      }
+      await loadChapterEditions(currentChapterId);
+      toast.success(
+        t(
+          'production:lettering.edition.submitSuccessTitle',
+          { lang: langUpper },
+          `Đã nộp ấn bản ${langUpper}`,
+        ),
+        t(
+          'production:lettering.edition.submitSuccessDesc',
+          { lang: langUpper },
+          `Ấn bản ${langUpper} đã chuyển sang trạng thái chờ Editor thẩm định.`,
+        ),
+      );
+    } catch (err: any) {
+      const serverMsg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        t('production:lettering.edition.submitErrorTitle', 'Không thể nộp ấn bản');
+      toast.error(
+        t('production:lettering.edition.submitErrorTitle', 'Không thể nộp ấn bản'),
+        serverMsg,
+      );
+    } finally {
+      setIsSubmittingEdition(false);
+    }
+  }, [
+    currentChapterId,
+    isTranslationMode,
+    isActiveEditionEditable,
+    isSubmittingEdition,
+    activeLang,
+    untranslatedCounts,
+    chapterLoadedBalloons,
+    confirm,
+    t,
+    loadChapterEditions,
+    toast,
+  ]);
+
   // Kéo loại bóng / dòng script từ tab Letter thả lên trang → tạo bóng tại điểm thả (BR-05)
   const handleLetteringDrop = (e: React.DragEvent) => {
-    const raw = e.dataTransfer.getData('application/json');
+    const raw = e.dataTransfer?.getData?.('application/json');
     if (!raw || !selectedPage) return;
     let payload: { type?: BalloonType; scriptLine?: ScriptLineItem };
     try {
@@ -2514,7 +2755,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           role='status'
           className='shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900'
         >
-          Chế độ chỉ đọc — Bạn không có ô đang mở cho trang này
+          {canEditCurrentTranslation
+            ? t(
+                'production:lettering.edition.translationModeAllowedBanner',
+                { lang: activeLang.toUpperCase() },
+                `Chế độ dịch (${activeLang.toUpperCase()}) — Cho phép chỉnh sửa bản dịch; khung tranh và chữ gốc chỉ đọc`,
+              )
+            : 'Chế độ chỉ đọc — Bạn không có ô đang mở cho trang này'}
         </div>
       )}
 
@@ -2625,16 +2872,71 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           }}
           activeLang={activeLang}
           originalLang={originalLang}
+          translationReadOnly={isTranslationMode && !isActiveEditionEditable}
           onUpdateElementText={balloons.updateElementText}
           onUpdateElementTranslation={balloons.updateElementText}
           linkedScriptLineIds={linkedScriptLineIds}
           letteringHeaderSlot={
-            <LanguageSelector
-              languages={seriesLanguages}
-              activeLang={activeLang}
-              onChange={setActiveLang}
-              originalLang={originalLang}
-            />
+            <div className='w-full flex flex-col gap-2'>
+              <div className='flex justify-end'>
+                <LanguageSelector
+                  languages={seriesLanguages}
+                  activeLang={activeLang}
+                  onChange={setActiveLang}
+                  originalLang={originalLang}
+                  counts={untranslatedCounts}
+                />
+              </div>
+              {isTranslationMode && (
+                <div
+                  data-testid='lettering-edition-bar'
+                  className='flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-white border border-stone-200 shadow-2xs'
+                >
+                  <div className='flex items-center gap-1.5 min-w-0'>
+                    <span className='text-xs text-stone-500 font-medium'>
+                      {t('production:lettering.edition.label', 'Ấn bản')}:
+                    </span>
+                    <span
+                      data-testid='lettering-edition-status'
+                      data-edition-status={activeEditionStatus}
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${editionBadgeStyle.bg} ${editionBadgeStyle.text} ${editionBadgeStyle.border}`}
+                    >
+                      {t(
+                        `production:lettering.edition.status.${activeEditionStatus}`,
+                        editionBadgeStyle.fallbackLabel,
+                      )}
+                    </span>
+                  </div>
+                  <button
+                    type='button'
+                    data-testid='lettering-submit-edition-btn'
+                    onClick={handleSubmitEditionTranslation}
+                    disabled={!isActiveEditionEditable || isSubmittingEdition || !currentChapterId}
+                    className='inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-600 hover:bg-orange-700 disabled:bg-stone-200 disabled:text-stone-500 text-white text-xs font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs shrink-0'
+                  >
+                    {isSubmittingEdition ? (
+                      <>
+                        <Loader2 className='w-3.5 h-3.5 animate-spin' aria-hidden='true' />
+                        <span>
+                          {t('production:lettering.edition.submittingBtn', 'Đang nộp...')}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className='w-3.5 h-3.5' aria-hidden='true' />
+                        <span>
+                          {t(
+                            'production:lettering.edition.submitBtn',
+                            { lang: activeLang.toUpperCase() },
+                            `Nộp ấn bản ${activeLang.toUpperCase()}`,
+                          )}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
           }
           theme='paper'
         />
@@ -2715,6 +3017,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 scriptLine={resolvedScriptLines?.find((l) => l.id === selectedBalloon.scriptLineId)}
                 activeLang={activeLang}
                 originalLang={originalLang}
+                textReadOnly={isTranslationMode ? !isActiveEditionEditable : isPageReadOnly}
                 onCommitText={(text) => balloons.updateElementText(selectedBalloon.elementId, text)}
                 onChangeStyle={(patch) =>
                   balloons.updateElementStyle(selectedBalloon.elementId, patch)
@@ -2725,7 +3028,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                     balloons.pageElements.indexOf(selectedBalloon) + 1) ||
                   undefined
                 }
-                onDelete={() => balloons.deleteElement(selectedBalloon.elementId)}
+                onDelete={
+                  !isPageReadOnly
+                    ? () => balloons.deleteElement(selectedBalloon.elementId)
+                    : undefined
+                }
                 onViewScript={() => {
                   setActiveSidebarTab('script');
                   setIsSidebarDrawerOpen(true);

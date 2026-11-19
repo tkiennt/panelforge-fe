@@ -450,7 +450,11 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                             : `Chương #${chap.chapterNumber} (Bản hoàn chỉnh)`}
                         </h3>
 
-                        <ChapterPriceBadge isLocked={chap.isLocked} priceVnd={chap.priceVnd} />
+                        <ChapterPriceBadge
+                          isLocked={chap.isLocked}
+                          priceVnd={chap.priceVnd}
+                          isMonetizationConfigured={chap.isMonetizationConfigured}
+                        />
 
                         {/* Status Badge */}
                         {chap.status === 'ChapterApproved' && (

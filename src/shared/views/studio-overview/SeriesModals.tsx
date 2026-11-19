@@ -494,9 +494,6 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
                 >
                   <option value='vi'>Tiếng Việt (VI)</option>
                   <option value='en'>English (EN)</option>
-                  <option value='ja'>日本語 (JA)</option>
-                  <option value='ko'>한국어 (KO)</option>
-                  <option value='zh'>中文 (ZH)</option>
                 </select>
               </div>
 
@@ -505,9 +502,9 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
                   Các Ngôn Ngữ Phát Hành (Release Languages)
                 </label>
                 <div className='flex flex-wrap gap-2 pt-1'>
-                  {['vi', 'en', 'ja', 'ko', 'zh'].map((code) => {
+                  {['vi', 'en'].map((code) => {
                     const isOrig = (originalLanguage || 'vi').toLowerCase() === code;
-                    const isChecked = isOrig || (releaseLanguages || ['vi', 'en', 'ja']).includes(code);
+                    const isChecked = isOrig || (releaseLanguages || ['vi', 'en']).includes(code);
                     return (
                       <label
                         key={code}
@@ -523,7 +520,7 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
                           checked={isChecked}
                           onChange={(e) => {
                             if (isOrig) return;
-                            const current = releaseLanguages || ['vi', 'en', 'ja'];
+                            const current = releaseLanguages || ['vi', 'en'];
                             if (e.target.checked) {
                               onReleaseLanguagesChange?.([...current, code]);
                             } else {
@@ -532,7 +529,10 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
                           }}
                           className='w-3.5 h-3.5 accent-[#F97316]'
                         />
-                        <span>{code.toUpperCase()}{isOrig ? ' (Gốc)' : ''}</span>
+                        <span>
+                          {code.toUpperCase()}
+                          {isOrig ? ' (Gốc)' : ''}
+                        </span>
                       </label>
                     );
                   })}

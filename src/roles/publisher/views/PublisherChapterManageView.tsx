@@ -6,8 +6,6 @@ import {
   Languages,
   Eye,
   Lock,
-  Settings,
-  Images,
   Loader2,
   AlertTriangle,
   ImageOff,
@@ -18,24 +16,21 @@ import { useToast } from '@/shared/context/ToastContext';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import {
   CONTENT_LANGUAGES,
-  TRANSLATION_LANGUAGES,
   monetizationService,
   type ChapterInsightDto,
+  type ChapterLanguageStatusDto,
   type ChapterManageDto,
   type ContentLanguage,
 } from '@/services/payment.service';
 import { LanguageFilter, StatCards } from '../components/MonetizationWidgets';
 import { useMoney } from '../components/useMoney';
 
-type Section = 'general' | 'prices' | 'pages' | 'settings';
-
-const previewIdsOf = (d: ChapterManageDto) =>
-  new Set(d.pages.filter((p) => p.isPreview).map((p) => p.pageId));
+type Section = 'general' | 'editions';
 
 /**
- * Publisher → bộ truyện → chương: sidebar General (số liệu chương, lọc theo ngôn ngữ) và Manage
- * (giá theo ngôn ngữ, lưới trang chọn trang xem trước + ảnh bản dịch, settings N trang đầu xem trước của bộ truyện).
- * Chương trả phí: mua chương mở mọi trang; người chưa mua chỉ xem trang xem trước.
+ * Publisher → bộ truyện → chương: sidebar General (số liệu chương, lọc theo ngôn ngữ) và Manage → Ấn bản & giá.
+ * BR-33 / D4: mỗi ấn bản ngôn ngữ có loại Free/Trả phí, giá VNĐ và N trang đầu xem trước riêng; Publisher phải chốt
+ * Free hoặc Trả phí trước khi phát hành. Mua ấn bản mở mọi trang của đúng ngôn ngữ đó.
  */
 export const PublisherChapterManageView: React.FC = () => {
   const { t } = useTranslation('payments');
@@ -77,9 +72,7 @@ export const PublisherChapterManageView: React.FC = () => {
     {
       group: t('manage.sidebarManage'),
       items: [
-        { id: 'prices', label: t('manage.prices'), icon: <Languages className='w-4 h-4' /> },
-        { id: 'pages', label: t('manage.pages'), icon: <Images className='w-4 h-4' /> },
-        { id: 'settings', label: t('manage.settings'), icon: <Settings className='w-4 h-4' /> },
+        { id: 'editions', label: t('edition.navLabel'), icon: <Languages className='w-4 h-4' /> },
       ],
     },
   ];
@@ -100,8 +93,7 @@ export const PublisherChapterManageView: React.FC = () => {
         </h1>
         {manage && (
           <p className='text-xs text-[#737373]'>
-            {t('manage.pagesCount', { count: manage.pages.length })} ·{' '}
-            {manage.chapterIsLocked ? t('insights.paid') : t('insights.free')}
+            {t('manage.pagesCount', { count: manage.pages.length })}
             {!manage.isPublished && ` · ${t('insights.unpublished')}`}
           </p>
         )}
@@ -154,25 +146,12 @@ export const PublisherChapterManageView: React.FC = () => {
                 {section === 'general' && (
                   <GeneralSection seriesId={seriesId} chapterId={chapterId} />
                 )}
-                {section === 'prices' && (
-                  <PricesSection
+                {section === 'editions' && (
+                  <EditionsSection
                     manage={manage}
                     onSaved={onSaved}
                     onError={onError}
                     onReload={reload}
-                  />
-                )}
-                {section === 'pages' && (
-                  <PagesSection manage={manage} onSaved={onSaved} onError={onError} />
-                )}
-                {section === 'settings' && (
-                  <SettingsSection
-                    manage={manage}
-                    onSaved={() => {
-                      toast.success(t('manage.saved'), '');
-                      void reload();
-                    }}
-                    onError={onError}
                   />
                 )}
               </>
@@ -230,59 +209,81 @@ const GeneralSection: React.FC<{ seriesId: string; chapterId: string }> = ({
   );
 };
 
-// ─── Giá theo ngôn ngữ ───────────────────────────────────────────────────────
+// ─── Ấn bản & giá (BR-33 / D4) ───────────────────────────────────────────────
 
-const PricesSection: React.FC<{
+type PricingType = 'free' | 'paid' | null;
+
+interface Draft {
+  type: PricingType;
+  price: string;
+  preview: number;
+  reason: string;
+}
+
+const draftOf = (ed: ChapterLanguageStatusDto | undefined): Draft => ({
+  type: !ed?.isMonetizationConfigured ? null : ed.isPaid ? 'paid' : 'free',
+  price: ed?.isMonetizationConfigured && ed.isPaid ? String(ed.priceVnd) : '',
+  preview: ed?.isMonetizationConfigured && ed.isPaid ? ed.freePreviewPages : 0,
+  reason: '',
+});
+
+const PRICE_PRESETS = [5000, 10000, 15000, 20000];
+
+const EditionsSection: React.FC<{
   manage: ChapterManageDto;
   onSaved: (d: ChapterManageDto) => void;
   onError: (e: unknown) => void;
-  onReload?: () => Promise<void>;
+  onReload: () => Promise<void>;
 }> = ({ manage, onSaved, onError, onReload }) => {
   const { t } = useTranslation('payments');
   const { vnd } = useMoney();
-  const [isLockedDraft, setIsLockedDraft] = useState<boolean>(manage.chapterIsLocked);
-  const [basePriceDraft, setBasePriceDraft] = useState<string>(
-    manage.basePriceVnd > 0 ? String(manage.basePriceVnd) : '10000',
-  );
-  const [draft, setDraft] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      manage.languagePrices.map((p) => [p.language, p.isCustom ? String(p.priceVnd) : '']),
-    ),
-  );
+  const [language, setLanguage] = useState<ContentLanguage>('vi');
+  const edition = manage.languages.find((l) => l.language === language);
+  const [draft, setDraft] = useState<Draft>(() => draftOf(edition));
   const [saving, setSaving] = useState(false);
-  const [publishingLang, setPublishingLang] = useState<ContentLanguage | null>(null);
+  const [publishing, setPublishing] = useState(false);
 
-  useEffect(() => {
-    setIsLockedDraft(manage.chapterIsLocked);
-    setBasePriceDraft(manage.basePriceVnd > 0 ? String(manage.basePriceVnd) : '10000');
-    setDraft(
-      Object.fromEntries(
-        manage.languagePrices.map((p) => [p.language, p.isCustom ? String(p.priceVnd) : '']),
-      ),
-    );
-  }, [manage]);
+  useEffect(() => setDraft(draftOf(edition)), [edition]);
+
+  const pageCount = manage.pages.length;
+  const maxPreview = Math.max(0, pageCount - 1);
+  const isPaid = draft.type === 'paid';
+  const priceNumber = Number(draft.price);
+  const priceValid =
+    !isPaid ||
+    (Number.isInteger(priceNumber) &&
+      priceNumber >= manage.minPriceVnd &&
+      priceNumber <= manage.maxPriceVnd);
+  const previewValid =
+    !isPaid || (pageCount > 0 && draft.preview >= 0 && draft.preview < pageCount);
+
+  const saved = draftOf(edition);
+  const commercialChanged =
+    !!edition?.isMonetizationConfigured &&
+    (draft.type !== saved.type || (isPaid && priceNumber !== edition.priceVnd));
+  const changed =
+    draft.type !== saved.type ||
+    (isPaid && (priceNumber !== Number(saved.price) || draft.preview !== saved.preview));
+  // D4: đổi loại hoặc giá của ấn bản đã phát hành cần lý do (ghi Audit).
+  const needsReason = !!edition?.isAvailable && commercialChanged;
+  const canSave =
+    draft.type !== null &&
+    changed &&
+    priceValid &&
+    previewValid &&
+    (!needsReason || draft.reason.trim().length > 0);
 
   const save = async () => {
+    if (!draft.type) return;
     setSaving(true);
     try {
-      const prices = CONTENT_LANGUAGES.map((l) => ({
-        language: l,
-        priceVnd: draft[l] ? Number(draft[l]) : null,
-      }));
-      const hasCustomPositive = prices.some((p) => (p.priceVnd ?? 0) > 0);
-      const nextLocked = isLockedDraft || (!manage.chapterIsLocked && hasCustomPositive);
-      const nextBasePrice = nextLocked ? Math.max(1000, Number(basePriceDraft) || 10000) : 0;
-      const pricingChanged =
-        nextLocked !== manage.chapterIsLocked ||
-        (nextLocked && nextBasePrice !== manage.basePriceVnd);
-
       onSaved(
-        pricingChanged
-          ? await monetizationService.setLanguagePrices(manage.chapterId, prices, {
-              isLocked: nextLocked,
-              basePriceVnd: nextBasePrice,
-            })
-          : await monetizationService.setLanguagePrices(manage.chapterId, prices),
+        await monetizationService.setEditionMonetization(manage.chapterId, language, {
+          isPaid,
+          priceVnd: isPaid ? priceNumber : 0,
+          freePreviewPages: isPaid ? draft.preview : 0,
+          reason: draft.reason.trim() || undefined,
+        }),
       );
     } catch (err) {
       onError(err);
@@ -291,282 +292,272 @@ const PricesSection: React.FC<{
     }
   };
 
-  const handlePublishEdition = async (lang: ContentLanguage) => {
-    setPublishingLang(lang);
+  const canPublish = !edition?.isAvailable && edition?.editionStatus === 'Approved';
+  const publish = async () => {
+    setPublishing(true);
     try {
-      await monetizationService.publishLanguageEdition(manage.chapterId, lang);
-      await onReload?.();
+      await monetizationService.publishLanguageEdition(manage.chapterId, language);
+      await onReload();
     } catch (err) {
       onError(err);
     } finally {
-      setPublishingLang(null);
+      setPublishing(false);
     }
   };
 
+  /** Bấm trang k: xem trước đến hết trang k (bấm lại trang cuối của phần xem trước để thu về k-1). */
+  const pickPreviewUntil = (index: number) =>
+    setDraft((d) => {
+      const next = d.preview === index + 1 ? index : index + 1;
+      return { ...d, preview: Math.min(next, maxPreview) };
+    });
+
   return (
     <div className='space-y-4'>
-      <div className='p-4 rounded-2xl border border-[#E7E7E7] bg-white space-y-3'>
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          <div>
-            <div className='text-sm font-semibold text-[#171717]'>{t('chapterPricing.toggle')}</div>
-            <div className='text-xs text-[#737373]'>
-              {isLockedDraft ? t('chapterPricing.lockedHint') : t('chapterPricing.freeHint')}
-            </div>
-          </div>
-          <button
-            type='button'
-            role='switch'
-            aria-checked={isLockedDraft}
-            aria-label={t('chapterPricing.toggle')}
-            onClick={() => setIsLockedDraft((prev) => !prev)}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-              isLockedDraft ? 'bg-[#F97316]' : 'bg-[#D4D4D4]'
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-xs transition ${
-                isLockedDraft ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
-          </button>
-        </div>
+      <p className='text-xs text-[#737373]'>{t('edition.hint')}</p>
 
-        {isLockedDraft && (
-          <div className='flex flex-wrap items-center gap-3 pt-2 border-t border-[#F0F0F0]'>
-            <label className='flex items-center gap-2 text-xs text-[#555555] font-medium'>
-              {t('manage.basePrice')} (VNĐ)
-              <input
-                type='number'
-                min={1000}
-                step={500}
-                value={basePriceDraft}
-                onChange={(e) => setBasePriceDraft(e.target.value)}
-                aria-label={t('manage.basePrice')}
-                className='w-32 px-2.5 py-1.5 rounded-lg border border-[#E7E7E7] font-mono text-xs focus:outline-none focus:border-[#F97316]'
-              />
-            </label>
-            <div className='flex items-center gap-1.5 text-xs text-[#737373]'>
-              <span>{t('chapterPricing.quickPick')}</span>
-              {[5000, 10000, 15000, 20000].map((preset) => (
-                <button
-                  key={preset}
-                  type='button'
-                  onClick={() => setBasePriceDraft(String(preset))}
-                  className={`px-2 py-1 rounded-md border text-[11px] font-mono cursor-pointer ${
-                    Number(basePriceDraft) === preset
-                      ? 'border-[#F97316] bg-[#F97316]/10 text-[#C2410C] font-bold'
-                      : 'border-[#E7E7E7] bg-[#FAF8F4] text-[#555555] hover:bg-white'
-                  }`}
-                >
-                  {vnd(preset)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <p className='text-xs text-[#737373]'>
-        {t('manage.pricesHint', {
-          base: vnd(
-            isLockedDraft ? Number(basePriceDraft) || manage.basePriceVnd : manage.basePriceVnd,
-          ),
-        })}
-      </p>
-      <div className='rounded-2xl border border-[#E7E7E7] bg-white divide-y divide-[#F0F0F0]'>
+      <div
+        role='tablist'
+        aria-label={t('edition.languageTabs')}
+        className='inline-flex rounded-xl border border-[#E7E7E7] bg-white p-0.5'
+      >
         {CONTENT_LANGUAGES.map((l) => {
-          const status = manage.languages.find((s) => s.language === l);
-          const canPublishEdition = !status?.isAvailable && status?.editionStatus === 'Approved';
+          const ed = manage.languages.find((x) => x.language === l);
           return (
-            <div key={l} className='flex flex-wrap items-center gap-3 px-4 py-3'>
-              <div className='w-48'>
-                <div className='text-sm font-semibold text-[#171717]'>{t(`lang.${l}`)}</div>
-                <div
-                  className={`text-[11px] ${status?.isAvailable ? 'text-emerald-700' : 'text-[#A3A3A3]'}`}
-                >
-                  {status?.isAvailable
-                    ? t('manage.available')
-                    : t('manage.notAvailable', {
-                        done: status?.translatedPages ?? 0,
-                        total: manage.pages.length,
-                      })}
-                </div>
-              </div>
-              <label className='flex items-center gap-2 text-xs text-[#555555]'>
-                {t('manage.customPrice')}
-                <input
-                  type='number'
-                  min={1000}
-                  step={500}
-                  value={draft[l] ?? ''}
-                  placeholder={String(
-                    isLockedDraft
-                      ? Number(basePriceDraft) || manage.basePriceVnd
-                      : manage.basePriceVnd,
-                  )}
-                  onChange={(e) => setDraft((d) => ({ ...d, [l]: e.target.value }))}
-                  aria-label={`${t('manage.customPrice')} ${l}`}
-                  className='w-32 px-2.5 py-1.5 rounded-lg border border-[#E7E7E7] focus:outline-none focus:border-[#F97316]'
+            <button
+              key={l}
+              type='button'
+              role='tab'
+              aria-selected={language === l}
+              onClick={() => setLanguage(l)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 ${
+                language === l ? 'bg-[#171717] text-white' : 'text-[#555555] hover:bg-[#FAF8F4]'
+              }`}
+            >
+              {t(`lang.${l}`)}
+              {!ed?.isMonetizationConfigured && (
+                <span
+                  className='w-1.5 h-1.5 rounded-full bg-amber-500'
+                  aria-label={t('edition.notConfigured')}
                 />
-              </label>
-              {draft[l] && (
-                <button
-                  type='button'
-                  onClick={() => setDraft((d) => ({ ...d, [l]: '' }))}
-                  className='text-xs text-[#737373] underline cursor-pointer'
-                >
-                  {t('manage.useBase')}
-                </button>
               )}
-              {canPublishEdition && (
-                <button
-                  type='button'
-                  disabled={publishingLang === l}
-                  onClick={() => handlePublishEdition(l)}
-                  className='ml-auto px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5'
-                >
-                  {publishingLang === l && <Loader2 className='w-3.5 h-3.5 animate-spin' />}
-                  Phát hành bản {l.toUpperCase()}
-                </button>
-              )}
-            </div>
+            </button>
           );
         })}
       </div>
-      <SaveButton saving={saving} onClick={save} label={t('manage.savePrices')} />
+
+      <div className='p-4 rounded-2xl border border-[#E7E7E7] bg-white space-y-4'>
+        <div className='flex flex-wrap items-center gap-2 text-xs'>
+          <span className='font-semibold text-[#171717]'>{t(`lang.${language}`)}</span>
+          <span className='px-2 py-0.5 rounded-full bg-[#FAF8F4] border border-[#E7E7E7] text-[#555555]'>
+            {edition?.editionStatus ?? t('edition.noEdition')}
+          </span>
+          {edition?.isAvailable && (
+            <span className='text-emerald-700'>{t('manage.available')}</span>
+          )}
+          {!edition?.isMonetizationConfigured && (
+            <span className='px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800'>
+              {t('edition.notConfigured')}
+            </span>
+          )}
+        </div>
+
+        <fieldset className='space-y-2'>
+          <legend className='text-sm font-semibold text-[#171717]'>{t('edition.typeLabel')}</legend>
+          <div className='flex flex-wrap gap-2'>
+            {(['free', 'paid'] as const).map((type) => (
+              <label
+                key={type}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm cursor-pointer ${
+                  draft.type === type
+                    ? 'border-[#F97316] bg-[#F97316]/10 text-[#C2410C] font-semibold'
+                    : 'border-[#E7E7E7] text-[#555555] hover:bg-[#FAF8F4]'
+                }`}
+              >
+                <input
+                  type='radio'
+                  name={`pricing-type-${language}`}
+                  value={type}
+                  checked={draft.type === type}
+                  onChange={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      type,
+                      price: type === 'paid' && !d.price ? '10000' : d.price,
+                      preview: type === 'paid' ? Math.min(d.preview, maxPreview) : 0,
+                    }))
+                  }
+                  className='accent-[#F97316]'
+                />
+                {type === 'free' ? t('edition.free') : t('edition.paid')}
+              </label>
+            ))}
+          </div>
+          {draft.type === null && <Notice>{t('edition.mustChoose')}</Notice>}
+        </fieldset>
+
+        {isPaid && (
+          <div className='space-y-3 pt-3 border-t border-[#F0F0F0]'>
+            <div className='flex flex-wrap items-center gap-3'>
+              <label className='flex items-center gap-2 text-xs text-[#555555] font-medium'>
+                {t('edition.priceLabel')}
+                <input
+                  type='number'
+                  inputMode='numeric'
+                  min={manage.minPriceVnd}
+                  max={manage.maxPriceVnd}
+                  step={500}
+                  value={draft.price}
+                  onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
+                  aria-invalid={!priceValid}
+                  className='w-32 px-2.5 py-1.5 rounded-lg border border-[#E7E7E7] font-mono text-xs focus:outline-none focus:border-[#F97316]'
+                />
+              </label>
+              <div className='flex items-center gap-1.5 text-xs text-[#737373]'>
+                <span>{t('chapterPricing.quickPick')}</span>
+                {PRICE_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    type='button'
+                    onClick={() => setDraft((d) => ({ ...d, price: String(preset) }))}
+                    className={`px-2 py-1 rounded-md border text-[11px] font-mono cursor-pointer ${
+                      priceNumber === preset
+                        ? 'border-[#F97316] bg-[#F97316]/10 text-[#C2410C] font-bold'
+                        : 'border-[#E7E7E7] bg-[#FAF8F4] text-[#555555] hover:bg-white'
+                    }`}
+                  >
+                    {vnd(preset)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {!priceValid && (
+              <p className='text-xs text-rose-700'>
+                {t('edition.priceRange', {
+                  min: vnd(manage.minPriceVnd),
+                  max: vnd(manage.maxPriceVnd),
+                })}
+              </p>
+            )}
+
+            <label className='flex flex-wrap items-center gap-2 text-xs text-[#555555] font-medium'>
+              {t('edition.previewLabel')}
+              <input
+                type='number'
+                inputMode='numeric'
+                min={0}
+                max={maxPreview}
+                value={draft.preview}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    preview: Math.min(
+                      maxPreview,
+                      Math.max(0, Math.trunc(Number(e.target.value) || 0)),
+                    ),
+                  }))
+                }
+                className='w-20 px-2.5 py-1.5 rounded-lg border border-[#E7E7E7] font-mono text-xs focus:outline-none focus:border-[#F97316]'
+              />
+              <span className='text-[#737373]'>
+                {t('edition.previewSummary', {
+                  preview: draft.preview,
+                  locked: pageCount - draft.preview,
+                })}
+              </span>
+            </label>
+            {pageCount === 0 && <Notice>{t('edition.noPages')}</Notice>}
+          </div>
+        )}
+
+        {needsReason && (
+          <label className='flex flex-col gap-1 text-xs text-[#555555] font-medium'>
+            {t('edition.reasonLabel')}
+            <textarea
+              value={draft.reason}
+              onChange={(e) => setDraft((d) => ({ ...d, reason: e.target.value }))}
+              rows={2}
+              required
+              className='px-2.5 py-1.5 rounded-lg border border-[#E7E7E7] text-xs focus:outline-none focus:border-[#F97316]'
+            />
+            <span className='text-[#737373] font-normal'>{t('edition.reasonHint')}</span>
+          </label>
+        )}
+
+        <div className='flex flex-wrap items-center justify-between gap-3 pt-1'>
+          <SaveButton
+            saving={saving}
+            disabled={!canSave}
+            onClick={save}
+            label={t('edition.save')}
+          />
+          {canPublish && (
+            <div className='flex items-center gap-2'>
+              {!edition?.isMonetizationConfigured && (
+                <span className='text-xs text-amber-800'>{t('edition.publishBlocked')}</span>
+              )}
+              <button
+                type='button'
+                disabled={publishing || !edition?.isMonetizationConfigured}
+                onClick={publish}
+                className='px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5'
+              >
+                {publishing && <Loader2 className='w-4 h-4 animate-spin' />}
+                {t('edition.publish', { lang: language.toUpperCase() })}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <PreviewGrid
+        manage={manage}
+        language={language}
+        isPaid={isPaid}
+        preview={draft.preview}
+        onPick={isPaid ? pickPreviewUntil : undefined}
+      />
     </div>
   );
 };
 
-// ─── Trang xem trước + ảnh bản dịch (lưới thumbnail nhiều trang, kiểu xem nhiều trang của Word) ──
-
-const PagesSection: React.FC<{
+/** Lưới ảnh trang của ấn bản: N trang đầu xem trước (viền xanh), các trang sau khóa (làm mờ). */
+const PreviewGrid: React.FC<{
   manage: ChapterManageDto;
-  onSaved: (d: ChapterManageDto) => void;
-  onError: (e: unknown) => void;
-}> = ({ manage, onSaved, onError }) => {
+  language: ContentLanguage;
+  isPaid: boolean;
+  preview: number;
+  onPick?: (index: number) => void;
+}> = ({ manage, language, isPaid, preview, onPick }) => {
   const { t } = useTranslation('payments');
-  const [preview, setPreview] = useState<ContentLanguage>('vi');
-  const [draft, setDraft] = useState<Set<string>>(() => previewIdsOf(manage));
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => setDraft(previewIdsOf(manage)), [manage]);
-
-  const paid =
-    manage.chapterIsLocked ||
-    manage.languagePrices.some((p) => p.priceVnd !== null && p.priceVnd > 0);
-  const changed = useMemo(() => {
-    const saved = previewIdsOf(manage);
-    return saved.size !== draft.size || [...draft].some((id) => !saved.has(id));
-  }, [manage, draft]);
-
-  const toggle = (pageId: string) =>
-    setDraft((prev) => {
-      const next = new Set(prev);
-      if (next.has(pageId)) next.delete(pageId);
-      else next.add(pageId);
-      return next;
-    });
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      onSaved(await monetizationService.setPreviewPages(manage.chapterId, [...draft]));
-    } catch (err) {
-      onError(err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const reset = async () => {
-    setSaving(true);
-    try {
-      onSaved(await monetizationService.resetPreviewPages(manage.chapterId));
-    } catch (err) {
-      onError(err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const status = manage.languages.find((l) => l.language === preview);
+  const pages = useMemo(() => manage.pages, [manage.pages]);
 
   return (
-    <div className='space-y-4'>
-      <p className='text-xs text-[#737373]'>{t('manage.pagesHint')}</p>
-
-      <div className='flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-[#FAF8F4] border border-[#E7E7E7] text-xs'>
-        <span className='text-[#555555]'>
-          {!paid
-            ? t('manage.freeChapterNotice')
-            : manage.previewPagesCustomized
-              ? t('manage.customized')
-              : manage.seriesDefaultPreviewPageCount > 0
-                ? t('manage.followingDefault', { count: manage.seriesDefaultPreviewPageCount })
-                : t('manage.noDefault')}
-        </span>
-        {manage.previewPagesCustomized && (
-          <button
-            type='button'
-            disabled={saving}
-            onClick={reset}
-            className='px-2.5 py-1 rounded-lg border border-[#E7E7E7] bg-white font-medium cursor-pointer'
-          >
-            {t('manage.resetToDefault')}
-          </button>
-        )}
-      </div>
-
-      <div className='flex flex-wrap items-center gap-3'>
-        <span className='text-xs font-semibold text-[#555555]'>{t('manage.previewLanguage')}</span>
-        <div className='inline-flex rounded-xl border border-[#E7E7E7] bg-white p-0.5'>
-          {CONTENT_LANGUAGES.map((l) => (
-            <button
-              key={l}
-              type='button'
-              aria-pressed={preview === l}
-              onClick={() => setPreview(l)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
-                preview === l ? 'bg-[#171717] text-white' : 'text-[#555555] hover:bg-[#FAF8F4]'
-              }`}
-            >
-              {t(`lang.${l}`)}
-            </button>
-          ))}
-        </div>
-        {status && (
-          <span className={`text-xs ${status.isAvailable ? 'text-emerald-700' : 'text-[#A3A3A3]'}`}>
-            {status.isAvailable
-              ? t('manage.available')
-              : t('manage.notAvailable', {
-                  done: status.translatedPages,
-                  total: manage.pages.length,
-                })}
-          </span>
-        )}
-      </div>
-
+    <div className='space-y-2'>
+      {isPaid && <p className='text-xs text-[#737373]'>{t('edition.gridHint')}</p>}
       <div className='rounded-2xl bg-[#ECEAE6] border border-[#E0DDD7] p-4'>
         <ul className='grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-x-4 gap-y-5'>
-          {manage.pages.map((p) => {
-            const isPreview = draft.has(p.pageId);
-            const locked = paid && !isPreview;
-            const url = p.imageUrls[preview] ?? null;
+          {pages.map((p, i) => {
+            const isPreview = isPaid && i < preview;
+            const locked = isPaid && !isPreview;
+            const url = p.imageUrls[language] ?? null;
             const label = t('manage.page', { number: p.pageNumber });
             return (
               <li key={p.pageId} className='flex flex-col items-center gap-1.5'>
                 <button
                   type='button'
-                  disabled={!paid}
-                  aria-pressed={isPreview}
+                  disabled={!onPick}
                   aria-label={label}
                   title={
-                    paid ? (isPreview ? t('manage.previewBadge') : t('manage.lockedBadge')) : label
+                    isPaid
+                      ? isPreview
+                        ? t('manage.previewBadge')
+                        : t('manage.lockedBadge')
+                      : label
                   }
-                  onClick={() => toggle(p.pageId)}
+                  onClick={() => onPick?.(i)}
                   className={`relative w-full aspect-[1/1.414] bg-white shadow-sm overflow-hidden cursor-pointer disabled:cursor-default transition ${
-                    isPreview && paid
+                    isPreview
                       ? 'ring-2 ring-emerald-500'
                       : locked
                         ? 'ring-1 ring-[#F97316]/60'
@@ -585,7 +576,7 @@ const PagesSection: React.FC<{
                       {t('manage.noImage')}
                     </span>
                   )}
-                  {paid && (
+                  {isPaid && (
                     <span
                       className={`absolute top-1 right-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white ${
                         isPreview ? 'bg-emerald-600' : 'bg-[#F97316]'
@@ -602,81 +593,6 @@ const PagesSection: React.FC<{
           })}
         </ul>
       </div>
-
-      {paid && (
-        <div className='flex flex-wrap items-center justify-between gap-3 pt-1'>
-          <div className='flex items-center gap-3 text-xs text-[#555555]'>
-            <span>
-              {t('manage.previewSummary', {
-                preview: draft.size,
-                locked: manage.pages.length - draft.size,
-              })}
-            </span>
-            {draft.size > 0 && (
-              <button
-                type='button'
-                onClick={() => setDraft(new Set())}
-                className='underline text-[#737373] cursor-pointer'
-              >
-                {t('manage.lockAll')}
-              </button>
-            )}
-          </div>
-          <SaveButton
-            saving={saving}
-            disabled={!changed}
-            onClick={save}
-            label={t('manage.savePreview')}
-          />
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ─── Settings (theo bộ truyện) ───────────────────────────────────────────────
-
-const SettingsSection: React.FC<{
-  manage: ChapterManageDto;
-  onSaved: () => void;
-  onError: (e: unknown) => void;
-}> = ({ manage, onSaved, onError }) => {
-  const { t } = useTranslation('payments');
-  const [count, setCount] = useState(manage.seriesDefaultPreviewPageCount);
-  const [saving, setSaving] = useState(false);
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      await monetizationService.updateSeriesSettings(manage.seriesId, {
-        defaultPreviewPageCount: count,
-      });
-      onSaved();
-    } catch (err) {
-      onError(err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className='space-y-4 max-w-xl'>
-      <div>
-        <h2 className='text-sm font-bold text-[#171717]'>{t('manage.settingsTitle')}</h2>
-        <p className='text-xs text-[#737373] mt-1'>{t('manage.settingsHint')}</p>
-      </div>
-      <label className='flex flex-col gap-1 text-xs text-[#555555]'>
-        {t('manage.defaultCount')}
-        <input
-          type='number'
-          min={0}
-          max={50}
-          value={count}
-          onChange={(e) => setCount(Math.min(50, Math.max(0, Number(e.target.value) || 0)))}
-          className='w-32 px-2.5 py-1.5 rounded-lg border border-[#E7E7E7] focus:outline-none focus:border-[#F97316]'
-        />
-      </label>
-      <SaveButton saving={saving} onClick={save} label={t('manage.saveSettings')} />
     </div>
   );
 };

@@ -109,7 +109,6 @@ export const StudioOverviewView: React.FC = () => {
   const [editSeriesReleaseLanguages, setEditSeriesReleaseLanguages] = useState<string[]>([
     'vi',
     'en',
-    'ja',
   ]);
   const [updatingSeries, setUpdatingSeries] = useState(false);
 
@@ -441,7 +440,7 @@ export const StudioOverviewView: React.FC = () => {
     setEditSeriesCompleted(Boolean(s.isCompleted));
     setEditSeriesOriginalLanguage(s.originalLanguage || 'vi');
     setEditSeriesReleaseLanguages(
-      s.releaseLanguages && s.releaseLanguages.length > 0 ? s.releaseLanguages : ['vi', 'en', 'ja'],
+      s.releaseLanguages && s.releaseLanguages.length > 0 ? s.releaseLanguages : ['vi', 'en'],
     );
   };
 

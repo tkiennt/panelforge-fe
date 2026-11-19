@@ -192,40 +192,36 @@ export function buildVietQrImageUrl(opts: {
 
 // ─── Ngôn ngữ bản phát hành (ContentLanguages) ───────────────────────────────
 
-/** vi = bản gốc Studio; en/ja = bản dịch Publisher upload ảnh từng trang. */
-export type ContentLanguage = 'vi' | 'en' | 'ja';
-export const CONTENT_LANGUAGES: ContentLanguage[] = ['vi', 'en', 'ja'];
-export const TRANSLATION_LANGUAGES: ContentLanguage[] = ['en', 'ja'];
+/** vi = bản gốc Studio; en = bản dịch. */
+export type ContentLanguage = 'vi' | 'en';
+export const CONTENT_LANGUAGES: ContentLanguage[] = ['vi', 'en'];
+export const TRANSLATION_LANGUAGES: ContentLanguage[] = ['en'];
 
 // ─── Publisher: Manage chương (PublisherMonetizationController) ──────────────
 
-/** ChapterLanguagePriceDto */
-export interface ChapterLanguagePriceDto {
-  language: ContentLanguage;
-  priceVnd: number;
-  /** Publisher đặt giá riêng; false = đang dùng giá chung của chương. */
-  isCustom: boolean;
-}
-
-/** ChapterLanguageStatusDto */
+/**
+ * ChapterLanguageStatusDto — một ấn bản ngôn ngữ của chương kèm quy định thương mại do Publisher đặt (BR-33).
+ * Mỗi ấn bản có loại Free/Trả phí, giá VNĐ và N trang đầu xem trước riêng.
+ */
 export interface ChapterLanguageStatusDto {
   language: ContentLanguage;
   translatedPages: number;
-  /** Bản ngôn ngữ đã phát hành cho Reader (đủ ảnh mọi trang). */
+  /** Ấn bản đã phát hành cho Reader. */
   isAvailable: boolean;
-  /** Trạng thái ấn bản ngôn ngữ (Draft | InReview | EditorApproved | Approved | Published). */
+  /** Trạng thái ấn bản (Draft | InReview | EditorApproved | Approved | Published); null = chưa có ấn bản. */
   editionStatus?: string | null;
+  /** D4: Publisher đã chốt Free/Trả phí; false → chưa được phát hành / hẹn giờ. */
+  isMonetizationConfigured: boolean;
+  isPaid: boolean;
+  priceVnd: number;
+  /** N trang đầu người chưa mua được xem (Free = 0). */
+  freePreviewPages: number;
 }
 
 /** ManagedPageDto */
 export interface ManagedPageDto {
   pageId: string;
   pageNumber: number;
-  /**
-   * Trang xem trước hiệu lực (sau khi áp mặc định N trang đầu nếu chương chưa chọn tay): người chưa mua chương
-   * trả phí vẫn xem được; trang khác khóa đến khi mua cả chương.
-   */
-  isPreview: boolean;
   imageUrls: Partial<Record<ContentLanguage, string | null>>;
 }
 
@@ -236,20 +232,21 @@ export interface ChapterManageDto {
   chapterNumber: number;
   title?: string | null;
   isPublished: boolean;
-  chapterIsLocked: boolean;
-  basePriceVnd: number;
-  /** Publisher đã chọn tay trang xem trước (không theo mặc định bộ truyện). */
-  previewPagesCustomized: boolean;
-  seriesDefaultPreviewPageCount: number;
-  languagePrices: ChapterLanguagePriceDto[];
   languages: ChapterLanguageStatusDto[];
   pages: ManagedPageDto[];
+  minPriceVnd: number;
+  maxPriceVnd: number;
 }
 
-/** LanguagePriceItem — priceVnd null/0 = bỏ giá riêng. */
-export interface LanguagePriceItem {
-  language: ContentLanguage;
-  priceVnd: number | null;
+/** SetEditionMonetizationRequest (BR-33 / D4). */
+export interface SetEditionMonetizationRequest {
+  isPaid: boolean;
+  /** Trả phí: giá VNĐ nguyên trong [minPriceVnd, maxPriceVnd]. Free: 0. */
+  priceVnd: number;
+  /** Trả phí: 0 ≤ N < tổng số trang. Free: bỏ qua. */
+  freePreviewPages: number;
+  /** Bắt buộc khi đổi loại hoặc giá của ấn bản đã phát hành. */
+  reason?: string;
 }
 
 // ─── Publisher: dashboard series ─────────────────────────────────────────────
@@ -292,14 +289,6 @@ export interface SeriesInsightsDto {
   totals: InsightStatsDto;
   byLanguage: { language: ContentLanguage; stats: InsightStatsDto }[];
   chapters: ChapterInsightDto[];
-  defaultPreviewPageCount: number;
-}
-
-/** SeriesMonetizationSettingsDto */
-export interface SeriesMonetizationSettingsDto {
-  seriesId: string;
-  defaultPreviewPageCount: number;
-  maxDefaultPreviewPageCount: number;
 }
 
 // ─── Doanh thu Publisher / lượt đọc Producer ─────────────────────────────────
@@ -370,50 +359,24 @@ export const monetizationService = {
     return res.data;
   },
 
-  /** PUT /publisher/series/{seriesId}/monetization-settings — mặc định N trang đầu xem trước. */
-  async updateSeriesSettings(
-    seriesId: string,
-    body: { defaultPreviewPageCount: number },
-  ): Promise<SeriesMonetizationSettingsDto> {
-    const res = await axiosClient.put<SeriesMonetizationSettingsDto>(
-      `/publisher/series/${seriesId}/monetization-settings`,
-      body,
-    );
-    return res.data;
-  },
-
   /** GET /publisher/chapters/{chapterId}/manage */
   async getChapterManage(chapterId: string): Promise<ChapterManageDto> {
     const res = await axiosClient.get<ChapterManageDto>(`/publisher/chapters/${chapterId}/manage`);
     return res.data;
   },
 
-  /** PUT /publisher/chapters/{chapterId}/preview-pages — chọn trang xem trước (chương chuyển sang chọn tay). */
-  async setPreviewPages(chapterId: string, previewPageIds: string[]): Promise<ChapterManageDto> {
-    const res = await axiosClient.put<ChapterManageDto>(
-      `/publisher/chapters/${chapterId}/preview-pages`,
-      { previewPageIds },
-    );
-    return res.data;
-  },
-
-  /** DELETE /publisher/chapters/{chapterId}/preview-pages — quay về mặc định của bộ truyện. */
-  async resetPreviewPages(chapterId: string): Promise<ChapterManageDto> {
-    const res = await axiosClient.delete<ChapterManageDto>(
-      `/publisher/chapters/${chapterId}/preview-pages`,
-    );
-    return res.data;
-  },
-
-  /** PUT /publisher/chapters/{chapterId}/language-prices */
-  async setLanguagePrices(
+  /**
+   * PUT /publisher/chapters/{chapterId}/editions/{lang}/monetization — BR-33 / D4 (SetEditionMonetization):
+   * loại Free/Trả phí, giá và N trang đầu xem trước của một ấn bản. Chỉ tài khoản Publisher.
+   */
+  async setEditionMonetization(
     chapterId: string,
-    prices: LanguagePriceItem[],
-    options?: { isLocked?: boolean; basePriceVnd?: number },
+    language: ContentLanguage,
+    body: SetEditionMonetizationRequest,
   ): Promise<ChapterManageDto> {
     const res = await axiosClient.put<ChapterManageDto>(
-      `/publisher/chapters/${chapterId}/language-prices`,
-      options ? { prices, ...options } : { prices },
+      `/publisher/chapters/${chapterId}/editions/${language}/monetization`,
+      body,
     );
     return res.data;
   },

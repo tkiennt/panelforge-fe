@@ -1573,7 +1573,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     ? t('production.cast.crowdMarked', '✓ Quần chúng (bấm để huỷ)')
                     : t('production.cast.setCrowd', '+ Đặt Quần chúng')
                 }
-                className={`px-3 py-2 rounded-full text-sm font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shadow-xs ${
+                className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shadow-sm ${
                   entity.isCrowd
                     ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
                     : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'

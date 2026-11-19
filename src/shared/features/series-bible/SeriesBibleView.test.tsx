@@ -125,6 +125,8 @@ describe('SeriesBibleView UX/UI improvements', () => {
       entries: mockEntries,
     });
     (seriesService.getSeriesList as any).mockResolvedValue([mockSeries]);
+    // Một số test gán đè getBibleDesignQueue; reset để hàng chờ không rò sang test sau.
+    (bibleService as any).getBibleDesignQueue = vi.fn().mockResolvedValue([]);
   });
 
   it('renders hero header with series name, KPI tiles, category sidebar and count badge', async () => {

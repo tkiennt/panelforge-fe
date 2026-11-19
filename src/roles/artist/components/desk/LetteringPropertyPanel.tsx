@@ -48,6 +48,8 @@ export interface LetteringPropertyPanelProps {
   displayNumber?: number;
   activeLang?: string;
   originalLang?: string;
+  /** Khóa ô nhập chữ (chữ gốc khi trang readOnly, hoặc bản dịch khi ấn bản không ở trạng thái Draft). */
+  textReadOnly?: boolean;
   onCommitText: (text: string) => void;
   onChangeStyle: (patch: Partial<TextStyleDto> | null) => void;
   onDelete?: () => void;
@@ -79,6 +81,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
   displayNumber,
   activeLang,
   originalLang = 'vi',
+  textReadOnly = false,
   onCommitText,
   onChangeStyle,
   onDelete,
@@ -302,6 +305,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
           element={element}
           isOriginal={isOriginal}
           langLabel={(activeLang ?? originalLang).toUpperCase()}
+          readOnly={textReadOnly}
           onCommit={onCommitText}
         />
 
