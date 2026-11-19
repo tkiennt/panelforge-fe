@@ -110,6 +110,18 @@ export const pipelineService = {
   },
 
   /**
+   * Lấy danh sách công đoạn trong Pipeline của Series
+   */
+  getPipelineStages: async (seriesId: string): Promise<PipelineStageDto[]> => {
+    try {
+      const response = await axiosClient.get(`/series/${seriesId}/pipeline`);
+      return response.data?.stages || [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
    * Thêm stage mới vào Pipeline (POST /api/series/{seriesId}/pipeline/stages)
    */
   addStage: async (seriesId: string, data: AddPipelineStageRequest): Promise<SeriesPipelineDto> => {

@@ -69,6 +69,7 @@ export interface ChapterCastItemDto {
   category: number | string;
   isStub: boolean;
   isCrowd: boolean;
+  isCanonLocked?: boolean;
   source: ChapterCastSource;
   bibleStatus: string;
   boundRevision?: ChapterCastBoundRevisionDto | null;
