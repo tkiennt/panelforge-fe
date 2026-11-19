@@ -5,10 +5,14 @@ import type { ScriptLineItem } from './ArtistCanvaSidebar';
 import type { ElementSnapshotDto } from '@/services/element.service';
 import { translateText } from '@/services/translation.service';
 
-vi.mock('@/services/translation.service', () => ({
-  translateText: vi.fn(),
-  translationService: { translateText: vi.fn() },
-}));
+vi.mock('@/services/translation.service', async (orig) => {
+  const actual = await orig<typeof import('@/services/translation.service')>();
+  return {
+    ...actual,
+    translateText: vi.fn(),
+    translationService: { ...actual.translationService, translateText: vi.fn() },
+  };
+});
 
 const LINES: ScriptLineItem[] = [
   {
@@ -132,7 +136,7 @@ describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)
   });
 
   it('bấm [🌐 Dịch] gọi translateText, hiển thị ô xem trước, sửa nội dung và bấm [📥 Đổ vào bóng thoại]', async () => {
-    vi.mocked(translateText).mockResolvedValueOnce('Add title!');
+    vi.mocked(translateText).mockResolvedValueOnce({ text: 'Add title!', isFallback: false });
     const onUpdate = vi.fn();
 
     renderPanel({
@@ -174,9 +178,10 @@ describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)
 
   it('bấm Dịch toàn bộ thoại của trang dịch hàng loạt các dòng kịch bản thuộc trang hiện tại', async () => {
     vi.mocked(translateText).mockImplementation(async (text) => {
-      if (text.includes('tiêu đề')) return 'Add title translated';
-      if (text.includes('Ba năm')) return 'Three years later translated';
-      return text;
+      if (text.includes('tiêu đề')) return { text: 'Add title translated', isFallback: false };
+      if (text.includes('Ba năm'))
+        return { text: 'Three years later translated', isFallback: false };
+      return { text, isFallback: false };
     });
 
     renderPanel({
@@ -216,6 +221,61 @@ describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)
 
     expect(await screen.findByTestId('lettering-translate-error-l-speech')).toHaveTextContent(
       'Translation service unavailable',
+    );
+  });
+
+  it('vô hiệu hóa nút dịch kèm tooltip khi cặp ngôn ngữ không thuộc {en, vi} (ví dụ JA)', () => {
+    renderPanel({
+      activeLang: 'ja',
+      originalLang: 'vi',
+    });
+
+    const batchBtn = screen.getByTestId('lettering-batch-translate-page');
+    const lineBtn = screen.getByTestId('lettering-translate-line-l-speech');
+
+    expect(batchBtn).toBeDisabled();
+    expect(batchBtn).toHaveAttribute('title', 'Dịch tự động chỉ hỗ trợ Anh ↔ Việt');
+    expect(lineBtn).toBeDisabled();
+    expect(lineBtn).toHaveAttribute('title', 'Dịch tự động chỉ hỗ trợ Anh ↔ Việt');
+  });
+
+  it('hiển thị cảnh báo màu hổ phách và không điền câu gốc vào preview khi LibreTranslate trả về isFallback: true', async () => {
+    vi.mocked(translateText).mockResolvedValueOnce({
+      text: 'Thêm tiêu đề!',
+      isFallback: true,
+    });
+
+    renderPanel({
+      activeLang: 'en',
+      originalLang: 'vi',
+    });
+
+    fireEvent.click(screen.getByTestId('lettering-translate-line-l-speech'));
+
+    const warning = await screen.findByTestId('lettering-translate-fallback-l-speech');
+    expect(warning).toHaveTextContent('Dịch vụ dịch chưa sẵn sàng — đang hiển thị câu gốc');
+    expect(screen.queryByTestId('lettering-preview-input-l-speech')).not.toBeInTheDocument();
+  });
+
+  it('dịch hàng loạt bỏ qua các dòng fallback và chỉ hiển thị một cảnh báo dịch vụ chưa sẵn sàng', async () => {
+    vi.mocked(translateText).mockImplementation(async (text) => {
+      if (text.includes('tiêu đề')) return { text, isFallback: true };
+      return { text: 'Three years later...', isFallback: false };
+    });
+
+    renderPanel({
+      activeLang: 'en',
+      originalLang: 'vi',
+      activePageNumber: 1,
+    });
+
+    fireEvent.click(screen.getByTestId('lettering-batch-translate-page'));
+
+    const batchFallback = await screen.findByTestId('lettering-batch-translate-fallback');
+    expect(batchFallback).toHaveTextContent('Dịch vụ dịch chưa sẵn sàng — đang hiển thị câu gốc');
+    expect(screen.queryByTestId('lettering-preview-input-l-speech')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('lettering-preview-input-l-narr')).toHaveValue(
+      'Three years later...',
     );
   });
 });

@@ -9,14 +9,17 @@ export const BalloonTextEditor: React.FC<{
   element: ElementSnapshotDto;
   isOriginal: boolean;
   langLabel: string;
+  readOnly?: boolean;
   onCommit: (text: string) => void;
-}> = ({ element, isOriginal, langLabel, onCommit }) => {
+}> = ({ element, isOriginal, langLabel, readOnly = false, onCommit }) => {
   const original = element.content || element.renderedText || '';
   const initial = isOriginal ? original : (element.texts?.[langLabel.toLowerCase()] ?? '');
   const [draft, setDraft] = useState(initial);
   const lockedByScript = isOriginal && Boolean(element.scriptLineId);
+  const isReadOnly = readOnly || lockedByScript;
 
   const commit = () => {
+    if (isReadOnly) return;
     if (draft.trim() !== initial.trim()) onCommit(draft.trim());
   };
 
@@ -39,7 +42,7 @@ export const BalloonTextEditor: React.FC<{
       <textarea
         data-testid='lettering-text-input'
         value={draft}
-        readOnly={lockedByScript}
+        readOnly={isReadOnly}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         rows={4}

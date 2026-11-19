@@ -4,6 +4,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ArtistDeskView } from './ArtistDeskView';
 import { chapterService } from '@/services/chapter.service';
+import { chapterEditionService } from '@/services/chapter-edition.service';
+import { elementService } from '@/services/element.service';
 import { pageService } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { scriptLineService } from '@/services/scriptLine.service';
@@ -21,6 +23,7 @@ import { beforeEach } from 'vitest';
 beforeEach(() => {
   vi.spyOn(assignmentService, 'getAssignments').mockResolvedValue([]);
   vi.spyOn(assignmentService, 'getChangeRequests').mockResolvedValue([]);
+  vi.spyOn(chapterEditionService, 'getChapterEditions').mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -1966,6 +1969,292 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
             mockPanel1Id,
           );
           expect(screen.getByAltText('color-panel1.png')).toBeInTheDocument();
+        });
+      } finally {
+        localStorage.removeItem('user');
+      }
+    });
+  });
+
+  describe('Letterer translation edition submission, untranslated counts, and read-only rules (BR-34)', () => {
+    const page1Id = '11111111-1111-4111-8111-111111111111';
+    const elem1Id = '22222222-2222-4222-8222-222222222221';
+    const elem2Id = '22222222-2222-4222-8222-222222222222';
+
+    it('shows untranslated counts on LanguageSelector, displays edition status, warns missing balloons in ConfirmDialog, and submits edition', async () => {
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        {
+          id: page1Id,
+          chapterId: 'chap-1',
+          pageNumber: 1,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'B5',
+          dpi: 300,
+          elementsCount: 2,
+        },
+      ]);
+      vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValue([]);
+      vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+      vi.spyOn(elementService, 'getPageSnapshot').mockResolvedValue({
+        pageId: page1Id,
+        version: 1,
+        pageNumber: 1,
+        elements: [
+          {
+            elementId: elem1Id,
+            elementType: 'SPEECH_BALLOON',
+            x: 100,
+            y: 100,
+            width: 200,
+            height: 100,
+            zIndex: 1,
+            content: 'Xin chào',
+            texts: { en: 'Hello' },
+            isRemoved: false,
+            version: 1,
+          },
+          {
+            elementId: elem2Id,
+            elementType: 'SPEECH_BALLOON',
+            x: 100,
+            y: 250,
+            width: 200,
+            height: 100,
+            zIndex: 2,
+            content: 'Tạm biệt',
+            texts: {},
+            isRemoved: false,
+            version: 1,
+          },
+        ],
+      });
+      const getEditionsSpy = vi
+        .spyOn(chapterEditionService, 'getChapterEditions')
+        .mockResolvedValue([
+          {
+            id: 'ed-en',
+            chapterId: 'chap-1',
+            languageCode: 'en',
+            status: 'Draft',
+            isPaid: false,
+            priceVnd: 0,
+            freePreviewPages: 0,
+            version: 0,
+            createdAt: '2026-01-01T00:00:00Z',
+          },
+        ]);
+      const submitEditionSpy = vi
+        .spyOn(chapterEditionService, 'submitEditionTranslation')
+        .mockResolvedValue({
+          id: 'ed-en',
+          chapterId: 'chap-1',
+          languageCode: 'en',
+          status: 'InReview',
+          isPaid: false,
+          priceVnd: 0,
+          freePreviewPages: 0,
+          version: 1,
+          createdAt: '2026-01-01T00:00:00Z',
+        });
+
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/letterer?chapterId=chap-1']}>
+          <ToastProvider>
+            <ConfirmProvider>
+              <Routes>
+                <Route
+                  path='/workspaces/:workspaceId/series/:seriesId/letterer'
+                  element={
+                    <ArtistDeskView
+                      workspaceRole='LETTERER'
+                      initialScriptLines={[]}
+                      initialSidebarTab='lettering'
+                    />
+                  }
+                />
+              </Routes>
+            </ConfirmProvider>
+          </ToastProvider>
+        </MemoryRouter>,
+      );
+
+      const selector = await screen.findByTestId('lettering-language-selector');
+      await waitFor(() => {
+        // EN has 1 untranslated balloon; JA is no longer a release language
+        expect(selector).toHaveTextContent('1');
+        expect(selector).not.toHaveTextContent('JA');
+      });
+
+      // Switch to EN
+      fireEvent.click(screen.getByTitle('English (EN)'));
+
+      expect(await screen.findByTestId('lettering-edition-status')).toHaveAttribute(
+        'data-edition-status',
+        'Draft',
+      );
+      const submitBtn = screen.getByTestId('lettering-submit-edition-btn');
+      expect(submitBtn).not.toBeDisabled();
+
+      getEditionsSpy.mockResolvedValueOnce([
+        {
+          id: 'ed-en',
+          chapterId: 'chap-1',
+          languageCode: 'en',
+          status: 'InReview',
+          isPaid: false,
+          priceVnd: 0,
+          freePreviewPages: 0,
+          version: 1,
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+      ]);
+
+      fireEvent.click(submitBtn);
+
+      // Shared ConfirmDialog opens and warns that 1 balloon still has no text for EN
+      const dialog = await screen.findByRole('dialog');
+      expect(dialog).toHaveTextContent(/1/);
+      expect(dialog).toHaveTextContent(/EN/);
+
+      // Confirm submission inside ConfirmDialog
+      fireEvent.click(screen.getByTestId('confirm-accept-btn'));
+
+      await waitFor(() => {
+        expect(submitEditionSpy).toHaveBeenCalledWith('chap-1', 'en');
+        expect(screen.getByTestId('lettering-edition-status')).toHaveAttribute(
+          'data-edition-status',
+          'InReview',
+        );
+        expect(screen.getByTestId('lettering-submit-edition-btn')).toBeDisabled();
+      });
+    });
+
+    it('allows translation editing when chapter is approved (isPageReadOnly) and edition is Draft, while keeping original text and geometry read-only', async () => {
+      localStorage.setItem('user', JSON.stringify({ id: 'letterer-1' }));
+      const letterStageId = 'c3333333-3333-3333-3333-333333333333';
+
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        {
+          id: page1Id,
+          chapterId: 'chap-1',
+          pageNumber: 1,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'B5',
+          dpi: 300,
+          elementsCount: 1,
+        },
+      ]);
+      vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValue([]);
+      vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+      vi.spyOn(elementService, 'getPageSnapshot').mockResolvedValue({
+        pageId: page1Id,
+        version: 1,
+        pageNumber: 1,
+        elements: [
+          {
+            elementId: elem1Id,
+            elementType: 'SPEECH_BALLOON',
+            x: 100,
+            y: 100,
+            width: 200,
+            height: 100,
+            zIndex: 1,
+            content: 'Xin chào',
+            scriptLineId: null,
+            texts: {},
+            isRemoved: false,
+            version: 1,
+          },
+        ],
+      });
+      const updateTransSpy = vi
+        .spyOn(elementService, 'updateElementTranslation')
+        .mockResolvedValue({ message: 'ok', elementVersion: 2 });
+      vi.spyOn(chapterEditionService, 'getChapterEditions').mockResolvedValue([
+        {
+          id: 'ed-en',
+          chapterId: 'chap-1',
+          languageCode: 'en',
+          status: 'Draft',
+          isPaid: false,
+          priceVnd: 0,
+          freePreviewPages: 0,
+          version: 0,
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+      ]);
+      vi.spyOn(assignmentService, 'getTaskGrid').mockResolvedValue({
+        chapterId: 'chap-1',
+        stages: [{ id: letterStageId, name: 'Letter', stageOrder: 1, isEnabled: true }],
+        pages: [{ id: page1Id, pageNumber: 1 }],
+        lots: [],
+        tasks: [
+          {
+            id: 'cell-p1-letter',
+            pipelineStageId: letterStageId,
+            pageId: page1Id,
+            status: 'Approved',
+            lotId: 'lot-letter',
+            assigneeUserId: 'letterer-1',
+            isInputOutdated: false,
+            isStartable: false,
+          },
+        ],
+      } as any);
+
+      try {
+        render(
+          <MemoryRouter
+            initialEntries={['/workspaces/ws-1/series/ser-1/letterer?chapterId=chap-1']}
+          >
+            <ToastProvider>
+              <ConfirmProvider>
+                <Routes>
+                  <Route
+                    path='/workspaces/:workspaceId/series/:seriesId/letterer'
+                    element={
+                      <ArtistDeskView
+                        workspaceRole='LETTERER'
+                        initialScriptLines={[]}
+                        initialSidebarTab='lettering'
+                      />
+                    }
+                  />
+                </Routes>
+              </ConfirmProvider>
+            </ToastProvider>
+          </MemoryRouter>,
+        );
+
+        const banner = await screen.findByTestId('artist-page-readonly-banner');
+        expect(banner).toHaveTextContent(/Chế độ chỉ đọc/i);
+
+        // Select balloon on original language -> text input is readOnly because isPageReadOnly=true
+        const balloonNode = await screen.findByTestId(`lettering-element-${elem1Id}`);
+        fireEvent.click(balloonNode);
+        expect(screen.getByTestId('lettering-text-input')).toHaveAttribute('readonly');
+
+        // Switch to EN (Draft edition) -> banner says translation mode is allowed and translation input is editable
+        fireEvent.click(screen.getByTitle('English (EN)'));
+        expect(screen.getByTestId('artist-page-readonly-banner')).toHaveTextContent(
+          /Chế độ dịch \(EN\)|Translation mode \(EN\)/i,
+        );
+
+        const transInput = screen.getByTestId('lettering-text-input');
+        expect(transInput).not.toHaveAttribute('readonly');
+        fireEvent.change(transInput, { target: { value: 'Hello translated' } });
+        fireEvent.blur(transInput);
+
+        await waitFor(() => {
+          expect(updateTransSpy).toHaveBeenCalledWith(
+            page1Id,
+            elem1Id,
+            'en',
+            'Hello translated',
+            1,
+          );
         });
       } finally {
         localStorage.removeItem('user');

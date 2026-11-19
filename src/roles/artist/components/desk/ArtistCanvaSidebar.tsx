@@ -158,6 +158,7 @@ export interface ArtistCanvaSidebarProps {
   onSelectElementId?: (id: string | null) => void;
   activeLang?: string;
   originalLang?: string;
+  translationReadOnly?: boolean;
   onUpdateElementText?: (id: string, text: string) => Promise<void> | void;
   onUpdateElementTranslation?: (id: string, text: string) => Promise<void> | void;
   /** Dòng script đã có bóng trên toàn chương (không chỉ trang hiện tại). */
@@ -930,6 +931,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   onSelectElementId,
   activeLang,
   originalLang = 'vi',
+  translationReadOnly = false,
   onUpdateElementText,
   onUpdateElementTranslation,
   linkedScriptLineIds,
@@ -2412,6 +2414,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             headerSlot={letteringHeaderSlot}
             activeLang={activeLang}
             originalLang={originalLang}
+            translationReadOnly={translationReadOnly}
           />
         )}
       </aside>

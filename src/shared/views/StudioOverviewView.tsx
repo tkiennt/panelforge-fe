@@ -111,7 +111,10 @@ export const StudioOverviewView: React.FC = () => {
   const [editSeriesSchedule, setEditSeriesSchedule] = useState('');
   const [editSeriesCompleted, setEditSeriesCompleted] = useState(false);
   const [editSeriesOriginalLanguage, setEditSeriesOriginalLanguage] = useState('vi');
-  const [editSeriesReleaseLanguages, setEditSeriesReleaseLanguages] = useState<string[]>(['vi', 'en', 'ja']);
+  const [editSeriesReleaseLanguages, setEditSeriesReleaseLanguages] = useState<string[]>([
+    'vi',
+    'en',
+  ]);
   const [updatingSeries, setUpdatingSeries] = useState(false);
 
   // Workspace Usage (NFR Resource Governance - Storage & AI Tokens)
@@ -442,7 +445,7 @@ export const StudioOverviewView: React.FC = () => {
     setEditSeriesCompleted(Boolean(s.isCompleted));
     setEditSeriesOriginalLanguage(s.originalLanguage || 'vi');
     setEditSeriesReleaseLanguages(
-      s.releaseLanguages && s.releaseLanguages.length > 0 ? s.releaseLanguages : ['vi', 'en', 'ja'],
+      s.releaseLanguages && s.releaseLanguages.length > 0 ? s.releaseLanguages : ['vi', 'en'],
     );
   };
 

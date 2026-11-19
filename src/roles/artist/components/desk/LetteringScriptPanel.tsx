@@ -16,7 +16,11 @@ import {
   Volume2,
 } from 'lucide-react';
 import { updateElementTranslation, type ElementSnapshotDto } from '@/services/element.service';
-import { translateText } from '@/services/translation.service';
+import {
+  SUPPORTED_AUTO_TRANSLATE_LANGUAGES,
+  isAutoTranslateSupportedPair,
+  translateText,
+} from '@/services/translation.service';
 import { BALLOON_TYPE_LABELS, suggestBalloonType } from '../../utils/letteringScript';
 import type { BalloonType } from '../../hooks/useLetteringBalloons';
 import type { ScriptLineItem } from './ArtistCanvaSidebar';
@@ -55,6 +59,8 @@ export interface LetteringScriptPanelProps {
   linkedScriptLineIds?: ReadonlySet<string>;
   activeLang?: string;
   originalLang?: string;
+  /** Khóa thao tác dịch/đổ bản dịch khi ấn bản ngôn ngữ không ở trạng thái cho phép sửa (vd InReview/Approved/Published). */
+  translationReadOnly?: boolean;
   /** Bộ chọn ngôn ngữ đang soạn (đặt ở đầu cột, không đè lên trang). */
   headerSlot?: React.ReactNode;
 }
@@ -76,6 +82,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   linkedScriptLineIds,
   activeLang,
   originalLang = 'vi',
+  translationReadOnly = false,
   headerSlot,
 }) => {
   const [expanded, setExpanded] = useState(true);
@@ -87,10 +94,12 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [isTranslatingLine, setIsTranslatingLine] = useState<Record<string, boolean>>({});
   const [lineError, setLineError] = useState<Record<string, string | null>>({});
+  const [lineFallbackWarning, setLineFallbackWarning] = useState<Record<string, string | null>>({});
   const [isApplyingLine, setIsApplyingLine] = useState<Record<string, boolean>>({});
   const [applySuccessLine, setApplySuccessLine] = useState<Record<string, boolean>>({});
   const [isBatchTranslating, setIsBatchTranslating] = useState(false);
   const [batchError, setBatchError] = useState<string | null>(null);
+  const [batchFallbackWarning, setBatchFallbackWarning] = useState<string | null>(null);
 
   // Chỉ dòng có chữ để đặt (bỏ chỉ dẫn cảnh), đánh số theo thứ tự trong kịch bản
   const lines = useMemo(
@@ -127,6 +136,23 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   }, [selectedLineId]);
 
   const isTranslating = !!activeLang && activeLang.toLowerCase() !== originalLang.toLowerCase();
+  const canAutoTranslate = useMemo(() => {
+    if (typeof isAutoTranslateSupportedPair === 'function') {
+      return isAutoTranslateSupportedPair(originalLang, activeLang);
+    }
+    const supported = new Set<string>(SUPPORTED_AUTO_TRANSLATE_LANGUAGES ?? ['en', 'vi']);
+    const src = (originalLang || '').trim().toLowerCase();
+    const tgt = (activeLang || '').trim().toLowerCase();
+    return supported.has(src) && supported.has(tgt) && src !== tgt;
+  }, [originalLang, activeLang]);
+  const unsupportedPairTooltip = t(
+    'lettering.translate.unsupportedPairTooltip',
+    'Dịch tự động chỉ hỗ trợ Anh ↔ Việt',
+  );
+  const fallbackWarningMessage = t(
+    'lettering.translate.fallbackWarning',
+    'Dịch vụ dịch chưa sẵn sàng — đang hiển thị câu gốc',
+  );
   const missingTranslations = isTranslating
     ? elements.filter((el) => !el.texts?.[activeLang!]?.trim()).length
     : 0;
@@ -157,12 +183,25 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
   // Dịch 1 dòng kịch bản
   const handleTranslateLine = async (lineId: string, textToTranslate: string) => {
-    if (!activeLang || !originalLang || !textToTranslate.trim()) return;
+    if (
+      !activeLang ||
+      !originalLang ||
+      !textToTranslate.trim() ||
+      !canAutoTranslate ||
+      translationReadOnly
+    )
+      return;
     setIsTranslatingLine((prev) => ({ ...prev, [lineId]: true }));
     setLineError((prev) => ({ ...prev, [lineId]: null }));
+    setLineFallbackWarning((prev) => ({ ...prev, [lineId]: null }));
     try {
-      const result = await translateText(textToTranslate, originalLang, activeLang);
-      setTranslations((prev) => ({ ...prev, [lineId]: result }));
+      const raw = await translateText(textToTranslate, originalLang, activeLang);
+      const result = typeof raw === 'string' ? { text: raw, isFallback: false } : raw;
+      if (result.isFallback) {
+        setLineFallbackWarning((prev) => ({ ...prev, [lineId]: fallbackWarningMessage }));
+      } else {
+        setTranslations((prev) => ({ ...prev, [lineId]: result.text }));
+      }
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
@@ -177,35 +216,51 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
   // Dịch toàn bộ thoại của trang hiện tại
   const handleBatchTranslatePage = async () => {
-    if (!activeLang || !originalLang || currentPageLines.length === 0) return;
+    if (
+      !activeLang ||
+      !originalLang ||
+      currentPageLines.length === 0 ||
+      !canAutoTranslate ||
+      translationReadOnly
+    )
+      return;
     setIsBatchTranslating(true);
     setBatchError(null);
+    setBatchFallbackWarning(null);
 
     try {
       const results = await Promise.all(
         currentPageLines.map(async ({ line, text }) => {
           try {
-            const res = await translateText(text, originalLang, activeLang);
-            return { id: line.id, text: res, error: null };
+            const raw = await translateText(text, originalLang, activeLang);
+            const res = typeof raw === 'string' ? { text: raw, isFallback: false } : raw;
+            return { id: line.id, text: res.text, isFallback: res.isFallback, error: null };
           } catch (err: any) {
             const msg =
               err?.response?.data?.message ||
               err?.response?.data?.error ||
               err?.message ||
               t('lettering.translate.error');
-            return { id: line.id, text: null, error: msg };
+            return { id: line.id, text: null, isFallback: false, error: msg };
           }
         }),
       );
 
       const nextTranslations = { ...translations };
       const nextErrors = { ...lineError };
+      const nextFallbacks = { ...lineFallbackWarning };
       let hasFailure = false;
+      let hasFallback = false;
 
       for (const r of results) {
-        if (r.text != null) {
+        if (r.isFallback) {
+          hasFallback = true;
+          nextFallbacks[r.id] = null;
+          nextErrors[r.id] = null;
+        } else if (r.text != null) {
           nextTranslations[r.id] = r.text;
           nextErrors[r.id] = null;
+          nextFallbacks[r.id] = null;
         } else {
           nextErrors[r.id] = r.error;
           hasFailure = true;
@@ -214,6 +269,10 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
       setTranslations(nextTranslations);
       setLineError(nextErrors);
+      setLineFallbackWarning(nextFallbacks);
+      if (hasFallback) {
+        setBatchFallbackWarning(fallbackWarningMessage);
+      }
       if (hasFailure) {
         setBatchError(t('lettering.translate.batchPartial'));
       }
@@ -226,7 +285,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
   // Đổ bản dịch vào bóng thoại
   const handleApplyTranslation = async (lineId: string) => {
-    if (!activeLang) return;
+    if (!activeLang || translationReadOnly) return;
     const targetElement = getTargetElementForLine(lineId);
     if (!targetElement) return;
 
@@ -307,7 +366,13 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                 type='button'
                 data-testid='lettering-batch-translate-page'
                 onClick={handleBatchTranslatePage}
-                disabled={isBatchTranslating || currentPageLines.length === 0}
+                disabled={
+                  isBatchTranslating ||
+                  currentPageLines.length === 0 ||
+                  !canAutoTranslate ||
+                  translationReadOnly
+                }
+                title={!canAutoTranslate ? unsupportedPairTooltip : undefined}
                 className='inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 disabled:bg-stone-300 disabled:text-stone-500 rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs'
               >
                 {isBatchTranslating ? (
@@ -323,6 +388,22 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                 )}
               </button>
             </div>
+            {!canAutoTranslate && (
+              <p
+                data-testid='lettering-auto-translate-unsupported'
+                className='text-xs text-stone-500 italic'
+              >
+                {unsupportedPairTooltip}
+              </p>
+            )}
+            {batchFallbackWarning && (
+              <p
+                data-testid='lettering-batch-translate-fallback'
+                className='text-xs text-amber-800 bg-amber-50 p-1.5 rounded border border-amber-200'
+              >
+                {batchFallbackWarning}
+              </p>
+            )}
             {batchError && (
               <p
                 data-testid='lettering-batch-translate-error'
@@ -462,7 +543,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                     {isTranslating && (
                       <div className='pl-2 pr-1 pt-0.5 pb-1'>
                         {!hasTranslation ? (
-                          <div className='flex items-center gap-2'>
+                          <div className='flex flex-wrap items-center gap-2'>
                             <button
                               type='button'
                               data-testid={`lettering-translate-line-${line.id}`}
@@ -470,8 +551,13 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                                 e.stopPropagation();
                                 handleTranslateLine(line.id, text);
                               }}
-                              disabled={isTranslatingLine[line.id]}
-                              className='inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-md transition-colors cursor-pointer disabled:opacity-50'
+                              disabled={
+                                isTranslatingLine[line.id] ||
+                                !canAutoTranslate ||
+                                translationReadOnly
+                              }
+                              title={!canAutoTranslate ? unsupportedPairTooltip : undefined}
+                              className='inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                             >
                               {isTranslatingLine[line.id] ? (
                                 <>
@@ -485,6 +571,14 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                                 </>
                               )}
                             </button>
+                            {lineFallbackWarning[line.id] && (
+                              <span
+                                data-testid={`lettering-translate-fallback-${line.id}`}
+                                className='text-xs text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-medium'
+                              >
+                                {lineFallbackWarning[line.id]}
+                              </span>
+                            )}
                             {lineError[line.id] && (
                               <span
                                 data-testid={`lettering-translate-error-${line.id}`}
@@ -509,9 +603,17 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                                   e.stopPropagation();
                                   handleTranslateLine(line.id, text);
                                 }}
-                                disabled={isTranslatingLine[line.id]}
-                                className='hover:text-stone-800 text-xs flex items-center gap-1 cursor-pointer disabled:opacity-50'
-                                title={t('lettering.translate.retranslate')}
+                                disabled={
+                                  isTranslatingLine[line.id] ||
+                                  !canAutoTranslate ||
+                                  translationReadOnly
+                                }
+                                className='hover:text-stone-800 text-xs flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                                title={
+                                  !canAutoTranslate
+                                    ? unsupportedPairTooltip
+                                    : t('lettering.translate.retranslate')
+                                }
                               >
                                 <RefreshCw
                                   className={`w-2.5 h-2.5 ${isTranslatingLine[line.id] ? 'animate-spin' : ''}`}
@@ -522,12 +624,14 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                             <textarea
                               data-testid={`lettering-preview-input-${line.id}`}
                               value={translations[line.id]}
+                              readOnly={translationReadOnly}
                               onChange={(e) => {
+                                if (translationReadOnly) return;
                                 const val = e.target.value;
                                 setTranslations((prev) => ({ ...prev, [line.id]: val }));
                               }}
                               rows={2}
-                              className='w-full text-xs p-1.5 border border-stone-300 rounded bg-white text-stone-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 resize-none'
+                              className='w-full text-xs p-1.5 border border-stone-300 rounded bg-white text-stone-800 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 resize-none read-only:bg-stone-100 read-only:text-stone-500'
                               placeholder={t('lettering.translate.previewPlaceholder')}
                             />
                             <div className='flex items-center justify-between gap-2 pt-0.5'>
@@ -538,7 +642,9 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                                   e.stopPropagation();
                                   handleApplyTranslation(line.id);
                                 }}
-                                disabled={isApplyingLine[line.id] || !targetElement}
+                                disabled={
+                                  translationReadOnly || isApplyingLine[line.id] || !targetElement
+                                }
                                 title={
                                   !targetElement ? t('lettering.translate.needBalloon') : undefined
                                 }

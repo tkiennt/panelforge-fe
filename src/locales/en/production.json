@@ -88,7 +88,29 @@
       "error": "Translation failed",
       "applyError": "Could not fill the translation into the balloon.",
       "batchPartial": "Some lines failed to translate, please check them.",
-      "batchFailed": "Could not finish translating the page."
+      "batchFailed": "Could not finish translating the page.",
+      "unsupportedPairTooltip": "Auto-translate only supports English ↔ Vietnamese",
+      "fallbackWarning": "Translation service is not ready — showing original text"
+    },
+    "edition": {
+      "label": "Edition",
+      "submitBtn": "Submit {lang} edition",
+      "submittingBtn": "Submitting...",
+      "confirmTitle": "Submit {lang} edition?",
+      "confirmDescription": "All balloons have {lang} translations. Submit this edition for Editor review?",
+      "confirmMissingWarning": "Warning: {count} balloons still have no translation for {lang}. Are you sure you want to submit the {lang} edition?",
+      "submitSuccessTitle": "Submitted {lang} edition",
+      "submitSuccessDesc": "The {lang} edition has been submitted for Editor review.",
+      "submitErrorTitle": "Could not submit edition",
+      "translationModeAllowedBanner": "Translation mode ({lang}) — Translation editing is allowed; panels and original text remain read-only",
+      "status": {
+        "Draft": "Draft",
+        "ReworkRequired": "Rework required",
+        "InReview": "In review",
+        "EditorApproved": "Editor approved",
+        "Approved": "Approved",
+        "Published": "Published"
+      }
     }
   },
   "template": {

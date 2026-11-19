@@ -342,7 +342,10 @@ export function useLetteringBalloons(
           return;
         }
         updatePageElements((list) => list.filter((item) => item.elementId !== id));
-        toast.error?.('Không lưu được bóng thoại', (err as Error)?.message || 'Thử lại sau ít phút.');
+        toast.error?.(
+          'Không lưu được bóng thoại',
+          (err as Error)?.message || 'Thử lại sau ít phút.',
+        );
       }
     },
     [
@@ -500,6 +503,10 @@ export function useLetteringBalloons(
         !activeLang || !originalLang || activeLang.toLowerCase() === originalLang.toLowerCase();
 
       if (isOriginal) {
+        if (readOnly) {
+          notifyForbidden();
+          return;
+        }
         // Nếu bóng đã gắn kịch bản (BR-05), không cho sửa chữ gốc tự do
         if (target.scriptLineId) {
           toast.info(
@@ -570,6 +577,8 @@ export function useLetteringBalloons(
       pageElements,
       activeLang,
       originalLang,
+      readOnly,
+      notifyForbidden,
       updateElement,
       reloadElements,
       toast,
@@ -579,6 +588,10 @@ export function useLetteringBalloons(
   const updateElementStyle = useCallback(
     async (elementId: string, patch: Partial<TextStyleDto> | null) => {
       if (!selectedPage?.id) return;
+      if (readOnly) {
+        notifyForbidden();
+        return;
+      }
       const target = pageElements.find((item) => item.elementId === elementId);
       if (!target) return;
 
@@ -606,7 +619,15 @@ export function useLetteringBalloons(
         }
       }
     },
-    [selectedPage?.id, pageElements, updateElement, reloadElements, toast],
+    [
+      selectedPage?.id,
+      readOnly,
+      notifyForbidden,
+      pageElements,
+      updateElement,
+      reloadElements,
+      toast,
+    ],
   );
 
   const deleteElement = useCallback(
@@ -822,6 +843,7 @@ export function useLetteringBalloons(
 
   return {
     pageElements,
+    elementsByPageId,
     selectedElementId,
     setSelectedElementId,
     draggingId: dragging?.elementId ?? null,

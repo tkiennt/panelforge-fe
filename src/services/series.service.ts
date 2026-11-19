@@ -32,7 +32,7 @@ export interface SeriesDto {
   isCompleted?: boolean;
   /** BR-34: Ngôn ngữ gốc của bộ truyện (mặc định 'vi') */
   originalLanguage?: string;
-  /** BR-34: Các ngôn ngữ phát hành (mặc định ['vi', 'en', 'ja']) */
+  /** BR-34: Các ngôn ngữ phát hành (mặc định ['vi', 'en']) */
   releaseLanguages?: string[];
 }
 
