@@ -1129,7 +1129,7 @@ describe('AiAssistPanel (Storyboard & Layout)', () => {
     );
 
     expect(await screen.findByTestId('ai-storyboard-has-panels-banner')).toBeInTheDocument();
-    expect(screen.getByText('Phân cảnh này đã có khung tranh (panel)')).toBeInTheDocument();
+    expect(screen.getByText('Phân cảnh này đã có khung tranh')).toBeInTheDocument();
 
     const acceptBtn = screen.getByRole('button', { name: /Accept \(tạo Page\/Panel\)/ });
     expect(acceptBtn).toBeDisabled();

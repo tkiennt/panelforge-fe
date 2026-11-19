@@ -109,16 +109,16 @@ describe('ChapterSelectionView Component', () => {
       <ChapterSelectionView chapters={[]} canCreateChapter={false} onSelectChapter={vi.fn()} />,
     );
 
-    expect(screen.getByText('Chưa có chương nào trong series này')).toBeInTheDocument();
+    expect(screen.getByText('Chưa có chương')).toBeInTheDocument();
     expect(
-      screen.getByText(/Producer phụ trách dự án sẽ khởi tạo chương và giao việc/i),
+      screen.getByText(/Liên hệ Producer để tạo chương/i),
     ).toBeInTheDocument();
   });
 
   it('filters chapters based on search query', () => {
     render(<ChapterSelectionView chapters={mockChapters} onSelectChapter={vi.fn()} />);
 
-    const searchInput = screen.getByPlaceholderText(/Tìm nhanh theo tên chương/i);
+    const searchInput = screen.getByPlaceholderText(/Tìm số hoặc tên chương/i);
     fireEvent.change(searchInput, { target: { value: 'Shibuya' } });
 
     expect(screen.queryByText(/Khởi Đầu Mới/i)).not.toBeInTheDocument();
