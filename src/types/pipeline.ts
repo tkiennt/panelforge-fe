@@ -796,6 +796,31 @@ export interface AssignStageTaskLotsResultDto {
   lots: StageTaskLotDto[];
 }
 
+export interface AutoAssignPlanLotDto {
+  pipelineStageId: string;
+  stageName: string;
+  assigneeUserId: string;
+  assigneeName: string;
+  assignedRole: string;
+  taskIds: string[];
+  pageNumbers: number[];
+  openTaskCount: number;
+}
+
+export interface AutoAssignPlanSkippedStageDto {
+  pipelineStageId: string;
+  stageName: string;
+  taskCount: number;
+  reason: string;
+}
+
+export interface AutoAssignPlanDto {
+  chapterId: string;
+  unassignedCount: number;
+  lots: AutoAssignPlanLotDto[];
+  skipped: AutoAssignPlanSkippedStageDto[];
+}
+
 export interface SubmitStageTasksRequest {
   taskIds: string[];
 }

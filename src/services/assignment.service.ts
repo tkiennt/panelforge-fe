@@ -46,6 +46,9 @@ import {
   StageTaskLotRequest,
   AssignStageTaskLotsRequest,
   AssignStageTaskLotsResultDto,
+  AutoAssignPlanLotDto,
+  AutoAssignPlanSkippedStageDto,
+  AutoAssignPlanDto,
   UpdateStageTaskLotRequest,
   SubmitStageTasksRequest,
   UnassignStageTasksRequest,
@@ -101,6 +104,9 @@ export type {
   StageTaskLotRequest,
   AssignStageTaskLotsRequest,
   AssignStageTaskLotsResultDto,
+  AutoAssignPlanLotDto,
+  AutoAssignPlanSkippedStageDto,
+  AutoAssignPlanDto,
   UpdateStageTaskLotRequest,
   SubmitStageTasksRequest,
   UnassignStageTasksRequest,
@@ -817,6 +823,20 @@ export const assignmentService = {
       return response.data;
     } catch (error: any) {
       const err: any = new Error(extractError(error, 'Không thể sinh ô công việc cho chương'));
+      err.status = error?.response?.status;
+      err.code = error?.response?.data?.code;
+      err.data = error?.response?.data;
+      throw err;
+    }
+  },
+
+  /** Lấy kế hoạch giao tự động các ô Unassigned trên lưới V3 (GET /api/chapters/{chapterId}/task-grid/auto-assign-plan) — chỉ xem trước, không ghi DB */
+  getAutoAssignPlan: async (chapterId: string): Promise<AutoAssignPlanDto> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/task-grid/auto-assign-plan`);
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(extractError(error, 'Không thể tải kế hoạch giao tự động'));
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;

@@ -307,6 +307,36 @@
     "noPagesDesc": "Pages are created when the Writer splits pages in the Script; once saved, the grid automatically adds cells for each page (Pencil, Ink, Letter…).",
     "openScriptLink": "Open Script",
     "noChapterSelectedTitle": "No chapter selected",
-    "noChapterSelectedDesc": "Select a chapter above to view the Task Grid."
+    "noChapterSelectedDesc": "Select a chapter above to view the Task Grid.",
+    "autoAssign": {
+      "btn": "Auto-assign",
+      "title": "Auto-assign Preview",
+      "description": "Review the proposed allocation before saving. You can change assignees or remove lots.",
+      "closeLabel": "Close auto-assign dialog",
+      "loading": "Calculating auto-assign plan...",
+      "loadErrorFallback": "Failed to load auto-assign plan.",
+      "saveErrorFallback": "Failed to save auto-assign plan.",
+      "conflictHint": "The task grid changed while you were previewing. Reload the plan to get the latest unassigned cells.",
+      "reloadPlanBtn": "Reload plan",
+      "emptyNoUnassigned": "No unassigned cells are available for auto-assignment.",
+      "emptyAllRemoved": "All lots were removed from the plan. Reload the plan to restore them.",
+      "summary": "{taskCount} cells will be assigned into {lotCount} lots",
+      "mergedNotice": "(same stage & assignee lots will be merged)",
+      "wholeChapter": "Whole chapter",
+      "singlePage": "Page {page}",
+      "pageRange": "Pages {ranges}",
+      "cellCount": "{count} cells",
+      "openTaskCount": "{count} open tasks",
+      "assigneeSelectLabel": "Assignee for {stage} ({scope})",
+      "removeLotBtn": "Remove",
+      "removeLotLabel": "Remove lot {stage} ({scope})",
+      "skippedTitle": "Skipped stages ({count})",
+      "cancelBtn": "Cancel",
+      "confirmBtn": "Confirm assign ({count} cells)",
+      "confirmBtnEmpty": "Confirm assign",
+      "confirmingBtn": "Assigning...",
+      "successTitle": "Auto-assign completed",
+      "successDesc": "Assigned {taskCount} cells into {lotCount} task lots."
+    }
   }
 }

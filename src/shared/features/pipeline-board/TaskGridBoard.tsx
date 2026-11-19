@@ -24,10 +24,12 @@ import {
   UserCheck,
   UserMinus,
   Users,
+  Wand2,
   XCircle,
 } from 'lucide-react';
 import {
   assignmentService,
+  type AutoAssignPlanDto,
   type StageTaskDto,
   type StageTaskLotDto,
   type StageTaskStatus,
@@ -58,6 +60,7 @@ import {
 } from '@/shared/components/image-viewer/ImageViewerLightbox';
 import { aiAgentsService, type AiSuggestionDto } from '@/services/aiAgents.service';
 import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
+import { AutoAssignModal } from './AutoAssignModal';
 
 const SCRIPT_CHANGED_REASON = 'Kịch bản của trang đã được sửa sau khi mở lại kịch bản.';
 
@@ -189,9 +192,25 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   >({});
   const [impactErrorsByTask, setImpactErrorsByTask] = useState<Record<string, string>>({});
 
+  // Giao tự động (Producer / Editor trên chương chưa khoá)
+  const [autoAssignOpen, setAutoAssignOpen] = useState(false);
+  const [autoAssignPlan, setAutoAssignPlan] = useState<AutoAssignPlanDto | null>(null);
+  const [autoAssignLoading, setAutoAssignLoading] = useState(false);
+  const [autoAssignSubmitting, setAutoAssignSubmitting] = useState(false);
+  const [autoAssignError, setAutoAssignError] = useState<string | null>(null);
+  const [autoAssignConflict, setAutoAssignConflict] = useState(false);
+  const autoAssignSubmittingRef = useRef(false);
+  const autoAssignLoadSeqRef = useRef(0);
+
   useEffect(() => {
     setImpactSuggestionsByTask({});
     setImpactErrorsByTask({});
+    autoAssignLoadSeqRef.current += 1;
+    setAutoAssignOpen(false);
+    setAutoAssignPlan(null);
+    setAutoAssignLoading(false);
+    setAutoAssignError(null);
+    setAutoAssignConflict(false);
   }, [chapterId]);
 
   // Phân quyền điều phối: Producer và Editor có toàn quyền giao lô, bỏ gán và quản lý lưới việc
@@ -215,6 +234,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       setDryRunPreview(null);
       setImpactSuggestionsByTask({});
       setImpactErrorsByTask({});
+      setAutoAssignOpen(false);
+      setAutoAssignPlan(null);
+      setAutoAssignError(null);
+      setAutoAssignConflict(false);
     }
   }, [effectiveIsProducer]);
 
@@ -537,6 +560,86 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       }
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const loadAutoAssignPlan = useCallback(async () => {
+    if (!chapterId) return;
+    const seq = ++autoAssignLoadSeqRef.current;
+    setAutoAssignLoading(true);
+    setAutoAssignError(null);
+    setAutoAssignConflict(false);
+    try {
+      const plan = await assignmentService.getAutoAssignPlan(chapterId);
+      if (autoAssignLoadSeqRef.current !== seq) return;
+      setAutoAssignPlan(plan);
+    } catch (err: any) {
+      if (autoAssignLoadSeqRef.current !== seq) return;
+      setAutoAssignError(
+        err?.message ||
+          t('taskGridV3.autoAssign.loadErrorFallback', 'Không thể tải kế hoạch giao tự động.'),
+      );
+      setAutoAssignConflict(err?.status === 409 || err?.code === 'CONFLICT');
+    } finally {
+      if (autoAssignLoadSeqRef.current === seq) {
+        setAutoAssignLoading(false);
+      }
+    }
+  }, [chapterId, t]);
+
+  const handleOpenAutoAssign = () => {
+    if (autoAssignLoading) return;
+    setAutoAssignPlan(null);
+    setAutoAssignError(null);
+    setAutoAssignConflict(false);
+    setAutoAssignOpen(true);
+    void loadAutoAssignPlan();
+  };
+
+  const handleCloseAutoAssign = () => {
+    if (autoAssignSubmittingRef.current) return;
+    autoAssignLoadSeqRef.current += 1;
+    setAutoAssignOpen(false);
+    setAutoAssignLoading(false);
+    setAutoAssignError(null);
+    setAutoAssignConflict(false);
+  };
+
+  const handleConfirmAutoAssign = async (lots: StageTaskLotRequest[]) => {
+    if (autoAssignSubmittingRef.current || lots.length === 0) return;
+    autoAssignSubmittingRef.current = true;
+    setAutoAssignSubmitting(true);
+    setAutoAssignError(null);
+    setAutoAssignConflict(false);
+    try {
+      const res = await assignmentService.assignTaskGridLots(chapterId, {
+        lots,
+        dryRun: false,
+      });
+      setSelectedUnassignedIds(new Set());
+      setDryRunPreview(null);
+      const taskCount = res?.taskCount ?? lots.reduce((sum, l) => sum + l.taskIds.length, 0);
+      const lotCount = res?.lots?.length ?? lots.length;
+      onShowToast?.(
+        t('taskGridV3.autoAssign.successTitle', 'Giao tự động thành công'),
+        t(
+          'taskGridV3.autoAssign.successDesc',
+          { taskCount, lotCount },
+          'Đã giao {taskCount} ô vào {lotCount} lô công việc.',
+        ),
+      );
+      setAutoAssignOpen(false);
+      setAutoAssignPlan(null);
+      await loadGrid();
+    } catch (err: any) {
+      setAutoAssignError(
+        err?.message ||
+          t('taskGridV3.autoAssign.saveErrorFallback', 'Không thể lưu kế hoạch giao tự động.'),
+      );
+      setAutoAssignConflict(err?.status === 409 || err?.code === 'CONFLICT');
+    } finally {
+      autoAssignSubmittingRef.current = false;
+      setAutoAssignSubmitting(false);
     }
   };
 
@@ -2035,6 +2138,20 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             <>
               <button
                 type='button'
+                data-testid='auto-assign-btn'
+                disabled={autoAssignLoading}
+                onClick={handleOpenAutoAssign}
+                className='inline-flex items-center gap-1.5 rounded-lg border border-[#FDBA74] bg-[#FFF7ED] hover:bg-orange-100 text-[#C2410C] px-3 py-1.5 text-xs font-semibold cursor-pointer shadow-xs disabled:opacity-50'
+              >
+                {autoAssignLoading ? (
+                  <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                ) : (
+                  <Wand2 className='h-3.5 w-3.5' />
+                )}
+                <span>{t('taskGridV3.autoAssign.btn', 'Giao tự động')}</span>
+              </button>
+              <button
+                type='button'
                 disabled={actionLoading === 'generate'}
                 onClick={handleGenerate}
                 className='inline-flex items-center gap-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white px-3 py-1.5 text-xs font-semibold cursor-pointer shadow-xs disabled:opacity-50'
@@ -2509,6 +2626,20 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           </table>
         </div>
       )}
+
+      <AutoAssignModal
+        isOpen={autoAssignOpen}
+        plan={autoAssignPlan}
+        loading={autoAssignLoading}
+        submitting={autoAssignSubmitting}
+        errorMessage={autoAssignError}
+        isConflict={autoAssignConflict}
+        activeMembers={activeMembers}
+        getMemberName={getMemberName}
+        onClose={handleCloseAutoAssign}
+        onReloadPlan={() => void loadAutoAssignPlan()}
+        onConfirm={(lots) => void handleConfirmAutoAssign(lots)}
+      />
 
       <ImageViewerLightbox
         isOpen={replayOpen}

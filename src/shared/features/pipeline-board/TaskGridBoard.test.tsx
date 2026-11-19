@@ -13,6 +13,7 @@ import { aiAgentsService, AiApiError } from '@/services/aiAgents.service';
 vi.mock('@/services/assignment.service', () => ({
   assignmentService: {
     getTaskGrid: vi.fn(),
+    getAutoAssignPlan: vi.fn(),
     generateTaskGrid: vi.fn(),
     assignTaskGridLots: vi.fn(),
     updateStageTaskLot: vi.fn(),
@@ -1351,6 +1352,343 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
         (await screen.findAllByText('Không tìm thấy thay đổi kịch bản của trang này để so sánh.'))
           .length,
       ).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('Giao tự động (Auto-assign plan)', () => {
+    const mockAutoAssignPlan = {
+      chapterId: 'chap-1',
+      unassignedCount: 5,
+      lots: [
+        {
+          pipelineStageId: 'stg-pencil',
+          stageName: 'Pencil',
+          assigneeUserId: 'user-artist-1',
+          assigneeName: 'Hoạ sĩ A',
+          assignedRole: 'Artist',
+          taskIds: ['t-p1', 't-p2', 't-p3', 't-p5'],
+          pageNumbers: [1, 2, 3, 5],
+          openTaskCount: 2,
+        },
+        {
+          pipelineStageId: 'stg-pencil',
+          stageName: 'Pencil',
+          assigneeUserId: 'user-artist-2',
+          assigneeName: '',
+          assignedRole: 'Artist',
+          taskIds: ['t-p4'],
+          pageNumbers: [4],
+          openTaskCount: 1,
+        },
+        {
+          pipelineStageId: 'stg-review',
+          stageName: 'Review',
+          assigneeUserId: 'user-editor-1',
+          assigneeName: 'Biên tập viên E',
+          assignedRole: 'Editor',
+          taskIds: ['t-review-ch'],
+          pageNumbers: [],
+          openTaskCount: 0,
+        },
+      ],
+      skipped: [
+        {
+          pipelineStageId: 'stg-letter',
+          stageName: 'Letter',
+          taskCount: 2,
+          reason: 'Không có thành viên Active có vai trò Letterer.',
+        },
+      ],
+    };
+
+    const membersWithRoles = [
+      ...mockMembers,
+      {
+        userId: 'user-artist-inactive',
+        fullName: 'Hoạ sĩ Đã nghỉ',
+        username: 'artist_inactive',
+        email: 'inactive@test.com',
+        role: 'Artist',
+        status: 'Inactive',
+        joinedAt: '2026-10-01T00:00:00Z',
+      },
+      {
+        userId: 'user-editor-1',
+        fullName: 'Biên tập viên E',
+        username: 'editor1',
+        email: 'editor1@test.com',
+        role: 'Editor',
+        status: 'Active',
+        joinedAt: '2026-10-01T00:00:00Z',
+      },
+    ];
+
+    it('mở xem trước nhóm theo công đoạn, hiển thị phạm vi trang gọn, Cả chương, số ô, đang có N việc, công đoạn bỏ qua và KHÔNG lưu trước khi xác nhận', async () => {
+      vi.mocked(workspaceService.getMembers).mockResolvedValue(membersWithRoles as any);
+      vi.mocked(assignmentService.getAutoAssignPlan).mockResolvedValueOnce(mockAutoAssignPlan);
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+        />,
+      );
+
+      await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByRole('button', { name: /Giao tự động/i }));
+
+      await waitFor(() => {
+        expect(assignmentService.getAutoAssignPlan).toHaveBeenCalledWith('chap-1');
+      });
+
+      expect(await screen.findByText('Xem trước Giao tự động')).toBeInTheDocument();
+      expect(screen.getByTestId('auto-assign-stage-stg-pencil')).toBeInTheDocument();
+      expect(screen.getByTestId('auto-assign-stage-stg-review')).toBeInTheDocument();
+      expect(screen.getByText('Trang 1–3, 5')).toBeInTheDocument();
+      expect(screen.getByText('Trang 4')).toBeInTheDocument();
+      expect(screen.getByText('Cả chương')).toBeInTheDocument();
+      expect(screen.getByText('4 ô')).toBeInTheDocument();
+      expect(screen.getByText('đang có 2 việc')).toBeInTheDocument();
+      expect(screen.getByText('đang có 0 việc')).toBeInTheDocument();
+
+      // Công đoạn bỏ qua kèm lý do
+      expect(screen.getByTestId('auto-assign-skipped')).toHaveTextContent('Letter');
+      expect(screen.getByTestId('auto-assign-skipped')).toHaveTextContent(
+        'Không có thành viên Active có vai trò Letterer.',
+      );
+
+      // Select của lô Artist chỉ gồm thành viên Active vai trò Artist (không có Inactive hoặc Editor)
+      const pencilSelect = screen.getByLabelText('Người nhận cho Pencil (Trang 1–3, 5)');
+      const optionTexts = Array.from(pencilSelect.querySelectorAll('option')).map(
+        (o) => o.textContent,
+      );
+      expect(optionTexts).toEqual(['Hoạ sĩ A', 'Hoạ sĩ B']);
+
+      // Chưa xác nhận -> tuyệt đối chưa gọi assignTaskGridLots
+      expect(assignmentService.assignTaskGridLots).not.toHaveBeenCalled();
+    });
+
+    it('xác nhận gửi đúng danh sách lô (dryRun: false), hiện toast, tải lại lưới, đóng modal và chống bấm đúp', async () => {
+      const onShowToast = vi.fn();
+      vi.mocked(workspaceService.getMembers).mockResolvedValue(membersWithRoles as any);
+      vi.mocked(assignmentService.getAutoAssignPlan).mockResolvedValueOnce(mockAutoAssignPlan);
+
+      let resolveSave!: (value: any) => void;
+      vi.mocked(assignmentService.assignTaskGridLots).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSave = resolve;
+          }),
+      );
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+          onShowToast={onShowToast}
+        />,
+      );
+
+      await screen.findByText('1. Pencil');
+      const gridCallsBeforeConfirm = vi.mocked(assignmentService.getTaskGrid).mock.calls.length;
+
+      fireEvent.click(screen.getByRole('button', { name: /Giao tự động/i }));
+      await screen.findByTestId('auto-assign-stage-stg-pencil');
+      const confirmBtn = screen.getByTestId('auto-assign-confirm-btn');
+
+      // Bấm đúp nhanh -> chỉ gửi 1 request
+      fireEvent.click(confirmBtn);
+      fireEvent.click(confirmBtn);
+
+      expect(assignmentService.assignTaskGridLots).toHaveBeenCalledTimes(1);
+      expect(assignmentService.assignTaskGridLots).toHaveBeenCalledWith('chap-1', {
+        lots: [
+          {
+            pipelineStageId: 'stg-pencil',
+            assigneeUserId: 'user-artist-1',
+            taskIds: ['t-p1', 't-p2', 't-p3', 't-p5'],
+          },
+          {
+            pipelineStageId: 'stg-pencil',
+            assigneeUserId: 'user-artist-2',
+            taskIds: ['t-p4'],
+          },
+          {
+            pipelineStageId: 'stg-review',
+            assigneeUserId: 'user-editor-1',
+            taskIds: ['t-review-ch'],
+          },
+        ],
+        dryRun: false,
+      });
+
+      resolveSave({
+        dryRun: false,
+        taskCount: 6,
+        lots: [{ id: 'l1' }, { id: 'l2' }, { id: 'l3' }],
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('Xem trước Giao tự động')).not.toBeInTheDocument();
+      });
+      expect(onShowToast).toHaveBeenCalledWith(
+        'Giao tự động thành công',
+        expect.stringContaining('6'),
+      );
+      expect(vi.mocked(assignmentService.getTaskGrid).mock.calls.length).toBeGreaterThan(
+        gridCallsBeforeConfirm,
+      );
+    });
+
+    it('đổi người nhận sang cùng 1 người trong cùng công đoạn sẽ tự gộp lô, và bỏ lô sẽ loại khỏi payload gửi đi', async () => {
+      vi.mocked(workspaceService.getMembers).mockResolvedValue(membersWithRoles as any);
+      vi.mocked(assignmentService.getAutoAssignPlan).mockResolvedValueOnce(mockAutoAssignPlan);
+      vi.mocked(assignmentService.assignTaskGridLots).mockResolvedValueOnce({
+        dryRun: false,
+        taskCount: 5,
+        lots: [{ id: 'l-merged' } as any],
+      });
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+        />,
+      );
+
+      await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByRole('button', { name: /Giao tự động/i }));
+
+      // Đổi lô Pencil thứ 2 từ Hoạ sĩ B -> Hoạ sĩ A (cùng công đoạn Pencil với lô 1)
+      const secondPencilSelect = await screen.findByLabelText('Người nhận cho Pencil (Trang 4)');
+      fireEvent.change(secondPencilSelect, { target: { value: 'user-artist-1' } });
+
+      // Bỏ lô Review
+      fireEvent.click(screen.getByLabelText('Bỏ lô Review (Cả chương)'));
+
+      fireEvent.click(screen.getByTestId('auto-assign-confirm-btn'));
+
+      await waitFor(() => {
+        expect(assignmentService.assignTaskGridLots).toHaveBeenCalledWith('chap-1', {
+          lots: [
+            {
+              pipelineStageId: 'stg-pencil',
+              assigneeUserId: 'user-artist-1',
+              taskIds: ['t-p1', 't-p2', 't-p3', 't-p5', 't-p4'],
+            },
+          ],
+          dryRun: false,
+        });
+      });
+    });
+
+    it('kế hoạch rỗng hiện thông báo trống và vô hiệu hoá nút xác nhận', async () => {
+      vi.mocked(assignmentService.getAutoAssignPlan).mockResolvedValueOnce({
+        chapterId: 'chap-1',
+        unassignedCount: 0,
+        lots: [],
+        skipped: [],
+      });
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-editor-1'
+          currentUserRole='Editor'
+          isEditor={true}
+        />,
+      );
+
+      await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByRole('button', { name: /Giao tự động/i }));
+
+      expect(await screen.findByTestId('auto-assign-empty')).toBeInTheDocument();
+      expect(screen.getByTestId('auto-assign-confirm-btn')).toBeDisabled();
+    });
+
+    it('khi Backend báo lỗi vẫn giữ modal mở và hiển thị nguyên văn thông báo lỗi; khi 409 cho phép tải lại kế hoạch', async () => {
+      vi.mocked(workspaceService.getMembers).mockResolvedValue(membersWithRoles as any);
+      vi.mocked(assignmentService.getAutoAssignPlan)
+        .mockResolvedValueOnce(mockAutoAssignPlan)
+        .mockResolvedValueOnce({
+          chapterId: 'chap-1',
+          unassignedCount: 1,
+          lots: [mockAutoAssignPlan.lots[2]],
+          skipped: [],
+        });
+
+      const backendErr: any = new Error('Ô Pencil trang 1 đã được người khác nhận.');
+      backendErr.status = 409;
+      vi.mocked(assignmentService.assignTaskGridLots).mockRejectedValueOnce(backendErr);
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+        />,
+      );
+
+      await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByRole('button', { name: /Giao tự động/i }));
+      await screen.findByTestId('auto-assign-stage-stg-pencil');
+      fireEvent.click(screen.getByTestId('auto-assign-confirm-btn'));
+
+      // Modal vẫn mở và hiện nguyên văn lỗi từ BE + gợi ý tải lại kế hoạch
+      const errorBox = await screen.findByTestId('auto-assign-error');
+      expect(errorBox).toHaveTextContent('Ô Pencil trang 1 đã được người khác nhận.');
+      expect(errorBox).toHaveTextContent(/Lưới công việc đã thay đổi/i);
+      expect(screen.getByText('Xem trước Giao tự động')).toBeInTheDocument();
+
+      // Bấm tải lại kế hoạch -> gọi lại getAutoAssignPlan
+      fireEvent.click(screen.getByTestId('auto-assign-reload-btn'));
+      await waitFor(() => {
+        expect(assignmentService.getAutoAssignPlan).toHaveBeenCalledTimes(2);
+      });
+      await waitFor(() => {
+        expect(screen.queryByTestId('auto-assign-stage-stg-pencil')).not.toBeInTheDocument();
+        expect(screen.getByTestId('auto-assign-stage-stg-review')).toBeInTheDocument();
+      });
+    });
+
+    it('ẩn nút "Giao tự động" đối với Artist và khi chương đã khoá', async () => {
+      const { rerender } = render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-artist-1'
+          currentUserRole='Artist'
+          isProducer={true}
+        />,
+      );
+
+      await screen.findByText('1. Pencil');
+      expect(screen.queryByRole('button', { name: /Giao tự động/i })).not.toBeInTheDocument();
+
+      // Producer nhưng chương đã khoá -> cũng ẩn
+      rerender(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+          isChapterLocked={true}
+        />,
+      );
+      expect(screen.queryByRole('button', { name: /Giao tự động/i })).not.toBeInTheDocument();
     });
   });
 });
