@@ -224,6 +224,93 @@
       "storyboardLocked": "Cảnh đã có khung",
       "needScene": "Chọn một phân cảnh trước"
     },
+    "aiPanel": {
+      "writingFor": "Đang viết cho",
+      "changeScene": "Đổi phân cảnh",
+      "basedOn": "AI sẽ dựa trên",
+      "storyArc": "Story arc Series",
+      "chapterOutline": "Đề cương chương",
+      "bibleEntries": "Series Bible",
+      "sceneLines": "Script phân cảnh",
+      "statusPresent": "Đã có",
+      "statusMissing": "Thiếu",
+      "bibleCount": "{count} mục",
+      "sceneLinesCount": "{count} dòng",
+      "sceneLinesEmpty": "Chưa có dòng",
+      "openNarrative": "Mở Đề cương",
+      "openBible": "Mở Bible",
+      "replaceWarning": "Accept sẽ thay {count} dòng hiện tại của phân cảnh này (không nối thêm).",
+      "linkedPanelsWarning": "Phân cảnh có {count} dòng đã gắn Panel — đề xuất Script sẽ không thể Accept. Đã tắt nút Viết nháp.",
+      "nextStepTitle": "Bước tiếp theo",
+      "nextStepDesc": "Đã áp dụng script cho phân cảnh. Accept Script không tạo Trang và Panel.",
+      "nextStepStoryboard": "Tạo Trang và Panel bằng Storyboard",
+      "fillFromOutline": "Điền từ đề cương",
+      "fillFromOutlineEmpty": "Chương chưa có đề cương",
+      "confirmOverwritePrompt": "Ô brief đã có nội dung. Ghi đè bằng đề cương chương?",
+      "confirmOverwriteYes": "Ghi đè",
+      "confirmOverwriteCancel": "Huỷ",
+      "templatesLabel": "Mẫu nhanh",
+      "templates": {
+        "opening": {
+          "label": "Mở đầu cảnh",
+          "goal": "Giới thiệu bối cảnh và thiết lập tâm trạng đầu cảnh",
+          "tone": "Gợi mở",
+          "brief": "Mở cảnh với mô tả không gian, đưa nhân vật chính vào tình huống và tạo móc nối cho xung đột."
+        },
+        "confrontation": {
+          "label": "Đối đầu thoại",
+          "goal": "Đẩy cao xung đột giữa hai nhân vật qua đối thoại sắc bén",
+          "tone": "Căng thẳng",
+          "brief": "Tập trung vào đối thoại ngắn, căng thẳng, mỗi câu đẩy thế giằng co lên cao hơn."
+        },
+        "action": {
+          "label": "Hành động cao trào",
+          "goal": "Tạo cao trào hành động nhịp nhanh và rõ chuyển động",
+          "tone": "Kịch tính",
+          "brief": "Ưu tiên các dòng hành động dứt khoát, SFX rõ và thoại ngắn gọn giữa pha hành động."
+        },
+        "quiet": {
+          "label": "Lắng nhịp nội tâm",
+          "goal": "Hạ nhịp truyện và bộc lộ suy nghĩ nội tâm của nhân vật",
+          "tone": "Trầm lắng",
+          "brief": "Kết hợp hành động chậm, suy nghĩ nội tâm (Thought) và dẫn truyện ngắn gọn."
+        }
+      },
+      "optionsToggle": "Tuỳ chọn định hướng",
+      "optionsActiveCount": "{count} mục",
+      "fieldSceneGoal": "Mục tiêu phân cảnh",
+      "fieldSceneGoalPlaceholder": "Ví dụ: Hé lộ bí mật của nhân vật, tạo bước ngoặt...",
+      "fieldTone": "Giọng điệu",
+      "fieldTonePlaceholder": "Ví dụ: Căng thẳng, hài hước, trầm lắng...",
+      "tonePresets": {
+        "tense": "Căng thẳng",
+        "humorous": "Hài hước",
+        "calm": "Trầm lắng",
+        "dramatic": "Kịch tính",
+        "warm": "Ấm áp"
+      },
+      "fieldDesiredLength": "Độ dài mong muốn",
+      "lengthOptions": {
+        "default": "Mặc định",
+        "short": "Ngắn (4–6 dòng)",
+        "medium": "Vừa (8–12 dòng)",
+        "long": "Dài (14–20 dòng)"
+      },
+      "fieldCharacters": "Nhân vật xuất hiện (từ Bible)",
+      "fieldCharactersEmpty": "Chưa có nhân vật trong Series Bible.",
+      "fieldMustInclude": "Điều bắt buộc có",
+      "fieldMustIncludePlaceholder": "Chi tiết, câu thoại hoặc hành động không thể thiếu...",
+      "fieldMustAvoid": "Điều cần tránh",
+      "fieldMustAvoidPlaceholder": "Chi tiết không muốn AI viết hoặc tiết lộ sớm...",
+      "composedNotesLabel": "Ghi chú thêm",
+      "briefOverflow": "Tổng brief gửi đi ({current}/{max} ký tự) vượt giới hạn {max}. Hãy rút gọn trước khi chạy.",
+      "progress": {
+        "writing": "Đang viết",
+        "checkingBible": "Đang đối chiếu Bible",
+        "readyForReview": "Sẵn sàng duyệt",
+        "queued": "Đang xếp hàng…"
+      }
+    },
     "stages": {
       "write": "Đang viết",
       "review": "Chờ duyệt",

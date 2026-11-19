@@ -193,7 +193,7 @@ export function splitSpeakerLabel(label?: string | null): { name: string; parens
   return { name: raw, parens: null };
 }
 
-interface ServerLine {
+export interface ServerLine {
   id: string;
   lineOrder: number;
   kind: ScriptLineKind;
@@ -203,7 +203,7 @@ interface ServerLine {
   refs?: ScriptLineRefInput[] | null;
 }
 
-function collectLines(scenes: SceneDetailDto[]): ServerLine[] {
+export function collectLines(scenes: SceneDetailDto[]): ServerLine[] {
   return [...scenes]
     .sort((a, b) => a.sceneNumber - b.sceneNumber)
     .flatMap((s) =>
@@ -222,7 +222,7 @@ function collectLines(scenes: SceneDetailDto[]): ServerLine[] {
     .filter((l) => l.text.length > 0);
 }
 
-function linesToNodes(lines: ServerLine[]): JSONContent[] {
+export function linesToNodes(lines: ServerLine[]): JSONContent[] {
   const out: JSONContent[] = [];
   let prevSpeaker: string | null = null;
   for (const l of lines) {

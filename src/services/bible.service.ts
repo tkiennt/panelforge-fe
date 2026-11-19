@@ -47,7 +47,8 @@ export interface BibleEntryRevisionDto {
   isLocked?: boolean;
   lockedAt?: string | null;
   lockedById?: string | null;
-  variantLabel: string;
+  variantLabel?: string | null;
+  stageName?: string | null;
   referenceImageUrl?: string | null;
   conceptImageUrl?: string | null;
   events?: BibleRevisionEventDto[] | null;
@@ -159,6 +160,8 @@ export interface AddBibleEntryRevisionRequest {
   priority?: BiblePriority;
   strictCheck?: boolean;
   variantLabel: string;
+  /** Phiên bản gốc đang sửa (BE dùng để giữ đúng biến thể khi mục có nhiều biến thể). */
+  targetRevisionId?: string;
 }
 
 /** Producer thay thế bản đã khoá: nội dung mới + lý do; chương hiệu lực lấy theo bản bị thay. */
@@ -507,7 +510,8 @@ export interface BibleDesignQueueItemDto {
   reworkFeedback?: string | null;
   artistUserId?: string | null;
   referenceImageUrl?: string | null;
-  variantLabel: string;
+  variantLabel?: string | null;
+  stageName?: string | null;
   versionNumber?: number;
   createdAt?: string;
   updatedAt: string;

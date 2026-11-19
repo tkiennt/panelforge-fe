@@ -29,6 +29,8 @@
   "NO_BIBLE": "Bộ truyện chưa có thông tin Series Bible cần thiết.",
   "NO_SCRIPT": "Phân cảnh chưa có kịch bản để xử lý.",
   "SCENE_HAS_PAGES": "Phân cảnh này đã được phân trang/khung trước đó.",
+  "SCRIPT_FROZEN": "Kịch bản của chương đã đóng băng.",
+  "SCENE_LINES_LINKED": "Phân cảnh có dòng đã gắn khung tranh; không thể thay cả kịch bản bằng AI.",
   "NO_LAYOUT": "Chưa có bố cục phân khung cho công đoạn này.",
   "NO_PANELS": "Chưa có khung tranh nào được tạo trên trang.",
   "NO_DIALOGUE": "Chưa có dòng lời thoại nào để xử lý bóng thoại.",

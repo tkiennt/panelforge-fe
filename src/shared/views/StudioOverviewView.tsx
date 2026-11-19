@@ -20,7 +20,6 @@ import {
 import { pipelineService, PipelineTemplateDto } from '@/services/pipeline.service';
 import { seriesService, SeriesDto } from '@/services/series.service';
 import { SeriesPipelineModal } from '@/roles/producer/modals/SeriesPipelineModal';
-import { SeriesChaptersModal } from '@/roles/producer/modals/SeriesChaptersModal';
 import { SeriesPresetsModal } from '@/roles/producer/modals/SeriesPresetsModal';
 import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
 import { InviteMemberModal } from '@/roles/producer/modals/InviteMemberModal';
@@ -71,10 +70,6 @@ export const StudioOverviewView: React.FC = () => {
     id: string;
     title: string;
   } | null>(null);
-  const [selectedChapterSeries, setSelectedChapterSeries] = useState<{
-    id: string;
-    title: string;
-  } | null>(null);
   const [selectedPresetsSeries, setSelectedPresetsSeries] = useState<{
     id: string;
     title: string;
@@ -111,7 +106,11 @@ export const StudioOverviewView: React.FC = () => {
   const [editSeriesSchedule, setEditSeriesSchedule] = useState('');
   const [editSeriesCompleted, setEditSeriesCompleted] = useState(false);
   const [editSeriesOriginalLanguage, setEditSeriesOriginalLanguage] = useState('vi');
-  const [editSeriesReleaseLanguages, setEditSeriesReleaseLanguages] = useState<string[]>(['vi', 'en', 'ja']);
+  const [editSeriesReleaseLanguages, setEditSeriesReleaseLanguages] = useState<string[]>([
+    'vi',
+    'en',
+    'ja',
+  ]);
   const [updatingSeries, setUpdatingSeries] = useState(false);
 
   // Workspace Usage (NFR Resource Governance - Storage & AI Tokens)
@@ -885,7 +884,6 @@ export const StudioOverviewView: React.FC = () => {
                 `workspace.library.open.${isProducer ? 'default' : (wsRole ?? 'default')}`,
                 t('workspace.library.open.default'),
               )}
-              onOpenChapters={(ser) => setSelectedChapterSeries(ser)}
               onOpenPipeline={(ser) => setSelectedPipelineSeries(ser)}
               onOpenPresets={(ser) => setSelectedPresetsSeries(ser)}
               onOpenMembers={(ser) => setSelectedMembersSeries(ser)}
@@ -960,29 +958,6 @@ export const StudioOverviewView: React.FC = () => {
           seriesTitle={selectedPipelineSeries.title}
           onClose={() => setSelectedPipelineSeries(null)}
           onShowToast={showToast}
-        />
-      )}
-
-      {/* UC-03: Series Chapters & Release Calendar Modal */}
-      {selectedChapterSeries && (
-        <SeriesChaptersModal
-          isOpen={!!selectedChapterSeries}
-          workspaceId={activeWorkspace?.id || workspaceId}
-          seriesId={selectedChapterSeries.id}
-          seriesTitle={selectedChapterSeries.title}
-          onClose={() => setSelectedChapterSeries(null)}
-          onShowToast={showToast}
-          onChapterCountChange={(delta) => {
-            if (selectedChapterSeries) {
-              setSeriesList((prev) =>
-                prev.map((s) =>
-                  s.id === selectedChapterSeries.id
-                    ? { ...s, chaptersCount: Math.max(0, s.chaptersCount + delta) }
-                    : s,
-                ),
-              );
-            }
-          }}
         />
       )}
 

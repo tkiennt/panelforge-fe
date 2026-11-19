@@ -116,13 +116,14 @@ describe('StudioOverviewView Library UX/UI', () => {
     const openButtons = screen.getAllByRole('button', { name: /Mở bộ truyện/i });
     expect(openButtons.length).toBe(2);
 
-    // Check chapters button
-    expect(screen.getByText('Chương (12)')).toBeInTheDocument();
-    expect(screen.getByText('Chương (5)')).toBeInTheDocument();
+    // Thẻ tối giản: không còn nút Đội ngũ / Chương, bìa là nút mở bộ truyện
+    expect(openButtons[0]).toHaveAccessibleName(/Mở bộ truyện: /);
+    expect(screen.queryByRole('button', { name: /^Chương \(/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Đội ngũ$/ })).not.toBeInTheDocument();
 
     // Check reading direction labels
-    expect(screen.getByText('Đọc phải → trái')).toBeInTheDocument();
-    expect(screen.getByText('Cuộn dọc')).toBeInTheDocument();
+    expect(screen.getByText(/chương · Đọc phải → trái/)).toBeInTheDocument();
+    expect(screen.getByText(/chương · Cuộn dọc/)).toBeInTheDocument();
 
     // Check CTA Tạo bộ truyện
     expect(screen.getAllByRole('button', { name: /Tạo bộ truyện/i }).length).toBeGreaterThanOrEqual(

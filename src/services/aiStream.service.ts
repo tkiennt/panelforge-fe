@@ -6,14 +6,6 @@ import {
   LogLevel,
 } from '@microsoft/signalr';
 
-export interface TokenChunkEvent {
-  runId: string;
-  agent: string;
-  stepIndex: number;
-  deltaText: string;
-  isFinal: boolean;
-}
-
 export interface StepRecordedEvent {
   runId: string;
   stepIndex: number;
@@ -35,7 +27,6 @@ export interface RunStatusChangedEvent {
 
 class AiStreamService {
   private connection: HubConnection | null = null;
-  private tokenHandlers = new Set<(event: TokenChunkEvent) => void>();
   private stepHandlers = new Set<(event: StepRecordedEvent) => void>();
   private statusHandlers = new Set<(event: RunStatusChangedEvent) => void>();
   private activeRuns = new Set<string>();
@@ -66,10 +57,6 @@ class AiStreamService {
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
         .configureLogging(LogLevel.Warning)
         .build();
-
-      this.connection.on('TokenChunk', (data: TokenChunkEvent) => {
-        this.tokenHandlers.forEach((handler) => handler(data));
-      });
 
       this.connection.on('StepRecorded', (data: StepRecordedEvent) => {
         this.stepHandlers.forEach((handler) => handler(data));
@@ -124,11 +111,6 @@ class AiStreamService {
         // ignore
       }
     }
-  }
-
-  public onTokenChunk(handler: (event: TokenChunkEvent) => void): () => void {
-    this.tokenHandlers.add(handler);
-    return () => this.tokenHandlers.delete(handler);
   }
 
   public onStepRecorded(handler: (event: StepRecordedEvent) => void): () => void {

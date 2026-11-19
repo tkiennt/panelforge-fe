@@ -169,4 +169,41 @@ describe('PublisherChapterManageView', () => {
       }),
     );
   });
+
+  it('bật chế độ trả phí và cập nhật giá gốc từ chương miễn phí', async () => {
+    const user = userEvent.setup();
+    vi.mocked(monetizationService.getChapterManage).mockResolvedValue({
+      ...manage,
+      chapterIsLocked: false,
+      basePriceVnd: 0,
+      languagePrices: manage.languagePrices.map((p) => ({ ...p, priceVnd: 0 })),
+    });
+    vi.mocked(monetizationService.setLanguagePrices).mockResolvedValue({
+      ...manage,
+      chapterIsLocked: true,
+      basePriceVnd: 15000,
+    });
+    renderView();
+
+    await user.click(await screen.findByRole('button', { name: /Giá theo ngôn ngữ/i }));
+    const toggle = screen.getByRole('switch');
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+
+    await user.click(screen.getByRole('button', { name: '15.000đ' }));
+    await user.click(screen.getByRole('button', { name: /Lưu giá/i }));
+
+    await waitFor(() =>
+      expect(monetizationService.setLanguagePrices).toHaveBeenCalledWith(
+        'chap-1',
+        [
+          { language: 'vi', priceVnd: null },
+          { language: 'en', priceVnd: null },
+          { language: 'ja', priceVnd: null },
+        ],
+        { isLocked: true, basePriceVnd: 15000 },
+      ),
+    );
+  });
 });

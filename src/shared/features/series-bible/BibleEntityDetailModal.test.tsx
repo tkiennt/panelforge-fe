@@ -143,7 +143,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
     );
 
     expect(screen.getByTestId('pending-draft-badge-detail')).toHaveTextContent('Có bản nháp v4');
-    expect(screen.getByText(mockEntityWithImage.description)).toBeInTheDocument();
+    // Mô tả tự do không còn hiển thị trong thẻ đặc tả (chỉ hiện các trường đặc tả).
     expect(screen.getByTestId('auth-image')).toBeInTheDocument();
   });
 
@@ -368,6 +368,42 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.queryByText(/Robotic prosthetic arm/i)).not.toBeInTheDocument();
   });
 
+  it('lets editors type empty spec fields inline and saves them as a new draft', async () => {
+    const onSaveSpecFields = vi.fn().mockResolvedValue(true);
+    const characterWithoutAttributes: BibleEntity = {
+      id: 'ent-inline',
+      code: 'CHR-998',
+      name: 'Nhân vật nhập nhanh',
+      category: 'characters',
+      description: '',
+      attributes: { height: '178 cm' },
+    };
+
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        canCreateDraft
+        entity={characterWithoutAttributes}
+        rawEntry={undefined}
+        onSaveSpecFields={onSaveSpecFields}
+      />,
+    );
+
+    expect(screen.queryByTestId('save-spec-inline-btn')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('spec-input-age'), { target: { value: '18' } });
+    fireEvent.click(screen.getByTestId('save-spec-inline-btn'));
+
+    await waitFor(() => expect(onSaveSpecFields).toHaveBeenCalledTimes(1));
+    const [entityArg, attrs] = onSaveSpecFields.mock.calls[0];
+    expect(entityArg.id).toBe('ent-inline');
+    // Giữ trường cũ, thêm trường mới
+    expect(attrs).toMatchObject({ age: '18', height: '178 cm' });
+    // Không gửi nhãn hiển thị "Mặc định" (BE coi là đổi variant_label → 409)
+    expect(onSaveSpecFields.mock.calls[0][2]).not.toBe('Mặc định');
+    // Gửi id phiên bản đang sửa để BE giữ đúng biến thể khi có nhiều biến thể
+    expect(onSaveSpecFields.mock.calls[0]).toHaveLength(5);
+  });
+
   it('renders location specifications and concept art labels instead of character fields for locations', () => {
     const locationEntity: BibleEntity = {
       id: 'ent-loc',
@@ -386,7 +422,6 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.getByText(/Thông số không gian & Bối cảnh/i)).toBeInTheDocument();
     expect(screen.getByText('Loại không gian')).toBeInTheDocument();
     expect(screen.getByText('Kiến trúc & vật cố định')).toBeInTheDocument();
-    expect(screen.getByText('Cầu đá cổ bị gãy nhịp, vực sâu không đáy.')).toBeInTheDocument();
 
     // Must NOT render Character fields
     expect(screen.queryByText('Độ tuổi:')).not.toBeInTheDocument();
@@ -798,6 +833,41 @@ describe('BibleEntityDetailModal UX/UI', () => {
       );
     });
 
+    it('không bị lỗi crash khi revision từ backend chỉ có stageName hoặc thiếu variantLabel', async () => {
+      const revWithoutVariantLabel: BibleEntryRevisionDto = {
+        id: 'rev-no-label',
+        bibleEntryId: mockEntityWithImage.id,
+        versionNumber: 1,
+        summary: 'Khởi tạo mục Luffy (Version 1)',
+        snapshotJson: '{}',
+        contentHash: 'hash-luffy',
+        stageName: null,
+        isInitialVersion: true,
+        createdAt: '2026-11-18T10:00:00Z',
+        isLocked: false,
+        reviewStatus: 'Draft',
+      };
+
+      vi.spyOn(bibleService, 'getEntryHistory').mockResolvedValue([revWithoutVariantLabel]);
+
+      const entryWithoutVariantLabel: BibleEntryDto = {
+        ...mockRawEntry,
+        effectiveRevision: revWithoutVariantLabel,
+      };
+
+      render(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          seriesId='ser-1'
+          rawEntry={entryWithoutVariantLabel}
+          latestSavedRevision={revWithoutVariantLabel}
+        />,
+      );
+
+      expect(screen.getByTestId('bible-entity-workbench')).toBeInTheDocument();
+      expect(await screen.findAllByText('Mặc định')).not.toHaveLength(0);
+    });
+
     it('hiển thị nút Yêu cầu vẽ lại Artwork và Yêu cầu sửa thông tin cho Editor', async () => {
       const conceptRev: BibleEntryRevisionDto = {
         id: 'rev-concept',
@@ -870,7 +940,9 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
       // Enter details and submit
       const textarea = screen.getByPlaceholderText(/Cần làm rõ thêm tính cách/i);
-      fireEvent.change(textarea, { target: { value: 'Cần bổ sung nguồn gốc xuất thân của nhân vật' } });
+      fireEvent.change(textarea, {
+        target: { value: 'Cần bổ sung nguồn gốc xuất thân của nhân vật' },
+      });
 
       const submitBtn = screen.getByTestId('submit-request-info-btn');
       fireEvent.click(submitBtn);
@@ -889,6 +961,86 @@ describe('BibleEntityDetailModal UX/UI', () => {
           expect.stringContaining('Mô tả đặc tả'),
         );
       });
+    });
+  });
+
+  describe('Bible Stub Definition in Detail Workbench', () => {
+    const stubEntity: BibleEntity = {
+      id: 'stub-detail-1',
+      code: 'HAC_Y',
+      name: 'Hắc Y Nhân',
+      category: 'characters',
+      subtitle: '',
+      description: '',
+      isStub: true,
+    };
+
+    it('offers "Định nghĩa" modal with read-only name and AI draft to Writer while blocking normal revision/spec bypass', async () => {
+      const defineSpy = vi
+        .spyOn(bibleService, 'defineBibleEntry')
+        .mockResolvedValueOnce({ id: 'stub-detail-1', isStub: false } as any);
+      vi.spyOn(bibleService, 'getEntryHistory').mockResolvedValue([]);
+      vi.spyOn(bibleService, 'getEntryUsages').mockResolvedValue([]);
+
+      render(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          entity={stubEntity}
+          rawEntry={undefined}
+          seriesId='series-123'
+          isProducer={false}
+          isWriter={true}
+          canCreateDraft={true}
+          onSaveSpecFields={vi.fn()}
+        />,
+      );
+
+      // Offers "Định nghĩa", hides create-revision / new-variant / inline-spec / upload-sheet actions
+      const defineBtn = screen.getByTestId('detail-define-stub-btn');
+      expect(defineBtn).toHaveTextContent('Định nghĩa');
+      expect(screen.queryByRole('button', { name: /Tạo bản nháp mới/i })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('add-new-variant-btn')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('spec-input-age')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Tải lên Model Sheet/i }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(defineBtn);
+
+      expect(screen.getByTestId('define-entity-name-readonly')).toHaveTextContent('Hắc Y Nhân');
+      expect(screen.getByRole('button', { name: /Soạn nháp từ kịch bản/i })).toBeInTheDocument();
+
+      fireEvent.change(screen.getByTestId('define-entity-description-input'), {
+        target: { value: 'Nhân vật bí ẩn mặc áo choàng đen.' },
+      });
+      fireEvent.click(screen.getByTestId('save-define-stub-btn'));
+
+      await waitFor(() => {
+        expect(defineSpy).toHaveBeenCalledWith('series-123', 'stub-detail-1', {
+          name: 'Hắc Y Nhân',
+          description: 'Nhân vật bí ẩn mặc áo choàng đen.',
+          subtitle: undefined,
+        });
+      });
+    });
+
+    it('hides both "Định nghĩa" and create-revision actions when non-Writer views a stub', () => {
+      render(
+        <BibleEntityDetailModal
+          {...defaultProps}
+          entity={stubEntity}
+          rawEntry={undefined}
+          seriesId='series-123'
+          isProducer={true}
+          isWriter={false}
+          canCreateDraft={false}
+        />,
+      );
+
+      expect(screen.queryByTestId('detail-define-stub-btn')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Tạo phiên bản mới/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Tạo bản nháp mới/i })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('add-new-variant-btn')).not.toBeInTheDocument();
     });
   });
 });

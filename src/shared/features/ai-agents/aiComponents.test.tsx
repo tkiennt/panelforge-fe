@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import React from 'react';
 import {
   AiRunDto,
@@ -11,6 +11,7 @@ import {
 } from '@/services/aiAgents.service';
 import { SuggestionCard } from './SuggestionCard';
 import { StepOutputView } from './StepOutputView';
+import { LayoutPreview } from './LayoutPreview';
 import { LetteringDiffView, ProductionReportView } from './AgentOutputViews';
 
 const step = (over: Partial<AiStepDto>): AiStepDto => ({
@@ -69,6 +70,7 @@ const suggestion = (over: Partial<AiSuggestionDto>): AiSuggestionDto => ({
   decisions: [],
   decisionRoles: ['Producer', 'Writer', 'Editor'],
   canDecide: true,
+  canAccept: true,
   ...over,
 });
 
@@ -182,9 +184,31 @@ describe('SuggestionCard — nút quyết định theo loại kết quả và qu
     expect(onDecide).toHaveBeenCalledWith('accept');
   });
 
+  it('canDecide = true nhưng canAccept = false: ẩn nút Accept, vẫn hiện Reject và Yêu cầu sửa', () => {
+    render(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'Script',
+          canDecide: true,
+          canAccept: false,
+          decisionRoles: ['Producer', 'Writer', 'Editor'],
+        })}
+        busy={false}
+        onDecide={noop}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /Accept/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Thay các dòng script của Scene/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('no-decision-rights')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reject' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Yêu cầu sửa' })).toBeEnabled();
+  });
+
   it('BE cũ không trả canDecide: không ẩn nút (Backend vẫn là nơi chặn)', () => {
     const s = suggestion({});
     delete s.canDecide;
+    delete s.canAccept;
     delete s.decisionRoles;
     render(<SuggestionCard suggestion={s} busy={false} onDecide={noop} />);
 
@@ -302,6 +326,226 @@ describe('SuggestionCard — nút quyết định theo loại kết quả và qu
     fireEvent.click(screen.getByText(/Xem nội dung đề xuất/));
     expect(screen.getByText('Bà ơi hay để cháu thử…')).toBeInTheDocument();
   });
+
+  it('Lettering đơn lẻ (bóng thoại): hiển thị bản gốc và bản rút gọn kèm lý do', () => {
+    render(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'Lettering',
+          summary: 'Rút gọn thoại còn 16/25 ký tự',
+          payload: {
+            pageId: 'page-1',
+            elementId: 'el-1',
+            elementVersion: 2,
+            originalText: 'Chúng ta không thể đứng nhìn họ gặp nguy hiểm!',
+            suggestedText: 'Không thể đứng nhìn!',
+            reason: 'Giữ ý chính cho vừa khung bóng',
+            maxChars: 25,
+          },
+        })}
+        busy={false}
+        onDecide={noop}
+      />,
+    );
+
+    expect(screen.getByText('Chúng ta không thể đứng nhìn họ gặp nguy hiểm!')).toBeInTheDocument();
+    expect(screen.getByText('Không thể đứng nhìn!')).toBeInTheDocument();
+    expect(screen.getByText(/Giữ ý chính cho vừa khung bóng/)).toBeInTheDocument();
+  });
+
+  it('BibleStub: hiển thị mô tả, tiêu đề phụ, từng trích dẫn và nút "Dùng làm nháp"', () => {
+    const onDecide = vi.fn();
+    render(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'BibleStub',
+          summary: 'Hồ sơ nháp cho Akira',
+          payload: {
+            entryId: 'ent-1',
+            name: 'Akira',
+            draft: {
+              description: 'Kiếm sĩ khoác áo choàng đen, mang vết sẹo ngang mày.',
+              subtitle: 'Kiếm sĩ lang thang',
+              citations: [
+                {
+                  claim: 'Khoác áo choàng đen',
+                  lineId: 'line-1',
+                  quote: 'Akira kéo thấp chiếc áo choàng đen trong màn mưa.',
+                },
+                {
+                  claim: 'Có vết sẹo ngang mày',
+                  lineId: 'line-2',
+                  quote: 'Vết sẹo ngang mày của Akira ánh lên dưới tia chớp.',
+                },
+              ],
+            },
+            reason: 'Tổng hợp nguyên văn từ 2 dòng kịch bản',
+          },
+        })}
+        busy={false}
+        onDecide={onDecide}
+      />,
+    );
+
+    expect(screen.getByText('Kiếm sĩ lang thang')).toBeInTheDocument();
+    expect(
+      screen.getByText('Kiếm sĩ khoác áo choàng đen, mang vết sẹo ngang mày.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Khoác áo choàng đen')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Akira kéo thấp chiếc áo choàng đen trong màn mưa\./),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Có vết sẹo ngang mày')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Vết sẹo ngang mày của Akira ánh lên dưới tia chớp\./),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Dùng làm nháp/ }));
+    expect(onDecide).toHaveBeenCalledWith('accept');
+  });
+
+  it('ImpactRipple: hiển thị quyết định Giữ nguyên hoặc Làm lại, lý do và danh sách thay đổi', () => {
+    const onDecide = vi.fn();
+    const { rerender } = render(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'ImpactRipple',
+          summary: 'Gợi ý Keep cho Ink, trang 1',
+          payload: {
+            taskId: 'task-1',
+            decision: 'Keep',
+            reason: 'Chỉ chỉnh dấu câu, không ảnh hưởng nét vẽ.',
+            changes: [
+              {
+                type: 'Dialogue',
+                label: 'Akira',
+                before: 'Họ đang tới',
+                after: 'Họ đang tới!',
+              },
+            ],
+          },
+        })}
+        busy={false}
+        onDecide={onDecide}
+      />,
+    );
+
+    expect(screen.getByText('Giữ nguyên')).toBeInTheDocument();
+    expect(screen.getByText('Chỉ chỉnh dấu câu, không ảnh hưởng nét vẽ.')).toBeInTheDocument();
+    expect(screen.getByText(/Dialogue · Akira/)).toBeInTheDocument();
+    expect(screen.getByText('Họ đang tới')).toBeInTheDocument();
+    expect(screen.getByText('Họ đang tới!')).toBeInTheDocument();
+
+    rerender(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'ImpactRipple',
+          summary: 'Gợi ý Rework cho Ink, trang 1',
+          payload: {
+            taskId: 'task-1',
+            decision: 'Rework',
+            reason: 'Đổi hành động nhân vật từ đứng sang rút kiếm.',
+            changes: [
+              {
+                type: 'Action',
+                label: null,
+                before: 'Akira đứng yên quan sát.',
+                after: 'Akira rút kiếm lao tới.',
+              },
+            ],
+          },
+        })}
+        busy={false}
+        onDecide={onDecide}
+      />,
+    );
+
+    expect(screen.getByText('Làm lại')).toBeInTheDocument();
+    expect(screen.getByText('Đổi hành động nhân vật từ đứng sang rút kiếm.')).toBeInTheDocument();
+    expect(screen.getByText('Akira rút kiếm lao tới.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Accept/i }));
+    expect(onDecide).toHaveBeenCalledWith('accept');
+  });
+
+  it('SeriesMetadata: tóm tắt thẻ không nêu ageRating; xem chi tiết tách logline, teaser, ageRating vào nhóm "Chỉ tham khảo, không được lưu khi Accept"', () => {
+    const basePayload = {
+      schemaVersion: 1,
+      runId: 'run-meta-1',
+      seriesId: 'se-1',
+      originalSynopsis: 'Tóm tắt cũ',
+      originalGenre: 'General',
+      metadata: {
+        logline: 'Một lưỡi kiếm đơn độc giữa đại đô thị mưa đêm.',
+        synopsis: 'Akira truy tìm kẻ đứng sau vụ sụp đổ tháp trung tâm Neo Tokyo.',
+        genre: 'Cyberpunk',
+        teaser: 'Đón đọc chương mở màn tuần này!',
+        ageRating: '16+',
+      },
+      reason: 'Bám sát bối cảnh chương 1 đã phát hành.',
+    };
+
+    const { rerender } = render(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'SeriesMetadata',
+          summary: 'Đề xuất thông tin phát hành cho Neon Odyssey',
+          payload: basePayload,
+        })}
+        busy={false}
+        onDecide={noop}
+      />,
+    );
+
+    // Dòng tóm tắt thẻ không được nêu ageRating
+    expect(screen.getByText(/Thể loại: Cyberpunk/)).toBeInTheDocument();
+    expect(screen.queryByText(/16\+/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Độ tuổi/i)).not.toBeInTheDocument();
+
+    // Xem chi tiết
+    fireEvent.click(screen.getByText(/Xem nội dung đề xuất/));
+
+    expect(
+      screen.getByText('Akira truy tìm kẻ đứng sau vụ sụp đổ tháp trung tâm Neo Tokyo.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Cyberpunk')).toBeInTheDocument();
+
+    const refBox = screen.getByTestId('series-metadata-reference-only');
+    expect(
+      within(refBox).getByText('Chỉ tham khảo, không được lưu khi Accept'),
+    ).toBeInTheDocument();
+    expect(
+      within(refBox).getByText('Một lưỡi kiếm đơn độc giữa đại đô thị mưa đêm.'),
+    ).toBeInTheDocument();
+    expect(within(refBox).getByText('Đón đọc chương mở màn tuần này!')).toBeInTheDocument();
+    expect(within(refBox).getByText('16+')).toBeInTheDocument();
+    expect(
+      within(refBox).queryByText('Akira truy tìm kẻ đứng sau vụ sụp đổ tháp trung tâm Neo Tokyo.'),
+    ).not.toBeInTheDocument();
+
+    // Khi teaser rỗng thì ẩn dòng Teaser nhưng vẫn giữ logline và ageRating trong nhóm tham khảo
+    rerender(
+      <SuggestionCard
+        suggestion={suggestion({
+          kind: 'SeriesMetadata',
+          summary: 'Đề xuất thông tin phát hành cho Neon Odyssey',
+          payload: {
+            ...basePayload,
+            metadata: { ...basePayload.metadata, teaser: '   ' },
+          },
+        })}
+        busy={false}
+        onDecide={noop}
+      />,
+    );
+
+    const refBoxNoTeaser = screen.getByTestId('series-metadata-reference-only');
+    expect(within(refBoxNoTeaser).queryByText(/Teaser:/)).not.toBeInTheDocument();
+    expect(
+      within(refBoxNoTeaser).getByText('Một lưỡi kiếm đơn độc giữa đại đô thị mưa đêm.'),
+    ).toBeInTheDocument();
+    expect(within(refBoxNoTeaser).getByText('16+')).toBeInTheDocument();
+  });
 });
 
 describe('View output riêng từng agent', () => {
@@ -371,5 +615,43 @@ describe('View output riêng từng agent', () => {
     );
     expect(screen.getByText('INVALID_OUTPUT')).toBeInTheDocument();
     expect(screen.getByText(/85%/)).toBeInTheDocument();
+  });
+
+  it('LayoutPreview hiển thị đúng hướng đọc trên → dưới (Vertical) và khung tỉ lệ 9:16 cho Series Vertical', () => {
+    render(
+      <LayoutPreview
+        layout={{
+          schemaVersion: 1,
+          runId: 'r1',
+          sceneId: 'sc1',
+          readingDirection: 'Vertical',
+          pages: [
+            {
+              pageNumber: 1,
+              panels: [
+                {
+                  panelNumber: 1,
+                  readingOrder: 1,
+                  bbox: { x: 0.05, y: 0.05, w: 0.9, h: 0.4 },
+                  coordinateSpace: 'PageNormalized',
+                  camera: 'Wide',
+                  description: 'Khung dọc Webtoon',
+                  characterIds: [],
+                  sourceScriptLineIds: [],
+                },
+              ],
+            },
+          ],
+        }}
+        lines={{}}
+        nameById={{}}
+      />,
+    );
+
+    expect(screen.getByText(/trên → dưới \(Vertical\)/)).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Bố cục trang 1' })).toHaveAttribute(
+      'viewBox',
+      '0 0 540 960',
+    );
   });
 });

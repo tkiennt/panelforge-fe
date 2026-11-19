@@ -211,4 +211,38 @@ describe('panelService', () => {
     await expect(fallback).rejects.toThrow('Phần này thuộc việc của người khác / đang chờ duyệt');
     await expect(fallback).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
   });
+
+  it('checkImageConsistency giữ nguyên thông báo 403 (chỉ Producer/Editor) và 409 (chương chỉ đọc) từ Backend', async () => {
+    vi.mocked(axiosClient.post).mockRejectedValueOnce({
+      response: {
+        status: 403,
+        data: {
+          message:
+            'Bạn không có quyền thực hiện thao tác này trong Series. Yêu cầu một trong các vai trò: Producer, Editor.',
+        },
+      },
+    });
+
+    const forbidden = panelService.checkImageConsistency('panel-1');
+    await expect(forbidden).rejects.toThrow(
+      'Bạn không có quyền thực hiện thao tác này trong Series. Yêu cầu một trong các vai trò: Producer, Editor.',
+    );
+    await expect(forbidden).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+
+    vi.mocked(axiosClient.post).mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: {
+          code: 'CONFLICT',
+          error: 'Chapter đang ở trạng thái ChapterApproved (chỉ đọc), không chạy kiểm tra mới.',
+        },
+      },
+    });
+
+    const conflict = panelService.checkImageConsistency('panel-1');
+    await expect(conflict).rejects.toThrow(
+      'Chapter đang ở trạng thái ChapterApproved (chỉ đọc), không chạy kiểm tra mới.',
+    );
+    await expect(conflict).rejects.toMatchObject({ code: 'CONFLICT', status: 409 });
+  });
 });

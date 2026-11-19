@@ -135,7 +135,7 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
         }
         avatar={
           <div className='relative'>
-            <div className='w-24 sm:w-28 lg:w-32 aspect-[3/4] rounded-xl sm:rounded-2xl border-[3px] border-[#FCFBF8] bg-white p-0.5 shadow-md overflow-hidden shrink-0'>
+            <div className='w-24 sm:w-28 lg:w-32 aspect-square rounded-xl sm:rounded-2xl border-[3px] border-[#FCFBF8] bg-white p-0.5 shadow-md overflow-hidden shrink-0'>
               {seriesDetail?.avatarUrl ? (
                 <AuthenticatedImage
                   key={seriesDetail.avatarUrl}

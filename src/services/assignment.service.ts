@@ -46,6 +46,9 @@ import {
   StageTaskLotRequest,
   AssignStageTaskLotsRequest,
   AssignStageTaskLotsResultDto,
+  AutoAssignPlanLotDto,
+  AutoAssignPlanSkippedStageDto,
+  AutoAssignPlanDto,
   UpdateStageTaskLotRequest,
   SubmitStageTasksRequest,
   UnassignStageTasksRequest,
@@ -101,6 +104,9 @@ export type {
   StageTaskLotRequest,
   AssignStageTaskLotsRequest,
   AssignStageTaskLotsResultDto,
+  AutoAssignPlanLotDto,
+  AutoAssignPlanSkippedStageDto,
+  AutoAssignPlanDto,
   UpdateStageTaskLotRequest,
   SubmitStageTasksRequest,
   UnassignStageTasksRequest,
@@ -824,6 +830,20 @@ export const assignmentService = {
     }
   },
 
+  /** Lấy kế hoạch giao tự động các ô Unassigned trên lưới V3 (GET /api/chapters/{chapterId}/task-grid/auto-assign-plan) — chỉ xem trước, không ghi DB */
+  getAutoAssignPlan: async (chapterId: string): Promise<AutoAssignPlanDto> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/task-grid/auto-assign-plan`);
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(extractError(error, 'Không thể tải kế hoạch giao tự động'));
+      err.status = error?.response?.status;
+      err.code = error?.response?.data?.code;
+      err.data = error?.response?.data;
+      throw err;
+    }
+  },
+
   /** Giao việc theo lô trên lưới V3 (POST /api/chapters/{chapterId}/task-grid/lots) — chỉ Producer */
   assignTaskGridLots: async (
     chapterId: string,
@@ -834,6 +854,12 @@ export const assignmentService = {
         lots: request.lots,
         dryRun: request.dryRun ?? false,
         ...(request.reassign !== undefined ? { reassign: request.reassign } : {}),
+        ...(request.confirmStartedWork !== undefined
+          ? { confirmStartedWork: request.confirmStartedWork }
+          : {}),
+        ...(request.expectedRowVersions !== undefined
+          ? { expectedRowVersions: request.expectedRowVersions }
+          : {}),
       };
       const response = await axiosClient.post(`/chapters/${chapterId}/task-grid/lots`, payload);
       return response.data;

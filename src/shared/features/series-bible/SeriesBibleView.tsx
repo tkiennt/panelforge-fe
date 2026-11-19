@@ -38,6 +38,8 @@ import { seriesService } from '@/services/series.service';
 import { AddEntityModal } from './AddEntityModal';
 import {
   BibleEntityDetailModal,
+  DefineStubModal,
+  getRevisionVariantLabel,
   groupRevisionsIntoVariants,
   type CharacterVariant,
 } from './BibleEntityDetailModal';
@@ -131,7 +133,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 }) => {
   const confirm = useConfirm();
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [localEntities, setLocalEntities] = useState<BibleEntity[]>(entities);
   const [rawEntries, setRawEntries] = useState<Record<string, BibleEntryDto>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -146,7 +148,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
     return 'all';
   });
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') ?? '');
   const [statusFilter, setStatusFilter] = useState<'ALL' | BibleReviewStatus>('ALL');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     return (localStorage.getItem('panelforge_bible_view_mode') as 'grid' | 'list') || 'grid';
@@ -163,6 +165,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     null,
   );
   const [addEntityOpen, setAddEntityOpen] = useState(false);
+  const [defineTarget, setDefineTarget] = useState<BibleEntity | null>(null);
 
   // Dynamic Series resolution
   const [availableSeries, setAvailableSeries] = useState<MangaProject[]>([]);
@@ -213,6 +216,22 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       setSelectedSeriesId(activeProject.id);
     }
   }, [activeProject?.id]);
+
+  // Sync search query from URL parameter (e.g. from Script Screen buildBibleUrl)
+  const urlSearchParam = searchParams.get('search');
+  useEffect(() => {
+    if (urlSearchParam !== null) {
+      setSearchQuery(urlSearchParam);
+    }
+  }, [urlSearchParam]);
+
+  const clearUrlSearchParam = () => {
+    if (searchParams.has('search')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('search');
+      setSearchParams(next, { replace: true });
+    }
+  };
 
   // Sync tab & entityId from query parameters (e.g. from Editor Desk)
   useEffect(() => {
@@ -492,6 +511,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     isNewVariant: boolean = false,
     queueRevisionId?: string,
   ) => {
+    if (entity.isStub) {
+      if (canCreateDraft) {
+        setDefineTarget(entity);
+      }
+      return;
+    }
     setTargetQueueRevisionId(queueRevisionId || null);
     const snapshot = supersede ? readSnapshot(supersede.snapshotJson) : {};
     setRevisionTarget(entity);
@@ -521,7 +546,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     setRevisionVariantLabel(
       isNewVariant
         ? ''
-        : supersede?.variantLabel || rawEntries[entity.id]?.effectiveRevision?.variantLabel || '',
+        : supersede
+          ? getRevisionVariantLabel(supersede)
+          : rawEntries[entity.id]?.effectiveRevision
+            ? getRevisionVariantLabel(rawEntries[entity.id]?.effectiveRevision)
+            : '',
     );
     setExpectedVersionNumber(1);
     setIsArtistConceptSubmit(fromQueue);
@@ -551,6 +580,53 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       }
     }
     setAddRevModalOpen(true);
+  };
+
+  // Lưu nhanh đặc tả nhập trực tiếp ở màn chi tiết → bản nháp mới (append-only, BR-05).
+  const handleSaveSpecFields = async (
+    entity: BibleEntity,
+    attributes: Record<string, unknown>,
+    variantLabel: string,
+    expectedVersionNumber: number,
+    targetRevisionId?: string,
+  ): Promise<boolean> => {
+    if (!effectiveSeries?.id) return false;
+    try {
+      await bibleService.addRevision(effectiveSeries.id, entity.id, {
+        expectedVersionNumber,
+        targetRevisionId,
+        name: entity.name,
+        subtitle: entity.subtitle || '',
+        description: entity.description || '',
+        referenceImageUrl: entity.imageUrl || undefined,
+        variantLabel,
+        summary: t('bible.detailModal.specSavedTitle', 'Đã lưu đặc tả'),
+        detailsJson: JSON.stringify({
+          turnaroundGallery: entity.gallery || [],
+          attributes,
+        }),
+      });
+      onShowToast(
+        t('bible.detailModal.specSavedTitle', 'Đã lưu đặc tả'),
+        t('bible.detailModal.specSavedDesc', 'Đã tạo bản nháp mới với các trường vừa nhập.'),
+      );
+      setRefreshTrigger((prev) => prev + 1);
+      setSelectedEntity((cur) =>
+        cur && cur.id === entity.id ? { ...cur, attributes: attributes as any } : cur,
+      );
+      return true;
+    } catch (err: any) {
+      const isConflict = err?.code === 'CONFLICT' || err?.status === 409;
+      onShowToast(
+        isConflict
+          ? t('bible.view.conflictTitleGeneric', 'Xung đột phiên bản (409 CONFLICT)')
+          : t('bible.detailModal.specSaveFailedTitle', 'Không lưu được đặc tả'),
+        err?.message || '',
+      );
+      // 409: tải lại dữ liệu mới nhất; giữ nguyên nội dung người dùng đang nhập.
+      if (isConflict) setRefreshTrigger((prev) => prev + 1);
+      return false;
+    }
   };
 
   const executeSaveRevision = async (submittedContent?: {
@@ -984,6 +1060,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
   const handleResetFilters = () => {
     setSearchQuery('');
+    clearUrlSearchParam();
     setStatusFilter('ALL');
     setActiveTab('all');
   };
@@ -1275,9 +1352,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               {t('bible.view.queueStatusWaiting', 'Chờ nộp Concept Art')}
                             </span>
                           )}
-                          {item.variantLabel ? (
+                          {item.variantLabel || item.stageName ? (
                             <span className='text-xs text-stone-600 font-medium'>
-                              · {item.variantLabel}
+                              · {item.variantLabel || item.stageName}
                             </span>
                           ) : null}
                         </div>
@@ -1383,7 +1460,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           type='button'
                           onClick={() => {
                             if (matchedEntity) {
-                              void handleOpenHistory(matchedEntity);
+                              setSelectedEntity(matchedEntity);
                             }
                           }}
                           className='px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors border border-stone-300 flex items-center gap-1'
@@ -1422,7 +1499,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 {searchQuery && (
                   <button
                     type='button'
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => {
+                      setSearchQuery('');
+                      clearUrlSearchParam();
+                    }}
                     aria-label={t('bible.view.clearSearchAria', 'Xóa từ khóa tìm kiếm')}
                     className='w-5 h-5 rounded-full hover:bg-[#E7E2D6] text-[#78716C] hover:text-[#1C1917] flex items-center justify-center absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer'
                   >
@@ -1643,7 +1723,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               <span
                                 data-testid={`crowd-badge-${entity.id}`}
                                 className='px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1 shadow-2xs'
-                                title={t('bible.isCrowdHelp', 'Thực thể quần chúng không bắt buộc Model Sheet')}
+                                title={t(
+                                  'bible.isCrowdHelp',
+                                  'Thực thể quần chúng không bắt buộc Model Sheet',
+                                )}
                               >
                                 <Users className='w-3 h-3' />
                                 {t('production.cast.crowd', 'Quần chúng')}
@@ -1667,7 +1750,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             </span>
                           </div>
                           <div className='flex items-center gap-1.5'>
-                            {effRev?.reviewStatus === 'CanonLocked' ? (
+                            {entity.isStub ? (
+                              <span
+                                data-testid={`stub-badge-${entity.id}`}
+                                className='px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold whitespace-nowrap'
+                              >
+                                {t('bible.defineStub.badge', 'Chưa định nghĩa')}
+                              </span>
+                            ) : effRev?.reviewStatus === 'CanonLocked' ? (
                               <span
                                 className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1'
                                 title={t('bible.view.cardCanonLocked', 'Đã khoá Canon')}
@@ -1699,17 +1789,20 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <div>
                           <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors line-clamp-1'>
                             {entity.name}
-                            {effRev?.variantLabel ? (
+                            {effRev?.variantLabel || effRev?.stageName ? (
                               <span className='font-sans font-medium text-[#57534E]'>
                                 {' '}
-                                · {effRev.variantLabel}
+                                · {effRev.variantLabel || effRev.stageName}
                               </span>
                             ) : null}
                             {entity.isCrowd && (
                               <span
                                 data-testid={`crowd-badge-${entity.id}`}
                                 className='px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1 shadow-2xs'
-                                title={t('bible.isCrowdHelp', 'Thực thể quần chúng không bắt buộc Model Sheet')}
+                                title={t(
+                                  'bible.isCrowdHelp',
+                                  'Thực thể quần chúng không bắt buộc Model Sheet',
+                                )}
                               >
                                 <Users className='w-3 h-3' />
                                 {t('production.cast.crowd', 'Quần chúng')}
@@ -1755,10 +1848,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           <span
                             className='font-medium text-[#1C1917] truncate max-w-[150px]'
                             title={
-                              effRev?.variantLabel || t('bible.view.defaultVariant', 'Mặc định')
+                              effRev?.variantLabel ||
+                              effRev?.stageName ||
+                              t('bible.view.defaultVariant', 'Mặc định')
                             }
                           >
-                            {effRev?.variantLabel || t('bible.view.defaultVariant', 'Mặc định')}
+                            {effRev?.variantLabel ||
+                              effRev?.stageName ||
+                              t('bible.view.defaultVariant', 'Mặc định')}
                           </span>
                         </div>
                       </div>
@@ -1814,7 +1911,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           {togglingCrowdId === entity.id ? (
                             <Loader2 className='w-3 h-3 animate-spin text-[#F97316]' />
                           ) : (
-                            <Users className={`w-3 h-3 ${entity.isCrowd ? 'text-emerald-600' : 'text-[#78716C]'}`} />
+                            <Users
+                              className={`w-3 h-3 ${entity.isCrowd ? 'text-emerald-600' : 'text-[#78716C]'}`}
+                            />
                           )}
                           <span>
                             {entity.isCrowd
@@ -1908,31 +2007,46 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
                       {canCreateDraft && (
                         <div className='flex items-center gap-1'>
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleOpenAddRevision(entity);
-                            }}
-                            className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
-                            title={
-                              isProducer
-                                ? t('bible.view.addRevisionBtnTitleProducer', 'Tạo phiên bản mới')
-                                : t(
-                                    'bible.view.addRevisionBtnTitleWriter',
-                                    'Tạo bản nháp mới – chờ Writer/Editor xác nhận',
-                                  )
-                            }
-                            data-testid={`add-revision-btn-${entity.id}`}
-                          >
-                            <GitCommit className='w-3 h-3' />
-                            <span>
-                              {isProducer
-                                ? t('bible.view.addRevisionBtn', '+ Bản')
-                                : t('bible.view.addDraftBtn', '+ Nháp')}
-                            </span>
-                          </button>
-                          {isProducer && onEditEntity && (
+                          {entity.isStub ? (
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDefineTarget(entity);
+                              }}
+                              className='px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
+                              data-testid={`define-stub-btn-${entity.id}`}
+                            >
+                              <Edit3 className='w-3 h-3' />
+                              <span>{t('bible.defineStub.action', 'Định nghĩa')}</span>
+                            </button>
+                          ) : (
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleOpenAddRevision(entity);
+                              }}
+                              className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
+                              title={
+                                isProducer
+                                  ? t('bible.view.addRevisionBtnTitleProducer', 'Tạo phiên bản mới')
+                                  : t(
+                                      'bible.view.addRevisionBtnTitleWriter',
+                                      'Tạo bản nháp mới – chờ Writer/Editor xác nhận',
+                                    )
+                              }
+                              data-testid={`add-revision-btn-${entity.id}`}
+                            >
+                              <GitCommit className='w-3 h-3' />
+                              <span>
+                                {isProducer
+                                  ? t('bible.view.addRevisionBtn', '+ Bản')
+                                  : t('bible.view.addDraftBtn', '+ Nháp')}
+                              </span>
+                            </button>
+                          )}
+                          {isProducer && onEditEntity && !entity.isStub && (
                             <button
                               type='button'
                               onClick={(e) => {
@@ -1990,17 +2104,20 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           </span>
                           <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
                             {entity.name}
-                            {effRev?.variantLabel ? (
+                            {effRev?.variantLabel || effRev?.stageName ? (
                               <span className='font-sans font-medium text-[#57534E]'>
                                 {' '}
-                                · {effRev.variantLabel}
+                                · {effRev.variantLabel || effRev.stageName}
                               </span>
                             ) : null}
                             {entity.isCrowd && (
                               <span
                                 data-testid={`crowd-badge-${entity.id}`}
                                 className='px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1 shadow-2xs'
-                                title={t('bible.isCrowdHelp', 'Thực thể quần chúng không bắt buộc Model Sheet')}
+                                title={t(
+                                  'bible.isCrowdHelp',
+                                  'Thực thể quần chúng không bắt buộc Model Sheet',
+                                )}
                               >
                                 <Users className='w-3 h-3' />
                                 {t('production.cast.crowd', 'Quần chúng')}
@@ -2020,7 +2137,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-xs font-medium'>
                             {getCategoryLabel(entity.category)}
                           </span>
-                          {effRev?.reviewStatus === 'CanonLocked' ? (
+                          {entity.isStub ? (
+                            <span
+                              data-testid={`stub-badge-${entity.id}`}
+                              className='px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold whitespace-nowrap'
+                            >
+                              {t('bible.defineStub.badge', 'Chưa định nghĩa')}
+                            </span>
+                          ) : effRev?.reviewStatus === 'CanonLocked' ? (
                             <span
                               className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1'
                               title={t('bible.view.cardCanonLocked', 'Đã khoá Canon')}
@@ -2061,7 +2185,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     <div className='flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#D8D2C5]/60'>
                       <div className='text-right text-xs text-[#57534E] hidden md:block'>
                         <div className='font-semibold text-[#1C1917] truncate max-w-[140px]'>
-                          {effRev?.variantLabel || t('bible.view.defaultVariant', 'Mặc định')}
+                          {effRev?.variantLabel ||
+                            effRev?.stageName ||
+                            t('bible.view.defaultVariant', 'Mặc định')}
                         </div>
                       </div>
 
@@ -2112,7 +2238,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           {togglingCrowdId === entity.id ? (
                             <Loader2 className='w-3 h-3 animate-spin text-[#F97316]' />
                           ) : (
-                            <Users className={`w-3 h-3 ${entity.isCrowd ? 'text-emerald-600' : 'text-[#78716C]'}`} />
+                            <Users
+                              className={`w-3 h-3 ${entity.isCrowd ? 'text-emerald-600' : 'text-[#78716C]'}`}
+                            />
                           )}
                           <span>
                             {entity.isCrowd
@@ -2207,32 +2335,48 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             </span>
                           </button>
                         )}
-                        {canCreateDraft && (
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleOpenAddRevision(entity);
-                            }}
-                            className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
-                            title={
-                              isProducer
-                                ? t('bible.view.addRevisionBtnTitleProducer', 'Tạo phiên bản mới')
-                                : t(
-                                    'bible.view.addRevisionBtnTitleWriter',
-                                    'Tạo bản nháp mới – chờ Writer/Editor xác nhận',
-                                  )
-                            }
-                            data-testid={`add-revision-btn-${entity.id}`}
-                          >
-                            <GitCommit className='w-3 h-3' />
-                            <span className='hidden sm:inline'>
-                              {isProducer
-                                ? t('bible.view.addRevisionBtn', '+ Bản')
-                                : t('bible.view.addDraftBtn', '+ Nháp')}
-                            </span>
-                          </button>
-                        )}
+                        {canCreateDraft &&
+                          (entity.isStub ? (
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDefineTarget(entity);
+                              }}
+                              className='px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
+                              data-testid={`define-stub-btn-${entity.id}`}
+                            >
+                              <Edit3 className='w-3 h-3' />
+                              <span className='hidden sm:inline'>
+                                {t('bible.defineStub.action', 'Định nghĩa')}
+                              </span>
+                            </button>
+                          ) : (
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleOpenAddRevision(entity);
+                              }}
+                              className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
+                              title={
+                                isProducer
+                                  ? t('bible.view.addRevisionBtnTitleProducer', 'Tạo phiên bản mới')
+                                  : t(
+                                      'bible.view.addRevisionBtnTitleWriter',
+                                      'Tạo bản nháp mới – chờ Writer/Editor xác nhận',
+                                    )
+                              }
+                              data-testid={`add-revision-btn-${entity.id}`}
+                            >
+                              <GitCommit className='w-3 h-3' />
+                              <span className='hidden sm:inline'>
+                                {isProducer
+                                  ? t('bible.view.addRevisionBtn', '+ Bản')
+                                  : t('bible.view.addDraftBtn', '+ Nháp')}
+                              </span>
+                            </button>
+                          ))}
                       </div>
                     </div>
                   </div>
@@ -2279,12 +2423,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               isNewVariant,
             );
           }}
+          onOpenDefineStub={(ent) => setDefineTarget(ent)}
           onRequestRework={(ent, rev) => handleOpenReworkModal(rev, ent)}
           onConfirmCanon={(rev) => handleConfirmCanon(rev, selectedEntity)}
           onShowToast={onShowToast}
           onToggleCrowd={handleToggleCrowd}
           onZoomImage={(img) => setSelectedImageZoom(img)}
           onDeleteRevision={(ent, rev) => handleDeleteRevision(ent, rev)}
+          onSaveSpecFields={handleSaveSpecFields}
         />
       )}
 
@@ -2392,7 +2538,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <div className='flex flex-wrap items-center justify-between gap-2'>
                         <div className='flex items-center gap-2 flex-wrap'>
                           <span className='px-2 py-0.5 rounded bg-stone-900 text-white font-mono text-xs font-bold'>
-                            {rev.variantLabel || `VERSION ${rev.versionNumber}`}
+                            {rev.variantLabel || rev.stageName || `VERSION ${rev.versionNumber}`}
                             {rev.isInitialVersion
                               ? t('bible.view.versionInitial', ' (Khởi tạo)')
                               : ''}
@@ -2647,23 +2793,37 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         </div>
 
         <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] flex items-center justify-between'>
-          {canCreateDraft && historyEntity && (
-            <button
-              type='button'
-              onClick={() => {
-                setHistoryModalOpen(false);
-                void handleOpenAddRevision(historyEntity);
-              }}
-              className='px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
-            >
-              <GitCommit className='w-3.5 h-3.5' />
-              <span>
-                {isProducer
-                  ? t('bible.view.addNewRevisionBtn', '+ Tạo phiên bản mới')
-                  : t('bible.view.addNewDraftBtn', '+ Tạo bản nháp mới')}
-              </span>
-            </button>
-          )}
+          {canCreateDraft &&
+            historyEntity &&
+            (historyEntity.isStub ? (
+              <button
+                type='button'
+                onClick={() => {
+                  setHistoryModalOpen(false);
+                  setDefineTarget(historyEntity);
+                }}
+                className='px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
+              >
+                <Edit3 className='w-3.5 h-3.5' />
+                <span>{t('bible.defineStub.action', 'Định nghĩa')}</span>
+              </button>
+            ) : (
+              <button
+                type='button'
+                onClick={() => {
+                  setHistoryModalOpen(false);
+                  void handleOpenAddRevision(historyEntity);
+                }}
+                className='px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
+              >
+                <GitCommit className='w-3.5 h-3.5' />
+                <span>
+                  {isProducer
+                    ? t('bible.view.addNewRevisionBtn', '+ Tạo phiên bản mới')
+                    : t('bible.view.addNewDraftBtn', '+ Tạo bản nháp mới')}
+                </span>
+              </button>
+            ))}
           <button
             type='button'
             onClick={() => setHistoryModalOpen(false)}
@@ -2781,6 +2941,58 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         onAdd={handleCreateEntity}
         onShowToast={onShowToast}
         seriesId={effectiveSeries?.id}
+      />
+
+      {/* Define Stub Modal */}
+      <DefineStubModal
+        isOpen={!!defineTarget}
+        entity={defineTarget}
+        seriesId={effectiveSeries?.id}
+        isWriter={isWriter}
+        onClose={() => setDefineTarget(null)}
+        onDefined={(ent, defined) => {
+          if (defined.dto?.id) {
+            setRawEntries((prev) => ({ ...prev, [ent.id]: defined.dto! }));
+          } else {
+            setRawEntries((prev) =>
+              prev[ent.id]
+                ? {
+                    ...prev,
+                    [ent.id]: {
+                      ...prev[ent.id],
+                      isStub: false,
+                      description: defined.description,
+                      subtitle: defined.subtitle,
+                    },
+                  }
+                : prev,
+            );
+          }
+          setLocalEntities((prev) =>
+            prev.map((item) =>
+              item.id === ent.id
+                ? {
+                    ...item,
+                    isStub: false,
+                    description: defined.description,
+                    subtitle: defined.subtitle,
+                  }
+                : item,
+            ),
+          );
+          setSelectedEntity((cur) =>
+            cur && cur.id === ent.id
+              ? {
+                  ...cur,
+                  isStub: false,
+                  description: defined.description,
+                  subtitle: defined.subtitle,
+                }
+              : cur,
+          );
+          setRefreshTrigger((prev) => prev + 1);
+        }}
+        onShowToast={onShowToast}
       />
     </PageContainer>
   );

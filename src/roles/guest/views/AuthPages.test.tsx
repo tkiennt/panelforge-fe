@@ -284,7 +284,7 @@ describe('LoginPage Component', () => {
 
     expect(await screen.findByText('Xác thực hai bước (2FA)')).toBeInTheDocument();
     expect(screen.getByLabelText(/Mã xác thực 6 chữ số/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Xác nhận & Vào Studio/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Vào Studio/i })).toBeInTheDocument();
   });
 });
 

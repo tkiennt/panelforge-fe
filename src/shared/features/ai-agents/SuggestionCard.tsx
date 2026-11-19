@@ -4,6 +4,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  GitCompare,
   Image as ImageIcon,
   LayoutTemplate,
   Lock,
@@ -19,6 +20,10 @@ import {
   AiSuggestionKind,
   AiSuggestionStatus,
   ArtistPromptSet,
+  BibleStubCitation,
+  BibleStubSuggestion,
+  BubbleShortenSuggestion,
+  ImpactRippleSuggestion,
   LetteringSuggestionSet,
   ScriptDraft,
   StoryboardLayout,
@@ -51,7 +56,30 @@ const KIND_ICON: Record<AiSuggestionKind, React.ElementType> = {
   LineRewrite: Sparkles,
   SeriesMetadata: BookOpen,
   Thumbnail: Palette,
+  BibleStub: BookOpen,
+  ImpactRipple: GitCompare,
 };
+
+function isBubbleShortenPayload(payload: unknown): payload is BubbleShortenSuggestion {
+  return (
+    !!payload &&
+    typeof payload === 'object' &&
+    ('originalText' in payload || 'suggestedText' in payload) &&
+    !('suggestions' in payload)
+  );
+}
+
+function getBibleCitations(bs?: BibleStubSuggestion | null): BibleStubCitation[] {
+  return bs?.draft?.citations ?? bs?.citations ?? [];
+}
+
+function formatImpactDecision(decision?: string | null): string {
+  if (!decision) return '';
+  const norm = decision.trim().toLowerCase();
+  if (norm === 'keep' || norm === 'giữ nguyên') return 'Giữ nguyên';
+  if (norm === 'rework' || norm === 'làm lại') return 'Làm lại';
+  return decision;
+}
 
 interface Props {
   suggestion: AiSuggestionDto;
@@ -81,8 +109,8 @@ function detailOf(s: AiSuggestionDto): string {
     }
     case 'SeriesMetadata': {
       const sm = s.payload as SeriesMetadataSuggestion | undefined;
-      return sm?.metadata
-        ? `Độ tuổi: ${sm.metadata.ageRating} · Thể loại: ${sm.metadata.genre}`
+      return sm?.metadata?.genre
+        ? `Thể loại: ${sm.metadata.genre} · Cập nhật tóm tắt & thể loại`
         : 'Gợi ý thông tin phát hành Series';
     }
     case 'Thumbnail': {
@@ -91,8 +119,22 @@ function detailOf(s: AiSuggestionDto): string {
     }
     case 'ImagePrompt':
       return `${(s.payload as ArtistPromptSet | undefined)?.panels?.length ?? 0} prompt ảnh cho panel`;
-    default:
+    case 'BibleStub':
+      return `${getBibleCitations(s.payload as BibleStubSuggestion | undefined).length} trích dẫn từ kịch bản`;
+    case 'ImpactRipple': {
+      const ir = s.payload as ImpactRippleSuggestion | undefined;
+      return `${formatImpactDecision(ir?.decision)} · ${ir?.changes?.length ?? 0} thay đổi kịch bản`;
+    }
+    case 'Lettering': {
+      if (isBubbleShortenPayload(s.payload)) {
+        return s.payload.maxChars
+          ? `Tối đa ${s.payload.maxChars} ký tự · Đổi chữ trên bóng thoại`
+          : 'Rút gọn chữ trên bóng thoại';
+      }
       return `${(s.payload as LetteringSuggestionSet | undefined)?.suggestions?.length ?? 0} dòng thoại được đề xuất rút gọn`;
+    }
+    default:
+      return '';
   }
 }
 
@@ -111,13 +153,26 @@ export const SuggestionCard: React.FC<Props> = ({
 }) => {
   const [form, setForm] = useState<'reject' | 'request-changes' | null>(null);
   const [reason, setReason] = useState('');
-  const [showContent, setShowContent] = useState(false);
+  const inlineOpenByDefault =
+    s.kind === 'LineRewrite' ||
+    s.kind === 'BibleStub' ||
+    s.kind === 'ImpactRipple' ||
+    (s.kind === 'Lettering' && isBubbleShortenPayload(s.payload));
+  const [showContent, setShowContent] = useState(inlineOpenByDefault);
 
-  const meta = KIND_META[s.kind];
+  const baseMeta = KIND_META[s.kind];
+  const meta =
+    s.kind === 'Lettering' && isBubbleShortenPayload(s.payload)
+      ? {
+          ...baseMeta,
+          applyNote: 'Đổi chữ trên bóng thoại, không đổi dòng kịch bản.',
+        }
+      : baseMeta;
   const Icon = KIND_ICON[s.kind];
   const pending = s.status === 'Pending';
-  // BE cũ không trả canDecide → không ẩn nút (Backend vẫn là nơi chặn)
+  // BE cũ không trả canDecide / canAccept → không ẩn nút (Backend vẫn là nơi chặn)
   const allowed = s.canDecide !== false;
+  const canAccept = allowed && s.canAccept !== false;
   const needsParent = !!s.parentSuggestionId;
   const blockedByScript = needsParent && parentStatus !== 'Accepted';
   const acceptDisabledReason = !pending
@@ -135,7 +190,9 @@ export const SuggestionCard: React.FC<Props> = ({
     s.kind === 'LineRewrite' ||
     s.kind === 'SeriesMetadata' ||
     s.kind === 'Thumbnail' ||
-    s.kind === 'Layout';
+    s.kind === 'Layout' ||
+    s.kind === 'BibleStub' ||
+    s.kind === 'ImpactRipple';
 
   const submit = () => {
     if (!form) return;
@@ -175,33 +232,58 @@ export const SuggestionCard: React.FC<Props> = ({
           {showContent && (
             <div className='mt-2'>
               {s.kind === 'SeriesMetadata' ? (
-                <div className='space-y-1.5 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
-                  <div>
-                    <span className='font-bold text-[#171717]'>Logline: </span>
-                    <span className='text-[#404040]'>
-                      {(s.payload as SeriesMetadataSuggestion)?.metadata?.logline}
-                    </span>
-                  </div>
-                  <div>
-                    <span className='font-bold text-[#171717]'>Tóm tắt: </span>
-                    <span className='text-[#404040]'>
-                      {(s.payload as SeriesMetadataSuggestion)?.metadata?.synopsis}
-                    </span>
-                  </div>
-                  <div className='flex gap-4 text-[11px] text-[#525252]'>
-                    <span>
-                      Thể loại: <b>{(s.payload as SeriesMetadataSuggestion)?.metadata?.genre}</b>
-                    </span>
-                    <span>
-                      Độ tuổi: <b>{(s.payload as SeriesMetadataSuggestion)?.metadata?.ageRating}</b>
-                    </span>
-                  </div>
-                  {(s.payload as SeriesMetadataSuggestion)?.reason && (
-                    <div className='text-[11px] italic text-[#737373]'>
-                      Lý do: {(s.payload as SeriesMetadataSuggestion)?.reason}
+                (() => {
+                  const sm = s.payload as SeriesMetadataSuggestion | undefined;
+                  const md = sm?.metadata;
+                  const logline = md?.logline?.trim();
+                  const teaser = md?.teaser?.trim();
+                  const ageRating = md?.ageRating?.trim();
+                  const hasRefFields = Boolean(logline || teaser || ageRating);
+                  return (
+                    <div className='space-y-2 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
+                      <div className='space-y-1'>
+                        <div>
+                          <span className='font-bold text-[#171717]'>Tóm tắt: </span>
+                          <span className='text-[#404040]'>{md?.synopsis}</span>
+                        </div>
+                        <div className='text-[11px] text-[#525252]'>
+                          Thể loại: <b>{md?.genre}</b>
+                        </div>
+                      </div>
+                      {hasRefFields && (
+                        <div
+                          className='space-y-1 rounded border border-dashed border-[#D4D4D4] bg-white/80 p-2 text-[11px] text-[#525252]'
+                          data-testid='series-metadata-reference-only'
+                        >
+                          <div className='font-semibold text-[#737373]'>
+                            Chỉ tham khảo, không được lưu khi Accept
+                          </div>
+                          {logline && (
+                            <div>
+                              <span className='font-semibold text-[#525252]'>Logline: </span>
+                              <span>{logline}</span>
+                            </div>
+                          )}
+                          {teaser && (
+                            <div>
+                              <span className='font-semibold text-[#525252]'>Teaser: </span>
+                              <span>{teaser}</span>
+                            </div>
+                          )}
+                          {ageRating && (
+                            <div>
+                              <span className='font-semibold text-[#525252]'>Độ tuổi: </span>
+                              <b>{ageRating}</b>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {sm?.reason && (
+                        <div className='text-[11px] italic text-[#737373]'>Lý do: {sm.reason}</div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()
               ) : s.kind === 'Thumbnail' ? (
                 <div className='rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs space-y-2'>
                   {(s.payload as ThumbnailSuggestion)?.sha256 && (
@@ -247,7 +329,107 @@ export const SuggestionCard: React.FC<Props> = ({
                   nameById={nameById}
                 />
               ) : s.kind === 'Lettering' ? (
-                <LetteringDiffView set={s.payload as LetteringSuggestionSet} />
+                isBubbleShortenPayload(s.payload) ? (
+                  <div className='space-y-1.5 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
+                    <div>
+                      <span className='text-[11px] font-semibold text-[#737373]'>Bản gốc: </span>
+                      <span className='text-[11px] text-[#737373] line-through'>
+                        {s.payload.originalText}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-[11px] font-semibold text-emerald-800'>
+                        Bản rút gọn:{' '}
+                      </span>
+                      <span className='font-medium text-emerald-800'>
+                        {s.payload.suggestedText}
+                      </span>
+                    </div>
+                    {s.payload.reason && (
+                      <div className='text-[11px] italic text-[#525252]'>
+                        Lý do: {s.payload.reason}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <LetteringDiffView set={s.payload as LetteringSuggestionSet} />
+                )
+              ) : s.kind === 'BibleStub' ? (
+                <div className='space-y-2 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
+                  {(s.payload as BibleStubSuggestion)?.draft?.subtitle && (
+                    <div className='font-bold text-[#171717]'>
+                      {(s.payload as BibleStubSuggestion).draft.subtitle}
+                    </div>
+                  )}
+                  <div className='whitespace-pre-line text-[#404040]'>
+                    {(s.payload as BibleStubSuggestion)?.draft?.description}
+                  </div>
+                  {(s.payload as BibleStubSuggestion)?.reason && (
+                    <div className='text-[11px] italic text-[#525252]'>
+                      Lý do: {(s.payload as BibleStubSuggestion).reason}
+                    </div>
+                  )}
+                  {getBibleCitations(s.payload as BibleStubSuggestion).length > 0 && (
+                    <ul className='mt-2 space-y-1.5 border-t border-[#E7E7E7] pt-2'>
+                      {getBibleCitations(s.payload as BibleStubSuggestion).map((c, idx) => (
+                        <li
+                          key={c.lineId ? `${c.lineId}-${idx}` : idx}
+                          className='rounded border border-[#E7E7E7] bg-white p-2'
+                        >
+                          <div className='font-semibold text-[#171717]'>{c.claim}</div>
+                          <blockquote className='mt-0.5 text-[11px] italic text-[#525252]'>
+                            “{c.quote}”
+                          </blockquote>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : s.kind === 'ImpactRipple' ? (
+                <div className='space-y-2 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
+                  <div className='flex items-center gap-2'>
+                    <span className='font-bold text-[#171717]'>Quyết định:</span>
+                    <span
+                      className={`rounded border px-1.5 py-0.5 text-[11px] font-bold ${
+                        formatImpactDecision((s.payload as ImpactRippleSuggestion)?.decision) ===
+                        'Làm lại'
+                          ? 'border-amber-300 bg-amber-50 text-amber-800'
+                          : 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                      }`}
+                    >
+                      {formatImpactDecision((s.payload as ImpactRippleSuggestion)?.decision)}
+                    </span>
+                  </div>
+                  {(s.payload as ImpactRippleSuggestion)?.reason && (
+                    <div className='text-[#404040]'>
+                      {(s.payload as ImpactRippleSuggestion).reason}
+                    </div>
+                  )}
+                  {((s.payload as ImpactRippleSuggestion)?.changes?.length ?? 0) > 0 && (
+                    <ul className='space-y-1.5 border-t border-[#E7E7E7] pt-2'>
+                      {(s.payload as ImpactRippleSuggestion).changes.map((ch, idx) => {
+                        const heading = [ch.type, ch.label].filter(Boolean).join(' · ');
+                        return (
+                          <li key={idx} className='rounded border border-[#E7E7E7] bg-white p-2'>
+                            {heading && (
+                              <div className='text-[11px] font-semibold text-[#525252]'>
+                                {heading}
+                              </div>
+                            )}
+                            {ch.before != null && ch.before !== '' && (
+                              <div className='text-[11px] text-[#737373] line-through'>
+                                {ch.before}
+                              </div>
+                            )}
+                            {ch.after != null && ch.after !== '' && (
+                              <div className='mt-0.5 font-medium text-emerald-800'>{ch.after}</div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
               ) : (
                 <ArtistPromptsView set={s.payload as ArtistPromptSet} nameById={nameById} />
               )}
@@ -325,15 +507,17 @@ export const SuggestionCard: React.FC<Props> = ({
             </div>
           ) : (
             <div className='flex flex-wrap gap-2'>
-              <button
-                type='button'
-                disabled={busy || !!acceptDisabledReason}
-                title={acceptDisabledReason || meta.applyNote}
-                onClick={() => onDecide('accept')}
-                className='flex items-center gap-1 rounded border-[1.5px] border-emerald-600 bg-emerald-600 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40'
-              >
-                <Check size={13} /> {meta.applyLabel}
-              </button>
+              {canAccept && (
+                <button
+                  type='button'
+                  disabled={busy || !!acceptDisabledReason}
+                  title={acceptDisabledReason || meta.applyNote}
+                  onClick={() => onDecide('accept')}
+                  className='flex items-center gap-1 rounded border-[1.5px] border-emerald-600 bg-emerald-600 px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40'
+                >
+                  <Check size={13} /> {meta.applyLabel}
+                </button>
+              )}
               <button
                 type='button'
                 disabled={busy}
@@ -352,10 +536,10 @@ export const SuggestionCard: React.FC<Props> = ({
               </button>
             </div>
           )}
-          {!!acceptDisabledReason && !form && (
+          {canAccept && !!acceptDisabledReason && !form && (
             <p className='mt-1 text-[10px] text-[#737373]'>{acceptDisabledReason}</p>
           )}
-          {!acceptDisabledReason && !form && (
+          {canAccept && !acceptDisabledReason && !form && (
             <p className='mt-1 text-[10px] text-[#737373]'>{meta.applyNote}</p>
           )}
         </div>

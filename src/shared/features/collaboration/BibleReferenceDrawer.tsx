@@ -387,7 +387,12 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                           <span className='font-semibold'>
                             Bản khoá v{entry.effectiveRevision.versionNumber}
                           </span>
-                          <span>Biến thể: {entry.effectiveRevision.variantLabel}</span>
+                          <span>
+                            Biến thể:{' '}
+                            {entry.effectiveRevision.variantLabel ||
+                              entry.effectiveRevision.stageName ||
+                              'Mặc định'}
+                          </span>
                         </div>
                       )}
                     </div>

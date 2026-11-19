@@ -210,6 +210,6 @@ describe('ArtistChapterSelectionView Component', () => {
     await waitFor(() => {
       expect(screen.getByTestId('artist-chapters-empty')).toBeInTheDocument();
     });
-    expect(screen.getByText('Chưa có chương nào trong bộ truyện')).toBeInTheDocument();
+    expect(screen.getByText('Chưa có chương')).toBeInTheDocument();
   });
 });

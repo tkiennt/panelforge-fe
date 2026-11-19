@@ -126,15 +126,25 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           if (!workspaceId) return;
           const [myLotsRes, reviewQueueRes, legacyList] = await Promise.all([
             typeof assignmentService.getMyTaskLots === 'function'
-              ? assignmentService.getMyTaskLots(workspaceId, {
-                  seriesId: seriesId || undefined,
-                  includeCompleted: true,
-                })
+              ? assignmentService
+                  .getMyTaskLots(workspaceId, {
+                    seriesId: seriesId || undefined,
+                    includeCompleted: true,
+                  })
+                  .catch((err) => {
+                    if (err?.status === 404 || err?.response?.status === 404) return [];
+                    throw err;
+                  })
               : Promise.resolve([]),
             reviewer && typeof assignmentService.getTaskGridReviewQueue === 'function'
-              ? assignmentService.getTaskGridReviewQueue(workspaceId, {
-                  seriesId: seriesId || undefined,
-                })
+              ? assignmentService
+                  .getTaskGridReviewQueue(workspaceId, {
+                    seriesId: seriesId || undefined,
+                  })
+                  .catch((err) => {
+                    if (err?.status === 404 || err?.response?.status === 404) return [];
+                    throw err;
+                  })
               : Promise.resolve([]),
             typeof assignmentService.getMyWorkspaceAssignments === 'function'
               ? assignmentService
@@ -303,7 +313,12 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       try {
         const [lotsRes, legacyStudio] = await Promise.all([
           typeof assignmentService.getMyTaskLots === 'function'
-            ? assignmentService.getMyTaskLots(workspaceId, { includeCompleted: true })
+            ? assignmentService
+                .getMyTaskLots(workspaceId, { includeCompleted: true })
+                .catch((err) => {
+                  if (err?.status === 404 || err?.response?.status === 404) return [];
+                  throw err;
+                })
             : Promise.resolve([]),
           typeof assignmentService.getMyAssignments === 'function'
             ? assignmentService.getMyAssignments(workspaceId).catch(() => [])
