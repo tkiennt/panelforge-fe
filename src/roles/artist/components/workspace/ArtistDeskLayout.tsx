@@ -1,29 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import {
-  ChevronRight,
-  ChevronLeft,
-  ChevronDown,
-  CheckCircle2,
-  Clock,
-  Sparkles,
-  Send,
-  Eye,
-  Columns,
-  Maximize2,
-  ArrowLeft,
-  Layers,
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronRight, ChevronLeft, CheckCircle2, Send, ArrowLeft } from 'lucide-react';
 import { ScriptReaderPanel } from './ScriptReaderPanel';
 import { ArtworkCanvasDropzone } from './ArtworkCanvasDropzone';
-import { AIPromptStudio } from './AIPromptStudio';
 import { ImageViewerLightbox } from '@/shared/components/image-viewer/ImageViewerLightbox';
-import {
-  ScriptLineItem,
-  CanvasPanelItem,
-  BibleCharacterRef,
-  ViewMode,
-  AiAgentStatus,
-} from './workspace.types';
+import { ScriptLineItem, CanvasPanelItem, BibleCharacterRef, ViewMode } from './workspace.types';
 
 // Realistic Manga Production Mock Data for demonstration and fallback
 const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
@@ -143,25 +123,6 @@ const DEFAULT_PANELS: CanvasPanelItem[] = [
   },
 ];
 
-const DEFAULT_BIBLE_REFS: BibleCharacterRef[] = [
-  {
-    id: 'char-1',
-    name: 'Akira Takahashi',
-    role: 'Nhân vật chính (Protagonist)',
-    hairStyleGuide: 'Tóc đen ngắn lỉa chỉa, mái lệch nhẹ sang phải, vết sẹo mỏng dài 3cm má trái.',
-    costumeGuide:
-      'Áo khoác dạ hành xám rách gấu, đai da nâu đính huy hiệu Sói bạc, găng tay đen hở ngón.',
-    notableFeatures: ['Vết sẹo má trái', 'Mắt hổ phách', 'Áo rách vai'],
-  },
-  {
-    id: 'char-2',
-    name: 'Ren Alaster',
-    role: 'Trinh sát / Đồng đội',
-    hairStyleGuide: 'Tóc nâu hạt dẻ buộc gọn sau gáy, đeo dải băng trán màu xanh sẫm.',
-    costumeGuide: 'Áo choàng có mũ trùm không tay, đeo túi phi tiêu và bản đồ bên hông.',
-  },
-];
-
 export interface ArtistDeskLayoutProps {
   studioName?: string;
   seriesTitle?: string;
@@ -183,25 +144,17 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
   totalPages = 18,
   initialPanels = DEFAULT_PANELS,
   initialScriptLines = DEFAULT_SCRIPT_LINES,
-  bibleReferences = DEFAULT_BIBLE_REFS,
   onBackToDashboard,
   onSubmitReview,
 }) => {
   const [panels, setPanels] = useState<CanvasPanelItem[]>(initialPanels);
-  const [scriptLines, setScriptLines] = useState<ScriptLineItem[]>(initialScriptLines);
+  const [scriptLines] = useState<ScriptLineItem[]>(initialScriptLines);
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>('panel-1');
   const [viewMode, setViewMode] = useState<ViewMode>('panel');
   const [pageNumber, setPageNumber] = useState<number>(currentPageNumber);
-  const [aiStatus, setAiStatus] = useState<AiAgentStatus>('ready');
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [saveTimestamp, setSaveTimestamp] = useState<string>('Vừa xong');
   const [lightboxSlide, setLightboxSlide] = useState<{ src: string; title: string } | null>(null);
-
-  const selectedPanel = useMemo(
-    () => panels.find((p) => p.id === selectedPanelId) || null,
-    [panels, selectedPanelId],
-  );
 
   const handleZoomArtwork = (panelId: string) => {
     const target = panels.find((p) => p.id === panelId);
@@ -233,34 +186,6 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
   const handleDeleteArtwork = (panelId: string) => {
     setPanels((prev) => prev.map((p) => (p.id === panelId ? { ...p, imageUrl: null } : p)));
     setSaveTimestamp('Vừa lưu');
-  };
-
-  // Trigger simulated AI Image Generation
-  const handleGenerateAiImage = (prompt: string, negativePrompt: string, stylePreset: string) => {
-    if (!selectedPanelId) return;
-    setIsGenerating(true);
-    setAiStatus('generating');
-
-    // Simulate AI generation process with artistic placeholder
-    setTimeout(() => {
-      // High quality manga placeholder art generator
-      const mockArtworkUrl = `https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80`;
-      setPanels((prev) =>
-        prev.map((p) =>
-          p.id === selectedPanelId
-            ? {
-                ...p,
-                imageUrl: mockArtworkUrl,
-                imageVersion: 'v1.0-AI',
-                suggestedPrompt: prompt,
-              }
-            : p,
-        ),
-      );
-      setIsGenerating(false);
-      setAiStatus('ready');
-      setSaveTimestamp('Vừa lưu');
-    }, 1800);
   };
 
   // Auto-sync script lines to panels based on reading order
@@ -371,22 +296,8 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
           </div>
         </div>
 
-        {/* Right: AI Indicator, Quick Save, and Primary Review CTA */}
+        {/* Right: Quick Save and Primary Review CTA */}
         <div className='flex items-center gap-3'>
-          {/* AI Agent Status Badge */}
-          <div className='flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-semibold'>
-            <span
-              className={`w-2 h-2 rounded-full ${
-                aiStatus === 'generating'
-                  ? 'bg-amber-500 animate-spin'
-                  : 'bg-emerald-500 animate-pulse'
-              }`}
-            />
-            <span className='font-mono text-[11px]'>
-              {aiStatus === 'generating' ? 'AI: Đang sinh ảnh' : 'AI Agent: Sẵn sàng'}
-            </span>
-          </div>
-
           {/* Quick Save Status Indicator */}
           <div className='flex items-center gap-1 text-[11px] text-stone-400 font-mono hidden md:flex'>
             <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
@@ -407,7 +318,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
       </header>
 
       {/* ========================================================
-          3-COLUMN WORKSPACE BODY
+          WORKSPACE BODY
           ======================================================== */}
       <div className='flex-1 flex overflow-hidden min-h-0 relative'>
         {/* B. Left Column: Writer Script Reader (340px) */}
@@ -430,14 +341,6 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
           onZoomArtwork={handleZoomArtwork}
           viewMode={viewMode}
           pageNumber={pageNumber}
-        />
-
-        {/* D. Right Column: AI Visual Agent & Prompt Studio (360px) */}
-        <AIPromptStudio
-          selectedPanel={selectedPanel}
-          onGenerateAiImage={handleGenerateAiImage}
-          isGenerating={isGenerating}
-          bibleReferences={bibleReferences}
         />
       </div>
 

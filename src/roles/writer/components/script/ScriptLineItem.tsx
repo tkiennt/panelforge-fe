@@ -11,11 +11,14 @@ import {
   Trash2,
   AlertTriangle,
   Layers,
+  Loader2,
   Sparkles,
 } from 'lucide-react';
 import { SceneScriptLineSummaryDto, NarrationMode } from '@/services/scriptLine.service';
 import { BibleEntryDto } from '@/services/bible.service';
 import { ConsistencyFindingDto } from '@/services/assignment.service';
+import type { AiSuggestionDto } from '@/services/aiAgents.service';
+import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
 
 interface ScriptLineItemProps {
   line: SceneScriptLineSummaryDto;
@@ -39,6 +42,14 @@ interface ScriptLineItemProps {
   onMoveLine: (index: number, direction: 'up' | 'down') => void;
   onEditLine: (line: SceneScriptLineSummaryDto) => void;
   onDeleteLine: (line: SceneScriptLineSummaryDto) => void;
+  onRewriteLine?: (line: SceneScriptLineSummaryDto) => void;
+  isRewriting?: boolean;
+  copilotSuggestion?: AiSuggestionDto | null;
+  copilotBusy?: boolean;
+  copilotError?: string | null;
+  seriesId?: string;
+  aiNameById?: Record<string, string>;
+  onDecideCopilot?: (decision: 'accept' | 'reject' | 'request-changes', reason?: string) => void;
 }
 
 export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
@@ -63,6 +74,14 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
   onMoveLine,
   onEditLine,
   onDeleteLine,
+  onRewriteLine,
+  isRewriting = false,
+  copilotSuggestion,
+  copilotBusy = false,
+  copilotError,
+  seriesId,
+  aiNameById,
+  onDecideCopilot,
 }) => {
   const getBibleEntry = (id?: string | null) => {
     if (!id) return null;
@@ -155,9 +174,26 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
           )}
         </div>
 
-        {/* Action buttons (Move Up, Move Down, Edit, Delete) */}
+        {/* Action buttons (AI Rewrite, Move Up, Move Down, Edit, Delete) */}
         {canEditScript && !isChapterLocked && (
           <div className='flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition-opacity shrink-0'>
+            {onRewriteLine && Boolean(line.dialogueText?.trim()) && !line.id.startsWith('wc-') && (
+              <button
+                type='button'
+                data-testid={`ai-rewrite-line-${line.id}`}
+                onClick={() => onRewriteLine(line)}
+                disabled={isRewriting || copilotBusy}
+                className='mr-1 inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-1 text-xs font-semibold text-[#C2410C] hover:bg-orange-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+                title='Viết lại dòng thoại này bằng AI theo giọng nhân vật'
+              >
+                {isRewriting ? (
+                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                ) : (
+                  <Sparkles className='w-3.5 h-3.5' />
+                )}
+                <span>Viết lại bằng AI</span>
+              </button>
+            )}
             <button
               type='button'
               onClick={() => onMoveLine(index, 'up')}
@@ -252,6 +288,27 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
               </p>
             )}
           </div>
+        </div>
+      )}
+
+      {copilotError && (
+        <div
+          role='alert'
+          className='mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800'
+        >
+          {copilotError}
+        </div>
+      )}
+
+      {copilotSuggestion && canEditScript && !isChapterLocked && onDecideCopilot && (
+        <div className='mt-3'>
+          <SuggestionCard
+            suggestion={copilotSuggestion}
+            seriesId={seriesId}
+            busy={copilotBusy}
+            nameById={aiNameById}
+            onDecide={onDecideCopilot}
+          />
         </div>
       )}
     </div>

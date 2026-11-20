@@ -364,7 +364,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                 </a>
               )}
             </div>
-          ) : isEditing ? (
+          ) : isEditing && canEditScript ? (
             <form
               onSubmit={handleSave}
               className='p-3 bg-white rounded-xl border border-stone-200/90 shadow-2xs space-y-3'

@@ -4,6 +4,8 @@ import { LineInfo } from './aiViewUtils';
 
 const PAGE_W = 600;
 const PAGE_H = 900; // tỉ lệ Page 1200×1800
+const WEBTOON_W = 540;
+const WEBTOON_H = 960; // tỉ lệ WebtoonLongstrip 1080×1920
 
 /** Vẽ bố cục Storyboard: bbox page-normalized (0..1) → hình chữ nhật, số lớn = thứ tự đọc. */
 export const LayoutPreview: React.FC<{
@@ -15,7 +17,15 @@ export const LayoutPreview: React.FC<{
   const [hover, setHover] = useState<number | null>(null);
   const page = layout.pages[pageIdx] ?? layout.pages[0];
   if (!page) return null;
+  const vertical = layout.readingDirection === 'Vertical';
   const rtl = layout.readingDirection === 'RightToLeft';
+  const viewW = vertical ? WEBTOON_W : PAGE_W;
+  const viewH = vertical ? WEBTOON_H : PAGE_H;
+  const directionLabel = vertical
+    ? 'trên → dưới (Vertical)'
+    : rtl
+      ? 'phải → trái (RTL)'
+      : 'trái → phải (LTR)';
 
   return (
     <div className='flex flex-col gap-3 md:flex-row'>
@@ -37,16 +47,16 @@ export const LayoutPreview: React.FC<{
           </div>
         )}
         <svg
-          viewBox={`0 0 ${PAGE_W} ${PAGE_H}`}
+          viewBox={`0 0 ${viewW} ${viewH}`}
           className='w-[240px] rounded border-[1.5px] border-[#171717] bg-[#FFFDF8]'
           role='img'
           aria-label={`Bố cục trang ${page.pageNumber}`}
         >
           {page.panels.map((p) => {
-            const x = p.bbox.x * PAGE_W + 3;
-            const y = p.bbox.y * PAGE_H + 3;
-            const w = p.bbox.w * PAGE_W - 6;
-            const h = p.bbox.h * PAGE_H - 6;
+            const x = p.bbox.x * viewW + 3;
+            const y = p.bbox.y * viewH + 3;
+            const w = p.bbox.w * viewW - 6;
+            const h = p.bbox.h * viewH - 6;
             const active = hover === p.readingOrder;
             return (
               <g
@@ -87,7 +97,7 @@ export const LayoutPreview: React.FC<{
           })}
         </svg>
         <div className='mt-1 text-center text-[11px] font-semibold text-[#525252]'>
-          Hướng đọc: {rtl ? 'phải → trái (RTL)' : 'trái → phải (LTR)'} · số = thứ tự đọc
+          Hướng đọc: {directionLabel} · số = thứ tự đọc
         </div>
       </div>
 

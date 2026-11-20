@@ -111,7 +111,7 @@ describe('WorkspaceView (Quy trình sản xuất)', () => {
 
   it('chặn quyền truy cập đối với độc giả (READER mode)', () => {
     renderComponent({ isReaderMode: true });
-    expect(screen.getByText('Khu Vực Sản Xuất Giới Hạn')).toBeInTheDocument();
+    expect(screen.getByText('Khu vực giới hạn')).toBeInTheDocument();
     expect(screen.queryByTestId('production-board-mock')).not.toBeInTheDocument();
   });
 

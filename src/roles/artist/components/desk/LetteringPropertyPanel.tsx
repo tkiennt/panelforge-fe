@@ -9,15 +9,19 @@ import {
   ExternalLink,
   FileText,
   Italic,
+  Loader2,
   MessageCircle,
   Minus,
   Plus,
   Shapes,
+  Sparkles,
   Trash2,
   Type,
   X,
 } from 'lucide-react';
 import type { ElementSnapshotDto, TextStyleDto } from '@/services/element.service';
+import { aiAgentsService, type AiSuggestionDto } from '@/services/aiAgents.service';
+import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
 import {
   BALLOON_SHAPES,
   resolveAppearance,
@@ -51,6 +55,10 @@ export interface LetteringPropertyPanelProps {
   onDelete?: () => void;
   onViewScript?: () => void;
   onClose?: () => void;
+  seriesId?: string;
+  pageId?: string;
+  canUseAiShorten?: boolean;
+  onReloadPage?: () => Promise<void> | void;
 }
 
 const SECTION_TITLE = 'text-xs font-semibold text-stone-800 flex items-center gap-1.5';
@@ -79,6 +87,10 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
   onDelete,
   onViewScript,
   onClose,
+  seriesId,
+  pageId,
+  canUseAiShorten = false,
+  onReloadPage,
 }) => {
   const isOriginal = !activeLang || activeLang.toLowerCase() === originalLang.toLowerCase();
   const appearance = resolveAppearance(element.elementType, appearanceFromStyle(element.style));
@@ -87,9 +99,94 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
   // Thoại hiện hành của Writer (currentLineText) — chỉ đọc
   const scriptText = element.currentLineText ?? scriptLine?.dialogueText ?? null;
   const name = `Thoại ${displayNumber ?? element.readingOrder ?? ''}`.trim();
+  const currentBubbleText = (element.renderedText || element.content || '').trim();
 
   const [sizeDraft, setSizeDraft] = useState(String(text.fontSize));
   useEffect(() => setSizeDraft(String(text.fontSize)), [text.fontSize]);
+
+  const [maxCharsDraft, setMaxCharsDraft] = useState(() =>
+    String(
+      Math.max(10, Math.min(500, currentBubbleText.length > 5 ? currentBubbleText.length - 5 : 40)),
+    ),
+  );
+  const [runningAi, setRunningAi] = useState(false);
+  const [decidingAi, setDecidingAi] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<AiSuggestionDto | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const prevElementIdRef = React.useRef(element.elementId);
+  useEffect(() => {
+    if (prevElementIdRef.current === element.elementId) return;
+    prevElementIdRef.current = element.elementId;
+    setMaxCharsDraft(
+      String(
+        Math.max(
+          10,
+          Math.min(500, currentBubbleText.length > 5 ? currentBubbleText.length - 5 : 40),
+        ),
+      ),
+    );
+    setAiSuggestion(null);
+    setAiError(null);
+  }, [element.elementId, currentBubbleText.length]);
+
+  const parsedMaxChars = Math.floor(Number(maxCharsDraft));
+  const validMaxChars =
+    Number.isFinite(parsedMaxChars) && parsedMaxChars >= 1 && parsedMaxChars <= 500;
+
+  const handleRunShorten = async () => {
+    if (!seriesId || !pageId || !validMaxChars) return;
+    setRunningAi(true);
+    setAiError(null);
+    try {
+      const sug = await aiAgentsService.runCopilot(seriesId, {
+        task: 'letterer.shorten',
+        pageId,
+        elementId: element.elementId,
+        maxChars: parsedMaxChars,
+      });
+      setAiSuggestion(sug);
+    } catch (err: any) {
+      setAiError(err?.message || 'Không thể chạy AI Copilot.');
+    } finally {
+      setRunningAi(false);
+    }
+  };
+
+  const handleDecideAi = async (
+    decision: 'accept' | 'reject' | 'request-changes',
+    reason?: string,
+  ) => {
+    if (!seriesId || !aiSuggestion) return;
+    setDecidingAi(true);
+    setAiError(null);
+    try {
+      const res = await aiAgentsService.review(
+        seriesId,
+        aiSuggestion.id,
+        decision,
+        reason ? { reason } : {},
+      );
+      if (decision === 'accept') {
+        setAiSuggestion(null);
+        await onReloadPage?.();
+      } else {
+        setAiSuggestion({
+          ...aiSuggestion,
+          status: res.status,
+          canDecide: false,
+          canAccept: false,
+        });
+      }
+    } catch (err: any) {
+      setAiError(err?.message || 'Không thể ghi quyết định.');
+      if (err?.status === 409) {
+        await onReloadPage?.();
+      }
+    } finally {
+      setDecidingAi(false);
+    }
+  };
   const commitSize = () => {
     const n = Number(sizeDraft);
     const next = Number.isFinite(n) && n > 0 ? clampFontSize(n) : text.fontSize;
@@ -204,13 +301,85 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
 
         {/* Nội dung hiển thị */}
         <BalloonTextEditor
-          key={`${element.elementId}-${activeLang ?? originalLang}`}
+          key={`${element.elementId}-${element.version}-${activeLang ?? originalLang}`}
           element={element}
           isOriginal={isOriginal}
           langLabel={(activeLang ?? originalLang).toUpperCase()}
           readOnly={textReadOnly}
           onCommit={onCommitText}
         />
+
+        {/* Copilot Rút gọn thoại bằng AI (Letterer — vẫn dùng được khi kịch bản Frozen) */}
+        {canUseAiShorten && seriesId && pageId && (
+          <section
+            data-testid='lettering-ai-shorten-section'
+            className='space-y-2.5 rounded-xl border border-orange-200/80 bg-[#FAF8F5] p-3'
+          >
+            <h4 className={SECTION_TITLE}>
+              <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' /> Rút gọn bóng
+              thoại (AI)
+            </h4>
+            <div className='flex items-end gap-2'>
+              <div className='flex-1'>
+                <label
+                  htmlFor={`shorten-max-chars-${element.elementId}`}
+                  className='block text-[11px] font-semibold text-stone-700 mb-1'
+                >
+                  Số ký tự tối đa
+                </label>
+                <input
+                  id={`shorten-max-chars-${element.elementId}`}
+                  data-testid='lettering-shorten-max-chars'
+                  type='number'
+                  min={1}
+                  max={500}
+                  value={maxCharsDraft}
+                  onChange={(e) => setMaxCharsDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
+                      e.preventDefault();
+                      void handleRunShorten();
+                    }
+                  }}
+                  className='w-full h-8 px-2.5 rounded-lg border border-stone-200 bg-white text-xs font-semibold text-stone-900 focus:outline-none focus:border-orange-500'
+                />
+              </div>
+              <button
+                type='button'
+                data-testid='lettering-ai-shorten-btn'
+                onClick={() => void handleRunShorten()}
+                disabled={runningAi || decidingAi || !validMaxChars || !currentBubbleText}
+                className='h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0'
+              >
+                {runningAi ? (
+                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                ) : (
+                  <Sparkles className='w-3.5 h-3.5' />
+                )}
+                Rút gọn bằng AI
+              </button>
+            </div>
+
+            {aiError && (
+              <div
+                role='alert'
+                className='rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs text-rose-800'
+              >
+                {aiError}
+              </div>
+            )}
+
+            {aiSuggestion && (
+              <SuggestionCard
+                suggestion={aiSuggestion}
+                seriesId={seriesId}
+                busy={decidingAi}
+                onDecide={(decision, reason) => void handleDecideAi(decision, reason)}
+              />
+            )}
+          </section>
+        )}
 
         {/* Kiểu hiển thị */}
         <section className='space-y-2'>

@@ -490,7 +490,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                       ? 'border-sky-300 bg-sky-50 text-sky-800'
                       : chapter.status === 'ChapterApproved'
                         ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                        : chapter.status === 'Archived'
+                        : chapter.status === 'HandedOffAndPublished'
                           ? 'border-stone-300 bg-stone-100 text-stone-600'
                           : 'border-amber-300 bg-amber-50 text-amber-800'
                   }`}
@@ -500,8 +500,8 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     ? 'Đang sản xuất'
                     : chapter.status === 'ChapterApproved'
                       ? 'Đã duyệt'
-                      : chapter.status === 'Archived'
-                        ? 'Đã lưu trữ'
+                      : chapter.status === 'HandedOffAndPublished'
+                        ? 'Đã phát hành'
                         : 'Tiền kỳ'}
                 </span>
 
@@ -1313,7 +1313,12 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 
       {/* ── CREATE CHAPTER MODAL ── */}
       {createChapterOpen && (
-        <Modal isOpen title='Tạo Chương Mới' onClose={() => setCreateChapterOpen(false)}>
+        <Modal
+          isOpen
+          title='Tạo Chương Mới'
+          closeLabel='Đóng'
+          onClose={() => setCreateChapterOpen(false)}
+        >
           <form onSubmit={handleCreateChapterSubmit} className='space-y-3 text-xs'>
             <div>
               <label className='block font-bold text-stone-700'>Số chương *</label>
@@ -1384,6 +1389,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         <Modal
           isOpen
           title={`Sửa Chương ${chapter.chapterNumber}`}
+          closeLabel='Đóng'
           onClose={() => setEditChapterOpen(false)}
         >
           <form onSubmit={handleEditChapterSubmit} className='space-y-3 text-xs'>
@@ -1516,14 +1522,14 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               ? `Xóa Chương ${deleteTargetChapter.chapterNumber}`
               : `Lưu Trữ Chương ${deleteTargetChapter.chapterNumber}`
           }
-          message={
+          description={
             deleteTargetChapter.status === 'PreProduction' &&
             (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
               ? `Chương rỗng. Nhập "DELETE" để xóa vĩnh viễn:`
               : `Chương đã có dữ liệu. Nhập "DELETE" để lưu trữ (Archive):`
           }
-          expectedInput='DELETE'
-          confirmLabel={
+          targetName='DELETE'
+          confirmButtonText={
             deleteTargetChapter.status === 'PreProduction' &&
             (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
               ? 'Xóa'
@@ -1531,7 +1537,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
           }
           onConfirm={handleDeleteOrArchiveChapter}
           onCancel={() => setDeleteTargetChapter(null)}
-          loading={isDeleting}
+          isDeleting={isDeleting}
         />
       )}
     </div>

@@ -780,6 +780,8 @@ export interface AssignStageTaskLotsRequest {
   lots: StageTaskLotRequest[];
   dryRun?: boolean;
   reassign?: boolean;
+  confirmStartedWork?: boolean;
+  expectedRowVersions?: Record<string, number> | null;
 }
 
 export interface UpdateStageTaskLotRequest {
@@ -794,6 +796,34 @@ export interface AssignStageTaskLotsResultDto {
   dryRun: boolean;
   taskCount: number;
   lots: StageTaskLotDto[];
+}
+
+export interface AutoAssignPlanLotDto {
+  pipelineStageId: string;
+  stageName: string;
+  assigneeUserId: string;
+  assigneeName: string;
+  assignedRole: string;
+  taskIds: string[];
+  pageNumbers: number[];
+  openTaskCount: number;
+  workUnits?: number;
+  openWorkUnits?: number;
+  suggestedDueDate?: string | null;
+}
+
+export interface AutoAssignPlanSkippedStageDto {
+  pipelineStageId: string;
+  stageName: string;
+  taskCount: number;
+  reason: string;
+}
+
+export interface AutoAssignPlanDto {
+  chapterId: string;
+  unassignedCount: number;
+  lots: AutoAssignPlanLotDto[];
+  skipped: AutoAssignPlanSkippedStageDto[];
 }
 
 export interface SubmitStageTasksRequest {

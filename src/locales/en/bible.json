@@ -67,6 +67,31 @@
     "submitting": "Submitting...",
     "submit": "Send Rework Request"
   },
+  "defineStub": {
+    "action": "Define",
+    "badge": "Undefined",
+    "modalTitle": "Define Series Bible Entity",
+    "modalSubtitle": "Entities auto-created from the script need a specification description before design.",
+    "detailAlertTitle": "Entity not yet defined",
+    "detailAlertDescWriter": "This stub entry was auto-created from the script. Click \"Define\" to add a description before design.",
+    "detailAlertDescReadOnly": "This stub entry was auto-created from the script and is waiting for a Writer to define it.",
+    "nameLabel": "Entity Name (Immutable)",
+    "subtitleLabel": "Subtitle / Role",
+    "subtitlePlaceholder": "e.g. Wandering Swordsman",
+    "descriptionLabel": "Description & Visual Traits *",
+    "descriptionPlaceholder": "Appearance, clothing, weapons, or key identifying traits...",
+    "cancel": "Cancel",
+    "save": "Save Definition",
+    "saving": "Saving...",
+    "successTitle": "Entity defined",
+    "successDesc": "Saved specification description for \"{name}\".",
+    "errorTitle": "Failed to define entity",
+    "errorDesc": "Could not define Series Bible entry.",
+    "aiHint": "Synthesize specifications with verbatim citations from the script",
+    "aiDraftBtn": "Draft from script",
+    "aiDraftError": "Could not draft from script.",
+    "aiDecisionError": "Could not record decision."
+  },
   "spec": {
     "groups": {
       "body": "Body & Physique",

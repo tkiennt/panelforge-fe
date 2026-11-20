@@ -21,22 +21,15 @@ interface SeriesShelfProps extends CardActions {
 }
 
 const SHELF_GRID =
-  'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-stretch';
+  'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-5 gap-y-7';
 
 const ShelfSkeleton: React.FC = () => (
   <div className={SHELF_GRID} aria-busy='true' aria-label='Đang tải danh sách bộ truyện'>
-    {[1, 2, 3].map((n) => (
-      <div
-        key={n}
-        className='rounded-xl bg-white border border-stone-200/80 p-4 flex gap-3.5 animate-pulse'
-      >
-        <div className='w-20 aspect-[3/4] bg-stone-200/70 rounded-md shrink-0' />
-        <div className='flex-1 space-y-2.5 pt-1'>
-          <div className='h-3 bg-stone-200/70 rounded-md w-1/3' />
-          <div className='h-4 bg-stone-200/70 rounded-md w-3/4' />
-          <div className='h-3 bg-stone-100 rounded-md w-full' />
-          <div className='h-9 bg-stone-100 rounded-md w-full mt-4' />
-        </div>
+    {[1, 2, 3, 4].map((n) => (
+      <div key={n} className='animate-pulse space-y-2'>
+        <div className='aspect-[3/4] rounded-xl bg-stone-200/70' />
+        <div className='h-3 w-1/3 rounded-md bg-stone-200/70' />
+        <div className='h-4 w-3/4 rounded-md bg-stone-200/70' />
       </div>
     ))}
   </div>

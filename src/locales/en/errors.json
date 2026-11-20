@@ -29,6 +29,8 @@
   "NO_BIBLE": "Series Bible information is required but missing.",
   "NO_SCRIPT": "Scene has no script content to process.",
   "SCENE_HAS_PAGES": "This scene already has pages and panels created.",
+  "SCRIPT_FROZEN": "This chapter's script is frozen.",
+  "SCENE_LINES_LINKED": "This scene has lines linked to panels; replacing the entire script with AI is blocked.",
   "NO_LAYOUT": "No layout found for this stage.",
   "NO_PANELS": "No panels created on this page.",
   "NO_DIALOGUE": "No dialogue lines found for lettering.",

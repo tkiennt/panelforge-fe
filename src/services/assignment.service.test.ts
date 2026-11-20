@@ -748,6 +748,21 @@ describe('assignmentService', () => {
     });
     expect(reassignRes).toEqual(mockReassignRes);
 
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockReassignRes });
+    await assignmentService.assignTaskGridLots('chap-1', {
+      lots: [{ pipelineStageId: 'stg-pencil', assigneeUserId: 'artist-2', taskIds: ['t-1'] }],
+      reassign: true,
+      confirmStartedWork: true,
+      expectedRowVersions: { 't-1': 5 },
+    });
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/task-grid/lots', {
+      lots: [{ pipelineStageId: 'stg-pencil', assigneeUserId: 'artist-2', taskIds: ['t-1'] }],
+      dryRun: false,
+      reassign: true,
+      confirmStartedWork: true,
+      expectedRowVersions: { 't-1': 5 },
+    });
+
     const mockUpdatedLot = {
       id: 'lot-1',
       pipelineStageId: 'stg-pencil',

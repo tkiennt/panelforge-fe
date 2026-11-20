@@ -50,4 +50,3 @@ export interface PanelScriptContext {
 }
 
 export type ViewMode = 'panel' | 'fullpage';
-export type AiAgentStatus = 'ready' | 'generating' | 'idle' | 'error';

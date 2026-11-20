@@ -81,7 +81,7 @@ describe('AutoAssignScriptLinesModal', () => {
 
     // Missing panels warning
     expect(
-      screen.getByText(/Kịch bản có nhiều cụm hơn số khung hiện tại trên trang/i),
+      screen.getByText(/Thiếu \d+ khung tranh/i),
     ).toBeInTheDocument();
     expect(screen.getByText('Toàn cảnh ngôi đền rung chuyển')).toBeInTheDocument();
   });

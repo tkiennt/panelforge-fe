@@ -1,35 +1,36 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  aiStreamService,
-  TokenChunkEvent,
-  StepRecordedEvent,
-  RunStatusChangedEvent,
-} from './aiStream.service';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
+import { aiStreamService, StepRecordedEvent, RunStatusChangedEvent } from './aiStream.service';
 
 describe('aiStreamService', () => {
   beforeEach(async () => {
     await aiStreamService.disconnect();
   });
 
-  it('cho phép đăng ký và huỷ lắng nghe sự kiện TokenChunk', () => {
-    const handler = vi.fn();
-    const unsub = aiStreamService.onTokenChunk(handler);
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
-    const dummyEvent: TokenChunkEvent = {
-      runId: 'run-123',
-      agent: 'Writer',
-      stepIndex: 1,
-      deltaText: 'Chào bạn',
-      isFinal: false,
+  it('không còn phơi bày onTokenChunk hay đăng ký listener TokenChunk khi kết nối Hub', async () => {
+    expect('onTokenChunk' in aiStreamService).toBe(false);
+    expect('tokenHandlers' in aiStreamService).toBe(false);
+
+    const on = vi.fn();
+    const fakeConnection = {
+      state: HubConnectionState.Connected,
+      on,
+      onreconnected: vi.fn(),
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn().mockResolvedValue(undefined),
+      invoke: vi.fn().mockResolvedValue(undefined),
     };
+    vi.spyOn(HubConnectionBuilder.prototype, 'build').mockReturnValue(fakeConnection as never);
 
-    // Gọi nội bộ qua dispatch
-    (aiStreamService as any).tokenHandlers.forEach((h: any) => h(dummyEvent));
-    expect(handler).toHaveBeenCalledWith(dummyEvent);
+    await aiStreamService.connect();
 
-    unsub();
-    (aiStreamService as any).tokenHandlers.forEach((h: any) => h(dummyEvent));
-    expect(handler).toHaveBeenCalledTimes(1);
+    const registeredEvents = on.mock.calls.map(([eventName]) => eventName);
+    expect(registeredEvents).toEqual(['StepRecorded', 'RunStatusChanged']);
+    expect(registeredEvents).not.toContain('TokenChunk');
   });
 
   it('cho phép đăng ký và huỷ lắng nghe sự kiện StepRecorded', () => {

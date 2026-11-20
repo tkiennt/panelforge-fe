@@ -65,7 +65,7 @@ import {
 } from '../lib/artistDeskHelpers';
 import { resolveChangeRequestLocation } from '../utils/changeRequestLocation';
 import { getStoredCurrentUserId } from '@/types/workspace';
-import { resolveReworkReasonDisplay } from '@/types';
+import { normalizeWorkspaceRole, resolveReworkReasonDisplay } from '@/types';
 import { useTranslation } from '@/lib/i18n';
 
 export type { PanelArtworkData };
@@ -2449,6 +2449,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   );
   const selectedBalloon =
     balloons.pageElements.find((el) => el.elementId === balloons.selectedElementId) ?? null;
+  const normalizedDeskRole =
+    normalizeWorkspaceRole(workspaceRole) ||
+    (typeof window !== 'undefined'
+      ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
+      : null);
+  const isLettererRole = normalizedDeskRole === 'LETTERER';
+  const handleReloadLetteringPage = useCallback(async () => {
+    await balloons.reloadElements();
+    if (currentChapterId) {
+      await loadPages(currentChapterId);
+    }
+  }, [balloons, currentChapterId, loadPages]);
   // Số dòng của bóng đang chọn, đánh số giống cột "Script truyện" (chỉ dòng có chữ để đặt)
   const selectedLineNumber = useMemo(() => {
     if (!selectedBalloon?.scriptLineId) return undefined;
@@ -3026,6 +3038,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   setIsSidebarDrawerOpen(true);
                 }}
                 onClose={() => balloons.setSelectedElementId(null)}
+                seriesId={seriesId}
+                pageId={selectedPage?.id}
+                canUseAiShorten={Boolean(
+                  isLettererRole &&
+                  seriesId &&
+                  selectedPage?.id &&
+                  !selectedPage.id.startsWith('page-default-'),
+                )}
+                onReloadPage={handleReloadLetteringPage}
               />
             )}
           </div>

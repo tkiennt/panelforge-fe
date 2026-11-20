@@ -4,9 +4,19 @@ import {
   AiStepDto,
   AiSuggestionKind,
   AiWorkflowType,
+  ReadingDirection,
   ScriptDraft,
   WorkerAgentName,
 } from '@/services/aiAgents.service';
+
+/** Chuẩn hoá hướng đọc của Series (chuỗi hoặc enum số RightToLeft=0, LeftToRight=1, Vertical=2) sang giá trị hợp đồng AI workflow. */
+export function toAiReadingDirection(
+  direction: ReadingDirection | number | string | null | undefined,
+): ReadingDirection {
+  if (direction === 'RightToLeft' || direction === 0 || direction === '0') return 'RightToLeft';
+  if (direction === 'Vertical' || direction === 2 || direction === '2') return 'Vertical';
+  return 'LeftToRight';
+}
 
 /** Bảy agent chuyên môn, mỗi agent hỗ trợ một hoặc hai role; Supervisor (Gemini) điều phối chúng và KHÔNG phải ProducerAgent. */
 export const AGENTS: WorkerAgentName[] = [
@@ -96,6 +106,16 @@ export const KIND_META: Record<
     title: 'Thumbnail AI',
     applyLabel: 'Accept (tạo Artwork mới)',
     applyNote: 'Tạo bản vẽ AssetReference phiên bản mới cho panel; ảnh cũ giữ nguyên.',
+  },
+  BibleStub: {
+    title: 'Hồ sơ Bible nháp',
+    applyLabel: 'Dùng làm nháp',
+    applyNote: 'Đổ mô tả và tiêu đề phụ vào form để tự sửa rồi lưu; chưa ghi vào Series Bible.',
+  },
+  ImpactRipple: {
+    title: 'Xử lý ảnh hưởng',
+    applyLabel: 'Accept (áp dụng xử lý)',
+    applyNote: 'Thực hiện Impact Review theo quyết định gợi ý; Reject không đổi trạng thái ô.',
   },
 };
 

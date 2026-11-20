@@ -247,6 +247,93 @@
       "storyboardLocked": "Scene already has panels",
       "needScene": "Select a scene first"
     },
+    "aiPanel": {
+      "writingFor": "Writing for",
+      "changeScene": "Switch scene",
+      "basedOn": "AI will use",
+      "storyArc": "Series Story Arc",
+      "chapterOutline": "Chapter Outline",
+      "bibleEntries": "Series Bible",
+      "sceneLines": "Scene Script",
+      "statusPresent": "Available",
+      "statusMissing": "Missing",
+      "bibleCount": "{count} entries",
+      "sceneLinesCount": "{count} lines",
+      "sceneLinesEmpty": "No lines yet",
+      "openNarrative": "Open Outline",
+      "openBible": "Open Bible",
+      "replaceWarning": "Accepting will replace {count} existing lines in this scene (not append).",
+      "linkedPanelsWarning": "This scene has {count} lines linked to Panels — Script suggestions cannot be accepted. Draft button disabled.",
+      "nextStepTitle": "Next step",
+      "nextStepDesc": "Script applied to this scene. Accepting Script does not create Pages and Panels.",
+      "nextStepStoryboard": "Create Pages and Panels with Storyboard",
+      "fillFromOutline": "Fill from outline",
+      "fillFromOutlineEmpty": "Chapter has no outline yet",
+      "confirmOverwritePrompt": "Brief already has content. Overwrite with chapter outline?",
+      "confirmOverwriteYes": "Overwrite",
+      "confirmOverwriteCancel": "Cancel",
+      "templatesLabel": "Quick templates",
+      "templates": {
+        "opening": {
+          "label": "Scene opener",
+          "goal": "Establish setting and opening mood of the scene",
+          "tone": "Intriguing",
+          "brief": "Open with setting description, introduce the main character into the situation, and plant a hook for conflict."
+        },
+        "confrontation": {
+          "label": "Confrontation",
+          "goal": "Escalate conflict between characters through sharp dialogue",
+          "tone": "Tense",
+          "brief": "Focus on crisp, tense dialogue where each line raises the stakes."
+        },
+        "action": {
+          "label": "Action climax",
+          "goal": "Build fast-paced action momentum with clear choreography",
+          "tone": "Dramatic",
+          "brief": "Prioritize punchy action beats, clear SFX, and brief dialogue mid-action."
+        },
+        "quiet": {
+          "label": "Quiet beat",
+          "goal": "Slow the pacing and reveal inner thoughts",
+          "tone": "Calm",
+          "brief": "Blend slow action beats, inner thoughts (Thought), and concise narration."
+        }
+      },
+      "optionsToggle": "Guidance options",
+      "optionsActiveCount": "{count} set",
+      "fieldSceneGoal": "Scene goal",
+      "fieldSceneGoalPlaceholder": "e.g., Reveal a secret, introduce a turning point...",
+      "fieldTone": "Tone",
+      "fieldTonePlaceholder": "e.g., Tense, humorous, calm...",
+      "tonePresets": {
+        "tense": "Tense",
+        "humorous": "Humorous",
+        "calm": "Calm",
+        "dramatic": "Dramatic",
+        "warm": "Warm"
+      },
+      "fieldDesiredLength": "Desired length",
+      "lengthOptions": {
+        "default": "Default",
+        "short": "Short (4–6 lines)",
+        "medium": "Medium (8–12 lines)",
+        "long": "Long (14–20 lines)"
+      },
+      "fieldCharacters": "Characters appearing (from Bible)",
+      "fieldCharactersEmpty": "No characters in Series Bible yet.",
+      "fieldMustInclude": "Must include",
+      "fieldMustIncludePlaceholder": "Required detail, line, or beat...",
+      "fieldMustAvoid": "Avoid",
+      "fieldMustAvoidPlaceholder": "Details the AI should skip or not reveal yet...",
+      "composedNotesLabel": "Additional notes",
+      "briefOverflow": "Final brief ({current}/{max} chars) exceeds the {max}-character limit. Please shorten before running.",
+      "progress": {
+        "writing": "Writing",
+        "checkingBible": "Checking Bible",
+        "readyForReview": "Ready for review",
+        "queued": "Queued…"
+      }
+    },
     "stages": {
       "write": "Writing",
       "review": "In review",

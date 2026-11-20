@@ -26,7 +26,9 @@ export type AiSuggestionKind =
   | 'Lettering'
   | 'LineRewrite'
   | 'SeriesMetadata'
-  | 'Thumbnail';
+  | 'Thumbnail'
+  | 'BibleStub'
+  | 'ImpactRipple';
 
 /** Các loại đề xuất AI khi Accept sẽ tạo thêm một ScriptVersion mới cho chương (BR-01 / BR-11). */
 export const SCRIPT_VERSION_AI_KINDS: readonly AiSuggestionKind[] = [
@@ -39,7 +41,7 @@ export function createsScriptVersionOnAccept(kind?: AiSuggestionKind | null): bo
   return !!kind && SCRIPT_VERSION_AI_KINDS.includes(kind);
 }
 export type ContentRevisionKind = 'Script' | 'Layout' | 'ImagePrompt';
-export type ReadingDirection = 'LeftToRight' | 'RightToLeft';
+export type ReadingDirection = 'LeftToRight' | 'RightToLeft' | 'Vertical';
 /** Nhiệm vụ = loại workflow. Run tạo trước khi có loại workflow được BE trả là FullScene. */
 export type AiWorkflowType =
   | 'FullScene'
@@ -65,12 +67,22 @@ export interface SupervisorDecision {
   allowedActions: string[];
   guardrailOverridden: boolean;
 }
+export interface ScriptDraftRef {
+  surfaceText: string;
+  bibleEntryId?: string | null;
+  newName?: string | null;
+  newCategory?: 'Character' | 'Location' | 'Prop' | string | null;
+}
 export interface ScriptDraftLine {
   lineId: string;
   order: number;
   speakerId?: string | null;
   dialogue?: string | null;
   stageDirection?: string | null;
+  /** Action, Dialogue, Thought, Narration, Sfx; bản nháp cũ không có. */
+  kind?: string | null;
+  speakerLabel?: string | null;
+  refs?: ScriptDraftRef[] | null;
 }
 export interface ScriptDraft {
   schemaVersion: number;
@@ -235,7 +247,7 @@ export interface ThumbnailSuggestion {
   sha256: string;
   imagePromptRevisionId: string;
   prompt: string;
-  provider: 'Gemini' | 'Cloudflare' | 'Mock' | string;
+  provider: 'Gemini' | 'Cloudflare' | string;
   model: string;
   referenceEntryIds: string[];
 }
@@ -246,10 +258,66 @@ export interface RunThumbnailRequest {
 }
 
 export interface RunCopilotRequest {
-  task: 'writer.rewrite' | 'letterer.shorten';
-  lineId: string;
+  task: 'writer.rewrite' | 'letterer.shorten' | string;
+  lineId?: string;
   instruction?: string | null;
   maxChars?: number | null;
+  pageId?: string;
+  elementId?: string;
+  revisionOfSuggestionId?: string;
+}
+
+/** Payload của AiSuggestion kind Lettering đơn lẻ (BubbleShortenSuggestion trên một bóng thoại). */
+export interface BubbleShortenSuggestion {
+  schemaVersion?: number;
+  runId?: string;
+  sceneId?: string;
+  task?: string;
+  pageId: string;
+  elementId: string;
+  elementVersion?: number;
+  originalText: string;
+  suggestedText: string;
+  reason?: string | null;
+  maxChars?: number | null;
+}
+
+export interface BibleStubCitation {
+  claim: string;
+  lineId?: string | null;
+  quote: string;
+}
+
+export interface BibleStubDraft {
+  description: string;
+  subtitle?: string | null;
+  citations?: BibleStubCitation[];
+}
+
+export interface BibleStubSuggestion {
+  schemaVersion?: number;
+  runId?: string;
+  entryId?: string;
+  name?: string;
+  draft: BibleStubDraft;
+  citations?: BibleStubCitation[];
+  reason?: string | null;
+}
+
+export interface ImpactLineChange {
+  type?: string;
+  label?: string | null;
+  before?: string | null;
+  after?: string | null;
+}
+
+export interface ImpactRippleSuggestion {
+  schemaVersion?: number;
+  runId?: string;
+  taskId?: string;
+  decision: 'Keep' | 'Rework' | string;
+  reason: string;
+  changes: ImpactLineChange[];
 }
 
 // ── DTO của BE ────────────────────────────────────────────────────────────────
@@ -307,6 +375,8 @@ export interface AiSuggestionDto {
   decisionRoles?: WorkspaceRoleName[];
   /** BE tính: người đang xem có thể Accept/Reject/RequestChanges ngay lúc này. Thiếu (BE cũ) → UI hiểu là có thể. */
   canDecide?: boolean;
+  /** BE tính: vai trò của người đang xem được phép Accept loại đề xuất này (còn Pending). */
+  canAccept?: boolean;
 }
 export interface AiRunDto {
   id: string;
@@ -365,6 +435,7 @@ export interface RunWorkflowRequest {
   workflowType?: AiWorkflowType;
   /** Chỉ dùng cho workflow Artist: danh sách ID panel cần tạo mô tả vẽ; null/rỗng = mọi panel của layout đã duyệt */
   panelIds?: string[] | null;
+  revisionOfSuggestionId?: string;
 }
 export interface RunWorkflowResponse {
   runId: string;
@@ -550,10 +621,29 @@ export class AiApiError extends Error {
   }
 }
 
+const AI_BUSY_MESSAGE =
+  'Trợ lý AI đang bận hoặc tạm thời không phản hồi. Hãy thử lại sau ít phút, bạn vẫn có thể làm thủ công.';
+const AI_INVALID_OUTPUT_MESSAGE = 'AI chưa tạo được kết quả hợp lệ. Hãy thử lại.';
+
 function toError(error: any, fallback: string): AiApiError {
   const data = error?.response?.data;
-  const message = data?.error || data?.message || fallback;
-  return new AiApiError(message, data?.code, error?.response?.status);
+  const status = error?.response?.status;
+  const serverMsg =
+    typeof data?.error === 'string' && data.error.trim()
+      ? data.error.trim()
+      : typeof data?.message === 'string' && data.message.trim()
+        ? data.message.trim()
+        : '';
+  const code =
+    data?.code || (status === 403 ? 'FORBIDDEN' : status === 409 ? 'CONFLICT' : undefined);
+  // Lỗi kỹ thuật của provider/model không có ích cho người dùng; riêng lỗi rút gọn đã có hướng dẫn cụ thể.
+  if (code === 'AI_UNAVAILABLE') return new AiApiError(AI_BUSY_MESSAGE, code, status);
+  if (code === 'AI_INVALID_OUTPUT' && !serverMsg.startsWith('AI chưa rút gọn')) {
+    return new AiApiError(AI_INVALID_OUTPUT_MESSAGE, code, status);
+  }
+  const message =
+    serverMsg || (status === 403 ? 'Bạn không có quyền thực hiện thao tác này.' : fallback);
+  return new AiApiError(message, code, status);
 }
 
 export const isActiveRun = (status?: AiRunStatus) => status === 'Queued' || status === 'Running';
@@ -573,13 +663,40 @@ export const aiAgentsService = {
     }
   },
 
-  /** Chạy Copilot sync trên một dòng thoại (writer.rewrite hoặc letterer.shorten). Trả về AiSuggestionDto (Pending, kind: LineRewrite). */
+  /** Chạy Copilot sync (writer.rewrite hoặc letterer.shorten). Trả về AiSuggestionDto (Pending, kind: LineRewrite | Lettering). */
   async runCopilot(seriesId: string, body: RunCopilotRequest): Promise<AiSuggestionDto> {
     try {
       const res = await axiosClient.post(`/series/${seriesId}/ai/copilot`, body);
       return res.data;
     } catch (e) {
       throw toError(e, 'Không thể chạy AI Copilot.');
+    }
+  },
+
+  /** Bible Stub Harvester: xin hồ sơ nháp có trích dẫn từ các dòng kịch bản nhắc tới mục stub. */
+  async runBibleStubDraft(
+    seriesId: string,
+    entryId: string,
+    instruction?: string,
+  ): Promise<AiSuggestionDto> {
+    try {
+      const res = await axiosClient.post(
+        `/series/${seriesId}/ai/bible/entries/${entryId}/stub-draft`,
+        instruction !== undefined ? { instruction } : {},
+      );
+      return res.data;
+    } catch (e) {
+      throw toError(e, 'Không thể soạn nháp từ kịch bản.');
+    }
+  },
+
+  /** Smart Ripple: Producer xin gợi ý Keep / Rework cho ô mang cờ isInputOutdated do sửa kịch bản. */
+  async runImpactSuggestion(chapterId: string, taskId: string): Promise<AiSuggestionDto> {
+    try {
+      const res = await axiosClient.post(`/chapters/${chapterId}/ai/impact/${taskId}`);
+      return res.data;
+    } catch (e) {
+      throw toError(e, 'Không thể lấy gợi ý xử lý ảnh hưởng.');
     }
   },
 
@@ -716,12 +833,12 @@ export const aiAgentsService = {
     }
   },
 
-  /** decision: accept | reject | request-changes. Accept bắt buộc chapterVersion hiện tại (sai → 409). */
+  /** decision: accept | reject | request-changes. Accept bắt buộc chapterVersion với đề xuất sửa chương; Lettering/BibleStub/ImpactRipple gửi {}. */
   async review(
     seriesId: string,
     suggestionId: string,
     decision: 'accept' | 'reject' | 'request-changes',
-    body: { reason?: string; chapterVersion?: number },
+    body: { reason?: string; chapterVersion?: number } = {},
   ): Promise<ReviewResponse> {
     try {
       const res = await axiosClient.post(
