@@ -97,4 +97,24 @@ describe('SeriesBurndownCard Component', () => {
     fireEvent.click(screen.getByText('7 ngày'));
     expect(screen.getByText(/7 mốc ghi nhận/i)).toBeInTheDocument();
   });
+
+  it('hiển thị createdToday và approvedToday trong tooltip và bảng chi tiết khi có dữ liệu', () => {
+    const dataWithDaily: BurndownPointDto[] = [
+      { date: '2026-10-01', remaining: 10, createdToday: 4, approvedToday: 1 },
+      { date: '2026-10-02', remaining: 8, createdToday: 1, approvedToday: 3 },
+    ];
+    render(<SeriesBurndownCard burndown={dataWithDaily} />);
+
+    // Bảng chi tiết hiển thị cột Tạo mới / Đã duyệt
+    expect(screen.getByText('Tạo mới')).toBeInTheDocument();
+    expect(screen.getByText('Đã duyệt')).toBeInTheDocument();
+    expect(screen.getByText('+4')).toBeInTheDocument();
+    expect(screen.getByText('-3')).toBeInTheDocument();
+
+    // Hover vào điểm dữ liệu để mở tooltip
+    const point = screen.getByRole('button', { name: /02\/10\/2026/i });
+    fireEvent.mouseEnter(point);
+    expect(screen.getByText('Tạo mới trong ngày:')).toBeInTheDocument();
+    expect(screen.getByText('Đã duyệt trong ngày:')).toBeInTheDocument();
+  });
 });

@@ -29,7 +29,9 @@ export interface BoardCard {
   entityType: WorkflowEntityType;
   targetEntityId: string;
   targetLabel: string;
-  /** Số trang khi việc gắn với Page và trang còn tồn tại trong chương; null với Chapter/Panel. */
+  /** Trang chứa target (Page → chính trang, Panel → trang chứa khung từ AssignmentDto.pageId). */
+  pageId?: string | null;
+  /** Số trang khi việc gắn với Page hoặc Panel có pageId còn tồn tại trong chương; null với Chapter/Panel chưa rõ trang. */
   pageNumber?: number | null;
   pipelineStageId: string;
   stageName: string;

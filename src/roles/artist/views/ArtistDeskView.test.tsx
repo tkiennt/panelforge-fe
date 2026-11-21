@@ -1468,6 +1468,171 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
       fireEvent.click(screen.getByTestId('artist-script-ref-toggle'));
       expect(screen.getByTestId('artist-script-ref-sidebar')).toBeInTheDocument();
     });
+
+    it('filters by pageId/pageNumber and highlights by panelNumber from GET /api/scenes/{sceneId} (TASK-6)', async () => {
+      Element.prototype.scrollIntoView = vi.fn();
+      vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+      vi.spyOn(elementService, 'getPageSnapshot').mockResolvedValue({
+        pageId: 'pg-1',
+        elements: [],
+      } as any);
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValueOnce([
+        {
+          id: 'pg-1',
+          chapterId: 'chap-t6',
+          pageNumber: 1,
+          layoutFormat: 'B5',
+          widthPx: 1200,
+          heightPx: 1800,
+          dpi: 600,
+          elementsCount: 2,
+        },
+        {
+          id: 'pg-2',
+          chapterId: 'chap-t6',
+          pageNumber: 2,
+          layoutFormat: 'B5',
+          widthPx: 1200,
+          heightPx: 1800,
+          dpi: 600,
+          elementsCount: 1,
+        },
+        {
+          id: 'pg-3',
+          chapterId: 'chap-t6',
+          pageNumber: 3,
+          layoutFormat: 'B5',
+          widthPx: 1200,
+          heightPx: 1800,
+          dpi: 600,
+          elementsCount: 0,
+        },
+      ]);
+
+      vi.spyOn(panelService, 'getPanelsByPage').mockImplementation(async (pageId: string) => {
+        if (pageId === 'pg-1') {
+          return [
+            {
+              id: 'pnl-1-1',
+              pageId: 'pg-1',
+              panelNumber: 1,
+              boundingBox: '{}',
+              readingOrder: 1,
+              createdAt: '2026-01-01T00:00:00Z',
+            },
+            {
+              id: 'pnl-1-2',
+              pageId: 'pg-1',
+              panelNumber: 2,
+              boundingBox: '{}',
+              readingOrder: 2,
+              createdAt: '2026-01-01T00:00:00Z',
+            },
+          ];
+        }
+        return [];
+      });
+
+      vi.spyOn(scriptLineService, 'getScenesByChapter').mockResolvedValueOnce([
+        {
+          id: 'sc-t6',
+          chapterId: 'chap-t6',
+          sceneNumber: 1,
+          heading: 'Hành lang tối',
+          createdAt: '2026-01-01T00:00:00Z',
+          scriptLinesCount: 4,
+          pagesCount: 2,
+        },
+      ]);
+
+      vi.spyOn(scriptLineService, 'getSceneById').mockResolvedValueOnce({
+        id: 'sc-t6',
+        chapterId: 'chap-t6',
+        sceneNumber: 1,
+        heading: 'Hành lang tối',
+        createdAt: '2026-01-01T00:00:00Z',
+        scriptLines: [
+          {
+            id: 'ln-p1-k1',
+            lineOrder: 1,
+            dialogueText: 'Trang 1 khung 1',
+            panelId: 'pnl-1-1',
+            pageId: 'pg-1',
+            pageNumber: 1,
+            panelNumber: 1,
+          },
+          {
+            id: 'ln-p1-k2',
+            lineOrder: 2,
+            dialogueText: 'Trang 1 khung 2',
+            panelId: 'pnl-1-2',
+            pageId: 'pg-1',
+            pageNumber: 1,
+            panelNumber: 2,
+          },
+          {
+            id: 'ln-p2-k3',
+            lineOrder: 3,
+            dialogueText: 'Trang 2 khung 3 (không cần panelPageMap)',
+            panelId: 'pnl-2-3',
+            pageId: 'pg-2',
+            pageNumber: 2,
+            panelNumber: 3,
+          },
+          {
+            id: 'ln-unpaged',
+            lineOrder: 4,
+            stageDirection: 'Dòng chưa gán khung',
+            panelId: null,
+            pageId: null,
+            pageNumber: null,
+            panelNumber: null,
+          },
+        ],
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-t6']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/artist'
+              element={<ArtistDeskView workspaceRole='ARTIST' />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      // Page 1 shows only Page 1 lines (filtered by pageId/pageNumber)
+      await waitFor(() => {
+        expect(screen.getByTestId('artist-script-ref-line-ln-p1-k1')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('artist-script-ref-line-ln-p1-k2')).toBeInTheDocument();
+      expect(screen.queryByTestId('artist-script-ref-line-ln-p2-k3')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('artist-script-ref-line-ln-unpaged')).not.toBeInTheDocument();
+
+      // Selecting Khung #2 highlights only ln-p1-k2
+      fireEvent.click(screen.getByTestId('artist-script-ref-panel-btn-2'));
+      expect(screen.getByTestId('artist-script-ref-line-ln-p1-k2')).toHaveAttribute(
+        'data-line-highlighted',
+        'true',
+      );
+      expect(screen.getByTestId('artist-script-ref-line-ln-p1-k1')).toHaveAttribute(
+        'data-line-highlighted',
+        'false',
+      );
+
+      // Switch to Page 2 -> shows Page 2 line (even though getPanelsByPage returned [] for pg-2) with K3
+      const card2 = screen.getByTestId('canva-page-card-2');
+      fireEvent.click(card2.querySelector('[role="button"]')!);
+      expect(screen.getByTestId('artist-script-ref-line-ln-p2-k3')).toHaveTextContent('K3');
+      expect(screen.queryByTestId('artist-script-ref-line-ln-p1-k1')).not.toBeInTheDocument();
+
+      // Switch to Page 3 (no assigned lines) -> falls back to unpaged line only
+      const card3 = screen.getByTestId('canva-page-card-3');
+      fireEvent.click(card3.querySelector('[role="button"]')!);
+      expect(screen.getByTestId('artist-script-ref-line-ln-unpaged')).toBeInTheDocument();
+      expect(screen.queryByTestId('artist-script-ref-line-ln-p2-k3')).not.toBeInTheDocument();
+    });
   });
 
   describe('ArtistDeskView - Task Grid V3 Guards (Items A, B, C)', () => {

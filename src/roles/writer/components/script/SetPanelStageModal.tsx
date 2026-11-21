@@ -65,7 +65,7 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
   };
 
   const handleClear = () => {
-    onApply(selectedPageNo, selectedPanelNo, null);
+    onApply(selectedPageNo, selectedPanelNo, []);
     onClose();
   };
 

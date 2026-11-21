@@ -2973,6 +2973,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               item.id === ent.id
                 ? {
                     ...item,
+                    code: defined.dto?.code || item.code,
                     isStub: false,
                     description: defined.description,
                     subtitle: defined.subtitle,
@@ -2984,6 +2985,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             cur && cur.id === ent.id
               ? {
                   ...cur,
+                  code: defined.dto?.code || cur.code,
                   isStub: false,
                   description: defined.description,
                   subtitle: defined.subtitle,

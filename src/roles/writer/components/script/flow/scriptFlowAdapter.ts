@@ -86,7 +86,7 @@ export interface ScriptDocSnapshot {
 
 // ───────────────────────── máy chủ → editor ─────────────────────────
 
-function toKind(
+export function toKind(
   kind: unknown,
   dialogueText?: string | null,
   speakerLabel?: string | null,
@@ -277,7 +277,7 @@ export function scriptToDoc(
   const content: JSONContent[] = [];
   const sortedPages = [...pages].sort((a, b) => a.pageNumber - b.pageNumber);
   for (const page of sortedPages) {
-    content.push(line('page'));
+    content.push(line('page', '', page.id));
     const pagePanels = panels
       .filter((p) => p.pageId === page.id)
       .sort((a, b) => a.panelNumber - b.panelNumber);
@@ -357,12 +357,19 @@ export function docToScriptTree(
   expectedRevisionId?: string | null,
 ): ChapterScriptBody {
   const pages: ScriptTreePage[] = [];
+  const seenLineIds = new Set<string>();
   let pageNo = 0;
   let panelNo = 0;
   let currentPage: ScriptTreePage | null = null;
   let currentPanel: ScriptTreePanel | null = null;
   let speaker: string | null = null;
   let parens: string | null = null;
+
+  const claimLineId = (refId: string | null): string | null => {
+    if (!isValidGuid(refId) || !refId || seenLineIds.has(refId)) return null;
+    seenLineIds.add(refId);
+    return refId;
+  };
 
   const ensurePage = () => {
     if (!currentPage) {
@@ -425,21 +432,22 @@ export function docToScriptTree(
             bibleEntryId?: string;
             revisionId: string;
           }> | null) ?? null;
-        const castRevisions: ScriptTreeCast[] | null =
-          rawCast && rawCast.length > 0
-            ? rawCast
-                .map((c) => ({
-                  entryId: c.entryId || c.bibleEntryId || '',
-                  revisionId: c.revisionId,
-                }))
-                .filter((c) => !!c.entryId && !!c.revisionId)
-            : null;
+        // null = giữ nguyên phiên bản Bible của panel; [] = gỡ hết (khớp BE ScriptTreePanel.CastRevisions)
+        const hasExplicitCast = Array.isArray(rawCast);
+        const castRevisions: ScriptTreeCast[] | undefined = hasExplicitCast
+          ? rawCast
+              .map((c) => ({
+                entryId: c.entryId || c.bibleEntryId || '',
+                revisionId: c.revisionId,
+              }))
+              .filter((c) => isValidGuid(c.entryId) && isValidGuid(c.revisionId))
+          : undefined;
 
         currentPanel = {
           id: isValidGuid(refId) ? refId : null,
           number: panelNo,
           direction: text || null,
-          ...(castRevisions && castRevisions.length > 0 ? { castRevisions } : {}),
+          ...(hasExplicitCast ? { castRevisions } : {}),
           lines: [],
         };
         currentPage!.panels = currentPage!.panels ?? [];
@@ -464,14 +472,14 @@ export function docToScriptTree(
               ? `${speaker} (${parens.toUpperCase()})`
               : speaker
             : null;
-          const refs = extractRefs(node);
           panel.lines = panel.lines ?? [];
+          // BE chỉ cho phép gắn refs trên Action, Narration, Sfx (Dialogue/Thought phải null)
           panel.lines.push({
-            id: isValidGuid(refId) ? refId : null,
+            id: claimLineId(refId),
             kind: thought ? ScriptLineKind.Thought : ScriptLineKind.Dialogue,
             speakerLabel: label,
             text,
-            refs: refs.length > 0 ? refs : null,
+            refs: null,
           });
         }
         parens = null;
@@ -491,7 +499,7 @@ export function docToScriptTree(
               : ScriptLineKind.Action;
         panel.lines = panel.lines ?? [];
         panel.lines.push({
-          id: isValidGuid(refId) ? refId : null,
+          id: claimLineId(refId),
           kind,
           speakerLabel: null,
           text,

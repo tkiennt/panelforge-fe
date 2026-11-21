@@ -182,6 +182,69 @@ describe('Workspaces, Pages, and Elements Services', () => {
       );
       expect(res.pageNumber).toBe(3);
     });
+
+    it('getKeepOutZones gọi GET /api/pages/{pageId}/keep-out-zones và trả về zones + version', async () => {
+      const mockDto = {
+        pageId: DEFAULT_PAGE_ID,
+        zones: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.25, label: 'Mặt nhân vật', panelId: null }],
+        version: 3,
+        updatedAt: '2026-11-21T14:00:00Z',
+      };
+      get.mockResolvedValue({ data: mockDto });
+
+      const res = await pageService.getKeepOutZones(DEFAULT_PAGE_ID);
+
+      expect(get).toHaveBeenCalledWith(`/pages/${DEFAULT_PAGE_ID}/keep-out-zones`);
+      expect(res).toEqual(mockDto);
+    });
+
+    it('replaceKeepOutZones gọi PUT /api/pages/{pageId}/keep-out-zones với zones và expectedVersion', async () => {
+      const body = {
+        zones: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.2, label: 'Tay', panelId: null }],
+        expectedVersion: 3,
+      };
+      const updated = { pageId: DEFAULT_PAGE_ID, zones: body.zones, version: 4, updatedAt: null };
+      put.mockResolvedValue({ data: updated });
+
+      const res = await pageService.replaceKeepOutZones(DEFAULT_PAGE_ID, body);
+
+      expect(put).toHaveBeenCalledWith(`/pages/${DEFAULT_PAGE_ID}/keep-out-zones`, body);
+      expect(res.version).toBe(4);
+    });
+
+    it('replaceKeepOutZones giữ nguyên status 409/400 và message từ BE khi có lỗi', async () => {
+      put.mockRejectedValueOnce({
+        response: {
+          status: 409,
+          data: {
+            error: 'Vùng cấm chữ đã được người khác cập nhật. Tải lại rồi thử lại.',
+            code: 'CONFLICT',
+          },
+        },
+      });
+
+      await expect(
+        pageService.replaceKeepOutZones(DEFAULT_PAGE_ID, { zones: [], expectedVersion: 1 }),
+      ).rejects.toMatchObject({
+        status: 409,
+        code: 'CONFLICT',
+        message: 'Vùng cấm chữ đã được người khác cập nhật. Tải lại rồi thử lại.',
+      });
+
+      put.mockRejectedValueOnce({
+        response: {
+          status: 400,
+          data: { error: 'Tối đa 50 vùng cấm mỗi trang.' },
+        },
+      });
+
+      await expect(
+        pageService.replaceKeepOutZones(DEFAULT_PAGE_ID, { zones: [], expectedVersion: 1 }),
+      ).rejects.toMatchObject({
+        status: 400,
+        message: 'Tối đa 50 vùng cấm mỗi trang.',
+      });
+    });
   });
 
   describe('elementService', () => {

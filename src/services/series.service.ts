@@ -134,6 +134,8 @@ export interface OverdueChangeRequestDto {
 export interface BurndownPointDto {
   date: string;
   remaining: number;
+  createdToday?: number;
+  approvedToday?: number;
 }
 
 export interface SeriesProgressDto {

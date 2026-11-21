@@ -118,4 +118,27 @@ describe('LetteringPropertyPanel – kiểu chữ & xóa', () => {
     fireEvent.click(screen.getByTestId('lettering-property-delete'));
     expect(onDelete).toHaveBeenCalled();
   });
+
+  it('hiển thị cảnh báo khi bóng thoại che vùng cấm và gọi gợi ý vị trí', () => {
+    const onSuggest = vi.fn();
+    render(
+      <LetteringPropertyPanel
+        element={balloon({ scriptLineId: null })}
+        onCommitText={vi.fn()}
+        onChangeStyle={vi.fn()}
+        keepOutCollision={{
+          id: 'kz-1',
+          x: 0,
+          y: 0,
+          width: 120,
+          height: 120,
+          label: 'Mặt nhân vật',
+        }}
+        onSuggestPosition={onSuggest}
+      />,
+    );
+    expect(screen.getByTestId('keepout-callout')).toHaveTextContent('Mặt nhân vật');
+    fireEvent.click(screen.getByTestId('suggest-position-btn-collision'));
+    expect(onSuggest).toHaveBeenCalledTimes(1);
+  });
 });

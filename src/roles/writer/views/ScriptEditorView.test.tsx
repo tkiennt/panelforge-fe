@@ -1551,6 +1551,221 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     );
   });
 
+  it('TASK-10 / SCR-14: trình soạn liền mạch nạp trang/panel/working-copy sẵn có và lưu 1 request PUT /script thay cho chuỗi gọi lẻ', async () => {
+    const user = userEvent.setup();
+    const page1Id = '11111111-1111-4111-8111-111111111111';
+    const page2Id = '22222222-2222-4222-8222-222222222222';
+    const panel1Id = '33333333-3333-4333-8333-333333333333';
+    const panel2Id = '44444444-4444-4444-8444-444444444444';
+    const line1Id = '55555555-5555-4555-8555-555555555555';
+    const line2Id = '66666666-6666-4666-8666-666666666666';
+    const entryId = '77777777-7777-4777-8777-777777777777';
+    const castRevId = '88888888-8888-4888-8888-888888888888';
+
+    vi.mocked(pageService.getPagesByChapter).mockResolvedValue([
+      {
+        id: page1Id,
+        chapterId: 'chap-1',
+        pageNumber: 1,
+        layoutFormat: 'Default',
+        widthPx: 1200,
+        heightPx: 1800,
+        dpi: 300,
+        elementsCount: 0,
+      },
+      {
+        id: page2Id,
+        chapterId: 'chap-1',
+        pageNumber: 2,
+        layoutFormat: 'Default',
+        widthPx: 1200,
+        heightPx: 1800,
+        dpi: 300,
+        elementsCount: 0,
+      },
+    ]);
+    vi.mocked(panelService.getPanelsByPage).mockImplementation(async (pid) =>
+      pid === page1Id
+        ? [
+            {
+              id: panel1Id,
+              pageId: page1Id,
+              panelNumber: 1,
+              direction: 'Toàn cảnh phố đêm',
+              boundingBox: '{}',
+              readingOrder: 1,
+              createdAt: '2026-10-01',
+            },
+          ]
+        : [
+            {
+              id: panel2Id,
+              pageId: page2Id,
+              panelNumber: 1,
+              direction: 'Cận cảnh Akira',
+              boundingBox: '{}',
+              readingOrder: 1,
+              createdAt: '2026-10-01',
+            },
+          ],
+    );
+    vi.mocked(chapterService.getScriptVersions).mockResolvedValue([
+      {
+        id: 'rev-1',
+        versionNumber: 1,
+        message: 'v1',
+        authorUserId: 'u-1',
+        createdAt: '2026-10-01',
+        lineCount: 2,
+        contentHash: 'hash-1',
+      },
+    ]);
+    vi.mocked(chapterService.getScriptWorkingCopy).mockResolvedValue({
+      contentHash: 'hash-1',
+      lineCount: 2,
+      rows: [
+        { key: 'page:1', type: 'page', page: 1, panel: 0, text: '' },
+        {
+          key: 'panel:1.1',
+          type: 'panel',
+          page: 1,
+          panel: 1,
+          text: 'Toàn cảnh phố đêm',
+          castRevisions: [{ entryId, revisionId: castRevId }],
+        },
+        {
+          key: `line:${line1Id}`,
+          type: 'Action',
+          page: 1,
+          panel: 1,
+          text: 'Akira đứng trên mái nhà.',
+          refs: [{ entryId, surfaceText: 'Akira' }],
+        },
+        { key: 'page:2', type: 'page', page: 2, panel: 0, text: '' },
+        { key: 'panel:2.1', type: 'panel', page: 2, panel: 1, text: 'Cận cảnh Akira' },
+        {
+          key: `line:${line2Id}`,
+          type: 'Dialogue',
+          page: 2,
+          panel: 1,
+          label: 'AKIRA',
+          text: 'Bắt đầu thôi.',
+        },
+      ],
+    });
+    vi.mocked(chapterService.saveChapterScript).mockResolvedValueOnce({
+      revisionId: 'rev-2',
+      versionNumber: 2,
+      created: true,
+      warnings: [],
+    });
+
+    renderView();
+    await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
+
+    // Chuyển sang trình soạn liền mạch: dữ liệu 2 trang / 2 panel được nạp ngay khi mở chương
+    await user.click(await screen.findByTestId('tab-flow'));
+    const sheet = await screen.findByTestId('paper-editor-sheet');
+    await waitFor(() => {
+      expect(sheet.querySelectorAll('[data-el="page"]')).toHaveLength(2);
+      expect(sheet.querySelectorAll('[data-el="panel"]')).toHaveLength(2);
+    });
+    expect(sheet.textContent).toContain('Toàn cảnh phố đêm');
+    expect(sheet.textContent).toContain('Cận cảnh Akira');
+
+    // Tạo thay đổi rồi bấm Lưu (Ctrl+S) -> gửi đúng 1 request PUT /chapters/{id}/script
+    const toolbar = await screen.findByRole('toolbar');
+    await user.click(within(toolbar).getByRole('button', { name: 'SFX' }));
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(chapterService.saveChapterScript).toHaveBeenCalledTimes(1);
+    });
+
+    const [savedChapterId, savedBody] = vi.mocked(chapterService.saveChapterScript).mock.calls[0];
+    expect(savedChapterId).toBe('chap-1');
+    expect(savedBody.expectedRevisionId).toBe('rev-1');
+    expect(savedBody.pages).toHaveLength(2);
+    expect(savedBody.pages?.[0].panels?.[0]).toMatchObject({
+      id: panel1Id,
+      number: 1,
+      direction: 'Toàn cảnh phố đêm',
+      castRevisions: [{ entryId, revisionId: castRevId }],
+      lines: [
+        {
+          id: line1Id,
+          kind: 1,
+          speakerLabel: null,
+          text: 'Akira đứng trên mái nhà.',
+          refs: [{ bibleEntryId: entryId, surfaceText: 'Akira', newDraft: null }],
+        },
+      ],
+    });
+    expect(savedBody.pages?.[1]).toMatchObject({
+      id: page2Id,
+      number: 2,
+      panels: [
+        expect.objectContaining({
+          id: panel2Id,
+          number: 1,
+          direction: 'Cận cảnh Akira',
+          lines: [
+            {
+              id: line2Id,
+              kind: 2,
+              speakerLabel: 'AKIRA',
+              text: 'Bắt đầu thôi.',
+              refs: null,
+            },
+          ],
+        }),
+      ],
+    });
+
+    // Tuyệt đối không gọi chuỗi API lẻ cũ
+    expect(pageService.createPage).not.toHaveBeenCalled();
+    expect(panelService.createPanel).not.toHaveBeenCalled();
+    expect(panelService.assignPanelScriptLines).not.toHaveBeenCalled();
+    expect(scriptLineService.createScriptLine).not.toHaveBeenCalled();
+    expect(scriptLineService.updateScriptLine).not.toHaveBeenCalled();
+    expect(scriptLineService.deleteScriptLine).not.toHaveBeenCalled();
+
+    // Lưu lần 2 (sau khi thay đổi tiếp) phải dùng expectedRevisionId mới ('rev-2')
+    vi.mocked(chapterService.getScriptVersions).mockResolvedValue([
+      {
+        id: 'rev-2',
+        versionNumber: 2,
+        message: 'v2',
+        authorUserId: 'u-1',
+        createdAt: '2026-10-02',
+        lineCount: 2,
+        contentHash: 'hash-2',
+      },
+    ]);
+    await waitFor(() => {
+      expect(screen.queryByText(/Chưa lưu/)).not.toBeInTheDocument();
+    });
+
+    const deleteBlockedErr: any = new Error(
+      'Không thể xoá trang: đang có 1 ô trên lưới giao việc đã bắt đầu làm hoặc đã duyệt.',
+    );
+    deleteBlockedErr.status = 409;
+    deleteBlockedErr.code = 'CONFLICT';
+    vi.mocked(chapterService.saveChapterScript).mockRejectedValueOnce(deleteBlockedErr);
+
+    await user.click(within(toolbar).getByRole('button', { name: 'SFX' }));
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(chapterService.saveChapterScript).toHaveBeenCalledTimes(2);
+    });
+    expect(vi.mocked(chapterService.saveChapterScript).mock.calls[1][1].expectedRevisionId).toBe(
+      'rev-2',
+    );
+    // 409 do chặn xoá trang không bật banner xung đột phiên bản
+    expect(screen.queryByTestId('concurrency-error-banner')).not.toBeInTheDocument();
+  });
+
   it('hiển thị link "Mở Series Bible để duyệt Canon" trên Gate 1 blocker banner (F#24)', async () => {
     vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
       items: [

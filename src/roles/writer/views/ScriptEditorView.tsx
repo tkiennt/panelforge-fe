@@ -103,11 +103,10 @@ import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindi
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
 import { ScriptReviewSidePanel } from '@/shared/features/script-review/ScriptReviewSidePanel';
 import {
-  type ScriptDocSnapshot,
   type ChapterScriptBody,
   type ScriptTreePage,
   isValidGuid,
-  docToScriptTree,
+  toKind,
 } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { ScriptVersionsDrawer } from '../components/script/versions/ScriptVersionsDrawer';
@@ -401,6 +400,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [hasUnpushedChanges, setHasUnpushedChanges] = useState(false);
   const [expectedRevisionId, setExpectedRevisionId] = useState<string | null>(null);
   const expectedRevisionIdRef = useRef<string | null>(null);
+  const expectedRevChapterRef = useRef<string | null>(null);
   useEffect(() => {
     expectedRevisionIdRef.current = expectedRevisionId;
   }, [expectedRevisionId]);
@@ -409,11 +409,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   useEffect(() => {
     const id = currentChapter?.id;
+    const chapterChanged = expectedRevChapterRef.current !== (id ?? null);
+    expectedRevChapterRef.current = id ?? null;
     if (!id) {
       setExpectedRevisionId(null);
       expectedRevisionIdRef.current = null;
       setHasUnpushedChanges(false);
       return;
+    }
+    if (chapterChanged) {
+      setExpectedRevisionId(null);
+      expectedRevisionIdRef.current = null;
     }
     let cancelled = false;
     chapterService
@@ -421,8 +427,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       .then((list) => {
         if (cancelled) return;
         const latestId = list[0]?.id ?? null;
-        setExpectedRevisionId(latestId);
-        expectedRevisionIdRef.current = latestId;
+        if (latestId !== null || chapterChanged) {
+          setExpectedRevisionId(latestId);
+          expectedRevisionIdRef.current = latestId;
+        }
 
         const pushedId = currentChapter?.lastSubmittedVersionId;
         if (pushedId) {
@@ -436,8 +444,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       })
       .catch(() => {
         if (!cancelled) {
-          setExpectedRevisionId(null);
-          expectedRevisionIdRef.current = null;
+          if (chapterChanged) {
+            setExpectedRevisionId(null);
+            expectedRevisionIdRef.current = null;
+          }
           setHasUnpushedChanges(false);
         }
       });
@@ -896,43 +906,137 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     [notify],
   );
 
-  // 4. Tải danh sách Scenes khi currentChapter thay đổi
-  // V2.5: Đồng bộ kịch bản từ Screenplay Flow Editor (TipTap) lên Backend khi bấm Lưu (Explicit Commit)
-  const loadPagesAndPanels = useCallback(async (chapId: string): Promise<PanelDto[]> => {
-    try {
-      const pages = await pageService.getPagesByChapter(chapId);
-      setChapterPages(pages || []);
-      if (!pages || pages.length === 0) {
-        setChapterPanels([]);
-        return [];
-      }
-      const panelsByPages = await Promise.all(
-        pages.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
-      );
-      const allPanels: PanelDto[] = [];
-      panelsByPages.forEach((list, idx) => {
-        list.forEach((p) => {
-          (p as any).pageNumber = pages[idx].pageNumber;
-          allPanels.push(p);
+  // 4. Tải danh sách Scenes / Trang / Panel khi currentChapter thay đổi
+  const loadScenesSeqRef = useRef(0);
+
+  const fetchPagesAndPanels = useCallback(
+    async (chapId: string): Promise<{ pages: PageDto[]; panels: PanelDto[] }> => {
+      try {
+        const pages = (await pageService.getPagesByChapter(chapId)) || [];
+        if (pages.length === 0) {
+          return { pages: [], panels: [] };
+        }
+        const panelsByPages = await Promise.all(
+          pages.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
+        );
+        const allPanels: PanelDto[] = [];
+        panelsByPages.forEach((list, idx) => {
+          list.forEach((p) => {
+            (p as any).pageNumber = pages[idx].pageNumber;
+            allPanels.push(p);
+          });
         });
-      });
-      setChapterPanels(allPanels);
-      return allPanels;
-    } catch {
-      setChapterPages([]);
-      setChapterPanels([]);
-      return [];
-    }
-  }, []);
+        return { pages, panels: allPanels };
+      } catch {
+        return { pages: [], panels: [] };
+      }
+    },
+    [],
+  );
+
+  const syncScriptStateFromServer = useCallback(
+    async (
+      chapId: string,
+      options?: {
+        targetSceneId?: string | null;
+        workingCopy?: ScriptWorkingCopyDto | null;
+        forceEditorSync?: boolean;
+      },
+    ) => {
+      const [{ pages: loadedPages, panels: loadedPanels }, workingCopy, freshScenes] =
+        await Promise.all([
+          fetchPagesAndPanels(chapId),
+          options && 'workingCopy' in options
+            ? Promise.resolve(options.workingCopy ?? null)
+            : typeof chapterService.getScriptWorkingCopy === 'function'
+              ? Promise.resolve(chapterService.getScriptWorkingCopy(chapId)).catch(() => null)
+              : Promise.resolve(null),
+          scriptLineService.getScenesByChapter(chapId).catch(() => [] as SceneDto[]),
+        ]);
+
+      freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
+      setScenes(freshScenes);
+
+      const loadedScenesDetail = (
+        await Promise.all(
+          freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
+        )
+      ).filter((d): d is SceneDetailDto => d !== null);
+      loadedScenesDetail.sort((a, b) => a.sceneNumber - b.sceneNumber);
+
+      const targetId = options?.targetSceneId ?? selectedScene?.id;
+      if (workingCopy && Array.isArray(workingCopy.rows)) {
+        const applied = mergeWorkingCopyIntoState(
+          chapId,
+          workingCopy,
+          loadedPages,
+          loadedPanels,
+          loadedScenesDetail,
+          targetId,
+        );
+        setChapterPages(applied.pages);
+        setChapterPanels(applied.panels);
+        setChapterScenesDetail(applied.scenesDetail);
+        setSelectedScene(
+          (prev) =>
+            (targetId ? applied.scenesDetail.find((s) => s.id === targetId) : undefined) ??
+            applied.scenesDetail[0] ??
+            prev,
+        );
+      } else {
+        setChapterPages(loadedPages);
+        setChapterPanels(loadedPanels);
+        setChapterScenesDetail(loadedScenesDetail);
+        setSelectedScene(
+          (prev) =>
+            (targetId ? loadedScenesDetail.find((s) => s.id === targetId) : undefined) ??
+            loadedScenesDetail[0] ??
+            prev,
+        );
+      }
+
+      if (options?.forceEditorSync) {
+        flowDirtyRef.current = false;
+        setWorkingCopySyncTick((n) => n + 1);
+      }
+    },
+    [fetchPagesAndPanels, selectedScene?.id],
+  );
 
   const buildFallbackScriptTree = useCallback((): ChapterScriptBody => {
+    const knownPanelIds = new Set(chapterPanels.map((p) => p.id));
     const linesByPanel = new Map<string, any[]>();
-    for (const sc of chapterScenesDetail) {
-      for (const line of sc.scriptLines ?? []) {
-        if (line.panelId) {
+    const orphanLines: any[] = [];
+    const seenLineIds = new Set<string>();
+
+    const toTreeLine = (l: any) => {
+      const text = (l.text ?? l.dialogueText ?? l.stageDirection ?? '').trim();
+      if (!text) return null;
+      const kind = toKind(l.kind, l.dialogueText, l.speakerLabel);
+      const allowsRefs =
+        kind === ScriptLineKind.Action ||
+        kind === ScriptLineKind.Narration ||
+        kind === ScriptLineKind.Sfx;
+      const id = isValidGuid(l.id) && !seenLineIds.has(l.id) ? (seenLineIds.add(l.id), l.id) : null;
+      return {
+        id,
+        kind,
+        speakerLabel: kind === ScriptLineKind.Action ? null : (l.speakerLabel ?? null),
+        text,
+        refs: allowsRefs ? ((l as any).refs ?? null) : null,
+      };
+    };
+
+    const sortedScenes = [...chapterScenesDetail].sort((a, b) => a.sceneNumber - b.sceneNumber);
+    for (const sc of sortedScenes) {
+      const sortedLines = [...(sc.scriptLines ?? [])].sort((a, b) => a.lineOrder - b.lineOrder);
+      for (const line of sortedLines) {
+        if (line.panelId && knownPanelIds.has(line.panelId)) {
           const list = linesByPanel.get(line.panelId) ?? [];
           list.push(line);
           linesByPanel.set(line.panelId, list);
+        } else {
+          orphanLines.push(line);
         }
       }
     }
@@ -945,29 +1049,27 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           .filter((panel) => panel.pageId === p.id)
           .sort((a, b) => a.panelNumber - b.panelNumber)
           .map((panel) => {
-            const pLines = (linesByPanel.get(panel.id) ?? []).map((l) => ({
-              id: isValidGuid(l.id) ? l.id : null,
-              kind: l.kind ?? ScriptLineKind.Action,
-              speakerLabel: l.speakerLabel ?? null,
-              text: l.text ?? l.dialogueText ?? l.stageDirection ?? '',
-              refs: (l as any).refs ?? null,
-            }));
+            const pLines = (linesByPanel.get(panel.id) ?? [])
+              .map(toTreeLine)
+              .filter((x): x is NonNullable<typeof x> => x !== null);
             const rawCast = (panel as any).castRevisions as
-              Array<{ entryId?: string; bibleEntryId?: string; revisionId: string }> | undefined;
-            const castRevisions =
-              rawCast && rawCast.length > 0
-                ? rawCast
-                    .map((c) => ({
-                      entryId: c.entryId || c.bibleEntryId || '',
-                      revisionId: c.revisionId,
-                    }))
-                    .filter((c) => !!c.entryId && !!c.revisionId)
-                : null;
+              | Array<{ entryId?: string; bibleEntryId?: string; revisionId: string }>
+              | null
+              | undefined;
+            const hasExplicitCast = Array.isArray(rawCast);
+            const castRevisions = hasExplicitCast
+              ? rawCast
+                  .map((c) => ({
+                    entryId: c.entryId || c.bibleEntryId || '',
+                    revisionId: c.revisionId,
+                  }))
+                  .filter((c) => isValidGuid(c.entryId) && isValidGuid(c.revisionId))
+              : undefined;
             return {
               id: isValidGuid(panel.id) ? panel.id : null,
               number: panel.panelNumber,
               direction: panel.direction ?? null,
-              ...(castRevisions && castRevisions.length > 0 ? { castRevisions } : {}),
+              ...(hasExplicitCast ? { castRevisions } : {}),
               lines: pLines,
             };
           });
@@ -977,6 +1079,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           panels,
         };
       });
+
+    const mappedOrphans = orphanLines
+      .map(toTreeLine)
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+    if (mappedOrphans.length > 0) {
+      if (pages.length === 0) {
+        pages.push({ id: null, number: 1, panels: [] });
+      }
+      const lastPage = pages[pages.length - 1];
+      lastPage.panels = lastPage.panels ?? [];
+      if (lastPage.panels.length === 0) {
+        lastPage.panels.push({ id: null, number: 1, direction: null, lines: [] });
+      }
+      const lastPanel = lastPage.panels[lastPage.panels.length - 1];
+      lastPanel.lines = [...(lastPanel.lines ?? []), ...mappedOrphans];
+    }
 
     return {
       expectedRevisionId: expectedRevisionIdRef.current,
@@ -988,18 +1106,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
    * SCR-14: Lưu toàn bộ kịch bản của chương trong một request duy nhất (PUT /api/chapters/{id}/script).
    */
   const handleSaveScript = useCallback(
-    async (snapshotOrBody: ScriptDocSnapshot | ChapterScriptBody) => {
-      if (!currentChapter) return;
+    async (rawBody?: ChapterScriptBody) => {
+      if (!currentChapter) return false;
       const chapterId = currentChapter.id;
 
-      const body: ChapterScriptBody =
-        'pages' in snapshotOrBody && !('lines' in snapshotOrBody)
-          ? (snapshotOrBody as ChapterScriptBody)
-          : ((snapshotOrBody as ScriptDocSnapshot).tree ??
-            (editorGetPayloadRef.current
-              ? editorGetPayloadRef.current()
-              : buildFallbackScriptTree()));
-      body.expectedRevisionId = expectedRevisionIdRef.current;
+      const sourceBody: ChapterScriptBody =
+        rawBody ??
+        (editorGetPayloadRef.current ? editorGetPayloadRef.current() : buildFallbackScriptTree());
+      const body: ChapterScriptBody = {
+        ...sourceBody,
+        expectedRevisionId: expectedRevisionIdRef.current,
+      };
 
       try {
         const res = await chapterService.saveChapterScript(chapterId, body);
@@ -1015,22 +1132,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
         setVersionsTick((n) => n + 1);
 
-        // Nạp lại dữ liệu sau khi lưu
-        await loadPagesAndPanels(chapterId);
+        // Nạp lại dữ liệu (kèm working copy để giữ refs/castRevisions và đồng bộ GUID mới từ máy chủ)
         try {
-          const freshScenes = await scriptLineService.getScenesByChapter(chapterId);
-          freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
-          setScenes(freshScenes);
-          const details = (
-            await Promise.all(
-              freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-            )
-          ).filter((d): d is SceneDetailDto => d !== null);
-          details.sort((a, b) => a.sceneNumber - b.sceneNumber);
-          setChapterScenesDetail(details);
-          if (selectedScene) {
-            setSelectedScene(details.find((d) => d.id === selectedScene.id) ?? details[0] ?? null);
-          }
+          await syncScriptStateFromServer(chapterId, {
+            targetSceneId: selectedScene?.id,
+            forceEditorSync: true,
+          });
           if (seriesId) {
             const freshBible = await bibleService.getSeriesBible(seriesId);
             setAllBibleEntries(freshBible.entries);
@@ -1067,14 +1174,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           return false;
         }
         notify(t('scriptStudio.gn.saveFailed', 'Chưa lưu được kịch bản'), err?.message ?? '');
-        throw err;
+        return false;
       }
     },
     [
       currentChapter,
       buildFallbackScriptTree,
-      loadPagesAndPanels,
-      selectedScene,
+      syncScriptStateFromServer,
+      selectedScene?.id,
       seriesId,
       loadChapterCast,
       notify,
@@ -1212,27 +1319,85 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
 
   const loadScenes = useCallback(async () => {
-    if (!currentChapter?.id) {
+    const seq = ++loadScenesSeqRef.current;
+    const chapId = currentChapter?.id;
+    if (!chapId) {
       setScenes([]);
       setSelectedScene(null);
       setChapterScenesDetail([]);
+      setChapterPages([]);
+      setChapterPanels([]);
       return;
     }
     setLoadingScenes(true);
     try {
-      const list = await scriptLineService.getScenesByChapter(currentChapter.id);
+      const [list, { pages: loadedPages, panels: loadedPanels }, workingCopy] = await Promise.all([
+        scriptLineService.getScenesByChapter(chapId),
+        fetchPagesAndPanels(chapId),
+        typeof chapterService.getScriptWorkingCopy === 'function'
+          ? Promise.resolve(chapterService.getScriptWorkingCopy(chapId)).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+      if (seq !== loadScenesSeqRef.current) return;
+
       list.sort((a, b) => a.sceneNumber - b.sceneNumber);
       setScenes(list);
 
+      let validDetails: SceneDetailDto[] = [];
       if (list.length > 0) {
         // Tải chi tiết tất cả các phân cảnh để dựng không gian kịch bản liền mạch
         const allDetails = await Promise.all(
           list.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
         );
-        const validDetails = allDetails.filter((d): d is SceneDetailDto => d !== null);
+        if (seq !== loadScenesSeqRef.current) return;
+        validDetails = allDetails.filter((d): d is SceneDetailDto => d !== null);
         validDetails.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setChapterScenesDetail(validDetails);
+      } else if (canEditScript && !isChapterLocked && !userDeletedSceneRef.current) {
+        // Tự động khởi tạo phân cảnh đầu tiên để Writer vào thẳng trình soạn thảo
+        try {
+          const defaultScene = await scriptLineService.createScene(chapId, {
+            sceneNumber: 1,
+            heading: 'CẢNH 1: MỞ ĐẦU',
+            summary: null,
+            defaultNarrationMode: 'Present',
+          });
+          if (seq !== loadScenesSeqRef.current) return;
+          if (defaultScene?.id) {
+            setScenes([defaultScene]);
+            const detail = await scriptLineService.getSceneById(defaultScene.id).catch(() => null);
+            if (seq !== loadScenesSeqRef.current) return;
+            validDetails = detail ? [detail] : [defaultScene as any];
+          }
+        } catch (createErr) {
+          console.error('Không thể tự động tạo cảnh đầu:', createErr);
+        }
+      }
 
+      if (workingCopy && Array.isArray(workingCopy.rows)) {
+        const applied = mergeWorkingCopyIntoState(
+          chapId,
+          workingCopy,
+          loadedPages,
+          loadedPanels,
+          validDetails,
+          sceneIdFromUrl ?? validDetails[0]?.id,
+        );
+        setChapterPages(applied.pages);
+        setChapterPanels(applied.panels);
+        setChapterScenesDetail(applied.scenesDetail);
+        setSelectedScene((prev) => {
+          if (prev && applied.scenesDetail.some((s) => s.id === prev.id)) {
+            return applied.scenesDetail.find((s) => s.id === prev.id) || prev;
+          }
+          const matched = sceneIdFromUrl
+            ? applied.scenesDetail.find((s) => s.id === sceneIdFromUrl)
+            : null;
+          return matched || applied.scenesDetail[0] || null;
+        });
+      } else {
+        setChapterPages(loadedPages);
+        setChapterPanels(loadedPanels);
+        setChapterScenesDetail(validDetails);
         setSelectedScene((prev) => {
           if (prev && validDetails.some((s) => s.id === prev.id)) {
             return validDetails.find((s) => s.id === prev.id) || prev;
@@ -1240,37 +1405,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           const matched = sceneIdFromUrl ? validDetails.find((s) => s.id === sceneIdFromUrl) : null;
           return matched || validDetails[0] || null;
         });
-      } else if (canEditScript && !isChapterLocked && !userDeletedSceneRef.current) {
-        // Tự động khởi tạo phân cảnh đầu tiên để Writer vào thẳng trình soạn thảo
-        try {
-          const defaultScene = await scriptLineService.createScene(currentChapter.id, {
-            sceneNumber: 1,
-            heading: 'CẢNH 1: MỞ ĐẦU',
-            summary: null,
-            defaultNarrationMode: 'Present',
-          });
-          if (defaultScene?.id) {
-            setScenes([defaultScene]);
-            const detail = await scriptLineService.getSceneById(defaultScene.id).catch(() => null);
-            setChapterScenesDetail(detail ? [detail] : [defaultScene as any]);
-            setSelectedScene(detail || (defaultScene as any));
-          }
-        } catch (createErr) {
-          console.error('Không thể tự động tạo cảnh đầu:', createErr);
-          setSelectedScene(null);
-          setChapterScenesDetail([]);
-        }
-      } else {
-        setSelectedScene(null);
-        setChapterScenesDetail([]);
       }
     } catch (err: any) {
+      if (seq !== loadScenesSeqRef.current) return;
       console.error('Lỗi tải danh sách phân cảnh:', err);
       notify('Lỗi tải kịch bản', err.message || 'Không thể tải danh sách phân cảnh');
     } finally {
-      setLoadingScenes(false);
+      if (seq === loadScenesSeqRef.current) setLoadingScenes(false);
     }
-  }, [currentChapter?.id, sceneIdFromUrl, notify, canEditScript, isChapterLocked]);
+  }, [
+    currentChapter?.id,
+    sceneIdFromUrl,
+    notify,
+    canEditScript,
+    isChapterLocked,
+    fetchPagesAndPanels,
+  ]);
 
   useEffect(() => {
     loadScenes();
@@ -2062,26 +2212,20 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       await applyChapterUpdate(res.chapter);
       setVersionsTick((v) => v + 1);
 
-      await loadPagesAndPanels(currentChapter.id);
       try {
-        const freshScenes = await scriptLineService.getScenesByChapter(currentChapter.id);
-        freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setScenes(freshScenes);
-        const details = (
-          await Promise.all(
-            freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-          )
-        ).filter((d): d is SceneDetailDto => d !== null);
-        details.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setChapterScenesDetail(details);
-        if (selectedScene) {
-          setSelectedScene(details.find((d) => d.id === selectedScene.id) ?? details[0] ?? null);
-        }
+        await syncScriptStateFromServer(currentChapter.id, {
+          targetSceneId: selectedScene?.id,
+          forceEditorSync: true,
+        });
         void loadChapterCast(currentChapter.id);
       } catch (refreshErr) {
         console.error('Lỗi làm mới kịch bản sau khi submit:', refreshErr);
       }
     } catch (err: any) {
+      if (err?.message?.startsWith('Không thể xoá')) {
+        notify(t('scriptStudio.save.deleteBlocked', 'Không xoá được trang'), err.message);
+        return;
+      }
       if (
         err?.status === 409 ||
         err?.code === 'CONFLICT' ||
@@ -2188,78 +2332,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
         setConcurrencyError(null);
 
-        let loadedPages: PageDto[] = [];
-        let loadedPanels: PanelDto[] = [];
-        try {
-          const pList = (await pageService.getPagesByChapter(chapId)) || [];
-          loadedPages = pList;
-          if (pList.length > 0) {
-            const panelsByPages = await Promise.all(
-              pList.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
-            );
-            panelsByPages.forEach((list, idx) => {
-              list.forEach((p) => {
-                (p as any).pageNumber = pList[idx].pageNumber;
-                loadedPanels.push(p);
-              });
-            });
-          }
-        } catch {
-          loadedPages = [];
-          loadedPanels = [];
-        }
-
-        let loadedScenesDetail: SceneDetailDto[] = [];
-        try {
-          const freshScenes = await scriptLineService.getScenesByChapter(chapId);
-          freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
-          setScenes(freshScenes);
-          loadedScenesDetail = (
-            await Promise.all(
-              freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-            )
-          ).filter((d): d is SceneDetailDto => d !== null);
-          loadedScenesDetail.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        } catch {
-          loadedScenesDetail = [];
-        }
-
-        if (workingCopy && Array.isArray(workingCopy.rows)) {
-          const applied = mergeWorkingCopyIntoState(
-            chapId,
-            workingCopy,
-            loadedPages,
-            loadedPanels,
-            loadedScenesDetail,
-            options?.targetSceneId ?? selectedScene?.id,
-          );
-          setChapterPages(applied.pages);
-          setChapterPanels(applied.panels);
-          setChapterScenesDetail(applied.scenesDetail);
-          setSelectedScene((prev) => {
-            const targetId = options?.targetSceneId ?? prev?.id;
-            return (
-              (targetId ? applied.scenesDetail.find((s) => s.id === targetId) : undefined) ??
-              applied.scenesDetail[0] ??
-              prev
-            );
-          });
-        } else {
-          setChapterPages(loadedPages);
-          setChapterPanels(loadedPanels);
-          setChapterScenesDetail(loadedScenesDetail);
-          setSelectedScene((prev) => {
-            const targetId = options?.targetSceneId ?? prev?.id;
-            return (
-              (targetId ? loadedScenesDetail.find((s) => s.id === targetId) : undefined) ??
-              loadedScenesDetail[0] ??
-              prev
-            );
-          });
-        }
-
-        flowDirtyRef.current = false;
-        setWorkingCopySyncTick((n) => n + 1);
+        await syncScriptStateFromServer(chapId, {
+          targetSceneId: options?.targetSceneId ?? selectedScene?.id,
+          workingCopy,
+          forceEditorSync: true,
+        });
         void loadChapterCast(chapId);
       })().finally(() => {
         if (reloadInFlightRef.current?.chapterId === chapId) {
@@ -2274,6 +2351,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       currentChapter?.lastSubmittedVersionId,
       refreshChapterDetail,
       selectedScene?.id,
+      syncScriptStateFromServer,
       loadChapterCast,
     ],
   );

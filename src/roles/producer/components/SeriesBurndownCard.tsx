@@ -215,6 +215,9 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
 
   const latestPoint = sortedRawList.length > 0 ? sortedRawList[sortedRawList.length - 1] : null;
   const isLatestToday = latestPoint ? checkIsToday(latestPoint.date) : false;
+  const hasDailyBreakdown = filteredList.some(
+    (p) => p.createdToday !== undefined || p.approvedToday !== undefined,
+  );
 
   return (
     <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4 font-sans text-zinc-700'>
@@ -451,6 +454,18 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
                       <span className='text-stone-400'>Còn lại:</span>
                       <span className='font-bold text-orange-300'>{pt.remaining} việc</span>
                     </div>
+                    {pt.createdToday !== undefined && (
+                      <div className='flex items-center justify-between gap-3 text-[11px]'>
+                        <span className='text-stone-400'>Tạo mới trong ngày:</span>
+                        <span className='font-medium text-amber-300'>+{pt.createdToday}</span>
+                      </div>
+                    )}
+                    {pt.approvedToday !== undefined && (
+                      <div className='flex items-center justify-between gap-3 text-[11px]'>
+                        <span className='text-stone-400'>Đã duyệt trong ngày:</span>
+                        <span className='font-medium text-emerald-300'>-{pt.approvedToday}</span>
+                      </div>
+                    )}
                     {diff !== null && (
                       <div className='flex items-center justify-between gap-3 text-[11px] text-stone-300'>
                         <span className='text-stone-400'>So mốc trước:</span>
@@ -506,6 +521,12 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
                 <tr>
                   <th className='py-1.5 px-3 font-semibold'>Ngày (UTC)</th>
                   <th className='py-1.5 px-3 font-semibold text-right'>Việc còn lại</th>
+                  {hasDailyBreakdown && (
+                    <>
+                      <th className='py-1.5 px-3 font-semibold text-right'>Tạo mới</th>
+                      <th className='py-1.5 px-3 font-semibold text-right'>Đã duyệt</th>
+                    </>
+                  )}
                   <th className='py-1.5 px-3 font-semibold text-right'>Trạng thái</th>
                 </tr>
               </thead>
@@ -518,6 +539,16 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
                     <td className='py-1.5 px-3 font-bold text-stone-900 text-right'>
                       {pt.remaining} việc
                     </td>
+                    {hasDailyBreakdown && (
+                      <>
+                        <td className='py-1.5 px-3 text-right text-amber-700'>
+                          {pt.createdToday !== undefined ? `+${pt.createdToday}` : '—'}
+                        </td>
+                        <td className='py-1.5 px-3 text-right text-emerald-700'>
+                          {pt.approvedToday !== undefined ? `-${pt.approvedToday}` : '—'}
+                        </td>
+                      </>
+                    )}
                     <td className='py-1.5 px-3 text-right'>
                       {idx === 0 ? (
                         <span className='text-stone-400 text-[11px]'>Đầu kỳ</span>

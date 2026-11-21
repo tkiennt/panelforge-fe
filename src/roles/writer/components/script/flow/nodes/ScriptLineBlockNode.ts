@@ -186,8 +186,11 @@ export function setLineElement(editor: Editor, el: GnElement): boolean {
   if (!line) return false;
   if (line.el === el) return true;
   if (el === 'page' && !line.isEmpty) return insertLineAfter(editor, 'page');
-  // Dòng panel giữ Id panel; đổi sang loại khác thì bỏ liên kết, và ngược lại.
-  const keepRef = (line.el === 'panel') === (el === 'panel');
+  // Dòng page/panel giữ Id riêng; đổi sang loại khác (hoặc ngược lại) thì bỏ refId để không lẫn Page/Panel/ScriptLine Id.
+  const keepRef =
+    line.el === 'page' || el === 'page'
+      ? line.el === el
+      : (line.el === 'panel') === (el === 'panel');
   view.dispatch(
     state.tr.setNodeMarkup(line.pos, undefined, {
       ...line.node.attrs,

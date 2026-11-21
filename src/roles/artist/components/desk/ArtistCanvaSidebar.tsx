@@ -51,6 +51,7 @@ export type CanvaSidebarTab =
 
 export interface ScriptLineItem {
   id: string;
+  pageId?: string;
   panelNumber?: number;
   pageNumber?: number;
   sceneId?: string;

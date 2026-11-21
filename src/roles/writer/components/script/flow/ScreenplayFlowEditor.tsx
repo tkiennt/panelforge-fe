@@ -30,13 +30,7 @@ import {
   getElementMenu,
   setLineElement,
 } from './nodes/ScriptLineBlockNode';
-import {
-  ScriptDocSnapshot,
-  docToScript,
-  scriptToDoc,
-  docToScriptTree,
-  ChapterScriptBody,
-} from './scriptFlowAdapter';
+import { scriptToDoc, docToScriptTree, ChapterScriptBody } from './scriptFlowAdapter';
 import { BibleRefFloatingMenu } from './BibleRefFloatingMenu';
 import { mapCategoryToTab } from '@/shared/features/series-bible/bibleCategory';
 
@@ -47,7 +41,7 @@ export interface ScreenplayFlowEditorProps {
   panels: PanelDto[];
   canEditScript: boolean;
   isChapterLocked: boolean;
-  onSave: (snapshot: ScriptDocSnapshot) => Promise<boolean | void>;
+  onSave: (body: ChapterScriptBody) => Promise<boolean | void>;
   onShowToast?: (title: string, description?: string) => void;
   /** Tăng giá trị để buộc đồng bộ nội dung mới từ máy chủ (sau khôi phục / duyệt AI / tải lại thủ công). */
   syncRevision?: number;
@@ -445,7 +439,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       if (targetPos !== null && targetNode) {
         const tr = editor.state.tr.setNodeMarkup(targetPos, undefined, {
           ...targetNode.attrs,
-          castRevisions: castRevisions && castRevisions.length > 0 ? castRevisions : null,
+          // [] gửi lên BE để gỡ hết phiên bản Bible của panel (null = giữ nguyên)
+          castRevisions: castRevisions && castRevisions.length > 0 ? castRevisions : [],
         });
         editor.view.dispatch(tr);
         markDirty(true);
@@ -495,8 +490,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     savingRef.current = true;
     setIsSaving(true);
     try {
-      const snapshot = docToScript(editor.state.doc, scenes[0]?.id ?? '');
-      const saved = await onSave(snapshot);
+      const body = docToScriptTree(editor.state.doc);
+      const saved = await onSave(body);
       if (saved === false) {
         markDirty(true);
         return false;
@@ -512,7 +507,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       savingRef.current = false;
       setIsSaving(false);
     }
-  }, [editor, isReadOnly, isSaving, scenes, onSave, onShowToast, t, markDirty]);
+  }, [editor, isReadOnly, isSaving, onSave, onShowToast, t, markDirty]);
 
   useEffect(() => {
     if (!registerSave) return;
@@ -526,8 +521,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     return () => registerGetPayload(null);
   }, [registerGetPayload, editor]);
 
-  // Ctrl+S / Cmd+S
+  // Ctrl+S / Cmd+S (chỉ gắn khi chạy độc lập; khi có registerSave thì màn cha gọi qua ref để tránh bắn đúp)
   useEffect(() => {
+    if (registerSave) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
@@ -536,7 +532,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [handleSave]);
+  }, [handleSave, registerSave]);
 
   // Cảnh báo khi rời trang còn chữ chưa lưu
   useEffect(() => {
