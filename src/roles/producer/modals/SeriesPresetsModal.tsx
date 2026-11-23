@@ -335,10 +335,10 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
             </div>
             <div>
               <div className='flex items-center gap-2'>
-                <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[9px] font-bold'>
+                <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-xs font-bold'>
                   NFR-08 // PRESETS &amp; RULES
                 </span>
-                <span className='text-[10px] text-[#888888] font-mono'>
+                <span className='text-xs text-[#888888] font-mono'>
                   Lettering &amp; Consistency
                 </span>
               </div>
@@ -536,7 +536,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
 
                   {/* Live Preview Box */}
                   <div className='p-3 bg-white border border-[#E7E7E7] rounded-lg space-y-1 text-center'>
-                    <span className='text-[10px] text-[#888888] font-mono'>Xem trước mẫu chữ:</span>
+                    <span className='text-xs text-[#888888] font-mono'>Xem trước mẫu chữ:</span>
                     <div
                       style={{
                         fontFamily,
@@ -596,12 +596,12 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                         <div className='flex items-center gap-2'>
                           <span className='font-bold text-[#171717]'>{p.name}</span>
                           {p.isDefault && (
-                            <span className='px-1.5 py-0.5 rounded text-[9px] font-mono bg-emerald-50 text-emerald-700 border border-emerald-200'>
+                            <span className='px-1.5 py-0.5 rounded text-xs font-mono bg-emerald-50 text-emerald-700 border border-emerald-200'>
                               DEFAULT
                             </span>
                           )}
                         </div>
-                        <span className='text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-[#E7E7E7] text-[#555555]'>
+                        <span className='text-xs font-mono bg-white px-2 py-0.5 rounded border border-[#E7E7E7] text-[#555555]'>
                           {p.usageType}
                         </span>
                       </div>
@@ -618,7 +618,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                         Sample Manga Dialogue Text
                       </div>
 
-                      <div className='flex items-center justify-between pt-1 text-[10px] font-mono text-[#737373]'>
+                      <div className='flex items-center justify-between pt-1 text-xs font-mono text-[#737373]'>
                         <span>
                           {p.fontFamily} • {p.fontSize}px • w{p.fontWeight}
                         </span>
@@ -806,7 +806,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                         <div className='flex items-center gap-2'>
                           <span className='font-bold text-[#171717]'>{r.name}</span>
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${
+                            className={`px-1.5 py-0.5 rounded text-xs font-mono font-bold ${
                               r.severity === 'Error'
                                 ? 'bg-red-50 text-red-700 border border-red-200'
                                 : r.severity === 'Warning'
@@ -816,11 +816,11 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                           >
                             {r.severity}
                           </span>
-                          <span className='text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-[#E7E7E7] text-[#555555]'>
+                          <span className='text-xs font-mono bg-white px-2 py-0.5 rounded border border-[#E7E7E7] text-[#555555]'>
                             {r.ruleType}
                           </span>
                         </div>
-                        <p className='text-[11px] text-[#555555] leading-relaxed'>
+                        <p className='text-xs text-[#555555] leading-relaxed'>
                           {r.description || 'Không có mô tả chi tiết.'}
                         </p>
                       </div>

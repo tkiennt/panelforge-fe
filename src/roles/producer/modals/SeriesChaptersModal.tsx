@@ -513,7 +513,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const renderReleaseStatus = (dateStr?: string | null) => {
     if (!dateStr) {
       return (
-        <span className='px-2 py-0.5 rounded text-[10px] font-mono bg-neutral-100 text-neutral-500 border border-neutral-200'>
+        <span className='px-2 py-0.5 rounded text-xs font-mono bg-neutral-100 text-neutral-500 border border-neutral-200'>
           {t('seriesChaptersModal.noSchedule', 'Chưa đặt lịch')}
         </span>
       );
@@ -524,7 +524,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     const target = new Date(dateStr);
     if (isNaN(target.getTime())) {
       return (
-        <span className='px-2 py-0.5 rounded text-[10px] font-mono bg-neutral-100 text-neutral-500 border border-neutral-200'>
+        <span className='px-2 py-0.5 rounded text-xs font-mono bg-neutral-100 text-neutral-500 border border-neutral-200'>
           {dateStr}
         </span>
       );
@@ -535,7 +535,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
     if (diffDays < 0) {
       return (
-        <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1'>
+        <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1'>
           <CheckCircle2 className='w-3 h-3 text-emerald-600' />
           <span>
             {t('seriesChaptersModal.duePassed', {
@@ -547,7 +547,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       );
     } else if (diffDays === 0) {
       return (
-        <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1'>
+        <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1'>
           <Clock className='w-3 h-3 text-amber-600' />
           <span>
             {t('seriesChaptersModal.dueToday', {
@@ -559,7 +559,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       );
     } else {
       return (
-        <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1'>
+        <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1'>
           <Calendar className='w-3 h-3 text-blue-600' />
           <span>
             {t('seriesChaptersModal.dueInDays', {
@@ -578,7 +578,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     switch (status) {
       case 'PreProduction':
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-stone-50 text-stone-700 border border-stone-200 flex items-center gap-1'>
+          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-stone-50 text-stone-700 border border-stone-200 flex items-center gap-1'>
             <Clock className='w-3 h-3 text-stone-500' />
             <span>{t('seriesChaptersModal.preProduction', 'Tiền kỳ (viết kịch bản)')}</span>
           </span>
@@ -589,14 +589,14 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         const isScheduled = Boolean(isValidDate && pubDate! > new Date());
         return (
           <span
-            className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border flex items-center gap-1 ${
+            className={`px-2 py-0.5 rounded text-xs font-mono font-semibold border flex items-center gap-1 ${
               isScheduled
-                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                ? 'bg-amber-50 text-amber-800 border-amber-300'
                 : 'bg-emerald-50 text-emerald-700 border-emerald-200'
             }`}
           >
             {isScheduled ? (
-              <Calendar className='w-3 h-3 text-purple-600' />
+              <Calendar className='w-3 h-3 text-amber-600' />
             ) : (
               <Sparkles className='w-3 h-3 text-emerald-600' />
             )}
@@ -616,7 +616,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       }
       case 'ChapterApproved':
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1'>
+          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1'>
             <CheckCircle2 className='w-3 h-3 text-amber-600' />
             <span>{t('seriesChaptersModal.approved', 'Đã nghiệm thu (Gate 3)')}</span>
           </span>
@@ -624,7 +624,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       case 'InProduction':
       default:
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1'>
+          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1'>
             <Clock className='w-3 h-3 text-blue-600' />
             <span>{t('seriesChaptersModal.inProduction', 'Đang sản xuất')}</span>
           </span>
@@ -740,7 +740,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     <label className='block font-semibold text-[#171717]'>
                       {t('seriesChaptersModal.outlineLabel', 'Đề Cương / Tóm Tắt Chương (Outline)')}
                     </label>
-                    <span className='text-[10px] text-[#F97316] font-mono font-medium'>
+                    <span className='text-xs text-[#F97316] font-mono font-medium'>
                       {t('seriesChaptersModal.aiWriterBadge', 'Đầu vào AI Writer Agent')}
                     </span>
                   </div>
@@ -754,7 +754,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     )}
                     className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
                   />
-                  <p className='text-[10px] text-[#737373] mt-1'>
+                  <p className='text-xs text-[#737373] mt-1'>
                     {t(
                       'seriesChaptersModal.outlineHint',
                       'Đề cương sẽ được chụp vào snapshot và cung cấp trực tiếp cho AI Writer khi viết kịch bản phân cảnh.',
@@ -845,7 +845,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     <label className='block font-semibold text-[#171717]'>
                       {t('seriesChaptersModal.outlineLabel', 'Đề Cương / Tóm Tắt Chương (Outline)')}
                     </label>
-                    <span className='text-[10px] text-[#F97316] font-mono font-medium'>
+                    <span className='text-xs text-[#F97316] font-mono font-medium'>
                       {t('seriesChaptersModal.aiWriterBadge', 'Đầu vào AI Writer Agent')}
                     </span>
                   </div>
@@ -859,7 +859,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     )}
                     className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
                   />
-                  <p className='text-[10px] text-[#737373] mt-1'>
+                  <p className='text-xs text-[#737373] mt-1'>
                     {t(
                       'seriesChaptersModal.outlineHint',
                       'Đề cương sẽ được chụp vào snapshot và cung cấp trực tiếp cho AI Writer khi viết kịch bản phân cảnh.',
@@ -916,7 +916,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                           setAssigningInitialTab('task-grid');
                           setAssigningChapter(blockedGateReport.chapter);
                         }}
-                        className='px-2.5 py-1 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-[11px] cursor-pointer'
+                        className='px-2.5 py-1 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs cursor-pointer'
                       >
                         Mở Lưới V3
                       </button>
@@ -938,7 +938,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                       className='flex items-start gap-2'
                     >
                       <span
-                        className={`px-1.5 py-0.5 rounded font-mono text-[10px] font-bold shrink-0 border ${
+                        className={`px-1.5 py-0.5 rounded font-mono text-xs font-bold shrink-0 border ${
                           item.blocking
                             ? 'bg-rose-100 text-rose-800 border-rose-300'
                             : 'bg-amber-50 text-amber-800 border-amber-300'
@@ -956,7 +956,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
             {/* Chapters Table */}
             <div className='border border-[#E7E7E7] rounded-xl overflow-x-auto'>
               <table className='w-full min-w-[880px] text-left border-collapse'>
-                <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-[10px] text-[#737373] uppercase'>
+                <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-xs text-[#737373] uppercase'>
                   <tr>
                     <th className='py-2.5 px-3'>{t('seriesChaptersModal.thNumber', 'Chương #')}</th>
                     <th className='py-2.5 px-3'>{t('seriesChaptersModal.thTitle', 'Tiêu Đề')}</th>
@@ -991,7 +991,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                         <div className='font-bold text-[#171717]'>
                           {t('seriesChaptersModal.emptyTitle', 'Chưa có chương nào')}
                         </div>
-                        <div className='text-[11px] text-[#737373]'>
+                        <div className='text-xs text-[#737373]'>
                           {t(
                             'seriesChaptersModal.emptySubtitle',
                             'Bấm "Tạo Chương Mới" để thiết lập lịch phát hành.',
@@ -1060,7 +1060,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                 <button
                                   type='button'
                                   onClick={() => handleDeleteCover(chap)}
-                                  className='block mt-1 text-[10px] text-stone-400 hover:text-red-500 transition-colors'
+                                  className='block mt-1 text-xs text-stone-400 hover:text-red-500 transition-colors'
                                   title={t(
                                     'seriesChaptersModal.deleteCoverTooltip',
                                     'Xoá ảnh bìa chương',
@@ -1085,18 +1085,18 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                           </div>
                           {chap.outline && (
                             <div className='mt-1 flex items-start gap-1'>
-                              <span className='px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-mono shrink-0'>
+                              <span className='px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 text-xs font-mono shrink-0'>
                                 Outline
                               </span>
                               <span
-                                className='text-[10px] text-zinc-500 line-clamp-1'
+                                className='text-xs text-stone-500 line-clamp-1'
                                 title={chap.outline}
                               >
                                 {chap.outline}
                               </span>
                             </div>
                           )}
-                          <div className='text-[10px] text-[#888888] font-mono mt-0.5'>
+                          <div className='text-xs text-[#888888] font-mono mt-0.5'>
                             {t('seriesChaptersModal.createdDate', {
                               date:
                                 chap.createdAt && !isNaN(new Date(chap.createdAt).getTime())
@@ -1116,7 +1116,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                             {renderChapterStatus(chap.status, chap.publishedAt)}
                             {chap.isScriptFrozen && (
                               <span
-                                className='px-1.5 py-0.5 rounded text-[9px] font-mono font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-1'
+                                className='px-1.5 py-0.5 rounded text-xs font-mono font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-1'
                                 title={
                                   chap.scriptContentHash
                                     ? t('seriesChaptersModal.frozenTooltipWithHash', {
@@ -1148,7 +1148,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                           {renderReleaseStatus(chap.targetReleaseDate)}
                         </td>
 
-                        <td className='py-3 px-3 font-mono text-[11px] text-[#555555]'>
+                        <td className='py-3 px-3 font-mono text-xs text-[#555555]'>
                           {t('seriesChaptersModal.scenesAndPages', {
                             scenes: chap.scenesCount || 0,
                             pages: chap.pagesCount || 0,
@@ -1164,7 +1164,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                 setAssigningInitialTab('assignments');
                                 setAssigningChapter(chap);
                               }}
-                              className='px-2.5 py-1 rounded-lg bg-[#FFF7ED] hover:bg-[#FFEDD5] border border-[#FDBA74] text-[#EA580C] hover:text-[#C2410C] transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs'
+                              className='px-2.5 py-1 rounded-lg bg-[#FFF7ED] hover:bg-[#FFEDD5] border border-[#FDBA74] text-[#EA580C] hover:text-[#C2410C] transition-all cursor-pointer flex items-center gap-1 font-semibold text-xs shadow-2xs'
                               title={t(
                                 'seriesChaptersModal.assignTooltip',
                                 'Giao việc & Xem tiến độ phân công',
@@ -1250,7 +1250,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                   type='button'
                                   onClick={() => handleReopenChapter(chap)}
                                   disabled={actionLoading}
-                                  className='px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs disabled:opacity-50'
+                                  className='px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-xs shadow-2xs disabled:opacity-50'
                                   title={t(
                                     'seriesChaptersModal.reopenTooltip',
                                     'Mở lại sản xuất (chuyển về InProduction)',
@@ -1268,7 +1268,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               <button
                                 type='button'
                                 onClick={() => setPreviewChapter(chap)}
-                                className='px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-300 text-indigo-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs'
+                                className='px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-300 text-indigo-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-xs shadow-2xs'
                                 title={t(
                                   'seriesChaptersModal.previewTooltip',
                                   'Tạo & Quản lý link xem thử bảo mật (CF5)',
@@ -1287,7 +1287,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                             <button
                               type='button'
                               onClick={() => setEditionsChapter(chap)}
-                              className='px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-800 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs'
+                              className='px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-800 transition-all cursor-pointer flex items-center gap-1 font-semibold text-xs shadow-2xs'
                               title='Quản lý ấn bản đa ngôn ngữ (BR-34)'
                               data-testid={`manage-editions-${chap.id}`}
                             >
@@ -1408,7 +1408,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
           {/* Footer */}
           <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] rounded-b-2xl flex items-center justify-between text-xs'>
-            <div className='text-[11px] text-[#737373]'>
+            <div className='text-xs text-[#737373]'>
               {t(
                 'seriesChaptersModal.footerNote',
                 '* Ngày phát hành dự kiến hỗ trợ ban biên tập đối chiếu và điều phối tiến độ sản xuất kịp thời.',

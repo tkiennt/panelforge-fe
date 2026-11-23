@@ -151,11 +151,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             Quyền hạn bàn làm việc:
           </span>
           <span
-            className={`px-2.5 py-0.5 rounded-full font-bold font-mono text-[11px] uppercase border ${
+            className={`px-2.5 py-0.5 rounded-full font-bold font-mono text-xs uppercase border ${
               isProducer
                 ? 'bg-orange-50 text-orange-800 border-orange-200'
                 : isEditor
-                  ? 'bg-sky-50 text-sky-800 border-sky-200'
+                  ? 'bg-blue-50 text-blue-800 border-blue-200'
                   : 'bg-stone-100 text-stone-700 border-stone-200'
             }`}
           >
@@ -318,7 +318,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <span className='font-mono font-bold text-xs text-stone-500'>
                     Chương {ch.chapterNumber}
                   </span>
-                  <span className='px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 text-[11px] font-semibold border border-stone-200'>
+                  <span className='px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 text-xs font-semibold border border-stone-200'>
                     {ch.status || 'Kịch bản'}
                   </span>
                 </div>
@@ -352,7 +352,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4'>
             <div>
               <div className='flex items-center gap-2'>
-                <Eye className='w-5 h-5 text-sky-600' />
+                <Eye className='w-5 h-5 text-blue-600' />
                 <h3 className='font-serif text-lg font-bold text-stone-900'>
                   Đọc thử & Soát tranh Bản thảo
                 </h3>
@@ -398,7 +398,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {chapters.map((ch) => (
               <div
                 key={ch.chapterId}
-                className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 hover:bg-white hover:border-sky-300 transition-all space-y-2.5'
+                className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 hover:bg-white hover:border-blue-300 transition-all space-y-2.5'
               >
                 <div className='flex items-center justify-between'>
                   <span className='font-mono font-bold text-xs text-stone-500'>
@@ -422,7 +422,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         buildEditorDeskUrl(workspaceId!, seriesId!, { chapterId: ch.chapterId }),
                       )
                     }
-                    className='text-sky-600 hover:text-sky-700 font-semibold text-xs flex items-center gap-1 cursor-pointer'
+                    className='text-blue-600 hover:text-blue-700 font-semibold text-xs flex items-center gap-1 cursor-pointer'
                   >
                     <span>Soát trang</span>
                     <ArrowRight className='w-3 h-3' />
@@ -440,7 +440,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4'>
             <div>
               <div className='flex items-center gap-2'>
-                <UploadCloud className='w-5 h-5 text-purple-600' />
+                <UploadCloud className='w-5 h-5 text-violet-600' />
                 <h3 className='font-serif text-lg font-bold text-stone-900'>
                   Đóng gói Bản thảo & Bàn giao Xuất bản
                 </h3>
@@ -466,19 +466,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-1.5'>
               <span className='text-xs text-stone-500 font-medium'>Định dạng xuất bản</span>
               <p className='text-sm font-bold text-stone-900'>PDF/X-1a tiêu chuẩn Shonen</p>
-              <p className='text-[11px] text-stone-500'>Độ phân giải 600 DPI, Trame 60 LPI</p>
+              <p className='text-xs text-stone-500'>Độ phân giải 600 DPI, Trame 60 LPI</p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-1.5'>
               <span className='text-xs text-stone-500 font-medium'>Bảo mật bản quyền</span>
               <p className='text-sm font-bold text-stone-900'>Đóng dấu chìm biên tập</p>
-              <p className='text-[11px] text-stone-500'>Tự động định danh mã biên tập viên</p>
+              <p className='text-xs text-stone-500'>Tự động định danh mã biên tập viên</p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-1.5'>
               <span className='text-xs text-stone-500 font-medium'>Chương đã sẵn sàng</span>
               <p className='text-sm font-bold text-emerald-700'>
                 {chapters.filter((c) => c.percentComplete >= 100).length} / {chapters.length} chương
               </p>
-              <p className='text-[11px] text-stone-500'>Đạt chuẩn chất lượng xuất bản</p>
+              <p className='text-xs text-stone-500'>Đạt chuẩn chất lượng xuất bản</p>
             </div>
           </div>
         </div>
@@ -516,22 +516,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 text-center space-y-1'>
               <span className='text-xs text-stone-500 font-semibold'>Nhân vật</span>
               <p className='text-xl font-mono font-bold text-stone-900'>Model Sheets</p>
-              <p className='text-[11px] text-stone-500'>Đã chuẩn hóa biểu cảm & phục trang</p>
+              <p className='text-xs text-stone-500'>Đã chuẩn hóa biểu cảm & phục trang</p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 text-center space-y-1'>
               <span className='text-xs text-stone-500 font-semibold'>Địa điểm</span>
               <p className='text-xl font-mono font-bold text-stone-900'>Bối cảnh 3D/2D</p>
-              <p className='text-[11px] text-stone-500'>Phối cảnh & màu nền</p>
+              <p className='text-xs text-stone-500'>Phối cảnh & màu nền</p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 text-center space-y-1'>
               <span className='text-xs text-stone-500 font-semibold'>Đạo cụ</span>
               <p className='text-xl font-mono font-bold text-stone-900'>Vũ khí & Xe cộ</p>
-              <p className='text-[11px] text-stone-500'>Quy chuẩn kích thước & góc vẽ</p>
+              <p className='text-xs text-stone-500'>Quy chuẩn kích thước & góc vẽ</p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 text-center space-y-1'>
               <span className='text-xs text-stone-500 font-semibold'>Quy tắc Lore</span>
               <p className='text-xl font-mono font-bold text-stone-900'>Tính nhất quán</p>
-              <p className='text-[11px] text-stone-500'>AI tự động kiểm soát sai lệch</p>
+              <p className='text-xs text-stone-500'>AI tự động kiểm soát sai lệch</p>
             </div>
           </div>
         </div>
@@ -568,19 +568,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className='p-4 rounded-xl border border-stone-200 bg-emerald-50/50 space-y-1'>
               <span className='text-xs font-semibold text-emerald-800'>Doanh số ấn phẩm</span>
               <p className='text-2xl font-mono font-bold text-stone-900'>Tankōbon Vol. 1-2</p>
-              <p className='text-[11px] text-emerald-700 font-medium'>Đã phát hành toàn quốc</p>
+              <p className='text-xs text-emerald-700 font-medium'>Đã phát hành toàn quốc</p>
             </div>
-            <div className='p-4 rounded-xl border border-stone-200 bg-sky-50/50 space-y-1'>
-              <span className='text-xs font-semibold text-sky-800'>Kênh phát hành số</span>
+            <div className='p-4 rounded-xl border border-stone-200 bg-blue-50/50 space-y-1'>
+              <span className='text-xs font-semibold text-blue-800'>Kênh phát hành số</span>
               <p className='text-2xl font-mono font-bold text-stone-900'>Bản quyền số</p>
-              <p className='text-[11px] text-sky-700 font-medium'>
+              <p className='text-xs text-blue-700 font-medium'>
                 Hỗ trợ thanh toán VietQR theo chương
               </p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50 space-y-1'>
               <span className='text-xs font-semibold text-stone-600'>Tình trạng thanh toán</span>
               <p className='text-2xl font-mono font-bold text-stone-900'>Tự động đối soát</p>
-              <p className='text-[11px] text-stone-500'>Đồng bộ cùng Publisher Desk</p>
+              <p className='text-xs text-stone-500'>Đồng bộ cùng Publisher Desk</p>
             </div>
           </div>
         </div>

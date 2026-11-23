@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Globe, CheckCircle2, Send, RotateCcw, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Globe, CheckCircle2, Send, RotateCcw, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { Modal } from '@/shared/ui';
 import {
   chapterEditionService,
   type ChapterEditionDto,
@@ -45,9 +46,9 @@ const STATUS_CONFIG: Record<
   },
   Published: {
     label: 'Đã phát hành',
-    bg: 'bg-purple-50',
-    text: 'text-purple-800',
-    border: 'border-purple-300',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-800',
+    border: 'border-emerald-300',
   },
 };
 
@@ -151,192 +152,218 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
   };
 
   return (
-    <div
-      role='dialog'
-      aria-modal='true'
-      data-testid='chapter-editions-modal'
-      className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200'
-    >
-      <div className='bg-[#FAF9F5] border border-stone-200/80 rounded-2xl shadow-2xl max-w-4xl w-full p-6 space-y-5 max-h-[90vh] flex flex-col text-stone-900'>
-        {/* Header */}
-        <div className='flex items-center justify-between border-b border-stone-200 pb-4 shrink-0'>
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        size='xl'
+        backdropTestId='chapter-editions-modal'
+        data-testid='chapter-editions-modal'
+        closeLabel='Đóng modal'
+        title={
           <div className='flex items-center gap-2.5'>
-            <div className='w-9 h-9 rounded-xl bg-orange-100 border border-orange-200 flex items-center justify-center text-orange-600'>
+            <div className='w-9 h-9 rounded-xl bg-orange-100 border border-orange-200 flex items-center justify-center text-orange-600 shrink-0'>
               <Globe className='w-5 h-5' />
             </div>
             <div>
               <h2 className='text-base font-bold font-serif text-stone-900'>
                 Ấn Bản Đa Ngôn Ngữ — Chương {chapter.chapterNumber}
               </h2>
-              <p className='text-xs text-stone-500 font-sans'>
+              <p className='text-xs text-stone-500 font-sans font-normal'>
                 {chapter.title || 'Không tiêu đề'} • Quản lý quy trình kiểm duyệt và phát hành ấn
                 bản dịch (BR-34)
               </p>
             </div>
           </div>
-          <div className='flex items-center gap-2'>
-            <button
-              type='button'
-              onClick={loadEditions}
-              disabled={loading}
-              className='p-1.5 rounded-lg hover:bg-stone-200/60 text-stone-600 transition-colors cursor-pointer'
-              title='Làm mới danh sách ấn bản'
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              type='button'
-              onClick={onClose}
-              className='p-1.5 rounded-lg hover:bg-stone-200/60 text-stone-600 transition-colors cursor-pointer'
-              aria-label='Đóng'
-            >
-              <X className='w-4 h-4' />
-            </button>
+        }
+        footer={
+          <div className='flex items-center justify-between w-full text-xs text-stone-500'>
+            <p>
+              * Chỉ các ấn bản ở trạng thái <strong>Đã phát hành</strong> mới hiển thị trên Reader
+              công khai.
+            </p>
+            <div className='flex items-center gap-2'>
+              <button
+                type='button'
+                onClick={loadEditions}
+                disabled={loading}
+                className='px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50'
+                title='Làm mới danh sách ấn bản'
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Làm mới</span>
+              </button>
+              <button
+                type='button'
+                onClick={onClose}
+                className='px-4 py-1.5 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-lg transition-colors cursor-pointer text-xs'
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <div className='space-y-4'>
+          {/* Content Table */}
+          <div className='border border-stone-200 rounded-xl bg-white shadow-2xs overflow-hidden'>
+            {loading && editions.length === 0 ? (
+              <div className='p-8 text-center text-xs text-stone-500 flex items-center justify-center gap-2'>
+                <RefreshCw className='w-4 h-4 animate-spin text-orange-600' />
+                <span>Đang tải danh sách ấn bản...</span>
+              </div>
+            ) : editions.length === 0 ? (
+              <div className='p-8 text-center text-xs text-stone-500'>
+                Chưa có ấn bản ngôn ngữ nào cho chương này.
+              </div>
+            ) : (
+              <table className='w-full text-left text-xs border-collapse'>
+                <thead>
+                  <tr className='bg-stone-50 border-b border-stone-200 text-stone-600 font-mono'>
+                    <th className='py-2.5 px-4 font-semibold'>Ngôn ngữ</th>
+                    <th className='py-2.5 px-3 font-semibold'>Trạng thái</th>
+                    <th className='py-2.5 px-3 font-semibold'>Người dịch</th>
+                    <th className='py-2.5 px-3 font-semibold'>Người duyệt</th>
+                    <th className='py-2.5 px-3 font-semibold'>Phiên bản</th>
+                    <th className='py-2.5 px-4 font-semibold text-right'>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className='divide-y divide-stone-100'>
+                  {editions.map((ed) => {
+                    const cfg = STATUS_CONFIG[ed.status] || STATUS_CONFIG.Draft;
+                    const langName = LANGUAGE_NAMES[ed.languageCode.toLowerCase()] || ed.languageCode;
+                    const isApproveBusy = actionLoading === `approve-${ed.languageCode}`;
+                    const isPublishBusy = actionLoading === `publish-${ed.languageCode}`;
+                    const canApprove = ed.status === 'EditorApproved';
+                    const canPublish = ed.status === 'Approved';
+                    const canReopen =
+                      ed.status === 'Approved' ||
+                      ed.status === 'Published' ||
+                      ed.status === 'EditorApproved';
+
+                    return (
+                      <tr
+                        key={ed.languageCode}
+                        data-testid={`edition-row-${ed.languageCode}`}
+                        className='hover:bg-stone-50/80 transition-colors'
+                      >
+                        <td className='py-3 px-4'>
+                          <div className='flex items-center gap-2'>
+                            <span className='font-bold text-stone-900 uppercase font-mono px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-xs'>
+                              {ed.languageCode}
+                            </span>
+                            <span className='text-stone-700 font-medium'>{langName}</span>
+                          </div>
+                        </td>
+                        <td className='py-3 px-3'>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}
+                          >
+                            {cfg.label}
+                          </span>
+                        </td>
+                        <td className='py-3 px-3 text-stone-600'>{ed.translatorName || '—'}</td>
+                        <td className='py-3 px-3 text-stone-600'>{ed.approvedByName || '—'}</td>
+                        <td className='py-3 px-3 font-mono text-stone-500'>v{ed.version}</td>
+                        <td className='py-3 px-4 text-right'>
+                          <div className='flex items-center justify-end gap-1.5'>
+                            {canApprove && (
+                              <button
+                                type='button'
+                                onClick={() => handleApproveEdition(ed.languageCode)}
+                                disabled={Boolean(actionLoading)}
+                                data-testid={`approve-edition-${ed.languageCode}`}
+                                className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
+                                title='Producer duyệt hoàn tất bản dịch'
+                              >
+                                <CheckCircle2 className='w-3.5 h-3.5' />
+                                <span>{isApproveBusy ? 'Đang duyệt...' : 'Nghiệm thu'}</span>
+                              </button>
+                            )}
+                            {canPublish && (
+                              <button
+                                type='button'
+                                onClick={() => handlePublishEdition(ed.languageCode)}
+                                disabled={Boolean(actionLoading)}
+                                data-testid={`publish-edition-${ed.languageCode}`}
+                                className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
+                                title='Phát hành ấn bản dịch cho độc giả'
+                              >
+                                <Send className='w-3.5 h-3.5' />
+                                <span>{isPublishBusy ? 'Đang phát hành...' : 'Phát hành'}</span>
+                              </button>
+                            )}
+                            {canReopen && (
+                              <button
+                                type='button'
+                                onClick={() =>
+                                  setReopenModal({ lang: ed.languageCode, isOpen: true })
+                                }
+                                disabled={Boolean(actionLoading)}
+                                data-testid={`reopen-edition-${ed.languageCode}`}
+                                className='px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50'
+                                title='Mở lại ấn bản về Draft để chỉnh sửa'
+                              >
+                                <RotateCcw className='w-3.5 h-3.5 text-amber-600' />
+                                <span>Mở lại</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
-
-        {/* Content Table */}
-        <div className='flex-1 overflow-y-auto min-h-0 border border-stone-200 rounded-xl bg-white shadow-2xs'>
-          {loading && editions.length === 0 ? (
-            <div className='p-8 text-center text-xs text-stone-500 flex items-center justify-center gap-2'>
-              <RefreshCw className='w-4 h-4 animate-spin text-orange-600' />
-              <span>Đang tải danh sách ấn bản...</span>
-            </div>
-          ) : editions.length === 0 ? (
-            <div className='p-8 text-center text-xs text-stone-500'>
-              Chưa có ấn bản ngôn ngữ nào cho chương này.
-            </div>
-          ) : (
-            <table className='w-full text-left text-xs border-collapse'>
-              <thead>
-                <tr className='bg-stone-50 border-b border-stone-200 text-stone-600 font-mono'>
-                  <th className='py-2.5 px-4 font-semibold'>Ngôn ngữ</th>
-                  <th className='py-2.5 px-3 font-semibold'>Trạng thái</th>
-                  <th className='py-2.5 px-3 font-semibold'>Người dịch</th>
-                  <th className='py-2.5 px-3 font-semibold'>Người duyệt</th>
-                  <th className='py-2.5 px-3 font-semibold'>Phiên bản</th>
-                  <th className='py-2.5 px-4 font-semibold text-right'>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-stone-100'>
-                {editions.map((ed) => {
-                  const cfg = STATUS_CONFIG[ed.status] || STATUS_CONFIG.Draft;
-                  const langName = LANGUAGE_NAMES[ed.languageCode.toLowerCase()] || ed.languageCode;
-                  const isApproveBusy = actionLoading === `approve-${ed.languageCode}`;
-                  const isPublishBusy = actionLoading === `publish-${ed.languageCode}`;
-                  const canApprove = ed.status === 'EditorApproved';
-                  const canPublish = ed.status === 'Approved';
-                  const canReopen =
-                    ed.status === 'Approved' ||
-                    ed.status === 'Published' ||
-                    ed.status === 'EditorApproved';
-
-                  return (
-                    <tr
-                      key={ed.languageCode}
-                      data-testid={`edition-row-${ed.languageCode}`}
-                      className='hover:bg-stone-50/80 transition-colors'
-                    >
-                      <td className='py-3 px-4'>
-                        <div className='flex items-center gap-2'>
-                          <span className='font-bold text-stone-900 uppercase font-mono px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-xs'>
-                            {ed.languageCode}
-                          </span>
-                          <span className='text-stone-700 font-medium'>{langName}</span>
-                        </div>
-                      </td>
-                      <td className='py-3 px-3'>
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}
-                        >
-                          {cfg.label}
-                        </span>
-                      </td>
-                      <td className='py-3 px-3 text-stone-600'>{ed.translatorName || '—'}</td>
-                      <td className='py-3 px-3 text-stone-600'>{ed.approvedByName || '—'}</td>
-                      <td className='py-3 px-3 font-mono text-stone-500'>v{ed.version}</td>
-                      <td className='py-3 px-4 text-right'>
-                        <div className='flex items-center justify-end gap-1.5'>
-                          {canApprove && (
-                            <button
-                              type='button'
-                              onClick={() => handleApproveEdition(ed.languageCode)}
-                              disabled={Boolean(actionLoading)}
-                              data-testid={`approve-edition-${ed.languageCode}`}
-                              className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
-                              title='Producer duyệt hoàn tất bản dịch'
-                            >
-                              <CheckCircle2 className='w-3.5 h-3.5' />
-                              <span>{isApproveBusy ? 'Đang duyệt...' : 'Nghiệm thu'}</span>
-                            </button>
-                          )}
-                          {canPublish && (
-                            <button
-                              type='button'
-                              onClick={() => handlePublishEdition(ed.languageCode)}
-                              disabled={Boolean(actionLoading)}
-                              data-testid={`publish-edition-${ed.languageCode}`}
-                              className='px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
-                              title='Phát hành ấn bản dịch cho độc giả'
-                            >
-                              <Send className='w-3.5 h-3.5' />
-                              <span>{isPublishBusy ? 'Đang phát hành...' : 'Phát hành'}</span>
-                            </button>
-                          )}
-                          {canReopen && (
-                            <button
-                              type='button'
-                              onClick={() =>
-                                setReopenModal({ lang: ed.languageCode, isOpen: true })
-                              }
-                              disabled={Boolean(actionLoading)}
-                              data-testid={`reopen-edition-${ed.languageCode}`}
-                              className='px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50'
-                              title='Mở lại ấn bản về Draft để chỉnh sửa'
-                            >
-                              <RotateCcw className='w-3.5 h-3.5 text-amber-600' />
-                              <span>Mở lại</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className='flex items-center justify-between pt-2 border-t border-stone-200 text-xs text-stone-500 shrink-0'>
-          <p>
-            * Chỉ các ấn bản ở trạng thái <strong>Đã phát hành</strong> mới hiển thị trên Reader
-            công khai.
-          </p>
-          <button
-            type='button'
-            onClick={onClose}
-            className='px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl transition-colors cursor-pointer text-xs'
-          >
-            Đóng
-          </button>
-        </div>
-      </div>
+      </Modal>
 
       {/* Reopen Reason Prompt Modal */}
       {reopenModal.isOpen && (
-        <div
+        <Modal
+          isOpen={reopenModal.isOpen}
+          onClose={() => {
+            setReopenModal({ lang: '', isOpen: false });
+            setReopenReason('');
+          }}
+          size='sm'
           data-testid='reopen-edition-modal'
-          className='fixed inset-0 z-60 bg-black/60 flex items-center justify-center p-4 animate-in fade-in duration-150'
-        >
-          <div className='bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-stone-200 space-y-4'>
+          backdropTestId='reopen-edition-modal'
+          closeLabel='Đóng modal'
+          title={
             <div className='flex items-center gap-2 text-amber-600'>
               <AlertTriangle className='w-5 h-5 shrink-0' />
               <h3 className='font-bold text-base text-stone-900'>
                 Mở lại ấn bản {reopenModal.lang.toUpperCase()}
               </h3>
             </div>
+          }
+          footer={
+            <div className='flex justify-end gap-2 w-full'>
+              <button
+                type='button'
+                onClick={() => {
+                  setReopenModal({ lang: '', isOpen: false });
+                  setReopenReason('');
+                }}
+                className='px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100 text-xs font-semibold cursor-pointer'
+              >
+                Hủy
+              </button>
+              <button
+                type='button'
+                onClick={handleConfirmReopen}
+                disabled={!reopenReason.trim()}
+                className='px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer disabled:opacity-50'
+              >
+                Xác nhận mở lại
+              </button>
+            </div>
+          }
+        >
+          <div className='space-y-3'>
             <p className='text-xs text-stone-600'>
               Ấn bản sẽ quay về trạng thái <strong>Bản nháp (Draft)</strong> để dịch giả chỉnh sửa
               lại. Vui lòng ghi rõ lý do mở lại:
@@ -349,29 +376,9 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
               className='w-full p-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-500 focus:bg-white transition-all text-stone-900'
               autoFocus
             />
-            <div className='flex justify-end gap-2 pt-2'>
-              <button
-                type='button'
-                onClick={() => {
-                  setReopenModal({ lang: '', isOpen: false });
-                  setReopenReason('');
-                }}
-                className='px-3 py-1.5 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-100 text-xs font-semibold cursor-pointer'
-              >
-                Hủy
-              </button>
-              <button
-                type='button'
-                onClick={handleConfirmReopen}
-                disabled={!reopenReason.trim()}
-                className='px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50'
-              >
-                Xác nhận mở lại
-              </button>
-            </div>
           </div>
-        </div>
+        </Modal>
       )}
-    </div>
+    </>
   );
 };

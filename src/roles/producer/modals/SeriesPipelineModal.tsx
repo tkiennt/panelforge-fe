@@ -45,7 +45,7 @@ interface SeriesPipelineModalProps {
 const AVAILABLE_ROLES: PipelineRole[] = ['Producer', 'Artist', 'Letterer', 'Editor'];
 
 const ROLE_COLORS: Record<string, string> = {
-  Producer: 'bg-purple-100 text-purple-700 border-purple-200',
+  Producer: 'bg-orange-100 text-orange-800 border-orange-200',
   Artist: 'bg-blue-100 text-blue-700 border-blue-200',
   Letterer: 'bg-pink-100 text-pink-700 border-pink-200',
   Editor: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -390,7 +390,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
             </div>
             <div>
               <div className='flex items-center gap-2'>
-                <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
+                <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-xs font-bold'>
                   UC-03 // PIPELINE CONFIG
                 </span>
                 <span className='text-xs text-[#888888] font-mono'>Series: {seriesTitle}</span>
@@ -434,7 +434,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
               {/* Pipeline Overview Banner */}
               <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
-                  <div className='text-[10px] text-[#888888] uppercase font-mono'>
+                  <div className='text-xs text-[#888888] uppercase font-mono'>
                     Tổng số Stage
                   </div>
                   <div className='text-lg font-bold text-[#171717] mt-0.5'>
@@ -442,7 +442,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                   </div>
                 </div>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
-                  <div className='text-[10px] text-[#888888] uppercase font-mono'>
+                  <div className='text-xs text-[#888888] uppercase font-mono'>
                     Cổng Phê Duyệt
                   </div>
                   <div className='text-lg font-bold text-[#F97316] mt-0.5 flex items-center gap-1.5'>
@@ -451,7 +451,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                   </div>
                 </div>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
-                  <div className='text-[10px] text-[#888888] uppercase font-mono'>
+                  <div className='text-xs text-[#888888] uppercase font-mono'>
                     Bước Chuyển (Transitions)
                   </div>
                   <div className='text-lg font-bold text-[#059669] mt-0.5 flex items-center gap-1.5'>
@@ -460,7 +460,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                   </div>
                 </div>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
-                  <div className='text-[10px] text-[#888888] uppercase font-mono'>
+                  <div className='text-xs text-[#888888] uppercase font-mono'>
                     Tự Động Sinh Transition
                   </div>
                   <div className='text-xs font-semibold text-emerald-700 mt-1 flex items-center gap-1'>
@@ -492,7 +492,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
 
               <div
                 data-testid='pipeline-thumbnail-hint'
-                className='rounded-xl border border-amber-200 bg-amber-50/70 px-3.5 py-2 text-[11px] text-amber-900'
+                className='rounded-xl border border-amber-200 bg-amber-50/70 px-3.5 py-2 text-xs text-amber-900'
               >
                 💡 Gợi ý: Muốn bỏ Thumbnail: tắt công đoạn rồi bấm Sinh / Đồng bộ ô việc ở lưới.
               </div>
@@ -655,19 +655,19 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                             htmlFor='stageIsEnabled'
                             className={`font-bold select-none cursor-pointer ${
                               editingStageInitialOrTerminal
-                                ? 'text-zinc-400 cursor-not-allowed'
+                                ? 'text-stone-400 cursor-not-allowed'
                                 : 'text-[#171717]'
                             }`}
                           >
                             Bật công đoạn này (Enabled)
                           </label>
                           {editingStageInitialOrTerminal && (
-                            <span className='text-[10px] text-zinc-500 italic'>
+                            <span className='text-xs text-stone-500 italic'>
                               (Không thể tắt công đoạn khởi tạo hoặc kết thúc)
                             </span>
                           )}
                         </div>
-                        <p className='text-[11px] text-[#888888]'>
+                        <p className='text-xs text-[#888888]'>
                           Gợi ý: Truyện trắng đen → tắt Color (hoặc tắt bất kỳ công đoạn không cần
                           thiết mà không phải xoá).
                         </p>
@@ -702,7 +702,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                     key={stage.id}
                     className={`flex items-center justify-between p-3.5 rounded-xl border transition-all shadow-2xs group ${
                       stage.isEnabled === false
-                        ? 'opacity-65 bg-zinc-100/90 border-dashed border-zinc-300'
+                        ? 'opacity-65 bg-stone-100/90 border-dashed border-stone-300'
                         : 'bg-[#FAF8F5] hover:bg-white border-[#E7E7E7] hover:border-[#171717]'
                     }`}
                   >
@@ -713,7 +713,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                           type='button'
                           disabled={idx === 0 || actionLoading}
                           onClick={() => handleMoveStage(idx, 'up')}
-                          className='p-0.5 rounded hover:bg-gray-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed'
+                          className='p-0.5 rounded hover:bg-stone-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed'
                           title='Di chuyển lên trước'
                         >
                           <ChevronUp className='w-3.5 h-3.5' />
@@ -722,7 +722,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                           type='button'
                           disabled={idx === pipeline.stages.length - 1 || actionLoading}
                           onClick={() => handleMoveStage(idx, 'down')}
-                          className='p-0.5 rounded hover:bg-gray-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed'
+                          className='p-0.5 rounded hover:bg-stone-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed'
                           title='Di chuyển xuống sau'
                         >
                           <ChevronDown className='w-3.5 h-3.5' />
@@ -730,7 +730,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                       </div>
 
                       {/* Stage Order Badge */}
-                      <span className='w-6 h-6 rounded-full bg-[#171717] text-white flex items-center justify-center font-mono font-bold text-[10px]'>
+                      <span className='w-6 h-6 rounded-full bg-[#171717] text-white flex items-center justify-center font-mono font-bold text-xs'>
                         {stage.stageOrder}
                       </span>
 
@@ -743,14 +743,14 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                       <div>
                         <div className='flex items-center gap-2'>
                           <span className='font-bold text-[#171717] text-sm'>{stage.name}</span>
-                          <span className='text-[10px] font-mono text-[#888888] bg-white px-1.5 py-0.2 rounded border border-[#E7E7E7]'>
+                          <span className='text-xs font-mono text-[#888888] bg-white px-1.5 py-0.2 rounded border border-[#E7E7E7]'>
                             slug: {stage.slug}
                           </span>
                           {stage.track?.trim() && (
                             <span
-                              className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase border ${
+                              className={`px-1.5 py-0.2 rounded text-xs font-mono font-bold uppercase border ${
                                 stage.track.trim().toUpperCase() === 'A'
-                                  ? 'bg-sky-50 text-sky-700 border-sky-200'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200'
                                   : 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200'
                               }`}
                             >
@@ -758,46 +758,46 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                             </span>
                           )}
                           {stage.isEnabled === false && (
-                            <span className='px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-700 text-[9px] font-mono font-bold uppercase'>
+                            <span className='px-1.5 py-0.2 rounded bg-stone-200 text-stone-700 text-xs font-mono font-bold uppercase'>
                               Đã tắt
                             </span>
                           )}
                           {stage.isInitial && (
-                            <span className='px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 text-[9px] font-mono font-bold uppercase'>
+                            <span className='px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 text-xs font-mono font-bold uppercase'>
                               Khởi Tạo
                             </span>
                           )}
                           {stage.isTerminal && (
-                            <span className='px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 text-[9px] font-mono font-bold uppercase'>
+                            <span className='px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 text-xs font-mono font-bold uppercase'>
                               Hoàn Thành
                             </span>
                           )}
                         </div>
 
-                        <div className='flex items-center gap-3 mt-1 text-[11px] text-[#737373]'>
+                        <div className='flex items-center gap-3 mt-1 text-xs text-[#737373]'>
                           {stage.allowedRole ? (
                             <span
-                              className={`px-2 py-0.5 rounded border text-[10px] font-semibold ${
-                                ROLE_COLORS[stage.allowedRole] || 'bg-gray-100 text-gray-700'
+                              className={`px-2 py-0.5 rounded border text-xs font-semibold ${
+                                ROLE_COLORS[stage.allowedRole] || 'bg-stone-100 text-stone-700'
                               }`}
                             >
                               Phụ trách: {stage.allowedRole}
                             </span>
                           ) : (
-                            <span className='text-[#888888] text-[10px] font-mono'>
+                            <span className='text-[#888888] text-xs font-mono'>
                               Mọi vai trò
                             </span>
                           )}
 
                           {stage.isApprovalGate && (
-                            <span className='inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200'>
+                            <span className='inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200'>
                               <Shield className='w-3 h-3 text-amber-600' />
                               Approval Gate (Duyệt/Từ chối)
                             </span>
                           )}
 
                           {stage.estimatedDurationDays ? (
-                            <span className='flex items-center gap-1 text-[10px] font-mono'>
+                            <span className='flex items-center gap-1 text-xs font-mono'>
                               <Clock className='w-3 h-3 text-[#888888]' />
                               {stage.estimatedDurationDays} ngày
                             </span>
@@ -813,10 +813,10 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                         data-testid={`pipeline-toggle-stage-${stage.id}`}
                         disabled={stage.isInitial || stage.isTerminal || actionLoading}
                         onClick={() => handleToggleStage(stage)}
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed ${
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed ${
                           stage.isEnabled === false
-                            ? 'text-zinc-600 bg-zinc-50 border-zinc-300 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300'
-                            : 'text-emerald-700 bg-emerald-50/70 border-emerald-200 hover:text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
+                            ? 'text-stone-600 bg-stone-50 border-stone-300 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300'
+                            : 'text-emerald-700 bg-emerald-50/70 border-emerald-200 hover:text-stone-700 hover:bg-stone-100 hover:border-stone-300'
                         }`}
                         title={
                           stage.isInitial || stage.isTerminal
@@ -841,7 +841,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                       <button
                         type='button'
                         onClick={() => handleStartEdit(stage)}
-                        className='p-1.5 rounded-lg hover:bg-gray-100 text-[#555555] hover:text-[#171717] transition-colors cursor-pointer'
+                        className='p-1.5 rounded-lg hover:bg-stone-100 text-[#555555] hover:text-[#171717] transition-colors cursor-pointer'
                         title='Sửa công đoạn'
                       >
                         <Edit2 className='w-3.5 h-3.5' />
@@ -873,7 +873,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                     quy tắc)
                   </span>
                 </h4>
-                <p className='text-[11px] text-[#737373]'>
+                <p className='text-xs text-[#737373]'>
                   Backend tự động dựng luồng tiến tuần tự giữa các stage và sinh nhánh Từ Chối
                   (Reject - yêu cầu kèm lý do) từ các công đoạn là Approval Gate về các bước trước
                   đó.
@@ -886,7 +886,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                     return (
                       <div
                         key={tr.id}
-                        className={`p-2 rounded-lg border text-[11px] flex items-center justify-between ${
+                        className={`p-2 rounded-lg border text-xs flex items-center justify-between ${
                           tr.isBackwardTransition
                             ? 'bg-rose-50 border-rose-200 text-rose-900'
                             : 'bg-white border-[#E7E7E7] text-[#171717]'
@@ -908,11 +908,11 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                           </span>
                         </div>
                         <div className='flex items-center gap-1 shrink-0'>
-                          <span className='text-[10px] font-mono px-1 rounded bg-black/5'>
+                          <span className='text-xs font-mono px-1 rounded bg-black/5'>
                             {tr.transitionName}
                           </span>
                           {tr.requiresComment && (
-                            <span className='text-[9px] font-mono text-rose-600 font-bold'>
+                            <span className='text-xs font-mono text-rose-600 font-bold'>
                               Cần Lý Do
                             </span>
                           )}

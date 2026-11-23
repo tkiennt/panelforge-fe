@@ -10,7 +10,7 @@ export const CHAPTER_STATUS_STYLE: Record<string, { label: string; className: st
   },
   HandedOffAndPublished: {
     label: 'Đã bàn giao & phát hành',
-    className: 'bg-purple-50 text-purple-700 border-purple-200',
+    className: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   },
 };
 
