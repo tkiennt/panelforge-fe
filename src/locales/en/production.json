@@ -162,7 +162,6 @@
       "structure": "Structure",
       "outline": "Outline",
       "characters": "Cast",
-      "consistency": "Consistency",
       "comments": "Comments",
       "import": "Import",
       "ai": "AI assist",
@@ -178,7 +177,6 @@
       "structure": "Manuscript structure: Chapters and Scenes",
       "outline": "Story outline & narrative context",
       "characters": "Bible characters & chapter cast",
-      "consistency": "Check narrative consistency",
       "comments": "Script feedback and comments",
       "status": "Alerts and script status",
       "import": "Import script from file",
@@ -188,13 +186,6 @@
       "aiDisabledRole": "View only - cannot use AI assistant",
       "aiDisabledLocked": "Chapter is locked - cannot use AI assistant",
       "history": "Script version history"
-    },
-    "consistency": {
-      "title": "Consistency Findings",
-      "runCheck": "Run check",
-      "running": "Checking...",
-      "reRunTooltip": "Re-run script consistency check",
-      "close": "Close findings drawer"
     },
     "statusDrawer": {
       "title": "Notifications & Status",
@@ -436,7 +427,6 @@
       "startBlockedBanner": "Cannot start production yet",
       "viewCast": "View cast",
       "search": "Search chapter entities...",
-      "willCreateDraft": "Will create draft",
       "panelStageTitle": "Set panel stage",
       "panelStageDesc": "Use a different variant (flashback, alternate form) for this panel",
       "selectPanel": "Select Page & Panel",

@@ -9,14 +9,12 @@ import {
   ChevronDown,
   Edit2,
   Trash2,
-  AlertTriangle,
   Layers,
   Loader2,
   Sparkles,
 } from 'lucide-react';
 import { SceneScriptLineSummaryDto, NarrationMode } from '@/services/scriptLine.service';
 import { BibleEntryDto } from '@/services/bible.service';
-import { ConsistencyFindingDto } from '@/services/assignment.service';
 import type { AiSuggestionDto } from '@/services/aiAgents.service';
 import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
 
@@ -34,7 +32,6 @@ interface ScriptLineItemProps {
   isDragging: boolean;
   isDragOver: boolean;
   isHighlighted: boolean;
-  lineFinding?: ConsistencyFindingDto;
   onDragStart: (e: React.DragEvent, index: number) => void;
   onDragOver: (e: React.DragEvent, index: number) => void;
   onDragEnd: () => void;
@@ -66,7 +63,6 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
   isDragging,
   isDragOver,
   isHighlighted,
-  lineFinding,
   onDragStart,
   onDragOver,
   onDragEnd,
@@ -244,50 +240,6 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
       {line.dialogueText && (
         <div className='mt-3 text-[15px] md:text-base text-[#1C1917] font-serif leading-relaxed tracking-wide break-words whitespace-pre-wrap'>
           &ldquo;{line.dialogueText}&rdquo;
-        </div>
-      )}
-
-      {/* Line Consistency Finding Badge (Chỉ xem, không có triage) */}
-      {lineFinding && (
-        <div
-          data-testid={`line-finding-${line.id}`}
-          className={`mt-3 p-2.5 rounded-xl text-xs md:text-sm flex items-start gap-2.5 border ${
-            lineFinding.severity === 'Blocking'
-              ? 'bg-rose-50/90 border-rose-200 text-rose-900'
-              : lineFinding.severity === 'Warning'
-                ? 'bg-amber-50/90 border-amber-200 text-amber-900'
-                : 'bg-blue-50/90 border-blue-200 text-blue-900'
-          }`}
-        >
-          <AlertTriangle
-            className={`w-4 h-4 shrink-0 mt-0.5 ${
-              lineFinding.severity === 'Blocking'
-                ? 'text-rose-600'
-                : lineFinding.severity === 'Warning'
-                  ? 'text-amber-600'
-                  : 'text-blue-600'
-            }`}
-          />
-          <div className='flex-1 min-w-0'>
-            <div className='font-bold flex items-center gap-1.5 flex-wrap'>
-              <span>
-                [
-                {lineFinding.severity === 'Blocking'
-                  ? 'Lỗi chặn'
-                  : lineFinding.severity === 'Warning'
-                    ? 'Cảnh báo'
-                    : 'Thông tin'}
-                ]
-              </span>
-              <span className='font-mono text-xs opacity-75'>{lineFinding.ruleCode}</span>
-            </div>
-            <p className='mt-0.5 break-words'>{lineFinding.message}</p>
-            {lineFinding.evidence && (
-              <p className='mt-1 font-mono text-xs opacity-90 break-words bg-white/80 p-1.5 rounded'>
-                Bằng chứng: &ldquo;{lineFinding.evidence}&rdquo;
-              </p>
-            )}
-          </div>
         </div>
       )}
 

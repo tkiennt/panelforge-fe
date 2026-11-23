@@ -162,7 +162,6 @@
       "structure": "Cấu trúc",
       "outline": "Đề cương",
       "characters": "Nhân vật",
-      "consistency": "Nhất quán",
       "comments": "Góp ý",
       "import": "Nhập",
       "ai": "Trợ lý AI",
@@ -178,7 +177,6 @@
       "structure": "Cấu trúc: Chương và Phân cảnh",
       "outline": "Đề cương & Ngữ cảnh cốt truyện",
       "characters": "Nhân vật Bible & Phân vai chương",
-      "consistency": "Kiểm tra nhất quán cốt truyện",
       "comments": "Góp ý và phản hồi kịch bản",
       "status": "Thông báo và trạng thái kịch bản",
       "import": "Nhập kịch bản từ tệp bên ngoài",
@@ -188,13 +186,6 @@
       "aiDisabledRole": "Chỉ xem - không có quyền dùng Trợ lý AI",
       "aiDisabledLocked": "Chương đã đóng băng - không thể dùng Trợ lý AI",
       "history": "Lịch sử các phiên bản kịch bản"
-    },
-    "consistency": {
-      "title": "Vấn đề nhất quán",
-      "runCheck": "Chạy kiểm tra",
-      "running": "Đang kiểm tra...",
-      "reRunTooltip": "Chạy lại kiểm tra nhất quán kịch bản",
-      "close": "Đóng bảng cảnh báo"
     },
     "statusDrawer": {
       "title": "Thông báo & Trạng thái",
@@ -436,7 +427,6 @@
       "startBlockedBanner": "Chưa thể bắt đầu sản xuất",
       "viewCast": "Xem thực thể",
       "search": "Tìm thực thể trong chương...",
-      "willCreateDraft": "Sẽ tạo bản nháp",
       "panelStageTitle": "Đặt giai đoạn riêng cho Panel",
       "panelStageDesc": "Dùng tạo hình khác (hồi tưởng, biến thân) riêng cho Panel này",
       "selectPanel": "Chọn Trang & Panel",

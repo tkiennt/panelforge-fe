@@ -84,11 +84,7 @@ import { ChapterSelectionView } from '../components/script/chapter-selection';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { mapCategoryToTab } from '@/shared/features/series-bible/bibleCategory';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
-import {
-  assignmentService,
-  ConsistencyFindingDto,
-  ConsistencyCheckResultDto,
-} from '@/services/assignment.service';
+import { assignmentService } from '@/services/assignment.service';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import {
   AiAssistPanel,
@@ -99,7 +95,6 @@ import { toAiReadingDirection } from '@/shared/features/ai-agents/aiViewUtils';
 import { ScriptDiffPreview } from '../components/script/flow/ScriptDiffPreview';
 import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
-import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
 import { ScriptReviewSidePanel } from '@/shared/features/script-review/ScriptReviewSidePanel';
 import {
@@ -567,13 +562,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [outlineInput, setOutlineInput] = useState<string>('');
   const [savingStoryArc, setSavingStoryArc] = useState<boolean>(false);
   const [savingOutline, setSavingOutline] = useState<boolean>(false);
-
-  // Kiểm tra nhất quán (Consistency Check)
-  const [findings, setFindings] = useState<ConsistencyFindingDto[]>([]);
-  const [loadingConsistency, setLoadingConsistency] = useState<boolean>(false);
-  const [consistencyResult, setConsistencyResult] = useState<ConsistencyCheckResultDto | null>(
-    null,
-  );
   const [highlightedLineId, setHighlightedLineId] = useState<string | null>(null);
 
   // Banner & Modal xung đột phiên bản (BR-11 / 409 CONFLICT)
@@ -837,25 +825,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   }, [chapterIdFromUrl, chapters, currentChapter?.id]);
 
-  // Đồng bộ Outline và findings nhất quán khi currentChapter thay đổi
+  // Đồng bộ Outline khi currentChapter thay đổi
   useEffect(() => {
     if (!currentChapter?.id) {
       setOutlineInput('');
-      setFindings([]);
       return;
     }
-    // Xoá ngay findings cũ để tránh hiển thị kết quả của chương trước khi chuyển chương
-    setFindings([]);
     setOutlineInput(currentChapter.outline || '');
-
-    assignmentService
-      .getConsistencyFindings(currentChapter.id)
-      .then((res) => {
-        setFindings(res || []);
-      })
-      .catch(() => {
-        setFindings([]);
-      });
   }, [currentChapter?.id, currentChapter?.outline]);
 
   // 2. Nạp chi tiết Chapter (cập nhật versionVector)
@@ -1330,10 +1306,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       if (!confirmSwitch) return;
     }
 
-    // Xoá kết quả kiểm tra nhất quán của chương cũ ngay lập tức
-    setFindings([]);
-    setConsistencyResult(null);
-
     const matched = chapters.find((c) => c.id.toLowerCase() === chapId.toLowerCase());
     if (matched) {
       userDeletedSceneRef.current = false;
@@ -1365,8 +1337,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       if (!confirmSwitch) return;
     }
 
-    setFindings([]);
-    setConsistencyResult(null);
     setCurrentChapter(null);
     setSelectedScene(null);
     setScenes([]);
@@ -1395,8 +1365,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
     const created = await chapterService.createChapter(seriesId, data);
     setChapters((prev) => [...prev, created]);
-    setFindings([]);
-    setConsistencyResult(null);
     setCurrentChapter(created);
     setOutlineInput(created.outline || '');
     setSearchParams((prev) => {
@@ -1456,26 +1424,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       }
     } finally {
       setSavingOutline(false);
-    }
-  };
-
-  // --- KIỂM TRA NHẤT QUÁN (CONSISTENCY CHECK) ---
-  const handleRunConsistencyCheck = async () => {
-    if (!currentChapter?.id) return;
-    setLoadingConsistency(true);
-    try {
-      const res = await assignmentService.runConsistencyCheck(currentChapter.id);
-      setConsistencyResult(res);
-      setFindings(res.findings || []);
-      setActiveRightDrawer('consistency');
-      notify(
-        'Kiểm tra nhất quán hoàn tất',
-        `Phát hiện ${res.openCount} vấn đề (${res.blockingOpenCount} lỗi chặn).`,
-      );
-    } catch (err: any) {
-      notify('Lỗi kiểm tra nhất quán', err.message);
-    } finally {
-      setLoadingConsistency(false);
     }
   };
 
@@ -2522,12 +2470,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setActiveRightDrawer,
   ]);
 
-  // Số lượng vấn đề nhất quán
-  const openFindingsCount = findings.filter(
-    (f) => f.status === 'Open' || f.status === 'NeedsClarification',
-  ).length;
-  const totalFindingsCount = findings.length;
-
   const outlineWordCount = outlineInput.trim()
     ? outlineInput.trim().split(/\s+/).filter(Boolean).length
     : 0;
@@ -2706,7 +2648,118 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
       <h1 className='sr-only'>Biên Soạn Kịch Bản Phân Cảnh (Script Editor)</h1>
 
-      {/* 3. Bàn viết: ngăn kéo phân cảnh (trái) | trang giấy (giữa) | drawers (phải) */}
+      {/* Toolbar row full-width: Chuẩn Stitch Writer Studio (Phân cảnh toggle + View switcher + Series Bible / Góp ý / Version + Ctrl+S + Lưu) */}
+      <div className='w-full bg-[#FBF9F4] border-b border-[#E8E3DA] px-4 py-2 flex items-center justify-between text-[13px] select-none shrink-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'>
+        {/* Left: Phân cảnh toggle + viewSwitcher */}
+        <div className='flex items-center gap-2 shrink-0'>
+          <button
+            type='button'
+            id='btn-toggle-scene-drawer'
+            data-testid='rail-scenes-btn'
+            onClick={() => toggleLeftDrawer('scenes')}
+            title={t('collaboration.writerStudio.sceneOutline', 'Phân cảnh')}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border transition-colors shadow-2xs mr-1 cursor-pointer text-xs font-semibold ${
+              activeLeftDrawer === 'scenes'
+                ? 'border-primary/40 bg-orange-50 text-primary'
+                : 'border-stone-200/80 hover:border-primary/40 bg-white text-stone-900'
+            }`}
+          >
+            <Clapperboard className='w-4 h-4 text-primary' />
+            <span>{t('collaboration.writerStudio.sceneOutline', 'Phân cảnh')}</span>
+            <span className='px-1.5 py-0.2 rounded-full text-xs font-bold bg-primary/10 text-primary font-mono'>
+              {filteredScenes.length}
+            </span>
+          </button>
+          {viewSwitcher}
+        </div>
+
+        {/* Center space */}
+        <div className='flex-1 flex items-center justify-center' />
+
+        {/* Right: Drawer tabs (Series Bible, Góp ý, Version) + Ctrl+S + Lưu */}
+        <div className='flex items-center gap-2 shrink-0 text-stone-600 text-xs'>
+          <div
+            className='flex items-center gap-1 bg-[#FAF9F5] p-0.5 rounded-lg border border-stone-200/80 shadow-2xs mr-1 select-none'
+            id='toolbar-drawer-tabs'
+          >
+            <button
+              type='button'
+              id='right-tab-btn-bible'
+              data-testid='rail-characters-btn'
+              onClick={() => toggleRightDrawer('characters')}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                activeRightDrawer === 'characters'
+                  ? 'bg-primary text-white shadow-2xs'
+                  : 'text-stone-600 hover:bg-stone-200/60 font-medium'
+              }`}
+            >
+              <BookOpen className='w-3.5 h-3.5' />
+              <span>Series Bible</span>
+            </button>
+
+            <button
+              type='button'
+              id='right-tab-btn-feedback'
+              data-testid='rail-comments-btn'
+              onClick={() => toggleRightDrawer('comments')}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs transition-all cursor-pointer ${
+                activeRightDrawer === 'comments'
+                  ? 'bg-primary text-white shadow-2xs font-semibold'
+                  : 'text-stone-600 hover:bg-stone-200/60 font-medium'
+              }`}
+            >
+              <MessageSquare className='w-3.5 h-3.5' />
+              <span>Góp ý ({openScriptComments.length})</span>
+            </button>
+
+            <button
+              type='button'
+              id='right-tab-btn-history'
+              data-testid='open-script-history-btn'
+              onClick={() => toggleRightDrawer('versions')}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs transition-all cursor-pointer ${
+                activeRightDrawer === 'versions'
+                  ? 'bg-primary text-white shadow-2xs font-semibold'
+                  : 'text-stone-600 hover:bg-stone-200/60 font-medium'
+              }`}
+            >
+              <History className='w-3.5 h-3.5' />
+              <span>Version</span>
+            </button>
+          </div>
+
+          <div className='h-4 w-px bg-stone-300 mx-1' />
+
+          <span className='font-mono text-stone-400 text-xs hidden sm:inline'>Ctrl+S</span>
+
+          {canEditScript && !isChapterLocked && (
+            <button
+              type='button'
+              id='btn-save'
+              data-testid='save-script-btn'
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                if (editorSaveRef.current) {
+                  void editorSaveRef.current();
+                } else {
+                  void handleSaveScript(
+                    editorGetPayloadRef.current
+                      ? editorGetPayloadRef.current()
+                      : buildFallbackScriptTree(),
+                  );
+                }
+              }}
+              title='Ctrl + S'
+              className='inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer text-stone-600 hover:text-primary'
+            >
+              <Save className='w-3.5 h-3.5' />
+              <span>{t('scriptStudio.gn.save', 'Lưu')}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 3. Bàn viết: ngăn kéo phân cảnh (trái) | editor surface (giữa) | drawers (phải) */}
       <div className='flex-1 flex overflow-hidden relative'>
         {activeLeftDrawer === 'scenes' && (
           <ScriptScenesDrawer
@@ -2750,7 +2803,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </div>
         )}
 
-        <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-[#F4EFE8]/70'>
+        <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-white'>
           {(loadingScenes || loadingChapters || loadingDetail) &&
           chapterScenesDetail.length === 0 &&
           !selectedScene ? (
@@ -2853,7 +2906,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               isSceneOutlineOpen={activeLeftDrawer === 'scenes'}
               activeRightDrawer={activeRightDrawer}
               onToggleRightDrawer={toggleRightDrawer}
-              openFindingsCount={openFindingsCount}
               onOpenAiPromptModal={() => {
                 if (canEditScript && !isChapterLocked) {
                   setActiveRightDrawer('ai-draft');
@@ -2921,14 +2973,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       </p>
                     ) : (
                       selectedScene.scriptLines.map((line, index) => {
-                        const lineFinding = findings.find(
-                          (f) =>
-                            f.scriptLineId === line.id &&
-                            f.status !== 'Resolved' &&
-                            f.status !== 'Rejected' &&
-                            f.status !== 'Ignored' &&
-                            f.status !== 'Stale',
-                        );
                         return (
                           <ScriptLineItem
                             key={line.id}
@@ -2949,7 +2993,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                             isDragging={draggedLineIndex === index}
                             isDragOver={dragOverLineIndex === index && draggedLineIndex !== index}
                             isHighlighted={highlightedLineId === line.id}
-                            lineFinding={lineFinding}
                             onDragStart={handleDragStart}
                             onDragOver={handleDragOver}
                             onDragEnd={() => {
@@ -3005,9 +3048,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               }
             }}
             onClose={() => setActiveRightDrawer(null)}
-            findings={findings}
-            onRunCheck={handleRunConsistencyCheck}
-            loadingCheck={loadingConsistency}
           />
         )}
 
@@ -3031,19 +3071,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             isStoryArcDirty={isStoryArcDirty}
             isOutlineDirty={isOutlineDirty}
             defaultTab={narrativeDefaultTab}
-          />
-        )}
-
-        {/* 2. Drawer Kiểm Tra Nhất Quán */}
-        {activeRightDrawer === 'consistency' && (
-          <ConsistencyFindingsDrawer
-            isOpen={true}
-            onClose={() => setActiveRightDrawer(null)}
-            findings={findings}
-            loadingConsistency={loadingConsistency}
-            onRunCheck={handleRunConsistencyCheck}
-            onScrollToLine={handleScrollToLine}
-            disabledCheck={!currentChapter?.id}
           />
         )}
 

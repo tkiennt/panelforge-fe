@@ -28,6 +28,5 @@ Biên kịch (Writer) chịu trách nhiệm sáng tác kịch bản truyện tra
   - `ScriptScenesDrawer.tsx`: Ngăn kéo danh sách phân cảnh chuẩn Stitch (chọn, cấu hình, đổi tên, xoá cảnh; Producer xoá chương).
   - `ScriptLineItem.tsx`: Biên tập chi tiết từng dòng kịch bản (Speaker, loại thoại, nội dung, ghi chú âm thanh/hành động).
   - `BibleCharactersDrawer.tsx`: Drawer tra cứu và gán nhanh nhân vật/thực thể Bible vào dòng kịch bản.
-  - `ConsistencyFindingsDrawer.tsx`: Drawer hiển thị kết quả kiểm tra nhất quán kịch bản và cuộn tới dòng thoại tương ứng.
   - `NarrativeContextDrawer.tsx`: Drawer xem mạch truyện (Story Arc) và đề cương chương (Outline).
   - `ScriptHistoryModal.tsx`: Hộp thoại lịch sử phiên bản kịch bản phân cảnh, so sánh đối chiếu diff và khôi phục revision (UC-18, UC-13).

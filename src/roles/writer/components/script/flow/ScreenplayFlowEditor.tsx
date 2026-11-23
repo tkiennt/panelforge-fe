@@ -10,27 +10,14 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import {
-  ArrowRight,
-  BookOpen,
-  Clapperboard,
-  History,
-  Loader2,
-  MessageSquare,
-  PanelLeft,
-  Save,
-  ShieldCheck,
-  Sparkles,
-  X,
-  Zap,
-} from 'lucide-react';
+import { ArrowRight, MessageSquare, Sparkles, X, Zap } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { SceneDetailDto } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
 import { ScriptCommentDto } from '@/services/chapter.service';
 import { BibleEntryDto } from '@/services/bible.service';
-import { GN_ELEMENTS, GnElement } from './grammar/scriptGrammar';
+import { GN_ELEMENTS } from './grammar/scriptGrammar';
 import {
   BibleRefMark,
   BibleSpeakerRef,
@@ -38,10 +25,8 @@ import {
   ScriptDocument,
   ScriptLineBlockNode,
   ScriptTypingBehavior,
-  activeElement,
   chooseElement,
   getElementMenu,
-  setLineElement,
 } from './nodes/ScriptLineBlockNode';
 import {
   ScriptDocSnapshot,
@@ -118,7 +103,7 @@ export interface ScreenplayFlowEditorProps {
 
 const SHEET_CSS = `
 .gn-sheet .ProseMirror { outline: none; font-family: 'Courier Prime', 'Courier New', ui-monospace, monospace;
-  font-size: 14px; line-height: 1.75rem; color: #18181B; caret-color: #EA580C; min-height: 900px; }
+  font-size: 14px; line-height: 1.75rem; color: #18181B; caret-color: #EA580C; min-height: auto; }
 .gn-sheet .gn-line { clear: both; min-height: 1.75rem; white-space: pre-wrap; word-break: break-word; }
 .gn-sheet .gn-comment-highlight { background-color: #FDE047; border-radius: 2px; padding: 1px 2px; color: #0c0a09; }
 .gn-sheet .gn-page { margin-top: 3.5rem; padding-top: 1rem; border-top: 2px solid #D4CBBF;
@@ -191,9 +176,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const isReadOnly = !canEditScript || isChapterLocked || Boolean(diffPreview);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
-  const [active, setActive] = useState<GnElement | null>(null);
-  const [activeDialogueLineId, setActiveDialogueLineId] = useState<string | null>(null);
   const [showAiPopover, setShowAiPopover] = useState(false);
   /** Menu chọn loại dòng (Enter trên dòng trống): vị trí neo theo con trỏ + mục đang chọn. */
   const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
@@ -266,7 +248,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     caption: '',
     sfx: '',
     acceptHint: '',
-    willCreateDraft: '',
   });
   Object.assign(labelsRef.current, {
     page: (n: number, k: number) => t('scriptStudio.gn.page', { n, k }),
@@ -274,7 +255,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     caption: t('scriptStudio.gn.caption'),
     sfx: t('scriptStudio.gn.sfx'),
     acceptHint: t('scriptStudio.gn.accept'),
-    willCreateDraft: t('scriptStudio.cast.willCreateDraft', 'Sẽ tạo bản nháp'),
   });
   const labels = labelsRef.current;
 
@@ -333,31 +313,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       onUpdate: ({ transaction }) => {
         if (transaction.docChanged && !loadingRef.current) markDirty(true);
       },
-      onSelectionUpdate: ({ editor: ed }) => {
-        setActive(activeElement(ed));
-        const parent = ed.state.selection.$from.parent;
-        const refId = parent.attrs?.refId ? String(parent.attrs.refId) : '';
-        setActiveDialogueLineId(
-          parent.attrs?.el === 'dialogue' &&
-            Boolean(parent.textContent.trim()) &&
-            Boolean(refId) &&
-            !refId.startsWith('wc-')
-            ? refId
-            : null,
-        );
-      },
       onTransaction: ({ editor: ed }) => {
-        setActive(activeElement(ed));
-        const parent = ed.state.selection.$from.parent;
-        const refId = parent.attrs?.refId ? String(parent.attrs.refId) : '';
-        setActiveDialogueLineId(
-          parent.attrs?.el === 'dialogue' &&
-            Boolean(parent.textContent.trim()) &&
-            Boolean(refId) &&
-            !refId.startsWith('wc-')
-            ? refId
-            : null,
-        );
         const m = getElementMenu(ed.state);
         if (!m.open) {
           setMenu(null);
@@ -537,7 +493,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         return false;
       }
       markDirty(false);
-      setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
       return true;
     } catch (err: any) {
       markDirty(true);
@@ -583,201 +538,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [isDirty]);
 
-  const saveStatus = isSaving
-    ? t('scriptStudio.dock.saving')
-    : isDirty
-      ? t('scriptStudio.dock.unsaved')
-      : lastSavedTime
-        ? t('scriptStudio.dock.saved', { time: lastSavedTime })
-        : t('scriptStudio.dock.idle');
-
   return (
-    <div className='relative flex-1 min-h-0 flex flex-col bg-[#FAF9F5]'>
+    <div className='relative flex-1 min-h-0 flex flex-col bg-white'>
       <style>{SHEET_CSS}</style>
-
-      {/* Toolbar row: Chuẩn Stitch Writer Studio (Phân cảnh toggle + Line Types + Right Drawer Pills + Ctrl+S + Lưu) */}
-      <div className='w-full bg-[#FBF9F4] border-b border-[#E8E3DA] px-4 py-2 flex items-center justify-between text-[13px] select-none shrink-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'>
-        {/* Left: Phân cảnh toggle chip + dockLeading */}
-        <div className='flex items-center gap-2 shrink-0'>
-          {dockLeading}
-          {onToggleSceneOutline && (
-            <button
-              id='btn-toggle-scene-drawer'
-              data-testid='rail-scenes-btn'
-              type='button'
-              onClick={onToggleSceneOutline}
-              title={t('collaboration.writerStudio.sceneOutline', 'Phân cảnh')}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border transition-colors shadow-2xs mr-1 cursor-pointer text-xs font-semibold ${
-                isSceneOutlineOpen
-                  ? 'border-primary/40 bg-orange-50 text-primary'
-                  : 'border-stone-200/80 hover:border-primary/40 bg-white text-stone-900'
-              }`}
-            >
-              <Clapperboard className='w-4 h-4 text-primary' />
-              <span>{t('collaboration.writerStudio.sceneOutline', 'Phân cảnh')}</span>
-              {sceneCount !== undefined && (
-                <span className='px-1.5 py-0.2 rounded-full text-xs font-bold bg-primary/10 text-primary font-mono'>
-                  {sceneCount}
-                </span>
-              )}
-            </button>
-          )}
-        </div>
-
-        {/* Center: Segmented line-type tabs */}
-        <div className='flex-1 flex items-center justify-center'>
-          <div
-            role='toolbar'
-            aria-label={t('scriptStudio.gn.toolbar')}
-            className='flex items-center justify-center gap-1 bg-[#FAF9F5]/70 p-0.5 rounded-lg border border-stone-200/80 shadow-2xs'
-          >
-            {GN_ELEMENTS.map((el, i) => {
-              const isActive = active === el;
-              return (
-                <button
-                  key={el}
-                  type='button'
-                  disabled={isReadOnly}
-                  aria-pressed={isActive}
-                  title={`${t(`scriptStudio.gn.el.${el}`)} · Ctrl+${i + 1}`}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => editor && setLineElement(editor, el)}
-                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 whitespace-nowrap ${
-                    isActive
-                      ? 'border border-primary bg-primary/10 text-primary font-semibold shadow-2xs'
-                      : 'text-stone-600 hover:bg-stone-200/60 text-stone-700'
-                  }`}
-                >
-                  {t(`scriptStudio.gn.el.${el}`)}
-                </button>
-              );
-            })}
-          </div>
-
-          {!isReadOnly && activeDialogueLineId && onRewriteLineId && (
-            <button
-              type='button'
-              data-testid={`ai-rewrite-line-${activeDialogueLineId}`}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => onRewriteLineId(activeDialogueLineId)}
-              disabled={rewritingLineId === activeDialogueLineId}
-              className='ml-2 shrink-0 inline-flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100 cursor-pointer disabled:opacity-50'
-            >
-              {rewritingLineId === activeDialogueLineId ? (
-                <Loader2 className='w-3.5 h-3.5 animate-spin' />
-              ) : (
-                <Sparkles className='w-3.5 h-3.5' />
-              )}
-              Viết lại bằng AI
-            </button>
-          )}
-        </div>
-
-        {/* Right: Drawer tabs + Ctrl+S hint + Save */}
-        <div className='flex items-center gap-2 shrink-0 text-stone-600 text-xs'>
-          <div
-            className='flex items-center gap-1 bg-[#FAF9F5] p-0.5 rounded-lg border border-stone-200/80 shadow-2xs mr-1 select-none'
-            id='toolbar-drawer-tabs'
-          >
-            {onToggleRightDrawer && (
-              <>
-                <button
-                  type='button'
-                  id='right-tab-btn-bible'
-                  data-testid='rail-characters-btn'
-                  onClick={() => onToggleRightDrawer('characters')}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-                    activeRightDrawer === 'characters'
-                      ? 'bg-primary text-white shadow-2xs'
-                      : 'text-stone-600 hover:bg-stone-200/60 font-medium'
-                  }`}
-                >
-                  <BookOpen className='w-3.5 h-3.5' />
-                  <span>Series Bible</span>
-                </button>
-
-                <button
-                  type='button'
-                  id='right-tab-btn-feedback'
-                  data-testid='rail-comments-btn'
-                  onClick={() => onToggleRightDrawer('comments')}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                    activeRightDrawer === 'comments'
-                      ? 'bg-primary text-white shadow-2xs font-semibold'
-                      : 'text-stone-600 hover:bg-stone-200/60'
-                  }`}
-                >
-                  <MessageSquare className='w-3.5 h-3.5' />
-                  <span>Góp ý ({comments ? comments.filter((c) => !c.resolvedAt).length : 0})</span>
-                </button>
-
-                <button
-                  type='button'
-                  id='right-tab-btn-history'
-                  data-testid='open-script-history-btn'
-                  onClick={() => onToggleRightDrawer('versions')}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                    activeRightDrawer === 'versions'
-                      ? 'bg-primary text-white shadow-2xs font-semibold'
-                      : 'text-stone-600 hover:bg-stone-200/60'
-                  }`}
-                >
-                  <History className='w-3.5 h-3.5' />
-                  <span>Version</span>
-                </button>
-
-                {openFindingsCount !== undefined && (
-                  <button
-                    type='button'
-                    data-testid='rail-consistency-btn'
-                    onClick={() => onToggleRightDrawer('consistency')}
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                      activeRightDrawer === 'consistency'
-                        ? 'bg-primary text-white shadow-2xs font-semibold'
-                        : 'text-stone-600 hover:bg-stone-200/60'
-                    }`}
-                    title='Kiểm tra nhất quán'
-                  >
-                    <ShieldCheck className='w-3.5 h-3.5' />
-                    {openFindingsCount > 0 && (
-                      <span className='px-1 py-0.2 rounded-full text-xs font-bold bg-amber-500 text-white font-mono'>
-                        {openFindingsCount}
-                      </span>
-                    )}
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className='h-4 w-px bg-stone-300 mx-1' />
-
-          <span className='font-mono text-stone-400 text-xs hidden sm:inline'>Ctrl+S</span>
-
-          {!isReadOnly && (
-            <button
-              type='button'
-              id='btn-save'
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => void handleSave()}
-              disabled={!isDirty || isSaving}
-              title='Ctrl + S'
-              className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer disabled:cursor-default ${
-                isDirty
-                  ? 'bg-primary text-white hover:bg-secondary shadow-xs'
-                  : 'text-stone-400 hover:text-stone-600'
-              }`}
-            >
-              {isSaving ? (
-                <Loader2 className='w-3.5 h-3.5 animate-spin' />
-              ) : (
-                <Save className='w-3.5 h-3.5' />
-              )}
-              <span>{t('scriptStudio.gn.save', 'Lưu')}</span>
-            </button>
-          )}
-        </div>
-      </div>
 
       {flowAiSlot && (
         <div className='shrink-0 border-b border-[#D4CBBF] bg-[#FAF8F5] px-4 py-3'>
@@ -785,28 +548,25 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         </div>
       )}
 
-      {/* Center Paper Sheet */}
-      <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-[#F4EFE8]/70 px-4 sm:px-8 py-6 sm:py-8 flex flex-col items-center pb-32'>
+      {/* Center White Editor Surface */}
+      <main
+        className='flex-1 min-h-0 overflow-y-auto bg-white p-8 flex flex-col items-center custom-scrollbar'
+        onClick={() => {
+          if (editor && !editor.isFocused) editor.commands.focus();
+        }}
+      >
         <div
           data-testid='paper-editor-sheet'
-          className='gn-sheet paper-editor-sheet w-full max-w-3xl shrink-0 bg-white rounded-lg shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-[#E8E3DA] px-6 sm:px-14 py-12 sm:py-16 my-2 sm:my-4 transition-all duration-150 min-h-[960px] cursor-text'
-          onClick={() => {
-            if (editor && !editor.isFocused) editor.commands.focus();
-          }}
+          className='gn-sheet w-full max-w-[760px] flex flex-col font-mono text-[#18181B] text-[13.5px] leading-relaxed cursor-text'
         >
-          {manuscriptTitle && (
-            <header className='text-center mb-10 select-none'>
-              <h1 className='font-serif text-2xl font-medium tracking-tight text-stone-900 mb-2'>
-                {manuscriptTitle}
-              </h1>
-              {!isReadOnly && (
-                <p className='font-sans text-xs text-stone-500'>
-                  Enter: dòng kế tiếp · Tab: nhân vật / ( ) · Shift+Tab: lùi loại dòng · Ctrl+1..8:
-                  đổi loại dòng · Ctrl+S: lưu
-                </p>
+          <div className='border-b border-stone-200/80 pb-3 mb-6 select-none w-full'>
+            <p className='font-sans text-xs text-stone-500'>
+              {t(
+                'scriptStudio.gn.keyboardHint',
+                'Enter: dòng kế tiếp · Tab: nhân vật / ( ) · Ctrl+1..8: đổi loại dòng · Ctrl+S: lưu',
               )}
-            </header>
-          )}
+            </p>
+          </div>
           {diffPreview}
           <div className={diffPreview ? 'hidden' : undefined}>
             <EditorContent editor={editor} />
@@ -818,7 +578,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             t={t}
           />
         </div>
-      </div>
+      </main>
 
       {/* AI script assistant floating button & popover */}
       {!isReadOnly && (
