@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Lock, Play } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Lock, Play, MapPin, Users } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import {
   chapterService,
@@ -10,9 +10,11 @@ import {
   type ScriptVersionDetailDto,
   type ScriptVersionRow,
 } from '@/services/chapter.service';
+import { seriesService, type SeriesDetailDto } from '@/services/series.service';
 import { chapterCastService, type ChapterCastDto } from '@/services/chapterCast.service';
 import { assignmentService } from '@/services/assignment.service';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
+import { ProducerSharedHeader } from '@/shared/features/production-workspace/ProducerSharedHeader';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
 import { ScriptCommentItemCard } from '@/shared/features/script-review/ScriptCommentCard';
 import {
@@ -43,7 +45,7 @@ interface ScriptReviewViewProps {
 const errorMessage = (err: unknown, fallback: string) =>
   err instanceof Error && err.message ? err.message : fallback;
 
-type Tab = 'comments' | 'changes' | 'checks';
+type Tab = 'entities' | 'comments' | 'changes' | 'checks';
 type Staleness = 'changed' | 'removed' | null;
 
 /**
@@ -85,9 +87,12 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
 
   const [composer, setComposer] = useState<ComposerTarget | null>(null);
   const [activeLineId, setActiveLineId] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('comments');
+  const [tab, setTab] = useState<Tab>('entities');
   const [busy, setBusy] = useState<string | null>(null);
   const [startOpen, setStartOpen] = useState(false);
+  const [series, setSeries] = useState<SeriesDetailDto | null>(null);
+  const [fetchedChapters, setFetchedChapters] = useState<ChapterDto[]>([]);
+  const [entityFilter, setEntityFilter] = useState<'main' | 'crowd'>('main');
 
   const role = (workspaceRole ?? '').toLowerCase();
   const isProducer = ['producer', 'owner'].includes(role);
@@ -105,7 +110,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         chapterService.getScriptComments(chapterId).catch(() => []),
       ]);
       let pushedVersion = chapterData.lastSubmittedVersionId
-        ? await chapterService.getScriptVersion(chapterId, chapterData.lastSubmittedVersionId).catch(() => null)
+        ? await chapterService
+            .getScriptVersion(chapterId, chapterData.lastSubmittedVersionId)
+            .catch(() => null)
         : null;
 
       // Fallback: nếu chưa có bản nộp chính thức hoặc không tìm thấy version, thử tải working copy để Editor vẫn đọc được kịch bản
@@ -147,6 +154,29 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (seriesId) {
+      seriesService
+        .getSeriesById(seriesId)
+        .then(setSeries)
+        .catch(() => {});
+      if (!chaptersList || chaptersList.length === 0) {
+        chapterService
+          .getChaptersBySeries(seriesId, 1, 100)
+          .then((res) => {
+            if (res?.items) setFetchedChapters(res.items);
+          })
+          .catch(() => {});
+      }
+    }
+  }, [seriesId, chaptersList]);
+
+  const allChapters = chaptersList && chaptersList.length > 0 ? chaptersList : fetchedChapters;
+
+  const entities = useMemo(() => cast?.entities ?? [], [cast]);
+  const mainEntities = useMemo(() => entities.filter((e) => !e.isCrowd), [entities]);
+  const crowdEntities = useMemo(() => entities.filter((e) => e.isCrowd), [entities]);
 
   const scriptStatus: ScriptStatus =
     chapter?.scriptStatus ?? (chapter?.isScriptFrozen ? 'Frozen' : 'Draft');
@@ -356,75 +386,54 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const openComments = comments.filter((c) => !c.resolvedAt).length;
   const dateFormat = (iso: string) =>
     new Date(iso).toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-GB');
+  const filteredEntities = entityFilter === 'main' ? mainEntities : crowdEntities;
+
   const tabLabel = (key: Tab) =>
-    key === 'comments'
-      ? t('scriptReview.comments.tab', { count: openComments })
-      : key === 'changes'
-        ? t('scriptReview.tabs.changes')
-        : t('scriptReview.tabs.checks');
+    key === 'entities'
+      ? `${t('scriptReview.tabs.entities', 'Thực thể')} (${entities.length})`
+      : key === 'comments'
+        ? t('scriptReview.comments.tab', { count: openComments })
+        : key === 'changes'
+          ? t('scriptReview.tabs.changes')
+          : t('scriptReview.tabs.checks');
 
   return (
     <div className='flex min-h-0 flex-1 flex-col bg-[#FAF9F5] font-sans text-stone-900'>
-      <header className='flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3'>
-        <div className='min-w-0 flex items-center gap-3'>
-          {onBackToChapters && (
-            <button
-              type='button'
-              onClick={onBackToChapters}
-              className='inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition-colors shadow-2xs cursor-pointer'
-              title='Quay lại danh sách chương'
-            >
-              <ArrowLeft className='h-3.5 w-3.5' />
-              <span>Danh sách chương</span>
-            </button>
-          )}
-          <div className='min-w-0'>
-            <div className='flex items-center gap-2'>
-              <h1 className='truncate font-serif text-lg font-bold tracking-tight text-stone-900'>
-                {t('scriptReview.header.title', { number: chapter.chapterNumber })}
-                {chapter.title ? `: ${chapter.title}` : ''}
-              </h1>
-              {chaptersList && chaptersList.length > 1 && onSelectChapter && (
-                <select
-                  value={chapterId}
-                  onChange={(e) => onSelectChapter(e.target.value)}
-                  aria-label='Chọn chương để xem'
-                  className='rounded-md border border-stone-300 bg-stone-50 px-2 py-1 text-xs font-medium text-stone-700 cursor-pointer focus:outline-none focus:border-[#EA580C]'
-                >
-                  {chaptersList.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      Chương {c.chapterNumber}
-                      {c.title ? `: ${c.title}` : ''}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-            <p className='text-xs text-stone-500'>
-              {pushed
-                ? t('scriptReview.pushed.version', {
-                    n: pushed.version.versionNumber,
-                    hash: shortHash(pushed.version.contentHash),
-                  })
-                : t('scriptReview.pushed.none')}
-              {chapter.scriptSubmittedAt ? ` · ${dateFormat(chapter.scriptSubmittedAt)}` : ''}
-            </p>
-          </div>
-        </div>
-        <div className='flex items-center gap-2'>
-          <span
-            data-testid='script-status-badge'
-            className='inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700'
-          >
-            {scriptStatus === 'Frozen' && <Lock className='h-3.5 w-3.5' aria-hidden='true' />}
-            {t(`scriptReview.lifecycle.status.${scriptStatus}`)}
-          </span>
-          {isProducer && isInReview && (
+      <ProducerSharedHeader
+        workspaceId={workspaceId}
+        seriesId={seriesId}
+        currentChapterId={chapterId}
+        chapters={allChapters}
+        seriesTitle={series?.title}
+        seriesFormat={series?.format}
+        currentChapter={chapter}
+        activeTab='script'
+        subtitle={
+          (pushed
+            ? t('scriptReview.pushed.version', {
+                n: pushed.version.versionNumber,
+                hash: shortHash(pushed.version.contentHash),
+              })
+            : t('scriptReview.pushed.none')) +
+          (chapter.scriptSubmittedAt ? ` · ${dateFormat(chapter.scriptSubmittedAt)}` : '')
+        }
+        onChapterChange={(nextId) => {
+          if (onSelectChapter) {
+            onSelectChapter(nextId);
+          } else if (workspaceId && seriesId) {
+            navigate(
+              `/workspaces/${workspaceId}/series/${seriesId}/chapters/${nextId}/script/review`,
+            );
+          }
+        }}
+        onBackToChapters={onBackToChapters}
+        actionCta={
+          isProducer && isInReview ? (
             <div className='flex items-center gap-2'>
               {openComments > 0 && (
                 <span
                   data-testid='open-comments-warning'
-                  className='inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800'
+                  className='inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800'
                 >
                   <AlertTriangle className='h-3.5 w-3.5 text-amber-600' aria-hidden='true' />
                   {t('scriptReview.lifecycle.openCommentsWarning', { count: openComments })}
@@ -433,15 +442,19 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               <button
                 type='button'
                 onClick={handleStartProduction}
-                className='inline-flex items-center gap-1.5 rounded-full bg-[#EA580C] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C] disabled:opacity-50'
+                className='inline-flex items-center gap-1.5 rounded-lg bg-[#EA580C] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C] shadow-xs cursor-pointer'
               >
                 <Play className='h-3.5 w-3.5' aria-hidden='true' />
                 {t('scriptReview.lifecycle.startProduction')}
               </button>
             </div>
-          )}
-        </div>
-      </header>
+          ) : undefined
+        }
+      />
+      <span data-testid='script-status-badge' className='hidden' aria-hidden='true'>
+        {scriptStatus === 'Frozen' && <Lock className='h-3.5 w-3.5' aria-hidden='true' />}
+        {t(`scriptReview.lifecycle.status.${scriptStatus}`)}
+      </span>
 
       <div className='flex min-h-0 flex-1 flex-col lg:flex-row'>
         <main className='min-h-0 min-w-0 flex-1 overflow-y-auto'>
@@ -471,7 +484,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
 
         <aside className='flex max-h-[45vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-[28rem] lg:border-l lg:border-t-0'>
           <div role='tablist' className='flex shrink-0 border-b border-stone-200 px-2'>
-            {(['comments', 'changes', 'checks'] as const).map((key) => (
+            {(['entities', 'comments', 'changes', 'checks'] as const).map((key) => (
               <button
                 key={key}
                 type='button'
@@ -490,7 +503,178 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
           </div>
 
           <div className='flex min-h-0 flex-1 flex-col overflow-y-auto'>
-            {tab === 'comments' ? (
+            {tab === 'entities' ? (
+              <div className='p-4 space-y-4'>
+                <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-200'>
+                  <div>
+                    <h3 className='text-xs font-bold text-stone-900'>
+                      {t('scriptReview.entities.title', 'Thực thể trong kịch bản')} (
+                      {entities.length})
+                    </h3>
+                    <p className='text-xs text-stone-500'>
+                      {t(
+                        'scriptReview.entities.subtitle',
+                        'Kiểm tra tính sẵn sàng của bản vẽ & hồ sơ nhân vật',
+                      )}
+                    </p>
+                  </div>
+                  <div className='inline-flex p-0.5 rounded-lg bg-stone-100 border border-stone-200 text-xs shrink-0'>
+                    <button
+                      type='button'
+                      onClick={() => setEntityFilter('main')}
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                        entityFilter === 'main'
+                          ? 'bg-white text-stone-900 shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      {t('scriptReview.entities.filterMain', 'Chính')} ({mainEntities.length})
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setEntityFilter('crowd')}
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                        entityFilter === 'crowd'
+                          ? 'bg-white text-stone-900 shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      {t('scriptReview.entities.filterCrowd', 'Quần chúng')} ({crowdEntities.length}
+                      )
+                    </button>
+                  </div>
+                </div>
+
+                <div className='space-y-2.5'>
+                  {filteredEntities.length === 0 ? (
+                    <p className='py-6 text-center text-xs text-stone-400'>
+                      {t('scriptReview.entities.empty', 'Không có thực thể nào phù hợp')}
+                    </p>
+                  ) : (
+                    filteredEntities.map((item) => {
+                      const isLocked = item.isCanonLocked;
+                      const isApproved = item.boundRevision?.status === 'Approved';
+                      const isInRev = item.boundRevision?.status === 'InReview';
+                      const isCrowd = item.isCrowd;
+
+                      const initials =
+                        item.name
+                          .split(' ')
+                          .map((w) => w[0])
+                          .slice(0, 2)
+                          .join('')
+                          .toUpperCase() || 'ID';
+
+                      return (
+                        <div
+                          key={item.bibleEntryId}
+                          className={`p-3 rounded-xl border flex items-center justify-between gap-2 transition-colors ${
+                            !isLocked && !isCrowd && !isApproved
+                              ? 'bg-amber-50/50 border-amber-200'
+                              : 'bg-stone-50/70 border-stone-200 hover:bg-stone-50'
+                          }`}
+                        >
+                          <div className='flex items-center gap-2.5 min-w-0'>
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                                item.category === 'Location'
+                                  ? 'bg-rose-100 text-rose-700'
+                                  : isCrowd
+                                    ? 'bg-stone-200 text-stone-700'
+                                    : 'bg-stone-900 text-white'
+                              }`}
+                            >
+                              {item.category === 'Location' ? (
+                                <MapPin className='w-3.5 h-3.5' />
+                              ) : isCrowd ? (
+                                <Users className='w-3.5 h-3.5' />
+                              ) : (
+                                initials
+                              )}
+                            </div>
+                            <div className='min-w-0'>
+                              <div className='text-xs font-bold text-stone-900 truncate'>
+                                {item.name}
+                              </div>
+                              <div className='text-xs text-stone-500 flex items-center gap-1'>
+                                <span>
+                                  {item.boundRevision?.variantLabel
+                                    ? `[${item.boundRevision.variantLabel}]`
+                                    : item.category === 'Character'
+                                      ? '[Mặc định]'
+                                      : item.category}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className='flex items-center gap-1.5 shrink-0'>
+                            {isLocked ? (
+                              <span className='bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusLocked', 'Đã khóa chuẩn')}
+                              </span>
+                            ) : isApproved ? (
+                              <span className='bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusApproved', 'Đã duyệt thiết kế')}
+                              </span>
+                            ) : isInRev ? (
+                              <span className='bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusInReview', 'Chờ duyệt vẽ')}
+                              </span>
+                            ) : isCrowd ? (
+                              <span className='bg-stone-100 text-stone-600 border border-stone-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusExempt', 'Miễn trừ')}
+                              </span>
+                            ) : (
+                              <span className='bg-rose-50 text-rose-700 border border-rose-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusMissing', 'Chưa có bản vẽ')}
+                              </span>
+                            )}
+                            <span
+                              className={`text-xs px-1.5 py-0.5 rounded border font-medium ${
+                                isCrowd
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : 'bg-white text-stone-500 border-stone-200'
+                              }`}
+                            >
+                              {isCrowd
+                                ? t('scriptReview.entities.typeCrowd', 'Quần chúng')
+                                : t('scriptReview.entities.typeMain', 'Chính')}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {cast?.gate?.canStart === false && (
+                  <div className='p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2'>
+                    <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
+                    <div>
+                      <p className='font-semibold'>
+                        {t(
+                          'scriptReview.entities.blockerTitle',
+                          'Kịch bản đang bị chặn duyệt sản xuất:',
+                        )}
+                      </p>
+                      <ul className='list-disc pl-4 mt-1 space-y-0.5 text-stone-700'>
+                        {cast.gate.blockers.map((b, idx) => (
+                          <li key={idx}>
+                            {typeof b === 'string'
+                              ? b
+                              : (b as any).message ||
+                                (b as any).reason ||
+                                (b as any).code ||
+                                String(b)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : tab === 'comments' ? (
               comments.length === 0 ? (
                 <p className='p-4 text-xs text-stone-500'>{t('scriptReview.comments.empty')}</p>
               ) : (
@@ -505,7 +689,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                             {locateLabel(c.sceneId, c.scriptLineId)}
                           </span>
                           {stale && (
-                            <span className='rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800'>
+                            <span className='rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800'>
                               {stale === 'removed'
                                 ? t('scriptReview.comments.staleRemoved')
                                 : t('scriptReview.comments.staleChanged')}
