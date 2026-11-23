@@ -276,33 +276,23 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sections.seriesManagement'),
+            section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
             items: [
-              {
-                icon: LayoutDashboard,
-                label: t('navigation.menu.seriesDashboard'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
-              },
-              {
-                icon: BookOpen,
-                label: 'Quản lý chương',
-                href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
-              },
-
               {
                 icon: Kanban,
                 label: t('navigation.menu.production'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
-              },
-              {
-                icon: Layers,
-                label: t('navigation.menu.workAndReview'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+                badge: { type: 'text', text: `Ch. ${chapterId ? chapterId.replace(/^chapter-?/i, '').replace(/^chap-?/i, '') : '5'}`, color: 'bg-orange-50 text-orange-600' },
               },
               {
                 icon: FileText,
                 label: t('navigation.menu.script'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+              },
+              {
+                icon: BookOpen,
+                label: 'Quản lý chương',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
               },
               {
                 icon: LayoutTemplate,
@@ -315,12 +305,6 @@ export function AppShell({
                 href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
               },
               {
-                icon: BookMarked,
-                label: t('navigation.menu.bible'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
-                badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
-              },
-              {
                 icon: Send,
                 label: t('navigation.menu.publishingGate'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
@@ -330,10 +314,37 @@ export function AppShell({
                 label: t('navigation.menu.exportHandoff'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/export`,
               },
+            ],
+          },
+          {
+            section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+            items: [
+              {
+                icon: LayoutDashboard,
+                label: t('navigation.menu.seriesDashboard'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
+              },
+              {
+                icon: BookMarked,
+                label: t('navigation.menu.bible'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+                badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
+              },
+              {
+                icon: Layers,
+                label: t('navigation.menu.workAndReview'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              },
               {
                 icon: Eye,
                 label: t('navigation.menu.readerStats'),
                 href: `/workspaces/${workspaceId}/reader-stats`,
+              },
+              {
+                icon: Users,
+                label: t('navigation.sidebar.crew', 'Đội ngũ'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
+                badge: { type: 'count', count: 5 },
               },
             ],
           },
@@ -465,13 +476,19 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sections.desk'),
+            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
             items: [
               {
                 icon: Layers,
                 label: t('navigation.menu.myWork'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+                badge: { type: 'count', count: 3 },
               },
+            ],
+          },
+          {
+            section: t('navigation.sidebar.chapterProduction', 'SÁNG TÁC CHƯƠNG'),
+            items: [
               {
                 icon: FileText,
                 label: t('navigation.menu.script'),
@@ -496,16 +513,17 @@ export function AppShell({
                     },
                   ]
                 : []),
+            ],
+          },
+          {
+            section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+            items: [
               {
                 icon: BookMarked,
                 label: t('navigation.menu.bible'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+                badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
               },
-            ],
-          },
-          {
-            section: t('navigation.sections.productionUtilities', 'TIỆN ÍCH SẢN XUẤT'),
-            items: [
               {
                 icon: Kanban,
                 label: t('navigation.menu.production'),
@@ -695,13 +713,27 @@ export function AppShell({
 
   const renderBadge = (badge: any) => {
     if (!badge) return null;
+    if (typeof badge === 'number' || typeof badge === 'string') {
+      return (
+        <span className='px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-600 font-bold text-xs shrink-0'>
+          {badge}
+        </span>
+      );
+    }
+    if (badge.type === 'count') {
+      return (
+        <span className='px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-600 font-bold text-xs shrink-0'>
+          {badge.count}
+        </span>
+      );
+    }
     if (badge.type === 'dot') {
-      return <span className={`w-2 h-2 rounded-full ${badge.color} shrink-0`} />;
+      return <span className={`w-1.5 h-1.5 rounded-full ${badge.color || 'bg-orange-600'} shrink-0`} />;
     }
     if (badge.type === 'text') {
       return (
         <span
-          className={`text-xs font-mono px-1.5 py-0.5 rounded font-semibold ${badge.color} shrink-0 max-w-[80px] truncate`}
+          className={`text-xs font-mono px-1.5 py-0.5 rounded font-semibold ${badge.color || 'bg-stone-100 text-stone-600'} shrink-0 max-w-[80px] truncate`}
         >
           {badge.text}
         </span>
@@ -821,17 +853,17 @@ export function AppShell({
                 <button
                   type='button'
                   data-testid='back-to-workspaces-breadcrumb'
-                  className='text-stone-700 hover:text-stone-900 cursor-pointer transition-all flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-orange-50 hover:text-orange-700 hover:shadow-2xs'
+                  className='text-stone-700 hover:text-stone-900 cursor-pointer transition-colors flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 shrink-0'
                   onClick={() => navigate('/workspaces')}
                   title={t(
                     'navigation.header.backToWorkspaces',
                     'Quay lại danh sách Workspace (Workspaces Catalog)',
                   )}
                 >
-                  <Briefcase className='w-3.5 h-3.5 text-stone-500' />
-                  <span className='font-bold'>Workspaces</span>
+                  <Briefcase className='w-4 h-4 text-stone-500' />
+                  <span className='font-semibold'>Workspaces</span>
                 </button>
-                <span className='mx-1.5 text-stone-300 font-bold select-none'>/</span>
+                <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
 
                 {/* Studio Switcher Dropdown (2-tier Navigation) */}
                 <StudioSwitcher
@@ -844,7 +876,7 @@ export function AppShell({
                 />
                 {isSeriesContext && (
                   <>
-                    <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                    <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
                     <button
                       type='button'
                       onClick={() =>
@@ -856,23 +888,23 @@ export function AppShell({
                           ),
                         )
                       }
-                      className={`font-bold truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-all cursor-pointer ${
-                        chapterId ? 'text-[#57534e] hover:text-[#0c0a09]' : 'text-[#0c0a09]'
+                      className={`font-semibold truncate flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer shrink-0 ${
+                        chapterId ? 'text-stone-600 hover:text-stone-900' : 'text-stone-900'
                       }`}
                       title={t('navigation.header.goToSeries', 'Chuyển đến Series Workspace')}
                     >
-                      <BookOpen className='w-3.5 h-3.5 text-[#292524]' />
+                      <BookOpen className='w-4 h-4 text-orange-600' />
                       <span className='truncate'>{activeSeries?.title || 'Active Series'}</span>
                     </button>
                     {chapterId && (
                       <>
-                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
                         <div
-                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
+                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-orange-700 truncate bg-orange-50 rounded border border-orange-200/80 shrink-0 cursor-pointer'
                           data-testid='header-chapter-breadcrumb'
                           title={`${t('navigation.header.currentChapter', 'Chương đang mở')}: ${chapterId}`}
                         >
-                          <FileText className='w-3.5 h-3.5 text-[#EA580C]' />
+                          <FileText className='w-3.5 h-3.5 text-orange-600' />
                           <span className='truncate'>
                             {chapterId.toLowerCase().startsWith('ch') || !isNaN(Number(chapterId))
                               ? `Chapter ${chapterId.replace(/^chapter-?/i, '')}`
@@ -883,12 +915,12 @@ export function AppShell({
                     )}
                     {isArtistDesk && (
                       <>
-                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
                         <div
-                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
+                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
                           data-testid='header-artist-breadcrumb'
                         >
-                          <LayoutTemplate className='w-3.5 h-3.5 text-[#F97316]' />
+                          <LayoutTemplate className='w-3.5 h-3.5 text-orange-600' />
                           <span className='truncate'>
                             {t('navigation.menu.desk', 'Bàn vẽ Khung tranh')}
                           </span>
@@ -897,24 +929,24 @@ export function AppShell({
                     )}
                     {isScriptDesk && (
                       <>
-                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
                         <div
-                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
+                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
                           data-testid='header-script-breadcrumb'
                         >
-                          <FileText className='w-3.5 h-3.5 text-[#C2410C]' />
+                          <FileText className='w-3.5 h-3.5 text-orange-600' />
                           <span className='truncate'>Quản lý Kịch bản</span>
                         </div>
                       </>
                     )}
                     {isLettererDesk && (
                       <>
-                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
                         <div
-                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
+                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
                           data-testid='header-letterer-breadcrumb'
                         >
-                          <Type className='w-3.5 h-3.5 text-[#C2410C]' />
+                          <Type className='w-3.5 h-3.5 text-orange-600' />
                           <span className='truncate'>Bàn làm việc Chữ & Thoại</span>
                         </div>
                       </>
@@ -945,11 +977,11 @@ export function AppShell({
                 )}
                 data-testid='header-command-palette-trigger'
               >
-                <Search className='w-3.5 h-3.5 text-stone-400 absolute left-3.5 pointer-events-none stroke-[2] group-hover:text-stone-700 transition-colors' />
-                <div className='pl-9 pr-12 py-2 bg-stone-50 group-hover:bg-white text-xs text-stone-600 rounded-full border border-stone-200 group-hover:border-orange-500 shadow-2xs w-64 transition-all truncate select-none'>
+                <Search className='w-3.5 h-3.5 text-stone-400 absolute left-3 pointer-events-none stroke-[2] group-hover:text-stone-700 transition-colors' />
+                <div className='pl-8 pr-10 py-1.5 bg-stone-50 group-hover:bg-white text-xs text-stone-600 rounded-lg border border-stone-200 group-hover:border-orange-500 shadow-2xs w-60 transition-all truncate select-none'>
                   {t('navigation.header.searchPlaceholder')}
                 </div>
-                <span className='absolute right-2 px-2 py-0.5 text-xs font-mono text-stone-400 bg-stone-200/60 rounded-full select-none'>
+                <span className='absolute right-2 px-1.5 py-0.5 text-xs font-mono text-stone-400 bg-stone-200/60 rounded select-none'>
                   ⌘K
                 </span>
               </button>
@@ -967,9 +999,9 @@ export function AppShell({
                 type='button'
                 data-testid='header-user-menu-btn'
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className='flex items-center gap-2.5 p-1 rounded-full hover:bg-orange-50 transition-all cursor-pointer'
+                className='flex items-center gap-2 pl-3 border-l border-stone-200 p-1 rounded-lg hover:bg-stone-50 transition-colors cursor-pointer'
               >
-                <div className='w-8 h-8 rounded-full overflow-hidden bg-orange-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs'>
+                <div className='w-8 h-8 rounded-full overflow-hidden bg-stone-900 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs'>
                   {currentUser.avatarUrl && currentUser.avatarUrl !== failedAvatarUrl ? (
                     <img
                       src={currentUser.avatarUrl}
@@ -989,7 +1021,7 @@ export function AppShell({
                     {currentUser.role}
                   </span>
                 </div>
-                <ChevronDown className='w-3 h-3 text-stone-500' />
+                <ChevronDown className='w-3.5 h-3.5 text-stone-400' />
               </button>
 
               {userMenuOpen && (
