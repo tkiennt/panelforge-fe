@@ -366,7 +366,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               </select>
             </div>
 
-            {/* Sub-tabs Navigation */}
+            {/* Sub-tabs Navigation: EXACTLY Ma trận trang · Tổng quan chương · Kịch bản · Đọc thử & Soát trang · Bàn giao */}
             <div
               className='inline-flex p-1 rounded-lg bg-stone-100 border border-stone-200'
               id='subtab-bar'
@@ -399,26 +399,13 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               </button>
               <button
                 type='button'
-                data-subtab='crew'
-                id='subtab-crew'
-                onClick={() => handleSwitchSubtab('crew')}
-                className={`subtab-btn px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                  activeSubtab === 'crew'
-                    ? 'bg-white text-stone-900 font-semibold shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 font-medium'
-                }`}
-              >
-                {t('workbench.subtabs.crew', 'Quản lý Ê-kíp')}
-              </button>
-              <button
-                type='button'
                 data-subtab='script'
                 id='subtab-script'
                 onClick={() =>
                   navigate(
-                    `/workspaces/${workspaceId}/series/${seriesId}/script${
-                      currentChapterId ? `?chapterId=${currentChapterId}` : ''
-                    }`,
+                    currentChapterId
+                      ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${currentChapterId}/script/review`
+                      : `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
                   )
                 }
                 className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
@@ -431,9 +418,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 id='subtab-reader'
                 onClick={() =>
                   navigate(
-                    `/workspaces/${workspaceId}/series/${seriesId}/editor/desk${
-                      currentChapterId ? `?chapterId=${currentChapterId}` : ''
-                    }`,
+                    currentChapterId
+                      ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${currentChapterId}/review/latest`
+                      : `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
                   )
                 }
                 className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
