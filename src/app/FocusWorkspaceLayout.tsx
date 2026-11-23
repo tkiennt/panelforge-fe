@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   BookMarked,
   Kanban,
+  Users,
 } from 'lucide-react';
 import { BrandMark } from '@/shared/components/BrandMark';
 import { MangaProject } from '@/types';
@@ -416,22 +417,6 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
           </button>
         )}
 
-        {showFocusControls && (
-          <button
-            type='button'
-            onClick={() =>
-              window.dispatchEvent(
-                new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
-              )
-            }
-            title='Tìm kiếm nhanh (Ctrl+K)'
-            className='hidden sm:flex items-center gap-1 px-2 py-1.5 rounded-lg bg-stone-100 border border-stone-200 text-xs font-mono font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-200 transition-colors cursor-pointer'
-          >
-            <Command className='w-3 h-3' />
-            <span>K</span>
-          </button>
-        )}
-
         <div className='flex items-center gap-2 pl-2 border-l border-stone-200'>
           <div
             className='w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center text-xs font-bold'
@@ -601,53 +586,186 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
   const chapterQuery = chapterId ? `?chapterId=${encodeURIComponent(chapterId)}` : '';
 
   const navSections = useMemo(() => {
+    if (effectiveRole === 'WRITER') {
+      return [
+        {
+          section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+          items: [
+            {
+              icon: Layers,
+              label: t('navigation.menu.myWork', 'Việc của tôi'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              badge: { type: 'count', count: 3 },
+            },
+          ],
+        },
+        {
+          section: t('navigation.sidebar.chapterWriting', 'SÁNG TÁC CHƯƠNG'),
+          items: [
+            {
+              icon: FileText,
+              label: t('navigation.menu.chapterScript', 'Kịch bản Chương'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+            },
+          ],
+        },
+        {
+          section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+          items: [
+            {
+              icon: BookMarked,
+              label: t('navigation.menu.bible', 'Series Bible'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+              badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
+            },
+            {
+              icon: Users,
+              label: t('navigation.menu.characterProfilesAndLore', 'Hồ sơ Nhân vật & Lore'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/bible?tab=entities`,
+            },
+          ],
+        },
+      ];
+    }
+
+    if (effectiveRole === 'ARTIST') {
+      return [
+        {
+          section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+          items: [
+            {
+              icon: Layers,
+              label: t('navigation.menu.myWork', 'Việc của tôi'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              badge: { type: 'count', count: 4 },
+            },
+          ],
+        },
+        {
+          section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+          items: [
+            {
+              icon: LayoutTemplate,
+              label: t('navigation.menu.panelCanvasDesk', 'Bàn vẽ Khung tranh'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
+            },
+            {
+              icon: FileText,
+              label: t('navigation.menu.scriptReadOnly', 'Kịch bản (chỉ đọc)'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+            },
+          ],
+        },
+        {
+          section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+          items: [
+            {
+              icon: BookMarked,
+              label: t('navigation.menu.bible', 'Series Bible'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+            },
+          ],
+        },
+      ];
+    }
+
+    if (effectiveRole === 'LETTERER') {
+      return [
+        {
+          section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+          items: [
+            {
+              icon: Layers,
+              label: t('navigation.menu.myWork', 'Việc của tôi'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              badge: { type: 'count', count: 2 },
+            },
+          ],
+        },
+        {
+          section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+          items: [
+            {
+              icon: Type,
+              label: t('navigation.menu.letteringAndBalloons', 'Chèn chữ & Bóng thoại'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
+            },
+            {
+              icon: FileText,
+              label: t('navigation.menu.scriptReadOnly', 'Kịch bản (chỉ đọc)'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+            },
+          ],
+        },
+        {
+          section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+          items: [
+            {
+              icon: BookMarked,
+              label: t('navigation.menu.bible', 'Series Bible'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+            },
+          ],
+        },
+      ];
+    }
+
+    if (effectiveRole === 'EDITOR') {
+      return [
+        {
+          section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+          items: [
+            {
+              icon: Layers,
+              label: t('navigation.menu.myWork', 'Việc của tôi'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              badge: { type: 'count', count: 3 },
+            },
+          ],
+        },
+        {
+          section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+          items: [
+            {
+              icon: ShieldCheck,
+              label: t('navigation.menu.editorReviewDesk', 'Kiểm tra & Hiệu đính'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk`,
+            },
+            {
+              icon: FileText,
+              label: t('navigation.menu.script', 'Kịch bản'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+            },
+          ],
+        },
+        {
+          section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+          items: [
+            {
+              icon: BookMarked,
+              label: t('navigation.menu.bible', 'Series Bible'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+              badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
+            },
+          ],
+        },
+      ];
+    }
+
     return [
       {
-        section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+        section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
         items: [
           {
-            icon: Layers,
-            label: t('navigation.menu.myWork', 'Việc của tôi'),
-            href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
-            badge: { type: 'count', count: 3 },
+            icon: Kanban,
+            label: t('navigation.menu.progressAndTasks', 'Tiến độ & Giao việc'),
+            href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
           },
-        ],
-      },
-      {
-        section: t('navigation.sidebar.chapterProduction', 'SÁNG TÁC CHƯƠNG'),
-        items: [
           {
-            icon: FileText,
-            label: t('navigation.menu.script', 'Kịch bản Chương'),
-            href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+            icon: BookOpen,
+            label: t('navigation.menu.artworkReview', 'Đọc duyệt tranh'),
+            href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk${chapterQuery}`,
           },
-          ...(effectiveRole === 'ARTIST'
-            ? [
-                {
-                  icon: LayoutTemplate,
-                  label: t('navigation.menu.desk', 'Bàn vẽ Khung tranh'),
-                  href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
-                },
-              ]
-            : []),
-          ...(effectiveRole === 'LETTERER'
-            ? [
-                {
-                  icon: Type,
-                  label: t('navigation.menu.lettering', 'Chèn chữ & Bóng thoại'),
-                  href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
-                },
-              ]
-            : []),
-          ...(effectiveRole === 'EDITOR'
-            ? [
-                {
-                  icon: ShieldCheck,
-                  label: t('navigation.menu.reviewDesk', 'Bàn thẩm định biên tập'),
-                  href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk`,
-                },
-              ]
-            : []),
         ],
       },
       {
@@ -657,12 +775,6 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
             icon: BookMarked,
             label: t('navigation.menu.bible', 'Series Bible'),
             href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
-            badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
-          },
-          {
-            icon: Kanban,
-            label: t('navigation.menu.production', 'Quy trình sản xuất'),
-            href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
           },
         ],
       },
@@ -694,7 +806,9 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
       );
     }
     if (badge.type === 'dot') {
-      return <span className={`w-1.5 h-1.5 rounded-full ${badge.color || 'bg-orange-600'} shrink-0`} />;
+      return (
+        <span className={`w-1.5 h-1.5 rounded-full ${badge.color || 'bg-orange-600'} shrink-0`} />
+      );
     }
     if (badge.type === 'text') {
       return (
