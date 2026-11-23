@@ -1415,7 +1415,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 <Lock className='w-4 h-4 text-emerald-500' />
               </div>
               <div className='flex items-baseline gap-2'>
-                <span className='text-2xl font-bold text-emerald-700' data-testid='bible-stat-locked'>
+                <span
+                  className='text-2xl font-bold text-emerald-700'
+                  data-testid='bible-stat-locked'
+                >
                   {bibleStats.locked} / {categoryCounts.all}
                 </span>
                 <span className='text-xs text-emerald-700 font-medium'>
@@ -1485,7 +1488,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 <thead className='bg-stone-50/70 border-b border-stone-200/80 text-stone-600 uppercase tracking-wider font-semibold'>
                   <tr>
                     <th className='py-3 px-4'>{t('bible.view.colCategory', 'Phân loại')}</th>
-                    <th className='py-3 px-4'>{t('bible.view.colCodeName', 'Mã & Tên thực thể')}</th>
+                    <th className='py-3 px-4'>
+                      {t('bible.view.colCodeName', 'Mã & Tên thực thể')}
+                    </th>
                     <th className='py-3 px-4'>
                       {t('bible.view.colArtStatus', 'Trạng thái bản vẽ')}
                     </th>
@@ -1513,9 +1518,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       const isSelected = selectedEntity?.id === entity.id;
 
                       let catBadgeClass = 'bg-stone-100 text-stone-700';
-                      if (entity.category === 'characters') catBadgeClass = 'bg-orange-100 text-orange-800';
-                      else if (entity.category === 'locations') catBadgeClass = 'bg-blue-50 text-blue-700 border border-blue-200';
-                      else if (entity.category === 'terminology') catBadgeClass = 'bg-amber-50 text-amber-800 border border-amber-200';
+                      if (entity.category === 'characters')
+                        catBadgeClass = 'bg-orange-100 text-orange-800';
+                      else if (entity.category === 'locations')
+                        catBadgeClass = 'bg-blue-50 text-blue-700 border border-blue-200';
+                      else if (entity.category === 'terminology')
+                        catBadgeClass = 'bg-amber-50 text-amber-800 border border-amber-200';
 
                       return (
                         <tr
@@ -1551,12 +1559,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             {entity.imageUrl ? (
                               <span className='inline-flex items-center gap-1 text-emerald-700 font-medium'>
                                 <span className='w-1.5 h-1.5 rounded-full bg-emerald-500'></span>
-                                Hoàn tất 600 DPI
+                                {t('bible.view.artworkUploaded')}
                               </span>
                             ) : (
                               <span className='inline-flex items-center gap-1 text-stone-500'>
                                 <span className='w-1.5 h-1.5 rounded-full bg-stone-400'></span>
-                                Chưa có ảnh
+                                {t('bible.view.artworkMissing')}
                               </span>
                             )}
                           </td>
@@ -1565,9 +1573,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             {entity.subtitle || '—'}
                           </td>
                           <td className='py-3 px-4 text-stone-500 font-mono'>
-                            {entity.lockedAt
-                              ? new Date(entity.lockedAt).toLocaleDateString()
-                              : '—'}
+                            {entity.lockedAt ? new Date(entity.lockedAt).toLocaleDateString() : '—'}
                           </td>
                           <td className='py-3 px-4 text-right space-x-1.5'>
                             {canEndorse && effRev?.reviewStatus === 'ConceptSubmitted' && (
@@ -1584,7 +1590,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             {isArtist && effRev?.reviewStatus === 'ConceptSubmitted' && (
                               <button
                                 type='button'
-                                onClick={() => void handleOpenAddRevision(entity, null, true, undefined, true)}
+                                onClick={() =>
+                                  void handleOpenAddRevision(entity, null, true, undefined, true)
+                                }
                                 className='px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-medium text-xs cursor-pointer'
                                 data-testid={`artist-resubmit-btn-${entity.id}`}
                               >
@@ -1626,7 +1634,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <div className='flex items-center gap-2'>
                 <button
                   type='button'
-                  onClick={() => onShowToast(t('bible.view.exportCsv', 'Xuất danh mục (CSV)'), 'Đang tải dữ liệu...')}
+                  onClick={() =>
+                    onShowToast(
+                      t('bible.view.exportCsv', 'Xuất danh mục (CSV)'),
+                      'Đang tải dữ liệu...',
+                    )
+                  }
                   className='px-3 py-1.5 rounded-lg bg-white border border-stone-200/80 hover:bg-stone-100 text-stone-700 font-medium text-xs flex items-center gap-1 cursor-pointer'
                 >
                   <Download className='w-3.5 h-3.5' />
@@ -1780,7 +1793,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           {entity.imageUrl ? (
                             <span className='inline-flex items-center gap-1 text-emerald-700 font-medium'>
                               <span className='w-1.5 h-1.5 rounded-full bg-emerald-500'></span>
-                              Hoàn tất 600 DPI
+                              {t('bible.view.artworkUploaded')}
                             </span>
                           ) : (
                             <span>{entity.subtitle || 'Tiêu chuẩn'}</span>
@@ -1853,7 +1866,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           <div className='lg:col-span-8'>
             {!selectedEntity ? (
               <div className='bg-white border border-stone-200/80 rounded-xl p-12 text-center text-stone-500 shadow-xs'>
-                <p className='text-sm'>{t('bible.drawer.selectToView', 'Chọn một mục để xem chi tiết.')}</p>
+                <p className='text-sm'>
+                  {t('bible.drawer.selectToView', 'Chọn một mục để xem chi tiết.')}
+                </p>
               </div>
             ) : (
               <div className='bg-white border border-stone-200/80 rounded-xl p-6 shadow-xs space-y-6'>
@@ -1925,7 +1940,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           <span>
                             {activeEffRev?.reviewStatus === 'CanonLocked'
                               ? t('bible.view.verifiedByEditor', 'Editor đã duyệt bản vẽ')
-                              : t('bible.view.writerApprovedMechanism', 'Writer chuẩn thuận cơ chế')}
+                              : t(
+                                  'bible.view.writerApprovedMechanism',
+                                  'Writer chuẩn thuận cơ chế',
+                                )}
                           </span>
                         </span>
                       </div>
@@ -1943,7 +1961,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             title: selectedEntity.name,
                           });
                         } else {
-                          onShowToast(t('bible.view.downloadConcept', 'Tải Concept Art'), 'Chưa có tệp tải về');
+                          onShowToast(
+                            t('bible.view.downloadConcept', 'Tải Concept Art'),
+                            'Chưa có tệp tải về',
+                          );
                         }
                       }}
                       className='px-3 py-1.5 rounded-lg bg-white border border-stone-200/80 hover:bg-stone-50 text-stone-700 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer'
@@ -1969,7 +1990,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     {canCreateDraft && (
                       <button
                         type='button'
-                        onClick={() => void handleOpenAddRevision(selectedEntity, null, false, undefined, false, true)}
+                        onClick={() =>
+                          void handleOpenAddRevision(
+                            selectedEntity,
+                            null,
+                            false,
+                            undefined,
+                            false,
+                            true,
+                          )
+                        }
                         className='px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer'
                         data-testid='add-new-variant-btn'
                       >
@@ -2100,15 +2130,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                 })
                               }
                             />
-                            {/* Overlay Info bottom-left */}
-                            <div className='absolute bottom-3 left-3 flex items-center gap-2 bg-stone-900/85 backdrop-blur-xs text-white px-3 py-1.5 rounded-lg text-xs font-mono border border-stone-700'>
-                              <span className='flex items-center gap-1 font-semibold text-emerald-400'>
-                                <CheckCircle2 className='w-3.5 h-3.5 text-emerald-400' />
-                                <span>{t('bible.view.overlayVerifiedPoints', '3 Vanishing Points')}</span>
-                              </span>
-                              <span className='text-stone-500'>•</span>
-                              <span className='text-stone-300'>Lưới Worm-Eye View • 600 DPI</span>
-                            </div>
 
                             {/* Overlay Badge top-right */}
                             <div className='absolute top-3 right-3 bg-white/90 backdrop-blur-xs text-stone-700 px-2.5 py-1 rounded-md text-xs font-mono border border-stone-200 flex items-center gap-1'>
@@ -2119,7 +2140,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         ) : (
                           <div className='text-center p-8 text-stone-400 space-y-2'>
                             <Box className='w-12 h-12 mx-auto text-stone-300' />
-                            <p className='text-xs'>{t('bible.detailModal.noReferenceImage', 'Chưa có ảnh Reference Sheet cho mục này')}</p>
+                            <p className='text-xs'>
+                              {t(
+                                'bible.detailModal.noReferenceImage',
+                                'Chưa có ảnh Reference Sheet cho mục này',
+                              )}
+                            </p>
                           </div>
                         )}
                       </div>
@@ -2131,11 +2157,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             {t('bible.view.notesLabel', 'Ghi chú:')}{' '}
                           </span>
                           <span>
-                            {selectedEntity.description || 'Đảm bảo tuân thủ quy chuẩn đường nét và phối cảnh.'}
+                            {selectedEntity.description ||
+                              'Đảm bảo tuân thủ quy chuẩn đường nét và phối cảnh.'}
                           </span>
                         </div>
                         <div className='text-stone-500 font-mono'>
-                          Duyệt: {selectedEntity.lockedAt ? new Date(selectedEntity.lockedAt).toLocaleDateString() : 'Chưa duyệt'}
+                          Duyệt:{' '}
+                          {selectedEntity.lockedAt
+                            ? new Date(selectedEntity.lockedAt).toLocaleDateString()
+                            : 'Chưa duyệt'}
                         </div>
                       </div>
                     </div>
@@ -2167,21 +2197,28 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
                           <div className='space-y-2.5 pt-1'>
                             <div className='flex items-center justify-between text-xs'>
-                              <span className='text-stone-600 font-normal'>Độ tuổi &amp; Ngày sinh:</span>
+                              <span className='text-stone-600 font-normal'>
+                                Độ tuổi &amp; Ngày sinh:
+                              </span>
                               <span className='font-bold text-stone-900 text-right'>
                                 {selectedEntity.attributes?.age || '19 tuổi'} (15/07)
                               </span>
                             </div>
                             <div className='flex items-center justify-between text-xs'>
-                              <span className='text-stone-600 font-normal'>Chiều cao &amp; Cân nặng:</span>
+                              <span className='text-stone-600 font-normal'>
+                                Chiều cao &amp; Cân nặng:
+                              </span>
                               <span className='font-bold text-stone-900 text-right'>
                                 {selectedEntity.attributes?.height || '178 cm'} / 68 kg
                               </span>
                             </div>
                             <div className='flex items-center justify-between text-xs'>
-                              <span className='text-stone-600 font-normal'>Thể trạng &amp; Tỷ lệ:</span>
+                              <span className='text-stone-600 font-normal'>
+                                Thể trạng &amp; Tỷ lệ:
+                              </span>
                               <span className='font-bold text-stone-900 text-right'>
-                                {selectedEntity.attributes?.build || 'Thon gọn, linh hoạt (7.5 heads)'}
+                                {selectedEntity.attributes?.build ||
+                                  'Thon gọn, linh hoạt (7.5 heads)'}
                               </span>
                             </div>
                           </div>
@@ -2196,8 +2233,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           </div>
                           <div className='p-3.5 rounded-lg bg-orange-50/40 border border-orange-200/60 text-xs leading-relaxed space-y-2.5 text-stone-700'>
                             <p>
-                              Màu tóc: {selectedEntity.attributes?.hair || 'Đen ánh than (#1A1E24), rối nhẹ tự nhiên'}. Mắt:{' '}
-                              {selectedEntity.attributes?.eyes || 'Đồng tử xanh điện quang khi kích hoạt'}.
+                              Màu tóc:{' '}
+                              {selectedEntity.attributes?.hair ||
+                                'Đen ánh than (#1A1E24), rối nhẹ tự nhiên'}
+                              . Mắt:{' '}
+                              {selectedEntity.attributes?.eyes ||
+                                'Đồng tử xanh điện quang khi kích hoạt'}
+                              .
                             </p>
                             <p>
                               <span className='font-bold text-orange-600'>Vết sẹo nhận diện: </span>
@@ -2224,10 +2266,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           <div className='p-2.5 rounded-lg bg-orange-50/80 border border-orange-200 text-stone-700 space-y-1'>
                             <div className='font-semibold text-orange-800 flex items-center gap-1'>
                               <SparklesIcon />
-                              <span>{t('bible.view.artistTipLocation', 'Lưu ý cho Trame Artist:')}</span>
+                              <span>
+                                {t('bible.view.artistTipLocation', 'Lưu ý cho Trame Artist:')}
+                              </span>
                             </div>
                             <div className='text-xs leading-relaxed'>
-                              Khi dán trame mưa đêm, sử dụng nét gạch xiên song song 65 độ, không để mảng đen che lấp vết nứt lò phản ứng dưới lòng đường.
+                              Khi dán trame mưa đêm, sử dụng nét gạch xiên song song 65 độ, không để
+                              mảng đen che lấp vết nứt lò phản ứng dưới lòng đường.
                             </div>
                           </div>
                         </div>
@@ -2240,23 +2285,31 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <div className='p-4 rounded-xl bg-stone-50/70 border border-stone-200/80 space-y-3'>
                           <div className='flex items-center gap-2 text-stone-900 font-bold uppercase tracking-wider text-xs pb-2 border-b border-stone-200/80'>
                             <Wrench className='w-4 h-4 text-orange-600' />
-                            <span>{t('bible.view.propSpecsTitle', 'Thông số cơ khí & Vũ trang')}</span>
+                            <span>
+                              {t('bible.view.propSpecsTitle', 'Thông số cơ khí & Vũ trang')}
+                            </span>
                           </div>
                           <div className='divide-y divide-stone-200/80 text-xs'>
                             <div className='py-2 flex items-center justify-between gap-4'>
-                              <span className='text-stone-500 font-medium shrink-0'>Kích thước tổng thể</span>
+                              <span className='text-stone-500 font-medium shrink-0'>
+                                Kích thước tổng thể
+                              </span>
                               <span className='font-semibold text-stone-800 text-right'>
                                 Tổng dài 140 cm (Chuôi 28 cm, Lưỡi 112 cm)
                               </span>
                             </div>
                             <div className='py-2 flex items-center justify-between gap-4'>
-                              <span className='text-stone-500 font-medium shrink-0'>Trọng lượng khi rút kiếm</span>
+                              <span className='text-stone-500 font-medium shrink-0'>
+                                Trọng lượng khi rút kiếm
+                              </span>
                               <span className='font-semibold text-stone-800 text-right'>
                                 1.85 kg (Vỏ hợp kim siêu nhẹ)
                               </span>
                             </div>
                             <div className='py-2 flex items-center justify-between gap-4'>
-                              <span className='text-stone-500 font-medium shrink-0'>Hiệu ứng tia sáng trame</span>
+                              <span className='text-stone-500 font-medium shrink-0'>
+                                Hiệu ứng tia sáng trame
+                              </span>
                               <span className='font-semibold text-stone-800 text-right'>
                                 Radial Gradient 85L / 15% tia sét
                               </span>
@@ -2267,7 +2320,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <div className='p-4 rounded-xl bg-stone-50/70 border border-stone-200/80 space-y-3'>
                           <div className='flex items-center gap-2 text-stone-900 font-bold uppercase tracking-wider text-xs pb-2 border-b border-stone-200/80'>
                             <FileText className='w-4 h-4 text-blue-600' />
-                            <span>{t('bible.view.propPrincipleTitle', 'Nguyên lý hoạt động & Lưu ý vẽ')}</span>
+                            <span>
+                              {t('bible.view.propPrincipleTitle', 'Nguyên lý hoạt động & Lưu ý vẽ')}
+                            </span>
                           </div>
                           <div className='space-y-2 text-xs'>
                             <p className='text-stone-700 leading-relaxed'>
@@ -2277,10 +2332,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             <div className='p-2.5 rounded-lg bg-orange-50/80 border border-orange-200 text-stone-700 space-y-1'>
                               <div className='font-semibold text-orange-800 flex items-center gap-1'>
                                 <PenTool className='w-3.5 h-3.5 text-orange-700' />
-                                <span>{t('bible.view.artistTipProp', 'Lưu ý cho Inker & Colorist:')}</span>
+                                <span>
+                                  {t('bible.view.artistTipProp', 'Lưu ý cho Inker & Colorist:')}
+                                </span>
                               </div>
                               <div className='text-xs leading-relaxed'>
-                                Khi chém vào vật thể kim loại, viền nét kiếm không để đứt đoạn mà dùng nét brush xòe kết hợp tia lửa điện văng 4 góc.
+                                Khi chém vào vật thể kim loại, viền nét kiếm không để đứt đoạn mà
+                                dùng nét brush xòe kết hợp tia lửa điện văng 4 góc.
                               </div>
                             </div>
                           </div>
@@ -2296,7 +2354,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           <span>Quy chuẩn mỹ thuật &amp; Thiết lập thế giới</span>
                         </div>
                         <div className='space-y-2 text-xs text-stone-700 leading-relaxed'>
-                          <p>{selectedEntity.description || 'Quy chuẩn cố định cho toàn bộ họa sĩ sản xuất.'}</p>
+                          <p>
+                            {selectedEntity.description ||
+                              'Quy chuẩn cố định cho toàn bộ họa sĩ sản xuất.'}
+                          </p>
                           <div className='p-2.5 rounded-lg bg-stone-100 border border-stone-200/80 text-stone-700'>
                             <span className='font-semibold'>Ràng buộc bất biến: </span>
                             {selectedEntity.attributes?.forbidden ||

@@ -204,12 +204,15 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
   const searchParams = new URLSearchParams(location.search);
   const chapterId = searchParams.get('chapterId');
-  const cleanChapterNum = chapterId
-    ? chapterId.replace(/^chapter-?/i, '').replace(/^chap-?/i, '').padStart(2, '0')
-    : '05';
+  // chapterId is usually a GUID; only show a chapter chip when the URL carries a real chapter number.
+  const rawChapterNum = chapterId?.replace(/^chapter-?/i, '').replace(/^chap-?/i, '') ?? '';
+  const cleanChapterNum = /^\d+$/.test(rawChapterNum) ? rawChapterNum.padStart(2, '0') : null;
 
   const userRoleDisplay = currentUser.workspaceRole
-    ? t(`navigation.roles.${String(currentUser.workspaceRole).toLowerCase()}`, String(currentUser.workspaceRole))
+    ? t(
+        `navigation.roles.${String(currentUser.workspaceRole).toLowerCase()}`,
+        String(currentUser.workspaceRole),
+      )
     : currentUser.role
       ? t(`navigation.roles.${String(currentUser.role).toLowerCase()}`, String(currentUser.role))
       : 'Thành viên';
@@ -262,7 +265,9 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 className='flex items-center gap-2 text-xs font-semibold text-stone-700 hover:text-stone-900 transition-colors py-1.5 px-2 rounded-lg hover:bg-stone-100 cursor-pointer min-w-0'
               >
                 <ArrowLeft className='w-4 h-4 text-stone-500 shrink-0' />
-                <span className='truncate'>{t('navigation.sidebar.backToStudio', 'Về Sảnh Studio')}</span>
+                <span className='truncate'>
+                  {t('navigation.sidebar.backToStudio', 'Về Sảnh Studio')}
+                </span>
               </button>
               <div className='flex items-center gap-1.5 shrink-0 ml-2'>
                 <span className='text-xs font-mono px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 font-semibold border border-stone-200'>
@@ -322,7 +327,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 <span className='text-xs uppercase tracking-wider text-stone-500 font-bold truncate'>
                   {t('navigation.sidebar.activeSeriesLabel', 'BỘ TRUYỆN ĐANG MỞ')}
                 </span>
-                {chapterId ? (
+                {cleanChapterNum ? (
                   <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-orange-50 text-orange-600 border border-orange-200/60 shrink-0'>
                     {`Chương ${cleanChapterNum}`}
                   </span>
@@ -357,7 +362,8 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                   <span className='text-xs font-bold text-stone-900 truncate group-hover:text-orange-700 transition-colors'>
                     {seriesId
                       ? activeSeries?.title || 'Active Series'
-                      : activeWorkspace?.name || t('navigation.sidebar.chooseSeries', 'Chọn Series...')}
+                      : activeWorkspace?.name ||
+                        t('navigation.sidebar.chooseSeries', 'Chọn Series...')}
                   </span>
                 </div>
                 <ChevronsUpDown className='w-4 h-4 text-stone-400 group-hover:text-stone-700 transition-colors shrink-0' />
@@ -437,7 +443,9 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                       }}
                       aria-current={isSelected ? 'page' : undefined}
                       className={`w-full px-3 py-2 text-xs flex items-center justify-between cursor-pointer text-left transition-colors ${
-                        isSelected ? 'bg-orange-50 text-orange-700 font-semibold' : 'hover:bg-stone-50 text-stone-700'
+                        isSelected
+                          ? 'bg-orange-50 text-orange-700 font-semibold'
+                          : 'hover:bg-stone-50 text-stone-700'
                       }`}
                     >
                       <div className='truncate pr-2 min-w-0'>
@@ -478,7 +486,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                     <span className='text-xs uppercase tracking-wider text-stone-400 font-bold truncate'>
                       {section.section}
                     </span>
-                    {isChapterSection && (
+                    {isChapterSection && cleanChapterNum && (
                       <span className='text-xs font-mono text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded font-semibold shrink-0'>
                         {`CH.${cleanChapterNum}`}
                       </span>
@@ -618,9 +626,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
               className='fixed rounded-xl border border-stone-200 bg-white shadow-2xl z-[60] p-1'
               style={{ left: themePos.left, top: themePos.top, width: themePos.width }}
             >
-              <div className='px-2.5 py-1.5 text-xs font-semibold text-stone-500'>
-                {themeLabel}
-              </div>
+              <div className='px-2.5 py-1.5 text-xs font-semibold text-stone-500'>{themeLabel}</div>
               {SIDEBAR_THEMES.map((opt) => {
                 const selected = opt.id === theme;
                 return (
@@ -642,7 +648,10 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                       style={{ background: opt.bg, borderColor: '#d6d3d1' }}
                       aria-hidden='true'
                     >
-                      <span className='w-1.5 h-1.5 rounded-full' style={{ background: opt.accent }} />
+                      <span
+                        className='w-1.5 h-1.5 rounded-full'
+                        style={{ background: opt.accent }}
+                      />
                     </span>
                     <span className='flex-1 truncate'>{themeName(opt.id)}</span>
                     {selected && <Check className='w-4 h-4 shrink-0 text-orange-600' />}
