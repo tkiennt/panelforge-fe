@@ -203,11 +203,11 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
   // Loading skeleton
   if (loading) {
     return (
-      <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'>
+      <div className='bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'>
         <div className='animate-pulse space-y-3'>
-          <div className='h-4 bg-zinc-200 rounded w-1/3' />
-          <div className='h-3 bg-zinc-100 rounded w-1/2' />
-          <div className='h-60 bg-zinc-50 rounded-xl mt-4 border border-zinc-200' />
+          <div className='h-4 bg-stone-200 rounded w-1/3' />
+          <div className='h-3 bg-stone-100 rounded w-1/2' />
+          <div className='h-60 bg-stone-50 rounded-xl mt-4 border border-stone-200' />
         </div>
       </div>
     );
@@ -217,37 +217,37 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
   const isLatestToday = latestPoint ? checkIsToday(latestPoint.date) : false;
 
   return (
-    <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4 font-sans text-zinc-700'>
+    <div className='bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4 font-sans text-stone-700'>
       {/* 1. Header & Quick Summary */}
-      <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-zinc-100 pb-3'>
+      <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-stone-100 pb-3'>
         <div className='space-y-0.5'>
-          <h2 className='text-sm font-bold text-zinc-900 flex items-center gap-2'>
+          <h2 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
             <TrendingUp className='w-4 h-4 text-[#F97316]' />
             <span>Công việc còn lại theo thời gian</span>
-            <span className='text-xs font-normal text-zinc-500'>(Biểu Đồ Burndown)</span>
+            <span className='text-xs font-normal text-stone-500'>(Biểu Đồ Burndown)</span>
             <span
               title='Định nghĩa: Số việc còn lại = Tổng nhiệm vụ trừ đi các nhiệm vụ đã được duyệt (Approved) tính đến cuối mỗi ngày (UTC).'
-              className='inline-flex cursor-help text-zinc-400 hover:text-[#F97316] transition-colors'
+              className='inline-flex cursor-help text-stone-400 hover:text-[#F97316] transition-colors'
             >
               <Info className='w-3.5 h-3.5' />
             </span>
           </h2>
-          <p className='text-xs text-zinc-500'>Toàn bộ bộ truyện · Số công việc chưa hoàn tất</p>
+          <p className='text-xs text-stone-500'>Toàn bộ bộ truyện · Số công việc chưa hoàn tất</p>
         </div>
 
         <div className='flex items-center gap-2.5 flex-wrap sm:flex-nowrap'>
           {/* Timeframe pill selector */}
           {sortedRawList.length > 7 && (
-            <div className='inline-flex p-0.5 bg-zinc-100 rounded-lg text-xs font-medium border border-zinc-200'>
+            <div className='inline-flex p-0.5 bg-stone-100 rounded-lg text-xs font-medium border border-stone-200'>
               {(['all', '30d', '7d'] as const).map((mode) => (
                 <button
                   key={mode}
                   type='button'
                   onClick={() => setTimeframe(mode)}
-                  className={`px-2 py-0.5 rounded-md text-[11px] transition-colors cursor-pointer ${
+                  className={`px-2 py-0.5 rounded-md text-xs transition-colors cursor-pointer ${
                     timeframe === mode
-                      ? 'bg-white text-zinc-900 shadow-2xs font-semibold'
-                      : 'text-zinc-500 hover:text-zinc-900'
+                      ? 'bg-white text-stone-900 shadow-2xs font-semibold'
+                      : 'text-stone-500 hover:text-stone-900'
                   }`}
                 >
                   {mode === 'all' ? 'Tất cả' : mode === '30d' ? '30 ngày' : '7 ngày'}
@@ -265,7 +265,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
               Còn: {latestPoint ? `${latestPoint.remaining} việc` : '—'}
             </span>
             {latestPoint && !isLatestToday && (
-              <span className='text-[10px] text-[#EA580C] font-normal'>
+              <span className='text-xs text-[#EA580C] font-normal'>
                 (Đến {formatShortDate(latestPoint.date)})
               </span>
             )}
@@ -275,23 +275,23 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
 
       {/* 2. Dòng tóm tắt biến động (Summary row) */}
       {stats && (
-        <div className='grid grid-cols-3 gap-2 py-2 px-3 bg-zinc-50/70 rounded-xl border border-zinc-200 text-xs text-center'>
+        <div className='grid grid-cols-3 gap-2 py-2 px-3 bg-stone-50/70 rounded-xl border border-stone-200 text-xs text-center'>
           <div>
-            <span className='text-zinc-500 block text-[11px]'>
+            <span className='text-stone-500 block text-xs'>
               Đầu kỳ ({formatShortDate(stats.startDate)})
             </span>
-            <span className='font-bold text-zinc-900 text-xs'>{stats.startVal} việc</span>
+            <span className='font-bold text-stone-900 text-xs'>{stats.startVal} việc</span>
           </div>
           <div>
-            <span className='text-zinc-500 block text-[11px]'>
+            <span className='text-stone-500 block text-xs'>
               Cuối kỳ ({formatShortDate(stats.endDate)})
             </span>
-            <span className='font-bold text-zinc-900 text-xs'>{stats.endVal} việc</span>
+            <span className='font-bold text-stone-900 text-xs'>{stats.endVal} việc</span>
           </div>
           <div>
-            <span className='text-zinc-500 block text-[11px]'>Thay đổi ròng</span>
+            <span className='text-stone-500 block text-xs'>Thay đổi ròng</span>
             {stats.isSinglePoint ? (
-              <span className='font-medium text-zinc-500 text-xs'>Khởi tạo</span>
+              <span className='font-medium text-stone-500 text-xs'>Khởi tạo</span>
             ) : stats.netChange < 0 ? (
               <span className='font-bold text-emerald-700 text-xs'>
                 Giảm {Math.abs(stats.netChange)} việc
@@ -299,7 +299,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
             ) : stats.netChange > 0 ? (
               <span className='font-bold text-amber-700 text-xs'>Tăng {stats.netChange} việc</span>
             ) : (
-              <span className='font-bold text-zinc-500 text-xs'>Không đổi</span>
+              <span className='font-bold text-stone-500 text-xs'>Không đổi</span>
             )}
           </div>
         </div>
@@ -307,21 +307,21 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
 
       {/* 3. Vùng biểu đồ (Chart area) */}
       {!chartModel || filteredList.length === 0 ? (
-        <div className='py-8 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 space-y-2 px-4'>
+        <div className='py-8 text-center text-xs text-stone-500 bg-stone-50/50 rounded-xl border border-dashed border-stone-200 space-y-2 px-4'>
           <div className='w-9 h-9 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center mx-auto'>
             <Calendar className='w-4.5 h-4.5' />
           </div>
-          <p className='font-semibold text-zinc-900 text-xs'>
+          <p className='font-semibold text-stone-900 text-xs'>
             Chưa có dữ liệu lịch sử trong khoảng thời gian này
           </p>
-          <p className='text-xs text-zinc-500 max-w-sm mx-auto'>
+          <p className='text-xs text-stone-500 max-w-sm mx-auto'>
             Khi các nhiệm vụ được tạo và duyệt hoàn tất trong Series, tiến trình sẽ được ghi nhận
             hàng ngày.
           </p>
         </div>
       ) : (
         <div className='space-y-2'>
-          <div className='relative w-full h-[230px] sm:h-[260px] bg-zinc-50/50 rounded-xl border border-zinc-200 p-2 overflow-hidden select-none'>
+          <div className='relative w-full h-[230px] sm:h-[260px] bg-stone-50/50 rounded-xl border border-stone-200 p-2 overflow-hidden select-none'>
             <svg
               viewBox={`0 0 ${width} ${height}`}
               className='w-full h-full text-xs'
@@ -442,7 +442,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
                     <div className='font-semibold text-[#FAF8F5] border-b border-stone-700 pb-1 flex items-center justify-between gap-3'>
                       <span>{formatFullDate(pt.date)}</span>
                       {checkIsToday(pt.date) && (
-                        <span className='px-1 py-0.2 rounded bg-orange-500/30 text-orange-300 text-[10px]'>
+                        <span className='px-1 py-0.2 rounded bg-orange-500/30 text-orange-300 text-xs'>
                           Hôm nay
                         </span>
                       )}
@@ -452,7 +452,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
                       <span className='font-bold text-orange-300'>{pt.remaining} việc</span>
                     </div>
                     {diff !== null && (
-                      <div className='flex items-center justify-between gap-3 text-[11px] text-stone-300'>
+                      <div className='flex items-center justify-between gap-3 text-xs text-stone-300'>
                         <span className='text-stone-400'>So mốc trước:</span>
                         <span
                           className={
@@ -520,23 +520,23 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
                     </td>
                     <td className='py-1.5 px-3 text-right'>
                       {idx === 0 ? (
-                        <span className='text-stone-400 text-[11px]'>Đầu kỳ</span>
+                        <span className='text-stone-400 text-xs'>Đầu kỳ</span>
                       ) : (
                         (() => {
                           const diff = pt.remaining - filteredList[idx - 1].remaining;
                           if (diff < 0)
                             return (
-                              <span className='text-emerald-600 font-medium text-[11px]'>
+                              <span className='text-emerald-600 font-medium text-xs'>
                                 Giảm {Math.abs(diff)}
                               </span>
                             );
                           if (diff > 0)
                             return (
-                              <span className='text-amber-600 font-medium text-[11px]'>
+                              <span className='text-amber-600 font-medium text-xs'>
                                 Tăng {diff}
                               </span>
                             );
-                          return <span className='text-stone-400 text-[11px]'>—</span>;
+                          return <span className='text-stone-400 text-xs'>—</span>;
                         })()
                       )}
                     </td>
