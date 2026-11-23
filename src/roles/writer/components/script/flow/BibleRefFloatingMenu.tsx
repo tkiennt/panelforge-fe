@@ -347,7 +347,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
                   {getCategoryIcon(mapCategoryToTab(entry.category), 'h-3.5 w-3.5 text-orange-600')}
                   <span className='truncate text-xs font-semibold'>{entry.name}</span>
                 </span>
-                <span className='shrink-0 font-mono text-[10px] text-stone-400'>
+                <span className='shrink-0 font-mono text-xs text-stone-400'>
                   {entry.code || getCategoryLabel(entry.category)}
                 </span>
               </button>
@@ -361,7 +361,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
 
           <div className='mt-2.5 border-t border-stone-100 pt-2'>
             <div className='mb-2 flex items-center justify-between gap-1'>
-              <span className='text-[11px] font-medium text-stone-500'>
+              <span className='text-xs font-medium text-stone-500'>
                 {t('production.cast.createDraftType', 'Loại bản nháp:')}
               </span>
               <div className='flex items-center gap-1'>
@@ -371,7 +371,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
                     type='button'
                     onClick={() => setSelectedCategory(category)}
                     aria-pressed={selectedCategory === category}
-                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
+                    className={`rounded px-1.5 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
                       selectedCategory === category
                         ? 'bg-orange-500 text-white'
                         : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
@@ -413,7 +413,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
             <button
               type='button'
               onClick={handleRemoveRef}
-              className='ml-1 rounded border border-rose-500/20 bg-stone-800 px-1.5 py-0.5 text-[10px] text-rose-300 transition-colors hover:bg-rose-900/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400'
+              className='ml-1 rounded border border-rose-500/20 bg-stone-800 px-1.5 py-0.5 text-xs text-rose-300 transition-colors hover:bg-rose-900/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400'
             >
               {t('production.cast.removeRef', 'Gỡ')}
             </button>

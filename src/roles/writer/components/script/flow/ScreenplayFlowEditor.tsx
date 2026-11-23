@@ -95,6 +95,8 @@ export interface ScreenplayFlowEditorProps {
   onToggleRightDrawer?: (drawer: any) => void;
   openFindingsCount?: number;
   onOpenAiPromptModal?: () => void;
+  onOpenAiDraft?: () => void;
+  onOpenAiStoryboard?: () => void;
   registerSetPanelStage?: (
     fn:
       | ((
@@ -181,6 +183,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   onToggleRightDrawer,
   openFindingsCount,
   onOpenAiPromptModal,
+  onOpenAiDraft,
+  onOpenAiStoryboard,
   registerSetPanelStage,
 }) => {
   const { t } = useTranslation('production');
@@ -603,7 +607,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               type='button'
               onClick={onToggleSceneOutline}
               title={t('collaboration.writerStudio.sceneOutline', 'Phân cảnh')}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border transition-colors shadow-2xs mr-1 cursor-pointer text-[12px] font-semibold ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border transition-colors shadow-2xs mr-1 cursor-pointer text-xs font-semibold ${
                 isSceneOutlineOpen
                   ? 'border-primary/40 bg-orange-50 text-primary'
                   : 'border-stone-200/80 hover:border-primary/40 bg-white text-stone-900'
@@ -612,7 +616,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               <Clapperboard className='w-4 h-4 text-primary' />
               <span>{t('collaboration.writerStudio.sceneOutline', 'Phân cảnh')}</span>
               {sceneCount !== undefined && (
-                <span className='px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-primary/10 text-primary font-mono'>
+                <span className='px-1.5 py-0.2 rounded-full text-xs font-bold bg-primary/10 text-primary font-mono'>
                   {sceneCount}
                 </span>
               )}
@@ -638,7 +642,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                   title={`${t(`scriptStudio.gn.el.${el}`)} · Ctrl+${i + 1}`}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => editor && setLineElement(editor, el)}
-                  className={`px-2.5 py-1 rounded text-[12px] font-medium transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 whitespace-nowrap ${
+                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 whitespace-nowrap ${
                     isActive
                       ? 'border border-primary bg-primary/10 text-primary font-semibold shadow-2xs'
                       : 'text-stone-600 hover:bg-stone-200/60 text-stone-700'
@@ -657,7 +661,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onRewriteLineId(activeDialogueLineId)}
               disabled={rewritingLineId === activeDialogueLineId}
-              className='ml-2 shrink-0 inline-flex items-center gap-1.5 rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-orange-100 cursor-pointer disabled:opacity-50'
+              className='ml-2 shrink-0 inline-flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100 cursor-pointer disabled:opacity-50'
             >
               {rewritingLineId === activeDialogueLineId ? (
                 <Loader2 className='w-3.5 h-3.5 animate-spin' />
@@ -670,8 +674,11 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         </div>
 
         {/* Right: Drawer tabs + Ctrl+S hint + Save */}
-        <div className='flex items-center gap-2 shrink-0 text-stone-600 text-[12px]'>
-          <div className='flex items-center gap-1 bg-[#FAF9F5] p-0.5 rounded-lg border border-stone-200/80 shadow-2xs mr-1 select-none' id='toolbar-drawer-tabs'>
+        <div className='flex items-center gap-2 shrink-0 text-stone-600 text-xs'>
+          <div
+            className='flex items-center gap-1 bg-[#FAF9F5] p-0.5 rounded-lg border border-stone-200/80 shadow-2xs mr-1 select-none'
+            id='toolbar-drawer-tabs'
+          >
             {onToggleRightDrawer && (
               <>
                 <button
@@ -679,7 +686,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                   id='right-tab-btn-bible'
                   data-testid='rail-characters-btn'
                   onClick={() => onToggleRightDrawer('characters')}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11.5px] font-semibold transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
                     activeRightDrawer === 'characters'
                       ? 'bg-primary text-white shadow-2xs'
                       : 'text-stone-600 hover:bg-stone-200/60 font-medium'
@@ -694,16 +701,14 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                   id='right-tab-btn-feedback'
                   data-testid='rail-comments-btn'
                   onClick={() => onToggleRightDrawer('comments')}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11.5px] font-medium transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                     activeRightDrawer === 'comments'
                       ? 'bg-primary text-white shadow-2xs font-semibold'
                       : 'text-stone-600 hover:bg-stone-200/60'
                   }`}
                 >
                   <MessageSquare className='w-3.5 h-3.5' />
-                  <span>
-                    Góp ý ({comments ? comments.filter((c) => !c.resolvedAt).length : 0})
-                  </span>
+                  <span>Góp ý ({comments ? comments.filter((c) => !c.resolvedAt).length : 0})</span>
                 </button>
 
                 <button
@@ -711,7 +716,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                   id='right-tab-btn-history'
                   data-testid='open-script-history-btn'
                   onClick={() => onToggleRightDrawer('versions')}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11.5px] font-medium transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                     activeRightDrawer === 'versions'
                       ? 'bg-primary text-white shadow-2xs font-semibold'
                       : 'text-stone-600 hover:bg-stone-200/60'
@@ -726,7 +731,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                     type='button'
                     data-testid='rail-consistency-btn'
                     onClick={() => onToggleRightDrawer('consistency')}
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11.5px] font-medium transition-all cursor-pointer ${
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                       activeRightDrawer === 'consistency'
                         ? 'bg-primary text-white shadow-2xs font-semibold'
                         : 'text-stone-600 hover:bg-stone-200/60'
@@ -735,7 +740,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                   >
                     <ShieldCheck className='w-3.5 h-3.5' />
                     {openFindingsCount > 0 && (
-                      <span className='px-1 py-0.2 rounded-full text-[9px] font-bold bg-amber-500 text-white font-mono'>
+                      <span className='px-1 py-0.2 rounded-full text-xs font-bold bg-amber-500 text-white font-mono'>
                         {openFindingsCount}
                       </span>
                     )}
@@ -747,7 +752,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
           <div className='h-4 w-px bg-stone-300 mx-1' />
 
-          <span className='font-mono text-stone-400 text-[11px] hidden sm:inline'>Ctrl+S</span>
+          <span className='font-mono text-stone-400 text-xs hidden sm:inline'>Ctrl+S</span>
 
           {!isReadOnly && (
             <button
@@ -791,12 +796,13 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         >
           {manuscriptTitle && (
             <header className='text-center mb-10 select-none'>
-              <h1 className='font-serif text-[28px] font-medium tracking-tight text-stone-900 mb-2'>
+              <h1 className='font-serif text-2xl font-medium tracking-tight text-stone-900 mb-2'>
                 {manuscriptTitle}
               </h1>
               {!isReadOnly && (
-                <p className='font-sans text-[11.5px] text-stone-500'>
-                  Enter: dòng kế tiếp · Tab: nhân vật / ( ) · Shift+Tab: lùi loại dòng · Ctrl+1..8: đổi loại dòng · Ctrl+S: lưu
+                <p className='font-sans text-xs text-stone-500'>
+                  Enter: dòng kế tiếp · Tab: nhân vật / ( ) · Shift+Tab: lùi loại dòng · Ctrl+1..8:
+                  đổi loại dòng · Ctrl+S: lưu
                 </p>
               )}
             </header>
@@ -816,7 +822,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
       {/* AI script assistant floating button & popover */}
       {!isReadOnly && (
-        <div className='fixed bottom-6 right-20 sm:right-88 z-40 flex flex-col items-end select-none' id='ai-script-assistant-wrapper'>
+        <div
+          className='fixed bottom-6 right-20 sm:right-88 z-40 flex flex-col items-end select-none'
+          id='ai-script-assistant-wrapper'
+        >
           {showAiPopover && (
             <div
               id='ai-script-suggestions-popover'
@@ -824,11 +833,11 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             >
               <div className='px-4 py-3 bg-[#FBF9F4] border-b border-stone-200/80 flex items-center justify-between'>
                 <div className='flex items-center gap-2'>
-                  <Sparkles className='w-4 h-4 text-primary' />
-                  <span className='font-headline-sm text-[13px] font-bold text-stone-900'>
+                  <Sparkles className='w-4 h-4 text-violet-600' />
+                  <span className='font-headline-sm text-xs font-bold text-stone-900'>
                     {t('collaboration.writerStudio.aiAssistantTitle', 'Trợ lý Kịch bản AI')}
                   </span>
-                  <span className='px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20'>
+                  <span className='px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-violet-50 text-violet-700 border border-violet-200'>
                     {t('collaboration.writerStudio.beta', 'Beta')}
                   </span>
                 </div>
@@ -842,34 +851,36 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                 </button>
               </div>
 
-              <div className='p-3 space-y-2 text-[12px]'>
-                <div className='text-[11px] font-bold uppercase tracking-wider text-stone-400 px-1'>
+              <div className='p-3 space-y-2 text-xs'>
+                <div className='text-xs font-bold uppercase tracking-wider text-stone-400 px-1'>
                   {t('collaboration.writerStudio.quickSuggestions', 'GỢI Ý NHANH THEO NGỮ CẢNH')}
                 </div>
 
                 <div
-                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-primary hover:bg-orange-50/40 cursor-pointer transition-colors shadow-2xs group'
+                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-violet-500 hover:bg-violet-50/40 cursor-pointer transition-colors shadow-2xs group'
                   onClick={() => {
                     if (editor) {
-                      editor.commands.insertContent('<p class="gn-dialogue">"Cổng đã đồng bộ 90%. Cho dù ngươi có gọi cả sư đoàn tới cũng quá muộn."</p>');
+                      editor.commands.insertContent(
+                        '<p class="gn-dialogue">"Cổng đã đồng bộ 90%. Cho dù ngươi có gọi cả sư đoàn tới cũng quá muộn."</p>',
+                      );
                       setShowAiPopover(false);
                     }
                   }}
                 >
                   <div className='flex items-center justify-between mb-1'>
-                    <span className='font-semibold text-stone-900 group-hover:text-primary flex items-center gap-1.5'>
-                      <MessageSquare className='w-3.5 h-3.5 text-primary' />
+                    <span className='font-semibold text-stone-900 group-hover:text-violet-700 flex items-center gap-1.5'>
+                      <MessageSquare className='w-3.5 h-3.5 text-violet-600' />
                       {t('collaboration.writerStudio.nextDialogue', 'Thoại đối kháng kế tiếp')}
                     </span>
-                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-primary' />
+                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-violet-600' />
                   </div>
-                  <p className='text-[11px] text-stone-500 line-clamp-2'>
+                  <p className='text-xs text-stone-500 line-clamp-2'>
                     Kael: "Cổng đã đồng bộ 90%. Cho dù ngươi có gọi cả sư đoàn tới cũng quá muộn."
                   </p>
                 </div>
 
                 <div
-                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-primary hover:bg-orange-50/40 cursor-pointer transition-colors shadow-2xs group'
+                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-violet-500 hover:bg-violet-50/40 cursor-pointer transition-colors shadow-2xs group'
                   onClick={() => {
                     if (editor) {
                       editor.commands.insertContent('<p class="gn-sfx">SHAKIIIIN!!</p>');
@@ -878,40 +889,73 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                   }}
                 >
                   <div className='flex items-center justify-between mb-1'>
-                    <span className='font-semibold text-stone-900 group-hover:text-primary flex items-center gap-1.5'>
+                    <span className='font-semibold text-stone-900 group-hover:text-violet-700 flex items-center gap-1.5'>
                       <Zap className='w-3.5 h-3.5 text-amber-600' />
                       {t('collaboration.writerStudio.climaxSfx', 'SFX cao trào cho Panel')}
                     </span>
-                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-primary' />
+                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-violet-600' />
                   </div>
-                  <p className='text-[11px] text-stone-500 line-clamp-2'>
+                  <p className='text-xs text-stone-500 line-clamp-2'>
                     SHAKIIIIN!! Âm thanh chấn động không gian làm vỡ vụn các mảnh kính neon.
                   </p>
                 </div>
 
                 <div
-                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-primary hover:bg-orange-50/40 cursor-pointer transition-colors shadow-2xs group'
+                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-violet-500 hover:bg-violet-50/40 cursor-pointer transition-colors shadow-2xs group'
                   onClick={() => {
                     if (editor) {
-                      editor.commands.insertContent('<p class="gn-action">Akira đạp mạnh lên biển hiệu vỡ, phóng vút người về phía lõi năng lượng với tốc độ mắt thường không bắt kịp.</p>');
+                      editor.commands.insertContent(
+                        '<p class="gn-action">Akira đạp mạnh lên biển hiệu vỡ, phóng vút người về phía lõi năng lượng với tốc độ mắt thường không bắt kịp.</p>',
+                      );
                       setShowAiPopover(false);
                     }
                   }}
                 >
                   <div className='flex items-center justify-between mb-1'>
-                    <span className='font-semibold text-stone-900 group-hover:text-primary flex items-center gap-1.5'>
+                    <span className='font-semibold text-stone-900 group-hover:text-violet-700 flex items-center gap-1.5'>
                       <Sparkles className='w-3.5 h-3.5 text-emerald-600' />
                       {t('collaboration.writerStudio.reflexAction', 'Hành động phản xạ nhân vật')}
                     </span>
-                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-primary' />
+                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-violet-600' />
                   </div>
-                  <p className='text-[11px] text-stone-500 line-clamp-2'>
-                    Akira đạp mạnh lên biển hiệu vỡ, phóng vút người về phía lõi năng lượng với tốc độ mắt thường không bắt kịp.
+                  <p className='text-xs text-stone-500 line-clamp-2'>
+                    Akira đạp mạnh lên biển hiệu vỡ, phóng vút người về phía lõi năng lượng với tốc
+                    độ mắt thường không bắt kịp.
                   </p>
                 </div>
+                {(onOpenAiDraft || onOpenAiStoryboard) && (
+                  <div className='p-2 bg-stone-50/80 border-t border-stone-200/60 flex items-center justify-between gap-1'>
+                    {onOpenAiDraft && (
+                      <button
+                        type='button'
+                        data-testid='open-ai-draft-btn'
+                        onClick={() => {
+                          setShowAiPopover(false);
+                          onOpenAiDraft();
+                        }}
+                        className='flex-1 text-left px-2 py-1.5 rounded text-xs font-semibold text-stone-700 hover:bg-violet-50 hover:text-violet-700 transition-colors cursor-pointer'
+                      >
+                        Viết nháp kịch bản
+                      </button>
+                    )}
+                    {onOpenAiStoryboard && (
+                      <button
+                        type='button'
+                        data-testid='open-ai-storyboard-btn'
+                        onClick={() => {
+                          setShowAiPopover(false);
+                          onOpenAiStoryboard();
+                        }}
+                        className='flex-1 text-left px-2 py-1.5 rounded text-xs font-semibold text-stone-700 hover:bg-violet-50 hover:text-violet-700 transition-colors cursor-pointer'
+                      >
+                        Phân khung bằng AI
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className='p-2.5 bg-[#FAF9F5] border-t border-stone-200/80 flex items-center justify-between text-[11px]'>
+              <div className='p-2.5 bg-[#FAF9F5] border-t border-stone-200/80 flex items-center justify-between text-xs'>
                 <span className='text-stone-500 flex items-center gap-1'>
                   <Zap className='w-3 h-3 text-stone-400' />
                   {t('collaboration.writerStudio.clickToInsert', 'Nhấn để chèn vào kịch bản')}
@@ -919,7 +963,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                 {onOpenAiPromptModal && (
                   <button
                     type='button'
-                    className='text-primary hover:underline font-semibold cursor-pointer'
+                    className='text-violet-700 hover:underline font-semibold cursor-pointer'
                     onClick={() => {
                       setShowAiPopover(false);
                       onOpenAiPromptModal();
@@ -935,13 +979,13 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           <button
             type='button'
             id='btn-ai-script-assistant'
-            data-testid='btn-ai-script-assistant'
+            data-testid='rail-ai-btn'
             onClick={() => setShowAiPopover(!showAiPopover)}
-            className='flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary hover:bg-secondary text-white font-semibold text-[13px] shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 hover:scale-105 active:scale-95 cursor-pointer'
+            className='flex items-center gap-2 px-4 py-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white font-semibold text-xs shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 hover:scale-105 active:scale-95 cursor-pointer'
           >
             <Sparkles className='w-4 h-4 animate-pulse' />
             <span>{t('collaboration.writerStudio.scriptSuggestions', 'Gợi ý kịch bản')}</span>
-            <span className='px-1.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-mono font-bold'>
+            <span className='px-1.5 py-0.5 rounded-full bg-white/20 text-white text-xs font-mono font-bold'>
               AI
             </span>
           </button>
@@ -965,9 +1009,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                 chooseElement(editor, el);
               }}
               className={`flex items-center justify-between px-3 py-1.5 cursor-pointer ${
-                i === menu.index
-                  ? 'bg-orange-50 text-primary'
-                  : 'text-stone-700 hover:bg-stone-50'
+                i === menu.index ? 'bg-orange-50 text-primary' : 'text-stone-700 hover:bg-stone-50'
               }`}
             >
               <span>{t(`scriptStudio.gn.el.${el}`)}</span>

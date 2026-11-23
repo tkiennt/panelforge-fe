@@ -111,10 +111,8 @@ import {
 } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { ScriptVersionsDrawer } from '../components/script/versions/ScriptVersionsDrawer';
-import { ScriptStudioRail, type ScriptRailItem } from '../components/script/ScriptStudioRail';
 import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
 import { parseScenePanelRange, formatSceneSummaryWithPanels } from '../utils/sceneUtils';
-import { ScriptChaptersDrawer } from '../components/script/ScriptChaptersDrawer';
 import { ScriptStatusDrawer } from '../components/script/ScriptStatusDrawer';
 import {
   useScriptDrawers,
@@ -2567,8 +2565,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Gửi lại chỉ khi đã lưu thay đổi sau lần gửi duyệt gần nhất
   const canSubmitScript =
-    scriptAction !== null &&
-    (scriptAction !== 'resubmit' || hasUnpushedChanges);
+    scriptAction !== null && (scriptAction !== 'resubmit' || hasUnpushedChanges);
   const scriptStageIndex = isScriptFrozen ? 2 : isScriptInReview ? 1 : 0;
 
   const submitScriptRef = React.useRef<() => void>(() => {});
@@ -2672,153 +2669,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     (restorable.storyArc && storyArcDraftKey ? 1 : 0) +
     (restorable.outline && outlineDraftKey ? 1 : 0);
 
-  const railItems: ScriptRailItem[] = [
-    {
-      id: 'chapters',
-      label: t('scriptStudio.rail.chapters', 'Chương'),
-      tooltip: t('scriptStudio.railTooltip.chapters', 'Danh sách chương trong bộ truyện'),
-      icon: BookOpen,
-      active: activeLeftDrawer === 'chapters',
-      testId: 'rail-chapters-btn',
-      onClick: () => toggleLeftDrawer('chapters'),
-    },
-    {
-      id: 'scenes',
-      label: t('scriptStudio.rail.scenes', 'Phân cảnh'),
-      tooltip: t('scriptStudio.railTooltip.scenes', 'Danh sách phân cảnh trong chương'),
-      icon: Clapperboard,
-      active: activeLeftDrawer === 'scenes',
-      testId: 'rail-scenes-btn',
-      onClick: () => toggleLeftDrawer('scenes'),
-    },
-    {
-      id: 'outline',
-      label: t('scriptStudio.rail.outline'),
-      tooltip: t('scriptStudio.railTooltip.outline', 'Đề cương & Ngữ cảnh cốt truyện'),
-      icon: Compass,
-      active: activeRightDrawer === 'narrative',
-      testId: 'toggle-narrative-context-btn',
-      onClick: () => toggleRightDrawer('narrative'),
-    },
-    {
-      id: 'characters',
-      label: t('scriptStudio.rail.characters'),
-      tooltip: t('scriptStudio.railTooltip.characters', 'Nhân vật Bible & Phân vai chương'),
-      icon: Users,
-      active: activeRightDrawer === 'characters',
-      badge: chapterCast?.entities?.length,
-      tone: isSubmitBlocked || isStartBlocked ? 'warn' : 'default',
-      testId: 'rail-characters-btn',
-      onClick: () => toggleRightDrawer('characters'),
-    },
-    {
-      id: 'consistency',
-      label: t('scriptStudio.rail.consistency'),
-      tooltip: t('scriptStudio.railTooltip.consistency', 'Kiểm tra nhất quán cốt truyện'),
-      icon: ShieldCheck,
-      active: activeRightDrawer === 'consistency',
-      badge: openFindingsCount,
-      busy: loadingConsistency,
-      disabled: !currentChapter?.id,
-      testId: 'rail-consistency-btn',
-      onClick: () => toggleRightDrawer('consistency'),
-    },
-    {
-      id: 'comments',
-      label: t('scriptStudio.rail.comments', 'Góp ý'),
-      tooltip: t('scriptStudio.railTooltip.comments', 'Góp ý và phản hồi kịch bản'),
-      icon: MessageSquare,
-      active: activeRightDrawer === 'comments',
-      badge: openScriptComments.length > 0 ? openScriptComments.length : undefined,
-      testId: 'rail-comments-btn',
-      onClick: () => toggleRightDrawer('comments'),
-    },
-    {
-      id: 'status',
-      label: t('scriptStudio.rail.status', 'Thông báo'),
-      tooltip: t('scriptStudio.railTooltip.status', 'Thông báo và trạng thái kịch bản'),
-      icon: Bell,
-      active: activeRightDrawer === 'status',
-      badge: activeNoticeCount > 0 ? activeNoticeCount : undefined,
-      tone: concurrencyError || isSubmitBlocked || isStartBlocked ? 'warn' : 'default',
-      testId: 'rail-status-btn',
-      onClick: () => toggleRightDrawer('status'),
-    },
-    {
-      id: 'import',
-      label: t('scriptStudio.rail.import'),
-      tooltip: !canEditScript
-        ? t('scriptStudio.railTooltip.importDisabledRole', 'Chỉ xem - không có quyền nhập kịch bản')
-        : isChapterLocked
-          ? t(
-              'scriptStudio.railTooltip.importDisabledLocked',
-              'Chương đã đóng băng - không thể nhập kịch bản',
-            )
-          : t('scriptStudio.railTooltip.import', 'Nhập kịch bản từ tệp bên ngoài'),
-      icon: FileInput,
-      disabled: !canEditScript || isChapterLocked,
-      testId: 'rail-import-btn',
-      onClick: () => {
-        setEditorMode('flow');
-        setImportRequestKey((k) => k + 1);
-      },
-    },
-    {
-      id: 'ai',
-      label: t('scriptStudio.rail.ai'),
-      tooltip: !canEditScript
-        ? t('scriptStudio.railTooltip.aiDisabledRole', 'Chỉ xem - không có quyền dùng Trợ lý AI')
-        : isChapterLocked
-          ? t(
-              'scriptStudio.railTooltip.aiDisabledLocked',
-              'Chương đã đóng băng - không thể dùng Trợ lý AI',
-            )
-          : t('scriptStudio.railTooltip.ai', 'Trợ lý AI viết nháp và phân khung'),
-      icon: Sparkles,
-      active: activeRightDrawer === 'ai-draft' || activeRightDrawer === 'ai-storyboard',
-      tone: 'ai',
-      disabled: !canEditScript || isChapterLocked,
-      testId: 'rail-ai-btn',
-      menu:
-        !canEditScript || isChapterLocked
-          ? undefined
-          : [
-              {
-                id: 'draft',
-                label: t('scriptStudio.ai.draft'),
-                hint: selectedScene ? undefined : t('scriptStudio.ai.needScene'),
-                disabled: !selectedScene,
-                testId: 'open-ai-draft-btn',
-                onSelect: () => setActiveRightDrawer('ai-draft'),
-              },
-              {
-                id: 'storyboard',
-                label: t('scriptStudio.ai.storyboard'),
-                hint: !selectedScene
-                  ? t('scriptStudio.ai.needScene')
-                  : sceneHasPanels
-                    ? t('scriptStudio.ai.storyboardLocked')
-                    : undefined,
-                disabled: !selectedScene,
-                testId: 'open-ai-storyboard-btn',
-                onSelect: () => setActiveRightDrawer('ai-storyboard'),
-              },
-            ],
-    },
-    {
-      id: 'history',
-      label: t('scriptStudio.rail.history'),
-      tooltip: t('scriptStudio.railTooltip.history', 'Lịch sử các phiên bản kịch bản'),
-      icon: History,
-      active: activeRightDrawer === 'versions',
-      tone: hasUnpushedChanges ? 'warn' : 'default',
-      testId: 'open-script-history-btn',
-      onClick: () => toggleRightDrawer('versions'),
-    },
-  ];
-
-  const railFooterItems: ScriptRailItem[] = [];
-
   const viewSwitcher = <ScriptHeader editorMode={editorMode} onSetEditorMode={setEditorMode} />;
 
   return (
@@ -2856,38 +2706,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
       <h1 className='sr-only'>Biên Soạn Kịch Bản Phân Cảnh (Script Editor)</h1>
 
-      {/* 3. Bàn viết: thanh biểu tượng (trái) | ngăn kéo phân cảnh | trang giấy (giữa) | drawers (phải) */}
+      {/* 3. Bàn viết: ngăn kéo phân cảnh (trái) | trang giấy (giữa) | drawers (phải) */}
       <div className='flex-1 flex overflow-hidden relative'>
-        <ScriptStudioRail
-          ariaLabel={t('scriptStudio.rail.label')}
-          items={railItems}
-          footerItems={railFooterItems}
-        />
-
-        {activeLeftDrawer === 'chapters' && (
-          <ScriptChaptersDrawer
-            chapters={chapters}
-            selectedChapterId={currentChapter?.id}
-            onSelectChapter={(chapId) => {
-              handleSelectChapter(chapId);
-            }}
-            onBackToSelection={handleBackToChapterSelection}
-            onClose={() => setActiveLeftDrawer(null)}
-            scenes={filteredScenes}
-            selectedSceneId={selectedScene?.id}
-            canEdit={canEditScript && !isChapterLocked}
-            onSelectScene={handleSelectScene}
-            onAddScene={handleOpenCreateScene}
-            onRenameSelectedScene={handleOpenEditScene}
-            onDeleteScene={(s) => setSceneToDelete(s)}
-            onDeleteChapter={
-              isProducer && currentChapter && !isChapterLocked
-                ? () => setChapterToDelete(currentChapter)
-                : undefined
-            }
-          />
-        )}
-
         {activeLeftDrawer === 'scenes' && (
           <ScriptScenesDrawer
             scenes={filteredScenes}
@@ -2920,10 +2740,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             >
               <PanelLeft className='w-4 h-4' />
             </button>
-            <span className='px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary text-white font-mono'>
+            <span className='px-1.5 py-0.5 rounded-full text-xs font-bold bg-primary text-white font-mono'>
               {filteredScenes.length}
             </span>
-            <div className='flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-stone-900 uppercase py-3 [writing-mode:vertical-rl] rotate-180 flex-1 flex justify-center'>
+            <div className='flex items-center gap-1.5 text-xs font-semibold tracking-wider text-stone-900 uppercase py-3 [writing-mode:vertical-rl] rotate-180 flex-1 flex justify-center'>
               <Clapperboard className='w-3.5 h-3.5 text-primary rotate-90' />
               <span>Phân cảnh</span>
             </div>
@@ -3037,6 +2857,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               onOpenAiPromptModal={() => {
                 if (canEditScript && !isChapterLocked) {
                   setActiveRightDrawer('ai-draft');
+                }
+              }}
+              onOpenAiDraft={() => {
+                if (canEditScript && !isChapterLocked) {
+                  setActiveRightDrawer('ai-draft');
+                }
+              }}
+              onOpenAiStoryboard={() => {
+                if (canEditScript && !isChapterLocked) {
+                  setActiveRightDrawer('ai-storyboard');
                 }
               }}
             />
@@ -3380,7 +3210,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       >
         <form onSubmit={handleSubmitScene} className='space-y-4'>
           <div className='p-2.5 bg-orange-50/80 border border-orange-200/70 rounded-xl text-xs text-orange-950'>
-            💡 Cảnh là phần ghi chú phân đoạn, cho phép định nghĩa tên cảnh và phạm vi từ panel đến panel, không ảnh hưởng đến logic và luồng kịch bản.
+            💡 Cảnh là phần ghi chú phân đoạn, cho phép định nghĩa tên cảnh và phạm vi từ panel đến
+            panel, không ảnh hưởng đến logic và luồng kịch bản.
           </div>
 
           <div>
@@ -3400,9 +3231,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           {/* Phạm vi panel: Từ panel nào đến panel nào */}
           <div className='grid grid-cols-2 gap-3'>
             <div>
-              <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-                Từ panel
-              </label>
+              <label className='block text-xs font-semibold text-[#1C1917] mb-1'>Từ panel</label>
               <input
                 type='number'
                 min={1}
@@ -3419,14 +3248,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               />
             </div>
             <div>
-              <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-                Đến panel
-              </label>
+              <label className='block text-xs font-semibold text-[#1C1917] mb-1'>Đến panel</label>
               <input
                 type='number'
                 min={fromPanelInput || 1}
                 value={toPanelInput}
-                onChange={(e) => setToPanelInput(parseInt(e.target.value, 10) || fromPanelInput || 1)}
+                onChange={(e) =>
+                  setToPanelInput(parseInt(e.target.value, 10) || fromPanelInput || 1)
+                }
                 className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
                 required
               />
@@ -3685,10 +3514,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         >
           <div className='space-y-3 text-xs text-stone-700'>
             <p>
-              Bạn có chắc muốn xoá <strong>{sceneToDelete.heading || `Cảnh ${sceneToDelete.sceneNumber}`}</strong>?
+              Bạn có chắc muốn xoá{' '}
+              <strong>{sceneToDelete.heading || `Cảnh ${sceneToDelete.sceneNumber}`}</strong>?
             </p>
             <p className='text-stone-500 bg-stone-50 p-2.5 rounded-xl border border-stone-200/80'>
-              💡 Cảnh chỉ là phần ghi chú phân đoạn. Việc xoá cảnh diễn ra an toàn và không làm thay đổi hay mất nội dung kịch bản và các panel.
+              💡 Cảnh chỉ là phần ghi chú phân đoạn. Việc xoá cảnh diễn ra an toàn và không làm thay
+              đổi hay mất nội dung kịch bản và các panel.
             </p>
             <div className='flex justify-end gap-2 pt-2 border-t border-stone-200'>
               <button

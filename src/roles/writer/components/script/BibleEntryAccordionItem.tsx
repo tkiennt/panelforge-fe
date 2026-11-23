@@ -293,15 +293,18 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
       >
         <div className='flex items-start justify-between gap-2 w-full'>
           <div className='flex items-center gap-2 min-w-0'>
-            <div className='w-7 h-7 rounded-lg bg-stone-900 text-[#FAF9F5] flex items-center justify-center font-bold text-[11px] shrink-0 font-mono'>
+            <div className='w-7 h-7 rounded-lg bg-stone-900 text-[#FAF9F5] flex items-center justify-center font-bold text-xs shrink-0 font-mono'>
               {initials}
             </div>
             <div className='min-w-0'>
-              <h4 className='font-bold text-[12.5px] text-stone-900 leading-tight truncate hover:text-primary transition-colors'>
+              <h4 className='font-bold text-xs text-stone-900 leading-tight truncate hover:text-primary transition-colors'>
                 {entity.name}
               </h4>
-              <p className='text-[10px] text-stone-500 truncate'>
-                {entity.subtitle || (entity.code ? `${entity.code}` : t('production.cast.characterDefaultRole', 'Nhân vật'))}
+              <p className='text-xs text-stone-500 truncate'>
+                {entity.subtitle ||
+                  (entity.code
+                    ? `${entity.code}`
+                    : t('production.cast.characterDefaultRole', 'Nhân vật'))}
               </p>
             </div>
           </div>
@@ -309,7 +312,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
           <div className='flex items-center gap-1.5 shrink-0'>
             {renderStatusBadge()}
             {entity.isCrowd && (
-              <span className='text-[9.5px] px-1.5 py-0.5 rounded font-medium bg-stone-100 text-stone-600 border border-stone-200 shrink-0'>
+              <span className='text-xs px-1.5 py-0.5 rounded font-medium bg-stone-100 text-stone-600 border border-stone-200 shrink-0'>
                 {t('collaboration.writerStudio.exemptLock', 'Miễn trừ')}
               </span>
             )}
@@ -318,7 +321,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
 
         {/* Snippet & Meta row */}
         {entity.description && (
-          <div className='mt-2 pt-2 border-t border-stone-100 text-[11px] text-stone-600 space-y-1 w-full'>
+          <div className='mt-2 pt-2 border-t border-stone-100 text-xs text-stone-600 space-y-1 w-full'>
             <p className='line-clamp-2 leading-relaxed'>
               <strong className='text-stone-900 font-semibold'>
                 {t('collaboration.writerStudio.visualIdentity', 'Nhận diện:')}{' '}
@@ -326,10 +329,13 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
               {entity.description}
             </p>
             <div className='flex items-center justify-between pt-0.5'>
-              <span className='text-[10px] font-mono text-stone-400 truncate max-w-[180px]'>
-                {entity.code || (entity.boundRevision?.versionNumber ? `v${entity.boundRevision.versionNumber} Canon` : '')}
+              <span className='text-xs font-mono text-stone-400 truncate max-w-[180px]'>
+                {entity.code ||
+                  (entity.boundRevision?.versionNumber
+                    ? `v${entity.boundRevision.versionNumber} Canon`
+                    : '')}
               </span>
-              <span className='text-primary font-semibold text-[10.5px] flex items-center gap-0.5 shrink-0'>
+              <span className='text-primary font-semibold text-xs flex items-center gap-0.5 shrink-0'>
                 {t('collaboration.writerStudio.details', 'Chi tiết')}
                 <ChevronDown
                   className={`w-3.5 h-3.5 text-primary transition-transform duration-200 ${
@@ -496,7 +502,8 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
               {/* Spec completeness badge & quick specs view */}
               <div className='flex items-center justify-between text-xs text-stone-500 pt-1'>
                 <span className='font-medium'>
-                  {t('production.cast.specFilledCount', 'Đặc tả:')} {specStats.filled}/{specStats.total}
+                  {t('production.cast.specFilledCount', 'Đặc tả:')} {specStats.filled}/
+                  {specStats.total}
                 </span>
 
                 {canEditScript && onSaveDraft && !entity.isStub && (
@@ -572,7 +579,9 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                   </label>
                   <select
                     disabled={isActing}
-                    value={entity.chosenByWriter && boundRev ? boundRev.revisionId : '__INHERITED__'}
+                    value={
+                      entity.chosenByWriter && boundRev ? boundRev.revisionId : '__INHERITED__'
+                    }
                     onChange={(e) => onChangeRevision(entity.id, e.target.value)}
                     className='w-full p-1.5 text-xs bg-white border border-stone-200 rounded-lg outline-none focus:border-orange-500 text-stone-800 font-medium disabled:opacity-60 cursor-pointer'
                   >
