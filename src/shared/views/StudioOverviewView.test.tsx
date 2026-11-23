@@ -6,6 +6,7 @@ import { StudioOverviewView } from './StudioOverviewView';
 import { workspaceService } from '@/services/workspace.service';
 import { seriesService } from '@/services/series.service';
 import { pipelineService } from '@/services/pipeline.service';
+import axiosClient from '@/api/axiosClient';
 
 const mockWorkspace = {
   id: 'ws-test',
@@ -258,5 +259,90 @@ describe('StudioOverviewView Library UX/UI', () => {
 
     expect(usageSpy).toHaveBeenCalledTimes(1);
     expect(usageSpy).toHaveBeenCalledWith('ws-test');
+  });
+
+  it('shows exact 409 Conflict message inline when changing role of member with unfinished work (TASK-345)', async () => {
+    localStorage.setItem(
+      'user',
+      JSON.stringify({ id: 'u-1', email: 'lead@panelforge.com', canCreateStudio: true }),
+    );
+    const conflictMsg =
+      'Thành viên còn 3 việc chưa xong theo vai trò Writer. Hãy giao lại hoặc hoàn tất các việc đó trước khi đổi vai trò.';
+    vi.spyOn(workspaceService, 'getMembers').mockResolvedValue([
+      {
+        userId: 'u-2',
+        fullName: 'Minh Writer',
+        email: 'minh@panelforge.com',
+        role: 'Writer',
+        isOwner: false,
+        joinedAt: '2026-01-02T00:00:00Z',
+        isEmailConfirmed: true,
+        status: 'Active',
+      },
+    ]);
+    vi.spyOn(axiosClient, 'put').mockRejectedValueOnce({
+      response: { status: 409, data: { message: conflictMsg } },
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=members']}>
+        <Routes>
+          <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const adjustBtn = await screen.findByRole('button', { name: 'Điều chỉnh' });
+    fireEvent.click(adjustBtn);
+
+    const artistOption = screen.getByLabelText('ARTIST');
+    fireEvent.click(artistOption);
+    fireEvent.click(screen.getByRole('button', { name: 'Save Policies' }));
+
+    const alert = await screen.findByTestId('edit-member-role-error');
+    expect(alert).toHaveAttribute('role', 'alert');
+    expect(alert).toHaveTextContent(conflictMsg);
+
+    // Changing role clears the previous conflict alert; happy path closes modal
+    vi.spyOn(axiosClient, 'put').mockResolvedValueOnce({ data: {} });
+    fireEvent.click(screen.getByLabelText('EDITOR'));
+    expect(screen.queryByTestId('edit-member-role-error')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Policies' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Save Policies' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('displays Pending badge for re-invited member even when isEmailConfirmed is true (TASK-345)', async () => {
+    localStorage.setItem(
+      'user',
+      JSON.stringify({ id: 'u-1', email: 'lead@panelforge.com', canCreateStudio: true }),
+    );
+    vi.spyOn(workspaceService, 'getMembers').mockResolvedValue([
+      {
+        userId: 'u-3',
+        fullName: 'Reinvited Artist',
+        email: 'reinvited@panelforge.com',
+        role: 'Artist',
+        isOwner: false,
+        joinedAt: '2026-01-03T00:00:00Z',
+        isEmailConfirmed: true,
+        status: 'Pending',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=members']}>
+        <Routes>
+          <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Reinvited Artist')).toBeInTheDocument();
+      expect(screen.getByText('Chờ xác nhận')).toBeInTheDocument();
+    });
   });
 });

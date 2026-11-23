@@ -173,6 +173,8 @@ export const StudioOverviewView: React.FC = () => {
   const [editingMember, setEditingMember] = useState<any>(null);
   const [editRole, setEditRole] = useState('');
   const [editTask, setEditTask] = useState('');
+  const [editMemberError, setEditMemberError] = useState<string | null>(null);
+  const [savingMemberRole, setSavingMemberRole] = useState(false);
 
   // Search, Filter & Sort states for Series Library
   const [searchQuery, setSearchQuery] = useState('');
@@ -225,6 +227,10 @@ export const StudioOverviewView: React.FC = () => {
             .toUpperCase()
         : 'ME';
 
+      const statusKey = String(m.status ?? '').toLowerCase();
+      const isPending =
+        statusKey === '0' || statusKey === 'pending' || m.isEmailConfirmed === false;
+
       return {
         id: m.userId,
         name: m.fullName || m.email.split('@')[0],
@@ -232,7 +238,7 @@ export const StudioOverviewView: React.FC = () => {
         role: roleStr,
         avatarBg: '#171717',
         initials,
-        status: m.isEmailConfirmed === false ? 'Chờ kích hoạt' : 'Đang hoạt động',
+        status: isPending ? 'Pending' : 'Active',
         isEmailConfirmed: m.isEmailConfirmed,
         invitationEmailSent: m.invitationEmailSent,
         isOwner: m.isOwner,
@@ -571,7 +577,7 @@ export const StudioOverviewView: React.FC = () => {
     if (
       !(await confirm({
         title: 'Xóa thành viên khỏi Workspace?',
-        description: `Bạn có chắc chắn muốn xóa thành viên "${member.email}" khỏi Workspace? Quyền truy cập Studio sẽ bị thu hồi ngay lập tức.`,
+        description: `Bạn có chắc chắn muốn xóa thành viên "${member.email}" khỏi Workspace? Quyền truy cập Studio sẽ bị thu hồi ngay lập tức và các công việc chưa nộp sẽ bị hủy.`,
         confirmText: 'Xác nhận xóa thành viên',
         cancelText: 'Giữ lại',
         variant: 'danger',
@@ -635,10 +641,13 @@ export const StudioOverviewView: React.FC = () => {
     setEditingMember(member);
     setEditRole(member.role);
     setEditTask(member.activeTask || 'Chapter 5 Production');
+    setEditMemberError(null);
   };
 
   const handleSaveAccess = async () => {
-    if (!editingMember || !activeWorkspace) return;
+    if (!editingMember || !activeWorkspace || savingMemberRole) return;
+    setEditMemberError(null);
+    setSavingMemberRole(true);
     try {
       await workspaceService.updateMemberRole(activeWorkspace.id, editingMember.id, {
         newRole: editRole,
@@ -648,7 +657,11 @@ export const StudioOverviewView: React.FC = () => {
       showToast('Permissions Saved', `Updated role & access policies for ${editingMember.name}.`);
       setEditingMember(null);
     } catch (err: any) {
-      showToast('Lỗi cập nhật vai trò', err.message || 'Không thể cập nhật vai trò thành viên.');
+      const message = err?.message || 'Không thể cập nhật vai trò thành viên.';
+      setEditMemberError(message);
+      toast.error('Lỗi cập nhật vai trò', message);
+    } finally {
+      setSavingMemberRole(false);
     }
   };
 
@@ -804,7 +817,16 @@ export const StudioOverviewView: React.FC = () => {
     storageQuota > 0 ? Math.min(100, Math.round((storageUsed / storageQuota) * 100)) : 0;
   const runningSeries = seriesList.filter((s) => !s.isCompleted).length;
   const completedSeries = seriesList.length - runningSeries;
-  const activeMembers = members.filter((m) => m.isEmailConfirmed !== false).length;
+  const activeMembers = members.filter((m) => {
+    const statusKey = String(m.status ?? '').toLowerCase();
+    return (
+      m.isEmailConfirmed !== false &&
+      statusKey !== '0' &&
+      statusKey !== 'pending' &&
+      statusKey !== '2' &&
+      statusKey !== 'rejected'
+    );
+  }).length;
   const numberFmt = new Intl.NumberFormat(lang);
 
   return (
@@ -1155,12 +1177,20 @@ export const StudioOverviewView: React.FC = () => {
       {/* Edit Access & Role Modal */}
       <EditMemberAccessModal
         member={editingMember}
-        onClose={() => setEditingMember(null)}
+        onClose={() => {
+          setEditingMember(null);
+          setEditMemberError(null);
+        }}
         role={editRole}
-        onRoleChange={setEditRole}
+        onRoleChange={(r) => {
+          setEditRole(r);
+          setEditMemberError(null);
+        }}
         task={editTask}
         onTaskChange={setEditTask}
         onSave={handleSaveAccess}
+        error={editMemberError}
+        saving={savingMemberRole}
       />
 
       {/* Create Studio Modal */}

@@ -120,12 +120,15 @@ async function parseErrorResponse(error: any, defaultMsg: string): Promise<strin
   if (error.response) {
     const data = error.response.data;
     const status = error.response.status;
+    if (typeof data === 'string' && data.trim()) return data;
     if (data?.message) return data.message;
     if (data?.error) return data.error;
+    if (data?.detail) return data.detail;
 
     if (status === 401) return 'Chưa xác thực danh tính (401 Unauthorized).';
     if (status === 403) return 'Bạn không có quyền thực hiện thao tác này (403 Forbidden).';
     if (status === 404) return 'Không tìm thấy Workspace hoặc thành viên.';
+    if (status === 409) return 'Thao tác bị xung đột với trạng thái hiện tại (409 Conflict).';
   }
   return defaultMsg;
 }

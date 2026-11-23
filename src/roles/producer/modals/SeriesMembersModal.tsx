@@ -204,13 +204,19 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
     }
     const existingIds = new Set(seriesMembers.map((m) => m.userId));
     return workspaceMembers
-      .filter(
-        (m) =>
+      .filter((m) => {
+        const statusKey = String(m.status ?? '').toLowerCase();
+        return (
           !existingIds.has(m.userId) &&
           !m.isOwner &&
           m.role?.toString().toLowerCase() !== 'producer' &&
-          m.role?.toString().toLowerCase() !== 'owner',
-      )
+          m.role?.toString().toLowerCase() !== 'owner' &&
+          statusKey !== '0' &&
+          statusKey !== 'pending' &&
+          statusKey !== '2' &&
+          statusKey !== 'rejected'
+        );
+      })
       .map((m) => ({
         userId: m.userId,
         fullName: m.fullName || '',
