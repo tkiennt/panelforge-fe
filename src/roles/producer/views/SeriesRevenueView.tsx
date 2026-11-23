@@ -60,13 +60,6 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = ({ onShowToas
   const totalViews = currentSeriesStats ? currentSeriesStats.views : null;
   const uniqueReaders = currentSeriesStats ? currentSeriesStats.uniqueReaders : null;
 
-  const handleExportCsv = () => {
-    onShowToast(
-      t('revenueView.exportCsv', 'Xuất báo cáo (CSV)'),
-      'Đang chuẩn bị file CSV dữ liệu doanh thu & lượt đọc...',
-    );
-  };
-
   return (
     <div className='w-full min-h-screen bg-[#FAF9F5] font-sans text-stone-900 flex flex-col'>
       <ProducerSharedHeader
@@ -107,24 +100,8 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = ({ onShowToas
                       {series?.title || 'Series'}
                     </h1>
                   </div>
-                  <p className='text-xs text-stone-500 mt-0.5'>
-                    {t(
-                      'revenueView.subtitle',
-                      'Dữ liệu hợp nhất từ nhà xuất bản in ấn và các nền tảng số Shonen Jump+, MangaPlus (VNĐ)',
-                    )}
-                  </p>
+                  <p className='text-xs text-stone-500 mt-0.5'>{t('revenueView.subtitle')}</p>
                 </div>
-              </div>
-
-              <div className='flex items-center gap-2.5'>
-                <button
-                  type='button'
-                  onClick={handleExportCsv}
-                  className='px-3.5 py-1.5 rounded-lg bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
-                >
-                  <Download className='w-3.5 h-3.5 text-stone-500' />
-                  <span>{t('revenueView.exportCsv', 'Xuất báo cáo (CSV)')}</span>
-                </button>
               </div>
             </div>
 
@@ -280,12 +257,6 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = ({ onShowToas
               </div>
 
               <div className='p-3.5 bg-stone-50 border-t border-stone-200 flex flex-wrap items-center justify-between text-xs text-stone-500'>
-                <span>
-                  {t(
-                    'revenueView.footerNotice',
-                    'Dữ liệu doanh thu được tổng hợp định kỳ lúc 24:00 hàng ngày từ MangaPlus API và đơn hàng Tankōbon.',
-                  )}
-                </span>
                 <div className='font-semibold text-stone-700'>
                   {t('revenueView.cumulativeTotal', 'Tổng tích lũy')} {chapters.length} chương:{' '}
                   <span className='text-orange-700 font-mono font-bold text-sm'>—</span>

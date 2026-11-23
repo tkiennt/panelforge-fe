@@ -452,8 +452,7 @@
   },
   "revenueView": {
     "title": "Doanh thu & Thống kê độc giả",
-    "subtitle": "Dữ liệu hợp nhất từ nhà xuất bản in ấn và các nền tảng số Shonen Jump+, MangaPlus (VNĐ)",
-    "exportCsv": "Xuất báo cáo (CSV)",
+    "subtitle": "Lượt đọc lấy từ cổng đọc của PanelForge. Doanh thu hiển thị — khi chưa có dữ liệu thanh toán.",
     "totalRevenue": "Tổng doanh thu kỳ",
     "printRevenue": "Doanh thu bản in (Tankōbon)",
     "digitalRevenue": "Doanh thu đọc số & bản quyền",
@@ -467,7 +466,6 @@
     "thDigital": "Doanh thu đọc số",
     "thTotal": "Tổng doanh thu (VNĐ)",
     "thStatus": "Đánh giá & Tình trạng",
-    "footerNotice": "Dữ liệu doanh thu được tổng hợp định kỳ lúc 24:00 hàng ngày từ MangaPlus API và đơn hàng Tankōbon.",
     "cumulativeTotal": "Tổng tích lũy"
   }
 }
