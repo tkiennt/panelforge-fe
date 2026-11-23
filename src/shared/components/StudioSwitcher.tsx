@@ -113,21 +113,13 @@ export const StudioSwitcher: React.FC<StudioSwitcherProps> = ({
           }
           setIsOpen(!isOpen);
         }}
-        className='group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-200/80 hover:border-orange-300 text-stone-900 shadow-2xs transition-all cursor-pointer select-none max-w-[280px] sm:max-w-[340px]'
+        className='flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:bg-stone-100 transition-colors text-stone-900 font-semibold text-xs cursor-pointer border border-transparent hover:border-stone-200 select-none max-w-[280px] sm:max-w-[340px]'
         title={t('navigation.header.switchStudio', 'Chuyển đổi Studio làm việc')}
       >
-        <span className='w-6 h-6 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center shrink-0'>
-          <Building2 className='w-3.5 h-3.5' />
-        </span>
-        <div className='flex items-center gap-1.5 min-w-0 text-left'>
-          <span className='text-xs font-semibold text-stone-500 uppercase tracking-wider shrink-0 hidden sm:inline'>
-            Studio
-          </span>
-          <span className='text-xs font-bold text-stone-900 truncate'>{displayName}</span>
-        </div>
+        <span className='font-semibold text-stone-900 truncate'>{displayName}</span>
         <ChevronDown
-          className={`w-3.5 h-3.5 text-stone-500 shrink-0 transition-transform duration-200 ${
-            isOpen ? 'rotate-180 text-orange-600' : 'group-hover:text-stone-800'
+          className={`w-4 h-4 text-stone-400 shrink-0 transition-transform duration-200 ${
+            isOpen ? 'rotate-180 text-orange-600' : ''
           }`}
         />
       </button>
