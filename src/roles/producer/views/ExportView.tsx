@@ -304,7 +304,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                     <Icon className='w-4 h-4 mt-0.5 text-stone-500 shrink-0' />
                     <span className='min-w-0'>
                       <span className='block text-xs font-semibold text-stone-900'>{label}</span>
-                      <span className='block text-[11px] text-stone-500 leading-normal'>{hint}</span>
+                      <span className='block text-xs text-stone-500 leading-normal'>{hint}</span>
                     </span>
                   </label>
                 ))}
@@ -319,7 +319,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                     <h2 className='font-bold text-xs text-stone-900 uppercase tracking-wider'>
                       Bản xuất của chương ({jobs.length})
                     </h2>
-                    <p className='text-[11px] text-stone-500 mt-0.5'>
+                    <p className='text-xs text-stone-500 mt-0.5'>
                       Các bản dựng file sẵn sàng để tải về hoặc đối soát
                     </p>
                   </div>
@@ -356,14 +356,14 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                             <td className='py-3 px-3 font-semibold text-stone-900'>{job.format}</td>
                             <td className='py-3 px-3'>
                               <span
-                                className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${
+                                className={`px-2 py-0.5 rounded-full border text-xs font-bold ${
                                   STATUS_LABEL[job.status].className
                                 }`}
                               >
                                 {STATUS_LABEL[job.status].text}
                               </span>
                               {job.error && (
-                                <div className='mt-1 text-[11px] text-red-700 max-w-xs leading-normal'>
+                                <div className='mt-1 text-xs text-red-700 max-w-xs leading-normal'>
                                   {job.error}
                                 </div>
                               )}
@@ -373,7 +373,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                               {formatSize(job.sizeBytes)}
                               {job.sha256 && (
                                 <div
-                                  className='font-mono text-[10px] text-stone-500'
+                                  className='font-mono text-xs text-stone-500'
                                   title={`SHA-256: ${job.sha256}`}
                                   data-testid={`export-sha-${job.id}`}
                                 >
@@ -381,7 +381,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                                 </div>
                               )}
                             </td>
-                            <td className='py-3 px-3 font-mono text-[11px] text-stone-500 whitespace-nowrap'>
+                            <td className='py-3 px-3 font-mono text-xs text-stone-500 whitespace-nowrap'>
                               {new Date(job.createdAt).toLocaleString('vi-VN')}
                             </td>
                             <td className='py-3 px-3 text-right whitespace-nowrap'>

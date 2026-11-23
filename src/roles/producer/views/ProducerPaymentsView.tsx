@@ -14,7 +14,7 @@ import {
   Check,
   X,
   Loader2,
-  Sparkles,
+  Crown,
   Building2,
   BookOpen,
   ShieldCheck,
@@ -363,8 +363,8 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
         icon: <Wallet className='w-3 h-3 text-emerald-600' />,
       },
       VipSubscription: {
-        cls: 'bg-purple-50 text-purple-700 border-purple-200',
-        icon: <Sparkles className='w-3 h-3 text-purple-600' />,
+        cls: 'bg-amber-50 text-amber-800 border-amber-200',
+        icon: <Crown className='w-3 h-3 text-amber-700' />,
       },
     };
     const style = styles[tx.type] ?? {
@@ -379,14 +379,14 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
     return (
       <div className='flex flex-col gap-0.5 items-start'>
         <span
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border ${style.cls}`}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border ${style.cls}`}
         >
           {style.icon}
           {typeLabel(tx)}
         </span>
         {tx.seriesTitle && (
           <span
-            className='text-[11px] text-stone-700 font-semibold line-clamp-1'
+            className='text-xs text-stone-700 font-semibold line-clamp-1'
             title={tx.seriesTitle}
           >
             {tx.seriesTitle}
@@ -394,7 +394,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
           </span>
         )}
         {!tx.seriesTitle && (
-          <span className='text-[11px] text-stone-500'>
+          <span className='text-xs text-stone-500'>
             {tx.type === 'Topup'
               ? t('detail.topup')
               : tx.type === 'VipSubscription'
@@ -558,7 +558,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
           <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden'>
             <div className='bg-stone-300 h-full w-0' />
           </div>
-          <div className='text-[11px] text-stone-400 pt-0.5 truncate'>
+          <div className='text-xs text-stone-400 pt-0.5 truncate'>
             Chưa kết nối dữ liệu in ấn (API chưa hỗ trợ)
           </div>
         </div>
@@ -580,7 +580,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
           <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden'>
             <div className='bg-blue-600 h-full w-full' />
           </div>
-          <div className='text-[11px] text-stone-500 pt-0.5 truncate'>
+          <div className='text-xs text-stone-500 pt-0.5 truncate'>
             {summary.totalUnlockedChapters.toLocaleString('vi-VN')} chương mở khóa trực tuyến
           </div>
         </div>
@@ -613,14 +613,14 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
               {summary.pendingCount}
             </span>
             {summary.pendingCount > 0 && (
-              <span className='px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500 text-white animate-pulse'>
+              <span className='px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white animate-pulse'>
                 {t('kpi.needsReview')}
               </span>
             )}
           </div>
           <div className='flex items-center justify-between text-xs pt-1 border-t border-stone-100 text-stone-500'>
             <span>{summary.pendingCount > 0 ? t('kpi.pendingCountSub') : t('kpi.pendingNone')}</span>
-            <span className='text-stone-400 text-[11px]'>Lượt toàn cầu: —</span>
+            <span className='text-stone-400 text-xs'>Lượt toàn cầu: —</span>
           </div>
         </button>
       </div>
@@ -654,7 +654,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                   <span>{statusTabLabel[tab]}</span>
                   {showCount && (
                     <span
-                      className={`px-1.5 rounded-full text-[11px] font-mono ${
+                      className={`px-1.5 rounded-full text-xs font-mono ${
                         active ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800'
                       }`}
                     >
@@ -727,7 +727,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
 
         <div className='overflow-x-auto'>
           <table className='w-full text-left border-collapse min-w-[1050px] text-xs'>
-            <thead className='bg-stone-50/70 border-b border-stone-200 text-stone-600 uppercase tracking-wider font-semibold text-[11px]'>
+            <thead className='bg-stone-50/70 border-b border-stone-200 text-stone-600 uppercase tracking-wider font-semibold text-xs'>
               <tr>
                 <th className='py-3 px-4'>{t('table.orderCode')}</th>
                 <th className='py-3 px-4'>{t('table.reader')}</th>
@@ -782,7 +782,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
 
                       <td className='py-3.5 px-4'>
                         <div className='flex items-center gap-2.5'>
-                          <div className='w-7 h-7 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-[11px] font-bold text-stone-600 shrink-0 uppercase overflow-hidden'>
+                          <div className='w-7 h-7 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-xs font-bold text-stone-600 shrink-0 uppercase overflow-hidden'>
                             {tx.readerAvatarUrl ? (
                               <img
                                 src={tx.readerAvatarUrl}
@@ -797,7 +797,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                             <div className='font-semibold text-stone-900 truncate max-w-[180px]'>
                               {tx.readerName || t('table.unknownReader')}
                             </div>
-                            <div className='text-[11px] text-stone-400 truncate max-w-[180px]'>
+                            <div className='text-xs text-stone-400 truncate max-w-[180px]'>
                               {tx.readerEmail || '—'}
                             </div>
                           </div>
@@ -844,28 +844,28 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                           </div>
                         ) : tx.status === 'Approved' ? (
                           <div className='space-y-0.5 text-right'>
-                            <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200'>
+                            <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200'>
                               <CheckCircle2 className='w-3 h-3' />
                               {t('status.approved')}
                             </span>
-                            <div className='text-[11px] text-stone-500 font-mono'>
+                            <div className='text-xs text-stone-500 font-mono'>
                               {t('table.confirmedAt', { time: formatDate(tx.confirmedAt) })}
                             </div>
                             {tx.confirmedByName && (
-                              <div className='text-[11px] text-stone-400'>
+                              <div className='text-xs text-stone-400'>
                                 {t('table.confirmedBy', { name: tx.confirmedByName })}
                               </div>
                             )}
                           </div>
                         ) : tx.status === 'Rejected' ? (
                           <div className='space-y-0.5 text-right'>
-                            <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200'>
+                            <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200'>
                               <XCircle className='w-3 h-3' />
                               {t('status.rejected')}
                             </span>
                             {tx.rejectionReason && (
                               <div
-                                className='text-[11px] text-rose-600 font-medium line-clamp-2 max-w-[220px] ml-auto'
+                                className='text-xs text-rose-600 font-medium line-clamp-2 max-w-[220px] ml-auto'
                                 title={tx.rejectionReason}
                               >
                                 {t('table.reason', { reason: tx.rejectionReason })}
@@ -1004,7 +1004,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                       className='w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono text-xs focus:outline-none focus:border-orange-500'
                     />
                     {bankForm.bankAccountNo && !/^\d{6,19}$/.test(bankForm.bankAccountNo) && (
-                      <p className='text-[10px] text-rose-600 mt-1'>{t('bank.accountNoInvalid')}</p>
+                      <p className='text-xs text-rose-600 mt-1'>{t('bank.accountNoInvalid')}</p>
                     )}
                   </div>
 
@@ -1029,12 +1029,12 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                       }
                       className='w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono uppercase text-xs focus:outline-none focus:border-orange-500'
                     />
-                    <p className='text-[10px] text-stone-500 mt-1'>{t('bank.accountNameHint')}</p>
+                    <p className='text-xs text-stone-500 mt-1'>{t('bank.accountNameHint')}</p>
                   </div>
                 </div>
 
                 <div className='p-4 bg-stone-50 border border-stone-200 rounded-xl flex flex-col items-center justify-center text-center space-y-2'>
-                  <span className='text-[11px] font-bold text-stone-600 uppercase tracking-wider'>
+                  <span className='text-xs font-bold text-stone-600 uppercase tracking-wider'>
                     {t('bank.previewTitle')}
                   </span>
                   <div className='w-44 h-44 bg-white p-2 rounded-xl border border-stone-200 shadow-xs flex items-center justify-center overflow-hidden'>
@@ -1051,13 +1051,13 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                       </div>
                     )}
                   </div>
-                  <div className='text-[11px] text-stone-600 font-mono'>
+                  <div className='text-xs text-stone-600 font-mono'>
                     {bankForm.bankName} • {bankForm.bankAccountNo || '---'}
                   </div>
-                  <div className='text-[11px] font-bold text-stone-900 uppercase'>
+                  <div className='text-xs font-bold text-stone-900 uppercase'>
                     {bankForm.bankAccountName || '---'}
                   </div>
-                  <div className='text-[10px] text-stone-500'>
+                  <div className='text-xs text-stone-500'>
                     {t('bank.previewSample', {
                       amount: formatVnd(SAMPLE_AMOUNT_VND),
                       code: SAMPLE_ORDER_CODE,
@@ -1108,7 +1108,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                 <div className='font-bold text-sm text-stone-900'>
                   {t('qrModal.title', { orderCode: previewQrTx.orderCode })}
                 </div>
-                <div className='text-[11px] text-stone-500'>{previewQrTx.readerName}</div>
+                <div className='text-xs text-stone-500'>{previewQrTx.readerName}</div>
               </div>
               <button
                 type='button'
