@@ -83,7 +83,8 @@
     "studios": "Studio",
     "series": "Tác phẩm",
     "chapters": "Chương",
-    "pages": "Trang"
+    "pages": "Trang",
+    "scriptSuffix": "(Kịch bản)"
   },
   "sidebar": {
     "collapse": "Thu gọn thanh điều hướng",

@@ -83,7 +83,8 @@
     "studios": "Studio",
     "series": "Series",
     "chapters": "Chapter",
-    "pages": "Page"
+    "pages": "Page",
+    "scriptSuffix": "(Script)"
   },
   "sidebar": {
     "collapse": "Collapse navigation",

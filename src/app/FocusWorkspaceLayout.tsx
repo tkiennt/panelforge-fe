@@ -137,7 +137,15 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
   onEnterFocusMode,
   showFocusControls = true,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+
+  const isWriterScriptEditor =
+    pathname.includes('/script/editor') ||
+    (pathname.includes('/script') &&
+      !pathname.includes('/review') &&
+      !pathname.includes('/editor/desk') &&
+      !pathname.includes('/artist'));
 
   const resolvedSeriesPath =
     headerConfig?.seriesPath ||
@@ -177,7 +185,6 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
     (pathname.includes('/script/review') ||
       pathname.includes('/review/') ||
       pathname.includes('/editor/bible'));
-  const isReadOnlyReview = isEditorDesk || isEditorReview;
   const backPath =
     isEditorDesk && workspaceId ? `/workspaces/${workspaceId}/series` : resolvedSeriesPath;
 
@@ -194,95 +201,96 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
       className='h-16 bg-white border-b border-stone-200 px-4 md:px-6 flex items-center justify-between gap-3 shrink-0 z-30 select-none shadow-xs'
       data-testid='focus-studio-header'
     >
-      {/* Phía trái: Nút quay lại + Đường dẫn Bộ truyện / Chương */}
-      <div className='flex items-center gap-2 min-w-0'>
+      {/* Phía trái: Breadcrumb Studio › Series › Chương n: <title> (Kịch bản) */}
+      <nav
+        aria-label='Điều hướng bộ truyện và chương'
+        className='flex items-center gap-1.5 min-w-0 text-xs text-stone-600'
+      >
         <button
           type='button'
           onClick={handleBackClick}
           disabled={isExiting}
           data-testid='focus-back-btn'
-          title='Quay lại trang bộ truyện'
-          className='group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-stone-700 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer shrink-0 disabled:opacity-60'
+          title={t('navigation.sidebar.backToStudio', 'Về Sảnh Studio')}
+          className='font-medium text-stone-600 hover:text-stone-900 transition-colors cursor-pointer truncate max-w-[120px] sm:max-w-[180px] disabled:opacity-60 flex items-center gap-1 shrink-0'
         >
-          {isExiting ? (
-            <Loader2 className='w-4 h-4 animate-spin text-orange-600' />
-          ) : (
-            <ArrowLeft className='w-4 h-4 text-stone-500 transition-transform duration-150 group-hover:-translate-x-0.5' />
-          )}
-          <span className='hidden sm:inline'>
-            {isEditorReview ? 'Về bàn duyệt' : 'Về bộ truyện'}
-          </span>
+          {isExiting && <Loader2 className='w-3 h-3 animate-spin text-orange-600 shrink-0' />}
+          <span className='truncate'>{workspaceName || t('breadcrumbs.studios', 'Studio')}</span>
         </button>
 
-        <span className='text-stone-300 font-bold select-none shrink-0'>/</span>
+        <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0' aria-hidden='true' />
 
-        <nav
-          aria-label='Điều hướng bộ truyện và chương'
-          className='flex items-center gap-1.5 min-w-0 text-xs'
+        <Link
+          to={resolvedSeriesPath}
+          data-testid='focus-series-link'
+          title={`Mở trang bộ truyện: ${resolvedSeriesTitle}`}
+          className='font-medium text-stone-600 hover:text-stone-900 transition-colors truncate max-w-[130px] sm:max-w-[200px] shrink-0'
         >
-          <Link
-            to={resolvedSeriesPath}
-            data-testid='focus-series-link'
-            title={`Mở trang bộ truyện: ${resolvedSeriesTitle}`}
-            className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold text-stone-900 hover:text-orange-600 hover:bg-stone-100 transition-colors truncate max-w-[140px] sm:max-w-[200px]'
-          >
-            <BookOpen className='w-4 h-4 text-orange-600 shrink-0' />
-            <span className='truncate'>{resolvedSeriesTitle}</span>
-          </Link>
+          {resolvedSeriesTitle}
+        </Link>
 
-          {(chapters.length > 0 || activeChapterId) && (
-            <>
-              <span className='text-stone-300 font-bold select-none shrink-0'>/</span>
-              <div
-                data-testid='focus-chapter-breadcrumb'
-                className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-50 border border-orange-200 text-orange-700 font-semibold text-xs max-w-[190px] sm:max-w-[250px]'
-              >
-                <FileText className='w-3.5 h-3.5 text-orange-600 shrink-0' />
-                {chapters.length > 0 && headerConfig?.onSelectChapter ? (
-                  <select
-                    aria-label='Chọn chương'
-                    data-testid='focus-chapter-select'
-                    value={activeChapterId || chapters[0].id}
-                    onChange={(e) => headerConfig.onSelectChapter?.(e.target.value)}
-                    className='bg-transparent text-xs font-semibold text-orange-700 focus:outline-none cursor-pointer truncate max-w-[155px] sm:max-w-[210px]'
-                  >
-                    {chapters.map((ch) => (
+        {(chapters.length > 0 || activeChapterId) && (
+          <>
+            <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0' aria-hidden='true' />
+            <div
+              data-testid='focus-chapter-breadcrumb'
+              className='inline-flex items-center min-w-0 max-w-[200px] sm:max-w-[320px]'
+            >
+              {chapters.length > 0 && headerConfig?.onSelectChapter ? (
+                <select
+                  aria-label={t('navigation.header.chapter', 'Chọn chương')}
+                  data-testid='focus-chapter-select'
+                  value={activeChapterId || chapters[0].id}
+                  onChange={(e) => headerConfig.onSelectChapter?.(e.target.value)}
+                  className='bg-transparent text-xs font-semibold text-stone-900 hover:text-orange-600 focus:outline-none cursor-pointer truncate max-w-full'
+                >
+                  {chapters.map((ch) => {
+                    const baseLabel = formatChapterLabel(ch.chapterNumber, ch.title);
+                    const displayLabel = isWriterScriptEditor
+                      ? `${baseLabel} ${t('breadcrumbs.scriptSuffix', '(Kịch bản)')}`
+                      : baseLabel;
+                    return (
                       <option key={ch.id} value={ch.id}>
-                        {formatChapterLabel(ch.chapterNumber, ch.title)}
+                        {displayLabel}
                       </option>
-                    ))}
-                  </select>
-                ) : (
-                  <Link
-                    to={resolvedChapterPath}
-                    data-testid='focus-chapter-link'
-                    className='truncate hover:text-orange-800 transition-colors'
-                  >
-                    {activeChapter
+                    );
+                  })}
+                </select>
+              ) : (
+                <Link
+                  to={resolvedChapterPath}
+                  data-testid='focus-chapter-link'
+                  className='font-semibold text-stone-900 hover:text-orange-600 transition-colors truncate'
+                >
+                  {(() => {
+                    const base = activeChapter
                       ? formatChapterLabel(activeChapter.chapterNumber, activeChapter.title)
                       : activeChapterId
                         ? formatFallbackChapterText(activeChapterId)
-                        : 'Chương đang mở'}
-                  </Link>
-                )}
-              </div>
-            </>
-          )}
+                        : t('navigation.header.currentChapter', 'Chương đang mở');
+                    return isWriterScriptEditor
+                      ? `${base} ${t('breadcrumbs.scriptSuffix', '(Kịch bản)')}`
+                      : base;
+                  })()}
+                </Link>
+              )}
+            </div>
+          </>
+        )}
 
-          {stages.length === 0 && !activeChapterId && chapters.length === 0 && (
-            <>
-              <span className='text-stone-300 font-bold select-none shrink-0'>/</span>
-              <span className='font-bold text-stone-900 truncate px-1'>
-                {getReadableWorkspaceTitle(pathname)}
-              </span>
-            </>
-          )}
-        </nav>
-      </div>
+        {stages.length === 0 && !activeChapterId && chapters.length === 0 && (
+          <>
+            <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0' aria-hidden='true' />
+            <span className='font-semibold text-stone-900 truncate'>
+              {getReadableWorkspaceTitle(pathname)}
+            </span>
+          </>
+        )}
+      </nav>
 
-      {/* Ở giữa: Hiển thị các công đoạn thực hiện (Stage Stepper) */}
-      <div className='flex items-center justify-center min-w-0'>
-        {stages.length > 0 ? (
+      {/* Ở giữa: Hiển thị các công đoạn thực hiện (Stage Stepper) - chỉ hiển thị khi có stages */}
+      {stages.length > 0 && (
+        <div className='flex items-center justify-center min-w-0'>
           <div
             data-testid='focus-stage-stepper'
             role='list'
@@ -333,15 +341,10 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
               );
             })}
           </div>
-        ) : isReadOnlyReview ? null : (
-          <div className='hidden lg:flex items-center gap-1.5 bg-stone-100 px-3 py-1 rounded-full border border-stone-200 text-xs font-medium text-stone-600 shrink-0'>
-            <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-            <span>Đã lưu tự động</span>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Phía phải: Nút Rút bài / Nộp qua công đoạn, Chế độ tập trung, Tìm kiếm nhanh & Tài khoản */}
+      {/* Phía phải: Nút Rút bài / Nộp qua công đoạn / Gửi duyệt kịch bản */}
       <div className='flex items-center gap-2 shrink-0'>
         {headerConfig?.onWithdrawStage && (
           <button
@@ -404,7 +407,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             </button>
           ))}
 
-        {showFocusControls && onEnterFocusMode && (
+        {!isWriterScriptEditor && showFocusControls && onEnterFocusMode && (
           <button
             type='button'
             onClick={onEnterFocusMode}
@@ -417,14 +420,16 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
           </button>
         )}
 
-        <div className='flex items-center gap-2 pl-2 border-l border-stone-200'>
-          <div
-            className='w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center text-xs font-bold'
-            title={userName}
-          >
-            {userInitials || 'PF'}
+        {!isWriterScriptEditor && (
+          <div className='flex items-center gap-2 pl-2 border-l border-stone-200'>
+            <div
+              className='w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center text-xs font-bold'
+              title={userName}
+            >
+              {userInitials || 'PF'}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </header>
   );
@@ -475,6 +480,13 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
   const urlSearchParams = new URLSearchParams(location.search);
   const chapterId = params.chapterId ?? urlSearchParams.get('chapterId');
 
+  const isWriterScriptEditor =
+    location.pathname.includes('/script/editor') ||
+    (location.pathname.includes('/script') &&
+      !location.pathname.includes('/review') &&
+      !location.pathname.includes('/editor/desk') &&
+      !location.pathname.includes('/artist'));
+
   useEffect(() => {
     let alive = true;
     if (!seriesId) return;
@@ -498,6 +510,11 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
   }, [seriesId, activeSeries?.title]);
 
   useEffect(() => {
+    if (isWriterScriptEditor) {
+      if (isZenMode) setIsZenMode(false);
+      return;
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (
@@ -522,7 +539,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isZenMode]);
+  }, [isZenMode, isWriterScriptEditor]);
 
   const handleBackToProject = useCallback(() => {
     if (isExiting) return;
@@ -838,7 +855,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
         }`}
         data-testid='focus-workspace-layout'
       >
-        {isZenMode ? (
+        {isZenMode && !isWriterScriptEditor ? (
           <div
             data-testid='focus-zen-pill'
             className='absolute top-3 right-4 z-50 animate-in fade-in zoom-in-95 duration-200'
@@ -887,7 +904,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
               isExiting={isExiting}
               onBack={handleBackToProject}
               onEnterFocusMode={() => setIsZenMode(true)}
-              showFocusControls={true}
+              showFocusControls={!isWriterScriptEditor}
             />
           )}
 
