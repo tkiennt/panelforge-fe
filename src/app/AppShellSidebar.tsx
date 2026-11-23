@@ -497,6 +497,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                       key={`${item.href}-${i}`}
                       href={`#${item.href}`}
                       currentPath={location.pathname}
+                      active={item.isActive}
                       icon={item.icon}
                       label={item.label}
                       badge={item.badge ? renderBadge(item.badge) : undefined}
