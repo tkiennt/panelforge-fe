@@ -10,11 +10,12 @@ import {
   Users,
   ArrowRight,
   PenTool,
-  BookOpen,
+  Lock,
 } from 'lucide-react';
 import { SeriesDto } from '@/services/series.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { formatGenre, formatReadingDirection } from './formatters';
+import { useTranslation } from '@/lib/i18n';
 
 export interface SeriesCardItemProps {
   series: SeriesDto;
@@ -29,7 +30,7 @@ export interface SeriesCardItemProps {
   onClearCover: (seriesId: string) => void;
   onEditSeries: (series: SeriesDto) => void;
   onDeleteSeries: (series: SeriesDto) => void;
-  /** Nhãn mở theo vai trò (DESIGN_RULES 5.1); mặc định "Mở bộ truyện". */
+  /** Nhãn mở theo vai trò (DESIGN_RULES 5.1); mặc định "Mở không gian truyện". */
   openLabel?: string;
 }
 
@@ -49,6 +50,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
   onDeleteSeries,
   openLabel = 'Mở bộ truyện',
 }) => {
+  const { t } = useTranslation();
   const displayCoverUrl = s.coverUrl || s.avatarUrl;
   const initial = (
     <span className='font-serif text-5xl font-bold text-stone-400 select-none'>
@@ -58,7 +60,6 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
 
   const isCompleted = s.isCompleted;
   const isPreProd = !isCompleted && (s.chaptersCount ?? 0) === 0;
-  const isInProd = !isCompleted && (s.chaptersCount ?? 0) > 0;
 
   const pct = isCompleted
     ? 100
@@ -66,11 +67,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
       ? 15
       : Math.min(95, Math.max(30, (s.chaptersCount ?? 1) * 16));
 
-  const progressColor = isCompleted
-    ? 'bg-emerald-600'
-    : isPreProd
-      ? 'bg-amber-500'
-      : 'bg-orange-600';
+  const progressColor = isCompleted ? 'bg-emerald-600' : 'bg-orange-600';
 
   const statusBadgeColor = isCompleted
     ? 'bg-stone-700 text-white'
@@ -78,18 +75,29 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
       ? 'bg-amber-500 text-white'
       : 'bg-emerald-600 text-white';
 
+  const statusText = isCompleted
+    ? 'Hoàn thành'
+    : isPreProd
+      ? 'Tiền kỳ'
+      : 'Đang sản xuất';
+
   const seriesCode = (s as any).code || s.id.substring(0, 6).toUpperCase();
+  const buttonLabel = openLabel;
 
   return (
-    <article className='series-card group relative bg-white border border-stone-200 rounded-xl shadow-xs overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow min-w-0'>
+    <article
+      className='series-card group relative bg-white border border-stone-200 rounded-xl shadow-xs overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow min-w-0'
+      data-status={isCompleted ? 'completed' : isPreProd ? 'pre-prod' : 'in-prod'}
+      data-title={s.title.toLowerCase()}
+    >
       <div>
         {/* Cover Header Banner */}
         <div className='relative w-full h-48 bg-stone-100 overflow-hidden'>
           <button
             type='button'
             onClick={() => onOpenSeries(s.id)}
-            aria-label={`${openLabel}: ${s.title}`}
-            title={`${openLabel}: ${s.title}`}
+            aria-label={`${buttonLabel}: ${s.title}`}
+            title={`${buttonLabel}: ${s.title}`}
             className='focus-ring block w-full h-full relative cursor-pointer text-left'
           >
             {displayCoverUrl ? (
@@ -113,9 +121,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
 
             {/* Bottom Title & Subtitle Over Cover */}
             <div className='absolute bottom-3 left-3 right-3 pointer-events-none'>
-              <h3 className='text-xl text-white font-bold drop-shadow-sm line-clamp-1'>
-                {s.title}
-              </h3>
+              <h3 className='text-xl text-white font-bold drop-shadow-sm line-clamp-1'>{s.title}</h3>
               <span className='text-[11px] text-stone-200 line-clamp-1 mt-0.5'>
                 {s.synopsis || 'Dự án sản xuất truyện tranh'} • Mã: {seriesCode}
               </span>
@@ -128,16 +134,14 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
               {formatGenre(s.genre || s.format)}
             </span>
             <span className='px-2 py-0.5 rounded-md bg-white/95 backdrop-blur text-[11px] font-medium text-stone-600 shadow-xs'>
-              {formatReadingDirection(s.readingDirection).label}
+              {s.format === 'WEBTOON' ? 'Webtoon Cuộn dọc' : formatReadingDirection(s.readingDirection).label}
             </span>
           </div>
 
           {/* Top Right Status Badge & Menu */}
           <div className='absolute top-3 right-3 flex items-center gap-1.5 z-10'>
-            <span
-              className={`px-2 py-0.5 rounded-md text-[11px] font-semibold shadow-xs flex items-center gap-1 ${statusBadgeColor}`}
-            >
-              {isCompleted ? 'Hoàn thành' : isPreProd ? 'Tiền kỳ' : 'Đang sản xuất'}
+            <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold shadow-xs flex items-center gap-1 ${statusBadgeColor}`}>
+              {statusText}
             </span>
 
             {/* Accessible 3-dots Menu for Producer / Admin */}
@@ -289,7 +293,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
           {/* Metadata Box */}
           <div className='flex items-center justify-between bg-[#FAF9F5] px-3 py-2 rounded-lg border border-stone-200 text-xs'>
             <div className='flex items-center gap-1.5 text-stone-700 font-medium truncate'>
-              <BookOpen className='w-3.5 h-3.5 text-sky-600 shrink-0' />
+              <Lock className='w-3.5 h-3.5 text-sky-600 shrink-0' />
               <span className='truncate'>{s.format || 'Tiêu chuẩn'} • {formatGenre(s.genre)}</span>
             </div>
             <span className='text-[11px] text-stone-600 font-medium shrink-0'>
@@ -297,12 +301,20 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
             </span>
           </div>
 
-          {/* Status Details Row */}
-          <div className='flex items-center justify-between text-xs text-stone-600'>
-            <span>Tiến độ chương:</span>
-            <span className='font-semibold text-stone-900'>
-              {s.chaptersCount ? `${s.chaptersCount} Chương đã tạo` : 'Khởi tạo bản thảo'}
-            </span>
+          {/* Team / Ê-kíp row */}
+          <div className='flex items-center justify-between text-xs'>
+            <span className='text-stone-500'>Ê-kíp:</span>
+            <div className='flex items-center -space-x-1.5'>
+              <div className='w-6 h-6 rounded-full bg-stone-200 text-stone-700 font-bold text-[10px] flex items-center justify-center border-2 border-white select-none'>
+                {s.title.charAt(0).toUpperCase()}
+              </div>
+              <div className='w-6 h-6 rounded-full bg-orange-100 text-orange-700 font-bold text-[10px] flex items-center justify-center border-2 border-white select-none'>
+                PD
+              </div>
+              <div className='w-6 h-6 rounded-full bg-sky-100 text-sky-700 font-bold text-[10px] flex items-center justify-center border-2 border-white select-none'>
+                ED
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -312,11 +324,11 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
         <button
           type='button'
           onClick={() => onOpenSeries(s.id)}
-          aria-label={`Không gian làm việc: ${s.title}`}
+          aria-label={`${buttonLabel}: ${s.title}`}
           className='w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer'
           data-testid={`open-series-btn-${s.id}`}
         >
-          <span>Mở không gian truyện</span>
+          <span>{buttonLabel}</span>
           <ArrowRight className='w-4 h-4' />
         </button>
       </div>

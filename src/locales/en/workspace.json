@@ -194,5 +194,82 @@
     "errorCreateFailed": "Could not create Workspace. Try again shortly.",
     "successTitle": "Studio created",
     "successDesc": "Workspace \"{name}\" has been created"
+  },
+  "studioHub": {
+    "brand": "PanelForge",
+    "studioBadge": "STUDIO",
+    "workspaces": "Workspaces",
+    "tabs": {
+      "series": "Series List",
+      "crew": "Studio Crew",
+      "crewWithCount": "Studio Crew ({count})",
+      "schedule": "Master Release Schedule",
+      "audit": "Activity Audit Log"
+    },
+    "createSeries": "Create New Series",
+    "metrics": {
+      "seriesTitle": "Series Projects",
+      "seriesRunning": "{count} Running",
+      "seriesOutput": "Completed output in this Studio",
+      "seriesOnTrack": "{onTrack} on track",
+      "seriesAttention": "{attention} in preparation",
+      "storageTitle": "Storage Capacity",
+      "storageFootnote": "Raw artwork & print pre-press archives",
+      "crewTitle": "Studio Crew",
+      "crewActive": "{count} Active",
+      "crewMembers": "Members",
+      "crewBreakdown": "{writers} Writers • {artists} Artists • {letterers} Letterers • {editors} Editors",
+      "crewManage": "Manage Crew",
+      "revenueTitle": "Studio-wide Revenue",
+      "revenueFootnote": "Digital rights & physical publishing",
+      "readsCount": "{count} reads across Studio"
+    },
+    "series": {
+      "title": "Series Projects",
+      "countHeading": "({count})",
+      "filterAll": "All ({count})",
+      "filterInProd": "In Production ({count})",
+      "filterPreProd": "Pre-Production ({count})",
+      "filterCompleted": "Completed ({count})",
+      "searchPlaceholder": "Search series title...",
+      "sortRecent": "Recently Updated ▾",
+      "sortAz": "Title A-Z ▾",
+      "sortZa": "Title Z-A ▾",
+      "sortChapters": "Most Chapters ▾",
+      "openSeries": "Open Series Desk",
+      "progress": "Progress: {pct}%",
+      "chapterCount": "{count} Chapters",
+      "charactersLocked": "{count} characters locked to Bible",
+      "team": "Crew:"
+    },
+    "directory": {
+      "managementBadge": "Workspace Management",
+      "editionBadge": "Manga Paper × Tangerine Edition",
+      "title": "Your Studio Workspaces",
+      "subtitle": "Multi-Studio Manga/Webtoon parallel production management. Track assignments, series progress, and isolated storage quotas.",
+      "createStudioBtn": "+ Create New Studio",
+      "filterRoleLabel": "Filter by role:",
+      "filterAll": "All Studios ({count})",
+      "filterProducer": "I am Producer ({count})",
+      "filterEditor": "I am Editor ({count})",
+      "searchPlaceholder": "Search Studios...",
+      "seriesLabel": "Series",
+      "membersLabel": "Crew",
+      "storageLabel": "Storage: {used} / {quota}",
+      "featuredSeries": "Featured Series:",
+      "currentStudio": "Selected Studio",
+      "readySync": "Ready to Sync",
+      "enterStudio": "Enter Studio Hub",
+      "createNewCard": "+ Create New Studio Workspace",
+      "createNewDesc": "Initialize an isolated Studio with dedicated storage, crew, and publication catalog",
+      "startSetup": "Start Setup"
+    },
+    "switcher": {
+      "title": "Your Studio Workspaces",
+      "countStudios": "{count} Studios",
+      "seriesAndMembers": "{seriesCount} Series • {memberCount} members",
+      "createNew": "+ Create New Studio",
+      "viewAll": "View all Studios (/workspaces)"
+    }
   }
 }
