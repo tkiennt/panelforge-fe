@@ -4,6 +4,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   BookOpen,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Clapperboard,
   ClipboardList,
@@ -749,7 +750,6 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
 
       {/* Stitch Manga Production Workspace Banner */}
       <header className='relative bg-white rounded-xl p-6 sm:p-8 shadow-sm overflow-hidden border border-stone-200/80'>
-        <div className='absolute -right-16 -top-16 w-80 h-80 rounded-full bg-orange-100/30 blur-3xl pointer-events-none' />
         <div className='relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6'>
           <div>
             <div className='flex items-center gap-2 mb-2'>
@@ -759,14 +759,35 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               <span className='text-xs text-stone-500'>• Bản tin làm việc</span>
             </div>
             <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#18181B] tracking-tight'>
-              {workspaceRole?.toLowerCase() === 'writer' ? 'Bàn làm việc Biên kịch' : 'Công việc của tôi'}
+              {workspaceRole?.toLowerCase() === 'writer'
+                ? 'Bàn làm việc Biên kịch'
+                : 'Công việc của tôi'}
             </h1>
             <p className='text-sm text-stone-500 mt-1'>
-              Dự án: <strong className='text-[#18181B] font-semibold'>{seriesId ? 'PanelForge Production' : 'Workspace'}</strong> • Bắt đầu, tải artwork, nộp bài và xử lý yêu cầu sửa
+              Dự án:{' '}
+              <strong className='text-[#18181B] font-semibold'>
+                {seriesId ? 'PanelForge Production' : 'Workspace'}
+              </strong>{' '}
+              • Bắt đầu, tải artwork, nộp bài và xử lý yêu cầu sửa
             </p>
           </div>
 
           <div className='flex items-center gap-2.5 flex-wrap'>
+            {chapters.length > 0 &&
+              workspaceId &&
+              seriesId &&
+              (() => {
+                const activeChapter = chapters.find((c) => !c.isScriptFrozen) || chapters[0];
+                return (
+                  <Link
+                    to={`/workspaces/${workspaceId}/series/${seriesId}/script?chapterId=${activeChapter.id}`}
+                    className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs transition-colors shadow-xs'
+                  >
+                    <BookOpen className='w-4 h-4' />
+                    <span>Tiếp tục viết Ch.{activeChapter.chapterNumber}</span>
+                  </Link>
+                );
+              })()}
             <select
               value={chapterId}
               onChange={(e) => selectChapter(e.target.value)}
@@ -774,7 +795,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               disabled={loadingChapters && chapters.length === 0}
               className='px-4 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] shadow-xs focus:outline-none focus:border-[#F97316] cursor-pointer'
             >
-              <option value='ALL_STUDIO'>✨ Toàn bộ Studio (Tất cả các chương)</option>
+              <option value='ALL_STUDIO'>Toàn bộ Studio (Tất cả các chương)</option>
               {chapters.map((c) => (
                 <option key={c.id} value={c.id}>
                   Chương {c.chapterNumber}
@@ -803,7 +824,11 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             </div>
             <div>
               <div className='font-bold text-[#18181B] text-sm sm:text-base'>
-                {counts.mine > 0 ? counts.mine : 2} Kịch bản
+                {counts.mine > 0
+                  ? `${counts.mine} Kịch bản`
+                  : chapters.length > 0
+                    ? `${chapters.length} Kịch bản`
+                    : '—'}
               </div>
               <div className='text-xs text-stone-500'>Đang triển khai chi tiết</div>
             </div>
@@ -813,10 +838,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               <User className='w-5 h-5' />
             </div>
             <div>
-              <div className='font-bold text-[#18181B] text-sm sm:text-base'>
-                1 Mô tả nhân vật
-              </div>
-              <div className='text-xs text-stone-500'>Cần bổ sung cho Artist</div>
+              <div className='font-bold text-[#18181B] text-sm sm:text-base'>—</div>
+              <div className='text-xs text-stone-500'>Mô tả nhân vật</div>
             </div>
           </div>
           <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
@@ -824,14 +847,113 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               <CheckCircle2 className='w-5 h-5' />
             </div>
             <div>
-              <div className='font-bold text-[#18181B] text-sm sm:text-base'>
-                1 Model Sheet
-              </div>
-              <div className='text-xs text-stone-500'>Chờ Writer đối chiếu &amp; duyệt</div>
+              <div className='font-bold text-[#18181B] text-sm sm:text-base'>—</div>
+              <div className='text-xs text-stone-500'>Model Sheet</div>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Kịch bản Chương đang thực hiện (Stitch tab-tasks view) */}
+      {chapters.length > 0 && workspaceId && seriesId && (
+        <section className='space-y-3.5'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <Film className='w-5 h-5 text-[#EA580C]' />
+              <h2 className='text-lg font-serif font-bold text-[#18181B]'>
+                Kịch bản Chương đang thực hiện
+              </h2>
+            </div>
+            <span className='text-xs text-stone-500'>{chapters.length} chương trong series</span>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            {chapters.slice(0, 4).map((c) => {
+              const isActive = !c.isScriptFrozen;
+              return (
+                <div
+                  key={c.id}
+                  className='bg-white rounded-xl p-5 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden group border border-stone-200/80 flex flex-col justify-between space-y-4'
+                >
+                  <div
+                    className={`absolute top-0 left-0 w-1.5 h-full ${
+                      isActive ? 'bg-[#EA580C]' : 'bg-stone-200'
+                    }`}
+                  />
+                  <div className='flex items-start justify-between gap-4'>
+                    <div className='space-y-1.5 min-w-0'>
+                      <div className='flex items-center gap-2 flex-wrap'>
+                        <span className='px-2 py-0.5 rounded bg-stone-100 text-[#EA580C] text-xs font-semibold'>
+                          Manga B5
+                        </span>
+                        <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 text-xs'>
+                          {c.isScriptFrozen
+                            ? 'Kịch bản đã khóa'
+                            : `Đang viết v${c.versionVector || 1}`}
+                        </span>
+                        {isActive && (
+                          <span className='inline-flex items-center gap-1.5 text-xs text-amber-800 font-medium'>
+                            <span className='w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping' />
+                            Đang hoạt động
+                          </span>
+                        )}
+                      </div>
+                      <h3 className='text-base font-serif font-bold text-[#18181B] group-hover:text-[#EA580C] transition-colors truncate'>
+                        Chương {c.chapterNumber}
+                        {c.title ? `: ${c.title}` : ''}
+                      </h3>
+                      <p className='text-xs text-stone-500 line-clamp-2 leading-relaxed'>
+                        {c.outline || 'Chưa có đề cương kịch bản tóm tắt cho chương này.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className='space-y-1.5 pt-1'>
+                    <div className='flex justify-between text-xs'>
+                      <span className='text-stone-500'>Tiến độ phác thảo kịch bản</span>
+                      <span className='font-semibold font-mono text-[#18181B]'>
+                        {c.pagesCount ?? 0} trang
+                      </span>
+                    </div>
+                    <div className='w-full h-2 rounded-full bg-stone-100 overflow-hidden'>
+                      <div
+                        className='h-full bg-[#EA580C] rounded-full transition-all duration-500'
+                        style={{
+                          width: c.isScriptFrozen
+                            ? '100%'
+                            : (c.pagesCount ?? 0) > 0
+                              ? '60%'
+                              : '15%',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className='pt-3 border-t border-stone-200/80 flex items-center justify-between text-xs text-stone-500'>
+                    <span className='font-mono'>
+                      {c.updatedAt
+                        ? new Intl.DateTimeFormat(undefined, {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          }).format(new Date(c.updatedAt))
+                        : '—'}
+                    </span>
+                    <Link
+                      to={`/workspaces/${workspaceId}/series/${seriesId}/script?chapterId=${c.id}`}
+                      className='inline-flex items-center gap-1 font-semibold text-[#EA580C] hover:underline'
+                    >
+                      <span>Mở Kịch bản Ch.{c.chapterNumber}</span>
+                      <ChevronRight className='w-4 h-4' />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <nav className='flex flex-wrap gap-2' aria-label='Bộ lọc việc'>
         {tabs.map((t) => (
