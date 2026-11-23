@@ -554,7 +554,7 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     // Only a single system-colored header renders
     const headers = screen.getAllByTestId('focus-studio-header');
     expect(headers).toHaveLength(1);
-    expect(headers[0]).toHaveClass('bg-[#FCFBF8]/95', 'border-[#D8D2C5]');
+    expect(headers[0]).toHaveClass('bg-white', 'border-stone-200');
 
     // Wait for Series title, Chapter select, and Artist stages to load
     await waitFor(() => {

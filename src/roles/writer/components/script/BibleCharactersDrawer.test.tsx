@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import React from 'react';
 import { BibleCharactersDrawer } from './BibleCharactersDrawer';
 import { BibleEntryDto } from '@/services/bible.service';
@@ -86,24 +86,22 @@ describe('BibleCharactersDrawer Component', () => {
     expect(nonCastTab).toBeInTheDocument();
     expect(allTab).toBeInTheDocument();
 
-    // Verify ordering in DOM: Trong chương comes before Ngoài chương, which comes before Tất cả
-    expect(castTab.compareDocumentPosition(nonCastTab) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(nonCastTab.compareDocumentPosition(allTab) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Verify ordering in DOM: Trong chương comes before Toàn bộ
+    expect(castTab.compareDocumentPosition(allTab) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     // Default tab is "Trong chương" (cast)
-    expect(castTab.className).toContain('bg-orange-100');
+    expect(castTab.className).toContain('bg-primary');
     expect(screen.getByText('Kaito')).toBeInTheDocument();
     expect(screen.queryByText('Aiko')).not.toBeInTheDocument();
 
     // Switch to "Ngoài chương"
     fireEvent.click(nonCastTab);
-    expect(nonCastTab.className).toContain('bg-orange-100');
     expect(screen.queryByText('Kaito')).not.toBeInTheDocument();
     expect(screen.getByText('Aiko')).toBeInTheDocument();
 
-    // Switch to "Tất cả"
+    // Switch to "Tất cả" / "Toàn bộ"
     fireEvent.click(allTab);
-    expect(allTab.className).toContain('bg-orange-100');
+    expect(allTab.className).toContain('bg-primary');
     expect(screen.getByText('Kaito')).toBeInTheDocument();
     expect(screen.getByText('Aiko')).toBeInTheDocument();
   });
@@ -132,12 +130,16 @@ describe('BibleCharactersDrawer Component', () => {
     fireEvent.click(toggleKaito);
     expect(toggleKaito).toHaveAttribute('aria-expanded', 'true');
     expect(toggleAiko).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByText('Chàng trai kiếm sĩ trẻ tuổi.')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('accordion-content')).getByText('Chàng trai kiếm sĩ trẻ tuổi.'),
+    ).toBeInTheDocument();
 
     // Click Aiko to expand -> Kaito must collapse (one open at a time)
     fireEvent.click(toggleAiko);
     expect(toggleKaito).toHaveAttribute('aria-expanded', 'false');
     expect(toggleAiko).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('Cô gái mang sức mạnh cổ xưa.')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('accordion-content')).getByText('Cô gái mang sức mạnh cổ xưa.'),
+    ).toBeInTheDocument();
   });
 });

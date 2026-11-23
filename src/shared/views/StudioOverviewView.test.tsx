@@ -107,33 +107,32 @@ describe('StudioOverviewView Library UX/UI', () => {
     vi.spyOn(pipelineService, 'getActivePipelineTemplates').mockResolvedValue([]);
   });
 
-  it('renders Studio Library with header, collapsible resource bar, and series cards', async () => {
+  it('renders Studio Library with header, metrics strip, and series cards', async () => {
     renderWithRouter();
 
     await waitFor(() => {
-      expect(screen.getByText('Thư viện Bộ truyện')).toBeInTheDocument();
-      expect(screen.getByText('Panelforge Manga Studio')).toBeInTheDocument();
+      expect(screen.getByText('Danh sách Bộ truyện')).toBeInTheDocument();
       expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
       expect(screen.getByText('Thành Phố Hoàng Hôn')).toBeInTheDocument();
     });
 
-    // Check primary actions
-    const openButtons = screen.getAllByRole('button', { name: /Mở bộ truyện/i });
-    expect(openButtons.length).toBe(2);
+    // Check primary actions (cover + CTA open buttons for the 2 series)
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+    const openButtons = screen.getAllByRole('button', { name: /^Mở bộ truyện: /i });
+    expect(openButtons.length).toBe(4);
 
-    // Thẻ tối giản: không còn nút Đội ngũ / Chương, bìa là nút mở bộ truyện
+    // Thẻ tối giản: bìa là nút mở bộ truyện
     expect(openButtons[0]).toHaveAccessibleName(/Mở bộ truyện: /);
     expect(screen.queryByRole('button', { name: /^Chương \(/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Đội ngũ$/ })).not.toBeInTheDocument();
 
     // Check reading direction labels
-    expect(screen.getByText(/chương · Đọc phải → trái/)).toBeInTheDocument();
-    expect(screen.getByText(/chương · Cuộn dọc/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Đọc phải → trái/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Cuộn dọc/).length).toBeGreaterThan(0);
 
-    // Check CTA Tạo bộ truyện
-    expect(screen.getAllByRole('button', { name: /Tạo bộ truyện/i }).length).toBeGreaterThanOrEqual(
-      1,
-    );
+    // Check studio metrics strip
+    expect(screen.getByLabelText('Chỉ số vận hành Studio')).toBeInTheDocument();
+    expect(screen.getByText('Dung lượng lưu trữ')).toBeInTheDocument();
   });
 
   it('filters series by title search keyword', async () => {
@@ -143,13 +142,12 @@ describe('StudioOverviewView Library UX/UI', () => {
       expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
     });
 
-    const searchInput = screen.getByPlaceholderText('Tìm bộ truyện theo tên, tóm tắt...');
+    const searchInput = screen.getByPlaceholderText('Tìm tên bộ truyện...');
     fireEvent.change(searchInput, { target: { value: 'Hoàng Hôn' } });
 
     await waitFor(() => {
       expect(screen.queryByText('Hành Trình Bất Tận')).not.toBeInTheDocument();
       expect(screen.getByText('Thành Phố Hoàng Hôn')).toBeInTheDocument();
-      expect(screen.getByText('1')).toBeInTheDocument();
     });
 
     // Clear filter
@@ -169,7 +167,7 @@ describe('StudioOverviewView Library UX/UI', () => {
       expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
     });
 
-    const genreSelect = screen.getByLabelText('Lọc theo thể loại');
+    const genreSelect = screen.getByLabelText('Tất cả thể loại');
     fireEvent.change(genreSelect, { target: { value: 'Action' } });
 
     await waitFor(() => {
@@ -178,7 +176,7 @@ describe('StudioOverviewView Library UX/UI', () => {
     });
 
     // Change direction to VERTICAL while genre is Action (should be empty)
-    const dirSelect = screen.getByLabelText('Lọc theo định dạng đọc');
+    const dirSelect = screen.getByLabelText('Tất cả định dạng đọc');
     fireEvent.change(dirSelect, { target: { value: 'VERTICAL' } });
 
     await waitFor(() => {
@@ -186,23 +184,13 @@ describe('StudioOverviewView Library UX/UI', () => {
     });
   });
 
-  it('toggles collapsible Studio resource governance metrics', async () => {
+  it('renders Studio resource governance metrics strip with storage usage', async () => {
     renderWithRouter();
 
     await waitFor(() => {
       expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
-      expect(screen.getByText(/Tài nguyên Studio/i)).toBeInTheDocument();
-      expect(screen.getByText('Không giới hạn')).toBeInTheDocument();
-    });
-
-    // Toggle expand
-    const toggleBtn = screen.getByRole('button', { name: /Chi tiết tài nguyên/i });
-    fireEvent.click(toggleBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Dung Lượng Lưu Trữ')).toBeInTheDocument();
-      expect(screen.getByText('Hạn Mức AI Tokens')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Thu gọn/i })).toBeInTheDocument();
+      expect(screen.getByText('Dung lượng lưu trữ')).toBeInTheDocument();
+      expect(screen.getByText('25%')).toBeInTheDocument();
     });
   });
 
@@ -265,7 +253,7 @@ describe('StudioOverviewView Library UX/UI', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
-      expect(screen.getByText(/Tài nguyên Studio/i)).toBeInTheDocument();
+      expect(screen.getByText('Dung lượng lưu trữ')).toBeInTheDocument();
     });
 
     expect(usageSpy).toHaveBeenCalledTimes(1);

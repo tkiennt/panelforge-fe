@@ -133,7 +133,9 @@ export const Modal = forwardRef<HTMLDialogElement, ModalProps>(function Modal(
       aria-describedby={description ? descriptionId : undefined}
       onCancel={handleCancel}
       onMouseDown={handleMouseDown}
-      data-testid={backdropTestId}
+      data-testid={
+        backdropTestId ?? (nativeProps as Record<string, string | undefined>)['data-testid']
+      }
       className={cn(
         'pf-modal-dialog ux fixed inset-0 m-auto flex flex-col p-0',
         'border border-[var(--studio-line)] bg-[var(--studio-surface-3)] text-[var(--studio-ink)]',

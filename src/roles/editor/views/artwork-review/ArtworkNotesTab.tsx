@@ -215,7 +215,10 @@ export const ArtworkNotesTab: React.FC<{
                     <Trash2 className='h-3.5 w-3.5' />
                   </button>
                 </div>
-                <label className='sr-only' htmlFor={`draft-${d.id}`}>
+                <label
+                  className='sr-only'
+                  htmlFor={i === 0 ? 'panel-comment-input' : `draft-${d.id}`}
+                >
                   {t('artworkReview.notes.describe')}
                 </label>
                 <textarea

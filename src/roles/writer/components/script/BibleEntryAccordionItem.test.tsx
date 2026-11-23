@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { BibleEntryAccordionItem, BibleAccordionEntity } from './BibleEntryAccordionItem';
 
@@ -55,13 +55,14 @@ describe('BibleEntryAccordionItem Component', () => {
 
     const toggleBtn = screen.getByTestId('accordion-toggle-entry-1');
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByTestId('accordion-content')).toBeInTheDocument();
+    const content = screen.getByTestId('accordion-content');
+    expect(content).toBeInTheDocument();
 
-    expect(screen.getByText('Kiếm sĩ lang thang')).toBeInTheDocument();
+    expect(within(content).getByText('Kiếm sĩ lang thang')).toBeInTheDocument();
     expect(
-      screen.getByText('Chàng trai kiếm sĩ trẻ tuổi với thanh katana cổ.'),
+      within(content).getByText('Chàng trai kiếm sĩ trẻ tuổi với thanh katana cổ.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('P1.2')).toBeInTheDocument();
+    expect(within(content).getByText('P1.2')).toBeInTheDocument();
   });
 
   it('allows writer to edit fields, keeps entity name read-only, and saves draft revision', async () => {

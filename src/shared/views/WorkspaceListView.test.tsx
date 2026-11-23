@@ -341,20 +341,23 @@ describe('WorkspaceListView Component', () => {
     expect(screen.getByTestId('ws-chip-pending').textContent).toMatch(/5/);
     expect(screen.getByTestId('ws-chip-reviews').textContent).toMatch(/1/);
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /Tôi là Họa sĩ|I am Artist/i }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /Tôi là Họa sĩ|I am Artist/i }));
     expect(screen.queryByText('Own Studio')).not.toBeInTheDocument();
     expect(screen.getByText('Invited Studio')).toBeInTheDocument();
   });
 
-  it('hides the filter when every studio is owned', async () => {
+  it('shows only relevant role pills when every studio is owned', async () => {
     vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([ws()] as any);
     renderView();
 
     await waitFor(() => expect(screen.getByText('Alpha Studio')).toBeInTheDocument());
+    const roleGroup = screen.getByRole('group', { name: /Lọc theo vai trò|Filter by role/i });
     expect(
-      screen.queryByRole('group', { name: /Lọc theo vai trò|Filter by role/i }),
+      within(roleGroup).getByRole('button', { name: /Tất cả Studio|All/i }),
+    ).toBeInTheDocument();
+    expect(within(roleGroup).getByRole('button', { name: /Producer/i })).toBeInTheDocument();
+    expect(
+      within(roleGroup).queryByRole('button', { name: /Họa sĩ|Artist/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -465,6 +468,7 @@ describe('WorkspaceListView Component', () => {
         isOwner: false,
         currentUserRole: 'ARTIST',
         seriesCount: 0,
+        storageQuotaBytes: 0,
       }),
     ] as any);
     renderView();

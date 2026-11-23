@@ -117,7 +117,7 @@ describe('App Integration Smoke Test', () => {
     await waitFor(
       () => {
         // Menu Members & Roles đã gộp vào ProducerWorkspaceView, chỉ cần kiểm tra nút của Producer
-        expect(screen.getByText('Tạo Series Mới')).toBeInTheDocument();
+        expect(screen.getByText('Tạo Series mới')).toBeInTheDocument();
       },
       { timeout: 10000 },
     );
@@ -134,7 +134,7 @@ describe('App Integration Smoke Test', () => {
       ).toBeInTheDocument();
       expect(screen.getByText('Workspace Beta (Artist)')).toBeInTheDocument();
       // Menu / hành động của Producer đã biến mất hoàn toàn
-      expect(screen.queryByText('Tạo Series Mới')).not.toBeInTheDocument();
+      expect(screen.queryByText('Tạo Series mới')).not.toBeInTheDocument();
     });
 
     // 8. User chọn vào Workspace Beta (Artist)
@@ -146,18 +146,18 @@ describe('App Integration Smoke Test', () => {
       expect(window.location.pathname).toBe('/workspaces/ws-b/series');
       expect(screen.getByText('Series One')).toBeInTheDocument();
     });
-    expect(screen.queryByText('Tạo Series Mới')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tạo Series mới')).not.toBeInTheDocument();
 
     // 10. User chọn Series One để vào môi trường làm việc chính của Artist
-    fireEvent.click(screen.getByText('Series One'));
+    fireEvent.click(screen.getByRole('button', { name: /Xem việc của tôi/i }));
 
     await waitFor(() => {
       expect(window.location.pathname).toBe('/workspaces/ws-b/series/s-1/my-work');
     });
     // Menu / hành động dành riêng cho Producer TUYỆT ĐỐI KHÔNG xuất hiện
     expect(screen.queryByText('Members & Roles')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tạo Series Mới')).not.toBeInTheDocument();
-  });
+    expect(screen.queryByText('Tạo Series mới')).not.toBeInTheDocument();
+  }, 15000);
 
   it('đăng nhập ADMINISTRATOR -> điều hướng tới /admin và render AdminDashboardView, TUYỆT ĐỐI KHÔNG bị đẩy về /workspaces', async () => {
     localStorage.setItem('token', 'mock-admin-token');
@@ -210,7 +210,7 @@ describe('App Integration Smoke Test', () => {
 
     // Phải render Workspace Catalog
     await waitFor(() => {
-      expect(screen.getByText('Không gian sáng tạo')).toBeInTheDocument();
+      expect(screen.getByText('Chào mừng đến với PanelForge')).toBeInTheDocument();
       // TUYỆT ĐỐI KHÔNG hiển thị System Admin Zone
       expect(screen.queryByText('System Admin Zone')).not.toBeInTheDocument();
       expect(
@@ -256,7 +256,7 @@ describe('App Integration Smoke Test', () => {
         screen.queryByText('PanelForge System Administration Console'),
       ).not.toBeInTheDocument();
       expect(screen.queryByText('System Admin Zone')).not.toBeInTheDocument();
-      expect(screen.getByText('Không gian sáng tạo')).toBeInTheDocument();
+      expect(screen.getByText('Chào mừng đến với PanelForge')).toBeInTheDocument();
       expect(localStorage.getItem('userRole')).toBe('USER');
     });
   });

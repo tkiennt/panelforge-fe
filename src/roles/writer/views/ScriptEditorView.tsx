@@ -692,6 +692,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [editorMode, setEditorMode] = useState<'flow' | 'cards'>(
     isTestEnvironment ? 'cards' : 'flow',
   );
+  const [cardsAiMenuOpen, setCardsAiMenuOpen] = useState(false);
 
   const notify = useCallback(
     (title: string, desc: string) => {
@@ -2932,6 +2933,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               activeRightDrawer={activeRightDrawer}
               onToggleRightDrawer={toggleRightDrawer}
               openFindingsCount={openFindingsCount}
+              sceneHasPanels={sceneHasPanels}
               onOpenAiPromptModal={() => {
                 if (canEditScript && !isChapterLocked) {
                   setActiveRightDrawer('ai-draft');
@@ -3060,8 +3062,104 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   </div>
                 )}
               </div>
-              <div className='shrink-0 border-t border-stone-200/80 bg-[#FCFBF8]/95 px-3 sm:px-5 py-2 flex items-center'>
-                {viewSwitcher}
+              <div className='shrink-0 border-t border-stone-200/80 bg-[#FCFBF8]/95 px-3 sm:px-5 py-2 flex items-center justify-between gap-2 flex-wrap'>
+                <div className='flex items-center gap-2'>
+                  {viewSwitcher}
+                  <button
+                    type='button'
+                    data-testid='rail-scenes-btn'
+                    onClick={() => toggleLeftDrawer('scenes')}
+                    className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-stone-200 bg-white text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer'
+                  >
+                    <Clapperboard className='w-3.5 h-3.5 text-primary' />
+                    <span>{t('scriptStudio.rail.scenes', 'Phân cảnh')}</span>
+                  </button>
+                </div>
+                <div className='flex items-center gap-1.5 flex-wrap relative'>
+                  <button
+                    type='button'
+                    data-testid='toggle-narrative-context-btn'
+                    onClick={() => toggleRightDrawer('narrative')}
+                    className='inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-stone-200 bg-white text-xs font-medium text-stone-700 hover:bg-stone-50 cursor-pointer'
+                  >
+                    <Compass className='w-3.5 h-3.5' />
+                    <span>{t('scriptStudio.rail.outline', 'Đề cương')}</span>
+                  </button>
+                  <button
+                    type='button'
+                    data-testid='rail-characters-btn'
+                    onClick={() => toggleRightDrawer('characters')}
+                    className='inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-stone-200 bg-white text-xs font-medium text-stone-700 hover:bg-stone-50 cursor-pointer'
+                  >
+                    <Users className='w-3.5 h-3.5' />
+                    <span>{t('scriptStudio.rail.characters', 'Series Bible')}</span>
+                  </button>
+                  <button
+                    type='button'
+                    data-testid='rail-consistency-btn'
+                    disabled={!currentChapter?.id}
+                    onClick={() => toggleRightDrawer('consistency')}
+                    className='inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-stone-200 bg-white text-xs font-medium text-stone-700 hover:bg-stone-50 cursor-pointer disabled:opacity-50'
+                  >
+                    <ShieldCheck className='w-3.5 h-3.5' />
+                    <span>{t('scriptStudio.rail.consistency', 'Nhất quán')}</span>
+                  </button>
+                  <button
+                    type='button'
+                    data-testid='open-script-history-btn'
+                    onClick={() => toggleRightDrawer('versions')}
+                    className='inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-stone-200 bg-white text-xs font-medium text-stone-700 hover:bg-stone-50 cursor-pointer'
+                  >
+                    <History className='w-3.5 h-3.5' />
+                    <span>{t('scriptStudio.rail.history', 'Lịch sử')}</span>
+                  </button>
+                  {canEditScript && !isChapterLocked && (
+                    <div className='relative'>
+                      <button
+                        type='button'
+                        data-testid='rail-ai-btn'
+                        onClick={() => setCardsAiMenuOpen((v) => !v)}
+                        className='inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 cursor-pointer'
+                      >
+                        <Sparkles className='w-3.5 h-3.5' />
+                        <span>{t('scriptStudio.rail.ai', 'AI')}</span>
+                      </button>
+                      {cardsAiMenuOpen && (
+                        <div className='absolute bottom-full right-0 mb-1 w-52 rounded-lg border border-stone-200 bg-white p-1.5 shadow-lg z-40 space-y-1'>
+                          <button
+                            type='button'
+                            data-testid='open-ai-draft-btn'
+                            disabled={!selectedScene}
+                            onClick={() => {
+                              setCardsAiMenuOpen(false);
+                              setActiveRightDrawer('ai-draft');
+                            }}
+                            className='w-full text-left px-2.5 py-1.5 rounded text-xs font-semibold text-stone-700 hover:bg-violet-50 hover:text-violet-700 cursor-pointer disabled:opacity-50'
+                          >
+                            {t('scriptStudio.ai.draft', 'Viết nháp kịch bản')}
+                          </button>
+                          <button
+                            type='button'
+                            data-testid='open-ai-storyboard-btn'
+                            disabled={!selectedScene}
+                            onClick={() => {
+                              setCardsAiMenuOpen(false);
+                              setActiveRightDrawer('ai-storyboard');
+                            }}
+                            className='w-full text-left px-2.5 py-1.5 rounded text-xs font-semibold text-stone-700 hover:bg-violet-50 hover:text-violet-700 cursor-pointer disabled:opacity-50'
+                          >
+                            <span>{t('scriptStudio.ai.storyboard', 'Phân khung bằng AI')}</span>
+                            {sceneHasPanels && (
+                              <span className='block text-[10px] font-normal text-amber-700'>
+                                {t('scriptStudio.ai.storyboardLocked', 'Cảnh đã có khung')}
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

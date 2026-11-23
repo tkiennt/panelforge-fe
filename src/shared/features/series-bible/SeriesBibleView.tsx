@@ -1245,6 +1245,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <Search className='w-3.5 h-3.5 absolute left-2.5 top-2.5 text-stone-400' />
               <input
                 type='text'
+                data-testid='bible-search-input'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={getSearchPlaceholder()}
@@ -1357,29 +1358,44 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     </div>
                   </div>
 
-                  {isArtist && (
-                    <button
-                      type='button'
-                      onClick={() => {
-                        if (matchedEntity) {
-                          void handleOpenAddRevision(
-                            matchedEntity,
-                            null,
-                            true,
-                            undefined,
-                            true,
-                            false,
-                            item.revisionId,
-                          );
-                        }
-                      }}
-                      className='px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-xs flex items-center gap-1'
-                      data-testid={`resubmit-concept-${item.entryId}`}
-                    >
-                      <RotateCcw className='w-3 h-3' />
-                      <span>{t('bible.view.resubmitBtn', 'Nộp lại')}</span>
-                    </button>
-                  )}
+                  <div className='flex items-center gap-1.5 shrink-0'>
+                    {isArtist && (
+                      <button
+                        type='button'
+                        onClick={() => {
+                          if (matchedEntity) {
+                            void handleOpenAddRevision(
+                              matchedEntity,
+                              null,
+                              true,
+                              undefined,
+                              true,
+                              false,
+                              item.revisionId,
+                            );
+                          }
+                        }}
+                        className='px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-xs flex items-center gap-1'
+                        data-testid={`resubmit-concept-${item.entryId}`}
+                      >
+                        <RotateCcw className='w-3 h-3' />
+                        <span>{t('bible.view.resubmitBtn', 'Nộp lại')}</span>
+                      </button>
+                    )}
+                    {matchedEntity && (
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setSelectedEntity(matchedEntity);
+                          setActiveTab(matchedEntity.category);
+                        }}
+                        className='px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 border border-stone-200 rounded-lg text-xs font-semibold shrink-0 cursor-pointer transition-colors'
+                        data-testid={`view-concept-history-${item.entryId}`}
+                      >
+                        {t('bible.view.actionDetails', 'Chi tiết')}
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -1528,7 +1544,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       return (
                         <tr
                           key={entity.id}
-                          className={`hover:bg-stone-50/70 transition-colors ${isSelected ? 'bg-orange-50/40' : ''}`}
+                          onClick={() => {
+                            setSelectedEntity(entity);
+                            setActiveTab(entity.category);
+                          }}
+                          className={`hover:bg-stone-50/70 transition-colors cursor-pointer ${isSelected ? 'bg-orange-50/40' : ''}`}
                           data-testid={`bible-card-${entity.id}`}
                         >
                           <td className='py-3 px-4'>
@@ -1537,7 +1557,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             </span>
                           </td>
                           <td className='py-3 px-4'>
-                            <div className='font-bold text-stone-900 flex items-center gap-1.5'>
+                            <div className='font-bold text-stone-900 flex items-center gap-1.5 flex-wrap'>
                               <span>{entity.name}</span>
                               {effRev?.variantLabel && (
                                 <span className='text-xs font-normal text-stone-500'>
@@ -1554,6 +1574,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               )}
                             </div>
                             <div className='text-xs text-stone-500 font-mono'>{entity.code}</div>
+                            {entity.description && (
+                              <p className='text-xs text-stone-500 line-clamp-1 mt-0.5'>
+                                {entity.description}
+                              </p>
+                            )}
                           </td>
                           <td className='py-3 px-4'>
                             {entity.imageUrl ? (
@@ -1575,15 +1600,37 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           <td className='py-3 px-4 text-stone-500 font-mono'>
                             {entity.lockedAt ? new Date(entity.lockedAt).toLocaleDateString() : '—'}
                           </td>
-                          <td className='py-3 px-4 text-right space-x-1.5'>
+                          <td
+                            className='py-3 px-4 text-right space-x-1.5'
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {canEndorse && effRev?.reviewStatus === 'ConceptSubmitted' && (
                               <button
                                 type='button'
                                 onClick={() => void handleConfirmCanon(effRev, entity)}
+                                title={t(
+                                  'bible.view.approveConceptTitle',
+                                  'Writer/Editor duyệt concept art này',
+                                )}
                                 className='px-2.5 py-1 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs shadow-xs cursor-pointer'
                                 data-testid={`btn-lock-canon-${effRev.id}`}
                               >
                                 {t('bible.view.actionLockCanon', 'Khóa chuẩn')}
+                              </button>
+                            )}
+
+                            {canRequestRework && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                              <button
+                                type='button'
+                                onClick={() => handleOpenReworkModal(effRev, entity)}
+                                title={t(
+                                  'bible.view.requestReworkTitle',
+                                  'Yêu cầu Artist vẽ lại concept',
+                                )}
+                                className='px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 font-medium text-xs cursor-pointer'
+                                data-testid={`btn-request-rework-${effRev.id}`}
+                              >
+                                {t('bible.view.actionRequestRework', 'Vẽ lại')}
                               </button>
                             )}
 
@@ -1600,7 +1647,18 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               </button>
                             )}
 
-                            {canCreateDraft && (
+                            {canCreateDraft && entity.isStub && (
+                              <button
+                                type='button'
+                                onClick={() => setDefineTarget(entity)}
+                                className='px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs cursor-pointer'
+                                data-testid={`define-stub-btn-${entity.id}`}
+                              >
+                                {t('bible.view.defineStubBtn', 'Định nghĩa')}
+                              </button>
+                            )}
+
+                            {canCreateDraft && !entity.isStub && (
                               <button
                                 type='button'
                                 onClick={() => void handleOpenAddRevision(entity)}
@@ -1610,6 +1668,19 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                 + Bản
                               </button>
                             )}
+
+                            <button
+                              type='button'
+                              onClick={() => void handleToggleCrowd(entity)}
+                              className={`px-2 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                                entity.isCrowd
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-stone-50 border border-stone-200/80 text-stone-600 hover:bg-stone-100'
+                              }`}
+                              data-testid={`toggle-crowd-btn-${entity.id}`}
+                            >
+                              {entity.isCrowd ? '✓ Quần chúng' : 'Quần chúng'}
+                            </button>
 
                             <button
                               type='button'
@@ -1811,6 +1882,23 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
                       {/* Action buttons on card for test compatibility */}
                       <div className='flex items-center gap-1.5 pt-1.5 border-t border-stone-100 flex-wrap'>
+                        {canRequestRework && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenReworkModal(effRev, entity);
+                            }}
+                            title={t(
+                              'bible.view.requestReworkTitle',
+                              'Yêu cầu Artist vẽ lại concept',
+                            )}
+                            className='px-2 py-0.5 rounded bg-amber-50 text-amber-800 hover:bg-amber-100 text-xs font-semibold'
+                          >
+                            {t('bible.view.actionRequestRework', 'Vẽ lại')}
+                          </button>
+                        )}
+
                         {isArtist && effRev?.reviewStatus === 'ConceptSubmitted' && (
                           <button
                             type='button'
@@ -1825,7 +1913,21 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           </button>
                         )}
 
-                        {canCreateDraft && (
+                        {canCreateDraft && entity.isStub && (
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDefineTarget(entity);
+                            }}
+                            className='px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold'
+                            data-testid={`define-stub-btn-${entity.id}`}
+                          >
+                            {t('bible.view.defineStubBtn', 'Định nghĩa')}
+                          </button>
+                        )}
+
+                        {canCreateDraft && !entity.isStub && (
                           <button
                             type='button'
                             onClick={(e) => {
@@ -1850,9 +1952,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               ? 'bg-emerald-100 text-emerald-800'
                               : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                           }`}
-                          data-testid={`crowd-badge-${entity.id}`}
+                          data-testid={`toggle-crowd-btn-${entity.id}`}
                         >
-                          {entity.isCrowd ? 'Quần chúng' : 'Đặt Quần chúng'}
+                          {entity.isCrowd ? '✓ Quần chúng' : 'Quần chúng'}
                         </button>
                       </div>
                     </div>
@@ -1871,7 +1973,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 </p>
               </div>
             ) : (
-              <div className='bg-white border border-stone-200/80 rounded-xl p-6 shadow-xs space-y-6'>
+              <div
+                data-testid='bible-entity-workbench'
+                className='bg-white border border-stone-200/80 rounded-xl p-6 shadow-xs space-y-6'
+              >
                 {/* Header Chi tiết */}
                 <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-stone-200/80'>
                   <div className='flex items-start gap-4'>
@@ -2012,6 +2117,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <button
                         type='button'
                         onClick={() => void handleConfirmCanon(activeEffRev, selectedEntity)}
+                        title={t(
+                          'bible.view.approveConceptTitle',
+                          'Writer/Editor duyệt concept art này',
+                        )}
                         className='px-4 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer'
                         data-testid={`btn-lock-canon-${activeEffRev.id}`}
                       >
@@ -2021,6 +2130,18 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             ? t('bible.view.actionLockLocation', 'Khóa bối cảnh')
                             : t('bible.view.actionLockCanon', 'Khóa chuẩn (Lock Canon)')}
                         </span>
+                      </button>
+                    )}
+
+                    {canRequestRework && activeEffRev?.reviewStatus === 'ConceptSubmitted' && (
+                      <button
+                        type='button'
+                        onClick={() => handleOpenReworkModal(activeEffRev, selectedEntity)}
+                        title={t('bible.view.requestReworkTitle', 'Yêu cầu Artist vẽ lại concept')}
+                        className='px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer'
+                      >
+                        <RotateCcw className='w-3.5 h-3.5' />
+                        <span>{t('bible.view.actionRequestRework', 'Yêu cầu vẽ lại')}</span>
                       </button>
                     )}
 
@@ -2406,22 +2527,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             </div>
           </div>
         </div>
-      )}
-
-      {/* DEFINE STUB MODAL */}
-      {defineTarget && (
-        <DefineStubModal
-          isOpen={Boolean(defineTarget)}
-          entity={defineTarget}
-          seriesId={effectiveSeries?.id || ''}
-          isWriter={isWriter}
-          onClose={() => setDefineTarget(null)}
-          onDefined={() => {
-            setDefineTarget(null);
-            setRefreshTrigger((prev) => prev + 1);
-          }}
-          onShowToast={onShowToast}
-        />
       )}
 
       {/* ADD REVISION MODAL */}

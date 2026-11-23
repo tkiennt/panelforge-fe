@@ -14,6 +14,7 @@ import {
   ArrowRight,
   BookOpen,
   Clapperboard,
+  Compass,
   History,
   Loader2,
   MessageSquare,
@@ -88,6 +89,7 @@ export interface ScreenplayFlowEditorProps {
   activeRightDrawer?: string | null;
   onToggleRightDrawer?: (drawer: any) => void;
   openFindingsCount?: number;
+  sceneHasPanels?: boolean;
   onOpenAiPromptModal?: () => void;
   onOpenAiDraft?: () => void;
   onOpenAiStoryboard?: () => void;
@@ -176,6 +178,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   activeRightDrawer,
   onToggleRightDrawer,
   openFindingsCount,
+  sceneHasPanels = false,
   onOpenAiPromptModal,
   onOpenAiDraft,
   onOpenAiStoryboard,
@@ -679,6 +682,21 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               <>
                 <button
                   type='button'
+                  id='right-tab-btn-narrative'
+                  data-testid='toggle-narrative-context-btn'
+                  onClick={() => onToggleRightDrawer('narrative')}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                    activeRightDrawer === 'narrative'
+                      ? 'bg-primary text-white shadow-2xs font-semibold'
+                      : 'text-stone-600 hover:bg-stone-200/60'
+                  }`}
+                >
+                  <Compass className='w-3.5 h-3.5' />
+                  <span>{t('scriptStudio.rail.outline', 'Đề cương')}</span>
+                </button>
+
+                <button
+                  type='button'
                   id='right-tab-btn-bible'
                   data-testid='rail-characters-btn'
                   onClick={() => onToggleRightDrawer('characters')}
@@ -747,6 +765,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           </div>
 
           <div className='h-4 w-px bg-stone-300 mx-1' />
+
+          <span className='text-[11px] text-stone-500 whitespace-nowrap'>{saveStatus}</span>
 
           <span className='font-mono text-stone-400 text-xs hidden sm:inline'>Ctrl+S</span>
 
@@ -944,7 +964,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                         }}
                         className='flex-1 text-left px-2 py-1.5 rounded text-xs font-semibold text-stone-700 hover:bg-violet-50 hover:text-violet-700 transition-colors cursor-pointer'
                       >
-                        Phân khung bằng AI
+                        <span>Phân khung bằng AI</span>
+                        {sceneHasPanels && (
+                          <span className='block text-[10px] font-normal text-amber-700'>
+                            {t('scriptStudio.ai.storyboardLocked', 'Cảnh đã có khung')}
+                          </span>
+                        )}
                       </button>
                     )}
                   </div>

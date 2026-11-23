@@ -7,6 +7,7 @@ import { chapterService } from '@/services/chapter.service';
 vi.mock('@/services/chapter.service', () => ({
   chapterService: {
     getChaptersBySeries: vi.fn(),
+    getChapterLockGate: vi.fn().mockResolvedValue(null),
   },
 }));
 
