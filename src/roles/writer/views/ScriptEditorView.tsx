@@ -2906,7 +2906,31 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           />
         )}
 
-        <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-[#F3F0E9]'>
+        {activeLeftDrawer !== 'scenes' && (
+          <div
+            id='scene-collapsed-tab'
+            data-testid='scene-collapsed-tab'
+            onClick={() => toggleLeftDrawer('scenes')}
+            title='Mở danh sách Phân cảnh'
+            className='w-11 bg-[#FBF9F4] border-r border-[#E8E3DA] flex flex-col items-center py-3 gap-3 shrink-0 cursor-pointer hover:bg-stone-100 transition-colors select-none'
+          >
+            <button
+              type='button'
+              className='w-7 h-7 rounded flex items-center justify-center text-primary bg-primary/10 border border-primary/20 hover:bg-primary hover:text-white transition-colors cursor-pointer'
+            >
+              <PanelLeft className='w-4 h-4' />
+            </button>
+            <span className='px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary text-white font-mono'>
+              {filteredScenes.length}
+            </span>
+            <div className='flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-stone-900 uppercase py-3 [writing-mode:vertical-rl] rotate-180 flex-1 flex justify-center'>
+              <Clapperboard className='w-3.5 h-3.5 text-primary rotate-90' />
+              <span>Phân cảnh</span>
+            </div>
+          </div>
+        )}
+
+        <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-[#F4EFE8]/70'>
           {(loadingScenes || loadingChapters || loadingDetail) &&
           chapterScenesDetail.length === 0 &&
           !selectedScene ? (
@@ -3004,6 +3028,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 currentChapter.chapterNumber,
                 currentChapter.title,
               )}
+              sceneCount={filteredScenes.length}
+              onToggleSceneOutline={() => toggleLeftDrawer('scenes')}
+              isSceneOutlineOpen={activeLeftDrawer === 'scenes'}
+              activeRightDrawer={activeRightDrawer}
+              onToggleRightDrawer={toggleRightDrawer}
+              openFindingsCount={openFindingsCount}
+              onOpenAiPromptModal={() => {
+                if (canEditScript && !isChapterLocked) {
+                  setActiveRightDrawer('ai-draft');
+                }
+              }}
             />
           ) : (
             <div className='flex-1 min-h-0 flex flex-col'>

@@ -470,10 +470,10 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   }
                   relative={workspaceId && seriesId ? undefined : 'path'}
                   data-testid='open-writer-desk'
-                  className='h-9 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                  className='h-9 px-3.5 py-1.5 rounded-xl border border-[#EA580C]/30 bg-[#FFF1EC] hover:bg-[#FFE6DC] text-[#EA580C] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
-                  <PenTool className='w-3.5 h-3.5 text-blue-600' />
-                  <span>Mở Script Editor</span>
+                  <PenTool className='w-3.5 h-3.5 text-[#EA580C]' />
+                  <span>Mở Kịch bản Ch.{assignment.chapterId?.slice(0, 4) || ''} →</span>
                 </Link>
               )}
               {String(assignment.assignedRole).toUpperCase() === 'ARTIST' && (
