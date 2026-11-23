@@ -271,5 +271,47 @@
       "createNew": "+ Create New Studio",
       "viewAll": "View all Studios (/workspaces)"
     }
+  },
+  "portal": {
+    "eyebrow": "Studio",
+    "title": "Choose a series to work on",
+    "greeting": "Welcome back, {name}. Pick a series to see the work assigned to you.",
+    "openTasks_one": "{count} open task",
+    "openTasks_other": "{count} open tasks",
+    "urgentTasks_one": "{count} task needs a fix",
+    "urgentTasks_other": "{count} tasks need a fix",
+    "searchLabel": "Search series",
+    "searchPlaceholder": "Search series by title, genre or format...",
+    "clearSearch": "Clear search",
+    "showing": "Showing {shown}/{total} series",
+    "emptyTitle": "You have not been added to any series in this studio yet.",
+    "noResults": "No matching series",
+    "resetSearch": "Clear filter",
+    "formatWebtoon": "Vertical webtoon",
+    "chapterLabel": "Chapter {number}: {title}",
+    "chapterCount": "{count} chapters",
+    "completed": "Completed",
+    "inProduction": "In production",
+    "dueOn": "Due {date}",
+    "tasksForYou": "{count} tasks assigned to you",
+    "priority": "Priority",
+    "noTasks": "Nothing is assigned to you in this series yet.",
+    "openMyWork": "View my work",
+    "role": {
+      "WRITER": "Writer",
+      "ARTIST": "Artist",
+      "LETTERER": "Letterer",
+      "EDITOR": "Editor",
+      "PRODUCER": "Producer"
+    },
+    "status": {
+      "Assigned": "Assigned",
+      "InProgress": "In progress",
+      "Submitted": "Submitted",
+      "UnderReview": "In review",
+      "Approved": "Approved",
+      "ReworkRequired": "Needs fix",
+      "Blocked": "Blocked"
+    }
   }
 }

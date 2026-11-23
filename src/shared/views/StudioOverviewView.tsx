@@ -42,6 +42,7 @@ import { SeriesShelf } from './studio-overview/SeriesShelf';
 import { MembersTabContent } from './studio-overview/MembersTabContent';
 import { StudioScheduleTab } from './studio-overview/StudioScheduleTab';
 import { StudioAuditTab } from './studio-overview/StudioAuditTab';
+import { MemberSeriesPortal } from './studio-overview/MemberSeriesPortal';
 import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
 import { Alert } from '@/shared/ui';
 import {
@@ -749,6 +750,21 @@ export const StudioOverviewView: React.FC = () => {
     setDirectionFilter('ALL');
     setStatusFilter('ALL');
   };
+
+  // Writers, artists, letterers and editors land on their own series picker, not the studio governance hub.
+  if (!isProducerOrAdmin) {
+    return (
+      <MemberSeriesPortal
+        workspaceId={activeWorkspace?.id || workspaceId}
+        workspaceName={activeWorkspace?.name}
+        userName={currentUser?.fullName}
+        workspaceRole={wsRole}
+        seriesList={seriesList}
+        loading={loading}
+        onOpenSeries={handleOpenSeries}
+      />
+    );
+  }
 
   return (
     <div className='flex-1 bg-[#FAF9F5] min-h-screen p-4 md:p-6 space-y-5 text-stone-900 font-sans'>
