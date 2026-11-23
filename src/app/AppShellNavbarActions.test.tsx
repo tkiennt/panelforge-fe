@@ -144,7 +144,7 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
   });
 
   describe('AppShell Component integration with header actions', () => {
-    it('kích hoạt onOpenCommandPalette khi click vào ô tìm kiếm ⌘K trên header', async () => {
+    it('kích hoạt onOpenCommandPalette khi nhấn tổ hợp phím ⌘K / Ctrl+K', async () => {
       const onOpenCommandPalette = vi.fn();
 
       render(
@@ -155,10 +155,7 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
         </MemoryRouter>,
       );
 
-      const searchTrigger = screen.getByTestId('header-command-palette-trigger');
-      expect(searchTrigger).toBeInTheDocument();
-
-      fireEvent.click(searchTrigger);
+      fireEvent.keyDown(window, { key: 'k', metaKey: true });
       expect(onOpenCommandPalette).toHaveBeenCalledTimes(1);
     });
   });

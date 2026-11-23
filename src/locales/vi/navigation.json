@@ -23,7 +23,7 @@
     "dashboard": "Dashboard",
     "seriesDashboard": "Series Dashboard",
     "systemDashboard": "System Dashboard",
-    "myWork": "Công việc của tôi",
+    "myWork": "Việc của tôi",
     "workAndReview": "Công việc & Xét duyệt",
     "production": "Quy trình sản xuất",
     "script": "Kịch bản (Script)",
@@ -52,7 +52,19 @@
     "reviewDesk": "Bàn duyệt",
     "bibleReview": "Duyệt thiết kế Bible",
     "readerStats": "Lượt đọc",
-    "revenue": "Doanh thu"
+    "revenue": "Doanh thu",
+    "progressAndTasks": "Tiến độ & Giao việc",
+    "scriptAndReview": "Kịch bản & Cổng duyệt",
+    "artworkReview": "Đọc duyệt tranh",
+    "packagingAndExport": "Đóng gói & Xuất bản",
+    "library": "Thư viện",
+    "revenueAndReads": "Doanh thu & Lượt đọc",
+    "chapterScript": "Kịch bản Chương",
+    "characterProfilesAndLore": "Hồ sơ Nhân vật & Lore",
+    "panelCanvasDesk": "Bàn vẽ Khung tranh",
+    "scriptReadOnly": "Kịch bản (chỉ đọc)",
+    "letteringAndBalloons": "Chèn chữ & Bóng thoại",
+    "editorReviewDesk": "Kiểm tra & Hiệu đính"
   },
   "header": {
     "searchPlaceholder": "Tìm kiếm khung tranh, thoại, tư liệu...",
@@ -92,6 +104,7 @@
     "activeSeriesLabel": "BỘ TRUYỆN ĐANG MỞ",
     "activeWorkspaceLabel": "WORKSPACE HIỆN TẠI",
     "chapterProduction": "SẢN XUẤT CHƯƠNG",
+    "chapterWriting": "SÁNG TÁC CHƯƠNG",
     "seriesOverview": "TỔNG QUAN",
     "crew": "Đội ngũ",
     "themes": {
