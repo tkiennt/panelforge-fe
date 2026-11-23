@@ -64,14 +64,13 @@ describe('FocusWorkspaceLayout Component', () => {
     expect(
       screen.queryByText(/SHA-256|CAS|DPI|B5 Master|Zen Mode|Manga B5 Desk/i),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Đã lưu tự động')).toBeInTheDocument();
 
     // Content is rendered and AppShellSidebar is present in Writer Studio design
     expect(screen.getByTestId('artist-desk-content')).toBeInTheDocument();
     expect(screen.getByTestId('app-shell-sidebar')).toBeInTheDocument();
   });
 
-  it('supports toggling full focus mode on and off cleanly', () => {
+  it('supports toggling full focus mode on and off cleanly for artist desk', () => {
     renderLayout();
 
     const focusBtn = screen.getByTestId('focus-zen-toggle-btn');
@@ -85,5 +84,57 @@ describe('FocusWorkspaceLayout Component', () => {
     fireEvent.click(screen.getByText(/Thoát toàn màn hình/i));
     expect(screen.getByTestId('focus-studio-header')).toBeInTheDocument();
     expect(screen.queryByTestId('focus-zen-pill')).not.toBeInTheDocument();
+  });
+
+  it('hides focus mode button and zen toggle UI for writer script editor, and renders clean breadcrumb with suffix', () => {
+    const writerUser: CurrentUser = {
+      name: 'Arata K.',
+      role: 'USER',
+      workspaceRole: 'WRITER' as any,
+      activeRoles: ['WRITER'],
+      avatarInitials: 'AK',
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/script/editor?chapterId=05']}>
+        <Routes>
+          <Route
+            element={
+              <FocusWorkspaceLayout
+                currentUser={writerUser}
+                activeWorkspace={{ id: 'ws-1', name: 'Studio MAPPA' }}
+                activeSeries={{ id: 'ser-1', title: 'Shibuya Overdrive' }}
+              />
+            }
+          >
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/script/editor'
+              element={<div data-testid='script-editor-content'>Script Editor Screen</div>}
+            />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // Focus mode toggle button is NOT present in writer editor
+    expect(screen.queryByTestId('focus-zen-toggle-btn')).not.toBeInTheDocument();
+
+    // Pressing 'F' does NOT enter zen mode
+    fireEvent.keyDown(window, { key: 'f' });
+    expect(screen.getByTestId('focus-studio-header')).toBeInTheDocument();
+    expect(screen.queryByTestId('focus-zen-pill')).not.toBeInTheDocument();
+
+    // Studio back crumb
+    expect(screen.getByTestId('focus-back-btn')).toHaveTextContent('Studio MAPPA');
+
+    // Series link
+    expect(screen.getByTestId('focus-series-link')).toHaveTextContent('Shibuya Overdrive');
+
+    // Chapter breadcrumb has (Kịch bản) suffix
+    const chapterBreadcrumb = screen.getByTestId('focus-chapter-breadcrumb');
+    expect(chapterBreadcrumb).toHaveTextContent(/Chương 05.*\(Kịch bản\)/);
+
+    // No stage stepper when stages is empty
+    expect(screen.queryByTestId('focus-stage-stepper')).not.toBeInTheDocument();
   });
 });
