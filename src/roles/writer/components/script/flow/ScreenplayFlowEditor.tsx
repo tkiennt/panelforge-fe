@@ -266,7 +266,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     caption: '',
     sfx: '',
     acceptHint: '',
-    willCreateDraft: '',
   });
   Object.assign(labelsRef.current, {
     page: (n: number, k: number) => t('scriptStudio.gn.page', { n, k }),
@@ -274,7 +273,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     caption: t('scriptStudio.gn.caption'),
     sfx: t('scriptStudio.gn.sfx'),
     acceptHint: t('scriptStudio.gn.accept'),
-    willCreateDraft: t('scriptStudio.cast.willCreateDraft', 'Sẽ tạo bản nháp'),
   });
   const labels = labelsRef.current;
 
