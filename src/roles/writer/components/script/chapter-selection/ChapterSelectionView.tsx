@@ -183,12 +183,12 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
   const getStatusBadge = (chapter: ChapterDto) => {
     if (chapter.isScriptFrozen) {
       return (
-        <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0'>
+        <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0'>
           <Lock className='w-3 h-3' />
           <span>Kịch bản đã khóa (Frozen)</span>
           {chapter.scriptContentHash && (
             <span
-              className='font-mono text-[10px] font-semibold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded border border-indigo-200'
+              className='font-mono text-xs font-semibold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded border border-indigo-200'
               title={`SHA-256: ${chapter.scriptContentHash}`}
               data-testid={`chapter-hash-${chapter.chapterNumber}`}
             >
@@ -202,28 +202,28 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
     switch (chapter.status) {
       case 'PreProduction':
         return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-50 text-stone-700 border border-stone-200 shrink-0'>
+          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-stone-50 text-stone-700 border border-stone-200 shrink-0'>
             <Clock className='w-3 h-3 text-stone-500' />
             <span>Tiền kỳ (viết kịch bản)</span>
           </span>
         );
       case 'ChapterApproved':
         return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
+          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
             <CheckCircle2 className='w-3 h-3' />
             <span>Nghiệm thu hoàn tất (Gate 3)</span>
           </span>
         );
       case 'HandedOffAndPublished':
         return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
+          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
             <Sparkles className='w-3 h-3' />
             <span>Đã phát hành</span>
           </span>
         );
       default:
         return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0'>
+          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0'>
             <Clock className='w-3 h-3' />
             <span>Đang sản xuất (In Progress)</span>
           </span>
@@ -231,7 +231,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
     }
   };
 
-  const seriesTitle = seriesDetail?.title || 'Đốm Lửa Trường Sinh';
+  const seriesTitle = seriesDetail?.title || '—';
 
   return (
     <PageContainer
@@ -239,15 +239,11 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
       className='space-y-6 py-6 text-[#1C1917] font-sans'
     >
       {/* 1. TOP-BAR: TIÊU ĐỀ & THỐNG KÊ NHANH (KHÔNG LẶP LẠI BREADCRUMB CỦA APPSHELL ĐỂ TRÁNH TRÙNG 2 HEADER) */}
-      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6'>
+      <div className='bg-[#FCFBF8] border border-stone-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6'>
         <div className='space-y-1.5 min-w-0'>
           {/* Tiêu đề trang & Mô tả hướng dẫn */}
           <div className='space-y-1'>
             <div className='flex items-center gap-2.5 flex-wrap'>
-              <span className='px-2.5 py-0.5 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 text-[#C2410C] text-[10px] font-bold uppercase tracking-wider flex items-center gap-1'>
-                <BookOpen className='w-3 h-3' />
-                <span>SCRIPT MANAGEMENT HUB</span>
-              </span>
               <h1 className='text-xl sm:text-2xl font-bold font-serif text-[#1C1917] tracking-tight'>
                 Quản lý Kịch bản — {seriesTitle}
               </h1>
@@ -270,7 +266,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               <BookOpen className='w-4 h-4 text-[#C2410C]' />
             </div>
             <div>
-              <div className='text-[10px] font-semibold uppercase text-[#78716C] tracking-wide'>
+              <div className='text-xs font-semibold uppercase text-[#78716C] tracking-wide'>
                 Tổng số chương
               </div>
               <div className='text-sm font-bold font-mono text-[#1C1917]'>{stats.total}</div>
@@ -283,7 +279,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               <Clock className='w-4 h-4' />
             </div>
             <div>
-              <div className='text-[10px] font-semibold uppercase text-amber-800 tracking-wide'>
+              <div className='text-xs font-semibold uppercase text-amber-800 tracking-wide'>
                 Đang viết
               </div>
               <div className='text-sm font-bold font-mono text-amber-900'>{stats.inProgress}</div>
@@ -296,7 +292,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               <Lock className='w-4 h-4' />
             </div>
             <div>
-              <div className='text-[10px] font-semibold uppercase text-indigo-800 tracking-wide'>
+              <div className='text-xs font-semibold uppercase text-indigo-800 tracking-wide'>
                 Đã khóa
               </div>
               <div className='text-sm font-bold font-mono text-indigo-900'>{stats.frozen}</div>
@@ -309,7 +305,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               <CheckCircle2 className='w-4 h-4' />
             </div>
             <div>
-              <div className='text-[10px] font-semibold uppercase text-emerald-800 tracking-wide'>
+              <div className='text-xs font-semibold uppercase text-emerald-800 tracking-wide'>
                 Đã duyệt
               </div>
               <div className='text-sm font-bold font-mono text-emerald-900'>{stats.approved}</div>
@@ -404,7 +400,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
 
         {/* Dòng bộ lọc trạng thái (Status Filter Pills/Tabs) */}
         <div className='flex items-center gap-1.5 overflow-x-auto custom-scrollbar pt-1 border-t border-[#EBE7DF]'>
-          <span className='text-[11px] font-semibold text-[#78716C] uppercase tracking-wider mr-1.5 shrink-0 flex items-center gap-1'>
+          <span className='text-xs font-semibold text-[#78716C] uppercase tracking-wider mr-1.5 shrink-0 flex items-center gap-1'>
             <SlidersHorizontal className='w-3 h-3 text-[#A8A29E]' />
             Lọc:
           </span>
@@ -421,7 +417,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
           >
             <span>Tất cả</span>
             <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+              className={`text-xs px-1.5 py-0.2 rounded-full font-mono ${
                 statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-[#F3F0E9] text-[#78716C]'
               }`}
             >
@@ -442,7 +438,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             <Clock className='w-3 h-3' />
             <span>Đang sản xuất</span>
             <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+              className={`text-xs px-1.5 py-0.2 rounded-full font-mono ${
                 statusFilter === 'in_progress'
                   ? 'bg-white/20 text-white'
                   : 'bg-amber-100 text-amber-800'
@@ -465,7 +461,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             <Lock className='w-3 h-3' />
             <span>Đã khóa (Frozen)</span>
             <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+              className={`text-xs px-1.5 py-0.2 rounded-full font-mono ${
                 statusFilter === 'frozen'
                   ? 'bg-white/20 text-white'
                   : 'bg-indigo-100 text-indigo-800'
@@ -488,7 +484,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             <CheckCircle2 className='w-3 h-3' />
             <span>Đã duyệt kịch bản</span>
             <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+              className={`text-xs px-1.5 py-0.2 rounded-full font-mono ${
                 statusFilter === 'approved'
                   ? 'bg-white/20 text-white'
                   : 'bg-emerald-100 text-emerald-800'
@@ -512,9 +508,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
           <div className='w-12 h-12 rounded-2xl bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#C2410C] mx-auto'>
             <BookOpen className='w-6 h-6' />
           </div>
-          <h3 className='text-base font-bold font-serif text-[#1C1917]'>
-            Chưa có chương
-          </h3>
+          <h3 className='text-base font-bold font-serif text-[#1C1917]'>Chưa có chương</h3>
           <p className='text-xs text-[#57534E] max-w-md mx-auto'>
             {canCreateChapter
               ? 'Khởi tạo Chương 1 để bắt đầu viết kịch bản.'
@@ -559,75 +553,118 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
       ) : viewMode === 'grid' ? (
         /* CHẾ ĐỘ XEM GRID (CSS Grid co giãn thích ứng full-width) */
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5'>
-          {filteredChapters.map((chapter) => (
-            <div
-              key={chapter.id}
-              data-testid={`chapter-card-${chapter.chapterNumber}`}
-              onClick={() => onSelectChapter(chapter)}
-              className='group bg-white hover:bg-white border border-[#D8D2C5]/70 hover:border-[#F97316]/50 rounded-2xl p-5 shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden'
-            >
-              <div className='space-y-3.5'>
-                {/* Header card: Số thứ tự chương, phiên bản & trạng thái */}
-                <div className='flex items-center justify-between gap-2'>
-                  <span className='font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-[#1C1917] group-hover:border-[#F97316]/40 transition-colors'>
-                    CHƯƠNG {chapter.chapterNumber}
-                  </span>
-                  <span className='font-mono text-[11px] text-[#78716C] bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-[#E5E0D8]'>
-                    v{chapter.versionVector || 1}
-                  </span>
+          {filteredChapters.map((chapter) => {
+            const isActive = !chapter.isScriptFrozen;
+            const formattedDate = chapter.targetReleaseDate
+              ? chapter.targetReleaseDate
+              : chapter.updatedAt
+                ? new Intl.DateTimeFormat(undefined, {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  }).format(new Date(chapter.updatedAt))
+                : '—';
+
+            return (
+              <div
+                key={chapter.id}
+                data-testid={`chapter-card-${chapter.chapterNumber}`}
+                onClick={() => onSelectChapter(chapter)}
+                className='group bg-white hover:bg-white border border-stone-200/80 hover:border-primary/50 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden'
+              >
+                {isActive && <div className='absolute top-0 left-0 w-1.5 h-full bg-primary' />}
+
+                <div className='space-y-3.5'>
+                  {/* Header card: Số thứ tự chương, định dạng & phiên bản */}
+                  <div className='flex items-center justify-between gap-2'>
+                    <div className='flex items-center gap-1.5'>
+                      <span className='font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-200/60 text-primary group-hover:border-primary/40 transition-colors'>
+                        CH.{chapter.chapterNumber}
+                      </span>
+                      <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 font-label-sm text-xs font-semibold'>
+                        Manga B5
+                      </span>
+                    </div>
+                    <span className='font-mono text-xs text-stone-500 bg-[#FAF9F5] px-2 py-0.5 rounded-md border border-stone-200/80'>
+                      v{chapter.versionVector || 1}
+                    </span>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div>{getStatusBadge(chapter)}</div>
+
+                  {/* Body card: Tiêu đề chương */}
+                  <div>
+                    <h3 className='text-base font-bold font-serif text-stone-900 group-hover:text-primary transition-colors line-clamp-1'>
+                      {formatChapterOption(chapter.chapterNumber, chapter.title)}
+                    </h3>
+                  </div>
+
+                  {/* Body card: Đoạn tóm tắt/ghi chú */}
+                  <div className='text-xs text-stone-600 line-clamp-3 leading-relaxed italic bg-[#FAF9F5] p-3 rounded-xl border border-stone-200/80 min-h-[4.75rem]'>
+                    {chapter.outline
+                      ? `“${chapter.outline}”`
+                      : 'Chưa có đề cương kịch bản tóm tắt.'}
+                  </div>
+
+                  {/* Tiến độ trang */}
+                  <div className='space-y-1.5 pt-1'>
+                    <div className='flex justify-between text-xs font-medium'>
+                      <span className='text-stone-500'>Tiến độ kịch bản</span>
+                      <span className='font-mono font-bold text-stone-900'>
+                        {chapter.pagesCount ?? 0} trang
+                      </span>
+                    </div>
+                    <div className='w-full h-1.5 rounded-full bg-stone-100 overflow-hidden'>
+                      <div
+                        className='h-full bg-primary rounded-full transition-all duration-500'
+                        style={{
+                          width: chapter.isScriptFrozen
+                            ? '100%'
+                            : (chapter.pagesCount ?? 0) > 0
+                              ? '60%'
+                              : '10%',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Thống kê quy mô phân cảnh & trang */}
+                  <div className='flex items-center gap-3 text-xs text-stone-500'>
+                    <span className='inline-flex items-center gap-1'>
+                      <Film className='w-3.5 h-3.5 text-stone-400' />
+                      <span>{chapter.scenesCount ?? 0} phân cảnh</span>
+                    </span>
+                    <span>•</span>
+                    <span className='inline-flex items-center gap-1'>
+                      <Layers className='w-3.5 h-3.5 text-stone-400' />
+                      <span>{chapter.pagesCount ?? 0} trang</span>
+                    </span>
+                  </div>
                 </div>
 
-                {/* Status Badge */}
-                <div>{getStatusBadge(chapter)}</div>
+                {/* Card Footer: Hạn chót/Ngày cập nhật & Nút hành động */}
+                <div className='pt-3 border-t border-stone-200/80 flex items-center justify-between'>
+                  <div className='flex items-center gap-1.5 text-xs text-stone-500 font-mono'>
+                    <Calendar className='w-3.5 h-3.5 text-stone-400' />
+                    <span>{formattedDate}</span>
+                  </div>
 
-                {/* Body card: Tiêu đề chương */}
-                <div>
-                  <h3 className='text-base font-bold font-serif text-[#1C1917] group-hover:text-[#C2410C] transition-colors line-clamp-1'>
-                    {formatChapterOption(chapter.chapterNumber, chapter.title)}
-                  </h3>
-                </div>
-
-                {/* Body card: Đoạn tóm tắt/ghi chú có line-clamp-3 để đều chiều cao */}
-                <div className='text-xs text-[#57534E] line-clamp-3 leading-relaxed italic bg-[#FAF8F5] p-3 rounded-xl border border-[#EBE7DF] min-h-[4.75rem]'>
-                  {chapter.outline ? `“${chapter.outline}”` : 'Chưa có đề cương kịch bản tóm tắt.'}
-                </div>
-
-                {/* Thống kê quy mô phân cảnh & trang */}
-                <div className='flex items-center gap-3 text-[11px] text-[#78716C] pt-1'>
-                  <span className='inline-flex items-center gap-1'>
-                    <Film className='w-3.5 h-3.5 text-[#A8A29E]' />
-                    <span>{chapter.scenesCount ?? 0} phân cảnh</span>
-                  </span>
-                  <span>•</span>
-                  <span className='inline-flex items-center gap-1'>
-                    <Layers className='w-3.5 h-3.5 text-[#A8A29E]' />
-                    <span>{chapter.pagesCount ?? 0} trang</span>
-                  </span>
+                  <button
+                    type='button'
+                    className='inline-flex items-center gap-1 text-xs font-bold text-primary group-hover:translate-x-0.5 transition-transform cursor-pointer'
+                  >
+                    <span>
+                      {chapter.isScriptFrozen
+                        ? 'Xem kịch bản'
+                        : `Mở Kịch bản Ch.${chapter.chapterNumber}`}
+                    </span>
+                    <ChevronRight className='w-4 h-4' />
+                  </button>
                 </div>
               </div>
-
-              {/* Card Footer: Hạn chót/Ngày cập nhật & Nút hành động */}
-              <div className='pt-3 border-t border-[#EBE7DF] flex items-center justify-between'>
-                <div className='flex items-center gap-1.5 text-[11px] text-[#78716C] font-mono'>
-                  <Calendar className='w-3.5 h-3.5 text-[#78716C]' />
-                  <span>
-                    {chapter.targetReleaseDate ||
-                      (chapter.updatedAt
-                        ? new Date(chapter.updatedAt).toLocaleDateString('vi-VN')
-                        : 'Chưa ấn định')}
-                  </span>
-                </div>
-
-                <button
-                  type='button'
-                  className='inline-flex items-center gap-1 text-xs font-bold text-[#C2410C] group-hover:translate-x-1 transition-transform'
-                >
-                  <span>{chapter.isScriptFrozen ? 'Xem kịch bản' : 'Viết kịch bản'}</span>
-                  <ChevronRight className='w-4 h-4' />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         /* CHẾ ĐỘ XEM BẢNG (Table/List View để duyệt nhanh nhiều chương) */
@@ -635,7 +672,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
           <div className='overflow-x-auto'>
             <table className='w-full text-left border-collapse text-xs'>
               <thead>
-                <tr className='bg-[#FAF8F5] border-b border-[#EBE7DF] text-[#78716C] font-semibold text-[11px] uppercase tracking-wider'>
+                <tr className='bg-[#FAF8F5] border-b border-[#EBE7DF] text-[#78716C] font-semibold text-xs uppercase tracking-wider'>
                   <th className='py-3.5 px-4 w-28'>Chương</th>
                   <th className='py-3.5 px-4 min-w-[200px]'>Tiêu đề chương</th>
                   <th className='py-3.5 px-4 min-w-[280px]'>Đề cương tóm tắt</th>
@@ -666,13 +703,13 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                       {chapter.outline ? `“${chapter.outline}”` : '—'}
                     </td>
                     <td className='py-3.5 px-4'>{getStatusBadge(chapter)}</td>
-                    <td className='py-3.5 px-4 text-[#78716C] font-mono text-[11px]'>
+                    <td className='py-3.5 px-4 text-[#78716C] font-mono text-xs'>
                       {chapter.scenesCount ?? 0} cảnh / {chapter.pagesCount ?? 0} trang
                     </td>
                     <td className='py-3.5 px-4 font-mono text-[#78716C]'>
                       v{chapter.versionVector || 1}
                     </td>
-                    <td className='py-3.5 px-4 text-[#78716C] font-mono text-[11px]'>
+                    <td className='py-3.5 px-4 text-[#78716C] font-mono text-xs'>
                       {chapter.targetReleaseDate || '—'}
                     </td>
                     <td className='py-3.5 px-4 text-right'>
@@ -728,9 +765,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             </div>
 
             <div>
-              <label className='block text-xs font-bold text-[#1C1917] mb-1'>
-                Đề cương chương
-              </label>
+              <label className='block text-xs font-bold text-[#1C1917] mb-1'>Đề cương chương</label>
               <textarea
                 rows={3}
                 placeholder='vd: Cuộc chạm trán tại cổng thành'

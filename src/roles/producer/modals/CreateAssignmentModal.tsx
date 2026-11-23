@@ -984,7 +984,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
               }`}
             >
               <span>Kế hoạch toàn chương</span>
-              <span className='px-1.5 py-0.2 bg-orange-100 text-orange-800 rounded text-[10px] font-bold uppercase'>
+              <span className='px-1.5 py-0.2 bg-orange-100 text-orange-800 rounded text-xs font-bold uppercase'>
                 Mới
               </span>
             </button>

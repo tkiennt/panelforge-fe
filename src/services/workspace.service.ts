@@ -32,6 +32,9 @@ export interface WorkspaceDto {
   coverUrl?: string | null;
   description?: string | null;
   memberPreviews?: WorkspaceMemberPreviewDto[] | null;
+  seriesCount?: number;
+  seriesPreviews?: any[] | null;
+  lastActivityAt?: string | null;
 }
 
 export interface UsageMeterDto {
@@ -64,6 +67,29 @@ export interface WorkspaceSessionDto {
   sessionStartedAt: string;
   lastActiveAt: string;
   isCurrentSession: boolean;
+}
+
+export interface ChapterReaderStatsDto {
+  chapterId: string;
+  chapterNumber: number;
+  title?: string | null;
+  isPublished: boolean;
+  views: number;
+  uniqueReaders: number;
+}
+
+export interface SeriesReaderStatsDto {
+  seriesId: string;
+  title: string;
+  views: number;
+  uniqueReaders: number;
+  chapters: ChapterReaderStatsDto[];
+}
+
+export interface WorkspaceReaderStatsDto {
+  totalViews: number;
+  totalUniqueReaders: number;
+  series: SeriesReaderStatsDto[];
 }
 
 export interface WorkspaceMemberDto {
@@ -300,6 +326,19 @@ export const workspaceService = {
       await axiosClient.delete(`/workspaces/${workspaceId}/sessions/${sessionId}`);
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Không thể thu hồi phiên làm việc.'));
+    }
+  },
+
+  /**
+   * Lấy số liệu lượt đọc & độc giả thực tế của Studio (GET /api/workspaces/{id}/reader-stats)
+   */
+  getReaderStats: async (workspaceId: string): Promise<WorkspaceReaderStatsDto> => {
+    try {
+      const response = await axiosClient.get(`/workspaces/${workspaceId}/reader-stats`);
+      return response.data;
+    } catch (error) {
+      console.warn('workspaceService.getReaderStats error:', error);
+      return { totalViews: 0, totalUniqueReaders: 0, series: [] };
     }
   },
 

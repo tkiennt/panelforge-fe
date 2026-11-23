@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   BookOpen,
@@ -25,6 +25,16 @@ import {
   ShieldCheck,
   MessageSquare,
   Users,
+  User,
+  MapPin,
+  Wrench,
+  ChevronRight,
+  Download,
+  ZoomIn,
+  FileText,
+  PenTool,
+  Maximize2,
+  Box,
 } from 'lucide-react';
 import { BibleEntity, MangaProject, normalizeWorkspaceRole } from '@/types';
 import {
@@ -49,6 +59,15 @@ import { EmptyFolderState } from '@/shared/components/lucian';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useTranslation } from '@/lib/i18n';
 import { CollapsibleSidebar, Modal, SidebarSection } from '@/shared/ui';
+import {
+  CATEGORIES,
+  mapCategoryToTab,
+  getCategoryLabel,
+  getCategoryIcon,
+  isVisualDesignCategory,
+} from './bibleCategory';
+import { AddRevisionModal } from './AddRevisionModal';
+import { ReworkModal } from './ReworkModal';
 
 interface SeriesBibleViewProps {
   activeProject?: MangaProject;
@@ -59,16 +78,6 @@ interface SeriesBibleViewProps {
   onSelectSeries?: (project: MangaProject) => void;
   onShowToast: (title: string, desc: string) => void;
 }
-
-import {
-  CATEGORIES,
-  mapCategoryToTab,
-  getCategoryLabel,
-  getCategoryIcon,
-  isVisualDesignCategory,
-} from './bibleCategory';
-import { AddRevisionModal } from './AddRevisionModal';
-import { ReworkModal } from './ReworkModal';
 
 const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
   let gallery: Array<{ url: string; label?: string; sha256?: string }> = [];
@@ -106,7 +115,6 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
   };
 };
 
-/** Đọc snapshot JSON an toàn */
 const readSnapshot = (
   json?: string,
 ): {
@@ -166,6 +174,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   );
   const [addEntityOpen, setAddEntityOpen] = useState(false);
   const [defineTarget, setDefineTarget] = useState<BibleEntity | null>(null);
+  const [selectedSubViewTab, setSelectedSubViewTab] = useState<string>('default');
 
   // Dynamic Series resolution
   const [availableSeries, setAvailableSeries] = useState<MangaProject[]>([]);
@@ -217,7 +226,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   }, [activeProject?.id]);
 
-  // Sync search query from URL parameter (e.g. from Script Screen buildBibleUrl)
+  // Sync search query from URL parameter
   const urlSearchParam = searchParams.get('search');
   useEffect(() => {
     if (urlSearchParam !== null) {
@@ -233,7 +242,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
-  // Sync tab & entityId from query parameters (e.g. from Editor Desk)
+  // Sync tab & entityId from query parameters
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam === 'review') {
@@ -258,7 +267,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     return availableSeries.find((s) => s.id === selectedSeriesId) || activeProject;
   }, [activeProject, selectedSeriesId, availableSeries]);
 
-  // BR-18: Revision History Modal State
+  // Revision History Modal State
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyRevisions, setHistoryRevisions] = useState<BibleEntryRevisionDto[]>([]);
   const [historyEntity, setHistoryEntity] = useState<BibleEntity | null>(null);
@@ -266,7 +275,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [lockingRevisionId, setLockingRevisionId] = useState<string | null>(null);
 
-  // User & Producer Role check (Direction B: Producer, Writer, Artist can create drafts)
+  // User & Role checks
   const currentUserRole = useMemo(() => {
     try {
       const rawWs = localStorage.getItem('activeWorkspace');
@@ -280,7 +289,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   }, []);
 
-  // Spec V2.6 §5.1: khoá Canon & /supersede chỉ Producer của Workspace (Admin ❌). UI chỉ là UX, BE kiểm tra lại.
   const isProducer = useMemo(() => {
     try {
       const rawWs = localStorage.getItem('activeWorkspace');
@@ -295,7 +303,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const isEditor = currentUserRole === 'EDITOR';
   const isWriter = currentUserRole === 'WRITER';
   const canCreateDraft = isWriter;
-  // V2.6 (Q20/Q22): Xác nhận = khoá Canon chỉ dành cho Editor; Yêu cầu vẽ lại cho Writer + Editor + Producer. Producer không thấy nút xác nhận/khoá.
   const canEndorse = isEditor;
   const canRequestRework = isWriter || isEditor || isProducer;
 
@@ -372,7 +379,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
-  // Đánh dấu / Bỏ đánh dấu Quần chúng ngay trên thẻ Series Bible (BIB-13)
+  // Crowd toggle
   const [togglingCrowdId, setTogglingCrowdId] = useState<string | null>(null);
   const handleToggleCrowd = async (entity: BibleEntity) => {
     const seriesId = selectedSeriesId || activeProject?.id;
@@ -408,11 +415,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
-  // Bible Design Queue State
+  // Bible Design Queue
   const [designQueue, setDesignQueue] = useState<BibleDesignQueueItemDto[]>([]);
   const [loadingQueue, setLoadingQueue] = useState(false);
 
-  // 2-tier Review: Rework Modal State
+  // Rework Modal State
   const [reworkModalOpen, setReworkModalOpen] = useState(false);
   const [reworkTargetRev, setReworkTargetRev] = useState<BibleEntryRevisionDto | null>(null);
   const [reworkReason, setReworkReason] = useState('');
@@ -460,7 +467,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             : r,
         ),
       );
-      // Đóng modal rework nhưng giữ nguyên selectedEntity để Workbench không bị đóng
       setReworkModalOpen(false);
       if (selectedEntity && selectedEntity.id === targetEntity.id) {
         setSelectedEntity({
@@ -568,7 +574,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             setRevisionVariantLabel('');
           }
 
-          // Tự động đồng bộ lại thực thể được chọn nếu đang xem trong Workbench
           setSelectedEntity((current) =>
             current && current.id === entity.id ? { ...current, ...entity } : current,
           );
@@ -580,53 +585,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       }
     }
     setAddRevModalOpen(true);
-  };
-
-  // Lưu nhanh đặc tả nhập trực tiếp ở màn chi tiết → bản nháp mới (append-only, BR-05).
-  const handleSaveSpecFields = async (
-    entity: BibleEntity,
-    attributes: Record<string, unknown>,
-    variantLabel: string,
-    expectedVersionNumber: number,
-    targetRevisionId?: string,
-  ): Promise<boolean> => {
-    if (!effectiveSeries?.id) return false;
-    try {
-      await bibleService.addRevision(effectiveSeries.id, entity.id, {
-        expectedVersionNumber,
-        targetRevisionId,
-        name: entity.name,
-        subtitle: entity.subtitle || '',
-        description: entity.description || '',
-        referenceImageUrl: entity.imageUrl || undefined,
-        variantLabel,
-        summary: t('bible.detailModal.specSavedTitle', 'Đã lưu đặc tả'),
-        detailsJson: JSON.stringify({
-          turnaroundGallery: entity.gallery || [],
-          attributes,
-        }),
-      });
-      onShowToast(
-        t('bible.detailModal.specSavedTitle', 'Đã lưu đặc tả'),
-        t('bible.detailModal.specSavedDesc', 'Đã tạo bản nháp mới với các trường vừa nhập.'),
-      );
-      setRefreshTrigger((prev) => prev + 1);
-      setSelectedEntity((cur) =>
-        cur && cur.id === entity.id ? { ...cur, attributes: attributes as any } : cur,
-      );
-      return true;
-    } catch (err: any) {
-      const isConflict = err?.code === 'CONFLICT' || err?.status === 409;
-      onShowToast(
-        isConflict
-          ? t('bible.view.conflictTitleGeneric', 'Xung đột phiên bản (409 CONFLICT)')
-          : t('bible.detailModal.specSaveFailedTitle', 'Không lưu được đặc tả'),
-        err?.message || '',
-      );
-      // 409: tải lại dữ liệu mới nhất; giữ nguyên nội dung người dùng đang nhập.
-      if (isConflict) setRefreshTrigger((prev) => prev + 1);
-      return false;
-    }
   };
 
   const executeSaveRevision = async (submittedContent?: {
@@ -725,7 +683,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       );
       setRefreshTrigger((prev) => prev + 1);
       setAddRevModalOpen(false);
-      // Giữ người dùng ở lại không gian làm việc (Workbench) của thực thể, cập nhật dữ liệu mới
       if (revisionTarget) {
         setSelectedEntity({
           ...revisionTarget,
@@ -799,7 +756,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
-  // Fetch Series Bible from backend API
   const fetchBible = async () => {
     if (!effectiveSeries?.id) {
       setLocalEntities([]);
@@ -820,7 +776,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         const mappedEntities = bibleData.entries.map(mapEntryToBibleEntity);
         setLocalEntities(mappedEntities);
 
-        // Giữ đồng bộ selectedEntity nếu đang xem trong Workbench, tránh bị reset state
         setSelectedEntity((current) => {
           if (!current) return null;
           const updated = mappedEntities.find((e) => e.id === current.id);
@@ -836,7 +791,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         err.message ||
           t('bible.view.loadErrorDesc', 'Không thể tải dữ liệu Series Bible từ máy chủ.'),
       );
-      // Không wipe sạch localEntities để tránh giật giao diện và đóng Workbench của người dùng khi mạng chập chờn
     } finally {
       setIsLoading(false);
     }
@@ -904,7 +858,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       setRefreshTrigger((prev) => prev + 1);
       const mapped = mapEntryToBibleEntity(created);
       if (onAddEntity) onAddEntity(mapped);
-      // Mở ngay bàn làm việc (Character Workbench) cho mục vừa tạo, không đẩy người dùng ra màn ngoài
       setSelectedEntity(mapped);
       setAddEntityOpen(false);
       onShowToast(
@@ -928,28 +881,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         t('bible.view.createEntityErrorTitle', 'Lỗi thêm mục Bible'),
         err.message || t('bible.view.createEntityErrorDesc', 'Không thể tạo bản ghi Series Bible.'),
       );
-    }
-  };
-
-  const handleDeleteRevision = async (entity: BibleEntity, rev: BibleEntryRevisionDto) => {
-    if (!effectiveSeries?.id) return;
-    try {
-      await bibleService.deleteRevision(effectiveSeries.id, entity.id, rev.id);
-      onShowToast(
-        t('common.success', 'Thành công'),
-        t(
-          'bible.view.deleteRevisionSuccess',
-          { version: rev.versionNumber, name: entity.name },
-          'Đã xóa phiên bản v{version} của {name}.',
-        ),
-      );
-      setRefreshTrigger((prev) => prev + 1);
-    } catch (err: any) {
-      onShowToast(
-        t('bible.view.deleteRevisionError', 'Lỗi xóa phiên bản'),
-        err.message || t('bible.view.deleteRevisionErrorDesc', 'Không thể xóa phiên bản này.'),
-      );
-      throw err;
     }
   };
 
@@ -995,39 +926,19 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     return counts;
   }, [localEntities, rawEntries]);
 
-  // KPI ở header: đếm theo trạng thái phiên bản hiệu lực (spec V2.6 §5.2)
+  // KPI calculations
   const bibleStats = useMemo(() => {
     const statusOf = (id: string) => rawEntries[id]?.effectiveRevision?.reviewStatus;
     const pending = localEntities.filter((e) => statusOf(e.id) === 'ConceptSubmitted').length;
     const rework = localEntities.filter((e) => statusOf(e.id) === 'ReworkRequired').length;
     const locked = localEntities.filter((e) => statusOf(e.id) === 'CanonLocked').length;
-    return [
-      {
-        key: 'pending',
-        label: t('bible.view.kpiConceptSubmitted', 'Chờ duyệt'),
-        value: pending,
-        icon: Clock,
-        tone: 'bg-amber-50/70 border-amber-200/80 text-amber-900',
-        iconTone: 'bg-amber-100/80 text-amber-800',
-      },
-      {
-        key: 'rework',
-        label: t('bible.view.kpiReworkRequired', 'Cần vẽ lại'),
-        value: rework,
-        icon: AlertTriangle,
-        tone: 'bg-rose-50/70 border-rose-200/80 text-rose-900',
-        iconTone: 'bg-rose-100/80 text-rose-800',
-      },
-      {
-        key: 'locked',
-        label: t('bible.view.kpiCanonLocked', 'Đã khoá Canon'),
-        value: locked,
-        icon: Lock,
-        tone: 'bg-emerald-50/70 border-emerald-200/80 text-emerald-900',
-        iconTone: 'bg-emerald-100/80 text-emerald-800',
-      },
-    ];
-  }, [localEntities, rawEntries, t]);
+    const drafts = localEntities.filter((e) => {
+      const st = statusOf(e.id);
+      return !st || st === 'Draft';
+    }).length;
+
+    return { pending, rework, locked, drafts, total: localEntities.length };
+  }, [localEntities, rawEntries]);
 
   // Filtered entities
   const filteredEntities = useMemo(() => {
@@ -1054,6 +965,17 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       return matchesTab && matchesSearch && matchesStatus;
     });
   }, [localEntities, rawEntries, activeTab, searchQuery, statusFilter]);
+
+  // Automatically select first entity if none selected in category tab
+  useEffect(() => {
+    if (activeTab !== 'all') {
+      if (!selectedEntity || !filteredEntities.some((e) => e.id === selectedEntity.id)) {
+        if (filteredEntities.length > 0) {
+          setSelectedEntity(filteredEntities[0]);
+        }
+      }
+    }
+  }, [activeTab, filteredEntities, selectedEntity]);
 
   const hasActiveFilters =
     searchQuery.trim() !== '' || statusFilter !== 'ALL' || activeTab !== 'all';
@@ -1083,8 +1005,53 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
+  // Helper for status pill presentation
+  const renderStatusPill = (status?: string | null) => {
+    switch (status) {
+      case 'CanonLocked':
+        return (
+          <span className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold whitespace-nowrap flex items-center gap-1'>
+            <span className='w-1.5 h-1.5 rounded-full bg-emerald-500'></span>
+            {t('bible.view.cardCanonLocked', 'Đã khóa')}
+          </span>
+        );
+      case 'ConceptSubmitted':
+        return (
+          <span className='px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold whitespace-nowrap flex items-center gap-1'>
+            <span className='w-1.5 h-1.5 rounded-full bg-blue-500'></span>
+            {t('bible.view.cardConceptSubmitted', 'Chờ nét in')}
+          </span>
+        );
+      case 'WriterEndorsed':
+        return (
+          <span className='px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold whitespace-nowrap flex items-center gap-1'>
+            <span className='w-1.5 h-1.5 rounded-full bg-amber-500'></span>
+            {t('bible.detailModal.stepWriterEndorse', 'Chờ khóa')}
+          </span>
+        );
+      case 'ReworkRequired':
+        return (
+          <span className='px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold whitespace-nowrap flex items-center gap-1'>
+            <span className='w-1.5 h-1.5 rounded-full bg-rose-500'></span>
+            {t('bible.view.cardReworkRequired', 'Cần sửa')}
+          </span>
+        );
+      default:
+        return (
+          <span className='px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold whitespace-nowrap flex items-center gap-1'>
+            <span className='w-1.5 h-1.5 rounded-full bg-rose-500'></span>
+            {t('bible.view.cardDraft', 'Draft')}
+          </span>
+        );
+    }
+  };
+
+  const activeEntityRaw = selectedEntity ? rawEntries[selectedEntity.id] : null;
+  const activeEffRev = activeEntityRaw?.effectiveRevision;
+
   return (
-    <PageContainer className='space-y-4 pb-12 pt-1 font-sans'>
+    <PageContainer className='space-y-6 pb-12 pt-2 font-sans'>
+      {/* Series selection hint if not configured */}
       {!effectiveSeries && (
         <div className='p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl flex items-center gap-2.5 text-xs'>
           <AlertCircle className='w-4 h-4 text-amber-600 shrink-0' />
@@ -1097,15 +1064,41 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         </div>
       )}
 
-      {/* Header: cùng mẫu hero card với Script Hub / Dashboard (breadcrumb đã có ở AppShell) */}
-      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-5'>
-        <div className='min-w-0 space-y-1.5'>
-          <div className='flex items-center gap-2 flex-wrap'>
-            <span className='px-2.5 py-0.5 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 text-[#C2410C] text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1'>
-              <BookOpen className='w-3.5 h-3.5' />
-              <span>{t('bible.view.canonHub', 'Canon Hub')}</span>
-            </span>
-            {availableSeries.length > 1 ? (
+      {/* TOP FILTER & CATEGORY BAR (Stitch view-bible Card Header) */}
+      <div className='p-4 rounded-xl bg-white border border-stone-200/80 shadow-xs space-y-3 select-none'>
+        <div className='flex flex-col md:flex-row items-start md:items-center justify-between gap-3'>
+          <div className='flex items-center gap-3'>
+            <div className='w-9 h-9 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/80'>
+              <BookOpen className='w-5 h-5' />
+            </div>
+            <div>
+              <div className='flex items-center gap-2'>
+                <span className='sr-only'>{t('bible.view.canonHub', 'Canon Hub')}</span>
+                <h1
+                  className='text-base font-bold text-stone-900 leading-tight'
+                  aria-label={t('bible.view.seriesBible', 'Series Bible')}
+                >
+                  {t('bible.view.pageTitle', 'Hồ sơ thiết kế & Model Sheets')}
+                </h1>
+                <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded bg-stone-100 text-stone-600'>
+                  {t(
+                    'bible.view.knowledgeEntries',
+                    { count: localEntities.length },
+                    `${localEntities.length} mục tri thức`,
+                  )}
+                </span>
+              </div>
+              <p className='text-xs text-stone-500 mt-0.5'>
+                {t(
+                  'bible.view.pageSubtitle',
+                  'Kho quy chuẩn tạo hình, tính cách và bối cảnh chuẩn cho toàn bộ họa sĩ xưởng.',
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className='flex items-center gap-2 shrink-0'>
+            {availableSeries.length > 1 && (
               <select
                 value={effectiveSeries?.id || ''}
                 onChange={(e) => {
@@ -1116,7 +1109,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   }
                 }}
                 aria-label={t('bible.view.selectSeriesAria', 'Chọn Series')}
-                className='px-2.5 py-1 bg-white border border-[#D8D2C5] rounded-full font-semibold text-xs text-[#1C1917] focus:outline-none focus:border-[#C2410C] cursor-pointer'
+                className='px-2.5 py-1.5 bg-stone-50 border border-stone-200/80 rounded-lg text-xs font-semibold text-stone-700 focus:outline-none focus:border-orange-500 cursor-pointer'
               >
                 {availableSeries.map((x) => (
                   <option key={x.id} value={x.id}>
@@ -1124,1715 +1117,1312 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   </option>
                 ))}
               </select>
-            ) : (
-              <span className='text-xs font-semibold text-[#57534E] truncate'>
-                {effectiveSeries?.title || 'PanelForge Series'}
-              </span>
             )}
-          </div>
-          <div className='flex items-center gap-2.5 flex-wrap'>
-            <h1 className='text-2xl font-bold font-serif text-[#1C1917] tracking-tight'>
-              {t('bible.view.seriesBible', 'Series Bible')}
-            </h1>
-            <span className='px-2.5 py-0.5 rounded-full bg-[#F3F0E9] text-[#57534E] text-xs font-semibold font-mono border border-[#D8D2C5]'>
-              {t(
-                'bible.view.knowledgeEntries',
-                { count: localEntities.length },
-                `${localEntities.length} mục tri thức`,
-              )}
-            </span>
-          </div>
-          <p className='text-sm text-[#57534E] leading-relaxed max-w-2xl'>
-            {t(
-              'bible.view.heroDesc',
-              'Kho tham chiếu chuẩn cho nhân vật, bối cảnh, đạo cụ, thuật ngữ và quy tắc mỹ thuật. Bản đã khoá Canon là chuẩn duy nhất cho họa sĩ và kiểm tra nhất quán.',
-            )}
-          </p>
-        </div>
 
-        <div className='flex items-center gap-3 flex-wrap shrink-0'>
-          {bibleStats.map((stat) => (
-            <div
-              key={stat.key}
-              className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl border shadow-2xs ${stat.tone}`}
-              data-testid={`bible-stat-${stat.key}`}
-            >
-              <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center ${stat.iconTone}`}
-              >
-                <stat.icon className='w-4 h-4' />
-              </div>
-              <div>
-                <div className='text-xs font-semibold uppercase tracking-wide opacity-80'>
-                  {stat.label}
-                </div>
-                <div className='text-sm font-bold font-mono'>{stat.value}</div>
-              </div>
-            </div>
-          ))}
-          {canCreateDraft ? (
-            <button
-              type='button'
-              onClick={() => setAddEntityOpen(true)}
-              className='px-4 py-2 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-[0.98]'
-              data-testid='add-bible-entry-btn'
-            >
-              <Plus className='w-4 h-4' />
-              <span>
-                {isProducer
-                  ? t('bible.view.addEntityBtn', 'Thêm mục mới')
-                  : t('bible.view.createDraftBtn', 'Tạo mục nháp')}
-              </span>
-            </button>
-          ) : (
-            <span
-              className='px-3 py-1.5 rounded-full bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E] text-xs font-medium flex items-center gap-1.5'
-              title={t(
-                'bible.view.readOnlyTitle',
-                'Chỉ Biên kịch (Writer) hoặc Producer mới có quyền tạo mục trong Series Bible',
-              )}
-              data-testid='bible-readonly-badge'
-            >
-              <Lock className='w-3.5 h-3.5 text-[#78716C]' />
-              <span>{t('bible.view.readOnlyBadge', 'Chế độ chỉ xem')}</span>
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className='grid grid-cols-1 gap-5 lg:grid-cols-[248px_minmax(0,1fr)] items-start'>
-        {/* Sidebar: danh mục + quy trình duyệt (DESIGN_RULES §3.4, cột trái) */}
-        <CollapsibleSidebar
-          collapsed={false}
-          label={t('bible.view.sidebarCategoryTitle', 'Danh mục Series Bible')}
-          className='lg:sticky lg:top-4 space-y-4'
-          data-testid='bible-sidebar'
-        >
-          <nav className='bg-white border border-stone-200/80 rounded-xl shadow-xs p-2'>
-            <p className='px-2.5 pt-1.5 pb-2 text-xs font-semibold uppercase tracking-wider text-stone-500'>
-              {t('bible.view.sidebarCategoryTitle', 'Danh mục')}
-            </p>
-            <SidebarSection className='flex lg:flex-col gap-1 overflow-x-auto'>
-              {CATEGORIES.map((cat) => {
-                const Icon = cat.icon;
-                const count = categoryCounts[cat.key] || 0;
-                const isActive = activeTab === cat.key;
-                return (
-                  <button
-                    key={cat.key}
-                    type='button'
-                    onClick={() => setActiveTab(cat.key)}
-                    aria-current={isActive ? 'true' : undefined}
-                    className={`lg:w-full shrink-0 px-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-2.5 border-l-4 ${
-                      isActive
-                        ? 'bg-orange-50 text-orange-800 border-orange-500 font-semibold'
-                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 border-transparent'
-                    }`}
-                    data-testid={`tab-category-${cat.key}`}
-                  >
-                    <Icon
-                      className={`w-4 h-4 ${isActive ? 'text-orange-600' : 'text-stone-500'}`}
-                    />
-                    <span className='flex-1 text-left'>{cat.label}</span>
-                    <span
-                      className={`text-xs font-mono px-2 py-0.5 rounded-full ${
-                        isActive ? 'bg-orange-100 text-orange-800' : 'bg-stone-100 text-stone-600'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </SidebarSection>
-          </nav>
-
-          {/* Spec V2.6 §5.2: vòng đời một phiên bản thiết kế */}
-          <div className='hidden lg:block bg-white border border-stone-200/80 rounded-xl shadow-xs p-4 space-y-3'>
-            <p className='text-xs font-semibold uppercase tracking-wider text-stone-500'>
-              {t('bible.view.canonWorkflowTitle', 'Quy trình khoá Canon')}
-            </p>
-            <ol className='space-y-2.5'>
-              {[
-                {
-                  label: t('bible.view.workflowDraft', 'Bản nháp'),
-                  who: t('bible.view.workflowDraftWho', 'Writer tạo mục'),
-                  dot: 'bg-stone-400',
-                },
-                {
-                  label: t('bible.view.workflowSubmitted', 'Đã nộp Concept'),
-                  who: t('bible.view.workflowSubmittedWho', 'Artist tải Model Sheet'),
-                  dot: 'bg-amber-500',
-                },
-                {
-                  label: t('bible.view.workflowLocked', 'Canon Locked'),
-                  who: t('bible.view.workflowLockedWho', 'Editor xác nhận'),
-                  dot: 'bg-emerald-600',
-                },
-              ].map((step, i) => (
-                <li key={step.label} className='flex items-start gap-2.5'>
-                  <span className='mt-1.5 flex flex-col items-center'>
-                    <span className={`w-2 h-2 rounded-full ${step.dot}`} />
-                  </span>
-                  <span className='min-w-0'>
-                    <span className='block text-sm font-semibold text-stone-800'>
-                      {i + 1}. {step.label}
-                    </span>
-                    <span className='block text-xs text-stone-500'>{step.who}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-            <p className='text-xs text-stone-500 leading-normal border-t border-stone-100 pt-2.5'>
-              {t(
-                'bible.view.workflowNotice',
-                'Bản đã khoá không sửa được; thay đổi ở chương sau tạo phiên bản mới (BR-01, BR-15).',
-              )}
-            </p>
-          </div>
-        </CollapsibleSidebar>
-
-        <div className='min-w-0 space-y-4'>
-          {/* V2.5: Bible Design Queue cho Artist & Writer */}
-          {designQueue.length > 0 && (
-            <div
-              className='bg-amber-50/60 border border-amber-200/90 rounded-xl p-4 shadow-xs'
-              data-testid='bible-design-queue-widget'
-            >
-              <div className='flex items-center justify-between gap-2 mb-2.5'>
-                <div className='flex items-center gap-2'>
-                  <div className='w-6 h-6 rounded-lg bg-orange-100 border border-orange-300 flex items-center justify-center text-orange-700'>
-                    <Palette className='w-3.5 h-3.5' />
-                  </div>
-                  <h2 className='text-xs sm:text-sm font-bold text-amber-950 font-serif'>
-                    {t(
-                      'bible.view.queueHeading',
-                      { count: designQueue.length },
-                      `Hàng đợi vẽ thiết kế Concept Art (${designQueue.length} mục chờ xử lý)`,
-                    )}
-                  </h2>
-                </div>
-                <span className='text-xs text-amber-800 font-medium hidden sm:inline'>
-                  {t(
-                    'bible.view.queueSubheading',
-                    'Artist & Writer phối hợp thiết kế trước khi đưa vào sản xuất chương',
-                  )}
-                </span>
-              </div>
-
-              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5'>
-                {designQueue.map((item) => {
-                  const matchedEntity = localEntities.find((e) => e.id === item.entryId);
-                  const queueKey = item.revisionId || item.entryId;
-                  return (
-                    <div
-                      key={queueKey}
-                      className='bg-white/95 rounded-lg border border-amber-200 p-2.5 flex items-center justify-between gap-2 hover:border-orange-400 transition-colors shadow-2xs'
-                    >
-                      <div className='min-w-0 flex-1'>
-                        <div className='flex items-center gap-1.5 flex-wrap'>
-                          <span className='font-mono font-bold text-xs px-1.5 py-0.5 bg-stone-100 text-stone-800 rounded'>
-                            {item.code}
-                          </span>
-                          <span className='font-semibold text-xs text-stone-900 truncate'>
-                            {item.name}
-                          </span>
-                        </div>
-                        <div className='flex items-center gap-1 mt-1 flex-wrap'>
-                          {item.reviewStatus === 'ReworkRequired' ? (
-                            <span className='px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-xs font-semibold whitespace-nowrap'>
-                              {t('bible.view.queueStatusRework', 'Yêu cầu vẽ lại')}
-                            </span>
-                          ) : item.reviewStatus === 'ConceptSubmitted' ? (
-                            <span className='px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold whitespace-nowrap'>
-                              {t('bible.view.queueStatusPending', 'Đã nộp (Chờ duyệt)')}
-                            </span>
-                          ) : (
-                            <span className='px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200 text-xs font-semibold whitespace-nowrap'>
-                              {t('bible.view.queueStatusWaiting', 'Chờ nộp Concept Art')}
-                            </span>
-                          )}
-                          {item.variantLabel || item.stageName ? (
-                            <span className='text-xs text-stone-600 font-medium'>
-                              · {item.variantLabel || item.stageName}
-                            </span>
-                          ) : null}
-                        </div>
-                        {item.waitingChapterNumbers && item.waitingChapterNumbers.length > 0 && (
-                          <div
-                            className='flex items-center gap-1 mt-1 text-xs'
-                            data-testid={`waiting-chapters-${queueKey}`}
-                          >
-                            <span className='px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-mono text-xs font-semibold'>
-                              {t(
-                                'bible.view.queueWaitingChapters',
-                                { chapters: item.waitingChapterNumbers.join(', ') },
-                                'Chương đang chờ: Ch.{chapters}',
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        {item.reworkFeedback && (
-                          <p className='text-xs text-rose-800 truncate mt-0.5 italic'>
-                            &quot;{item.reworkFeedback}&quot;
-                          </p>
-                        )}
-                      </div>
-
-                      {isArtist ? (
-                        item.reviewStatus === 'ConceptSubmitted' ? (
-                          <button
-                            type='button'
-                            onClick={() => {
-                              if (matchedEntity) {
-                                void handleOpenAddRevision(
-                                  matchedEntity,
-                                  null,
-                                  true,
-                                  undefined,
-                                  true,
-                                  false,
-                                  item.revisionId,
-                                );
-                              }
-                            }}
-                            className='px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
-                            title={t(
-                              'bible.view.queueResubmitTitle',
-                              'Nộp lại nếu bạn lỡ tải nhầm file ảnh trước khi duyệt',
-                            )}
-                            data-testid={`resubmit-concept-${item.entryId}`}
-                          >
-                            <RotateCcw className='w-3 h-3' />
-                            <span>{t('bible.view.resubmitBtn', 'Nộp lại')}</span>
-                          </button>
-                        ) : item.reviewStatus === 'ReworkRequired' ? (
-                          <button
-                            type='button'
-                            onClick={() => {
-                              if (matchedEntity) {
-                                void handleOpenAddRevision(
-                                  matchedEntity,
-                                  null,
-                                  true,
-                                  item.reworkFeedback || undefined,
-                                  false,
-                                  false,
-                                  item.revisionId,
-                                );
-                              }
-                            }}
-                            className='px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
-                            title={t(
-                              'bible.view.queueReworkTitle',
-                              'Nộp lại bản vẽ sau khi đã sửa theo góp ý',
-                            )}
-                            data-testid={`rework-concept-${item.entryId}`}
-                          >
-                            <Palette className='w-3 h-3' />
-                            <span>{t('bible.view.reworkBtn', 'Sửa lại')}</span>
-                          </button>
-                        ) : (
-                          <button
-                            type='button'
-                            onClick={() => {
-                              if (matchedEntity) {
-                                void handleOpenAddRevision(
-                                  matchedEntity,
-                                  null,
-                                  true,
-                                  undefined,
-                                  false,
-                                  false,
-                                  item.revisionId,
-                                );
-                              }
-                            }}
-                            className='px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
-                            data-testid={`upload-concept-${item.entryId}`}
-                          >
-                            <Upload className='w-3 h-3' />
-                            <span>{t('bible.view.uploadBtn', 'Tải ảnh')}</span>
-                          </button>
-                        )
-                      ) : (
-                        <button
-                          type='button'
-                          onClick={() => {
-                            if (matchedEntity) {
-                              setSelectedEntity(matchedEntity);
-                            }
-                          }}
-                          className='px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors border border-stone-300 flex items-center gap-1'
-                          title={t(
-                            'bible.view.artistOnlyNotice',
-                            'Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Concept Art',
-                          )}
-                          data-testid={`view-concept-history-${item.entryId}`}
-                        >
-                          <Eye className='w-3 h-3' />
-                          <span>{t('bible.view.cardViewDetail', 'Xem chi tiết')}</span>
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Thanh công cụ tra cứu tích hợp (Category Tabs + Search + Chapter + Filters + View Mode) */}
-          <div className='bg-white border border-stone-200/80 rounded-xl p-3 shadow-xs space-y-3'>
-            {/* Unified Search, Status Filter & View Mode */}
-            <div className='flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-2.5'>
-              {/* Search Input */}
-              <div className='relative flex-1 min-w-[220px]'>
-                <Search className='w-4 h-4 text-[#78716C] absolute left-3 top-1/2 -translate-y-1/2' />
-                <input
-                  type='text'
-                  placeholder={getSearchPlaceholder()}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className='w-full pl-9 pr-8 py-2 bg-[#F8F6F0] focus:bg-[#FCFBF8] rounded-lg border border-[#D8D2C5] text-xs text-[#1C1917] placeholder-[#A8A29E] focus:outline-none focus:border-[#F97316] transition-colors'
-                  data-testid='bible-search-input'
-                />
-                {searchQuery && (
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setSearchQuery('');
-                      clearUrlSearchParam();
-                    }}
-                    aria-label={t('bible.view.clearSearchAria', 'Xóa từ khóa tìm kiếm')}
-                    className='w-5 h-5 rounded-full hover:bg-[#E7E2D6] text-[#78716C] hover:text-[#1C1917] flex items-center justify-center absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer'
-                  >
-                    <X className='w-3 h-3' />
-                  </button>
-                )}
-              </div>
-
-              {/* Controls: Trạng thái & Chế độ xem */}
-              <div className='flex items-center gap-2 flex-wrap'>
-                {/* Bộ lọc trạng thái khóa Canon */}
-                <div className='flex items-center gap-1.5 bg-[#F8F6F0] border border-[#D8D2C5] rounded-lg px-2.5 py-1 text-xs'>
-                  <Lock className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as 'ALL' | BibleReviewStatus)}
-                    className='bg-transparent font-medium text-xs text-[#1C1917] focus:outline-none cursor-pointer pr-1'
-                    data-testid='bible-status-filter'
-                    aria-label={t('bible.view.statusFilterAria', 'Lọc trạng thái khóa Canon')}
-                  >
-                    <option value='ALL'>
-                      {t('bible.view.statusFilterAll', 'Tất cả trạng thái')}
-                    </option>
-                    <option value='Draft'>{t('bible.view.statusFilterDraft', 'Bản thảo')}</option>
-                    <option value='ConceptSubmitted'>
-                      {t('bible.view.statusFilterConceptSubmitted', 'Concept đã nộp')}
-                    </option>
-                    <option value='ReworkRequired'>
-                      {t('bible.view.statusFilterReworkRequired', 'Yêu cầu vẽ lại')}
-                    </option>
-                    <option value='CanonLocked'>
-                      {t('bible.view.statusFilterCanonLocked', 'Đã khoá Canon')}
-                    </option>
-                  </select>
-                </div>
-
-                {/* Chế độ xem Lưới / Danh sách */}
-                <div className='flex items-center bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5]'>
-                  <button
-                    type='button'
-                    onClick={() => handleToggleViewMode('grid')}
-                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                      viewMode === 'grid'
-                        ? 'bg-[#FCFBF8] text-[#1C1917] shadow-xs'
-                        : 'text-[#78716C] hover:text-[#1C1917]'
-                    }`}
-                    title={t('bible.view.gridViewTitle', 'Chế độ xem dạng lưới')}
-                    aria-label={t('bible.view.gridViewAria', 'Xem dạng lưới')}
-                  >
-                    <LayoutGrid className='w-3.5 h-3.5' />
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => handleToggleViewMode('list')}
-                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                      viewMode === 'list'
-                        ? 'bg-[#FCFBF8] text-[#1C1917] shadow-xs'
-                        : 'text-[#78716C] hover:text-[#1C1917]'
-                    }`}
-                    title={t('bible.view.listViewTitle', 'Chế độ xem danh sách')}
-                    aria-label={t('bible.view.listViewAria', 'Xem dạng danh sách')}
-                  >
-                    <List className='w-3.5 h-3.5' />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Thanh kết quả lọc & Xóa bộ lọc */}
-            {hasActiveFilters && (
-              <div className='pt-2 border-t border-[#D8D2C5]/60 flex items-center justify-between text-xs text-[#57534E]'>
-                <span>
-                  {t(
-                    'bible.view.resultsCount',
-                    { count: filteredEntities.length, total: localEntities.length },
-                    'Tìm thấy {count} / {total} mục phù hợp',
-                  )}
-                  {searchQuery && (
-                    <>{` ${t('bible.view.resultsWithKeyword', { query: searchQuery }, 'với từ khóa "{query}"')}`}</>
-                  )}
-                </span>
-                <button
-                  type='button'
-                  onClick={handleResetFilters}
-                  className='text-[#C2410C] hover:underline font-semibold flex items-center gap-1 cursor-pointer'
-                >
-                  <RotateCcw className='w-3 h-3' />
-                  <span>{t('bible.view.clearFilters', 'Xóa bộ lọc')}</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Main Content: Loading, Error, Grid or List Cards */}
-          {isLoading ? (
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4'>
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-4 space-y-3 animate-pulse'
-                >
-                  <div className='h-28 bg-[#F3F0E9] rounded-lg'></div>
-                  <div className='h-4 bg-[#E7E2D6] rounded w-2/3'></div>
-                  <div className='h-3 bg-[#F3F0E9] rounded w-1/2'></div>
-                  <div className='h-12 bg-[#F8F6F0] rounded'></div>
-                </div>
-              ))}
-            </div>
-          ) : loadError ? (
-            <div className='bg-red-50 border border-red-200 rounded-xl p-6 text-center space-y-3'>
-              <AlertCircle className='w-8 h-8 text-red-500 mx-auto' />
-              <div>
-                <h3 className='font-bold font-serif text-sm text-red-900'>
-                  {t('bible.view.loadErrorTitle', 'Không thể tải dữ liệu Series Bible')}
-                </h3>
-                <p className='text-xs text-red-700 mt-0.5'>{loadError}</p>
-              </div>
+            {canCreateDraft ? (
               <button
                 type='button'
-                onClick={() => void fetchBible()}
-                className='px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer'
+                onClick={() => setAddEntityOpen(true)}
+                className='px-3.5 py-1.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer'
+                data-testid='add-bible-entry-btn'
               >
-                {t('bible.view.retryLoad', 'Thử tải lại')}
-              </button>
-            </div>
-          ) : filteredEntities.length === 0 ? (
-            localEntities.length === 0 ? (
-              <EmptyFolderState
-                title={t('bible.view.emptyFolderTitle', 'Series Bible chưa có mục nào')}
-                subtitle={t(
-                  'bible.view.emptyFolderSubtitle',
-                  'Thêm các nhân vật, địa điểm, đạo cụ hoặc quy tắc mỹ thuật để hỗ trợ họa sĩ và hệ thống kiểm tra nhất quán.',
-                )}
-                actionText={
-                  canCreateDraft
-                    ? t('bible.view.emptyFolderCreateDraft', 'Tạo bản nháp đầu tiên')
-                    : undefined
-                }
-                onAction={canCreateDraft ? () => setAddEntityOpen(true) : undefined}
-              />
-            ) : (
-              <div className='bg-[#FCFBF8] border border-dashed border-[#D8D2C5] rounded-xl p-10 text-center space-y-3'>
-                <div className='w-12 h-12 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] mx-auto'>
-                  <BookOpen className='w-6 h-6' />
-                </div>
-                <h3 className='font-bold font-serif text-base text-[#1C1917]'>
-                  {t('bible.view.emptyFilteredTitle', 'Không tìm thấy mục phù hợp')}
-                </h3>
-                <p className='text-xs text-[#57534E] max-w-md mx-auto'>
-                  {t(
-                    'bible.view.emptyFilteredSubtitle',
-                    'Không có mục tri thức nào khớp với điều kiện lọc hiện tại. Thử đổi từ khóa hoặc xóa bộ lọc.',
-                  )}
-                </p>
-                <button
-                  type='button'
-                  onClick={handleResetFilters}
-                  className='px-3.5 py-1.5 bg-[#F3F0E9] hover:bg-[#E7E2D6] text-[#1C1917] text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer'
-                >
-                  <RotateCcw className='w-3.5 h-3.5' />
-                  <span>{t('bible.view.clearFilters', 'Xóa bộ lọc')}</span>
-                </button>
-              </div>
-            )
-          ) : viewMode === 'grid' ? (
-            /* GRID VIEW */
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4'>
-              {filteredEntities.map((entity) => {
-                const raw = rawEntries[entity.id];
-                const effRev = raw?.effectiveRevision;
-
-                return (
-                  <div
-                    key={entity.id}
-                    onClick={() => setSelectedEntity(entity)}
-                    className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl overflow-hidden shadow-xs hover:border-[#F97316] hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer'
-                    data-testid={`bible-card-${entity.id}`}
-                  >
-                    <div>
-                      {/* Top Thumbnail / Visual Header: Không để khoảng đen khổng lồ khi không có ảnh */}
-                      {entity.imageUrl ? (
-                        <div className='relative w-full h-36 bg-stone-950 overflow-hidden flex items-center justify-center border-b border-[#D8D2C5]'>
-                          <AuthenticatedImage
-                            src={entity.imageUrl}
-                            alt={entity.name}
-                            className='w-full h-full object-cover group-hover:scale-103 transition-transform duration-300'
-                          />
-                          <div className='absolute top-2 left-2 flex items-center gap-1.5 flex-wrap'>
-                            <span className='px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-xs text-white text-xs font-mono font-bold'>
-                              {entity.code}
-                            </span>
-                            {effRev?.reviewStatus === 'CanonLocked' ? (
-                              <span
-                                className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1 shadow-2xs'
-                                title={t('bible.view.cardCanonLocked', 'Đã khoá Canon')}
-                              >
-                                <Lock className='w-3.5 h-3.5 text-emerald-600' />
-                                {t('bible.view.cardCanonLocked', 'Đã khoá Canon')}
-                              </span>
-                            ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
-                              <span
-                                className='px-2 py-0.5 rounded bg-blue-600 text-white text-xs font-semibold flex items-center gap-1 shadow-2xs'
-                                title={t('bible.view.cardConceptSubmitted', 'Concept đã nộp')}
-                              >
-                                <Palette className='w-2.5 h-2.5' />
-                                {t('bible.view.cardConceptSubmitted', 'Concept đã nộp')}
-                              </span>
-                            ) : effRev?.reviewStatus === 'ReworkRequired' ? (
-                              <span
-                                className='px-2 py-0.5 rounded bg-rose-600 text-white text-xs font-semibold flex items-center gap-1 shadow-2xs'
-                                title={t('bible.view.cardReworkRequired', 'Cần vẽ lại')}
-                              >
-                                <AlertTriangle className='w-2.5 h-2.5' />
-                                {t('bible.view.cardReworkRequired', 'Cần vẽ lại')}
-                              </span>
-                            ) : null}
-                            {entity.isCrowd && (
-                              <span
-                                data-testid={`crowd-badge-${entity.id}`}
-                                className='px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1 shadow-2xs'
-                                title={t(
-                                  'bible.isCrowdHelp',
-                                  'Thực thể quần chúng không bắt buộc Model Sheet',
-                                )}
-                              >
-                                <Users className='w-3 h-3' />
-                                {t('production.cast.crowd', 'Quần chúng')}
-                              </span>
-                            )}
-                          </div>
-                          <div className='absolute bottom-2 right-2'>
-                            <span className='px-1.5 py-0.5 rounded bg-[#FCFBF8]/95 backdrop-blur-xs text-[#57534E] text-xs font-semibold border border-[#D8D2C5] shadow-xs'>
-                              {getCategoryLabel(entity.category)}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className='p-3 bg-[#F8F6F0] border-b border-[#D8D2C5] flex items-center justify-between'>
-                          <div className='flex items-center gap-2'>
-                            <div className='w-7 h-7 rounded-lg bg-[#FCFBF8] border border-[#D8D2C5] flex items-center justify-center text-[#F97316] shadow-xs'>
-                              {getCategoryIcon(entity.category, 'w-3.5 h-3.5')}
-                            </div>
-                            <span className='font-mono text-xs font-bold text-[#1C1917] bg-[#FCFBF8] px-1.5 py-0.5 rounded border border-[#D8D2C5]'>
-                              {entity.code}
-                            </span>
-                          </div>
-                          <div className='flex items-center gap-1.5'>
-                            {entity.isStub ? (
-                              <span
-                                data-testid={`stub-badge-${entity.id}`}
-                                className='px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold whitespace-nowrap'
-                              >
-                                {t('bible.defineStub.badge', 'Chưa định nghĩa')}
-                              </span>
-                            ) : effRev?.reviewStatus === 'CanonLocked' ? (
-                              <span
-                                className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1'
-                                title={t('bible.view.cardCanonLocked', 'Đã khoá Canon')}
-                              >
-                                <Lock className='w-3.5 h-3.5 text-emerald-600' />
-                                {t('bible.view.cardCanonLocked', 'Đã khoá Canon')}
-                              </span>
-                            ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
-                              <span className='px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium flex items-center gap-1'>
-                                <Palette className='w-2.5 h-2.5' />
-                                {t('bible.view.cardConceptSubmitted', 'Concept đã nộp')}
-                              </span>
-                            ) : effRev?.reviewStatus === 'ReworkRequired' ? (
-                              <span className='px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-xs font-medium flex items-center gap-1'>
-                                <AlertTriangle className='w-2.5 h-2.5' />
-                                {t('bible.view.cardReworkRequired', 'Cần vẽ lại')}
-                              </span>
-                            ) : (
-                              <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-xs font-medium'>
-                                {t('bible.view.cardDraft', 'Bản thảo')}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Card Content */}
-                      <div className='p-3.5 space-y-2'>
-                        <div>
-                          <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors line-clamp-1'>
-                            {entity.name}
-                            {effRev?.variantLabel || effRev?.stageName ? (
-                              <span className='font-sans font-medium text-[#57534E]'>
-                                {' '}
-                                · {effRev.variantLabel || effRev.stageName}
-                              </span>
-                            ) : null}
-                            {entity.isCrowd && (
-                              <span
-                                data-testid={`crowd-badge-${entity.id}`}
-                                className='px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1 shadow-2xs'
-                                title={t(
-                                  'bible.isCrowdHelp',
-                                  'Thực thể quần chúng không bắt buộc Model Sheet',
-                                )}
-                              >
-                                <Users className='w-3 h-3' />
-                                {t('production.cast.crowd', 'Quần chúng')}
-                              </span>
-                            )}
-                          </h3>
-                          {entity.latestDraftVersionNumber != null && (
-                            <span
-                              className='inline-flex mt-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium'
-                              data-testid={`pending-draft-badge-${entity.id}`}
-                            >
-                              {t('bible.view.pendingDraftBadge', {
-                                n: entity.latestDraftVersionNumber,
-                              })}
-                            </span>
-                          )}
-                          {entity.subtitle && (
-                            <p className='text-xs text-[#57534E] font-medium line-clamp-1 mt-0.5'>
-                              {entity.subtitle}
-                            </p>
-                          )}
-                        </div>
-
-                        {effRev?.reviewStatus === 'ReworkRequired' && effRev.reworkFeedback && (
-                          <div className='p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-900 text-xs leading-tight flex items-start gap-1.5'>
-                            <AlertTriangle className='w-3 h-3 text-rose-500 shrink-0 mt-0.5' />
-                            <span className='line-clamp-2'>
-                              <strong>{t('bible.view.reworkPrefix', 'Cần sửa:')}</strong> &quot;
-                              {effRev.reworkFeedback}&quot;
-                            </span>
-                          </div>
-                        )}
-
-                        <p
-                          className='text-xs text-[#57534E] leading-relaxed line-clamp-2'
-                          title={entity.description}
-                        >
-                          {entity.description ||
-                            t('bible.view.noDescription', 'Chưa có mô tả chi tiết cho mục này.')}
-                        </p>
-
-                        <div className='pt-2 border-t border-[#D8D2C5]/60 text-xs text-[#57534E]'>
-                          <span
-                            className='font-medium text-[#1C1917] truncate max-w-[150px]'
-                            title={
-                              effRev?.variantLabel ||
-                              effRev?.stageName ||
-                              t('bible.view.defaultVariant', 'Mặc định')
-                            }
-                          >
-                            {effRev?.variantLabel ||
-                              effRev?.stageName ||
-                              t('bible.view.defaultVariant', 'Mặc định')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card Action Footer */}
-                    <div className='p-2.5 bg-[#F8F6F0] border-t border-[#D8D2C5] flex items-center justify-between gap-1.5 flex-wrap'>
-                      <div className='flex items-center gap-1.5 flex-wrap'>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedEntity(entity);
-                          }}
-                          className='px-2.5 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-semibold text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
-                        >
-                          <Eye className='w-3 h-3 text-[#F97316]' />
-                          <span>{t('bible.view.cardViewDetail', 'Xem chi tiết')}</span>
-                        </button>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleOpenHistory(entity);
-                          }}
-                          className='px-2 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-medium text-[#57534E] hover:text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer'
-                          title={t('bible.view.cardHistory', 'Xem lịch sử phiên bản')}
-                        >
-                          <History className='w-3 h-3 text-[#78716C]' />
-                          <span>{t('bible.view.cardHistory', 'Lịch sử')}</span>
-                        </button>
-
-                        {/* Nút đánh dấu Quần chúng ngay trên thẻ Series Bible */}
-                        <button
-                          type='button'
-                          data-testid={`toggle-crowd-btn-${entity.id}`}
-                          disabled={togglingCrowdId === entity.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleToggleCrowd(entity);
-                          }}
-                          title={
-                            entity.isCrowd
-                              ? t('production.cast.crowdMarked', '✓ Quần chúng (bấm để huỷ)')
-                              : t('production.cast.setCrowd', '+ Đặt Quần chúng')
-                          }
-                          className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-all cursor-pointer shadow-xs ${
-                            entity.isCrowd
-                              ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
-                              : 'bg-[#FCFBF8] border-[#D8D2C5] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
-                          }`}
-                        >
-                          {togglingCrowdId === entity.id ? (
-                            <Loader2 className='w-3 h-3 animate-spin text-[#F97316]' />
-                          ) : (
-                            <Users
-                              className={`w-3 h-3 ${entity.isCrowd ? 'text-emerald-600' : 'text-[#78716C]'}`}
-                            />
-                          )}
-                          <span>
-                            {entity.isCrowd
-                              ? t('production.cast.crowdMarked', '✓ Quần chúng')
-                              : t('production.cast.setCrowd', '+ Quần chúng')}
-                          </span>
-                        </button>
-
-                        {/* Quick review actions for Writer/Editor when concept is submitted */}
-                        {canRequestRework && effRev?.reviewStatus === 'ConceptSubmitted' && (
-                          <div className='flex items-center gap-1'>
-                            {canEndorse && (
-                              <button
-                                type='button'
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  void handleConfirmCanon(effRev, entity);
-                                }}
-                                className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                                title={t(
-                                  'bible.view.approveBtnTitle',
-                                  'Writer/Editor duyệt concept art này',
-                                )}
-                              >
-                                <Check className='w-3 h-3' />
-                                <span>{t('bible.view.approveBtn', 'Duyệt')}</span>
-                              </button>
-                            )}
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenReworkModal(effRev, entity);
-                              }}
-                              className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                              title={t(
-                                'bible.view.reworkBtnTitle',
-                                'Yêu cầu Artist vẽ lại concept',
-                              )}
-                            >
-                              <MessageSquare className='w-3 h-3' />
-                              <span>{t('bible.view.reworkBtn', 'Sửa lại')}</span>
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Artist actions: Resubmit if mistakenly submitted, or rework */}
-                        {isArtist && effRev?.reviewStatus === 'ConceptSubmitted' && (
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleOpenAddRevision(entity, null, true, undefined, true);
-                            }}
-                            className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                            title={t(
-                              'bible.view.resubmitBtnTitle',
-                              'Nộp lại bản vẽ thay thế nếu nộp nhầm file',
-                            )}
-                            data-testid={`artist-resubmit-btn-${entity.id}`}
-                          >
-                            <RotateCcw className='w-3 h-3 text-amber-600' />
-                            <span>{t('bible.view.resubmitBtn', 'Nộp lại')}</span>
-                          </button>
-                        )}
-                        {isArtist && effRev?.reviewStatus === 'ReworkRequired' && (
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleOpenAddRevision(
-                                entity,
-                                effRev,
-                                true,
-                                effRev.reworkFeedback || undefined,
-                                false,
-                              );
-                            }}
-                            className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                            title={t(
-                              'bible.view.artistReworkBtnTitle',
-                              'Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor',
-                            )}
-                            data-testid={`artist-rework-btn-${entity.id}`}
-                          >
-                            <Palette className='w-3 h-3 text-rose-600' />
-                            <span>{t('bible.view.reworkBtn', 'Sửa lại')}</span>
-                          </button>
-                        )}
-                      </div>
-
-                      {canCreateDraft && (
-                        <div className='flex items-center gap-1'>
-                          {entity.isStub ? (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDefineTarget(entity);
-                              }}
-                              className='px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
-                              data-testid={`define-stub-btn-${entity.id}`}
-                            >
-                              <Edit3 className='w-3 h-3' />
-                              <span>{t('bible.defineStub.action', 'Định nghĩa')}</span>
-                            </button>
-                          ) : (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleOpenAddRevision(entity);
-                              }}
-                              className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
-                              title={
-                                isProducer
-                                  ? t('bible.view.addRevisionBtnTitleProducer', 'Tạo phiên bản mới')
-                                  : t(
-                                      'bible.view.addRevisionBtnTitleWriter',
-                                      'Tạo bản nháp mới – chờ Writer/Editor xác nhận',
-                                    )
-                              }
-                              data-testid={`add-revision-btn-${entity.id}`}
-                            >
-                              <GitCommit className='w-3 h-3' />
-                              <span>
-                                {isProducer
-                                  ? t('bible.view.addRevisionBtn', '+ Bản')
-                                  : t('bible.view.addDraftBtn', '+ Nháp')}
-                              </span>
-                            </button>
-                          )}
-                          {isProducer && onEditEntity && !entity.isStub && (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEditEntity(entity);
-                              }}
-                              className='p-1 rounded-lg text-[#78716C] hover:text-[#1C1917] hover:bg-[#FCFBF8] border border-transparent hover:border-[#D8D2C5] transition-colors cursor-pointer'
-                              title={t('bible.view.quickEdit', 'Chỉnh sửa nhanh')}
-                              data-testid={`edit-entity-btn-${entity.id}`}
-                            >
-                              <Edit3 className='w-3.5 h-3.5' />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            /* LIST VIEW */
-            <div className='space-y-2.5'>
-              {filteredEntities.map((entity) => {
-                const raw = rawEntries[entity.id];
-                const effRev = raw?.effectiveRevision;
-
-                return (
-                  <div
-                    key={entity.id}
-                    onClick={() => setSelectedEntity(entity)}
-                    className='bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] hover:border-[#F97316] p-3 sm:p-4 hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 cursor-pointer group'
-                    data-testid={`bible-list-item-${entity.id}`}
-                  >
-                    <div className='flex items-start sm:items-center gap-3.5 min-w-0 flex-1'>
-                      {/* Thumbnail / Category Icon */}
-                      <div className='w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#F8F6F0] overflow-hidden shrink-0 border border-[#D8D2C5] flex items-center justify-center'>
-                        {entity.imageUrl ? (
-                          <AuthenticatedImage
-                            src={entity.imageUrl}
-                            alt={entity.name}
-                            className='w-full h-full object-cover'
-                          />
-                        ) : (
-                          <div className='w-full h-full bg-[#F3F0E9] flex items-center justify-center text-[#F97316]'>
-                            {getCategoryIcon(entity.category, 'w-5 h-5')}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className='min-w-0 flex-1 space-y-1'>
-                        <div className='flex items-center gap-2 flex-wrap'>
-                          <span className='font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#1C1917] border border-[#D8D2C5]'>
-                            {entity.code}
-                          </span>
-                          <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
-                            {entity.name}
-                            {effRev?.variantLabel || effRev?.stageName ? (
-                              <span className='font-sans font-medium text-[#57534E]'>
-                                {' '}
-                                · {effRev.variantLabel || effRev.stageName}
-                              </span>
-                            ) : null}
-                            {entity.isCrowd && (
-                              <span
-                                data-testid={`crowd-badge-${entity.id}`}
-                                className='px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1 shadow-2xs'
-                                title={t(
-                                  'bible.isCrowdHelp',
-                                  'Thực thể quần chúng không bắt buộc Model Sheet',
-                                )}
-                              >
-                                <Users className='w-3 h-3' />
-                                {t('production.cast.crowd', 'Quần chúng')}
-                              </span>
-                            )}
-                          </h3>
-                          {entity.latestDraftVersionNumber != null && (
-                            <span
-                              className='px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium whitespace-nowrap'
-                              data-testid={`pending-draft-badge-${entity.id}`}
-                            >
-                              {t('bible.view.pendingDraftBadge', {
-                                n: entity.latestDraftVersionNumber,
-                              })}
-                            </span>
-                          )}
-                          <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-xs font-medium'>
-                            {getCategoryLabel(entity.category)}
-                          </span>
-                          {entity.isStub ? (
-                            <span
-                              data-testid={`stub-badge-${entity.id}`}
-                              className='px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold whitespace-nowrap'
-                            >
-                              {t('bible.defineStub.badge', 'Chưa định nghĩa')}
-                            </span>
-                          ) : effRev?.reviewStatus === 'CanonLocked' ? (
-                            <span
-                              className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium whitespace-nowrap flex items-center gap-1'
-                              title={t('bible.view.cardCanonLocked', 'Đã khoá Canon')}
-                            >
-                              <Lock className='w-3.5 h-3.5 text-emerald-600' />
-                              {t('bible.view.cardCanonLocked', 'Đã khoá Canon')}
-                            </span>
-                          ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
-                            <span className='px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium flex items-center gap-1'>
-                              <Palette className='w-2.5 h-2.5' />
-                              {t('bible.view.cardConceptSubmitted', 'Concept đã nộp')}
-                            </span>
-                          ) : effRev?.reviewStatus === 'ReworkRequired' ? (
-                            <span className='px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-xs font-medium flex items-center gap-1'>
-                              <AlertTriangle className='w-2.5 h-2.5' />
-                              {t('bible.view.cardReworkRequired', 'Cần vẽ lại')}
-                            </span>
-                          ) : null}
-                        </div>
-                        {entity.subtitle && (
-                          <p className='text-xs text-[#C2410C] font-medium truncate'>
-                            {entity.subtitle}
-                          </p>
-                        )}
-                        {effRev?.reviewStatus === 'ReworkRequired' && effRev.reworkFeedback && (
-                          <p className='text-xs text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 line-clamp-1 italic'>
-                            {t('bible.view.reworkPrefix', 'Cần sửa:')} &quot;{effRev.reworkFeedback}
-                            &quot;
-                          </p>
-                        )}
-                        <p className='text-xs text-[#57534E] line-clamp-1'>
-                          {entity.description ||
-                            t('bible.view.noDescriptionShort', 'Chưa có mô tả cho mục này.')}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className='flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#D8D2C5]/60'>
-                      <div className='text-right text-xs text-[#57534E] hidden md:block'>
-                        <div className='font-semibold text-[#1C1917] truncate max-w-[140px]'>
-                          {effRev?.variantLabel ||
-                            effRev?.stageName ||
-                            t('bible.view.defaultVariant', 'Mặc định')}
-                        </div>
-                      </div>
-
-                      <div className='flex items-center gap-1.5 flex-wrap'>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedEntity(entity);
-                          }}
-                          className='px-2.5 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-semibold text-[#1C1917] flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
-                        >
-                          <Eye className='w-3 h-3 text-[#F97316]' />
-                          <span>{t('bible.view.viewShort', 'Xem')}</span>
-                        </button>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleOpenHistory(entity);
-                          }}
-                          className='px-2 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-medium text-[#57534E] hover:text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer'
-                          title={t('bible.view.cardHistory', 'Lịch sử')}
-                        >
-                          <History className='w-3 h-3 text-[#78716C]' />
-                        </button>
-
-                        {/* Nút đánh dấu Quần chúng ngay trên thẻ Series Bible dạng danh sách */}
-                        <button
-                          type='button'
-                          data-testid={`toggle-crowd-btn-list-${entity.id}`}
-                          disabled={togglingCrowdId === entity.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleToggleCrowd(entity);
-                          }}
-                          title={
-                            entity.isCrowd
-                              ? t('production.cast.crowdMarked', '✓ Quần chúng (bấm để huỷ)')
-                              : t('production.cast.setCrowd', '+ Đặt Quần chúng')
-                          }
-                          className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-all cursor-pointer shadow-xs ${
-                            entity.isCrowd
-                              ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
-                              : 'bg-[#FCFBF8] border-[#D8D2C5] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
-                          }`}
-                        >
-                          {togglingCrowdId === entity.id ? (
-                            <Loader2 className='w-3 h-3 animate-spin text-[#F97316]' />
-                          ) : (
-                            <Users
-                              className={`w-3 h-3 ${entity.isCrowd ? 'text-emerald-600' : 'text-[#78716C]'}`}
-                            />
-                          )}
-                          <span>
-                            {entity.isCrowd
-                              ? t('production.cast.crowdMarked', '✓ Quần chúng')
-                              : t('production.cast.setCrowd', '+ Quần chúng')}
-                          </span>
-                        </button>
-
-                        {canRequestRework && effRev?.reviewStatus === 'ConceptSubmitted' && (
-                          <>
-                            {canEndorse && (
-                              <button
-                                type='button'
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  void handleConfirmCanon(effRev, entity);
-                                }}
-                                className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                                title={t(
-                                  'bible.view.approveBtnTitle',
-                                  'Writer/Editor duyệt concept art này',
-                                )}
-                              >
-                                <Check className='w-3 h-3' />
-                                <span className='hidden sm:inline'>
-                                  {t('bible.view.approveBtn', 'Duyệt')}
-                                </span>
-                              </button>
-                            )}
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenReworkModal(effRev, entity);
-                              }}
-                              className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                              title={t(
-                                'bible.view.reworkBtnTitle',
-                                'Yêu cầu Artist vẽ lại concept',
-                              )}
-                            >
-                              <MessageSquare className='w-3 h-3' />
-                              <span className='hidden sm:inline'>
-                                {t('bible.view.reworkBtn', 'Sửa lại')}
-                              </span>
-                            </button>
-                          </>
-                        )}
-                        {isArtist && effRev?.reviewStatus === 'ConceptSubmitted' && (
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleOpenAddRevision(entity, null, true, undefined, true);
-                            }}
-                            className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                            title={t(
-                              'bible.view.resubmitBtnTitle',
-                              'Nộp lại bản vẽ thay thế nếu nộp nhầm file',
-                            )}
-                            data-testid={`artist-resubmit-btn-${entity.id}`}
-                          >
-                            <RotateCcw className='w-3 h-3 text-amber-600' />
-                            <span className='hidden sm:inline'>
-                              {t('bible.view.resubmitBtn', 'Nộp lại')}
-                            </span>
-                          </button>
-                        )}
-                        {isArtist && effRev?.reviewStatus === 'ReworkRequired' && (
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleOpenAddRevision(
-                                entity,
-                                effRev,
-                                true,
-                                effRev.reworkFeedback || undefined,
-                                false,
-                              );
-                            }}
-                            className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                            title={t(
-                              'bible.view.artistReworkBtnTitle',
-                              'Nộp bản vẽ sửa đổi theo nhận xét của Writer/Editor',
-                            )}
-                            data-testid={`artist-rework-btn-${entity.id}`}
-                          >
-                            <Palette className='w-3 h-3 text-rose-600' />
-                            <span className='hidden sm:inline'>
-                              {t('bible.view.reworkBtn', 'Sửa lại')}
-                            </span>
-                          </button>
-                        )}
-                        {canCreateDraft &&
-                          (entity.isStub ? (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDefineTarget(entity);
-                              }}
-                              className='px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
-                              data-testid={`define-stub-btn-${entity.id}`}
-                            >
-                              <Edit3 className='w-3 h-3' />
-                              <span className='hidden sm:inline'>
-                                {t('bible.defineStub.action', 'Định nghĩa')}
-                              </span>
-                            </button>
-                          ) : (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleOpenAddRevision(entity);
-                              }}
-                              className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
-                              title={
-                                isProducer
-                                  ? t('bible.view.addRevisionBtnTitleProducer', 'Tạo phiên bản mới')
-                                  : t(
-                                      'bible.view.addRevisionBtnTitleWriter',
-                                      'Tạo bản nháp mới – chờ Writer/Editor xác nhận',
-                                    )
-                              }
-                              data-testid={`add-revision-btn-${entity.id}`}
-                            >
-                              <GitCommit className='w-3 h-3' />
-                              <span className='hidden sm:inline'>
-                                {isProducer
-                                  ? t('bible.view.addRevisionBtn', '+ Bản')
-                                  : t('bible.view.addDraftBtn', '+ Nháp')}
-                              </span>
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-      {/* DETAIL WORKBENCH (toàn trang) */}
-      {selectedEntity && (
-        <BibleEntityDetailModal
-          key={selectedEntity.id}
-          entity={selectedEntity}
-          entities={localEntities}
-          onSelectEntity={setSelectedEntity}
-          rawEntry={rawEntries[selectedEntity.id]}
-          isProducer={isProducer}
-          isArtist={isArtist}
-          isWriter={isWriter}
-          isEditor={isEditor}
-          canCreateDraft={canCreateDraft}
-          canEndorse={canEndorse}
-          canRequestRework={canRequestRework}
-          seriesId={effectiveSeries?.id}
-          onClose={() => setSelectedEntity(null)}
-          onOpenHistory={(e) => {
-            void handleOpenHistory(e);
-          }}
-          onOpenAddRevision={(
-            e,
-            supersede,
-            fromQueue,
-            reworkFeedback,
-            isResubmit,
-            isNewVariant,
-          ) => {
-            void handleOpenAddRevision(
-              e,
-              supersede,
-              fromQueue,
-              reworkFeedback,
-              isResubmit,
-              isNewVariant,
-            );
-          }}
-          onOpenDefineStub={(ent) => setDefineTarget(ent)}
-          onRequestRework={(ent, rev) => handleOpenReworkModal(rev, ent)}
-          onConfirmCanon={(rev) => handleConfirmCanon(rev, selectedEntity)}
-          onShowToast={onShowToast}
-          onToggleCrowd={handleToggleCrowd}
-          onZoomImage={(img) => setSelectedImageZoom(img)}
-          onDeleteRevision={(ent, rev) => handleDeleteRevision(ent, rev)}
-          onSaveSpecFields={handleSaveSpecFields}
-        />
-      )}
-
-      {/* ZOOM IMAGE LIGHTBOX MODAL */}
-      <Modal
-        isOpen={!!selectedImageZoom}
-        onClose={() => setSelectedImageZoom(null)}
-        size='xl'
-        closeLabel={t('bible.view.closeLightboxAria', 'Đóng xem ảnh')}
-        title={t(
-          'bible.view.referenceSheetTitle',
-          { title: selectedImageZoom?.title ?? '' },
-          '{title} — Reference Sheet',
-        )}
-      >
-        {selectedImageZoom && (
-          <div className='flex max-h-[75vh] items-center justify-center overflow-hidden rounded-xl bg-stone-950'>
-            <AuthenticatedImage
-              src={selectedImageZoom.url}
-              alt={selectedImageZoom.title}
-              className='max-h-[75vh] w-auto object-contain'
-            />
-          </div>
-        )}
-      </Modal>
-
-      {/* REVISION HISTORY MODAL */}
-      <Modal
-        isOpen={historyModalOpen}
-        onClose={() => setHistoryModalOpen(false)}
-        size='md'
-        closeLabel={t('bible.view.closeHistoryAria', 'Đóng')}
-        data-child-modal='true'
-        title={
-          <span className='flex items-center gap-2'>
-            <History className='size-4 text-[#F97316]' aria-hidden='true' />
-            {t(
-              'bible.view.historyModalTitle',
-              { name: historyEntityName },
-              'Lịch sử phiên bản: {name}',
-            )}
-          </span>
-        }
-      >
-        <div className='p-5 overflow-y-auto space-y-4 flex-1 custom-scrollbar'>
-          <div className='text-xs text-stone-500 bg-stone-50 p-2.5 rounded-lg border border-stone-200 leading-relaxed'>
-            {t(
-              'bible.view.historyNotice',
-              'Toàn bộ lịch sử chỉnh sửa thiết kế được lưu giữ đầy đủ, đảm bảo tính nhất quán và bảo toàn tiến trình sáng tác.',
-            )}
-          </div>
-
-          {loadingHistory ? (
-            <div className='py-8 text-center text-xs text-stone-500 flex flex-col items-center gap-2'>
-              <Loader2 className='w-5 h-5 animate-spin text-[#F97316]' />
-              <span>{t('bible.view.loadingHistory', 'Đang tải lịch sử phiên bản...')}</span>
-            </div>
-          ) : historyRevisions.length === 0 ? (
-            <div className='py-8 text-center text-xs text-stone-500'>
-              {t('bible.view.noHistory', 'Chưa có phiên bản nào được ghi nhận.')}
-            </div>
-          ) : (
-            <div className='space-y-4'>
-              {/* Visual variant progression timeline */}
-              <div className='bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl p-3 space-y-1.5'>
-                <div className='flex items-center gap-1.5 text-xs font-semibold text-stone-700'>
-                  <Layers className='w-3.5 h-3.5 text-[#F97316]' />
-                  <span>
-                    {t(
-                      'bible.view.variantProgressTitle',
-                      { name: historyEntityName },
-                      'Tiến trình các biến thể ({name}):',
-                    )}
-                  </span>
-                </div>
-                <div className='flex items-center gap-1.5 overflow-x-auto pb-1 text-xs custom-scrollbar flex-wrap'>
-                  {(() => {
-                    const variants = groupRevisionsIntoVariants(historyRevisions);
-                    return variants.map((variant, idx) => (
-                      <React.Fragment key={variant.variantKey}>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border font-medium ${
-                            variant.isLocked
-                              ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold'
-                              : 'bg-white border-stone-200 text-stone-700'
-                          }`}
-                        >
-                          {variant.isLocked && <Lock className='w-2.5 h-2.5 text-amber-600' />}
-                          <span>{variant.variantLabel}</span>
-                        </span>
-                        {idx < variants.length - 1 && (
-                          <span className='text-stone-400 font-bold'>→</span>
-                        )}
-                      </React.Fragment>
-                    ));
-                  })()}
-                </div>
-              </div>
-
-              <div className='relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200'>
-                {historyRevisions.map((rev) => (
-                  <div key={rev.id} className='relative group'>
-                    <div className='absolute -left-6 top-1.5 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#F97316]'></div>
-                    <div className='bg-[#FAF8F5] p-3.5 rounded-xl border border-[#E7E7E7] space-y-2'>
-                      <div className='flex flex-wrap items-center justify-between gap-2'>
-                        <div className='flex items-center gap-2 flex-wrap'>
-                          <span className='px-2 py-0.5 rounded bg-stone-900 text-white font-mono text-xs font-bold'>
-                            {rev.variantLabel || rev.stageName || `VERSION ${rev.versionNumber}`}
-                            {rev.isInitialVersion
-                              ? t('bible.view.versionInitial', ' (Khởi tạo)')
-                              : ''}
-                          </span>
-                          {rev.reviewStatus === 'CanonLocked' ? (
-                            <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-xs font-mono font-bold flex items-center gap-1 shadow-2xs'>
-                              <Lock className='w-2.5 h-2.5 text-amber-600' />
-                              {t('bible.view.canonLockedBadgeUpper', 'ĐÃ KHOÁ CANON')}
-                            </span>
-                          ) : rev.reviewStatus === 'ConceptSubmitted' ? (
-                            <span className='px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300 text-xs font-semibold'>
-                              Concept Submitted
-                            </span>
-                          ) : rev.reviewStatus === 'ReworkRequired' ? (
-                            <span className='px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 text-xs font-semibold'>
-                              {t('bible.view.cardReworkRequired', 'Cần vẽ lại')}
-                            </span>
-                          ) : (
-                            <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 border border-stone-200 text-xs font-medium'>
-                              {t('bible.view.cardDraft', 'Bản nháp')}
-                            </span>
-                          )}
-                        </div>
-                        <span className='text-xs font-mono text-stone-500 flex items-center gap-1'>
-                          <Clock className='w-3 h-3' />
-                          {new Date(rev.createdAt).toLocaleString('vi-VN')}
-                        </span>
-                      </div>
-
-                      <div className='flex items-start gap-3'>
-                        {(rev.conceptImageUrl || rev.referenceImageUrl) && (
-                          <AuthenticatedImage
-                            src={rev.conceptImageUrl || rev.referenceImageUrl!}
-                            alt={rev.summary || `v${rev.versionNumber}`}
-                            className='w-14 h-14 object-cover rounded-lg border border-stone-200 shrink-0 shadow-2xs cursor-pointer hover:scale-105 transition'
-                            onClick={() =>
-                              setSelectedImageZoom({
-                                url: rev.conceptImageUrl || rev.referenceImageUrl!,
-                                title:
-                                  rev.summary ||
-                                  t(
-                                    'bible.view.versionLabel',
-                                    { version: rev.versionNumber },
-                                    'Phiên bản v{version}',
-                                  ),
-                              })
-                            }
-                          />
-                        )}
-                        <div className='min-w-0 flex-1 space-y-1.5'>
-                          <div className='text-xs font-semibold text-stone-900'>{rev.summary}</div>
-                          {rev.reworkFeedback && (
-                            <div className='p-2 bg-rose-50 border border-rose-200 rounded text-rose-900 text-xs'>
-                              <strong>
-                                {t('bible.view.reworkFeedbackLabel', 'Nhận xét yêu cầu sửa:')}
-                              </strong>{' '}
-                              {rev.reworkFeedback}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Chronological Event Timeline for Revision */}
-                      {rev.events && rev.events.length > 0 && (
-                        <div className='mt-2 pt-2 border-t border-stone-200/60 space-y-1.5'>
-                          <div className='text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1.5'>
-                            <Clock className='w-3 h-3 text-[#F97316]' />
-                            <span>
-                              {t(
-                                'bible.view.eventTimelineTitle',
-                                { count: rev.events.length },
-                                `Dòng thời gian sự kiện duyệt (${rev.events.length})`,
-                              )}
-                            </span>
-                          </div>
-                          <div className='space-y-1.5 pl-2 border-l-2 border-orange-200'>
-                            {rev.events.map((evt) => {
-                              let badgeColor = 'bg-stone-100 text-stone-700 border-stone-200';
-                              let label: string = evt.type;
-                              if (evt.type === 'Created') {
-                                badgeColor = 'bg-stone-100 text-stone-800 border-stone-200';
-                                label = t('bible.view.eventCreated', 'Khởi tạo');
-                              } else if (evt.type === 'ConceptSubmitted') {
-                                badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
-                                label = t('bible.view.eventConceptSubmitted', 'Nộp Concept');
-                              } else if (evt.type === 'ReworkRequested') {
-                                badgeColor = 'bg-rose-50 text-rose-800 border-rose-200';
-                                label = t('bible.view.eventReworkRequested', 'Yêu cầu sửa');
-                              } else if (evt.type === 'Endorsed') {
-                                badgeColor = 'bg-blue-50 text-blue-800 border-blue-200';
-                                label = t('bible.view.eventEndorsed', 'Đã xác nhận');
-                              } else if (evt.type === 'Locked') {
-                                badgeColor = 'bg-emerald-50 text-emerald-800 border-emerald-200';
-                                label = t('bible.view.eventLocked', 'Khoá Canon');
-                              } else if (evt.type === 'Superseded') {
-                                badgeColor = 'bg-stone-100 text-stone-700 border-stone-200';
-                                label = t('bible.view.eventSuperseded', 'Bị thay thế');
-                              } else if (evt.type === 'DraftOverwritten') {
-                                badgeColor = 'bg-stone-100 text-stone-800 border-stone-200';
-                                label = t('bible.view.eventDraftOverwritten', 'Định nghĩa lại');
-                              }
-
-                              return (
-                                <div
-                                  key={evt.id}
-                                  className='text-xs space-y-1 bg-white/70 p-2 rounded-lg border border-stone-100'
-                                >
-                                  <div className='flex items-center gap-2 flex-wrap text-xs'>
-                                    <span
-                                      className={`px-1.5 py-0.5 rounded text-xs font-semibold border ${badgeColor}`}
-                                    >
-                                      {label}
-                                    </span>
-                                    <span className='text-xs text-stone-400 font-mono'>
-                                      {new Date(evt.createdAt).toLocaleString('vi-VN')}
-                                    </span>
-                                    {evt.eventHash && (
-                                      <span
-                                        className='text-xs text-emerald-600 font-medium flex items-center gap-0.5'
-                                        title={t(
-                                          'bible.view.verifiedTooltip',
-                                          'Phiên bản đã được lưu vết an toàn',
-                                        )}
-                                      >
-                                        <ShieldCheck className='w-3 h-3' />
-                                        {t('bible.view.eventVerified', 'Đã chứng thực')}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {evt.comment && (
-                                    <p className='text-xs text-stone-600 italic bg-stone-50 p-1.5 rounded border border-stone-200/60'>
-                                      "{evt.comment}"
-                                    </p>
-                                  )}
-                                  {evt.imageUrl && (
-                                    <div className='mt-1 flex items-center gap-2'>
-                                      <AuthenticatedImage
-                                        src={evt.imageUrl}
-                                        alt={label}
-                                        className='w-12 h-12 object-cover rounded border border-stone-200 shadow-2xs hover:scale-105 transition cursor-pointer'
-                                        onClick={() =>
-                                          setSelectedImageZoom({
-                                            url: evt.imageUrl!,
-                                            title: `${label} - ${rev.summary || ''}`,
-                                          })
-                                        }
-                                        title={t(
-                                          'bible.view.clickToEnlarge',
-                                          'Nhấp để mở ảnh cỡ lớn',
-                                        )}
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className='flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-stone-200/70'>
-                        <div className='flex items-center gap-2'>
-                          <span
-                            className='text-xs font-mono text-stone-400 truncate max-w-[120px]'
-                            title={rev.contentHash}
-                          >
-                            Hash: {rev.contentHash.substring(0, 8)}...
-                          </span>
-                        </div>
-
-                        <div className='flex items-center gap-1.5 flex-wrap'>
-                          {canRequestRework && rev.reviewStatus === 'ConceptSubmitted' && (
-                            <button
-                              type='button'
-                              onClick={() => handleOpenReworkModal(rev)}
-                              className='px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
-                              title={t(
-                                'bible.view.reworkBtnTitle',
-                                'Yêu cầu Artist vẽ lại theo nhận xét',
-                              )}
-                            >
-                              <MessageSquare className='w-3 h-3' />
-                              <span>{t('bible.view.eventReworkRequested', 'Yêu cầu sửa')}</span>
-                            </button>
-                          )}
-
-                          {rev.reviewStatus !== 'CanonLocked' &&
-                            historyEntity?.isVisualDesign &&
-                            isEditor && (
-                              <button
-                                type='button'
-                                disabled={
-                                  lockingRevisionId === rev.id ||
-                                  rev.reviewStatus !== 'ConceptSubmitted'
-                                }
-                                onClick={() => void handleConfirmCanon(rev)}
-                                className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
-                                title={
-                                  rev.reviewStatus !== 'ConceptSubmitted'
-                                    ? t(
-                                        'bible.view.lockCanonConceptSubmittedOnlyDesc',
-                                        'Chỉ có thể xác nhận & khoá Canon phiên bản đang nộp concept (ConceptSubmitted)',
-                                      )
-                                    : t(
-                                        'bible.view.confirmAndLockHistoryTitle',
-                                        'Editor xác nhận và khoá phiên bản này làm tham chiếu chuẩn Canon',
-                                      )
-                                }
-                                data-testid={`btn-lock-canon-${rev.id}`}
-                              >
-                                <Lock className='w-3 h-3' />
-                                <span>
-                                  {lockingRevisionId === rev.id
-                                    ? t('bible.view.confirmingLock', 'Đang khoá...')
-                                    : t(
-                                        'bible.view.confirmLockCanonSubmit',
-                                        'Xác nhận & Khoá Canon',
-                                      )}
-                                </span>
-                              </button>
-                            )}
-                          {rev.reviewStatus === 'CanonLocked' &&
-                            historyEntity?.isVisualDesign &&
-                            (isWriter || isProducer) && (
-                              <button
-                                type='button'
-                                onClick={() => {
-                                  if (!historyEntity) return;
-                                  setHistoryModalOpen(false);
-                                  void handleOpenAddRevision(historyEntity, rev);
-                                }}
-                                className='px-2.5 py-1 rounded-lg bg-stone-600 hover:bg-stone-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
-                                title={t(
-                                  'bible.view.supersedeLockedHistoryTitle',
-                                  'Tạo bản mới thay cho bản khoá này',
-                                )}
-                              >
-                                <Lock className='w-3 h-3' />
-                                <span>
-                                  {t('bible.view.supersedeLockedHistoryBtn', 'Thay thế bản khoá')}
-                                </span>
-                              </button>
-                            )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] flex items-center justify-between'>
-          {canCreateDraft &&
-            historyEntity &&
-            (historyEntity.isStub ? (
-              <button
-                type='button'
-                onClick={() => {
-                  setHistoryModalOpen(false);
-                  setDefineTarget(historyEntity);
-                }}
-                className='px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
-              >
-                <Edit3 className='w-3.5 h-3.5' />
-                <span>{t('bible.defineStub.action', 'Định nghĩa')}</span>
-              </button>
-            ) : (
-              <button
-                type='button'
-                onClick={() => {
-                  setHistoryModalOpen(false);
-                  void handleOpenAddRevision(historyEntity);
-                }}
-                className='px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
-              >
-                <GitCommit className='w-3.5 h-3.5' />
+                <Plus className='w-4 h-4' />
                 <span>
                   {isProducer
-                    ? t('bible.view.addNewRevisionBtn', '+ Tạo phiên bản mới')
-                    : t('bible.view.addNewDraftBtn', '+ Tạo bản nháp mới')}
+                    ? t('bible.view.addEntityBtn', 'Thêm mục mới')
+                    : t('bible.view.createDraftBtn', 'Tạo mục nháp')}
                 </span>
               </button>
-            ))}
-          <button
-            type='button'
-            onClick={() => setHistoryModalOpen(false)}
-            className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-lg ml-auto'
-          >
-            {t('bible.view.closeBtn', 'Đóng')}
-          </button>
+            ) : (
+              <span
+                className='px-3 py-1.5 rounded-lg bg-stone-100 border border-stone-200/80 text-stone-600 text-xs font-medium flex items-center gap-1.5'
+                data-testid='bible-readonly-badge'
+              >
+                <Lock className='w-3.5 h-3.5 text-stone-500' />
+                <span>{t('bible.view.readOnlyBadge', 'Chế độ chỉ xem')}</span>
+              </span>
+            )}
+          </div>
         </div>
-      </Modal>
+
+        {/* Row 2: Category segmented tabs, search and status filter */}
+        <div className='flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pt-3 border-t border-stone-100'>
+          {/* Segmented Tabs (acts as sidebar for test assertions) */}
+          <div
+            className='inline-flex p-1 rounded-lg bg-stone-100 border border-stone-200/80 text-xs flex-wrap gap-0.5'
+            data-testid='bible-sidebar'
+          >
+            <button
+              type='button'
+              onClick={() => setActiveTab('all')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'all'
+                  ? 'bg-white font-semibold text-stone-900 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+              data-testid='tab-category-all'
+            >
+              <LayoutGrid
+                className={`w-3.5 h-3.5 ${activeTab === 'all' ? 'text-orange-600' : 'text-stone-500'}`}
+              />
+              <span>
+                {t('bible.view.tabAll', 'Tất cả')} ({categoryCounts.all})
+              </span>
+            </button>
+            <button
+              type='button'
+              onClick={() => setActiveTab('characters')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'characters'
+                  ? 'bg-white font-semibold text-stone-900 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+              data-testid='tab-category-characters'
+            >
+              <User
+                className={`w-3.5 h-3.5 ${activeTab === 'characters' ? 'text-orange-600' : 'text-stone-500'}`}
+              />
+              <span>
+                {t('bible.view.tabCharacters', 'Nhân vật')} ({categoryCounts.characters})
+              </span>
+            </button>
+            <button
+              type='button'
+              onClick={() => setActiveTab('locations')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'locations'
+                  ? 'bg-white font-semibold text-stone-900 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+              data-testid='tab-category-locations'
+            >
+              <MapPin
+                className={`w-3.5 h-3.5 ${activeTab === 'locations' ? 'text-orange-600' : 'text-stone-500'}`}
+              />
+              <span>
+                {t('bible.view.tabLocations', 'Địa điểm')} ({categoryCounts.locations})
+              </span>
+            </button>
+            <button
+              type='button'
+              onClick={() => setActiveTab('terminology')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'terminology'
+                  ? 'bg-white font-semibold text-stone-900 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+              data-testid='tab-category-terminology'
+            >
+              <Wrench
+                className={`w-3.5 h-3.5 ${activeTab === 'terminology' ? 'text-orange-600' : 'text-stone-500'}`}
+              />
+              <span>
+                {t('bible.view.tabProps', 'Đạo cụ')} ({categoryCounts.terminology})
+              </span>
+            </button>
+            <button
+              type='button'
+              onClick={() => setActiveTab('style')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'style'
+                  ? 'bg-white font-semibold text-stone-900 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+              data-testid='tab-category-style'
+            >
+              <ShieldCheck
+                className={`w-3.5 h-3.5 ${activeTab === 'style' ? 'text-orange-600' : 'text-stone-500'}`}
+              />
+              <span>
+                {t('bible.view.tabRules', 'Quy tắc')} ({categoryCounts.style})
+              </span>
+            </button>
+          </div>
+
+          {/* Search, Filter & View Controls */}
+          <div className='flex items-center gap-2.5 flex-1 md:max-w-md'>
+            <div className='relative flex-1'>
+              <Search className='w-3.5 h-3.5 absolute left-2.5 top-2.5 text-stone-400' />
+              <input
+                type='text'
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={getSearchPlaceholder()}
+                className='w-full pl-8 pr-3 py-1.5 rounded-lg bg-stone-50 border border-stone-200/80 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:bg-white focus:border-orange-500'
+              />
+            </div>
+
+            <select
+              data-testid='bible-status-filter'
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className='px-2.5 py-1.5 rounded-lg bg-stone-50 border border-stone-200/80 text-xs text-stone-700 font-medium focus:outline-none focus:border-orange-500 cursor-pointer'
+            >
+              <option value='ALL'>{t('bible.view.statusAll', 'Tất cả trạng thái')}</option>
+              <option value='ConceptSubmitted'>
+                {t('bible.view.statusPending', 'Chờ khóa chuẩn')}
+              </option>
+              <option value='CanonLocked'>{t('bible.view.statusLocked', 'Đã khóa chuẩn')}</option>
+              <option value='ReworkRequired'>
+                {t('bible.view.statusFilterRework', 'Cần vẽ lại')}
+              </option>
+              <option value='Draft'>{t('bible.view.statusFilterDraft', 'Bản thảo')}</option>
+            </select>
+
+            {hasActiveFilters && (
+              <button
+                type='button'
+                onClick={handleResetFilters}
+                className='px-2 py-1.5 text-xs text-orange-600 hover:text-orange-700 font-semibold cursor-pointer'
+              >
+                {t('bible.view.resetFilters', 'Xóa bộ lọc')}
+              </button>
+            )}
+
+            <div className='hidden sm:inline-flex p-0.5 rounded-lg bg-stone-100 border border-stone-200/80 text-xs'>
+              <button
+                type='button'
+                onClick={() => handleToggleViewMode('grid')}
+                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-white shadow-xs text-stone-900' : 'text-stone-500 hover:text-stone-900'}`}
+                aria-label={t('bible.view.gridViewAria', 'Xem dạng lưới')}
+              >
+                <LayoutGrid className='w-3.5 h-3.5' />
+              </button>
+              <button
+                type='button'
+                onClick={() => handleToggleViewMode('list')}
+                className={`p-1 rounded ${viewMode === 'list' ? 'bg-white shadow-xs text-stone-900' : 'text-stone-500 hover:text-stone-900'}`}
+                aria-label={t('bible.view.listViewAria', 'Xem dạng danh sách')}
+              >
+                <List className='w-3.5 h-3.5' />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* DRAWING QUEUE BANNER IF ACTIVE */}
+      {designQueue.length > 0 && (
+        <div className='rounded-xl border border-amber-200/80 bg-amber-50/40 p-4 space-y-3'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <PenTool className='w-4 h-4 text-amber-700' />
+              <h3 className='text-xs font-bold uppercase tracking-wider text-amber-900'>
+                {t(
+                  'bible.view.queueHeading',
+                  { count: designQueue.length },
+                  `Hàng đợi vẽ thiết kế Concept Art (${designQueue.length} mục chờ xử lý)`,
+                )}
+              </h3>
+            </div>
+            <span className='text-xs text-amber-700 font-medium'>
+              {t(
+                'bible.view.queueSubheading',
+                'Artist & Writer phối hợp thiết kế trước khi đưa vào sản xuất chương',
+              )}
+            </span>
+          </div>
+
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
+            {designQueue.map((item) => {
+              const matchedEntity = localEntities.find((e) => e.id === item.entryId);
+              const queueKey = item.revisionId || item.entryId;
+              return (
+                <div
+                  key={queueKey}
+                  className='bg-white rounded-xl border border-amber-200 p-3 flex items-center justify-between gap-2 shadow-xs'
+                >
+                  <div className='min-w-0 flex-1'>
+                    <div className='flex items-center gap-1.5 flex-wrap'>
+                      <span className='font-mono font-bold text-xs px-1.5 py-0.5 bg-stone-100 text-stone-800 rounded'>
+                        {item.code}
+                      </span>
+                      <span className='font-semibold text-xs text-stone-900 truncate'>
+                        {item.name}
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-1 mt-1 flex-wrap'>
+                      {item.waitingChapterNumbers && item.waitingChapterNumbers.length > 0 && (
+                        <span
+                          className='px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-mono text-xs font-semibold'
+                          data-testid={`waiting-chapters-${queueKey}`}
+                        >
+                          {t(
+                            'bible.view.queueWaitingChapters',
+                            { chapters: item.waitingChapterNumbers.join(', ') },
+                            'Chương đang chờ: Ch.{chapters}',
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {isArtist && (
+                    <button
+                      type='button'
+                      onClick={() => {
+                        if (matchedEntity) {
+                          void handleOpenAddRevision(
+                            matchedEntity,
+                            null,
+                            true,
+                            undefined,
+                            true,
+                            false,
+                            item.revisionId,
+                          );
+                        }
+                      }}
+                      className='px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-xs flex items-center gap-1'
+                      data-testid={`resubmit-concept-${item.entryId}`}
+                    >
+                      <RotateCcw className='w-3 h-3' />
+                      <span>{t('bible.view.resubmitBtn', 'Nộp lại')}</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW PANEL: OVERVIEW MODE (activeTab === 'all') */}
+      {activeTab === 'all' && (
+        <div className='space-y-6' id='bible-cat-all'>
+          {/* 4 KPI CARDS MATCHING STITCH */}
+          <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
+            {/* Card 1: Tổng thực thể */}
+            <div className='p-4 rounded-xl bg-white border border-stone-200/80 shadow-xs space-y-2'>
+              <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>
+                <span>{t('bible.view.kpiTotal', 'Tổng số mục')}</span>
+                <BookOpen className='w-4 h-4 text-stone-400' />
+              </div>
+              <div className='flex items-baseline gap-2'>
+                <span className='text-2xl font-bold text-stone-900'>{categoryCounts.all}</span>
+                <span className='text-xs text-stone-500'>hồ sơ thiết kế</span>
+              </div>
+              <div className='text-xs text-stone-500 pt-1 border-t border-stone-100'>
+                {categoryCounts.characters} Nhân vật • {categoryCounts.locations} Bối cảnh •{' '}
+                {categoryCounts.terminology} Đạo cụ • {categoryCounts.style} Quy tắc
+              </div>
+            </div>
+
+            {/* Card 2: Đã khóa Canon */}
+            <div className='p-4 rounded-xl bg-white border border-stone-200/80 shadow-xs space-y-2'>
+              <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>
+                <span>{t('bible.view.kpiCanonLocked', 'Đã khoá Canon')}</span>
+                <Lock className='w-4 h-4 text-emerald-500' />
+              </div>
+              <div className='flex items-baseline gap-2'>
+                <span
+                  className='text-2xl font-bold text-emerald-700'
+                  data-testid='bible-stat-locked'
+                >
+                  {bibleStats.locked} / {categoryCounts.all}
+                </span>
+                <span className='text-xs text-emerald-700 font-medium'>
+                  {categoryCounts.all > 0
+                    ? Math.round((bibleStats.locked / categoryCounts.all) * 100)
+                    : 0}
+                  %
+                </span>
+              </div>
+              <div className='text-xs text-emerald-700 pt-1 border-t border-stone-100 font-medium'>
+                Đạt chuẩn sản xuất &amp; in ấn hoàn tất
+              </div>
+            </div>
+
+            {/* Card 3: Chờ duyệt */}
+            <div className='p-4 rounded-xl bg-white border border-stone-200/80 shadow-xs space-y-2'>
+              <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>
+                <span>{t('bible.view.kpiConceptSubmitted', 'Chờ duyệt')}</span>
+                <Clock className='w-4 h-4 text-amber-500' />
+              </div>
+              <div className='flex items-baseline gap-2'>
+                <span className='text-2xl font-bold text-amber-700'>{bibleStats.pending}</span>
+                <span className='text-xs text-stone-500'>thực thể</span>
+              </div>
+              <div className='text-xs text-amber-700 pt-1 border-t border-stone-100 font-medium'>
+                Cần Producer &amp; Editor chốt duyệt
+              </div>
+            </div>
+
+            {/* Card 4: Đang phác thảo / cần sửa */}
+            <div className='p-4 rounded-xl bg-white border border-stone-200/80 shadow-xs space-y-2'>
+              <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>
+                <span>{t('bible.view.kpiReworkRequired', 'Cần vẽ lại')}</span>
+                <PenTool className='w-4 h-4 text-rose-500' />
+              </div>
+              <div className='flex items-baseline gap-2'>
+                <span className='text-2xl font-bold text-stone-900'>
+                  {bibleStats.rework + bibleStats.drafts}
+                </span>
+                <span className='text-xs text-rose-700 font-medium'>chưa xong</span>
+              </div>
+              <div className='text-xs text-rose-700 pt-1 border-t border-stone-100 font-medium'>
+                Chưa đủ điều kiện vào chương sản xuất
+              </div>
+            </div>
+          </div>
+
+          {/* OVERVIEW MATRIX TABLE (Stitch Bảng ma trận tổng quan thực thể) */}
+          <div className='rounded-xl bg-white border border-stone-200/80 shadow-xs overflow-hidden'>
+            <div className='px-4 py-3 bg-stone-50 border-b border-stone-200/80 flex flex-wrap items-center justify-between gap-3'>
+              <div className='flex items-center gap-2'>
+                <span className='text-xs font-bold text-stone-900 uppercase tracking-wider'>
+                  {t('bible.view.matrixTitle', 'Bảng ma trận tổng quan thực thể')}
+                </span>
+                <span className='text-xs font-mono px-2 py-0.5 rounded bg-stone-200 text-stone-700 font-semibold'>
+                  {t(
+                    'bible.view.matrixItemsCount',
+                    { count: filteredEntities.length },
+                    `${filteredEntities.length} mục`,
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <div className='overflow-x-auto'>
+              <table className='w-full text-left border-collapse text-xs'>
+                <thead className='bg-stone-50/70 border-b border-stone-200/80 text-stone-600 uppercase tracking-wider font-semibold'>
+                  <tr>
+                    <th className='py-3 px-4'>{t('bible.view.colCategory', 'Phân loại')}</th>
+                    <th className='py-3 px-4'>
+                      {t('bible.view.colCodeName', 'Mã & Tên thực thể')}
+                    </th>
+                    <th className='py-3 px-4'>
+                      {t('bible.view.colArtStatus', 'Trạng thái bản vẽ')}
+                    </th>
+                    <th className='py-3 px-4'>
+                      {t('bible.view.colReviewStatus', 'Trạng thái duyệt')}
+                    </th>
+                    <th className='py-3 px-4'>{t('bible.view.colAssignee', 'Người phụ trách')}</th>
+                    <th className='py-3 px-4'>{t('bible.view.colLastUpdated', 'Cập nhật cuối')}</th>
+                    <th className='py-3 px-4 text-right'>
+                      {t('bible.view.colActions', 'Hành động')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className='divide-y divide-stone-200/80 text-stone-800'>
+                  {filteredEntities.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className='py-8 text-center text-stone-500'>
+                        {t('bible.view.emptyTitle', 'Không tìm thấy mục tri thức nào')}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredEntities.map((entity) => {
+                      const raw = rawEntries[entity.id];
+                      const effRev = raw?.effectiveRevision;
+                      const isSelected = selectedEntity?.id === entity.id;
+
+                      let catBadgeClass = 'bg-stone-100 text-stone-700';
+                      if (entity.category === 'characters')
+                        catBadgeClass = 'bg-orange-100 text-orange-800';
+                      else if (entity.category === 'locations')
+                        catBadgeClass = 'bg-blue-50 text-blue-700 border border-blue-200';
+                      else if (entity.category === 'terminology')
+                        catBadgeClass = 'bg-amber-50 text-amber-800 border border-amber-200';
+
+                      return (
+                        <tr
+                          key={entity.id}
+                          className={`hover:bg-stone-50/70 transition-colors ${isSelected ? 'bg-orange-50/40' : ''}`}
+                          data-testid={`bible-card-${entity.id}`}
+                        >
+                          <td className='py-3 px-4'>
+                            <span className={`px-2 py-0.5 rounded font-medium ${catBadgeClass}`}>
+                              {getCategoryLabel(entity.category)}
+                            </span>
+                          </td>
+                          <td className='py-3 px-4'>
+                            <div className='font-bold text-stone-900 flex items-center gap-1.5'>
+                              <span>{entity.name}</span>
+                              {effRev?.variantLabel && (
+                                <span className='text-xs font-normal text-stone-500'>
+                                  · {effRev.variantLabel}
+                                </span>
+                              )}
+                              {entity.latestDraftVersionNumber && (
+                                <span
+                                  className='px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 text-xs font-semibold'
+                                  data-testid={`pending-draft-badge-${entity.id}`}
+                                >
+                                  Có bản nháp v{entity.latestDraftVersionNumber}
+                                </span>
+                              )}
+                            </div>
+                            <div className='text-xs text-stone-500 font-mono'>{entity.code}</div>
+                          </td>
+                          <td className='py-3 px-4'>
+                            {entity.imageUrl ? (
+                              <span className='inline-flex items-center gap-1 text-emerald-700 font-medium'>
+                                <span className='w-1.5 h-1.5 rounded-full bg-emerald-500'></span>
+                                {t('bible.view.artworkUploaded')}
+                              </span>
+                            ) : (
+                              <span className='inline-flex items-center gap-1 text-stone-500'>
+                                <span className='w-1.5 h-1.5 rounded-full bg-stone-400'></span>
+                                {t('bible.view.artworkMissing')}
+                              </span>
+                            )}
+                          </td>
+                          <td className='py-3 px-4'>{renderStatusPill(effRev?.reviewStatus)}</td>
+                          <td className='py-3 px-4 text-stone-700 font-medium'>
+                            {entity.subtitle || '—'}
+                          </td>
+                          <td className='py-3 px-4 text-stone-500 font-mono'>
+                            {entity.lockedAt ? new Date(entity.lockedAt).toLocaleDateString() : '—'}
+                          </td>
+                          <td className='py-3 px-4 text-right space-x-1.5'>
+                            {canEndorse && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                              <button
+                                type='button'
+                                onClick={() => void handleConfirmCanon(effRev, entity)}
+                                className='px-2.5 py-1 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs shadow-xs cursor-pointer'
+                                data-testid={`btn-lock-canon-${effRev.id}`}
+                              >
+                                {t('bible.view.actionLockCanon', 'Khóa chuẩn')}
+                              </button>
+                            )}
+
+                            {isArtist && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                              <button
+                                type='button'
+                                onClick={() =>
+                                  void handleOpenAddRevision(entity, null, true, undefined, true)
+                                }
+                                className='px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-medium text-xs cursor-pointer'
+                                data-testid={`artist-resubmit-btn-${entity.id}`}
+                              >
+                                {t('bible.view.resubmitBtn', 'Nộp lại')}
+                              </button>
+                            )}
+
+                            {canCreateDraft && (
+                              <button
+                                type='button'
+                                onClick={() => void handleOpenAddRevision(entity)}
+                                className='px-2 py-1 rounded-lg bg-stone-50 border border-stone-200/80 hover:bg-stone-100 text-stone-700 font-medium text-xs cursor-pointer'
+                                data-testid={`add-revision-btn-${entity.id}`}
+                              >
+                                + Bản
+                              </button>
+                            )}
+
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setSelectedEntity(entity);
+                                setActiveTab(entity.category);
+                              }}
+                              className='px-2 py-1 rounded-lg bg-stone-50 border border-stone-200/80 hover:bg-stone-100 text-stone-700 font-medium text-xs cursor-pointer'
+                            >
+                              {t('bible.view.actionDetails', 'Chi tiết')}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className='p-3.5 bg-stone-50 border-t border-stone-200/80 flex flex-wrap items-center justify-between text-xs text-stone-500'>
+              <div className='flex items-center gap-2'>
+                <button
+                  type='button'
+                  onClick={() =>
+                    onShowToast(
+                      t('bible.view.exportCsv', 'Xuất danh mục (CSV)'),
+                      'Đang tải dữ liệu...',
+                    )
+                  }
+                  className='px-3 py-1.5 rounded-lg bg-white border border-stone-200/80 hover:bg-stone-100 text-stone-700 font-medium text-xs flex items-center gap-1 cursor-pointer'
+                >
+                  <Download className='w-3.5 h-3.5' />
+                  <span>{t('bible.view.exportCsv', 'Xuất danh mục (CSV)')}</span>
+                </button>
+              </div>
+
+              {canCreateDraft && (
+                <button
+                  type='button'
+                  onClick={() => setAddEntityOpen(true)}
+                  className='px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs flex items-center gap-1 shadow-xs cursor-pointer'
+                >
+                  <Plus className='w-3.5 h-3.5' />
+                  <span>{t('bible.view.addNewEntity', 'Thêm thực thể mới')}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW PANEL: TWO-COLUMN MANGA PAPER & INK WORKSPACE (activeTab !== 'all') */}
+      {activeTab !== 'all' && (
+        <div className='grid grid-cols-1 lg:grid-cols-12 gap-5 items-start font-sans'>
+          {/* CỘT TRÁI (35% - lg:col-span-4): Danh sách thực thể */}
+          <div className='lg:col-span-4 space-y-2.5'>
+            <div className='flex items-center justify-between text-xs px-1'>
+              <span className='font-bold uppercase tracking-wider text-stone-500'>
+                {activeTab === 'characters'
+                  ? t('bible.view.listLabelCharacters', 'DANH SÁCH THỰC THỂ')
+                  : activeTab === 'locations'
+                    ? t('bible.view.listLabelLocations', 'DANH SÁCH ĐỊA ĐIỂM')
+                    : activeTab === 'terminology'
+                      ? t('bible.view.listLabelProps', 'DANH SÁCH ĐẠO CỤ & VŨ KHÍ')
+                      : t('bible.view.listLabelRules', 'DANH SÁCH QUY TẮC')}
+              </span>
+              <span className='text-stone-400 font-mono'>
+                {t(
+                  'bible.view.itemsShown',
+                  { count: filteredEntities.length },
+                  `${filteredEntities.length} mục hiển thị`,
+                )}
+              </span>
+            </div>
+
+            <div className='space-y-2.5' id='master-entities-list'>
+              {filteredEntities.length === 0 ? (
+                <div className='bg-white border border-stone-200/80 rounded-xl p-6 text-center text-xs text-stone-500'>
+                  {t('bible.view.emptyTitle', 'Không tìm thấy mục tri thức nào')}
+                </div>
+              ) : (
+                filteredEntities.map((entity) => {
+                  const raw = rawEntries[entity.id];
+                  const effRev = raw?.effectiveRevision;
+                  const isSelected = selectedEntity?.id === entity.id;
+
+                  // Initials or icon
+                  const initials = entity.name
+                    .split(' ')
+                    .map((s) => s[0])
+                    .join('')
+                    .substring(0, 2)
+                    .toUpperCase();
+
+                  return (
+                    <div
+                      key={entity.id}
+                      onClick={() => setSelectedEntity(entity)}
+                      className={`rounded-xl p-3 shadow-xs cursor-pointer space-y-2 transition-all ${
+                        isSelected
+                          ? 'bg-white border-2 border-orange-500'
+                          : 'bg-white border border-stone-200/80 hover:border-orange-300'
+                      }`}
+                      data-testid={`bible-card-${entity.id}`}
+                    >
+                      <div className='flex items-start justify-between gap-2'>
+                        <div className='flex items-center gap-2.5 min-w-0'>
+                          <div className='w-10 h-10 rounded-lg bg-stone-900 text-orange-500 font-bold flex items-center justify-center text-xs shrink-0 border border-stone-800'>
+                            {activeTab === 'characters' ? (
+                              <span>{initials}</span>
+                            ) : activeTab === 'locations' ? (
+                              <MapPin className='w-5 h-5' />
+                            ) : activeTab === 'terminology' ? (
+                              <Wrench className='w-5 h-5' />
+                            ) : (
+                              <ShieldCheck className='w-5 h-5' />
+                            )}
+                          </div>
+                          <div className='min-w-0'>
+                            <h3 className='font-bold text-stone-900 text-sm truncate flex items-center gap-1.5'>
+                              <span>{entity.name}</span>
+                              {effRev?.variantLabel && (
+                                <span className='text-xs font-normal text-stone-500'>
+                                  · {effRev.variantLabel}
+                                </span>
+                              )}
+                            </h3>
+                            <p className='text-xs text-stone-500 font-mono truncate'>
+                              {entity.code} {entity.subtitle ? `• ${entity.subtitle}` : ''}
+                            </p>
+                          </div>
+                        </div>
+
+                        {renderStatusPill(effRev?.reviewStatus)}
+                      </div>
+
+                      {/* Pending Draft badge */}
+                      {entity.latestDraftVersionNumber && (
+                        <div className='pt-1'>
+                          <span
+                            className='px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-xs font-mono font-semibold'
+                            data-testid={`pending-draft-badge-${entity.id}`}
+                          >
+                            Có bản nháp v{entity.latestDraftVersionNumber}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Timeline Variants if Character */}
+                      {activeTab === 'characters' && isSelected && (
+                        <div className='pt-2 border-t border-stone-100 space-y-1.5'>
+                          <div className='flex items-center justify-between text-xs font-semibold text-stone-600 px-0.5'>
+                            <div className='flex items-center gap-1 text-orange-700'>
+                              <GitCommit className='w-3.5 h-3.5' />
+                              <span className='uppercase tracking-wider font-bold'>
+                                {t('bible.view.timelineTitle', 'THỜI KỲ')}
+                              </span>
+                            </div>
+                          </div>
+                          <div className='space-y-1 pt-0.5'>
+                            <div className='p-1.5 rounded-lg bg-orange-50/70 border border-orange-200/60 flex items-center justify-between text-xs'>
+                              <div className='flex items-center gap-1.5 min-w-0'>
+                                <span className='w-1.5 h-1.5 rounded-full bg-orange-600 shrink-0'></span>
+                                <span className='truncate font-semibold text-stone-900 text-xs'>
+                                  {effRev?.variantLabel || 'Mặc định'}
+                                </span>
+                              </div>
+                              <span className='text-xs font-mono px-1.5 py-0.5 rounded bg-orange-100 text-orange-800 font-semibold shrink-0'>
+                                v{effRev?.versionNumber || 1}{' '}
+                                {effRev?.reviewStatus === 'CanonLocked' ? 'Canon' : 'Đang áp dụng'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Footer Info & Selection Indicator */}
+                      <div className='flex items-center justify-between pt-2 border-t border-stone-100 text-xs text-stone-500'>
+                        <span className='truncate'>
+                          {entity.imageUrl ? (
+                            <span className='inline-flex items-center gap-1 text-emerald-700 font-medium'>
+                              <span className='w-1.5 h-1.5 rounded-full bg-emerald-500'></span>
+                              {t('bible.view.artworkUploaded')}
+                            </span>
+                          ) : (
+                            <span>{entity.subtitle || 'Tiêu chuẩn'}</span>
+                          )}
+                        </span>
+                        {isSelected ? (
+                          <span className='font-medium text-orange-600 flex items-center gap-0.5'>
+                            {t('bible.view.selectedBadge', 'Đang chọn')}
+                            <ChevronRight className='w-3.5 h-3.5' />
+                          </span>
+                        ) : (
+                          <ChevronRight className='w-3.5 h-3.5 text-stone-400' />
+                        )}
+                      </div>
+
+                      {/* Action buttons on card for test compatibility */}
+                      <div className='flex items-center gap-1.5 pt-1.5 border-t border-stone-100 flex-wrap'>
+                        {isArtist && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleOpenAddRevision(entity, null, true, undefined, true);
+                            }}
+                            className='px-2 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold'
+                            data-testid={`artist-resubmit-btn-${entity.id}`}
+                          >
+                            {t('bible.view.resubmitBtn', 'Nộp lại')}
+                          </button>
+                        )}
+
+                        {canCreateDraft && (
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleOpenAddRevision(entity);
+                            }}
+                            className='px-2 py-0.5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium'
+                            data-testid={`add-revision-btn-${entity.id}`}
+                          >
+                            + Bản
+                          </button>
+                        )}
+
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleToggleCrowd(entity);
+                          }}
+                          className={`px-2 py-0.5 rounded text-xs font-semibold transition-colors ${
+                            entity.isCrowd
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                          }`}
+                          data-testid={`crowd-badge-${entity.id}`}
+                        >
+                          {entity.isCrowd ? 'Quần chúng' : 'Đặt Quần chúng'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* CỘT PHẢI (65% - lg:col-span-8): Chi tiết Inspector Pane */}
+          <div className='lg:col-span-8'>
+            {!selectedEntity ? (
+              <div className='bg-white border border-stone-200/80 rounded-xl p-12 text-center text-stone-500 shadow-xs'>
+                <p className='text-sm'>
+                  {t('bible.drawer.selectToView', 'Chọn một mục để xem chi tiết.')}
+                </p>
+              </div>
+            ) : (
+              <div className='bg-white border border-stone-200/80 rounded-xl p-6 shadow-xs space-y-6'>
+                {/* Header Chi tiết */}
+                <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-stone-200/80'>
+                  <div className='flex items-start gap-4'>
+                    <div className='w-14 h-14 rounded-xl bg-stone-900 text-orange-500 font-bold text-lg flex items-center justify-center shrink-0 border border-stone-800 shadow-xs'>
+                      {activeTab === 'characters' ? (
+                        <span>
+                          {selectedEntity.name
+                            .split(' ')
+                            .map((s) => s[0])
+                            .join('')
+                            .substring(0, 2)
+                            .toUpperCase()}
+                        </span>
+                      ) : activeTab === 'locations' ? (
+                        <MapPin className='w-6 h-6' />
+                      ) : activeTab === 'terminology' ? (
+                        <Wrench className='w-6 h-6' />
+                      ) : (
+                        <ShieldCheck className='w-6 h-6' />
+                      )}
+                    </div>
+
+                    <div>
+                      <div className='flex items-center gap-2.5 flex-wrap'>
+                        <h2 className='text-xl font-bold text-stone-900 leading-tight'>
+                          {selectedEntity.name}{' '}
+                          {selectedEntity.subtitle && (
+                            <span className='text-sm font-semibold text-stone-500 font-mono'>
+                              ({selectedEntity.subtitle})
+                            </span>
+                          )}
+                        </h2>
+
+                        {renderStatusPill(activeEffRev?.reviewStatus)}
+
+                        <span className='text-xs font-mono font-medium px-2 py-0.5 rounded bg-stone-100 text-stone-700'>
+                          v{activeEffRev?.versionNumber || 1}{' '}
+                          {activeEffRev?.reviewStatus === 'CanonLocked' ? 'Canon' : 'Revision'}
+                        </span>
+
+                        {selectedEntity.latestDraftVersionNumber && (
+                          <span
+                            className='px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-xs font-semibold'
+                            data-testid='pending-draft-badge-detail'
+                          >
+                            Có bản nháp v{selectedEntity.latestDraftVersionNumber}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className='flex items-center gap-3 text-xs text-stone-500 mt-1.5 flex-wrap'>
+                        <span className='font-medium text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'>
+                          {activeTab === 'characters'
+                            ? t('bible.view.protagonist', 'Nhân vật chính (Protagonist)')
+                            : activeTab === 'locations'
+                              ? t('bible.view.primarySet', 'Bối cảnh chính (Primary Set)')
+                              : t('bible.view.signatureWeapon', 'Vũ khí chính (Signature Weapon)')}
+                        </span>
+                        <span>•</span>
+                        <span className='font-mono'>
+                          Mã: <strong className='text-stone-800'>{selectedEntity.code}</strong>
+                        </span>
+                        <span>•</span>
+                        <span className='text-emerald-700 font-medium flex items-center gap-1'>
+                          <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
+                          <span>
+                            {activeEffRev?.reviewStatus === 'CanonLocked'
+                              ? t('bible.view.verifiedByEditor', 'Editor đã duyệt bản vẽ')
+                              : t(
+                                  'bible.view.writerApprovedMechanism',
+                                  'Writer chuẩn thuận cơ chế',
+                                )}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top-Right Action Buttons */}
+                  <div className='flex flex-wrap items-center gap-2 shrink-0'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        if (selectedEntity.imageUrl) {
+                          setSelectedImageZoom({
+                            url: selectedEntity.imageUrl,
+                            title: selectedEntity.name,
+                          });
+                        } else {
+                          onShowToast(
+                            t('bible.view.downloadConcept', 'Tải Concept Art'),
+                            'Chưa có tệp tải về',
+                          );
+                        }
+                      }}
+                      className='px-3 py-1.5 rounded-lg bg-white border border-stone-200/80 hover:bg-stone-50 text-stone-700 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer'
+                    >
+                      <Download className='w-3.5 h-3.5' />
+                      <span>
+                        {activeTab === 'characters'
+                          ? t('bible.view.exportModelSheet', 'Xuất Model Sheet (PDF/ZIP)')
+                          : t('bible.view.downloadConcept', 'Tải Concept Art')}
+                      </span>
+                    </button>
+
+                    <button
+                      type='button'
+                      onClick={() => void handleOpenHistory(selectedEntity)}
+                      className='px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer'
+                      data-testid='history-modal-btn'
+                    >
+                      <History className='w-3.5 h-3.5' />
+                      <span>{t('bible.view.actionFeedback', 'Góp ý')}</span>
+                    </button>
+
+                    {canCreateDraft && (
+                      <button
+                        type='button'
+                        onClick={() =>
+                          void handleOpenAddRevision(
+                            selectedEntity,
+                            null,
+                            false,
+                            undefined,
+                            false,
+                            true,
+                          )
+                        }
+                        className='px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer'
+                        data-testid='add-new-variant-btn'
+                      >
+                        <Plus className='w-3.5 h-3.5' />
+                        <span>+ Biến thể</span>
+                      </button>
+                    )}
+
+                    {canEndorse && activeEffRev?.reviewStatus === 'ConceptSubmitted' && (
+                      <button
+                        type='button'
+                        onClick={() => void handleConfirmCanon(activeEffRev, selectedEntity)}
+                        className='px-4 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer'
+                        data-testid={`btn-lock-canon-${activeEffRev.id}`}
+                      >
+                        <Lock className='w-3.5 h-3.5' />
+                        <span>
+                          {activeTab === 'locations'
+                            ? t('bible.view.actionLockLocation', 'Khóa bối cảnh')
+                            : t('bible.view.actionLockCanon', 'Khóa chuẩn (Lock Canon)')}
+                        </span>
+                      </button>
+                    )}
+
+                    {activeEffRev?.reviewStatus === 'CanonLocked' && (isWriter || isProducer) && (
+                      <button
+                        type='button'
+                        onClick={() => void handleOpenAddRevision(selectedEntity, activeEffRev)}
+                        className='px-4 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-900 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer'
+                      >
+                        <Lock className='w-3.5 h-3.5' />
+                        <span>{t('bible.canonLock.supersedeAction', 'Thay thế bản khoá')}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2-Column Detail Layout: Artwork Frame Left (xl:col-span-7) & Specs/Guidance Right (xl:col-span-5) */}
+                <div className='grid grid-cols-1 xl:grid-cols-12 gap-5 items-start'>
+                  {/* Cột trái (7 cols): Artwork Frame */}
+                  <div className='xl:col-span-7 space-y-3'>
+                    {/* View Tabs */}
+                    <div className='flex flex-wrap items-center justify-between gap-2'>
+                      <div className='inline-flex p-1 rounded-lg bg-stone-100 border border-stone-200/80 text-xs'>
+                        <button
+                          type='button'
+                          onClick={() => setSelectedSubViewTab('default')}
+                          className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 cursor-pointer ${
+                            selectedSubViewTab === 'default'
+                              ? 'bg-white text-stone-900 shadow-xs'
+                              : 'text-stone-600 hover:text-stone-900'
+                          }`}
+                        >
+                          <Box className='w-3 h-3 text-orange-600' />
+                          <span>
+                            {activeTab === 'characters'
+                              ? 'Full Turnaround Sheet'
+                              : activeTab === 'locations'
+                                ? 'Toàn cảnh 3 điểm tụ'
+                                : 'Bản vẽ 3 chiều (Orthographic)'}
+                          </span>
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => setSelectedSubViewTab('detail')}
+                          className={`px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1 cursor-pointer ${
+                            selectedSubViewTab === 'detail'
+                              ? 'bg-white text-stone-900 shadow-xs'
+                              : 'text-stone-600 hover:text-stone-900'
+                          }`}
+                        >
+                          <Eye className='w-3 h-3 text-stone-500' />
+                          <span>
+                            {activeTab === 'characters'
+                              ? 'Góc nhìn & Biểu cảm'
+                              : activeTab === 'locations'
+                                ? 'Mặt cắt kiến trúc'
+                                : 'Chi tiết Khớp cầm 1:1'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Artwork Container */}
+                    <div className='rounded-xl border border-stone-200/80 bg-stone-50 overflow-hidden shadow-xs'>
+                      <div className='px-3 py-2 bg-stone-100/80 border-b border-stone-200/80 flex flex-wrap items-center justify-between gap-2 text-xs'>
+                        <div className='flex items-center gap-2'>
+                          <span className='font-bold text-stone-900 flex items-center gap-1.5'>
+                            <Box className='w-3.5 h-3.5 text-orange-600' />
+                            <span>{selectedEntity.name}</span>
+                          </span>
+                          <span className='text-stone-400 font-mono'>|</span>
+                          <span className='text-stone-600 font-mono text-xs'>
+                            {selectedEntity.code}-V{activeEffRev?.versionNumber || 1}
+                          </span>
+                        </div>
+                        <div className='flex items-center gap-1.5'>
+                          <button
+                            type='button'
+                            onClick={() => {
+                              if (selectedEntity.imageUrl) {
+                                setSelectedImageZoom({
+                                  url: selectedEntity.imageUrl,
+                                  title: selectedEntity.name,
+                                });
+                              }
+                            }}
+                            className='px-2 py-1 rounded bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/80 font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer'
+                          >
+                            <ZoomIn className='w-3 h-3' />
+                            <span>{t('bible.view.zoom', 'Phóng to')}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Main Image Frame */}
+                      <div className='relative w-full bg-stone-900/5 p-2 overflow-hidden flex items-center justify-center min-h-[300px]'>
+                        {selectedEntity.imageUrl ? (
+                          <div className='relative w-full rounded-lg overflow-hidden border border-stone-200/80 bg-white shadow-xs group'>
+                            <AuthenticatedImage
+                              src={selectedEntity.imageUrl}
+                              alt={selectedEntity.name}
+                              className='w-full h-80 object-cover object-center cursor-pointer group-hover:scale-102 transition-transform'
+                              onClick={() =>
+                                setSelectedImageZoom({
+                                  url: selectedEntity.imageUrl,
+                                  title: selectedEntity.name,
+                                })
+                              }
+                            />
+
+                            {/* Overlay Badge top-right */}
+                            <div className='absolute top-3 right-3 bg-white/90 backdrop-blur-xs text-stone-700 px-2.5 py-1 rounded-md text-xs font-mono border border-stone-200 flex items-center gap-1'>
+                              <span className='w-2 h-2 rounded-full bg-emerald-500'></span>
+                              <span>{t('bible.view.overlayPrintReady', 'Chuẩn in xuất bản')}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className='text-center p-8 text-stone-400 space-y-2'>
+                            <Box className='w-12 h-12 mx-auto text-stone-300' />
+                            <p className='text-xs'>
+                              {t(
+                                'bible.detailModal.noReferenceImage',
+                                'Chưa có ảnh Reference Sheet cho mục này',
+                              )}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Notes line bottom */}
+                      <div className='px-3.5 py-2 bg-white border-t border-stone-200/80 text-xs text-stone-600 flex items-center justify-between'>
+                        <div>
+                          <span className='font-semibold text-stone-800'>
+                            {t('bible.view.notesLabel', 'Ghi chú:')}{' '}
+                          </span>
+                          <span>
+                            {selectedEntity.description ||
+                              'Đảm bảo tuân thủ quy chuẩn đường nét và phối cảnh.'}
+                          </span>
+                        </div>
+                        <div className='text-stone-500 font-mono'>
+                          Duyệt:{' '}
+                          {selectedEntity.lockedAt
+                            ? new Date(selectedEntity.lockedAt).toLocaleDateString()
+                            : 'Chưa duyệt'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cột phải (5 cols): Specs & Guidance Cards */}
+                  <div className='xl:col-span-5 space-y-4 text-xs'>
+                    {/* Character Specs */}
+                    {activeTab === 'characters' && (
+                      <div className='p-5 rounded-xl bg-white border border-stone-200/80 shadow-xs space-y-4 text-xs'>
+                        <div className='space-y-3'>
+                          <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
+                            <div className='flex items-center gap-2'>
+                              <User className='w-4 h-4 text-orange-600' />
+                              <h3 className='text-xs font-bold text-stone-900 uppercase tracking-wider'>
+                                {t('bible.view.generalInfoTitle', 'THÔNG TIN CHUNG')}
+                              </h3>
+                            </div>
+                            {canCreateDraft && (
+                              <button
+                                type='button'
+                                onClick={() => void handleOpenAddRevision(selectedEntity)}
+                                className='text-xs text-orange-600 hover:text-orange-700 font-semibold cursor-pointer'
+                              >
+                                {t('bible.view.editSpecsAction', 'Chỉnh sửa')}
+                              </button>
+                            )}
+                          </div>
+
+                          <div className='space-y-2.5 pt-1'>
+                            <div className='flex items-center justify-between text-xs'>
+                              <span className='text-stone-600 font-normal'>
+                                Độ tuổi &amp; Ngày sinh:
+                              </span>
+                              <span className='font-bold text-stone-900 text-right'>
+                                {selectedEntity.attributes?.age || '19 tuổi'} (15/07)
+                              </span>
+                            </div>
+                            <div className='flex items-center justify-between text-xs'>
+                              <span className='text-stone-600 font-normal'>
+                                Chiều cao &amp; Cân nặng:
+                              </span>
+                              <span className='font-bold text-stone-900 text-right'>
+                                {selectedEntity.attributes?.height || '178 cm'} / 68 kg
+                              </span>
+                            </div>
+                            <div className='flex items-center justify-between text-xs'>
+                              <span className='text-stone-600 font-normal'>
+                                Thể trạng &amp; Tỷ lệ:
+                              </span>
+                              <span className='font-bold text-stone-900 text-right'>
+                                {selectedEntity.attributes?.build ||
+                                  'Thon gọn, linh hoạt (7.5 heads)'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='space-y-3 pt-2 border-t border-stone-200/80'>
+                          <div className='flex items-center gap-2'>
+                            <Edit3 className='w-4 h-4 text-orange-600' />
+                            <h3 className='text-xs font-bold text-stone-700 uppercase tracking-wider'>
+                              {t('bible.view.traitsTitle', 'ĐẶC ĐIỂM')}
+                            </h3>
+                          </div>
+                          <div className='p-3.5 rounded-lg bg-orange-50/40 border border-orange-200/60 text-xs leading-relaxed space-y-2.5 text-stone-700'>
+                            <p>
+                              Màu tóc:{' '}
+                              {selectedEntity.attributes?.hair ||
+                                'Đen ánh than (#1A1E24), rối nhẹ tự nhiên'}
+                              . Mắt:{' '}
+                              {selectedEntity.attributes?.eyes ||
+                                'Đồng tử xanh điện quang khi kích hoạt'}
+                              .
+                            </p>
+                            <p>
+                              <span className='font-bold text-orange-600'>Vết sẹo nhận diện: </span>
+                              {selectedEntity.attributes?.marks ||
+                                'Vết sẹo lồi hình chữ V kéo từ xương quai xanh trái xuống ngực do đao năng lượng Kael chém 5 năm trước. Luôn lộ ra khi rách áo.'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Location Specs */}
+                    {activeTab === 'locations' && (
+                      <div className='p-4 rounded-xl bg-stone-50/70 border border-stone-200/80 space-y-3'>
+                        <div className='flex items-center gap-2 text-stone-900 font-bold uppercase tracking-wider text-xs pb-2 border-b border-stone-200/80'>
+                          <FileText className='w-4 h-4 text-blue-600' />
+                          <span>{t('bible.view.guidanceTitle', 'QUY CHUẨN & CHỈ DẪN HỌA SĨ')}</span>
+                        </div>
+                        <div className='space-y-2 text-xs'>
+                          <p className='text-stone-700 leading-relaxed'>
+                            {selectedEntity.description ||
+                              'Ngã tư Shibuya trung tâm bị phá hủy sau thảm họa lò phản ứng. Toàn bộ cao ốc đổ nghiêng theo phối cảnh 3 điểm tụ, dây cáp viễn thông chằng chịt và mặt đường nứt toác để lộ hệ thống năng lượng ngầm.'}
+                          </p>
+                          <div className='p-2.5 rounded-lg bg-orange-50/80 border border-orange-200 text-stone-700 space-y-1'>
+                            <div className='font-semibold text-orange-800 flex items-center gap-1'>
+                              <SparklesIcon />
+                              <span>
+                                {t('bible.view.artistTipLocation', 'Lưu ý cho Trame Artist:')}
+                              </span>
+                            </div>
+                            <div className='text-xs leading-relaxed'>
+                              Khi dán trame mưa đêm, sử dụng nét gạch xiên song song 65 độ, không để
+                              mảng đen che lấp vết nứt lò phản ứng dưới lòng đường.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Prop / Weapon Specs */}
+                    {activeTab === 'terminology' && (
+                      <div className='space-y-4'>
+                        <div className='p-4 rounded-xl bg-stone-50/70 border border-stone-200/80 space-y-3'>
+                          <div className='flex items-center gap-2 text-stone-900 font-bold uppercase tracking-wider text-xs pb-2 border-b border-stone-200/80'>
+                            <Wrench className='w-4 h-4 text-orange-600' />
+                            <span>
+                              {t('bible.view.propSpecsTitle', 'Thông số cơ khí & Vũ trang')}
+                            </span>
+                          </div>
+                          <div className='divide-y divide-stone-200/80 text-xs'>
+                            <div className='py-2 flex items-center justify-between gap-4'>
+                              <span className='text-stone-500 font-medium shrink-0'>
+                                Kích thước tổng thể
+                              </span>
+                              <span className='font-semibold text-stone-800 text-right'>
+                                Tổng dài 140 cm (Chuôi 28 cm, Lưỡi 112 cm)
+                              </span>
+                            </div>
+                            <div className='py-2 flex items-center justify-between gap-4'>
+                              <span className='text-stone-500 font-medium shrink-0'>
+                                Trọng lượng khi rút kiếm
+                              </span>
+                              <span className='font-semibold text-stone-800 text-right'>
+                                1.85 kg (Vỏ hợp kim siêu nhẹ)
+                              </span>
+                            </div>
+                            <div className='py-2 flex items-center justify-between gap-4'>
+                              <span className='text-stone-500 font-medium shrink-0'>
+                                Hiệu ứng tia sáng trame
+                              </span>
+                              <span className='font-semibold text-stone-800 text-right'>
+                                Radial Gradient 85L / 15% tia sét
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='p-4 rounded-xl bg-stone-50/70 border border-stone-200/80 space-y-3'>
+                          <div className='flex items-center gap-2 text-stone-900 font-bold uppercase tracking-wider text-xs pb-2 border-b border-stone-200/80'>
+                            <FileText className='w-4 h-4 text-blue-600' />
+                            <span>
+                              {t('bible.view.propPrincipleTitle', 'Nguyên lý hoạt động & Lưu ý vẽ')}
+                            </span>
+                          </div>
+                          <div className='space-y-2 text-xs'>
+                            <p className='text-stone-700 leading-relaxed'>
+                              {selectedEntity.description ||
+                                'Lưỡi kiếm plasma dạng năng lượng nén, chuôi kiếm bọc hợp kim siêu dẫn. Cơ chế kích hoạt luồng điện quang cực đại khi Akira phóng thích toàn bộ ấn lôi quang.'}
+                            </p>
+                            <div className='p-2.5 rounded-lg bg-orange-50/80 border border-orange-200 text-stone-700 space-y-1'>
+                              <div className='font-semibold text-orange-800 flex items-center gap-1'>
+                                <PenTool className='w-3.5 h-3.5 text-orange-700' />
+                                <span>
+                                  {t('bible.view.artistTipProp', 'Lưu ý cho Inker & Colorist:')}
+                                </span>
+                              </div>
+                              <div className='text-xs leading-relaxed'>
+                                Khi chém vào vật thể kim loại, viền nét kiếm không để đứt đoạn mà
+                                dùng nét brush xòe kết hợp tia lửa điện văng 4 góc.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Style / Rules Specs */}
+                    {activeTab === 'style' && (
+                      <div className='p-4 rounded-xl bg-stone-50/70 border border-stone-200/80 space-y-3'>
+                        <div className='flex items-center gap-2 text-stone-900 font-bold uppercase tracking-wider text-xs pb-2 border-b border-stone-200/80'>
+                          <ShieldCheck className='w-4 h-4 text-stone-700' />
+                          <span>Quy chuẩn mỹ thuật &amp; Thiết lập thế giới</span>
+                        </div>
+                        <div className='space-y-2 text-xs text-stone-700 leading-relaxed'>
+                          <p>
+                            {selectedEntity.description ||
+                              'Quy chuẩn cố định cho toàn bộ họa sĩ sản xuất.'}
+                          </p>
+                          <div className='p-2.5 rounded-lg bg-stone-100 border border-stone-200/80 text-stone-700'>
+                            <span className='font-semibold'>Ràng buộc bất biến: </span>
+                            {selectedEntity.attributes?.forbidden ||
+                              'Bản đã khoá Canon không sửa trực tiếp. Muốn thay đổi cần tạo bản sửa đổi mới qua thao tác Thay thế (Supersede).'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* LIGHTBOX MODAL CHO PHÓNG TO ẢNH */}
+      {selectedImageZoom && (
+        <div
+          role='dialog'
+          aria-modal='true'
+          aria-label={t('bible.view.closeLightboxAria', 'Đóng xem ảnh')}
+          className='fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4'
+          onClick={() => setSelectedImageZoom(null)}
+        >
+          <div
+            className='relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden p-2 shadow-2xl'
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className='flex items-center justify-between p-3 border-b border-stone-200/80'>
+              <h3 className='font-bold text-stone-900 text-sm'>{selectedImageZoom.title}</h3>
+              <button
+                type='button'
+                onClick={() => setSelectedImageZoom(null)}
+                className='p-1 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 cursor-pointer'
+              >
+                <X className='w-4 h-4' />
+              </button>
+            </div>
+            <div className='p-2 max-h-[75vh] overflow-auto flex items-center justify-center'>
+              <AuthenticatedImage
+                src={selectedImageZoom.url}
+                alt={selectedImageZoom.title}
+                className='max-w-full max-h-[70vh] object-contain rounded-lg'
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DEFINE STUB MODAL */}
+      {defineTarget && (
+        <DefineStubModal
+          isOpen={Boolean(defineTarget)}
+          entity={defineTarget}
+          seriesId={effectiveSeries?.id || ''}
+          isWriter={isWriter}
+          onClose={() => setDefineTarget(null)}
+          onDefined={() => {
+            setDefineTarget(null);
+            setRefreshTrigger((prev) => prev + 1);
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
 
       {/* ADD REVISION MODAL */}
       <AddRevisionModal
@@ -2855,35 +2445,17 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         expectedVersionNumber={expectedVersionNumber}
         savingRevision={savingRevision}
         uploadingRevImage={uploadingRevImage}
-        onUploadImage={async (file) => {
-          if (!file || !effectiveSeries?.id) return;
-          const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-          if (!validTypes.includes(file.type)) {
-            onShowToast(
-              t('bible.view.revisionImageInvalidTitle', 'Định dạng ảnh không hợp lệ'),
-              t(
-                'bible.view.revisionImageInvalidDesc',
-                'Hệ thống chỉ nhận ảnh PNG, JPEG hoặc WebP.',
-              ),
-            );
-            return;
-          }
-          if (file.size > 10 * 1024 * 1024) {
-            onShowToast(
-              t('bible.view.revisionImageSizeExceededTitle', 'Dung lượng ảnh vượt giới hạn'),
-              t('bible.view.revisionImageSizeExceededDesc', 'Ảnh tối đa 10 MB.'),
-            );
-            return;
-          }
+        onUploadImage={async (file: File) => {
+          if (!effectiveSeries?.id || !revisionTarget) return;
           setUploadingRevImage(true);
           try {
-            const res = await bibleService.uploadReferenceImage(effectiveSeries.id, file);
-            setRevisionReferenceImageUrl(res.url);
+            const uploaded = await bibleService.uploadReferenceImage(effectiveSeries.id, file);
+            setRevisionReferenceImageUrl(uploaded.url);
             onShowToast(
               t('bible.view.revisionImageUploadedTitle', 'Đã tải ảnh reference sheet mới'),
-              `${file.name} (${Math.round(res.sizeBytes / 1024)} KB)`,
+              file.name,
             );
-            return res.url;
+            return uploaded.url;
           } catch (err: any) {
             onShowToast(
               t('bible.view.revisionImageUploadErrorTitle', 'Lỗi tải ảnh tham chiếu'),
@@ -2897,50 +2469,53 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         onClose={() => setAddRevModalOpen(false)}
         onSubmit={executeSaveRevision}
         onConfirmArtistSubmit={async (content) => {
+          const isResubmit = isArtistResubmit;
           const confirmed = await confirm({
-            variant: 'default',
-            title: isArtistResubmit
+            title: isResubmit
               ? t('bible.view.confirmResubmitConceptArtistTitle', 'Nộp lại Concept Art')
               : t('bible.view.confirmSubmitConceptArtistTitle', 'Nộp duyệt Concept Art'),
-            description: isArtistResubmit
+            description: isResubmit
               ? t(
                   'bible.view.confirmResubmitConceptArtistDesc',
-                  { name: revisionName || revisionTarget?.name || '' },
+                  { name: revisionTarget?.name || '' },
                   'Bạn có chắc chắn muốn nộp lại bản vẽ thay thế cho "{name}" không? Bản nộp mới này sẽ thay thế bản vẽ đang chờ duyệt.',
                 )
               : t(
                   'bible.view.confirmSubmitConceptArtistDesc',
-                  { name: revisionName || revisionTarget?.name || '' },
-                  'Bạn có chắc chắn muốn nộp bản vẽ Concept Art cho "{name}" không? Writer hoặc Editor sẽ duyệt bản vẽ, sau đó Producer khoá canon.',
+                  { name: revisionTarget?.name || '' },
+                  'Bạn có chắc chắn muốn nộp bản vẽ Concept Art cho "{name}" không? Editor sẽ duyệt và khoá Canon.',
                 ),
-            confirmLabel: isArtistResubmit
+            confirmText: isResubmit
               ? t('bible.view.confirmResubmitConceptArtistBtn', 'Nộp lại bản')
               : t('bible.view.confirmSubmitConceptArtistBtn', 'Nộp duyệt'),
-            cancelLabel: t('bible.view.confirmSubmitConceptArtistCancel', 'Kiểm tra lại'),
+            cancelText: t('bible.view.confirmSubmitConceptArtistCancel', 'Kiểm tra lại'),
+            variant: 'info',
           });
-          if (confirmed) void executeSaveRevision(content);
+          if (confirmed) {
+            await executeSaveRevision(content);
+          }
         }}
       />
 
-      {/* REWORK MODAL PORTAL */}
+      {/* REWORK MODAL */}
       <ReworkModal
         isOpen={reworkModalOpen}
         targetRev={reworkTargetRev}
-        entityName={historyEntity?.name || selectedEntity?.name || ''}
+        entityName={historyEntityName}
         isSubmitting={submittingRework}
         onClose={() => setReworkModalOpen(false)}
         onSubmit={handleSubmitRework}
       />
 
-      {/* Add Entity Modal */}
+      {/* ADD ENTITY MODAL */}
       <AddEntityModal
         isOpen={addEntityOpen}
-        isProducer={isProducer}
-        isArtist={isArtist}
         onClose={() => setAddEntityOpen(false)}
         onAdd={handleCreateEntity}
         onShowToast={onShowToast}
         seriesId={effectiveSeries?.id}
+        isProducer={isProducer}
+        isArtist={isArtist}
       />
 
       {/* Define Stub Modal */}
@@ -2996,6 +2571,102 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         }}
         onShowToast={onShowToast}
       />
+      {/* HISTORY MODAL */}
+      <Modal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        size='lg'
+        closeLabel={t('bible.view.closeHistoryAria', 'Đóng')}
+        title={t(
+          'bible.view.historyModalTitle',
+          { name: historyEntityName },
+          `Lịch sử phiên bản: ${historyEntityName}`,
+        )}
+        description={t(
+          'bible.view.historyNotice',
+          'Toàn bộ lịch sử chỉnh sửa thiết kế được lưu giữ đầy đủ, đảm bảo tính nhất quán và bảo toàn tiến trình sáng tác.',
+        )}
+      >
+        <div className='p-4 space-y-4 max-h-[70vh] overflow-y-auto text-xs'>
+          {loadingHistory ? (
+            <div className='py-8 text-center text-stone-500 flex items-center justify-center gap-2'>
+              <Loader2 className='w-4 h-4 animate-spin' />
+              <span>{t('bible.view.loadingHistory', 'Đang tải lịch sử phiên bản...')}</span>
+            </div>
+          ) : historyRevisions.length === 0 ? (
+            <p className='py-6 text-center text-stone-500'>
+              {t('bible.view.noHistory', 'Chưa có phiên bản nào được ghi nhận.')}
+            </p>
+          ) : (
+            <div className='space-y-3'>
+              {historyRevisions.map((rev) => (
+                <div
+                  key={rev.id}
+                  className='p-3.5 bg-stone-50 border border-stone-200/80 rounded-xl space-y-2'
+                >
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-2'>
+                      <span className='font-mono font-bold text-xs px-2 py-0.5 rounded bg-white border border-stone-200/80'>
+                        v{rev.versionNumber}
+                      </span>
+                      <span className='font-semibold text-stone-900'>
+                        {rev.variantLabel || 'Mặc định'}
+                      </span>
+                      {rev.reviewStatus === 'CanonLocked' ? (
+                        <span className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold'>
+                          Đã khóa Canon
+                        </span>
+                      ) : rev.reviewStatus === 'ConceptSubmitted' ? (
+                        <span className='px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold'>
+                          Chờ nét in
+                        </span>
+                      ) : rev.reviewStatus === 'ReworkRequired' ? (
+                        <span className='px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold'>
+                          Cần sửa
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className='text-xs text-stone-400 font-mono'>
+                      {new Date(rev.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+
+                  {rev.summary && <p className='text-xs text-stone-700'>{rev.summary}</p>}
+
+                  {rev.reworkFeedback && (
+                    <div className='p-2 rounded bg-rose-50 border border-rose-200 text-xs text-rose-800'>
+                      <span className='font-semibold'>Nhận xét sửa: </span>
+                      {rev.reworkFeedback}
+                    </div>
+                  )}
+
+                  <div className='flex items-center justify-between pt-2 border-t border-stone-200/60'>
+                    <span className='text-xs font-mono text-stone-400'>
+                      Hash: {rev.contentHash ? rev.contentHash.substring(0, 8) : '—'}
+                    </span>
+                    <div className='flex items-center gap-1.5'>
+                      {canEndorse && rev.reviewStatus === 'ConceptSubmitted' && (
+                        <button
+                          type='button'
+                          onClick={() => void handleConfirmCanon(rev)}
+                          className='px-3 py-1 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold'
+                          data-testid={`btn-lock-canon-${rev.id}`}
+                        >
+                          Khóa chuẩn
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
     </PageContainer>
   );
 };
+
+const SparklesIcon = () => (
+  <span className='inline-block w-3.5 h-3.5 text-orange-600 font-bold'>✦</span>
+);

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { X, Layers, Plus, Loader2 } from 'lucide-react';
-import { workspaceService, WorkspaceDto } from '@/services/workspace.service';
+import { Rocket, Loader2 } from 'lucide-react';
+import { workspaceService } from '@/services/workspace.service';
+import { WorkspaceDto, normalizeWorkspaceRole } from '@/types';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 interface CreateWorkspaceModalProps {
   isOpen: boolean;
@@ -16,8 +18,11 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
   onSuccess,
   onShowToast,
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
-  const [quotaGb, setQuotaGb] = useState('10');
+  const [icon, setIcon] = useState('🏢');
+  const [role, setRole] = useState('Producer');
+  const [quotaGb, setQuotaGb] = useState('300');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,28 +32,38 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
     e.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('Vui lòng nhập tên Workspace / Studio.');
+      setError(t('workspace.studioHub.createStudio.errorEmptyName'));
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      const quotaBytes = (parseFloat(quotaGb) || 10) * 1024 * 1024 * 1024;
+      const quotaBytes = (parseFloat(quotaGb) || 300) * 1024 * 1024 * 1024;
       const created = await workspaceService.createWorkspace({
         name: trimmedName,
         storageQuotaBytes: quotaBytes,
       });
 
       if (onShowToast) {
-        onShowToast('Tạo Studio thành công', `Đã tạo workspace "${created.name}"`);
+        onShowToast(
+          t('workspace.studioHub.createStudio.successToastTitle'),
+          t('workspace.studioHub.createStudio.successToastDesc', { name: created.name }),
+        );
       }
       setName('');
-      onSuccess(created);
+      onSuccess({
+        ...created,
+        currentUserRole: normalizeWorkspaceRole(created.currentUserRole),
+      });
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Lỗi khi tạo Workspace:', err);
-      setError(err.message || 'Không thể tạo Workspace. Vui lòng thử lại.');
+      const message =
+        err instanceof Error
+          ? err.message
+          : t('workspace.studioHub.createStudio.errorCreateFailed');
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -59,103 +74,146 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size='md'
-      title='Tạo Studio / Workspace mới'
-      description='Khởi tạo không gian làm việc sản xuất truyện'
-      closeLabel='Đóng modal'
-    >
-      <div className='relative w-full max-w-md bg-[#FCFBF8] rounded-xl shadow-editorial border border-[#D8D2C5] overflow-hidden'>
-        {/* Header */}
-        <div className='flex items-center justify-between px-6 py-5 border-b border-[#D8D2C5] bg-[#F8F6F0]'>
-          <div className='flex items-center gap-3'>
-            <div className='w-10 h-10 rounded-xl bg-[#FFF2E6] border border-[#D8D2C5] flex items-center justify-center text-[#C2410C] shadow-2xs'>
-              <Layers className='w-5 h-5' />
-            </div>
-            <div>
-              <h3 className='font-serif font-bold text-lg text-[#1C1917]'>
-                Tạo Studio / Workspace mới
-              </h3>
-              <p className='text-xs text-[#57534E]'>Khởi tạo không gian làm việc sản xuất truyện</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label='Đóng modal'
-            className='w-8 h-8 rounded-lg flex items-center justify-center text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] transition-colors cursor-pointer'
+      title={
+        <div className='flex items-center gap-3'>
+          <div
+            className='w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold shrink-0 text-xl'
+            aria-hidden='true'
           >
-            <X className='w-5 h-5' />
-          </button>
+            {icon}
+          </div>
+          <div className='text-left'>
+            <span className='font-bold text-stone-900 text-base block font-serif'>
+              {t('workspace.studioHub.createStudio.title')}
+            </span>
+            <span className='text-xs text-stone-500 font-normal block mt-0.5 font-sans'>
+              {t('workspace.studioHub.createStudio.subtitle')}
+            </span>
+          </div>
         </div>
+      }
+      closeLabel={t('workspace.studioHub.createStudio.cancel')}
+    >
+      <form onSubmit={handleSubmit} className='flex flex-col gap-4 text-xs font-sans'>
+        {error && (
+          <div className='p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs leading-relaxed'>
+            {error}
+          </div>
+        )}
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className='p-6 space-y-4'>
-          {error && (
-            <div className='p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs leading-relaxed'>
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label className='block text-xs font-bold text-[#1C1917] uppercase tracking-wider mb-2'>
-              Tên Studio / Workspace <span className='text-red-500'>*</span>
+        <div className='flex gap-3'>
+          <div className='flex flex-col gap-1 w-20'>
+            <label htmlFor='create-studio-icon' className='font-medium text-stone-700'>
+              {t('workspace.studioHub.createStudio.iconLabel')}
+            </label>
+            <select
+              id='create-studio-icon'
+              value={icon}
+              onChange={(e) => setIcon(e.target.value)}
+              className='bg-white border border-stone-200 rounded-xl px-2.5 py-2 text-stone-800 text-center text-lg focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs cursor-pointer'
+            >
+              <option value='🏢'>🏢</option>
+              <option value='🖋️'>🖋️</option>
+              <option value='🎨'>🎨</option>
+              <option value='⚡'>⚡</option>
+              <option value='⛩️'>⛩️</option>
+            </select>
+          </div>
+          <div className='flex-1 flex flex-col gap-1'>
+            <label htmlFor='create-studio-name-input' className='font-medium text-stone-700'>
+              {t('workspace.studioHub.createStudio.nameLabel')}
             </label>
             <input
+              id='create-studio-name-input'
               type='text'
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder='Ví dụ: Tokyo Ghoul Production Studio'
-              className='w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] outline-none text-sm text-[#1C1917] placeholder:text-stone-400 transition-all'
+              placeholder={t('workspace.studioHub.createStudio.namePlaceholder')}
+              className='w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs font-medium'
               autoFocus
+              required
               disabled={loading}
             />
           </div>
+        </div>
 
-          <div>
-            <label className='block text-xs font-bold text-[#1C1917] uppercase tracking-wider mb-2'>
-              Dung lượng lưu trữ ban đầu (GB)
-            </label>
-            <select
-              value={quotaGb}
-              onChange={(e) => setQuotaGb(e.target.value)}
-              className='w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] outline-none text-sm text-[#1C1917] transition-all cursor-pointer'
-              disabled={loading}
-            >
-              <option value='5'>5 GB (Tiêu chuẩn)</option>
-              <option value='10'>10 GB (Khuyến nghị)</option>
-              <option value='25'>25 GB (Studio lớn)</option>
-              <option value='50'>50 GB (Chuyên nghiệp)</option>
-            </select>
-          </div>
+        <div className='flex flex-col gap-1'>
+          <label htmlFor='create-studio-role-select' className='font-medium text-stone-700'>
+            {t('workspace.studioHub.createStudio.roleLabel')}
+          </label>
+          <select
+            id='create-studio-role-select'
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className='w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs cursor-pointer font-medium'
+          >
+            <option value='Producer'>{t('workspace.studioHub.createStudio.roleProducer')}</option>
+            <option value='Lead Artist'>{t('workspace.studioHub.createStudio.roleLeadArtist')}</option>
+            <option value='Editor'>{t('workspace.studioHub.createStudio.roleEditor')}</option>
+          </select>
+        </div>
 
-          {/* Action Buttons */}
-          <div className='flex items-center justify-end gap-3 pt-4 border-t border-[#D8D2C5]'>
-            <button
-              type='button'
-              onClick={onClose}
-              disabled={loading}
-              className='px-4 py-2.5 rounded-lg border border-[#D8D2C5] text-sm font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] transition-colors cursor-pointer'
-            >
-              Hủy
-            </button>
-            <button
-              type='submit'
-              disabled={loading || !name.trim()}
-              className='flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-2xs'
-            >
-              {loading ? (
-                <>
-                  <Loader2 className='w-4 h-4 animate-spin' />
-                  <span>Đang tạo...</span>
-                </>
-              ) : (
-                <>
-                  <Plus className='w-4 h-4' />
-                  <span>Tạo Studio</span>
-                </>
-              )}
-            </button>
+        <div className='flex flex-col gap-1.5'>
+          <span className='font-medium text-stone-700'>
+            {t('workspace.studioHub.createStudio.quotaLabel')}
+          </span>
+          <div className='grid grid-cols-3 gap-2'>
+            {[
+              { gb: '100', tier: t('workspace.studioHub.createStudio.tierBasic') },
+              { gb: '300', tier: t('workspace.studioHub.createStudio.tierTeam') },
+              { gb: '500', tier: t('workspace.studioHub.createStudio.tierEnterprise') },
+            ].map((item) => (
+              <label
+                key={item.gb}
+                className={`border rounded-xl p-3 flex flex-col items-center justify-center gap-1 cursor-pointer text-center transition-all ${
+                  quotaGb === item.gb
+                    ? 'border-orange-600 bg-orange-50/50 shadow-2xs'
+                    : 'border-stone-200 hover:bg-stone-50'
+                }`}
+              >
+                <span className='font-bold text-stone-900 text-sm'>{item.gb} GB</span>
+                <span className='text-xs text-stone-500 font-medium'>{item.tier}</span>
+                <input
+                  type='radio'
+                  name='studio_quota'
+                  value={item.gb}
+                  checked={quotaGb === item.gb}
+                  onChange={() => setQuotaGb(item.gb)}
+                  className='sr-only'
+                />
+              </label>
+            ))}
           </div>
-        </form>
-      </div>
+        </div>
+
+        <div className='flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100'>
+          <button
+            type='button'
+            onClick={onClose}
+            disabled={loading}
+            className='px-4 py-2 rounded-xl border border-stone-200 bg-white font-medium text-stone-700 hover:bg-stone-50 cursor-pointer transition-colors'
+          >
+            {t('workspace.studioHub.createStudio.cancel')}
+          </button>
+          <button
+            type='submit'
+            disabled={loading || !name.trim()}
+            className='px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
+          >
+            {loading ? (
+              <>
+                <Loader2 className='w-4 h-4 animate-spin' aria-hidden='true' />
+                <span>{t('workspace.studioHub.createStudio.creating')}</span>
+              </>
+            ) : (
+              <>
+                <Rocket className='w-4 h-4' aria-hidden='true' />
+                <span>{t('workspace.studioHub.createStudio.submit')}</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
     </Modal>
   );
 };

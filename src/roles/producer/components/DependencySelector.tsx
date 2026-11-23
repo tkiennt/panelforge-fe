@@ -413,7 +413,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                 <HelpCircle className='w-3.5 h-3.5' />
               </button>
               {showDagTooltip && (
-                <div className='absolute z-50 left-0 top-full mt-1.5 w-72 p-3 bg-stone-900 text-stone-100 text-[11px] rounded-xl shadow-xl border border-stone-700 leading-relaxed animate-in fade-in'>
+                <div className='absolute z-50 left-0 top-full mt-1.5 w-72 p-3 bg-stone-900 text-stone-100 text-xs rounded-xl shadow-xl border border-stone-700 leading-relaxed animate-in fade-in'>
                   <strong className='text-orange-400 block mb-1'>Đồ thị phụ thuộc (DAG):</strong>
                   Phân công này sẽ ở trạng thái chờ cho đến khi tất cả các công việc được chọn tại
                   đây đạt trạng thái <strong>Đã duyệt (Approved)</strong>. Bạn có thể chọn nhiều
@@ -422,7 +422,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
               )}
             </div>
           </div>
-          <p className='text-[11px] text-stone-500 mt-0.5'>
+          <p className='text-xs text-stone-500 mt-0.5'>
             Chọn những công việc phải được duyệt trước khi công việc này có thể bắt đầu.
           </p>
         </div>
@@ -440,7 +440,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
 
       {/* Thông tin quy trình pipeline bắt buộc nếu có (Req 2) */}
       {priorPipelineStage && (
-        <div className='p-2.5 bg-orange-50/60 border border-orange-200 rounded-xl text-[11px] text-orange-900 flex items-start gap-2'>
+        <div className='p-2.5 bg-orange-50/60 border border-orange-200 rounded-xl text-xs text-orange-900 flex items-start gap-2'>
           <Info className='w-3.5 h-3.5 text-[#F97316] shrink-0 mt-0.5' />
           <div>
             <strong>Quy trình Pipeline:</strong> Công đoạn này nằm sau{' '}
@@ -468,7 +468,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
             <button
               type='button'
               onClick={() => onChange([])}
-              className='text-[10px] text-stone-500 hover:text-red-600 transition-colors cursor-pointer'
+              className='text-xs text-stone-500 hover:text-red-600 transition-colors cursor-pointer'
             >
               Bỏ chọn tất cả
             </button>
@@ -480,7 +480,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
               return (
                 <div
                   key={a.id}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] shadow-2xs ${
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs shadow-2xs ${
                     statusMeta.isApproved
                       ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
                       : 'bg-amber-50 border-amber-300 text-amber-950'
@@ -494,7 +494,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                   <span className='font-semibold truncate max-w-[180px]'>
                     {a.brief || '[Không có tiêu đề]'}
                   </span>
-                  <span className='text-[10px] font-mono text-stone-500'>({statusMeta.label})</span>
+                  <span className='text-xs font-mono text-stone-500'>({statusMeta.label})</span>
                   <button
                     type='button'
                     onClick={(e) => handleRemove(a.id, e)}
@@ -533,7 +533,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                 Đã chọn {selectedAssignmentsList.length} công việc · Tất cả đã được duyệt.
               </span>
             </div>
-            <p className='text-[11px] text-emerald-800 pl-5'>
+            <p className='text-xs text-emerald-800 pl-5'>
               Các công việc được chọn đều đã duyệt. Điều kiện phụ thuộc đã được đáp ứng.
             </p>
           </div>
@@ -546,7 +546,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                 duyệt · {selectedUnapprovedCount} chưa duyệt.
               </span>
             </div>
-            <div className='text-[11px] text-amber-900 pl-5 space-y-1'>
+            <div className='text-xs text-amber-900 pl-5 space-y-1'>
               <p>
                 Công việc mới phải chờ{' '}
                 <strong>
@@ -564,7 +564,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                   <button
                     type='button'
                     onClick={() => setShowAllUnapproved((prev) => !prev)}
-                    className='text-[11px] font-semibold text-amber-800 hover:text-amber-950 underline inline-flex items-center gap-1 cursor-pointer'
+                    className='text-xs font-semibold text-amber-800 hover:text-amber-950 underline inline-flex items-center gap-1 cursor-pointer'
                   >
                     <span>
                       {showAllUnapproved
@@ -579,11 +579,11 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                   </button>
 
                   {showAllUnapproved && (
-                    <ul className='mt-1 space-y-1 pl-2 border-l-2 border-amber-300 text-[11px] text-amber-900'>
+                    <ul className='mt-1 space-y-1 pl-2 border-l-2 border-amber-300 text-xs text-amber-900'>
                       {selectedUnapprovedList.map((item) => (
                         <li key={item.id} className='flex items-center justify-between gap-2'>
                           <span className='truncate'>• {item.brief}</span>
-                          <span className='font-mono text-[10px] text-amber-700 shrink-0'>
+                          <span className='font-mono text-xs text-amber-700 shrink-0'>
                             ({getStatusMeta(item.status).label})
                           </span>
                         </li>
@@ -620,7 +620,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
         </div>
 
         {/* Filter Pills */}
-        <div className='flex items-center gap-1.5 flex-wrap text-[11px]'>
+        <div className='flex items-center gap-1.5 flex-wrap text-xs'>
           <button
             type='button'
             onClick={() => setActiveFilter('all')}
@@ -818,7 +818,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
             {/* Hàng 1: Lý do gợi ý & Tên công việc */}
             <div>
               {reasonText && (
-                <div className='text-[10px] font-bold text-orange-700 bg-orange-100/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 mb-1 border border-orange-200'>
+                <div className='text-xs font-bold text-orange-700 bg-orange-100/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 mb-1 border border-orange-200'>
                   <Sparkles className='w-2.5 h-2.5' />
                   <span>{reasonText}</span>
                 </div>
@@ -829,7 +829,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
             </div>
 
             {/* Hàng 2: Ngữ cảnh (Chương, trang/panel, giai đoạn) & Người phụ trách */}
-            <div className='flex items-center gap-x-2.5 gap-y-1 flex-wrap text-[11px] text-stone-600 font-sans'>
+            <div className='flex items-center gap-x-2.5 gap-y-1 flex-wrap text-xs text-stone-600 font-sans'>
               <span className='font-medium text-stone-700'>{contextStr}</span>
               <span className='text-stone-300'>•</span>
               <span className='flex items-center gap-1 text-stone-700'>
@@ -838,7 +838,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
               </span>
               <span className='text-stone-300'>•</span>
               <span
-                className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${statusMeta.badgeCls}`}
+                className={`px-1.5 py-0.2 rounded text-xs font-bold border ${statusMeta.badgeCls}`}
               >
                 {statusMeta.label}
               </span>
@@ -846,7 +846,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
 
             {/* Hàng 3: Ảnh hưởng khi chọn & ID rút gọn & Nút xem chi tiết (Req 3) */}
             <div className='pt-1 border-t border-stone-100 flex items-center justify-between gap-2 flex-wrap'>
-              <div className='flex items-center gap-1.5 text-[11px]'>
+              <div className='flex items-center gap-1.5 text-xs'>
                 {statusMeta.isApproved ? (
                   <span className='text-emerald-700 font-medium flex items-center gap-1'>
                     <CheckCircle2 className='w-3 h-3 text-emerald-600' />
@@ -859,14 +859,14 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                   </span>
                 )}
                 <span className='text-stone-300'>•</span>
-                <span className='font-mono text-[10px] text-stone-400'>#{a.id.slice(0, 8)}</span>
+                <span className='font-mono text-xs text-stone-400'>#{a.id.slice(0, 8)}</span>
               </div>
 
               {/* Nút riêng Xem chi tiết ↗ (Req 3) */}
               <button
                 type='button'
                 onClick={handleOpenDetail}
-                className='text-[11px] font-medium text-stone-600 hover:text-[#EA580C] hover:underline flex items-center gap-1 p-1 rounded transition-colors cursor-pointer'
+                className='text-xs font-medium text-stone-600 hover:text-[#EA580C] hover:underline flex items-center gap-1 p-1 rounded transition-colors cursor-pointer'
                 title='Xem chi tiết công việc trong tab mới'
               >
                 <span>Xem chi tiết</span>
@@ -876,7 +876,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
 
             {/* Cảnh báo nếu tạo vòng lặp chu trình (Req 9) */}
             {hasCycle && (
-              <div className='p-1.5 bg-red-50 border border-red-200 text-red-800 rounded text-[10px] flex items-center gap-1'>
+              <div className='p-1.5 bg-red-50 border border-red-200 text-red-800 rounded text-xs flex items-center gap-1'>
                 <AlertTriangle className='w-3 h-3 text-red-600 shrink-0' />
                 <span>Không thể chọn vì lựa chọn này tạo vòng lặp phụ thuộc chu trình.</span>
               </div>

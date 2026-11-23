@@ -119,7 +119,7 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
           </label>
           <div className='grid grid-cols-2 gap-2'>
             <div>
-              <span className='text-[10px] text-stone-400 block mb-0.5'>
+              <span className='text-xs text-stone-400 block mb-0.5'>
                 {t('production.cast.pageLabel', 'Trang:')}
               </span>
               <select
@@ -144,7 +144,7 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
             </div>
 
             <div>
-              <span className='text-[10px] text-stone-400 block mb-0.5'>
+              <span className='text-xs text-stone-400 block mb-0.5'>
                 {t('production.cast.panelLabel', 'Panel:')}
               </span>
               <select

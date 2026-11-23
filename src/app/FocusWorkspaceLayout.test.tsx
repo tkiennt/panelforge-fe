@@ -41,10 +41,10 @@ describe('FocusWorkspaceLayout Component', () => {
     renderLayout();
 
     const layout = screen.getByTestId('focus-workspace-layout');
-    expect(layout).toHaveClass('bg-[#F3F0E9]', 'text-[#1C1917]');
+    expect(layout).toHaveClass('bg-[#FAF9F5]', 'text-stone-900');
 
     const header = screen.getByTestId('focus-studio-header');
-    expect(header).toHaveClass('bg-[#FCFBF8]/95', 'border-[#D8D2C5]');
+    expect(header).toHaveClass('bg-white', 'border-stone-200');
     expect(screen.getByTestId('focus-back-btn')).toBeInTheDocument();
 
     // Series link points directly to ARTIST role series path
@@ -66,9 +66,9 @@ describe('FocusWorkspaceLayout Component', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('Đã lưu tự động')).toBeInTheDocument();
 
-    // Content is rendered and AppShellSidebar is NOT present
+    // Content is rendered and AppShellSidebar is present in Writer Studio design
     expect(screen.getByTestId('artist-desk-content')).toBeInTheDocument();
-    expect(screen.queryByTestId('app-shell-sidebar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-shell-sidebar')).toBeInTheDocument();
   });
 
   it('supports toggling full focus mode on and off cleanly', () => {

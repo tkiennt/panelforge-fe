@@ -341,7 +341,9 @@ describe('WorkspaceListView Component', () => {
     expect(screen.getByTestId('ws-chip-pending').textContent).toMatch(/5/);
     expect(screen.getByTestId('ws-chip-reviews').textContent).toMatch(/1/);
 
-    fireEvent.click(screen.getByRole('button', { name: /^(Được mời tham gia|Invited) *[0-9]/ }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Tôi là Họa sĩ|I am Artist/i }),
+    );
     expect(screen.queryByText('Own Studio')).not.toBeInTheDocument();
     expect(screen.getByText('Invited Studio')).toBeInTheDocument();
   });
@@ -352,7 +354,7 @@ describe('WorkspaceListView Component', () => {
 
     await waitFor(() => expect(screen.getByText('Alpha Studio')).toBeInTheDocument());
     expect(
-      screen.queryByRole('group', { name: /Lọc studio|Filter studios/ }),
+      screen.queryByRole('group', { name: /Lọc theo vai trò|Filter by role/i }),
     ).not.toBeInTheDocument();
   });
 

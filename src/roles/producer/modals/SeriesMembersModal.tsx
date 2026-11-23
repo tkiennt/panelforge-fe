@@ -498,7 +498,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                       <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
                         {t('members.candidatePool.title', 'Thành viên Workspace')}
                       </h4>
-                      <p className='text-[11px] text-[#737373]'>
+                      <p className='text-xs text-[#737373]'>
                         {t(
                           'members.candidatePool.subtitle',
                           'Chọn vai trò và thêm trực tiếp vào Series',
@@ -555,7 +555,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                             `Tất cả thành viên ${displayWsName} đã được gán vào Series.`,
                           )}
                     </p>
-                    <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
+                    <p className='text-xs text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {candidateSearchQuery
                         ? t(
                             'members.candidatePool.emptySearchDesc',
@@ -572,7 +572,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                         <a
                           href={`/workspaces/${workspaceId}/members`}
                           onClick={onClose}
-                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-50 hover:bg-orange-50 border border-zinc-200 hover:border-orange-200 text-zinc-700 hover:text-orange-600 text-xs font-medium transition-colors cursor-pointer shadow-2xs'
+                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-50 hover:bg-orange-50 border border-stone-200 hover:border-orange-200 text-stone-700 hover:text-orange-600 text-xs font-medium transition-colors cursor-pointer shadow-2xs'
                         >
                           <UserPlus className='w-3.5 h-3.5' />
                           <span>Quản lý thành viên Workspace →</span>
@@ -615,7 +615,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                 {displayName}
                               </span>
                               {candidate.role && (
-                                <span className='text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-white border border-[#E7E7E7] text-[#555555] font-semibold shrink-0'>
+                                <span className='text-xs font-mono px-1.5 py-0.5 rounded-md bg-white border border-[#E7E7E7] text-[#555555] font-semibold shrink-0'>
                                   {candidate.role}
                                 </span>
                               )}
@@ -665,7 +665,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                       <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
                         {t('members.seriesRoster.title', 'Thành viên bộ truyện')}
                       </h4>
-                      <p className='text-[11px] text-[#737373]'>
+                      <p className='text-xs text-[#737373]'>
                         {t(
                           'members.seriesRoster.subtitle',
                           'Đang tham gia sản xuất và phân quyền trong Series',
@@ -733,7 +733,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                         ? t('members.seriesRoster.emptySearch', 'Không tìm thấy thành viên phù hợp')
                         : t('members.seriesRoster.emptyRoster', 'Chưa có nhân sự trong Series.')}
                     </p>
-                    <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
+                    <p className='text-xs text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {seriesSearchQuery || filterRole !== 'ALL'
                         ? t(
                             'members.seriesRoster.emptySearchDesc',
@@ -820,7 +820,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                 {displayName}
                               </span>
                               {isProducer && (
-                                <span className='text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1 shrink-0'>
+                                <span className='text-xs font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1 shrink-0'>
                                   <Crown className='w-2.5 h-2.5 text-amber-600' />
                                   <span>
                                     {t('members.seriesRoster.producerAdminTag', 'Quản trị')}

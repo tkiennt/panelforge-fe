@@ -1,28 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  Building2,
+  LayoutGrid,
   Plus,
   ArrowRight,
   LogOut,
   AlertCircle,
   RotateCw,
-  Users,
   Camera,
   Clock,
-  ShieldCheck,
   ListTodo,
-  BookOpen,
+  ShieldCheck,
   Search,
   ArrowUpDown,
 } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
 import { formatBytes } from './studio-overview/formatters';
-import {
-  PendingInvitations,
-  SeriesShelf,
-  TodayTasks,
-  type PendingInvitation,
-} from './WorkspaceShelfSections';
+import { PendingInvitations, TodayTasks, type PendingInvitation } from './WorkspaceShelfSections';
 import { Alert } from '@/shared/ui';
 import { sortByDue, type TodayTask } from './workspaceShelfTasks';
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
@@ -30,9 +25,6 @@ import { workspaceService } from '@/services/workspace.service';
 import { CreateWorkspaceModal } from '@/roles/producer/modals/CreateWorkspaceModal';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { useTranslation } from '@/lib/i18n';
-import { BrandMark } from '@/shared/components/BrandMark';
-import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
-import { StudioCoverFallback } from '@/shared/components/StudioCoverFallback';
 import { WorkspaceCoverPickerDialog } from '@/shared/components/WorkspaceCoverPickerDialog';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { LucianInlineAlert } from '@/shared/components/lucian';
@@ -54,12 +46,11 @@ interface WorkspaceListViewProps {
   recentWorkspaceId?: string | null;
 }
 
-// Cover tab colours, picked deterministically from the studio id.
-const COVER_TONES = ['#F97316', '#0F766E', '#7C3AED', '#B45309', '#BE123C', '#1D4ED8'];
-const toneFor = (id: string) => {
+const getStudioEmoji = (name: string) => {
+  const emojis = ['🏢', '🖋️', '🎨', '⚡', '⛩️', '📚'];
   let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return COVER_TONES[h % COVER_TONES.length];
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return emojis[h % emojis.length];
 };
 
 export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
@@ -84,7 +75,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
     currentUser?.role?.toUpperCase() === 'ADMIN';
   const canCreate = !isAdmin && !!currentUser?.canCreateStudio;
 
-  // Gọi API thật lấy danh sách Workspace của user hiện tại (không phân trang → count là tổng thật)
+  // Lấy danh sách Workspace từ API
   const fetchWorkspaces = async () => {
     setLoading(true);
     setLoadError(false);
@@ -111,7 +102,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
 
   useEffect(() => setAvatarFailed(false), [currentUser?.avatarUrl]);
 
-  // Lời mời đang chờ: API đã có (accept/reject) nhưng trước đây chưa màn hình nào hiển thị
+  // Lời mời tham gia Studio đang chờ
   const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
   const [inviteBusyId, setInviteBusyId] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -159,7 +150,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
     }
   };
 
-  // "Việc của bạn": chỉ gọi my-assignments cho studio có việc đang chờ (pendingTasks > 0)
+  // Việc của bạn trong Studio
   const [todayTasks, setTodayTasks] = useState<TodayTask[]>([]);
   const [todayError, setTodayError] = useState(false);
   useEffect(() => {
@@ -247,7 +238,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const recent = recentWorkspaceId ? workspaces.find((w) => w.id === recentWorkspaceId) : null;
   const avatarUrl = currentUser?.avatarUrl?.trim();
 
-  // Tóm tắt từ dữ liệu thật của API (không có số liệu giả, DESIGN_RULES §8)
+  // Thống kê số lượng thực tế
   const ownedCount = workspaces.filter((w) => w.isOwner).length;
   const pendingTotal = workspaces.reduce((n, w) => n + (w.pendingTasks ?? 0), 0);
   const reviewTotal = workspaces.reduce((n, w) => n + (w.pendingEditorReviews ?? 0), 0);
@@ -258,38 +249,120 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
         ? t('workspace.shelf.summary.noneOwned', { count: workspaces.length })
         : t('workspace.shelf.summary.mixed', { count: workspaces.length, owned: ownedCount });
 
-  // Lọc chỉ có nghĩa khi vừa có studio sở hữu vừa có studio được mời
-  const [filter, setFilter] = useState<'all' | 'owned' | 'joined'>('all');
-  const showFilter = ownedCount > 0 && ownedCount < workspaces.length;
-  const filteredByOwner =
-    !showFilter || filter === 'all'
-      ? workspaces
-      : workspaces.filter((w) => (filter === 'owned' ? w.isOwner : !w.isOwner));
+  // Phân tích vai trò thực tế từ danh sách workspaces
+  const roleCounts = useMemo(() => {
+    const counts = {
+      all: workspaces.length,
+      producer: 0,
+      editor: 0,
+      artist: 0,
+      writer: 0,
+      letterer: 0,
+    };
+    for (const ws of workspaces) {
+      const isProd = ws.isOwner || String(ws.currentUserRole || '').toUpperCase() === 'PRODUCER';
+      if (isProd) {
+        counts.producer += 1;
+      } else {
+        const role = String(ws.currentUserRole || '').toUpperCase();
+        if (role === 'EDITOR') counts.editor += 1;
+        else if (role === 'ARTIST') counts.artist += 1;
+        else if (role === 'WRITER') counts.writer += 1;
+        else if (role === 'LETTERER') counts.letterer += 1;
+      }
+    }
+    return counts;
+  }, [workspaces]);
 
-  // Tìm kiếm & sắp xếp chỉ hiện khi đủ nhiều studio; ít hơn thì chỉ làm rối màn hình
-  const SEARCH_MIN_STUDIOS = 6;
-  const showSearch = workspaces.length >= SEARCH_MIN_STUDIOS;
+  // Bộ lọc theo vai trò
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
+  const roleFilters = useMemo(() => {
+    const list: Array<{ id: string; label: string; count: number }> = [
+      {
+        id: 'all',
+        label: t('workspace.studioHub.directory.filterAll', { count: roleCounts.all }),
+        count: roleCounts.all,
+      },
+    ];
+    if (roleCounts.producer > 0) {
+      list.push({
+        id: 'Producer',
+        label: t('workspace.studioHub.directory.filterProducer', { count: roleCounts.producer }),
+        count: roleCounts.producer,
+      });
+    }
+    if (roleCounts.editor > 0) {
+      list.push({
+        id: 'Editor',
+        label: t('workspace.studioHub.directory.filterEditor', { count: roleCounts.editor }),
+        count: roleCounts.editor,
+      });
+    }
+    if (roleCounts.artist > 0) {
+      list.push({
+        id: 'Artist',
+        label: t('workspace.studioHub.directory.filterArtist', { count: roleCounts.artist }),
+        count: roleCounts.artist,
+      });
+    }
+    if (roleCounts.writer > 0) {
+      list.push({
+        id: 'Writer',
+        label: t('workspace.studioHub.directory.filterWriter', { count: roleCounts.writer }),
+        count: roleCounts.writer,
+      });
+    }
+    return list;
+  }, [roleCounts, t]);
+
+  const showFilter = roleFilters.length > 1;
+
+  const filteredByRole = useMemo(() => {
+    if (selectedRoleFilter === 'all') return workspaces;
+    if (selectedRoleFilter === 'Producer') {
+      return workspaces.filter(
+        (w) => w.isOwner || String(w.currentUserRole || '').toUpperCase() === 'PRODUCER',
+      );
+    }
+    if (selectedRoleFilter === 'Editor') {
+      return workspaces.filter((w) => String(w.currentUserRole || '').toUpperCase() === 'EDITOR');
+    }
+    if (selectedRoleFilter === 'Artist') {
+      return workspaces.filter((w) => String(w.currentUserRole || '').toUpperCase() === 'ARTIST');
+    }
+    if (selectedRoleFilter === 'Writer') {
+      return workspaces.filter((w) => String(w.currentUserRole || '').toUpperCase() === 'WRITER');
+    }
+    return workspaces;
+  }, [workspaces, selectedRoleFilter]);
+
+  // Tìm kiếm Studio
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'created' | 'recent' | 'name'>('created');
-  const q = showSearch ? query.trim().toLowerCase() : '';
-  const searched = q
-    ? filteredByOwner.filter(
-        (w) => w.name.toLowerCase().includes(q) || (w.ownerName || '').toLowerCase().includes(q),
-      )
-    : filteredByOwner;
+  const q = query.trim().toLowerCase();
+  const searched = useMemo(() => {
+    if (!q) return filteredByRole;
+    return filteredByRole.filter(
+      (w) =>
+        w.name.toLowerCase().includes(q) ||
+        (w.ownerName || '').toLowerCase().includes(q) ||
+        (w.description || '').toLowerCase().includes(q),
+    );
+  }, [filteredByRole, q]);
+
   const activityTime = (w: WorkspaceDto) => new Date(w.lastActivityAt || w.createdAt).getTime();
-  const visibleWorkspaces =
-    !showSearch || sort === 'created'
-      ? searched
-      : [...searched].sort((a, b) =>
-          sort === 'name' ? a.name.localeCompare(b.name, 'vi') : activityTime(b) - activityTime(a),
-        );
+  const visibleWorkspaces = useMemo(() => {
+    if (sort === 'created') return searched;
+    return [...searched].sort((a, b) =>
+      sort === 'name' ? a.name.localeCompare(b.name, 'vi') : activityTime(b) - activityTime(a),
+    );
+  }, [searched, sort]);
 
   const createButton = (
     <button
       type='button'
       onClick={handleOpenCreate}
-      className='ws-btn-primary inline-flex items-center gap-2 px-4 h-10 text-sm font-semibold'
+      className='bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs shrink-0'
     >
       <Plus className='w-4 h-4' aria-hidden='true' />
       <span>{t('workspace.shelf.create')}</span>
@@ -297,113 +370,117 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   );
 
   return (
-    <div className='ws-shelf min-h-screen flex flex-col font-sans'>
-      {/* Top Navigation Bar */}
-      <header className='sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-stone-200 shadow-xs px-4 md:px-6 lg:px-8 py-3'>
-        <div className='w-full flex items-center justify-between gap-3'>
-          <div className='flex items-center gap-3 min-w-0'>
-            <BrandMark size={32} className='shrink-0' />
-            <div className='min-w-0'>
-              <span className='font-serif font-bold text-base text-[#1C1917] tracking-tight'>
-                PanelForge
-              </span>
-              <p className='text-xs text-[#57534E] hidden sm:block'>{t('workspace.catalog')}</p>
-            </div>
+    <div className='min-h-screen flex flex-col font-sans bg-[#FAF9F5] text-stone-900'>
+      {/* 1. STICKY TOP HEADER (Stitch Multi-Studio Navigation) */}
+      <header className='h-16 bg-white border-b border-stone-200 px-6 lg:px-12 flex items-center justify-between sticky top-0 z-40 shadow-xs'>
+        <div className='flex items-center shrink-0'>
+          <div className='flex items-center gap-1.5 cursor-pointer select-none'>
+            <span className='text-lg font-bold text-orange-600 tracking-tight font-serif'>
+              PanelForge
+            </span>
+            <span className='text-xs font-bold tracking-wider uppercase bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded'>
+              STUDIO
+            </span>
           </div>
+          <div className='h-5 w-px bg-stone-200 mx-3' />
+          <div className='flex items-center gap-1 text-xs font-medium'>
+            <span className='px-2.5 py-1 rounded-md text-stone-900 bg-stone-100 font-semibold flex items-center gap-1.5 border border-stone-200'>
+              <LayoutGrid className='w-3.5 h-3.5 text-stone-500' aria-hidden='true' />
+              <span>Workspaces</span>
+            </span>
+          </div>
+        </div>
 
-          <div className='flex items-center gap-2 sm:gap-3'>
-            {currentUser && (
-              <Link
-                to='/profile'
-                title={t('workspace.shelf.profile')}
-                aria-label={`${t('workspace.shelf.profile')}: ${currentUser.name}`}
-                className='ws-focus flex items-center gap-2.5 rounded-full sm:rounded-lg p-0.5 sm:pr-2 hover:bg-[#F3F0E9]'
-              >
-                <span className='w-9 h-9 rounded-full bg-[#1C1917] text-white flex items-center justify-center font-bold text-xs overflow-hidden shrink-0'>
-                  {avatarUrl && !avatarFailed ? (
-                    <img
-                      src={avatarUrl}
-                      alt=''
-                      className='w-full h-full object-cover'
-                      onError={() => setAvatarFailed(true)}
-                    />
-                  ) : (
-                    <span>{currentUser.name?.charAt(0).toUpperCase() || 'U'}</span>
-                  )}
-                </span>
-                <span className='hidden sm:block text-left'>
-                  <span className='block text-xs font-semibold text-[#1C1917] truncate max-w-[160px]'>
-                    {currentUser.name}
+        {/* User Pill & Actions */}
+        <div className='flex items-center gap-3 shrink-0'>
+          {currentUser && (
+            <Link
+              to='/profile'
+              title={t('workspace.shelf.profile')}
+              aria-label={`${t('workspace.shelf.profile')}: ${currentUser.name}`}
+              className='flex items-center gap-2 bg-stone-100 hover:bg-stone-200/80 pl-3 pr-2 py-1.5 rounded-full border border-stone-200 transition-colors text-xs cursor-pointer'
+            >
+              <span className='font-semibold text-stone-800 truncate max-w-[140px]'>
+                {currentUser.name}
+              </span>
+              <span className='text-stone-400'>•</span>
+              <span className='text-stone-500 text-xs'>{currentUser.role || 'Producer'}</span>
+              <div className='w-6 h-6 rounded-full bg-orange-600 text-white flex items-center justify-center shrink-0 ml-0.5 overflow-hidden'>
+                {avatarUrl && !avatarFailed ? (
+                  <img
+                    src={avatarUrl}
+                    alt=''
+                    className='w-full h-full object-cover'
+                    onError={() => setAvatarFailed(true)}
+                  />
+                ) : (
+                  <span className='text-xs font-bold'>
+                    {currentUser.name?.charAt(0).toUpperCase() || 'U'}
                   </span>
-                  <span className='block text-xs text-[#57534E] truncate max-w-[160px]'>
-                    {currentUser.email}
-                  </span>
-                </span>
-              </Link>
-            )}
-            {onLogout && (
-              <button
-                type='button'
-                onClick={onLogout}
-                title={t('profile.logout')}
-                className='ws-focus flex items-center gap-1.5 h-9 px-3 text-xs font-semibold text-[#57534E] hover:text-red-700 hover:bg-red-50 border border-[#D8D2C5] rounded-lg'
-              >
-                <LogOut className='w-3.5 h-3.5' aria-hidden='true' />
-                <span className='hidden sm:inline'>{t('profile.logout')}</span>
-              </button>
-            )}
-          </div>
+                )}
+              </div>
+            </Link>
+          )}
+
+          {canCreate && workspaces.length > 0 && (
+            <button
+              type='button'
+              onClick={handleOpenCreate}
+              className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs whitespace-nowrap'
+            >
+              <Plus className='w-4 h-4' />
+              <span>{t('workspace.shelf.create')}</span>
+            </button>
+          )}
+
+          {onLogout && (
+            <button
+              type='button'
+              onClick={onLogout}
+              title={t('profile.logout')}
+              aria-label={t('profile.logout')}
+              className='p-2 text-stone-500 hover:text-red-700 hover:bg-red-50 rounded-lg border border-stone-200 transition-colors cursor-pointer'
+            >
+              <LogOut className='w-4 h-4' aria-hidden='true' />
+            </button>
+          )}
         </div>
       </header>
 
-      <main className='flex-1 py-6 md:py-10'>
-        <PageContainer>
+      {/* 2. MAIN DIRECTORY CONTENT */}
+      <main className='w-full flex-1 bg-[#FAF9F5]'>
+        <PageContainer className='py-6 md:py-8 flex flex-col gap-6 max-w-[1840px]'>
+          {/* Admin Role Limitation Notice */}
           {isAdmin && (
-            <div className='mb-6'>
-              <LucianInlineAlert
-                type='info'
-                title='Tài khoản Quản trị viên hệ thống'
-                description='Tài khoản Administrator không trực tiếp sở hữu hoặc tạo Studio Workspace theo quy tắc BR-07 nhằm đảm bảo tính bảo mật và phân lập dữ liệu.'
-                dismissible={true}
-              />
-            </div>
+            <LucianInlineAlert
+              type='info'
+              title='Tài khoản Quản trị viên hệ thống'
+              description='Tài khoản Administrator không trực tiếp sở hữu hoặc tạo Studio Workspace theo quy tắc BR-07 nhằm đảm bảo tính bảo mật và phân lập dữ liệu.'
+              dismissible={true}
+            />
           )}
 
           {loading ? (
-            <div aria-busy='true'>
+            <div aria-busy='true' className='space-y-6'>
               <span className='sr-only'>{t('workspace.loading')}</span>
-              <div className='h-8 w-56 rounded ws-skel mb-2' />
-              <div className='h-4 w-72 rounded ws-skel mb-8' />
-              <div className='ws-grid'>
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className='ws-card ws-card-skel' aria-hidden='true'>
-                    <div className='ws-card-cover ws-skel' />
-                    <div className='p-4 md:p-5 flex-1 flex flex-col'>
-                      <div className='flex items-start gap-3 mb-4'>
-                        <div className='w-10 h-10 rounded-lg ws-skel shrink-0' />
-                        <div className='flex-1'>
-                          <div className='h-4 w-3/5 rounded ws-skel mb-2' />
-                          <div className='h-3 w-20 rounded ws-skel' />
-                        </div>
-                      </div>
-                      <div className='h-3 w-4/5 rounded ws-skel mb-4 mt-auto' />
-                      <div className='pt-3 border-t border-stone-100 flex items-center justify-between'>
-                        <div className='h-3 w-20 rounded ws-skel' />
-                        <div className='h-7 w-24 rounded-lg ws-skel' />
-                      </div>
-                    </div>
-                  </div>
+              <div className='bg-white border border-stone-200 rounded-2xl p-6 h-36 animate-pulse' />
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className='bg-white border border-stone-200 rounded-2xl p-5 h-72 animate-pulse'
+                  />
                 ))}
               </div>
             </div>
           ) : loadError ? (
             <Alert tone='danger' className='max-w-md mx-auto mt-10 text-center'>
               <AlertCircle className='w-6 h-6 text-rose-600 mx-auto mb-3' aria-hidden='true' />
-              <p className='text-sm text-[#44403C] mb-4'>{t('workspace.shelf.loadError')}</p>
+              <p className='text-xs text-[#44403C] mb-4'>{t('workspace.shelf.loadError')}</p>
               <button
                 type='button'
                 onClick={fetchWorkspaces}
-                className='ws-btn-secondary inline-flex items-center gap-2 h-10 px-4 text-sm font-semibold'
+                className='bg-stone-900 text-white inline-flex items-center gap-2 h-10 px-4 text-xs font-semibold rounded-lg hover:bg-stone-800 cursor-pointer'
               >
                 <RotateCw className='w-4 h-4' aria-hidden='true' />
                 {t('workspace.shelf.retry')}
@@ -411,13 +488,13 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </Alert>
           ) : workspaces.length === 0 ? (
             /* Empty State */
-            <div className='mt-6 bg-white border-2 border-dashed border-stone-300 rounded-xl p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left'>
+            <div className='mt-6 bg-white border-2 border-dashed border-stone-300 rounded-2xl p-10 flex flex-col sm:flex-row items-center gap-8 text-center sm:text-left'>
               <BlankPageSketch />
               <div className='flex-1'>
-                <h1 className='text-2xl font-serif font-bold text-[#1C1917] mb-2 tracking-tight'>
+                <h1 className='text-2xl font-serif font-bold text-stone-900 mb-2 tracking-tight'>
                   {t('workspace.emptyTitle')}
                 </h1>
-                <p className='text-sm text-[#57534E] leading-relaxed'>
+                <p className='text-xs text-stone-600 leading-relaxed max-w-prose'>
                   {canCreate ? t('workspace.shelf.emptyCreate') : t('workspace.shelf.emptyInvite')}
                 </p>
               </div>
@@ -425,45 +502,61 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </div>
           ) : (
             <>
-              {/* Header nằm thẳng trên nền giấy: tiêu đề + một câu tóm tắt; chỉ báo việc khi có việc */}
-              <header className='flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6'>
-                <div className='min-w-0'>
-                  <h1 className='text-3xl font-serif font-bold text-stone-900 tracking-tight'>
-                    {t('workspace.shelf.title')}
+              {/* STITCH HEADER CARD (VIEW 1: DIRECTORY) */}
+              <div className='bg-white border border-stone-200 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6'>
+                <div className='flex flex-col gap-1.5'>
+                  <h1 className='text-2xl font-bold text-stone-900 tracking-tight flex items-center gap-3 font-serif'>
+                    <span>{t('workspace.studioHub.directory.title')}</span>
+                    <span
+                      id='dir-total-badge'
+                      className='px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-700 font-semibold text-xs border border-stone-200'
+                    >
+                      {workspaces.length} Studio
+                    </span>
                   </h1>
                   <p
-                    className='mt-1.5 text-sm text-stone-600 leading-relaxed max-w-prose'
+                    className='text-stone-600 text-xs leading-relaxed max-w-3xl'
                     data-testid='ws-summary'
                   >
                     {summary}
                   </p>
+                  {/* KPI Chips */}
                   {(pendingTotal > 0 || reviewTotal > 0) && (
-                    <div className='mt-3 flex flex-wrap items-center gap-2'>
+                    <div className='mt-2 flex flex-wrap items-center gap-2'>
                       {pendingTotal > 0 && (
-                        <a
-                          href='#ws-today-title'
-                          className='ws-focus inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 text-sm font-medium hover:bg-blue-100'
+                        <span
+                          className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-800 border border-orange-200 text-xs font-medium'
                           data-testid='ws-chip-pending'
                         >
-                          <ListTodo className='w-4 h-4' aria-hidden='true' />
+                          <ListTodo className='w-3.5 h-3.5' aria-hidden='true' />
                           {t('workspace.shelf.pendingForYou', { count: pendingTotal })}
-                        </a>
+                        </span>
                       )}
                       {reviewTotal > 0 && (
                         <span
-                          className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-sm font-medium'
+                          className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium'
                           data-testid='ws-chip-reviews'
                         >
-                          <ShieldCheck className='w-4 h-4' aria-hidden='true' />
+                          <ShieldCheck className='w-3.5 h-3.5' aria-hidden='true' />
                           {t('workspace.shelf.pendingReviews', { count: reviewTotal })}
                         </span>
                       )}
                     </div>
                   )}
                 </div>
-                {canCreate && <div className='shrink-0'>{createButton}</div>}
-              </header>
+                {canCreate && (
+                  <button
+                    type='button'
+                    onClick={handleOpenCreate}
+                    className='bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs shrink-0 self-start md:self-auto'
+                  >
+                    <Plus className='w-4 h-4' />
+                    <span>{t('workspace.studioHub.directory.createStudioBtn')}</span>
+                  </button>
+                )}
+              </div>
 
+              {/* Pending Studio Invitations Banner */}
               {invitations.length > 0 && (
                 <PendingInvitations
                   invitations={invitations}
@@ -477,6 +570,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 />
               )}
 
+              {/* Unfinished Today Tasks */}
               {(todayTasks.length > 0 || todayError) && (
                 <TodayTasks
                   tasks={todayTasks.slice(0, 5)}
@@ -488,404 +582,431 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 />
               )}
 
-              {/* Recently Visited Bar (BR / UX Section 7) */}
+              {/* Recently Visited Studio Alert */}
               {recent && (
-                <div className='ws-recent flex flex-wrap items-center justify-between gap-3 mb-5 px-4 py-2.5'>
+                <div className='flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-orange-50/70 border border-orange-200 text-xs'>
                   <div className='flex items-center gap-2 min-w-0'>
-                    <Clock className='w-4 h-4 text-[#C2410C] shrink-0' aria-hidden='true' />
-                    <p className='text-sm text-[#57534E] truncate'>
+                    <Clock className='w-4 h-4 text-orange-600 shrink-0' aria-hidden='true' />
+                    <p className='text-stone-700 truncate'>
                       {t('workspace.shelf.recent')}{' '}
-                      <strong className='font-semibold text-[#1C1917]'>{recent.name}</strong>
+                      <strong className='font-semibold text-stone-900'>{recent.name}</strong>
                     </p>
                   </div>
                   <button
                     type='button'
                     onClick={() => onSelectWorkspace(recent)}
-                    className='ws-focus inline-flex items-center gap-1 text-sm font-semibold text-[#C2410C] hover:text-[#9A3412] rounded'
+                    className='inline-flex items-center gap-1 text-xs font-semibold text-orange-700 hover:text-orange-900 cursor-pointer'
                   >
                     {t('workspace.shelf.continue')}
-                    <ArrowRight className='w-4 h-4' aria-hidden='true' />
+                    <ArrowRight className='w-3.5 h-3.5' aria-hidden='true' />
                   </button>
                 </div>
               )}
 
-              {showSearch && (
-                <div className='flex flex-col sm:flex-row sm:items-center gap-2.5 mb-4'>
-                  <label className='relative flex-1 max-w-lg'>
-                    <span className='sr-only'>{t('workspace.shelf.search.placeholder')}</span>
+              {/* TOOLBAR: ROLE FILTER & SEARCH BAR (Stitch Directory View) */}
+              <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
+                {/* Filter Pills */}
+                {showFilter && (
+                  <div
+                    className='flex items-center gap-2 flex-wrap'
+                    role='group'
+                    aria-label={t('workspace.studioHub.directory.filterRoleLabel')}
+                  >
+                    <span className='text-xs font-semibold text-stone-500 mr-1'>
+                      {t('workspace.studioHub.directory.filterRoleLabel')}
+                    </span>
+                    {roleFilters.map((pill) => {
+                      const isActive = selectedRoleFilter === pill.id;
+                      return (
+                        <button
+                          key={pill.id}
+                          type='button'
+                          onClick={() => setSelectedRoleFilter(pill.id)}
+                          className={`dir-role-pill px-3.5 py-1.5 rounded-lg text-xs cursor-pointer shadow-2xs transition-colors ${
+                            isActive
+                              ? 'bg-stone-900 text-white font-semibold'
+                              : 'bg-white border border-stone-200 text-stone-700 hover:text-stone-900 font-medium'
+                          }`}
+                        >
+                          {pill.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Search & Sort Input */}
+                <div className='flex items-center gap-3 ml-auto w-full md:w-auto'>
+                  <div className='relative w-full md:w-72'>
                     <Search
-                      className='w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none'
+                      className='absolute left-3 top-2.5 w-4 h-4 text-stone-400 pointer-events-none'
                       aria-hidden='true'
                     />
                     <input
+                      id='dir-search-input'
                       type='search'
+                      role='searchbox'
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder={t('workspace.shelf.search.placeholder')}
-                      className='w-full h-10 pl-10 pr-3 rounded-full bg-white border border-stone-200 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-orange-500'
+                      placeholder={t('workspace.studioHub.directory.searchPlaceholder')}
+                      aria-label={t('workspace.studioHub.directory.searchPlaceholder')}
+                      className='w-full bg-white pl-9 pr-3 py-2 rounded-xl border border-stone-200 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs font-medium'
                     />
-                  </label>
-                  <label className='inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full bg-white border border-stone-200 text-sm text-stone-700'>
-                    <ArrowUpDown className='w-4 h-4 text-stone-500' aria-hidden='true' />
-                    <span className='sr-only'>{t('workspace.shelf.search.sort')}</span>
-                    <select
-                      value={sort}
-                      onChange={(e) => setSort(e.target.value as typeof sort)}
-                      className='bg-transparent text-sm font-medium focus:outline-none cursor-pointer'
-                      aria-label={t('workspace.shelf.search.sort')}
-                    >
-                      <option value='created'>{t('workspace.shelf.search.created')}</option>
-                      <option value='recent'>{t('workspace.shelf.search.recent')}</option>
-                      <option value='name'>{t('workspace.shelf.search.name')}</option>
-                    </select>
-                  </label>
-                </div>
-              )}
-
-              {showFilter && (
-                <div
-                  className='flex items-center gap-2 flex-wrap mb-5'
-                  role='group'
-                  aria-label={t('workspace.shelf.filter.label')}
-                >
-                  {(
-                    [
-                      ['all', workspaces.length],
-                      ['owned', ownedCount],
-                      ['joined', workspaces.length - ownedCount],
-                    ] as const
-                  ).map(([key, count]) => {
-                    const active = filter === key;
-                    return (
-                      <button
-                        key={key}
-                        type='button'
-                        onClick={() => setFilter(key)}
-                        aria-pressed={active}
-                        className={`ws-focus inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium border transition-all duration-150 ${
-                          active
-                            ? 'bg-orange-50 text-orange-800 border-orange-200'
-                            : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-100 hover:text-stone-900'
-                        }`}
+                  </div>
+                  {workspaces.length >= 6 && (
+                    <div className='relative shrink-0'>
+                      <select
+                        value={sort}
+                        onChange={(e) => setSort(e.target.value as typeof sort)}
+                        aria-label={t('workspace.shelf.search.sort')}
+                        className='bg-white border border-stone-200 text-stone-700 px-3 py-2 rounded-xl text-xs shadow-2xs focus:outline-none focus:ring-1 focus:ring-orange-600 cursor-pointer pr-7 appearance-none font-medium'
                       >
-                        {t(`workspace.shelf.filter.${key}`)}
-                        <span
-                          className={`text-xs font-mono px-1.5 rounded-full ${active ? 'bg-orange-100' : 'bg-stone-100'}`}
-                        >
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
+                        <option value='created'>{t('workspace.shelf.search.created')}</option>
+                        <option value='name'>{t('workspace.shelf.search.name')}</option>
+                        <option value='recent'>{t('workspace.shelf.search.recent')}</option>
+                      </select>
+                      <ArrowUpDown
+                        className='w-3 h-3 text-stone-400 absolute right-2.5 top-3 pointer-events-none'
+                        aria-hidden='true'
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               {q && visibleWorkspaces.length === 0 && (
-                <p className='text-sm text-stone-600 mb-5'>
+                <p className='text-xs text-stone-600 mb-5'>
                   {t('workspace.shelf.search.empty', { query: query.trim() })}
                 </p>
               )}
 
-              {/* Studios Shelf Grid */}
-              <ul className='ws-grid' role='list'>
+              {/* STUDIO DIRECTORY GRID (Stitch 4-Column Grid) */}
+              <div
+                id='dir-studio-grid'
+                className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch'
+              >
                 {visibleWorkspaces.map((ws) => {
-                  const tone = toneFor(ws.id);
+                  const isCurrent = ws.id === recentWorkspaceId;
+                  const isProducer =
+                    String(ws.currentUserRole || '').toUpperCase() === 'PRODUCER' || ws.isOwner;
+                  const isEditor = String(ws.currentUserRole || '').toUpperCase() === 'EDITOR';
                   const mayManageCover = canManageCover(ws);
 
+                  const quota = ws.storageQuotaBytes || 0;
+                  const used = ws.usedStorageBytes || 0;
+                  const storagePercent =
+                    quota > 0 ? Math.min(100, Math.max(0, Math.round((used / quota) * 100))) : 0;
+
                   return (
-                    <li key={ws.id} className='flex'>
-                      <article
-                        className='ws-card group'
-                        style={{ '--ws-tone': tone } as React.CSSProperties}
-                        aria-label={ws.name}
-                      >
-                        {/* 1. Cover Image Section (2:1 aspect ratio) */}
-                        <div className='ws-card-cover'>
-                          <span className='ws-card-tab' aria-hidden='true' />
-
-                          {ws.coverUrl ? (
-                            <AuthenticatedImage
-                              src={ws.coverUrl}
-                              alt={`Ảnh bìa Studio ${ws.name}`}
-                              className='w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.02]'
-                              loading='lazy'
-                              fallback={
-                                <StudioCoverFallback name={ws.name} tone={tone} id={ws.id} />
-                              }
-                            />
-                          ) : (ws.seriesPreviews?.length ?? 0) > 0 ? (
-                            // Chưa có ảnh bìa riêng: series của studio đứng như các tập truyện trên kệ
-                            <SeriesShelf
-                              series={ws.seriesPreviews!}
-                              more={Math.max(0, (ws.seriesCount ?? 0) - ws.seriesPreviews!.length)}
-                              tone={tone}
-                            />
-                          ) : (
-                            <StudioCoverFallback name={ws.name} tone={tone} id={ws.id} />
-                          )}
-
-                          {/* Quick Action: Change Studio Cover (for Owner/Producer only) */}
-                          {mayManageCover && (
-                            <div className='absolute top-2.5 right-2.5 z-20'>
-                              <button
-                                type='button'
-                                onClick={() => setCoverModalWorkspace(ws)}
-                                title={t('workspace.shelf.changeCover')}
-                                aria-label={t('workspace.shelf.changeCover')}
-                                className='ws-cover-btn ws-focus inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/95 hover:bg-white text-stone-800 border border-stone-200 shadow-xs backdrop-blur-xs'
-                              >
-                                <Camera className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
-                                <span className='hidden sm:inline'>
-                                  {t('workspace.shelf.changeCover')}
-                                </span>
-                              </button>
+                    <article
+                      key={ws.id}
+                      aria-label={ws.name}
+                      data-role={ws.currentUserRole || 'Member'}
+                      data-title={ws.name.toLowerCase()}
+                      className={`studio-dir-card bg-white border rounded-2xl p-5 flex flex-col justify-between transition-all group ${
+                        isCurrent
+                          ? 'border-orange-400 ring-2 ring-orange-400/20 shadow-sm'
+                          : 'border-stone-200 shadow-xs hover:shadow-md hover:border-orange-200'
+                      }`}
+                    >
+                      <div className='flex flex-col gap-4'>
+                        {/* Header: Icon Tile, Name, Subline, Role Badge */}
+                        <div className='flex items-start justify-between gap-3'>
+                          <div className='flex items-center gap-3 min-w-0'>
+                            <div
+                              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold shrink-0 shadow-2xs relative ${
+                                isProducer
+                                  ? 'bg-orange-100 text-orange-700'
+                                  : isEditor
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-stone-100 text-stone-700'
+                              }`}
+                            >
+                              {getStudioEmoji(ws.name)}
+                              {mayManageCover && (
+                                <button
+                                  type='button'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCoverModalWorkspace(ws);
+                                  }}
+                                  title={t('workspace.shelf.changeCover')}
+                                  aria-label={t('workspace.shelf.changeCover')}
+                                  className='absolute -bottom-1 -right-1 p-1 rounded-md bg-white border border-stone-200 shadow-xs text-stone-600 hover:text-orange-600 cursor-pointer transition-colors'
+                                >
+                                  <Camera className='w-3 h-3 text-orange-600' aria-hidden='true' />
+                                </button>
+                              )}
                             </div>
-                          )}
+                            <div className='min-w-0 flex-1'>
+                              <h3 className='font-bold text-stone-900 text-base leading-snug truncate'>
+                                {ws.name}
+                              </h3>
+                              <span className='text-xs text-stone-400 block truncate'>
+                                {ws.ownerName ? `${t('workspace.owner')}: ${ws.ownerName}` : '—'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ${
+                              isProducer
+                                ? 'bg-orange-100 text-orange-700'
+                                : isEditor
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-stone-100 text-stone-700'
+                            }`}
+                          >
+                            {roleLabel(ws.currentUserRole)}
+                          </span>
                         </div>
 
-                        {/* 2. Card Content Body */}
-                        <div className='flex-1 flex flex-col p-4 md:p-5'>
-                          {/* Header: Monogram + Studio Name + Role */}
-                          <div className='flex items-start gap-3 mb-2.5'>
-                            <span className='ws-monogram' aria-hidden='true'>
-                              {ws.name.trim().charAt(0).toUpperCase() || 'S'}
+                        {/* Description */}
+                        <p className='text-xs text-stone-600 leading-relaxed line-clamp-2'>
+                          {ws.description?.trim() || '—'}
+                        </p>
+
+                        {/* Operational Stats Box (Stitch Spec: Bộ truyện, Quy mô, Lưu trữ) */}
+                        <div className='grid grid-cols-2 gap-2 bg-[#FAF9F5] p-3 rounded-xl border border-stone-200/80 text-xs'>
+                          <div>
+                            <span className='text-xs text-stone-400 block'>
+                              {t('workspace.studioHub.directory.seriesLabel')}
                             </span>
-                            <div className='min-w-0 flex-1'>
-                              <div className='flex items-center gap-2 flex-wrap mb-0.5'>
-                                <h2 className='text-xl font-serif font-bold text-stone-900 leading-snug line-clamp-1'>
-                                  {ws.name}
-                                </h2>
-                                <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap bg-stone-100 text-stone-600 border border-stone-200'>
-                                  {roleLabel(ws.currentUserRole)}
+                            <span className='font-bold text-stone-900 text-sm'>
+                              {ws.seriesCount !== undefined && ws.seriesCount > 0
+                                ? t('workspace.shelf.series', { count: ws.seriesCount })
+                                : t('workspace.shelf.noSeries')}
+                            </span>
+                          </div>
+                          <div>
+                            <span className='text-xs text-stone-400 block'>
+                              {t('workspace.studioHub.directory.membersLabel')}
+                            </span>
+                            <span className='font-bold text-stone-900 text-sm'>
+                              {t('workspace.shelf.members', { count: ws.memberCount ?? 1 })}
+                            </span>
+                          </div>
+
+                          {/* Storage Bar (Stitch Directory Spec: Lưu trữ: used / quota + %) */}
+                          {(mayManageCover || quota > 0) && (
+                            <div
+                              className='col-span-2 pt-1 border-t border-stone-200/60 mt-1'
+                              data-testid='ws-card-storage'
+                            >
+                              <div className='flex items-center justify-between text-xs mb-1'>
+                                <span className='text-stone-500'>
+                                  {t('workspace.studioHub.directory.storageLabel', {
+                                    used: formatBytes(used),
+                                    quota: quota > 0 ? formatBytes(quota) : '—',
+                                  })}
+                                </span>
+                                <span className='font-semibold text-stone-700 font-mono'>
+                                  {quota > 0 ? `${storagePercent}%` : '—'}
                                 </span>
                               </div>
-                              {ws.ownerName && (
-                                <p className='text-xs text-[#78716C] truncate'>
-                                  {t('workspace.owner')}: {ws.ownerName}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Description (if provided, max 2 lines, no fake filler content) */}
-                          {ws.description?.trim() ? (
-                            <p className='text-xs text-[#57534E] line-clamp-2 leading-relaxed mb-3'>
-                              {ws.description.trim()}
-                            </p>
-                          ) : null}
-
-                          {/* Series của studio (BE GetMyWorkspaces: seriesCount, 3 series mới cập nhật) */}
-                          {ws.seriesCount !== undefined && (
-                            <div
-                              className='flex items-center gap-2.5 mb-3'
-                              data-testid='ws-card-series'
-                            >
-                              {/* Bìa nhỏ chỉ cần khi kệ không hiện (studio đã có ảnh bìa riêng) */}
-                              {ws.coverUrl && (ws.seriesPreviews?.length ?? 0) > 0 && (
-                                <div className='flex items-center -space-x-1.5 shrink-0'>
-                                  {ws.seriesPreviews!.map((s) => (
-                                    <span
-                                      key={s.id}
-                                      title={s.title}
-                                      className='relative w-7 h-9 rounded-md border-2 border-white bg-stone-100 overflow-hidden shadow-2xs flex items-center justify-center text-xs font-serif font-bold text-stone-500'
-                                    >
-                                      {s.title.trim().charAt(0).toUpperCase()}
-                                      {s.coverUrl && (
-                                        <AuthenticatedImage
-                                          src={s.coverUrl}
-                                          alt={s.title}
-                                          className='absolute inset-0 w-full h-full object-cover'
-                                          loading='lazy'
-                                          fallback={
-                                            <span className='absolute inset-0 flex items-center justify-center bg-stone-100'>
-                                              {s.title.trim().charAt(0).toUpperCase()}
-                                            </span>
-                                          }
-                                        />
-                                      )}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                              <span className='inline-flex items-center gap-1.5 text-xs font-medium text-stone-600'>
-                                <BookOpen
-                                  className='w-3.5 h-3.5 text-stone-500'
-                                  aria-hidden='true'
+                              <div
+                                className='w-full bg-stone-200 h-1.5 rounded-full overflow-hidden'
+                                role='progressbar'
+                                aria-label={t('workspace.shelf.storage')}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-valuenow={storagePercent}
+                              >
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    storagePercent >= 90
+                                      ? 'bg-rose-500'
+                                      : storagePercent >= 75
+                                        ? 'bg-amber-500'
+                                        : 'bg-orange-600'
+                                  }`}
+                                  style={{ width: `${storagePercent}%` }}
                                 />
-                                {ws.seriesCount > 0
-                                  ? t('workspace.shelf.series', { count: ws.seriesCount })
-                                  : t('workspace.shelf.noSeries')}
-                              </span>
+                              </div>
                             </div>
                           )}
-
-                          {/* Dung lượng: chỉ Owner/Producer quản lý; chặn chia 0 (DESIGN_RULES §3.3) */}
-                          {mayManageCover &&
-                            (() => {
-                              const quota = ws.storageQuotaBytes || 0;
-                              const used = ws.usedStorageBytes || 0;
-                              const pct =
-                                quota > 0 ? Math.min(100, Math.max(0, (used / quota) * 100)) : 0;
-                              return (
-                                <div className='mb-3' data-testid='ws-card-storage'>
-                                  <div className='flex items-center justify-between text-xs text-stone-500 mb-1'>
-                                    <span>{t('workspace.shelf.storage')}</span>
-                                    <span className='font-mono tabular-nums'>
-                                      {formatBytes(used)} / {quota > 0 ? formatBytes(quota) : '—'}
-                                    </span>
-                                  </div>
-                                  <div
-                                    className='h-1.5 rounded-full bg-stone-100 overflow-hidden'
-                                    role='progressbar'
-                                    aria-label={t('workspace.shelf.storage')}
-                                    aria-valuemin={0}
-                                    aria-valuemax={100}
-                                    aria-valuenow={Math.round(pct)}
-                                  >
-                                    <div
-                                      className={`h-full rounded-full ${pct >= 90 ? 'bg-rose-500' : pct >= 75 ? 'bg-amber-500' : 'bg-orange-500'}`}
-                                      style={{ width: `${pct}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            })()}
-
-                          {/* Members & Tasks Row */}
-                          <div className='flex items-center justify-between gap-2 text-xs text-[#57534E] mb-4 mt-auto pt-2'>
-                            <div className='flex items-center gap-2 min-w-0'>
-                              {/* Member Preview Avatars */}
-                              {ws.memberPreviews && ws.memberPreviews.length > 0 ? (
-                                <div className='flex items-center -space-x-2 overflow-hidden py-0.5 shrink-0'>
-                                  {ws.memberPreviews.slice(0, 4).map((member) => (
-                                    <span
-                                      key={member.userId}
-                                      title={member.fullName}
-                                      className='relative inline-block w-7 h-7 rounded-full border-2 border-[#FCFBF8] bg-[#E7E1D5] overflow-hidden shrink-0'
-                                    >
-                                      <span className='w-full h-full flex items-center justify-center text-xs font-bold text-[#44403C]'>
-                                        {member.fullName.charAt(0).toUpperCase()}
-                                      </span>
-                                      {member.avatarUrl && (
-                                        // Initial sits underneath; a broken image just removes itself.
-                                        <img
-                                          src={member.avatarUrl}
-                                          alt={member.fullName}
-                                          className='absolute inset-0 w-full h-full object-cover'
-                                          loading='lazy'
-                                          onError={(e) => e.currentTarget.remove()}
-                                        />
-                                      )}
-                                    </span>
-                                  ))}
-                                  {ws.memberCount > ws.memberPreviews.length && (
-                                    <span
-                                      title={`${t('workspace.shelf.members', { count: ws.memberCount })}`}
-                                      className='inline-flex items-center justify-center w-7 h-7 rounded-full border-2 border-[#FCFBF8] bg-[#E7E1D5] text-xs font-bold text-[#57534E] shrink-0'
-                                    >
-                                      +{ws.memberCount - ws.memberPreviews.length}
-                                    </span>
-                                  )}
-                                </div>
-                              ) : null}
-
-                              <span className='inline-flex items-center gap-1.5 text-xs text-[#57534E] tabular-nums font-medium truncate'>
-                                <Users
-                                  className='w-3.5 h-3.5 text-[#78716C] shrink-0'
-                                  aria-hidden='true'
-                                />
-                                <span>
-                                  {t('workspace.shelf.members', { count: ws.memberCount })}
-                                </span>
-                              </span>
-                            </div>
-
-                            {/* Editor Review Queue Badge (Gate 1 & Gate 2) */}
-                            {(ws.currentUserRole === 'EDITOR' ||
-                              (ws.pendingEditorReviews ?? 0) > 0) && (
-                              <span
-                                className={`inline-flex items-center gap-1 font-medium px-2 py-0.5 rounded-full text-xs tabular-nums shrink-0 border ${
-                                  (ws.pendingEditorReviews ?? 0) > 0
-                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                    : 'bg-stone-100 text-stone-600 border-stone-200'
-                                }`}
-                              >
-                                <ShieldCheck className='w-3.5 h-3.5' aria-hidden='true' />
-                                <span>
-                                  {(ws.pendingEditorReviews ?? 0) > 0
-                                    ? t('workspace.shelf.pendingReviews', {
-                                        count: ws.pendingEditorReviews ?? 0,
-                                      })
-                                    : t('workspace.shelf.noPendingReviews')}
-                                </span>
-                              </span>
-                            )}
-
-                            {(ws.pendingTasks ?? 0) > 0 && ws.currentUserRole !== 'EDITOR' && (
-                              <span className='font-semibold text-[#B45309] text-xs tabular-nums shrink-0'>
-                                {t('workspace.shelf.pendingForYou', {
-                                  count: ws.pendingTasks ?? 0,
-                                })}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Footer: Date & Enter Button */}
-                          <div className='pt-3 border-t border-stone-100 flex items-center justify-between gap-2'>
-                            <span className='text-xs text-stone-500 inline-flex items-center gap-1'>
-                              <Clock className='w-3.5 h-3.5' aria-hidden='true' />
-                              {ws.lastActivityAt
-                                ? t('workspace.shelf.updated', { days: timeAgo(ws.lastActivityAt) })
-                                : t('workspace.shelf.created', { days: timeAgo(ws.createdAt) })}
-                            </span>
-                            <button
-                              type='button'
-                              onClick={() => onSelectWorkspace(ws)}
-                              className='ws-btn-enter ws-focus inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold text-orange-800 bg-orange-50 border border-orange-200 hover:bg-orange-100 active:scale-[0.98]'
-                              aria-label={`${t('workspace.shelf.enter')}: ${ws.name}`}
-                            >
-                              <span>
-                                {ws.currentUserRole === 'EDITOR'
-                                  ? t('workspace.shelf.enterReview')
-                                  : t('workspace.shelf.enter')}
-                              </span>
-                              <ArrowRight className='ws-arrow w-3.5 h-3.5' aria-hidden='true' />
-                            </button>
-                          </div>
                         </div>
-                      </article>
-                    </li>
+
+                        {/* Featured Series chips (Stitch Spec: only if API returns them) */}
+                        {ws.seriesPreviews && ws.seriesPreviews.length > 0 && (
+                          <div className='flex flex-col gap-1.5' data-testid='ws-series-shelf'>
+                            <span className='text-xs font-semibold text-stone-500'>
+                              {t('workspace.studioHub.directory.featuredSeries')}
+                            </span>
+                            <div className='flex items-center gap-2 overflow-hidden flex-wrap'>
+                              {ws.seriesPreviews.slice(0, 2).map((s) => (
+                                <span
+                                  key={s.id}
+                                  title={s.title}
+                                  className='px-2 py-1 rounded bg-stone-100 text-stone-700 text-xs font-medium truncate max-w-[130px]'
+                                >
+                                  {s.title}
+                                </span>
+                              ))}
+                              {ws.seriesCount !== undefined &&
+                                ws.seriesCount > ws.seriesPreviews.length && (
+                                  <span className='px-2 py-1 rounded bg-stone-100 text-stone-700 text-xs font-medium shrink-0'>
+                                    +{ws.seriesCount - ws.seriesPreviews.length}
+                                  </span>
+                                )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Member Previews (Avatar bubbles when members exist) */}
+                        {ws.memberPreviews && ws.memberPreviews.length > 0 && (
+                          <div className='flex items-center -space-x-1.5 pt-0.5'>
+                            {ws.memberPreviews.slice(0, 4).map((member) => (
+                              <span
+                                key={member.userId}
+                                title={member.fullName}
+                                className='relative inline-block w-6 h-6 rounded-full border-2 border-white bg-stone-200 overflow-hidden shrink-0'
+                              >
+                                <span className='w-full h-full flex items-center justify-center text-xs font-bold text-stone-700'>
+                                  {member.fullName.charAt(0).toUpperCase()}
+                                </span>
+                                {member.avatarUrl && (
+                                  <img
+                                    src={member.avatarUrl}
+                                    alt={member.fullName}
+                                    className='absolute inset-0 w-full h-full object-cover'
+                                    onError={(e) => e.currentTarget.remove()}
+                                  />
+                                )}
+                              </span>
+                            ))}
+                            {ws.memberCount > ws.memberPreviews.length && (
+                              <span className='inline-flex items-center justify-center w-6 h-6 rounded-full border-2 border-white bg-stone-100 text-xs font-bold text-stone-600'>
+                                +{ws.memberCount - ws.memberPreviews.length}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Pending Tasks & Editor Reviews indicators */}
+                        {(ws.pendingTasks ?? 0) > 0 && !isEditor && (
+                          <div className='text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5'>
+                            <ListTodo className='w-3.5 h-3.5 shrink-0' />
+                            <span>
+                              {t('workspace.shelf.pendingForYou', {
+                                count: ws.pendingTasks ?? 0,
+                              })}
+                            </span>
+                          </div>
+                        )}
+                        {((ws.pendingEditorReviews ?? 0) > 0 || isEditor) && (
+                          <div
+                            className={`text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border ${
+                              (ws.pendingEditorReviews ?? 0) > 0
+                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                : 'bg-stone-50 text-stone-600 border-stone-200'
+                            }`}
+                          >
+                            <ShieldCheck className='w-3.5 h-3.5 shrink-0' />
+                            <span>
+                              {(ws.pendingEditorReviews ?? 0) > 0
+                                ? t('workspace.shelf.pendingReviews', {
+                                    count: ws.pendingEditorReviews ?? 0,
+                                  })
+                                : t('workspace.shelf.noPendingReviews')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card Footer: Status & Entry CTA */}
+                      <div className='pt-4 mt-4 border-t border-stone-100 flex items-center justify-between gap-2'>
+                        {isCurrent ? (
+                          <span className='text-xs text-emerald-600 font-medium flex items-center gap-1.5'>
+                            <span className='w-2 h-2 rounded-full bg-emerald-600 shrink-0' />
+                            {t('workspace.studioHub.directory.currentStudio')}
+                          </span>
+                        ) : ws.lastActivityAt ? (
+                          <span className='text-xs text-stone-400 font-medium inline-flex items-center gap-1 truncate'>
+                            <Clock className='w-3 h-3' aria-hidden='true' />
+                            {t('workspace.shelf.updated', { days: timeAgo(ws.lastActivityAt) })}
+                          </span>
+                        ) : (
+                          <span className='text-xs text-stone-400 font-medium truncate'>
+                            {isEditor
+                              ? t('workspace.studioHub.directory.rolePermissionEditor')
+                              : '—'}
+                          </span>
+                        )}
+
+                        <button
+                          type='button'
+                          onClick={() => onSelectWorkspace(ws)}
+                          aria-label={`${t('workspace.shelf.enter')}: ${ws.name}`}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer shadow-xs whitespace-nowrap ${
+                            isCurrent
+                              ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                              : 'bg-stone-900 hover:bg-orange-600 text-white'
+                          }`}
+                        >
+                          <span>
+                            {isEditor
+                              ? t('workspace.shelf.enterReview')
+                              : t('workspace.studioHub.directory.enterStudio')}
+                          </span>
+                          <ArrowRight className='w-4 h-4' aria-hidden='true' />
+                        </button>
+                      </div>
+                    </article>
                   );
                 })}
-              </ul>
+
+                {/* DASHED CARD: TẠO KHÔNG GIAN STUDIO MỚI (Stitch Card 4) */}
+                {canCreate && (
+                  <div
+                    onClick={handleOpenCreate}
+                    className='border-2 border-dashed border-stone-300 hover:border-orange-500 bg-white/60 hover:bg-orange-50/30 rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-3 transition-all cursor-pointer group min-h-[300px]'
+                  >
+                    <div className='w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform'>
+                      <Building2 className='w-7 h-7' aria-hidden='true' />
+                    </div>
+                    <div>
+                      <h3 className='font-bold text-stone-900 text-base group-hover:text-orange-600 transition-colors'>
+                        {t('workspace.studioHub.directory.createNewCard')}
+                      </h3>
+                      <p className='text-xs text-stone-500 max-w-xs mt-1 leading-relaxed'>
+                        {t('workspace.studioHub.directory.createNewDesc')}
+                      </p>
+                    </div>
+                    <button
+                      type='button'
+                      className='mt-2 px-4 py-2 rounded-xl bg-white border border-stone-300 text-stone-700 font-semibold text-xs group-hover:bg-orange-600 group-hover:border-orange-600 group-hover:text-white transition-colors cursor-pointer shadow-2xs'
+                    >
+                      {t('workspace.studioHub.directory.startSetup')}
+                    </button>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </PageContainer>
       </main>
 
-      {/* Modal Tạo Workspace Thật (POST /api/Workspaces) */}
-      <CreateWorkspaceModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={(newWs) => {
-          setWorkspaces((prev) => [
-            { ...newWs, currentUserRole: normalizeWorkspaceRole(newWs.currentUserRole) },
-            ...prev,
-          ]);
-        }}
-      />
+      {/* Modals */}
+      {isModalOpen && (
+        <CreateWorkspaceModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={(created) => {
+            fetchWorkspaces();
+            onSelectWorkspace(created);
+          }}
+        />
+      )}
 
-      {/* Modal Đổi Ảnh Bìa Studio Lưu Lên R2 (PUT /api/workspaces/{id}/cover) */}
       {coverModalWorkspace && (
         <WorkspaceCoverPickerDialog
-          isOpen={!!coverModalWorkspace}
           workspace={coverModalWorkspace}
-          tone={toneFor(coverModalWorkspace.id)}
+          isOpen={Boolean(coverModalWorkspace)}
           onClose={() => setCoverModalWorkspace(null)}
-          onSuccess={(newCoverUrl) => {
-            const targetId = coverModalWorkspace.id;
+          onSuccess={(newUrl) => {
             setWorkspaces((prev) =>
-              prev.map((w) => (w.id === targetId ? { ...w, coverUrl: newCoverUrl } : w)),
+              prev.map((w) => (w.id === coverModalWorkspace.id ? { ...w, coverUrl: newUrl } : w)),
             );
           }}
         />

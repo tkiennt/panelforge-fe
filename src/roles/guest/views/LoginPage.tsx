@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
+import { workspaceService } from '@/services/workspace.service';
 import { AuthResponse, SystemRole, normalizeSystemRole } from '@/types';
 import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/auth.css';
@@ -106,16 +107,44 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       } else if (landing?.suggestedLanding === 'PublisherPortal' || role === 'PUBLISHER') {
         navigate('/publisher/series');
       } else {
+        try {
+          const list = await workspaceService.getMyWorkspaces();
+          const lastActiveId =
+            localStorage.getItem('activeWorkspaceId') ||
+            localStorage.getItem('lastActiveWorkspaceId');
+          const target = (lastActiveId && list.find((w) => w.id === lastActiveId)) || list[0];
+          if (target) {
+            localStorage.setItem('activeWorkspaceId', target.id);
+            navigate(`/workspaces/${target.id}`);
+            return;
+          }
+        } catch {
+          // fallback
+        }
         navigate('/workspaces');
       }
     } catch {
-      navigate(
-        role === 'ADMINISTRATOR'
-          ? '/admin'
-          : role === 'PUBLISHER'
-            ? '/publisher/series'
-            : '/workspaces',
-      );
+      if (role === 'ADMINISTRATOR') {
+        navigate('/admin');
+      } else if (role === 'PUBLISHER') {
+        navigate('/publisher/series');
+      } else {
+        try {
+          const list = await workspaceService.getMyWorkspaces();
+          const lastActiveId =
+            localStorage.getItem('activeWorkspaceId') ||
+            localStorage.getItem('lastActiveWorkspaceId');
+          const target = (lastActiveId && list.find((w) => w.id === lastActiveId)) || list[0];
+          if (target) {
+            localStorage.setItem('activeWorkspaceId', target.id);
+            navigate(`/workspaces/${target.id}`);
+            return;
+          }
+        } catch {
+          // fallback
+        }
+        navigate('/workspaces');
+      }
     }
   };
 

@@ -32,7 +32,7 @@ const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   },
   Rejected: {
     label: 'Đã đóng (không sửa)',
-    className: 'bg-zinc-100 text-zinc-600 border-zinc-200',
+    className: 'bg-stone-100 text-stone-600 border-stone-200',
   },
 };
 
@@ -302,7 +302,7 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
                     <button
                       type='button'
                       onClick={() => openForm(cr.id, 'reject')}
-                      className='px-2.5 py-1 rounded-lg border border-[#E7E7E7] hover:bg-zinc-50 font-semibold cursor-pointer'
+                      className='px-2.5 py-1 rounded-lg border border-[#E7E7E7] hover:bg-stone-50 font-semibold cursor-pointer'
                     >
                       Chấp nhận phản đối
                     </button>

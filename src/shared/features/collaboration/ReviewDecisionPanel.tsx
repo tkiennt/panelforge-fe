@@ -180,7 +180,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
                   type='button'
                   aria-label={`Xoá yêu cầu sửa ${index + 1}`}
                   onClick={() => setItems((prev) => prev.filter((i) => i.key !== item.key))}
-                  className='p-1 text-zinc-500 hover:text-red-600 cursor-pointer'
+                  className='p-1 text-stone-500 hover:text-red-600 cursor-pointer'
                 >
                   <Trash2 className='w-3.5 h-3.5' />
                 </button>
@@ -222,7 +222,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
               setItems((prev) => [...prev, emptyDraftItem(nextKey)]);
               setNextKey((k) => k + 1);
             }}
-            className='px-2.5 py-1 rounded-lg border border-dashed border-zinc-400 text-[11px] font-semibold flex items-center gap-1 hover:bg-white cursor-pointer'
+            className='px-2.5 py-1 rounded-lg border border-dashed border-stone-400 text-[11px] font-semibold flex items-center gap-1 hover:bg-white cursor-pointer'
           >
             <Plus className='w-3 h-3' />
             {t('changeRequest.addSpecific', 'Thêm yêu cầu sửa cụ thể')}

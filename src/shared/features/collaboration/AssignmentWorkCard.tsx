@@ -288,7 +288,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           <p className='text-xs text-amber-900 leading-relaxed font-sans'>
             <strong>Lý do:</strong> {assignment.impactReviewReason}
           </p>
-          <p className='text-[11px] text-amber-800 italic'>
+          <p className='text-xs text-amber-800 italic'>
             Đầu vào của công việc đã bị thay đổi hoặc mở lại. Nút nộp bị tạm khoá cho tới khi Editor
             hoặc Producer quyết định giữ kết quả hay yêu cầu làm lại.
           </p>
@@ -408,7 +408,11 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           <span className='flex items-center gap-1.5 font-mono'>
             <Calendar className='w-3.5 h-3.5 text-stone-400' />
             <strong className='text-stone-700'>Hạn:</strong>{' '}
-            {new Date(assignment.dueDate).toLocaleDateString('vi-VN')}
+            {new Intl.DateTimeFormat(undefined, {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            }).format(new Date(assignment.dueDate))}
           </span>
         )}
       </div>
@@ -470,10 +474,10 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   }
                   relative={workspaceId && seriesId ? undefined : 'path'}
                   data-testid='open-writer-desk'
-                  className='h-9 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                  className='h-9 px-3.5 py-1.5 rounded-xl border border-[#EA580C]/30 bg-[#FFF1EC] hover:bg-[#FFE6DC] text-[#EA580C] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
-                  <PenTool className='w-3.5 h-3.5 text-blue-600' />
-                  <span>Mở Script Editor</span>
+                  <PenTool className='w-3.5 h-3.5 text-[#EA580C]' />
+                  <span>Mở Kịch bản Ch.{assignment.chapterId?.slice(0, 4) || ''} →</span>
                 </Link>
               )}
               {String(assignment.assignedRole).toUpperCase() === 'ARTIST' && (

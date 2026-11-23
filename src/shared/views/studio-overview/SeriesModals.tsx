@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Sparkles, Edit2, Globe } from 'lucide-react';
+import { X, Sparkles, Edit2, Globe, BookOpen, Check, Loader2 } from 'lucide-react';
 import { PipelineTemplateDto } from '@/services/pipeline.service';
 import { SeriesDto } from '@/services/series.service';
 import { SYSTEM_COVERS, type SystemImage } from '@/shared/utils/systemImages';
@@ -26,32 +26,12 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
       onClose={onClose}
       closeLabel='Đóng'
       size='lg'
-      title='Chọn ảnh bìa'
+      title={`Chọn ảnh bìa cho “${series.title}”`}
+      description='Chọn một ảnh bìa có sẵn của hệ thống (không cần tải ảnh từ máy).'
       data-testid='system-cover-picker'
       dismissible={!savingCoverId}
     >
-      <div
-        className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-2xl max-w-xl w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto'
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className='flex items-center justify-between'>
-          <h3 id='cover-picker-title' className='text-sm font-bold text-[#44403C]'>
-            Chọn ảnh bìa cho “{series.title}”
-          </h3>
-          <button
-            type='button'
-            autoFocus
-            onClick={onClose}
-            disabled={Boolean(savingCoverId)}
-            className='p-1 text-[#57534E] hover:text-[#44403C] cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-[#F97316]'
-            aria-label='Đóng'
-          >
-            <X className='w-4 h-4' />
-          </button>
-        </div>
-        <p className='text-xs text-[#57534E]'>
-          Chọn một ảnh bìa có sẵn của hệ thống (không cần tải ảnh từ máy).
-        </p>
+      <div className='space-y-4'>
         <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
           {SYSTEM_COVERS.map((img) => (
             <button
@@ -67,7 +47,7 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
                 alt={img.name}
                 className='w-full aspect-[366/594] object-cover rounded-md'
               />
-              <span className='text-[11px] font-semibold text-[#44403C]'>
+              <span className='text-xs font-semibold text-[#44403C]'>
                 {savingCoverId === img.id ? 'Đang lưu…' : img.name}
               </span>
             </button>
@@ -124,154 +104,163 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeLabel='Đóng' size='lg' title='Tạo Series mới'>
-      <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
-        <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-          <h3 className='text-sm font-bold text-[#171717]'>Tạo Dự Án Bộ Truyện Mới</h3>
-          <button type='button' onClick={onClose} className='text-[#888888] hover:text-[#171717]'>
-            <X className='w-4 h-4' />
-          </button>
-        </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='lg'
+      title='Khởi tạo Dự án Series mới'
+      description='Thiết lập thông số xuất bản, khổ giấy và phân bổ ê-kíp sáng tác'
+    >
+      <div className='flex flex-col text-xs'>
+        <form onSubmit={onSubmit} className='flex flex-col gap-4 text-xs'>
+          <div className='flex flex-col gap-3.5'>
+            <h4 className='font-semibold text-stone-800 pb-1 border-b border-stone-100 text-sm'>
+              1. Thông tin xuất bản
+            </h4>
 
-        <form onSubmit={onSubmit} className='space-y-3.5 text-xs'>
-          <div>
-            <label className='block font-semibold text-[#171717] mb-1'>
-              Tên Dự Án (Series Title) *
-            </label>
-            <input
-              type='text'
-              value={title}
-              onChange={(e) => onTitleChange(e.target.value)}
-              placeholder='Ví dụ: Tokyo Neon Shadows'
-              className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
-              required
-            />
-          </div>
-
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-            <div>
-              <label className='block font-semibold text-[#171717] mb-1'>Định Dạng (Format)</label>
-              <select
-                value={format}
-                onChange={(e) => {
-                  const fmt = e.target.value;
-                  onFormatChange(fmt);
-                  if (fmt === 'MANGA') onDirectionChange(1);
-                  else if (fmt === 'COMIC') onDirectionChange(0);
-                  else if (fmt === 'WEBTOON') onDirectionChange(2);
-                }}
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
-              >
-                <option value='WEBTOON'>Webtoon (Cuộn dọc)</option>
-                <option value='MANGA'>Manga (Phải sang Trái)</option>
-                <option value='COMIC'>Comic (Trái sang Phải)</option>
-              </select>
+            {/* Title */}
+            <div className='flex flex-col gap-1'>
+              <label className='font-semibold text-stone-700'>Tên Series (Tiêu đề truyện) *</label>
+              <input
+                type='text'
+                value={title}
+                onChange={(e) => onTitleChange(e.target.value)}
+                placeholder='VD: Shinigami no Kagi, Shibuya Overdrive...'
+                className='w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs font-medium'
+                required
+              />
             </div>
-            <div>
-              <label className='block font-semibold text-[#171717] mb-1'>
-                Hướng Đọc (Reading Direction)
-              </label>
-              <select
-                value={direction}
-                onChange={(e) => onDirectionChange(Number(e.target.value))}
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
-              >
-                <option value={1}>Phải sang Trái (Manga RTL)</option>
-                <option value={0}>Trái sang Phải (Comic LTR)</option>
-                <option value={2}>Cuộn Dọc (Webtoon Vertical)</option>
-              </select>
-            </div>
-          </div>
 
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-            <div>
-              <label className='block font-semibold text-[#171717] mb-1'>Thể Loại (Genre)</label>
+            {/* Genre */}
+            <div className='flex flex-col gap-1'>
+              <label className='font-semibold text-stone-700'>Thể loại chính *</label>
               <input
                 type='text'
                 value={genre}
                 onChange={(e) => onGenreChange(e.target.value)}
-                placeholder='Ví dụ: Shonen, Action, Sci-Fi...'
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                placeholder='Hành động / Phiêu lưu (Shonen), Dark Fantasy...'
+                className='w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs'
+                required
               />
             </div>
-            <div>
-              <label className='block font-semibold text-[#171717] mb-1'>
-                Tuyến Truyện / Phần (Story Arc)
+
+            {/* Format Radio Cards */}
+            <div className='flex flex-col gap-1.5'>
+              <label className='font-semibold text-stone-700'>Định dạng *</label>
+              <div className='grid grid-cols-2 gap-2'>
+                <label
+                  className={`border rounded-xl p-3 flex flex-col gap-1 cursor-pointer transition-all ${
+                    format === 'MANGA'
+                      ? 'border-orange-600 bg-orange-50/50 shadow-2xs'
+                      : 'border-stone-200 hover:bg-stone-50'
+                  }`}
+                >
+                  <div className='flex items-center justify-between'>
+                    <span className='font-semibold text-stone-800'>Manga B5</span>
+                    <input
+                      type='radio'
+                      name='format_choice'
+                      value='MANGA'
+                      checked={format === 'MANGA'}
+                      onChange={() => {
+                        onFormatChange('MANGA');
+                        onDirectionChange(1);
+                      }}
+                      className='accent-orange-600'
+                    />
+                  </div>
+                  <span className='text-xs text-stone-500'>600 DPI RTL (Phải sang trái)</span>
+                </label>
+
+                <label
+                  className={`border rounded-xl p-3 flex flex-col gap-1 cursor-pointer transition-all ${
+                    format === 'WEBTOON'
+                      ? 'border-orange-600 bg-orange-50/50 shadow-2xs'
+                      : 'border-stone-200 hover:bg-stone-50'
+                  }`}
+                >
+                  <div className='flex items-center justify-between'>
+                    <span className='font-semibold text-stone-800'>Webtoon</span>
+                    <input
+                      type='radio'
+                      name='format_choice'
+                      value='WEBTOON'
+                      checked={format === 'WEBTOON'}
+                      onChange={() => {
+                        onFormatChange('WEBTOON');
+                        onDirectionChange(2);
+                      }}
+                      className='accent-orange-600'
+                    />
+                  </div>
+                  <span className='text-xs text-stone-500'>800px RGB (Cuộn dọc số)</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Pipeline Template */}
+            <div className='flex flex-col gap-1'>
+              <label
+                htmlFor='create-series-pipeline-template'
+                className='font-semibold text-stone-700'
+              >
+                Mẫu Quy Trình Sản Xuất (Pipeline Template)
               </label>
-              <input
-                type='text'
-                value={storyArc}
-                onChange={(e) => onStoryArcChange(e.target.value)}
-                placeholder='Ví dụ: Arc 1: Khởi nguồn'
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+              <select
+                id='create-series-pipeline-template'
+                value={templateId}
+                onChange={(e) => onTemplateIdChange(e.target.value)}
+                className='w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs'
+              >
+                <option value=''>
+                  Mặc định chuẩn V3 (Pencil → Ink / Letter song song → Review → Approved)
+                </option>
+                {pipelineTemplates.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.name} {tpl.isDefault ? '(Mẫu hệ thống)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Synopsis */}
+            <div className='flex flex-col gap-1'>
+              <label className='font-semibold text-stone-700'>Tóm Tắt Cốt Truyện (Synopsis)</label>
+              <textarea
+                rows={2}
+                value={synopsis}
+                onChange={(e) => onSynopsisChange(e.target.value)}
+                placeholder='Mô tả ngắn gọn bối cảnh và cốt truyện chính của dự án...'
+                className='w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs resize-none'
               />
             </div>
           </div>
 
-          <div>
-            <label
-              htmlFor='create-series-pipeline-template'
-              className='block font-semibold text-[#171717] mb-1'
-            >
-              Mẫu Quy Trình Sản Xuất (Pipeline Template)
-            </label>
-            <select
-              id='create-series-pipeline-template'
-              value={templateId}
-              onChange={(e) => onTemplateIdChange(e.target.value)}
-              className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
-            >
-              <option value=''>
-                Mặc định chuẩn V3 (Pencil → Ink / Letter song song → Review → Approved)
-              </option>
-              {pipelineTemplates.map((tpl) => (
-                <option key={tpl.id} value={tpl.id}>
-                  {tpl.name} {tpl.isDefault ? '(Mẫu hệ thống)' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className='block font-semibold text-[#171717] mb-1'>
-              Tóm Tắt Cốt Truyện (Synopsis)
-            </label>
-            <textarea
-              rows={2}
-              value={synopsis}
-              onChange={(e) => onSynopsisChange(e.target.value)}
-              placeholder='Mô tả ngắn gọn bối cảnh và cốt truyện chính của dự án...'
-              className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316] resize-none'
-            />
-          </div>
-
-          <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-1 text-xs text-[#737373]'>
-            <div className='font-bold text-[#171717] flex items-center gap-1.5'>
-              <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
-              <span>Cấu hình tự động:</span>
-            </div>
-            <div>
-              • Pipeline mặc định bắt đầu từ Pencil (không có Thumbnail); Ink/Color (Nhánh A) và
-              Letter (Nhánh B) mở song song sau Pencil, qua cổng Review trước Approved.
-            </div>
-            <div>• Hướng đọc tự động thiết lập theo Format.</div>
-            <div>• Khởi tạo sẵn Series Bible rỗng.</div>
-          </div>
-
-          <div className='flex justify-end gap-2 pt-2 border-t border-[#E7E7E7]'>
+          <div className='pt-3 border-t border-stone-200 flex items-center justify-end gap-2.5'>
             <button
               type='button'
               onClick={onClose}
-              className='px-3 py-1.5 rounded-lg text-[#555555] hover:bg-[#F3F1EB]'
+              className='px-4 py-2 rounded-lg border border-stone-200 bg-white font-medium text-stone-700 hover:bg-stone-50 cursor-pointer transition-colors'
             >
-              Hủy
+              Hủy bỏ
             </button>
             <button
               type='submit'
-              disabled={creating || !title.trim()}
-              className='px-4 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold disabled:opacity-50'
+              disabled={creating}
+              className='px-5 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
             >
-              {creating ? 'Đang tạo...' : 'Tạo Dự Án Ngay'}
+              {creating ? (
+                <>
+                  <Loader2 className='w-4 h-4 animate-spin' />
+                  <span>Đang khởi tạo...</span>
+                </>
+              ) : (
+                <>
+                  <Check className='w-4 h-4 stroke-[2.5]' />
+                  <span>Tạo Series & Cấp quyền</span>
+                </>
+              )}
             </button>
           </div>
         </form>
@@ -343,17 +332,7 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
       size='lg'
       title='Chỉnh sửa Series'
     >
-      <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
-        <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-          <div className='flex items-center gap-2'>
-            <Edit2 className='w-4 h-4 text-[#F97316]' />
-            <h3 className='text-sm font-bold text-[#171717]'>Chỉnh Sửa Thông Tin Series</h3>
-          </div>
-          <button type='button' onClick={onClose} className='text-[#888888] hover:text-[#171717]'>
-            <X className='w-4 h-4' />
-          </button>
-        </div>
-
+      <div className='space-y-4'>
         <form onSubmit={onSubmit} className='space-y-3.5 text-xs'>
           <div>
             <label className='block font-semibold text-[#171717] mb-1'>Tên Dự Án (Title) *</label>

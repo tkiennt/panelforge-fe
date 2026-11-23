@@ -224,45 +224,45 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
     switch (status) {
       case 'Assigned':
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200'>
+          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200'>
             {t('chapterAssignmentsModal.statusBadges.assigned', 'Đã giao (Assigned)')}
           </span>
         );
       case 'InProgress':
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1'>
+          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1'>
             <span className='w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse' />
             {t('chapterAssignmentsModal.statusBadges.inProgress', 'Đang làm (InProgress)')}
           </span>
         );
       case 'Submitted':
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-purple-50 text-purple-700 border border-purple-200'>
+          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-violet-50 text-violet-700 border border-violet-200'>
             {t('chapterAssignmentsModal.statusBadges.submitted', 'Đã nộp (Submitted)')}
           </span>
         );
       case 'UnderReview':
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200'>
+          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200'>
             {t('chapterAssignmentsModal.statusBadges.underReview', 'Đang duyệt (UnderReview)')}
           </span>
         );
       case 'Approved':
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1'>
+          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1'>
             <CheckCircle2 className='w-3 h-3 text-emerald-600' />
             {t('chapterAssignmentsModal.statusBadges.approved', 'Đã duyệt (Approved)')}
           </span>
         );
       case 'ReworkRequired':
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-red-50 text-red-700 border border-red-200'>
+          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-red-50 text-red-700 border border-red-200'>
             {t('chapterAssignmentsModal.statusBadges.reworkRequired', 'Cần sửa lại (Rework)')}
           </span>
         );
       default:
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-100 text-zinc-700'>
+          <span className='px-2 py-0.5 rounded text-xs font-mono bg-stone-100 text-stone-700'>
             {String(status)}
           </span>
         );
@@ -273,25 +273,25 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
     switch (priority) {
       case 'Urgent':
         return (
-          <span className='px-1.5 py-0.2 rounded bg-red-100 text-red-800 text-[9px] font-bold'>
+          <span className='px-1.5 py-0.2 rounded bg-red-100 text-red-800 text-xs font-bold'>
             URGENT
           </span>
         );
       case 'High':
         return (
-          <span className='px-1.5 py-0.2 rounded bg-orange-100 text-orange-800 text-[9px] font-bold'>
+          <span className='px-1.5 py-0.2 rounded bg-orange-100 text-orange-800 text-xs font-bold'>
             HIGH
           </span>
         );
       case 'Low':
         return (
-          <span className='px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-600 text-[9px] font-bold'>
+          <span className='px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 text-xs font-bold'>
             LOW
           </span>
         );
       default:
         return (
-          <span className='px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 text-[9px] font-bold'>
+          <span className='px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 text-xs font-bold'>
             NORMAL
           </span>
         );
@@ -319,10 +319,10 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
               </div>
               <div>
                 <div className='flex items-center gap-2'>
-                  <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[9px] font-bold'>
+                  <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-xs font-bold'>
                     UC-05 // TASK &amp; PROGRESS MATRIX
                   </span>
-                  <span className='text-[10px] text-[#888888] font-mono'>
+                  <span className='text-xs text-[#888888] font-mono'>
                     StageProgress Tracking
                   </span>
                 </div>
@@ -393,7 +393,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                 {/* Quick Stats & Progress Bar */}
                 <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
                   <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7]'>
-                    <div className='text-[10px] font-mono text-[#888888] uppercase'>
+                    <div className='text-xs font-mono text-[#888888] uppercase'>
                       {t('chapterAssignmentsModal.totalTasks', 'Tổng số nhiệm vụ')}
                     </div>
                     <div className='text-lg font-bold text-[#171717] font-mono mt-0.5'>
@@ -401,18 +401,18 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                     </div>
                   </div>
                   <div className='p-3 bg-amber-50/60 rounded-xl border border-amber-200'>
-                    <div className='text-[10px] font-mono text-amber-700 uppercase'>
+                    <div className='text-xs font-mono text-amber-700 uppercase'>
                       {t('chapterAssignmentsModal.inProgressCount', 'Đang thực hiện (InProgress)')}
                     </div>
                     <div className='text-lg font-bold text-amber-900 font-mono mt-0.5'>
                       {assignments.filter((a) => a.status === 'InProgress').length}
                     </div>
                   </div>
-                  <div className='p-3 bg-purple-50/60 rounded-xl border border-purple-200'>
-                    <div className='text-[10px] font-mono text-purple-700 uppercase'>
+                  <div className='p-3 bg-violet-50/60 rounded-xl border border-violet-200'>
+                    <div className='text-xs font-mono text-violet-700 uppercase'>
                       {t('chapterAssignmentsModal.submittedCount', 'Đã nộp chờ duyệt')}
                     </div>
-                    <div className='text-lg font-bold text-purple-900 font-mono mt-0.5'>
+                    <div className='text-lg font-bold text-violet-900 font-mono mt-0.5'>
                       {
                         assignments.filter(
                           (a) => a.status === 'Submitted' || a.status === 'UnderReview',
@@ -421,7 +421,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                     </div>
                   </div>
                   <div className='p-3 bg-emerald-50/60 rounded-xl border border-emerald-200'>
-                    <div className='text-[10px] font-mono text-emerald-700 uppercase'>
+                    <div className='text-xs font-mono text-emerald-700 uppercase'>
                       {t('chapterAssignmentsModal.panelProgress', 'Tiến độ panel (Approved)')}
                     </div>
                     <div className='text-lg font-bold text-emerald-900 font-mono mt-0.5'>
@@ -433,7 +433,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
 
                 {/* Stage Progress Matrix Preview if panels exist */}
                 {stageProgressList.length > 0 && (
-                  <div className='p-3.5 bg-zinc-50 border border-zinc-200 rounded-xl space-y-2'>
+                  <div className='p-3.5 bg-stone-50 border border-stone-200 rounded-xl space-y-2'>
                     <div className='flex items-center justify-between'>
                       <span className='font-bold text-[#171717] flex items-center gap-1.5'>
                         <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
@@ -444,7 +444,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                           )}
                         </span>
                       </span>
-                      <span className='text-[10px] font-mono text-zinc-500'>
+                      <span className='text-xs font-mono text-stone-500'>
                         {t('chapterAssignmentsModal.controlPoints', {
                           count: stageProgressList.length,
                           defaultValue: `${stageProgressList.length} điểm kiểm soát`,
@@ -455,14 +455,14 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                       {stageProgressList.map((prog) => (
                         <div
                           key={prog.id}
-                          className={`px-2 py-1 rounded border text-[10px] font-mono flex items-center gap-1.5 ${
+                          className={`px-2 py-1 rounded border text-xs font-mono flex items-center gap-1.5 ${
                             prog.status === 'Approved'
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                               : prog.status === 'Submitted'
-                                ? 'bg-purple-50 text-purple-800 border-purple-300'
+                                ? 'bg-violet-50 text-violet-800 border-violet-300'
                                 : prog.status === 'InProgress'
                                   ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                  : 'bg-white text-zinc-600 border-zinc-300'
+                                  : 'bg-white text-stone-600 border-stone-300'
                           }`}
                         >
                           <span className='font-bold'>
@@ -480,7 +480,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                 {/* Action Bar & Filters */}
                 <div className='flex flex-wrap items-center justify-between gap-3 pt-2'>
                   <div className='flex flex-wrap items-center gap-2'>
-                    <div className='flex items-center gap-1 text-zinc-500'>
+                    <div className='flex items-center gap-1 text-stone-500'>
                       <Filter className='w-3.5 h-3.5' />
                       <span>{t('chapterAssignmentsModal.filterLabel', 'Bộ lọc:')}</span>
                     </div>
@@ -533,7 +533,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
 
                     <button
                       onClick={fetchData}
-                      className='p-1.5 text-zinc-500 hover:text-black rounded-lg hover:bg-zinc-100 transition-colors'
+                      className='p-1.5 text-stone-500 hover:text-black rounded-lg hover:bg-stone-100 transition-colors'
                       title={t('chapterAssignmentsModal.reload', 'Tải lại')}
                     >
                       <RefreshCw className='w-3.5 h-3.5' />
@@ -567,7 +567,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                       <div className='font-bold text-[#171717]'>
                         {t('chapterAssignmentsModal.emptyTitle', 'Chưa có công việc nào')}
                       </div>
-                      <div className='text-[11px] text-[#737373]'>
+                      <div className='text-xs text-[#737373]'>
                         {t(
                           'chapterAssignmentsModal.emptySubtitle',
                           'Bấm "+ Giao Việc Mới" để phân công kịch bản, nét vẽ, thoại cho các thành viên.',
@@ -583,11 +583,11 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                       return (
                         <div
                           key={assignment.id}
-                          className='p-4 bg-white border border-[#E7E7E7] rounded-xl hover:border-zinc-400 transition-all space-y-3 shadow-2xs'
+                          className='p-4 bg-white border border-[#E7E7E7] rounded-xl hover:border-stone-400 transition-all space-y-3 shadow-2xs'
                         >
                           <div className='flex flex-wrap items-center justify-between gap-2'>
                             <div className='flex items-center gap-2'>
-                              <span className='px-2 py-0.5 rounded bg-zinc-800 text-white font-mono text-[9px] font-bold'>
+                              <span className='px-2 py-0.5 rounded bg-stone-800 text-white font-mono text-xs font-bold'>
                                 {assignment.entityType}{' '}
                                 {assignment.targetEntityId ? `#${assignment.targetEntityId}` : ''}
                               </span>
@@ -606,15 +606,15 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                           </div>
 
                           {assignment.referenceNotes && (
-                            <div className='text-[11px] text-[#666666] flex items-center gap-1.5'>
-                              <span className='font-bold text-zinc-500 font-mono'>
+                            <div className='text-xs text-[#666666] flex items-center gap-1.5'>
+                              <span className='font-bold text-stone-500 font-mono'>
                                 {t('chapterAssignmentsModal.reference', 'Tham chiếu:')}
                               </span>
                               <span>{assignment.referenceNotes}</span>
                             </div>
                           )}
 
-                          <div className='flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#F3F3F3] text-[11px] text-[#737373]'>
+                          <div className='flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#F3F3F3] text-xs text-[#737373]'>
                             <div className='flex items-center gap-4'>
                               <span className='flex items-center gap-1'>
                                 <User className='w-3 h-3 text-[#F97316]' />
@@ -625,7 +625,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                               </span>
                               {assignment.dueDate && (
                                 <span className='flex items-center gap-1 font-mono'>
-                                  <Calendar className='w-3 h-3 text-zinc-500' />
+                                  <Calendar className='w-3 h-3 text-stone-500' />
                                   <strong>
                                     {t('chapterAssignmentsModal.dueDate', 'Hạn:')}
                                   </strong>{' '}
@@ -706,7 +706,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                                     'chapterAssignmentsModal.submitNotStartedTooltip',
                                     'Phải bấm "Bắt đầu làm" (InProgress) trước khi nộp theo ràng buộc hệ thống!',
                                   )}
-                                  className='px-2.5 py-1.5 rounded-lg bg-zinc-100 text-zinc-400 font-semibold flex items-center gap-1 cursor-not-allowed text-[11px]'
+                                  className='px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-400 font-semibold flex items-center gap-1 cursor-not-allowed text-xs'
                                 >
                                   <Send className='w-3 h-3' />
                                   <span>

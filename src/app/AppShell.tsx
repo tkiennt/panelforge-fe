@@ -46,6 +46,7 @@ import {
   Palette,
   CreditCard,
   Download,
+  Plus,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
@@ -56,6 +57,7 @@ import { LanguageSwitcher, useTranslation } from '@/lib/i18n';
 import { notificationService } from '@/services/notification.service';
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 import { RouteFallback } from '@/shared/components/RouteFallback';
+import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
 
 export interface CurrentUser {
   name: string;
@@ -240,6 +242,8 @@ export function AppShell({
   const searchParams = new URLSearchParams(location.search);
   const chapterId = params.chapterId || searchParams.get('chapterId');
   const chapterQuery = chapterId ? `?chapterId=${encodeURIComponent(chapterId)}` : '';
+  const rawChapterNumber = chapterId?.replace(/^chapter-?/i, '').replace(/^chap-?/i, '') ?? '';
+  const chapterNumberLabel = /^\d+$/.test(rawChapterNumber) ? rawChapterNumber : null;
 
   const isReader =
     currentUser.activeRoles?.includes('READER') ||
@@ -256,6 +260,23 @@ export function AppShell({
       : 'PRODUCER';
 
   const isSeriesContext = !!seriesId;
+  // Studio level (Context 1) is a top-bar-only layout: the series sidebar belongs to Context 2.
+  const isStudioHome =
+    !!workspaceId &&
+    !isSeriesContext &&
+    /^\/workspaces\/[^/]+(\/(overview|series))?\/?$/.test(location.pathname);
+  const canManageStudio =
+    effectiveRole === 'PRODUCER' ||
+    effectiveRole === 'ADMINISTRATOR' ||
+    currentUser.role === 'ADMINISTRATOR';
+  const studioTab = searchParams.get('tab') ?? 'series';
+  const setStudioQuery = (key: 'tab' | 'action', value: string | null) => {
+    const next = new URLSearchParams(location.search);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    const search = next.toString();
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : '' });
+  };
   const effectiveActiveSeries = isSeriesContext
     ? activeSeries
     : { title: activeWorkspace?.name || 'Studio Workspace', subtitle: 'Overview' };
@@ -275,33 +296,29 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sections.seriesManagement'),
+            section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
             items: [
-              {
-                icon: LayoutDashboard,
-                label: t('navigation.menu.seriesDashboard'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
-              },
-              {
-                icon: BookOpen,
-                label: 'Quản lý chương',
-                href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
-              },
-
               {
                 icon: Kanban,
                 label: t('navigation.menu.production'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
-              },
-              {
-                icon: Layers,
-                label: t('navigation.menu.workAndReview'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+                badge: chapterNumberLabel
+                  ? {
+                      type: 'text',
+                      text: `Ch. ${chapterNumberLabel}`,
+                      color: 'bg-orange-50 text-orange-600',
+                    }
+                  : undefined,
               },
               {
                 icon: FileText,
                 label: t('navigation.menu.script'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+              },
+              {
+                icon: BookOpen,
+                label: 'Quản lý chương',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
               },
               {
                 icon: LayoutTemplate,
@@ -314,12 +331,6 @@ export function AppShell({
                 href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
               },
               {
-                icon: BookMarked,
-                label: t('navigation.menu.bible'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
-                badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
-              },
-              {
                 icon: Send,
                 label: t('navigation.menu.publishingGate'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
@@ -329,10 +340,37 @@ export function AppShell({
                 label: t('navigation.menu.exportHandoff'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/export`,
               },
+            ],
+          },
+          {
+            section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+            items: [
+              {
+                icon: LayoutDashboard,
+                label: t('navigation.menu.seriesDashboard'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
+              },
+              {
+                icon: BookMarked,
+                label: t('navigation.menu.bible'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+                badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
+              },
+              {
+                icon: Layers,
+                label: t('navigation.menu.workAndReview'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              },
               {
                 icon: Eye,
                 label: t('navigation.menu.readerStats'),
                 href: `/workspaces/${workspaceId}/reader-stats`,
+              },
+              {
+                icon: Users,
+                label: t('navigation.sidebar.crew', 'Đội ngũ'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
+                badge: { type: 'count', count: 5 },
               },
             ],
           },
@@ -460,21 +498,23 @@ export function AppShell({
       }
     }
 
-    if (
-      effectiveRole === 'WRITER' ||
-      effectiveRole === 'ARTIST' ||
-      effectiveRole === 'LETTERER'
-    ) {
+    if (effectiveRole === 'WRITER' || effectiveRole === 'ARTIST' || effectiveRole === 'LETTERER') {
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sections.desk'),
+            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
             items: [
               {
                 icon: Layers,
                 label: t('navigation.menu.myWork'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+                badge: { type: 'count', count: 3 },
               },
+            ],
+          },
+          {
+            section: t('navigation.sidebar.chapterProduction', 'SÁNG TÁC CHƯƠNG'),
+            items: [
               {
                 icon: FileText,
                 label: t('navigation.menu.script'),
@@ -499,16 +539,17 @@ export function AppShell({
                     },
                   ]
                 : []),
+            ],
+          },
+          {
+            section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+            items: [
               {
                 icon: BookMarked,
                 label: t('navigation.menu.bible'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+                badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
               },
-            ],
-          },
-          {
-            section: t('navigation.sections.productionUtilities', 'TIỆN ÍCH SẢN XUẤT'),
-            items: [
               {
                 icon: Kanban,
                 label: t('navigation.menu.production'),
@@ -698,13 +739,29 @@ export function AppShell({
 
   const renderBadge = (badge: any) => {
     if (!badge) return null;
+    if (typeof badge === 'number' || typeof badge === 'string') {
+      return (
+        <span className='px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-600 font-bold text-xs shrink-0'>
+          {badge}
+        </span>
+      );
+    }
+    if (badge.type === 'count') {
+      return (
+        <span className='px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-600 font-bold text-xs shrink-0'>
+          {badge.count}
+        </span>
+      );
+    }
     if (badge.type === 'dot') {
-      return <span className={`w-2 h-2 rounded-full ${badge.color} shrink-0`} />;
+      return (
+        <span className={`w-1.5 h-1.5 rounded-full ${badge.color || 'bg-orange-600'} shrink-0`} />
+      );
     }
     if (badge.type === 'text') {
       return (
         <span
-          className={`text-xs font-mono px-1.5 py-0.5 rounded font-semibold ${badge.color} shrink-0 max-w-[80px] truncate`}
+          className={`text-xs font-mono px-1.5 py-0.5 rounded font-semibold ${badge.color || 'bg-stone-100 text-stone-600'} shrink-0 max-w-[80px] truncate`}
         >
           {badge.text}
         </span>
@@ -721,9 +778,9 @@ export function AppShell({
     location.pathname.endsWith('/letterer') || location.pathname.endsWith('/letterer/');
 
   return (
-    <div className='h-screen w-full flex overflow-hidden text-[#1C1917] bg-[#F3F0E9]'>
+    <div className='h-screen w-full flex overflow-hidden text-stone-900 bg-[#FAF9F5]'>
       {/* --- MOBILE DRAWER (< md) --- */}
-      {!isReader && (
+      {!isReader && !isStudioHome && (
         <SidebarDrawer
           isOpen={isMobileDrawerOpen}
           onClose={() => setIsMobileDrawerOpen(false)}
@@ -761,7 +818,7 @@ export function AppShell({
       )}
 
       {/* --- PERMANENT SIDEBAR (>= md) --- */}
-      {!isReader && (
+      {!isReader && !isStudioHome && (
         <AppShellSidebar
           currentUser={currentUser}
           activeWorkspace={activeWorkspace}
@@ -783,16 +840,33 @@ export function AppShell({
       )}
 
       {/* --- RIGHT WRAPPER --- */}
-      <div className='flex-1 flex flex-col min-w-0 h-full bg-[#F3F0E9] relative overflow-hidden'>
-        <header className='h-16 bg-[#FCFBF8]/95 backdrop-blur-md border-b border-[#D8D2C5] flex items-center justify-between px-4 md:px-6 shrink-0 z-20'>
-          <div className='flex items-center gap-2 min-w-0'>
-            {!isReader && (
+      <div className='flex-1 flex flex-col min-w-0 h-full bg-[#FAF9F5] relative overflow-hidden'>
+        <header className='h-16 bg-white border-b border-stone-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-20 shadow-xs'>
+          <div className={`flex items-center gap-2 ${isStudioHome ? 'shrink-0' : 'min-w-0'}`}>
+            {isStudioHome && (
+              <div className='flex items-center shrink-0'>
+                <button
+                  type='button'
+                  onClick={() => navigate('/workspaces')}
+                  className='flex items-center gap-1.5 cursor-pointer'
+                >
+                  <span className='text-lg font-bold text-orange-600 tracking-tight'>
+                    {t('workspace.studioHub.brand')}
+                  </span>
+                  <span className='text-xs font-bold tracking-wider uppercase bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded'>
+                    {t('workspace.studioHub.studioBadge')}
+                  </span>
+                </button>
+                <div className='h-5 w-px bg-stone-200 mx-3' aria-hidden />
+              </div>
+            )}
+            {!isReader && !isStudioHome && (
               <button
                 type='button'
                 onClick={() => setIsMobileDrawerOpen(true)}
                 aria-label={t('navigation.header.openMenu', 'Mở menu điều hướng')}
                 aria-expanded={isMobileDrawerOpen}
-                className='md:hidden p-2 -ml-2 mr-1 rounded-full text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] transition-colors cursor-pointer shrink-0'
+                className='md:hidden p-2 -ml-2 mr-1 rounded-full text-stone-500 hover:text-stone-900 hover:bg-orange-50 transition-colors cursor-pointer shrink-0'
                 data-testid='appshell-hamburger-btn'
               >
                 <Menu className='w-5 h-5' />
@@ -802,10 +876,10 @@ export function AppShell({
               <div className='flex items-center gap-3'>
                 <BrandMark size={28} className='shrink-0' />
                 <div className='flex items-center gap-2'>
-                  <span className='text-[#1C1917] font-serif font-bold text-sm'>
+                  <span className='text-stone-900 font-serif font-bold text-sm'>
                     PanelForge // Cổng Xuất Bản
                   </span>
-                  <span className='px-2 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-mono font-bold'>
+                  <span className='px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200 text-xs font-mono font-bold'>
                     PUBLISHER PORTAL
                   </span>
                 </div>
@@ -814,41 +888,40 @@ export function AppShell({
               <div className='flex items-center gap-3'>
                 <BrandMark size={28} className='shrink-0' />
                 <div>
-                  <span className='text-[#1C1917] font-serif font-medium text-sm'>
+                  <span className='text-stone-900 font-serif font-medium text-sm'>
                     {activeSeries?.title || 'PanelForge Studio'}
                   </span>
                 </div>
               </div>
             ) : (
-              <nav className='flex items-center text-xs font-semibold text-[#1C1917] truncate'>
+              <nav className='flex items-center text-xs font-semibold text-stone-900 truncate'>
                 <button
                   type='button'
                   data-testid='back-to-workspaces-breadcrumb'
-                  className='text-[#1C1917] hover:text-black cursor-pointer transition-all flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-[#FFF2E6] hover:shadow-2xs'
+                  className='text-stone-700 hover:text-stone-900 cursor-pointer transition-colors flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 shrink-0'
                   onClick={() => navigate('/workspaces')}
                   title={t(
                     'navigation.header.backToWorkspaces',
                     'Quay lại danh sách Workspace (Workspaces Catalog)',
                   )}
                 >
-                  <Briefcase className='w-3.5 h-3.5 text-[#57534E]' />
-                  <span className='font-bold'>Workspaces</span>
+                  <Briefcase className='w-4 h-4 text-stone-500' />
+                  <span className='font-semibold'>Workspaces</span>
                 </button>
-                <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
 
-                {/* Studio / Series Name Segment */}
-                <button
-                  type='button'
-                  onClick={() => navigate(seriesListHref)}
-                  className='text-[#1C1917] hover:text-black cursor-pointer transition-all truncate px-2.5 py-1 rounded-full hover:bg-[#FFF2E6] hover:shadow-2xs flex items-center gap-1 font-bold'
-                  title={t('navigation.header.openSeriesList', 'Mở danh sách Series của Workspace')}
-                >
-                  <Briefcase className='w-3.5 h-3.5 text-[#57534E]' />
-                  <span className='truncate'>{activeWorkspace?.name || 'Studio Workspace'}</span>
-                </button>
+                {/* Studio Switcher Dropdown (2-tier Navigation) */}
+                <StudioSwitcher
+                  activeWorkspaceId={activeWorkspace?.id || workspaceId}
+                  activeWorkspaceName={activeWorkspace?.name}
+                  onSelectStudio={(ws) => {
+                    navigate(`/workspaces/${ws.id}`);
+                  }}
+                  onCreateNewStudio={() => navigate('/workspaces?create=true')}
+                />
                 {isSeriesContext && (
                   <>
-                    <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                    <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
                     <button
                       type='button'
                       onClick={() =>
@@ -860,23 +933,25 @@ export function AppShell({
                           ),
                         )
                       }
-                      className={`font-bold truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-all cursor-pointer ${
-                        chapterId ? 'text-[#57534e] hover:text-[#0c0a09]' : 'text-[#0c0a09]'
+                      className={`font-semibold truncate flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer shrink-0 ${
+                        chapterId ? 'text-stone-600 hover:text-stone-900' : 'text-stone-900'
                       }`}
                       title={t('navigation.header.goToSeries', 'Chuyển đến Series Workspace')}
                     >
-                      <BookOpen className='w-3.5 h-3.5 text-[#292524]' />
+                      <BookOpen className='w-4 h-4 text-orange-600' />
                       <span className='truncate'>{activeSeries?.title || 'Active Series'}</span>
                     </button>
                     {chapterId && (
                       <>
-                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
+                          /
+                        </span>
                         <div
-                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
+                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-orange-700 truncate bg-orange-50 rounded border border-orange-200/80 shrink-0 cursor-pointer'
                           data-testid='header-chapter-breadcrumb'
                           title={`${t('navigation.header.currentChapter', 'Chương đang mở')}: ${chapterId}`}
                         >
-                          <FileText className='w-3.5 h-3.5 text-[#EA580C]' />
+                          <FileText className='w-3.5 h-3.5 text-orange-600' />
                           <span className='truncate'>
                             {chapterId.toLowerCase().startsWith('ch') || !isNaN(Number(chapterId))
                               ? `Chapter ${chapterId.replace(/^chapter-?/i, '')}`
@@ -887,12 +962,14 @@ export function AppShell({
                     )}
                     {isArtistDesk && (
                       <>
-                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
+                          /
+                        </span>
                         <div
-                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
+                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
                           data-testid='header-artist-breadcrumb'
                         >
-                          <LayoutTemplate className='w-3.5 h-3.5 text-[#F97316]' />
+                          <LayoutTemplate className='w-3.5 h-3.5 text-orange-600' />
                           <span className='truncate'>
                             {t('navigation.menu.desk', 'Bàn vẽ Khung tranh')}
                           </span>
@@ -901,24 +978,28 @@ export function AppShell({
                     )}
                     {isScriptDesk && (
                       <>
-                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
+                          /
+                        </span>
                         <div
-                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
+                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
                           data-testid='header-script-breadcrumb'
                         >
-                          <FileText className='w-3.5 h-3.5 text-[#C2410C]' />
+                          <FileText className='w-3.5 h-3.5 text-orange-600' />
                           <span className='truncate'>Quản lý Kịch bản</span>
                         </div>
                       </>
                     )}
                     {isLettererDesk && (
                       <>
-                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
+                          /
+                        </span>
                         <div
-                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
+                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
                           data-testid='header-letterer-breadcrumb'
                         >
-                          <Type className='w-3.5 h-3.5 text-[#C2410C]' />
+                          <Type className='w-3.5 h-3.5 text-orange-600' />
                           <span className='truncate'>Bàn làm việc Chữ & Thoại</span>
                         </div>
                       </>
@@ -929,8 +1010,39 @@ export function AppShell({
             )}
           </div>
 
+          {isStudioHome && canManageStudio && (
+            <nav
+              className='hidden lg:flex items-center gap-6 h-full text-sm font-medium'
+              aria-label={t('workspace.studioHub.tabsLabel')}
+              data-testid='studio-hub-tabs'
+            >
+              {(
+                [
+                  ['series', t('workspace.studioHub.tabs.series')],
+                  ['members', t('workspace.studioHub.tabs.crew')],
+                  ['schedule', t('workspace.studioHub.tabs.schedule')],
+                  ['audit', t('workspace.studioHub.tabs.audit')],
+                ] as const
+              ).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  type='button'
+                  aria-current={studioTab === tab ? 'page' : undefined}
+                  onClick={() => setStudioQuery('tab', tab === 'series' ? null : tab)}
+                  className={`h-16 flex items-center border-b-2 px-1 whitespace-nowrap transition-colors cursor-pointer ${
+                    studioTab === tab
+                      ? 'border-orange-600 text-orange-600 font-semibold'
+                      : 'border-transparent text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          )}
+
           <div className='flex items-center gap-3 shrink-0'>
-            {!isReader && (
+            {!isReader && !isStudioHome && (
               <button
                 type='button'
                 onClick={() => {
@@ -949,11 +1061,11 @@ export function AppShell({
                 )}
                 data-testid='header-command-palette-trigger'
               >
-                <Search className='w-3.5 h-3.5 text-[#57534E] absolute left-3.5 pointer-events-none stroke-[2] group-hover:text-[#1C1917] transition-colors' />
-                <div className='pl-9 pr-12 py-2 bg-[#FCFBF8] group-hover:bg-[#FCFBF8] text-xs text-[#57534E] rounded-full border border-[#D8D2C5] group-hover:border-[#1C1917] shadow-2xs w-64 transition-all truncate select-none'>
+                <Search className='w-3.5 h-3.5 text-stone-400 absolute left-3 pointer-events-none stroke-[2] group-hover:text-stone-700 transition-colors' />
+                <div className='pl-8 pr-10 py-1.5 bg-stone-50 group-hover:bg-white text-xs text-stone-600 rounded-lg border border-stone-200 group-hover:border-orange-500 shadow-2xs w-60 transition-all truncate select-none'>
                   {t('navigation.header.searchPlaceholder')}
                 </div>
-                <span className='absolute right-2 px-2 py-0.5 text-xs font-mono text-[#57534E] bg-[#F3F0E9] rounded-full select-none group-hover:bg-[#EAE5DC]'>
+                <span className='absolute right-2 px-1.5 py-0.5 text-xs font-mono text-stone-400 bg-stone-200/60 rounded select-none'>
                   ⌘K
                 </span>
               </button>
@@ -971,9 +1083,9 @@ export function AppShell({
                 type='button'
                 data-testid='header-user-menu-btn'
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className='flex items-center gap-2.5 p-1 rounded-full hover:bg-[#FFF2E6] transition-all cursor-pointer'
+                className='flex items-center gap-2 pl-3 border-l border-stone-200 p-1 rounded-lg hover:bg-stone-50 transition-colors cursor-pointer'
               >
-                <div className='w-8 h-8 rounded-full overflow-hidden bg-[#1C1917] text-white flex items-center justify-center font-bold text-xs shadow-2xs'>
+                <div className='w-8 h-8 rounded-full overflow-hidden bg-stone-900 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs'>
                   {currentUser.avatarUrl && currentUser.avatarUrl !== failedAvatarUrl ? (
                     <img
                       src={currentUser.avatarUrl}
@@ -986,23 +1098,23 @@ export function AppShell({
                   )}
                 </div>
                 <div className='hidden md:flex flex-col text-left'>
-                  <span className='text-xs font-semibold text-[#1C1917] leading-tight'>
+                  <span className='text-xs font-semibold text-stone-900 leading-tight'>
                     {currentUser.name}
                   </span>
-                  <span className='text-xs text-[#57534E] font-mono leading-tight'>
+                  <span className='text-xs text-stone-500 font-mono leading-tight'>
                     {currentUser.role}
                   </span>
                 </div>
-                <ChevronDown className='w-3 h-3 text-[#57534E]' />
+                <ChevronDown className='w-3.5 h-3.5 text-stone-400' />
               </button>
 
               {userMenuOpen && (
                 <>
                   <div className='fixed inset-0 z-40' onClick={() => setUserMenuOpen(false)} />
-                  <div className='absolute right-0 mt-2 w-56 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-editorial z-50 p-1.5 text-xs animate-in fade-in-50 zoom-in-95'>
-                    <div className='px-3 py-2 border-b border-[#D8D2C5] mb-1'>
-                      <p className='font-semibold text-[#1C1917]'>{currentUser.name}</p>
-                      <p className='text-xs text-[#57534E] font-mono'>{currentUser.role}</p>
+                  <div className='absolute right-0 mt-2 w-56 bg-white border border-stone-200 rounded-xl shadow-xl z-50 p-1.5 text-xs animate-in fade-in-50 zoom-in-95'>
+                    <div className='px-3 py-2 border-b border-stone-100 mb-1'>
+                      <p className='font-semibold text-stone-900'>{currentUser.name}</p>
+                      <p className='text-xs text-stone-500 font-mono'>{currentUser.role}</p>
                     </div>
 
                     <button
@@ -1011,9 +1123,9 @@ export function AppShell({
                         setUserMenuOpen(false);
                         navigate('/profile');
                       }}
-                      className='w-full text-left flex items-center gap-2 text-xs text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                      className='w-full text-left flex items-center gap-2 text-xs text-stone-700 hover:text-stone-900 hover:bg-orange-50 px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
-                      <UserCircle className='w-3.5 h-3.5 text-[#57534E]' />
+                      <UserCircle className='w-3.5 h-3.5 text-stone-500' />
                       <span>{t('navigation.menu.profile')}</span>
                     </button>
 
@@ -1023,9 +1135,9 @@ export function AppShell({
                         setUserMenuOpen(false);
                         onOpenChangePassword?.();
                       }}
-                      className='w-full text-left flex items-center gap-2 text-xs text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                      className='w-full text-left flex items-center gap-2 text-xs text-stone-700 hover:text-stone-900 hover:bg-orange-50 px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
-                      <KeyRound className='w-3.5 h-3.5 text-[#57534E]' />
+                      <KeyRound className='w-3.5 h-3.5 text-stone-500' />
                       <span>{t('navigation.menu.changePassword')}</span>
                     </button>
 
@@ -1035,9 +1147,9 @@ export function AppShell({
                         setUserMenuOpen(false);
                         onOpenTwoFactor?.();
                       }}
-                      className='w-full text-left flex items-center gap-2 text-xs text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                      className='w-full text-left flex items-center gap-2 text-xs text-stone-700 hover:text-stone-900 hover:bg-orange-50 px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
-                      <Shield className='w-3.5 h-3.5 text-[#F97316]' />
+                      <Shield className='w-3.5 h-3.5 text-orange-600' />
                       <span>{t('navigation.menu.twoFactor')}</span>
                     </button>
 
@@ -1049,9 +1161,9 @@ export function AppShell({
                           setUserMenuOpen(false);
                           navigate('/publisher/desk');
                         }}
-                        className='w-full text-left flex items-center gap-2 text-xs text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                        className='w-full text-left flex items-center gap-2 text-xs text-stone-700 hover:text-stone-900 hover:bg-orange-50 px-3 py-2 rounded-lg transition-colors cursor-pointer'
                       >
-                        <Send className='w-3.5 h-3.5 text-[#F97316]' />
+                        <Send className='w-3.5 h-3.5 text-orange-600' />
                         <span>Bàn Làm Việc Publisher</span>
                       </button>
                     ) : (
@@ -1063,14 +1175,14 @@ export function AppShell({
                           if (onNavigate) onNavigate('/workspaces');
                           navigate('/workspaces');
                         }}
-                        className='w-full text-left flex items-center gap-2 text-xs text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                        className='w-full text-left flex items-center gap-2 text-xs text-stone-700 hover:text-stone-900 hover:bg-orange-50 px-3 py-2 rounded-lg transition-colors cursor-pointer'
                       >
-                        <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
+                        <Briefcase className='w-3.5 h-3.5 text-orange-600' />
                         <span>{t('navigation.menu.switchWorkspace')}</span>
                       </button>
                     )}
 
-                    <div className='my-1 border-t border-[#D8D2C5]' />
+                    <div className='my-1 border-t border-stone-100' />
 
                     <button
                       type='button'
@@ -1089,10 +1201,22 @@ export function AppShell({
               )}
             </div>
 
+            {isStudioHome && canManageStudio && (
+              <button
+                type='button'
+                onClick={() => setStudioQuery('action', 'create-series')}
+                className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs whitespace-nowrap'
+                data-testid='studio-hub-create-series'
+              >
+                <Plus className='w-4 h-4' />
+                <span>{t('workspace.studioHub.createSeries')}</span>
+              </button>
+            )}
+
             {isReader && (
               <button
                 onClick={onLeaveFeedback}
-                className='bg-[#171717] text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-black transition-all shadow-sm'
+                className='bg-stone-900 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-black transition-all shadow-sm'
               >
                 Leave Feedback
               </button>
@@ -1100,7 +1224,7 @@ export function AppShell({
           </div>
         </header>
 
-        <main className='flex-1 overflow-y-auto custom-scrollbar flex flex-col relative min-h-0 bg-[#F3F0E9]'>
+        <main className='flex-1 overflow-y-auto custom-scrollbar flex flex-col relative min-h-0 bg-[#FAF9F5]'>
           <div className='relative z-10 w-full min-h-full flex-1 flex flex-col transition-opacity duration-200 animate-in fade-in'>
             <ErrorBoundary>
               <Suspense fallback={<RouteFallback />}>{children || <Outlet />}</Suspense>

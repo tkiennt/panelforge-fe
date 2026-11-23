@@ -176,10 +176,18 @@ export const ArtworkNotesTab: React.FC<{
     <div className='space-y-5 p-4'>
       {drafts.length > 0 && (
         <section>
-          <h3 className='text-sm font-semibold text-stone-800'>
-            {t('scriptReview.notes.draftsTitle')}{' '}
-            <span className='font-mono text-stone-500'>({drafts.length})</span>
-          </h3>
+          <div className='flex items-center justify-between'>
+            <h3 className='text-sm font-semibold text-stone-800'>
+              {t('scriptReview.notes.draftsTitle')}{' '}
+              <span className='font-mono text-stone-500'>({drafts.length})</span>
+            </h3>
+            <span
+              id='selected-panel-badge'
+              className='text-[11px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'
+            >
+              Đang chọn: Khung #1
+            </span>
+          </div>
           <p className='mt-0.5 text-xs text-stone-500'>{t('artworkReview.notes.draftsHint')}</p>
           <ul className='mt-2 space-y-2'>
             {drafts.map((d, i) => (
@@ -211,7 +219,7 @@ export const ArtworkNotesTab: React.FC<{
                   {t('artworkReview.notes.describe')}
                 </label>
                 <textarea
-                  id={`draft-${d.id}`}
+                  id={i === 0 ? 'panel-comment-input' : `draft-${d.id}`}
                   value={d.text}
                   autoFocus={activeId === d.id && !d.text}
                   onChange={(e) => onDraftText(d.id, e.target.value)}
@@ -247,27 +255,29 @@ export const ArtworkNotesTab: React.FC<{
         </section>
       )}
 
-      {section(
-        t('artworkReview.notes.resolvedTitle'),
-        byStatus('Resolved'),
-        canDecide ? t('artworkReview.notes.resolvedHint') : undefined,
-      )}
-      {section(t('scriptReview.notes.openTitle'), byStatus('Open'))}
+      <div id='panel-comments-list' className='space-y-4'>
+        {section(
+          t('artworkReview.notes.resolvedTitle'),
+          byStatus('Resolved'),
+          canDecide ? t('artworkReview.notes.resolvedHint') : undefined,
+        )}
+        {section(t('scriptReview.notes.openTitle'), byStatus('Open'))}
 
-      {closed.length > 0 && (
-        <section>
-          <button
-            type='button'
-            onClick={() => setShowClosed((v) => !v)}
-            aria-expanded={showClosed}
-            className='text-sm font-semibold text-stone-700 hover:text-stone-900'
-          >
-            {t('scriptReview.notes.closedTitle')}{' '}
-            <span className='font-mono text-stone-500'>({closed.length})</span>
-          </button>
-          {showClosed && <ul className='mt-2 space-y-2'>{closed.map(renderCr)}</ul>}
-        </section>
-      )}
+        {closed.length > 0 && (
+          <section>
+            <button
+              type='button'
+              onClick={() => setShowClosed((v) => !v)}
+              aria-expanded={showClosed}
+              className='text-sm font-semibold text-stone-700 hover:text-stone-900'
+            >
+              {t('scriptReview.notes.closedTitle')}{' '}
+              <span className='font-mono text-stone-500'>({closed.length})</span>
+            </button>
+            {showClosed && <ul className='mt-2 space-y-2'>{closed.map(renderCr)}</ul>}
+          </section>
+        )}
+      </div>
 
       {drafts.length === 0 && changeRequests.length === 0 && (
         <p className='rounded-lg border border-dashed border-stone-300 p-4 text-center text-xs leading-normal text-stone-500'>

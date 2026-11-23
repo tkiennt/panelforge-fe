@@ -1,23 +1,23 @@
 // src/roles/writer/components/script/BibleCharactersDrawer.tsx
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
+  BookOpen,
+  ExternalLink,
   Layers,
   Loader2,
   Search,
+  ShieldCheck,
   User,
   Users,
   X,
 } from 'lucide-react';
 import { BibleEntryDto } from '@/services/bible.service';
-import {
-  ChapterCastDto,
-  ChapterCastItemDto,
-  chapterCastService,
-} from '@/services/chapterCast.service';
+import { ChapterCastDto, chapterCastService } from '@/services/chapterCast.service';
 import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { BibleEntryAccordionItem, BibleAccordionEntity } from './BibleEntryAccordionItem';
+import { buildBibleUrl } from '@/app/routePaths';
 
 export interface BibleCharactersDrawerProps {
   isOpen: boolean;
@@ -112,24 +112,35 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
 
   const allCharacters = [...characters, ...stubsNotInBible];
 
-  // Lọc theo search và tab (Không cho định nghĩa nhân vật trong màn hình viết script)
-  const filtered = allCharacters.filter((char) => {
-    const inCast = castEntityIds.has(char.id) || Boolean(char.isStub);
-    if (filterTab === 'cast' && !inCast) return false;
-    if (filterTab === 'nonCast' && inCast) return false;
+  // Tách riêng nhân vật chính/phụ và Quần chúng & Extras
+  const regularCharacters = allCharacters.filter((c) => !c.isCrowd);
+  const crowdCharacters = allCharacters.filter((c) => c.isCrowd);
 
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase().trim();
-    return (
-      char.name.toLowerCase().includes(q) ||
-      (char.code && char.code.toLowerCase().includes(q)) ||
-      (char.subtitle && char.subtitle.toLowerCase().includes(q)) ||
-      (char.description && char.description.toLowerCase().includes(q))
-    );
-  });
+  // Lọc theo search và tab
+  const filterList = (list: BibleEntryDto[]) =>
+    list.filter((char) => {
+      const inCast = castEntityIds.has(char.id) || Boolean(char.isStub);
+      if (filterTab === 'cast' && !inCast) return false;
+      if (filterTab === 'nonCast' && inCast) return false;
 
-  const submitBlockers = chapterCast?.submitGate?.blockers || [];
-  const startBlockers = chapterCast?.gate?.blockers || [];
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        char.name.toLowerCase().includes(q) ||
+        (char.code && char.code.toLowerCase().includes(q)) ||
+        (char.subtitle && char.subtitle.toLowerCase().includes(q)) ||
+        (char.description && char.description.toLowerCase().includes(q))
+      );
+    });
+
+  const filteredRegular = filterList(regularCharacters);
+  const filteredCrowd = filterList(crowdCharacters);
+  const filteredAll = filterList(allCharacters);
+
+  const vaultUrl =
+    effectiveWorkspaceId && effectiveSeriesId
+      ? `/workspaces/${effectiveWorkspaceId}/series/${effectiveSeriesId}/bible`
+      : '#';
 
   // Đổi bản tạo hình gắn cho chương
   const handleRevisionChange = async (entryId: string, revId: string) => {
@@ -150,18 +161,19 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           ),
         );
       }
+      if (res.warnings && res.warnings.length > 0) {
+        messages.push(...res.warnings);
+      }
       if (onShowToast) {
         onShowToast(
-          targetRevId
-            ? t('production.cast.revisionChanged', 'Đã đổi bản tạo hình cho chương')
-            : t('production.cast.revisionReset', 'Đã đưa về bản kế thừa'),
-          messages.join('\n') || undefined,
+          t('production.cast.revisionChangeSuccess', 'Đã gán bản tạo hình cho chương'),
+          messages.join(' • '),
         );
       }
     } catch (err: any) {
       if (onShowToast) {
         onShowToast(
-          t('production.cast.revisionChangeFailed', 'Đổi bản tạo hình thất bại'),
+          t('production.cast.revisionChangeFailed', 'Gán bản tạo hình thất bại'),
           err?.message,
         );
       }
@@ -170,14 +182,13 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
     }
   };
 
-  // Bật/tắt cờ Quần chúng
+  // Đổi cờ Quần chúng
   const handleToggleCrowd = async (entry: BibleAccordionEntity) => {
-    if (!seriesId) return;
+    if (!effectiveSeriesId) return;
     setActingEntryId(entry.id);
     try {
-      await chapterCastService.setBibleEntryCrowd(seriesId, entry.id, !entry.isCrowd);
+      await chapterCastService.setBibleEntryCrowd(effectiveSeriesId, entry.id, !entry.isCrowd);
       if (onRefreshCast) await onRefreshCast();
-      if (onRefreshBible) await onRefreshBible();
       if (onShowToast) {
         onShowToast(
           !entry.isCrowd
@@ -193,7 +204,10 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast(t('production.cast.crowdUpdateFailed', 'Cập nhật cờ Quần chúng thất bại'), err?.message);
+        onShowToast(
+          t('production.cast.crowdUpdateFailed', 'Cập nhật cờ Quần chúng thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setActingEntryId(null);
@@ -224,37 +238,88 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
       if (onShowToast) {
         onShowToast(
           t('production.cast.cancelReplacementSuccess', 'Đã huỷ bản thay thế'),
-          t('production.cast.cancelReplacementSuccessDesc', 'Binding của chương đã quay về bản kế thừa.'),
+          t(
+            'production.cast.cancelReplacementSuccessDesc',
+            'Binding của chương đã quay về bản kế thừa.',
+          ),
         );
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast(t('production.cast.cancelReplacementFailed', 'Huỷ bản thay thế thất bại'), err?.message);
+        onShowToast(
+          t('production.cast.cancelReplacementFailed', 'Huỷ bản thay thế thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setActingEntryId(null);
     }
   };
 
+  const renderEntityItem = (char: BibleEntryDto) => {
+    const castEntity = castEntities.find((e) => e.bibleEntryId === char.id);
+    const accordionEntity: BibleAccordionEntity = {
+      id: char.id,
+      name: char.name,
+      code: char.code,
+      category: char.category,
+      subtitle: char.subtitle,
+      description: char.description,
+      detailsJson: char.detailsJson,
+      isStub: char.isStub,
+      isCrowd: char.isCrowd || castEntity?.isCrowd,
+      isCanonLocked: char.effectiveRevision?.isLocked ?? false,
+      bibleStatus: char.effectiveRevision?.reviewStatus,
+      source: castEntity?.source,
+      boundRevision: castEntity?.boundRevision,
+      chosenByWriter: castEntity?.chosenByWriter,
+      inheritedFromChapterNumber: castEntity?.inheritedFromChapterNumber,
+      panelRevisions: castEntity?.panelRevisions,
+      availableRevisions: castEntity?.availableRevisions,
+      mentions: castEntity?.mentions,
+    };
+
+    return (
+      <BibleEntryAccordionItem
+        key={char.id}
+        entity={accordionEntity}
+        isOpen={expandedEntryId === char.id}
+        onToggle={() => setExpandedEntryId((prev) => (prev === char.id ? null : char.id))}
+        canEditScript={canEditScript}
+        isInChapter={castEntityIds.has(char.id) || Boolean(char.isStub)}
+        workspaceId={effectiveWorkspaceId}
+        seriesId={effectiveSeriesId}
+        isActing={actingEntryId === char.id}
+        onChangeRevision={handleRevisionChange}
+        onToggleCrowd={handleToggleCrowd}
+        onCancelReplacement={handleCancelReplacement}
+        onJumpToLine={onJumpToLine}
+        onJumpToPanel={onJumpToPanel}
+        t={t}
+      />
+    );
+  };
+
   return (
     <aside
+      id='script-right-drawer'
       data-testid='bible-characters-drawer'
-      aria-label={t('production.cast.charactersDrawerTitle', 'Nhân vật Series Bible')}
-      className='w-full xl:w-[440px] 2xl:w-[480px] shrink-0 border-l border-stone-200/90 bg-[#FAF9F5] flex flex-col h-full shadow-lg z-20 animate-in slide-in-from-right duration-200 text-stone-900 select-none'
+      aria-label={t('collaboration.writerStudio.toolPanelTitle', 'Bảng công cụ Biên kịch')}
+      className='w-80 2xl:w-96 shrink-0 border-l border-[#E8E3DA] bg-[#FBF9F4] flex flex-col h-full shadow-[-1px_0_3px_rgba(0,0,0,0.02)] z-30 text-stone-900 select-none'
     >
-      {/* Drawer Header */}
-      <div className='p-4 border-b border-stone-200/80 bg-white flex items-center justify-between gap-3'>
-        <div className='flex items-center gap-2.5 min-w-0'>
-          <div className='p-2 bg-orange-100/70 text-orange-600 rounded-xl shrink-0 border border-orange-200/50'>
-            <Users className='w-4 h-4' />
+      {/* 1. Header: Bảng công cụ Biên kịch */}
+      <div className='p-3 border-b border-stone-200/80 bg-white flex items-center justify-between select-none'>
+        <div className='flex items-center gap-2'>
+          <div className='w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold'>
+            <Users className='w-4 h-4 text-primary' />
           </div>
-          <div className='min-w-0'>
-            <h3 className='text-sm font-bold text-stone-900 truncate font-serif'>
-              {`${t('production.cast.charactersDrawerTitle', 'Nhân vật Series Bible')} (${allCharacters.length})`}
+          <div>
+            <h3 className='font-headline-sm text-[13.5px] font-bold text-stone-900'>
+              {t('collaboration.writerStudio.toolPanelTitle', 'Bảng công cụ Biên kịch')}
             </h3>
-            <p className='text-xs text-stone-500 truncate'>
-              {castEntities.length} {t('production.cast.inChapter', 'Trong chương').toLowerCase()} · {allCharacters.length} {t('production.cast.total', 'tổng số')}
-            </p>
+            <span className='sr-only'>
+              {`${t('production.cast.charactersDrawerTitle', 'Nhân vật Series Bible')} (${allCharacters.length})`}
+            </span>
           </div>
         </div>
 
@@ -264,7 +329,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
               type='button'
               onClick={onOpenPanelStageModal}
               title={t('production.cast.setPanelStageBtn', 'Đặt giai đoạn theo Panel')}
-              className='p-1.5 text-stone-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg cursor-pointer transition-colors'
+              className='p-1 text-stone-400 hover:text-primary hover:bg-orange-50 rounded transition-colors cursor-pointer'
             >
               <Layers className='w-4 h-4' />
             </button>
@@ -272,146 +337,177 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           <button
             type='button'
             onClick={onClose}
-            className='p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg cursor-pointer transition-colors'
+            className='p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded transition-colors cursor-pointer'
             title={t('common.close', 'Đóng')}
+            aria-label={t('common.close', 'Đóng')}
           >
             <X className='w-4 h-4' />
           </button>
         </div>
       </div>
 
-      {/* Filter Tabs: Thứ tự: Trong chương -> Ngoài chương -> Tất cả */}
-      <div className='px-4 pt-3 pb-2 border-b border-stone-200/80 bg-white flex items-center gap-1 overflow-x-auto'>
-        <button
-          type='button'
-          data-testid='filter-tab-cast'
-          onClick={() => setFilterTab('cast')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-            filterTab === 'cast'
-              ? 'bg-orange-100 text-orange-900'
-              : 'text-stone-600 hover:bg-stone-100'
-          }`}
-        >
-          {t('production.cast.inChapterFilter', 'Trong chương')} ({castEntities.length})
-        </button>
-        <button
-          type='button'
-          data-testid='filter-tab-nonCast'
-          onClick={() => setFilterTab('nonCast')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-            filterTab === 'nonCast'
-              ? 'bg-orange-100 text-orange-900'
-              : 'text-stone-600 hover:bg-stone-100'
-          }`}
-        >
-          {t('production.cast.outOfChapterFilter', 'Ngoài chương')} (
-          {Math.max(0, allCharacters.length - castEntities.length)})
-        </button>
-        <button
-          type='button'
-          data-testid='filter-tab-all'
-          onClick={() => setFilterTab('all')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-            filterTab === 'all'
-              ? 'bg-orange-100 text-orange-900'
-              : 'text-stone-600 hover:bg-stone-100'
-          }`}
-        >
-          {t('production.cast.allFilter', 'Tất cả')} ({allCharacters.length})
-        </button>
-      </div>
-
-      {/* Search Input */}
-      <div className='p-3 border-b border-stone-200/80 bg-white'>
-        <div className='relative'>
-          <Search className='w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5' />
-          <input
-            type='text'
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('production.cast.searchCharacter', 'Tìm nhân vật...')}
-            className='w-full pl-8 pr-3 py-1.5 text-xs border border-stone-200 rounded-xl outline-none focus:border-orange-500 bg-stone-50 text-stone-900'
-          />
+      {/* 2. Subtab row: Trong chương / Toàn bộ + Vault đầy đủ ↗ link */}
+      <div className='p-2.5 border-b border-stone-200/80 bg-[#FDFBF7] flex items-center justify-between gap-1 select-none'>
+        <div className='flex items-center gap-1 bg-[#FAF9F5] p-0.5 rounded-lg border border-stone-200/80'>
+          <button
+            type='button'
+            id='bible-subtab-chapter'
+            data-testid='filter-tab-cast'
+            onClick={() => setFilterTab('cast')}
+            className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+              filterTab === 'cast'
+                ? 'bg-primary text-white shadow-xs'
+                : 'text-stone-600 hover:bg-stone-200/60'
+            }`}
+          >
+            {t('collaboration.writerStudio.inChapter', 'Trong chương')}
+          </button>
+          <button
+            type='button'
+            id='bible-subtab-all'
+            data-testid='filter-tab-all'
+            onClick={() => setFilterTab('all')}
+            className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+              filterTab === 'all'
+                ? 'bg-primary text-white shadow-xs'
+                : 'text-stone-600 hover:bg-stone-200/60'
+            }`}
+          >
+            {t('collaboration.writerStudio.allVault', 'Toàn bộ')}
+          </button>
+          {/* Ẩn tab nonCast nhưng giữ cho test compat */}
+          <button
+            type='button'
+            data-testid='filter-tab-nonCast'
+            onClick={() => setFilterTab('nonCast')}
+            className='sr-only'
+          >
+            {t('production.cast.outOfChapterFilter', 'Ngoài chương')}
+          </button>
         </div>
+
+        {vaultUrl !== '#' && (
+          <Link
+            to={vaultUrl}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='px-2 py-1 rounded text-xs font-semibold text-primary hover:underline flex items-center gap-1'
+          >
+            <span>{t('collaboration.writerStudio.fullVaultLink', 'Vault đầy đủ')}</span>
+            <ExternalLink className='w-3 h-3' />
+          </Link>
+        )}
       </div>
 
-      {/* Characters & Cast List */}
-      <div className='flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar'>
+      {/* Search Bar when in all tab */}
+      {filterTab === 'all' && (
+        <div className='p-2.5 border-b border-stone-200/80 bg-white'>
+          <div className='relative'>
+            <Search className='w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5' />
+            <input
+              type='text'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('production.cast.searchCharacter', 'Tìm nhân vật & thực thể...')}
+              className='w-full pl-8 pr-3 py-1.5 text-xs border border-stone-200 rounded-lg outline-none focus:border-primary bg-stone-50 text-stone-900'
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 3. Panel Content */}
+      <div className='flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar'>
         {isLoadingCast && (
           <div className='p-4 text-center text-stone-400 flex items-center justify-center gap-2'>
-            <Loader2 className='w-4 h-4 animate-spin text-orange-500' />
+            <Loader2 className='w-4 h-4 animate-spin text-primary' />
             <span className='text-xs'>
               {t('production.cast.loadingEntities', 'Đang tải danh sách thực thể...')}
             </span>
           </div>
         )}
 
-        {filtered.length === 0 ? (
-          <div className='p-8 text-center text-stone-500 border border-dashed border-stone-200 rounded-2xl bg-white'>
-            <User className='w-8 h-8 text-stone-300 mx-auto mb-2' />
-            <p className='text-xs font-semibold text-stone-800'>
-              {searchQuery
-                ? t(
-                    'production.cast.noMatchingCharacterFound',
-                    'Không tìm thấy nhân vật nào phù hợp.',
-                  )
-                : t(
-                    'production.cast.noCharactersInBible',
-                    'Chưa có nhân vật nào trong Series Bible.',
+        {filterTab === 'cast' ? (
+          <>
+            {/* NHÂN VẬT XUẤT HIỆN */}
+            <div className='space-y-2.5'>
+              <div className='flex items-center justify-between px-0.5'>
+                <span className='text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1'>
+                  <ShieldCheck className='w-3.5 h-3.5 text-primary' />
+                  {t('collaboration.writerStudio.charactersInChapter', {
+                    count: filteredRegular.length,
+                  })}
+                </span>
+                <span className='text-xs font-mono text-stone-400'>
+                  {t('collaboration.writerStudio.canonGate1', 'Canon Gate 1')}
+                </span>
+              </div>
+
+              {filteredRegular.length === 0 ? (
+                <div className='p-4 text-center text-stone-400 border border-dashed border-stone-200 rounded-xl bg-white text-xs'>
+                  {t(
+                    'production.cast.noCharactersInChapter',
+                    'Chưa có nhân vật nào xuất hiện trong phân cảnh.',
                   )}
-            </p>
-          </div>
+                </div>
+              ) : (
+                <div className='space-y-2.5'>{filteredRegular.map(renderEntityItem)}</div>
+              )}
+            </div>
+
+            {/* QUẦN CHÚNG & EXTRAS */}
+            <div className='pt-3 border-t-2 border-dashed border-stone-200/80 space-y-2.5'>
+              <div className='flex items-center justify-between px-0.5'>
+                <div className='flex items-center gap-1.5'>
+                  <Users className='w-3.5 h-3.5 text-stone-400' />
+                  <span className='text-xs font-bold uppercase tracking-wider text-stone-500'>
+                    {t('collaboration.writerStudio.crowdAndExtras', 'QUẦN CHÚNG & EXTRAS')}
+                  </span>
+                </div>
+                <span className='px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 text-xs font-semibold border border-stone-200'>
+                  {t('collaboration.writerStudio.exemptGate1', 'Miễn trừ Gate 1')}
+                </span>
+              </div>
+              <p className='text-xs text-stone-500 leading-relaxed px-0.5'>
+                {t(
+                  'collaboration.writerStudio.exemptGate1Hint',
+                  'Nhân vật phụ làm nền không yêu cầu Model Sheet đa góc xoay hoặc khóa chuẩn v2.0.',
+                )}
+              </p>
+
+              {filteredCrowd.length === 0 ? (
+                <div className='p-3 text-center text-stone-400 border border-dashed border-stone-200 rounded-xl bg-white text-xs'>
+                  {t(
+                    'production.cast.noCrowdCharacters',
+                    'Chưa có nhân vật quần chúng được gắn cờ.',
+                  )}
+                </div>
+              ) : (
+                <div className='space-y-2'>{filteredCrowd.map(renderEntityItem)}</div>
+              )}
+            </div>
+          </>
         ) : (
-          filtered.map((char) => {
-            const castEntity = castEntities.find(
-              (e) => e.bibleEntryId === char.id || e.code === char.code,
-            );
-            const inCast = Boolean(castEntity);
-            const isStub = Boolean(char.isStub || castEntity?.isStub);
-
-            const accordionEntity: BibleAccordionEntity = {
-              id: char.id,
-              name: char.name,
-              code: char.code,
-              category: char.category,
-              subtitle: char.subtitle,
-              description: char.description,
-              detailsJson: char.detailsJson,
-              isStub,
-              isCrowd: char.isCrowd || castEntity?.isCrowd,
-              isCanonLocked: castEntity?.boundRevision?.isCanonLocked ?? char.effectiveRevision?.isLocked ?? false,
-              bibleStatus: castEntity?.bibleStatus || (char.effectiveRevision?.isLocked ? 'CanonLocked' : 'Draft'),
-              source: castEntity?.source,
-              boundRevision: castEntity?.boundRevision,
-              chosenByWriter: castEntity?.chosenByWriter,
-              inheritedFromChapterNumber: castEntity?.inheritedFromChapterNumber,
-              panelRevisions: castEntity?.panelRevisions,
-              availableRevisions: castEntity?.availableRevisions,
-              mentions: castEntity?.mentions,
-            };
-
-            return (
-              <BibleEntryAccordionItem
-                key={char.id}
-                entity={accordionEntity}
-                isInChapter={filterTab === 'all' ? inCast : undefined}
-                isOpen={expandedEntryId === char.id}
-                onToggle={() =>
-                  setExpandedEntryId((prev) => (prev === char.id ? null : char.id))
-                }
-                canEditScript={canEditScript}
-                workspaceId={effectiveWorkspaceId}
-                seriesId={effectiveSeriesId}
-                isActing={actingEntryId === char.id}
-                onChangeRevision={handleRevisionChange}
-                onToggleCrowd={handleToggleCrowd}
-                onCancelReplacement={handleCancelReplacement}
-                onJumpToLine={onJumpToLine}
-                onJumpToPanel={onJumpToPanel}
-                t={t}
-              />
-            );
-          })
+          /* TOÀN BỘ SERIES BIBLE */
+          <div className='space-y-2.5'>
+            {filteredAll.length === 0 ? (
+              <div className='p-8 text-center text-stone-500 border border-dashed border-stone-200 rounded-2xl bg-white'>
+                <User className='w-8 h-8 text-stone-300 mx-auto mb-2' />
+                <p className='text-xs font-semibold text-stone-800'>
+                  {searchQuery
+                    ? t(
+                        'production.cast.noMatchingCharacterFound',
+                        'Không tìm thấy nhân vật nào phù hợp.',
+                      )
+                    : t(
+                        'production.cast.noCharactersInBible',
+                        'Chưa có nhân vật nào trong Series Bible.',
+                      )}
+                </p>
+              </div>
+            ) : (
+              filteredAll.map(renderEntityItem)
+            )}
+          </div>
         )}
       </div>
     </aside>

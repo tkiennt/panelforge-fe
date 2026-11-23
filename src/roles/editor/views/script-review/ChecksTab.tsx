@@ -66,6 +66,7 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
   const { t, lang } = useTranslation('review');
   const [noteFor, setNoteFor] = useState<{ id: string; decision: FindingDecision } | null>(null);
   const [unfreezing, setUnfreezing] = useState(false);
+  const [entityFilter, setEntityFilter] = useState<'all' | 'main' | 'crowd'>('all');
 
   const openFindings = findings.filter((f) => OPEN_FINDING.has(String(f.status)));
   const blockingOpen = openFindings.filter((f) => String(f.severity) === 'Blocking').length;
@@ -77,19 +78,70 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
   const totalEntities = cast?.entities?.length ?? 0;
   const passedEntitiesCount = Math.max(0, totalEntities - blockers.length);
 
+  const allEntities = cast?.entities ?? [];
+  const mainEntities = allEntities.filter((e) => !e.isCrowd);
+  const crowdEntities = allEntities.filter((e) => e.isCrowd);
+  const displayedEntities =
+    entityFilter === 'main' ? mainEntities : entityFilter === 'crowd' ? crowdEntities : allEntities;
+
   return (
     <div className='space-y-6 p-4'>
-      {/* Bible Gate: nhân vật / bối cảnh dùng trong chương phải đã khoá canon (CF2 bước 6) */}
-      <section>
-        <h3 className='text-sm font-semibold text-stone-800'>
-          {t('scriptReview.checks.bibleTitle')}
-        </h3>
+      {/* Bible Gate & Entities in Script (Stitch view-script style) */}
+      <section className='space-y-3'>
+        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-stone-200'>
+          <div>
+            <h3 className='text-sm font-bold text-stone-900'>
+              Thực thể trong kịch bản ({allEntities.length})
+            </h3>
+            <p className='text-xs text-stone-500'>
+              Kiểm tra tính sẵn sàng của bản vẽ &amp; hồ sơ nhân vật (Bible Gate)
+            </p>
+          </div>
+          {allEntities.length > 0 && (
+            <div className='inline-flex p-0.5 rounded-lg bg-stone-100 border border-stone-200 text-xs shrink-0'>
+              <button
+                type='button'
+                onClick={() => setEntityFilter('all')}
+                className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
+                  entityFilter === 'all'
+                    ? 'bg-white text-stone-900 shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Tất cả ({allEntities.length})
+              </button>
+              <button
+                type='button'
+                onClick={() => setEntityFilter('main')}
+                className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
+                  entityFilter === 'main'
+                    ? 'bg-white text-stone-900 shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Chính ({mainEntities.length})
+              </button>
+              <button
+                type='button'
+                onClick={() => setEntityFilter('crowd')}
+                className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
+                  entityFilter === 'crowd'
+                    ? 'bg-white text-stone-900 shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Quần chúng ({crowdEntities.length})
+              </button>
+            </div>
+          )}
+        </div>
+
         {!cast ? (
           <p className='mt-1 text-xs text-stone-500'>{t('scriptReview.checks.bibleUnavailable')}</p>
         ) : (
           <>
             <p
-              className={`mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium ${
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
                 isGatePassed ? 'text-emerald-800' : 'text-rose-800'
               }`}
             >
@@ -102,17 +154,86 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
                 ? t('scriptReview.checks.biblePassed', { count: passedEntitiesCount })
                 : t('scriptReview.checks.bibleFailed', { count: blockers.length })}
             </p>
+
+            {/* List of entities */}
+            {displayedEntities.length > 0 ? (
+              <div className='space-y-2 mt-2'>
+                {displayedEntities.map((ent) => {
+                  const isBlocker = blockers.some((b) => b.bibleEntryId === ent.bibleEntryId);
+                  const isLocked = ent.bibleStatus === 'Active' && !ent.isStub && !isBlocker;
+                  const initials = (ent.name || 'UN')
+                    .split(' ')
+                    .map((w) => w[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase();
+
+                  return (
+                    <div
+                      key={ent.bibleEntryId || ent.code}
+                      className={`p-3 rounded-lg border flex items-center justify-between gap-2 shadow-2xs transition-colors ${
+                        isBlocker
+                          ? 'bg-rose-50/60 border-rose-200'
+                          : isLocked
+                            ? 'bg-stone-50 border-stone-200'
+                            : 'bg-amber-50/50 border-amber-200'
+                      }`}
+                    >
+                      <div className='flex items-center gap-2.5 min-w-0'>
+                        <div
+                          className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shrink-0 ${
+                            isBlocker
+                              ? 'bg-rose-600 text-white'
+                              : ent.isCrowd
+                                ? 'bg-stone-400 text-white'
+                                : 'bg-stone-900 text-white'
+                          }`}
+                        >
+                          {initials}
+                        </div>
+                        <div className='min-w-0'>
+                          <div className='text-xs font-bold text-stone-900 truncate'>{ent.name}</div>
+                          <div className='text-[11px] text-stone-500 truncate'>
+                            {ent.category || 'Nhân vật'} · {ent.source === 'Speaker' ? 'Người thoại' : 'Nhắc tới'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className='flex items-center gap-1.5 shrink-0'>
+                        {isBlocker ? (
+                          <span className='bg-rose-50 text-rose-700 border border-rose-200 text-[11px] px-2 py-0.5 rounded-full font-semibold'>
+                            Chưa hoàn thiện
+                          </span>
+                        ) : isLocked ? (
+                          <span className='bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] px-2 py-0.5 rounded-full font-semibold'>
+                            Đã khóa chuẩn ✓
+                          </span>
+                        ) : ent.isCrowd ? (
+                          <span className='bg-stone-100 text-stone-600 border border-stone-200 text-[11px] px-2 py-0.5 rounded-full font-medium'>
+                            Miễn trừ
+                          </span>
+                        ) : (
+                          <span className='bg-amber-50 text-amber-700 border border-amber-200 text-[11px] px-2 py-0.5 rounded-full font-medium'>
+                            Chờ duyệt
+                          </span>
+                        )}
+                        <span className='text-[11px] text-stone-500 font-medium bg-white px-1.5 py-0.5 rounded border border-stone-200'>
+                          {ent.isCrowd ? 'Quần chúng' : 'Chính'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+
             {blockers.length > 0 && (
-              <ul className='mt-2 divide-y divide-stone-100 rounded-lg border border-stone-200/80 bg-white'>
-                {blockers.map((b) => (
-                  <li key={`${b.bibleEntryId}-${b.revisionId ?? ''}`} className='px-3 py-2'>
-                    <p className='text-sm font-medium text-stone-900'>{b.entryName}</p>
-                    <p className='text-xs text-stone-500'>
-                      {b.reason || b.sourceExplanation || t('scriptReview.checks.notLocked')}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+              <div className='p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-900 flex items-start gap-2 mt-3'>
+                <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0 mt-0.5' />
+                <p>
+                  Kịch bản đang bị chặn duyệt do <strong>{blockers.map((b) => b.entryName).join(', ')}</strong> chưa hoàn thiện hồ sơ thiết kế chuẩn.
+                </p>
+              </div>
             )}
           </>
         )}
