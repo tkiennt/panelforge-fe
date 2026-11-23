@@ -35,6 +35,7 @@ import {
   SeriesProgressDto,
 } from '@/services/series.service';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
+import { ProducerSharedHeader } from './ProducerSharedHeader';
 
 export interface WorkspaceViewProps {
   currentUserRole?: WorkspaceRole | null;
@@ -317,140 +318,27 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
       <h1 className='sr-only'>Quy trình sản xuất</h1>
 
       {/* SUB-HEADER PIPELINE & CHAPTER BAR */}
-      <div className='w-full bg-white border-b border-stone-200 sticky top-0 md:top-16 z-30 px-4 sm:px-6 lg:px-8 py-3 shadow-2xs'>
-        <div className='max-w-[1640px] mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4'>
-          {/* Left: Back Link, Title, Subtitle, Status Pill */}
-          <div className='flex flex-wrap items-center gap-3'>
-            <div>
-              <button
-                type='button'
-                onClick={() => handleSwitchSubtab('chapters')}
-                className='inline-flex items-center gap-1 text-xs font-semibold text-orange-700 hover:text-orange-800 hover:underline mb-1 transition-colors cursor-pointer'
-              >
-                <ArrowLeft className='w-3.5 h-3.5' aria-hidden='true' />
-                <span>{t('workbench.backToChapters', 'Quay lại Tổng quan chương')}</span>
-              </button>
-              <h2 className='text-base font-bold text-stone-900 leading-tight'>
-                {seriesTitle || 'Series'} : {currentChapterFormattedTitle}
-              </h2>
-              <p className='text-xs text-stone-500'>
-                {seriesDetail?.format || t('workbench.shonenFormat', 'Quy chuẩn Shonen')}
-              </p>
-            </div>
-            {statusMeta && (
-              <span
-                className={`px-2.5 py-0.5 rounded-full border text-xs font-semibold ${statusMeta.cls}`}
-              >
-                {statusMeta.label}
-              </span>
-            )}
-          </div>
-
-          {/* Right: Chapter Selector, Subtab Bar, Action CTA */}
-          <div className='flex flex-wrap items-center gap-2.5'>
-            {/* Chapter Selector Dropdown */}
-            <div className='relative flex items-center'>
-              <label htmlFor='pipeline-chapter-select' className='sr-only'>
-                Chương:
-              </label>
-              <select
-                id='pipeline-chapter-select'
-                aria-label='Chương:'
-                value={currentChapterId}
-                onChange={handleChapterChange}
-                disabled={loadingChapters || chapters.length === 0}
-                className='px-3 py-1.5 rounded-lg bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium focus:outline-none focus:border-stone-400 cursor-pointer shadow-2xs'
-              >
-                {chapters.length === 0 ? (
-                  <option value=''>Đang nạp danh sách chương...</option>
-                ) : (
-                  chapters.map((chap) => (
-                    <option key={chap.id} value={chap.id}>
-                      {formatChapterLabel(chap.chapterNumber, chap.title || 'Bản thảo')}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-
-            {/* Sub-tabs Navigation: EXACTLY Ma trận trang · Tổng quan chương · Kịch bản · Đọc thử & Soát trang · Bàn giao */}
-            <div
-              className='inline-flex p-1 rounded-lg bg-stone-100 border border-stone-200'
-              id='subtab-bar'
-            >
-              <button
-                type='button'
-                data-subtab='progress'
-                id='subtab-progress'
-                onClick={() => handleSwitchSubtab('progress')}
-                className={`subtab-btn px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                  activeSubtab === 'progress'
-                    ? 'bg-white text-stone-900 font-semibold shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 font-medium'
-                }`}
-              >
-                {t('workbench.subtabs.progress', 'Ma trận trang')}
-              </button>
-              <button
-                type='button'
-                data-subtab='chapters'
-                id='subtab-chapters'
-                onClick={() => handleSwitchSubtab('chapters')}
-                className={`subtab-btn px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                  activeSubtab === 'chapters'
-                    ? 'bg-white text-stone-900 font-semibold shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 font-medium'
-                }`}
-              >
-                {t('workbench.subtabs.chapters', 'Tổng quan chương')}
-              </button>
-              <button
-                type='button'
-                data-subtab='script'
-                id='subtab-script'
-                onClick={() =>
-                  navigate(
-                    currentChapterId
-                      ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${currentChapterId}/script/review`
-                      : `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
-                  )
-                }
-                className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-              >
-                {t('workbench.subtabs.script', 'Kịch bản')}
-              </button>
-              <button
-                type='button'
-                data-subtab='reader'
-                id='subtab-reader'
-                onClick={() =>
-                  navigate(
-                    currentChapterId
-                      ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${currentChapterId}/review/latest`
-                      : `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
-                  )
-                }
-                className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-              >
-                {t('workbench.subtabs.reader', 'Đọc thử & Soát trang')}
-              </button>
-              <button
-                type='button'
-                data-subtab='handoff'
-                id='subtab-handoff'
-                onClick={() =>
-                  navigate(
-                    `/workspaces/${workspaceId}/series/${seriesId}/export${
-                      currentChapterId ? `?chapterId=${currentChapterId}` : ''
-                    }`,
-                  )
-                }
-                className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-              >
-                {t('workbench.subtabs.handoff', 'Bàn giao')}
-              </button>
-            </div>
-
+      <ProducerSharedHeader
+        workspaceId={workspaceId}
+        seriesId={seriesId}
+        currentChapterId={currentChapterId}
+        chapters={chapters}
+        seriesTitle={seriesTitle}
+        seriesFormat={seriesDetail?.format}
+        currentChapter={currentChapter}
+        activeTab={activeSubtab}
+        onChapterChange={(nextId) => {
+          setCurrentChapterId(nextId);
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('chapterId', nextId);
+            return next;
+          });
+        }}
+        onBackToChapters={() => handleSwitchSubtab('chapters')}
+        loadingChapters={loadingChapters}
+        actionCta={
+          <div className='flex items-center gap-2'>
             {/* Refresh Button */}
             <button
               type='button'
@@ -488,8 +376,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               <span>{t('workbench.startProduction', 'Bắt đầu sản xuất')}</span>
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* CONTENT BODY CONTAINER */}
       <div className='w-full max-w-[1640px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6'>
