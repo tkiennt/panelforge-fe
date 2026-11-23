@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, AlertTriangle, Plus, Trash2, User } from 'lucide-react';
+import { Mail, AlertTriangle, Plus, Trash2, User, UserPlus, X } from 'lucide-react';
 import { workspaceService, WorkspaceMemberDto } from '@/services/workspace.service';
 import { TeamInviteAcceptance, TeamMemberItem } from '@/shared/components/lucian';
 import { InviteResultModal, InviteResultItem } from './InviteResultModal';
@@ -252,70 +252,192 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     }
   };
 
+  const [singleEmail, setSingleEmail] = useState('');
+  const [selectedRole, setSelectedRole] = useState('Artist');
+  const [singleLoading, setSingleLoading] = useState(false);
+
+  const handleSingleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!singleEmail.trim()) return;
+    setSingleLoading(true);
+    try {
+      await handleDirectInvite(singleEmail.trim(), selectedRole);
+      onShowToast(
+        'Đã gửi lời mời thành công',
+        `Lời mời cộng tác đã chuyển đến ${singleEmail.trim()}`,
+      );
+      setSingleEmail('');
+      onClose();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Lỗi gửi lời mời');
+    } finally {
+      setSingleLoading(false);
+    }
+  };
+
   return (
     <>
       <Modal
         isOpen={isOpen && !showResultModal}
         onClose={onClose}
         size='md'
-        title='Mời thành viên'
+        title='Mời thành viên mới vào Studio'
         description={workspaceName}
         closeLabel='Đóng modal'
       >
-        <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]'>
+        <div className='bg-white border border-stone-200 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[92vh] text-xs'>
+          {/* Header */}
+          <div className='p-5 border-b border-stone-200 flex items-center justify-between bg-white'>
+            <div className='flex items-center gap-3'>
+              <div className='w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0'>
+                <UserPlus className='w-5 h-5' />
+              </div>
+              <div>
+                <h3 className='font-bold text-stone-900 text-base'>
+                  Mời thành viên mới vào Studio
+                </h3>
+                <p className='text-xs text-stone-500 mt-0.5'>
+                  Thêm cộng sự và phân quyền tác vụ sáng tác trong hệ thống Studio
+                </p>
+              </div>
+            </div>
+            <button
+              type='button'
+              onClick={onClose}
+              className='text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer'
+            >
+              <X className='w-5 h-5' />
+            </button>
+          </div>
+
           {/* Mode Switcher Tabs */}
-          <div className='flex items-center gap-1.5 p-1 bg-[#FAF8F4] rounded-xl mx-4 mt-3 border border-[#E7E7E7]'>
+          <div className='flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl mx-5 mt-4 border border-stone-200'>
             <button
               type='button'
               onClick={() => setInviteMode('interactive')}
               className={`flex-1 py-1.5 px-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 inviteMode === 'interactive'
-                  ? 'bg-white text-[#171717] shadow-2xs border border-[#E7E7E7]'
-                  : 'text-[#737373] hover:text-[#171717]'
+                  ? 'bg-white text-stone-900 shadow-2xs border border-stone-200'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              <User className='w-3.5 h-3.5 text-orange-500' />
-              <span>Cá nhân</span>
+              <User className='w-3.5 h-3.5 text-orange-600' />
+              <span>Thành viên mới</span>
             </button>
             <button
               type='button'
               onClick={() => setInviteMode('batch')}
               className={`flex-1 py-1.5 px-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 inviteMode === 'batch'
-                  ? 'bg-white text-[#171717] shadow-2xs border border-[#E7E7E7]'
-                  : 'text-[#737373] hover:text-[#171717]'
+                  ? 'bg-white text-stone-900 shadow-2xs border border-stone-200'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              <Mail className='w-3.5 h-3.5 text-[#737373]' />
-              <span>Hàng loạt</span>
+              <Mail className='w-3.5 h-3.5 text-stone-500' />
+              <span>Gửi hàng loạt</span>
             </button>
           </div>
 
-          {/* Mode 1: Direct Single / Interactive Flow */}
+          {/* Mode 1: Stitch Single Member Invite with Role Cards */}
           {inviteMode === 'interactive' && (
-            <div className='p-4 overflow-y-auto flex-1 custom-scrollbar space-y-3'>
-              <TeamInviteAcceptance
-                workspaceName={workspaceName || ''}
-                initialMembers={existingMembers}
-                availableRoles={AVAILABLE_ROLES.map((r) => r.value)}
-                onInvite={handleDirectInvite}
-                onRoleChange={handleRoleChangeDirect}
-              />
+            <form onSubmit={handleSingleSubmit} className='p-5 overflow-y-auto flex-1 custom-scrollbar flex flex-col gap-4 text-xs'>
+              {errorMsg && (
+                <div className='p-3 bg-red-50 text-red-600 text-xs rounded-xl border border-red-200 flex items-start gap-2'>
+                  <AlertTriangle className='w-4 h-4 mt-0.5 shrink-0' />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
 
-              <p className='text-[11px] text-stone-400 text-center font-mono'>
-                Thành viên cần xác nhận qua email để hoàn tất tham gia.
-              </p>
+              <div className='flex flex-col gap-1.5'>
+                <label className='font-semibold text-stone-800 text-xs flex items-center justify-between'>
+                  <span>
+                    Email hoặc Tên thành viên <span className='text-orange-600'>*</span>
+                  </span>
+                </label>
+                <div className='relative'>
+                  <Mail className='w-4 h-4 text-stone-400 absolute left-3 top-2.5' />
+                  <input
+                    type='email'
+                    required
+                    value={singleEmail}
+                    onChange={(e) => setSingleEmail(e.target.value)}
+                    placeholder='vd: artist.kenji@mappa.jp'
+                    className='w-full bg-white border border-stone-200 rounded-xl pl-9 pr-3.5 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs font-medium placeholder:text-stone-400'
+                  />
+                </div>
+              </div>
 
-              <div className='pt-1 flex items-center justify-end'>
+              {/* Base Role Cards */}
+              <div className='flex flex-col gap-2'>
+                <label className='font-semibold text-stone-800 text-xs'>
+                  Vai trò cốt lõi (Base Role) <span className='text-orange-600'>*</span>
+                </label>
+                <div className='grid grid-cols-1 gap-2'>
+                  {[
+                    {
+                      role: 'Writer',
+                      title: 'Biên kịch (Writer)',
+                      desc: 'Tạo kịch bản, nhánh thoại & Series Bible',
+                    },
+                    {
+                      role: 'Artist',
+                      title: 'Họa sĩ chì / Name (Lead Artist)',
+                      desc: 'Phác thảo bố cục trang & thumbnail',
+                    },
+                    {
+                      role: 'Letterer',
+                      title: 'Họa sĩ thoại / Chèn chữ (Letterer)',
+                      desc: 'Gắn bóng thoại, hiệu ứng chữ SFX & hoàn thiện',
+                    },
+                    {
+                      role: 'Editor',
+                      title: 'Biên tập viên (Editor)',
+                      desc: 'Biên tập, rà soát kịch bản & duyệt bản vẽ',
+                    },
+                  ].map((item) => (
+                    <label
+                      key={item.role}
+                      className={`border rounded-xl px-3.5 py-2.5 flex items-center gap-3 cursor-pointer transition-colors ${
+                        selectedRole === item.role
+                          ? 'border-orange-600 bg-orange-50/50 shadow-2xs'
+                          : 'border-stone-200 hover:bg-stone-50'
+                      }`}
+                    >
+                      <input
+                        type='radio'
+                        name='member_base_role'
+                        value={item.role}
+                        checked={selectedRole === item.role}
+                        onChange={() => setSelectedRole(item.role)}
+                        className='accent-orange-600 shrink-0'
+                      />
+                      <div className='flex-1 flex flex-col'>
+                        <span className='font-semibold text-stone-900 text-xs'>{item.title}</span>
+                        <p className='text-[11px] text-stone-500 mt-0.5'>{item.desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className='pt-3 border-t border-stone-200 flex items-center justify-end gap-2.5'>
                 <button
                   type='button'
                   onClick={onClose}
-                  className='px-4 py-2 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-xs'
+                  className='px-4 py-2 rounded-xl border border-stone-200 bg-white font-medium text-stone-700 hover:bg-stone-50 cursor-pointer transition-colors'
                 >
-                  Đóng
+                  Hủy bỏ
+                </button>
+                <button
+                  type='submit'
+                  disabled={singleLoading || !singleEmail.trim()}
+                  className='px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-colors'
+                >
+                  <UserPlus className='w-4 h-4' />
+                  <span>{singleLoading ? 'Đang gửi...' : 'Gửi lời mời & Cấp quyền'}</span>
                 </button>
               </div>
-            </div>
+            </form>
           )}
 
           {/* Mode 2: Multi-email Batch Importer */}

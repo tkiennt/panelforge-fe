@@ -55,6 +55,130 @@ export const StudioScheduleTab: React.FC<StudioScheduleTabProps> = ({
 
   return (
     <div className='space-y-6 animate-in fade-in duration-200'>
+      {/* Stitch Weekly Schedule Header */}
+      <div className='flex items-center justify-between gap-4'>
+        <div>
+          <h2 className='text-xl font-bold text-stone-900'>Lịch phát hành xuất bản tổng hợp</h2>
+          <p className='text-xs text-stone-500 mt-0.5'>
+            Hạn chót nộp bản vẽ, hiệu chỉnh hội thoại và bàn giao in ấn theo tuần
+          </p>
+        </div>
+        <button
+          type='button'
+          className='px-3.5 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-xs text-stone-800 shadow-2xs font-semibold cursor-pointer transition-colors'
+        >
+          Hôm nay
+        </button>
+      </div>
+
+      {/* Dynamic 4-Column Weekly Sprint Cards from Real Series */}
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
+        {/* Tuần 1: Hoàn tất phát hành */}
+        <div className='bg-white border border-stone-200 rounded-xl p-4 flex flex-col gap-3 shadow-xs'>
+          <div className='flex items-center justify-between pb-2 border-b border-stone-100'>
+            <span className='font-semibold text-stone-800 text-xs'>Tuần 1</span>
+            <span className='text-[10px] px-2 py-0.5 rounded bg-emerald-600 text-white font-bold'>
+              ĐÃ PHÁT HÀNH
+            </span>
+          </div>
+          {completedSeries[0] || seriesList[0] ? (
+            <div className='p-2.5 rounded-lg bg-[#FAF9F5] border border-stone-200 flex flex-col gap-1'>
+              <span className='text-[11px] font-bold text-orange-600 line-clamp-1'>
+                {(completedSeries[0] || seriesList[0]).title}
+              </span>
+              <span className='font-semibold text-stone-900 text-xs line-clamp-1'>
+                {(completedSeries[0] || seriesList[0]).chaptersCount
+                  ? `Chương ${(completedSeries[0] || seriesList[0]).chaptersCount}: Đã phát hành`
+                  : 'Bản thảo Name'}
+              </span>
+              <span className='text-[11px] text-stone-500 line-clamp-1'>
+                Định dạng: {(completedSeries[0] || seriesList[0]).format || 'Manga/Webtoon'}
+              </span>
+            </div>
+          ) : (
+            <div className='p-4 text-center text-xs text-stone-400'>Chưa có lịch phát hành</div>
+          )}
+        </div>
+
+        {/* Tuần 2: Kỳ gần nhất */}
+        <div className='bg-white border border-stone-200 rounded-xl p-4 flex flex-col gap-3 shadow-xs'>
+          <div className='flex items-center justify-between pb-2 border-b border-stone-100'>
+            <span className='font-semibold text-stone-800 text-xs'>Tuần 2</span>
+            <span className='text-[10px] px-2 py-0.5 rounded bg-emerald-600 text-white font-bold'>
+              HOÀN TẤT
+            </span>
+          </div>
+          {seriesList[1] || seriesList[0] ? (
+            <div className='p-2.5 rounded-lg bg-[#FAF9F5] border border-stone-200 flex flex-col gap-1'>
+              <span className='text-[11px] font-bold text-orange-700 line-clamp-1'>
+                {(seriesList[1] || seriesList[0]).title}
+              </span>
+              <span className='font-semibold text-stone-900 text-xs line-clamp-1'>
+                {(seriesList[1] || seriesList[0]).chaptersCount
+                  ? `Chương ${(seriesList[1] || seriesList[0]).chaptersCount}: Hiệu đính`
+                  : 'Tiền kỳ phân cảnh'}
+              </span>
+              <span className='text-[11px] text-stone-500 line-clamp-1'>
+                Thể loại: {formatGenre((seriesList[1] || seriesList[0]).genre)}
+              </span>
+            </div>
+          ) : (
+            <div className='p-4 text-center text-xs text-stone-400'>Chưa có lịch phát hành</div>
+          )}
+        </div>
+
+        {/* Tuần 3: TUẦN HIỆN TẠI (Đang sản xuất) */}
+        <div className='bg-white border-2 border-orange-600 rounded-xl p-4 flex flex-col gap-3 shadow-sm relative'>
+          <div className='absolute -top-2.5 right-3 px-2 py-0.5 bg-orange-600 text-white text-[10px] font-bold rounded-full shadow-2xs'>
+            TUẦN HIỆN TẠI
+          </div>
+          <div className='flex items-center justify-between pb-2 border-b border-stone-100'>
+            <span className='font-bold text-orange-600 text-xs'>Tuần 3 (Đang triển khai)</span>
+          </div>
+          {activeSeries[0] || seriesList[0] ? (
+            <div className='p-2.5 rounded-lg bg-orange-50/50 border border-orange-200 flex flex-col gap-1'>
+              <span className='text-[11px] font-bold text-orange-700 line-clamp-1'>
+                {(activeSeries[0] || seriesList[0]).title}
+              </span>
+              <span className='font-semibold text-stone-900 text-xs line-clamp-1'>
+                Chương {((activeSeries[0] || seriesList[0]).chaptersCount ?? 0) + 1}: Đang sản xuất
+              </span>
+              <div className='flex items-center justify-between text-[11px] text-amber-600 font-semibold mt-1'>
+                <span>Đang vẽ phân cảnh & thoại</span>
+                <span>Tiến độ thực tế</span>
+              </div>
+            </div>
+          ) : (
+            <div className='p-4 text-center text-xs text-stone-400'>Chưa có dự án nào đang chạy</div>
+          )}
+        </div>
+
+        {/* Tuần 4: Sắp diễn ra */}
+        <div className='bg-white border border-stone-200 rounded-xl p-4 flex flex-col gap-3 shadow-xs'>
+          <div className='flex items-center justify-between pb-2 border-b border-stone-100'>
+            <span className='font-semibold text-stone-800 text-xs'>Tuần 4</span>
+            <span className='text-[10px] px-2 py-0.5 rounded bg-stone-100 text-stone-600 font-bold'>
+              SẮP DIỄN RA
+            </span>
+          </div>
+          {seriesList[2] || seriesList[0] ? (
+            <div className='p-2.5 rounded-lg bg-[#FAF9F5] border border-stone-200 flex flex-col gap-1'>
+              <span className='text-[11px] font-bold text-orange-600 line-clamp-1'>
+                {(seriesList[2] || seriesList[0]).title}
+              </span>
+              <span className='font-semibold text-stone-900 text-xs line-clamp-1'>
+                Chương {((seriesList[2] || seriesList[0]).chaptersCount ?? 0) + 1}: Kế hoạch tiếp theo
+              </span>
+              <span className='text-[11px] text-stone-500 line-clamp-1'>
+                Hạn bàn giao Lineart & Lettering
+              </span>
+            </div>
+          ) : (
+            <div className='p-4 text-center text-xs text-stone-400'>Chưa có lịch phát hành</div>
+          )}
+        </div>
+      </div>
+
       {/* KPI Overview Banner */}
       <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
         <div className='bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/80 shadow-2xs space-y-1.5'>
