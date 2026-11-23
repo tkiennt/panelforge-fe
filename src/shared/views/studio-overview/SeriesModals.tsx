@@ -47,7 +47,7 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
                 alt={img.name}
                 className='w-full aspect-[366/594] object-cover rounded-md'
               />
-              <span className='text-[11px] font-semibold text-[#44403C]'>
+              <span className='text-xs font-semibold text-[#44403C]'>
                 {savingCoverId === img.id ? 'Đang lưu…' : img.name}
               </span>
             </button>
@@ -170,7 +170,7 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
                       className='accent-orange-600'
                     />
                   </div>
-                  <span className='text-[11px] text-stone-500'>600 DPI RTL (Phải sang trái)</span>
+                  <span className='text-xs text-stone-500'>600 DPI RTL (Phải sang trái)</span>
                 </label>
 
                 <label
@@ -194,7 +194,7 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
                       className='accent-orange-600'
                     />
                   </div>
-                  <span className='text-[11px] text-stone-500'>800px RGB (Cuộn dọc số)</span>
+                  <span className='text-xs text-stone-500'>800px RGB (Cuộn dọc số)</span>
                 </label>
               </div>
             </div>
