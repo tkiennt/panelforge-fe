@@ -210,7 +210,7 @@
     "metrics": {
       "seriesTitle": "Bộ truyện (Series)",
       "seriesRunning": "{count} Đang chạy",
-      "seriesOutput": "Sản lượng hoàn thành trong Studio này",
+      "seriesOutput": "Tổng số bộ truyện trong Studio này",
       "seriesOnTrack": "{onTrack} đúng tiến độ",
       "seriesAttention": "{attention} đang chuẩn bị",
       "storageTitle": "Dung lượng lưu trữ",
@@ -222,7 +222,11 @@
       "crewManage": "Quản lý nhân sự",
       "revenueTitle": "Doanh thu toàn Studio",
       "revenueFootnote": "Bản quyền kỹ thuật số & xuất bản vật lý",
-      "readsCount": "{count} lượt đọc toàn Studio"
+      "readsCount": "{count} lượt đọc toàn Studio",
+      "ariaLabel": "Chỉ số vận hành Studio",
+      "seriesChapters": "/ {count} chương",
+      "seriesSplit": "{running} đang sáng tác • {done} hoàn tất",
+      "unlimited": "Không giới hạn"
     },
     "series": {
       "title": "Danh sách Bộ truyện",
@@ -270,7 +274,8 @@
       "seriesAndMembers": "{seriesCount} Series • {memberCount} thành viên",
       "createNew": "+ Tạo Studio mới",
       "viewAll": "Xem tất cả Studio (/workspaces)"
-    }
+    },
+    "tabsLabel": "Điều hướng Studio"
   },
   "portal": {
     "eyebrow": "Studio",

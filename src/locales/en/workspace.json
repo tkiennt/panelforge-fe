@@ -210,7 +210,7 @@
     "metrics": {
       "seriesTitle": "Series Projects",
       "seriesRunning": "{count} Running",
-      "seriesOutput": "Completed output in this Studio",
+      "seriesOutput": "Total series in this studio",
       "seriesOnTrack": "{onTrack} on track",
       "seriesAttention": "{attention} in preparation",
       "storageTitle": "Storage Capacity",
@@ -222,7 +222,11 @@
       "crewManage": "Manage Crew",
       "revenueTitle": "Studio-wide Revenue",
       "revenueFootnote": "Digital rights & physical publishing",
-      "readsCount": "{count} reads across Studio"
+      "readsCount": "{count} reads across Studio",
+      "ariaLabel": "Studio operating metrics",
+      "seriesChapters": "/ {count} chapters",
+      "seriesSplit": "{running} in production • {done} completed",
+      "unlimited": "Unlimited"
     },
     "series": {
       "title": "Series Projects",
@@ -270,7 +274,8 @@
       "seriesAndMembers": "{seriesCount} Series • {memberCount} members",
       "createNew": "+ Create New Studio",
       "viewAll": "View all Studios (/workspaces)"
-    }
+    },
+    "tabsLabel": "Studio navigation"
   },
   "portal": {
     "eyebrow": "Studio",
