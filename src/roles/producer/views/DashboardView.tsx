@@ -466,7 +466,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-1.5'>
               <span className='text-xs text-stone-500 font-medium'>Định dạng xuất bản</span>
               <p className='text-sm font-bold text-stone-900'>PDF/X-1a tiêu chuẩn Shonen</p>
-              <p className='text-xs text-stone-500'>Độ phân giải 600 DPI, Trame 60 LPI</p>
+              <p className='text-xs text-stone-500'>Hệ màu Greyscale K-100%</p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-1.5'>
               <span className='text-xs text-stone-500 font-medium'>Bảo mật bản quyền</span>

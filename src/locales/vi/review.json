@@ -477,7 +477,6 @@
     "statusReviewing": "Khung #{number} · Đang soát",
     "toolPan": "Di chuyển",
     "toolCrop": "Soi & Ghim Panel",
-    "manuscriptSpec": "B5 Manuscript • 600 DPI",
     "feedbackTitle": "Nhận xét & Góp ý",
     "itemsCount": "{count} mục",
     "selectedPanelBadge": "Đang chọn: Khung #{number}",
@@ -487,7 +486,6 @@
     "btnRequestRework": "Yêu cầu vẽ lại",
     "threadsTitle": "Danh sách trao đổi ({count})",
     "waitingArtist": "Chờ họa sĩ sửa lại",
-    "passedStandard": "Đã đạt chuẩn in",
     "shortcutsHint": "Phím tắt: 1 2 3 chuyển khung tranh"
   },
   "handoffView": {

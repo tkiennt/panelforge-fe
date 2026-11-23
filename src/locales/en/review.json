@@ -477,7 +477,6 @@
     "statusReviewing": "Panel #{number} · Reviewing",
     "toolPan": "Pan",
     "toolCrop": "Focus & Pin Panel",
-    "manuscriptSpec": "B5 Manuscript • 600 DPI",
     "feedbackTitle": "Review & Comments",
     "itemsCount": "{count} items",
     "selectedPanelBadge": "Selected: Panel #{number}",
@@ -487,7 +486,6 @@
     "btnRequestRework": "Request rework",
     "threadsTitle": "Discussion threads ({count})",
     "waitingArtist": "Waiting for artist fix",
-    "passedStandard": "Print quality verified",
     "shortcutsHint": "Shortcuts: 1 2 3 switch panels"
   },
   "handoffView": {

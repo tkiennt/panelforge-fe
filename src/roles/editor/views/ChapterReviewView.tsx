@@ -2696,10 +2696,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
               {/* Visual Consistency Section */}
               <div className='pt-4 border-t border-stone-200 space-y-3'>
-                <div className='p-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl space-y-2.5'>
-                  <div className='flex items-center justify-between text-xs font-bold text-purple-900'>
+                <div className='p-3 bg-violet-50/60 border border-violet-200 rounded-xl space-y-2.5'>
+                  <div className='flex items-center justify-between text-xs font-bold text-violet-900'>
                     <span>Ngưỡng nhất quán AI</span>
-                    <span className='font-mono bg-white px-2 py-0.5 rounded border border-purple-200'>
+                    <span className='font-mono bg-white px-2 py-0.5 rounded border border-violet-200'>
                       {Math.round(visualThreshold * 100)}%
                     </span>
                   </div>
@@ -2710,13 +2710,13 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     step='0.05'
                     value={visualThreshold}
                     onChange={(e) => setVisualThreshold(parseFloat(e.target.value))}
-                    className='w-full accent-purple-600 cursor-pointer'
+                    className='w-full accent-violet-600 cursor-pointer'
                   />
                   <button
                     type='button'
                     disabled={actionBusy}
                     onClick={() => void handleRunVisual()}
-                    className='w-full py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1.5'
+                    className='w-full py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1.5'
                   >
                     <Sparkles className='w-3.5 h-3.5' />
                     <span>Chạy kiểm tra nét vẽ nhân vật</span>
@@ -2727,15 +2727,15 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   <div className='p-3 bg-white border border-stone-200 rounded-xl space-y-2 text-xs'>
                     <div className='grid grid-cols-3 gap-2 text-center'>
                       <div className='p-2 bg-stone-50 rounded-lg'>
-                        <span className='text-[10px] text-stone-400'>Tổng khung</span>
+                        <span className='text-xs text-stone-400'>Tổng khung</span>
                         <p className='font-bold text-stone-900'>{visualReport.totalEvaluated}</p>
                       </div>
                       <div className='p-2 bg-emerald-50 rounded-lg'>
-                        <span className='text-[10px] text-emerald-600'>Khớp</span>
+                        <span className='text-xs text-emerald-600'>Khớp</span>
                         <p className='font-bold text-emerald-800'>{visualReport.passedCount}</p>
                       </div>
                       <div className='p-2 bg-amber-50 rounded-lg'>
-                        <span className='text-[10px] text-amber-600'>Lệch</span>
+                        <span className='text-xs text-amber-600'>Lệch</span>
                         <p className='font-bold text-amber-800'>{visualReport.deviationCount}</p>
                       </div>
                     </div>
