@@ -111,7 +111,12 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     heldReviewLockRef.current = false;
     decisionMadeRef.current = false;
     autoOpenedTaskRef.current = null;
-  }, [chapterId, taskId]);
+    if (taskId === 'latest' && chapterId && effectiveWsId && seriesId) {
+      navigate(`/workspaces/${effectiveWsId}/series/${seriesId}/chapters/${chapterId}/reader`, {
+        replace: true,
+      });
+    }
+  }, [chapterId, taskId, effectiveWsId, seriesId, navigate]);
 
   const loadData = useCallback(async () => {
     if (!chapterId || !taskId) return;

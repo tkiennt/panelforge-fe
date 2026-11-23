@@ -86,6 +86,14 @@ const BibleReviewView = lazy(() =>
 const ScriptReviewView = lazy(() =>
   import('@/roles/editor/views/ScriptReviewView').then((m) => ({ default: m.ScriptReviewView })),
 );
+const ChapterReaderView = lazy(() =>
+  import('@/roles/editor/views/ChapterReaderView').then((m) => ({ default: m.ChapterReaderView })),
+);
+const SeriesRevenueView = lazy(() =>
+  import('@/roles/producer/views/SeriesRevenueView').then((m) => ({
+    default: m.SeriesRevenueView,
+  })),
+);
 const NotificationCenterView = lazy(() =>
   import('@/shared/views/NotificationCenterView').then((m) => ({
     default: m.NotificationCenterView,
@@ -576,6 +584,19 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   }
                 />
                 <Route
+                  path='revenue'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER', 'ADMINISTRATOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <SeriesRevenueView onShowToast={showToast} />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
                   path='artist'
                   element={
                     <RequireWorkspaceRole
@@ -661,6 +682,26 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                         workspaceRole={currentWorkspaceRole}
                         onShowToast={showToast}
                       />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
+                  path='chapters/:chapterId/reader'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={[
+                        'EDITOR',
+                        'PRODUCER',
+                        'ARTIST',
+                        'LETTERER',
+                        'WRITER',
+                        'ADMINISTRATOR',
+                      ]}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <ChapterReaderView onShowToast={showToast} />
                     </RequireWorkspaceRole>
                   }
                 />

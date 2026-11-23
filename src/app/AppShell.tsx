@@ -322,7 +322,7 @@ export function AppShell({
                 icon: BookOpen,
                 label: t('navigation.menu.artworkReview', 'Đọc duyệt tranh'),
                 href: chapterId
-                  ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapterId}/review/latest`
+                  ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapterId}/reader`
                   : `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
               },
               {
@@ -343,7 +343,7 @@ export function AppShell({
               {
                 icon: Eye,
                 label: t('navigation.menu.revenueAndReads', 'Doanh thu & Lượt đọc'),
-                href: `/workspaces/${workspaceId}/reader-stats`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/revenue`,
               },
               {
                 icon: Users,
@@ -789,20 +789,33 @@ export function AppShell({
     }
   };
 
-  // Set isActive based on location pathname: ưu tiên route khớp chính xác nhất/dài nhất để tránh nhiều mục cùng active ngoài chủ đích
+  // Set isActive based on location pathname & tab query: phân biệt rõ tab=crew và trang chính không có tab
   let bestMatch: any = null;
-  let bestMatchLength = 0;
+  let bestScore = -1;
+  const currentTab = searchParams.get('tab');
 
   navSections.forEach((section) => {
     section.items.forEach((item: any) => {
-      // So theo pathname: href có thể mang query (vd. Quy trình sản xuất ?chapterId=...)
-      const itemPath = String(item.href).split('?')[0];
-      const isMatch =
+      const [itemPath, itemQuery] = String(item.href).split('?');
+      const itemSearchParams = new URLSearchParams(itemQuery || '');
+      const itemTab = itemSearchParams.get('tab');
+
+      // Kiểm tra khớp pathname
+      const isPathMatch =
         location.pathname === itemPath ||
         (itemPath !== '/' && location.pathname.startsWith(`${itemPath}/`));
-      if (isMatch && itemPath.length > bestMatchLength) {
+
+      if (!isPathMatch) return;
+
+      // Kiểm tra khớp tab: nếu item có tab thì tab hiện tại phải khớp; nếu URL có tab=crew thì item không được là item không tab
+      if (itemTab && itemTab !== currentTab) return;
+      if (!itemTab && currentTab === 'crew') return;
+
+      // Điểm ưu tiên: khớp tab cụ thể > khớp path dài hơn
+      const score = itemPath.length + (itemTab === currentTab && itemTab ? 1000 : 0);
+      if (score > bestScore) {
         bestMatch = item;
-        bestMatchLength = itemPath.length;
+        bestScore = score;
       }
     });
   });
