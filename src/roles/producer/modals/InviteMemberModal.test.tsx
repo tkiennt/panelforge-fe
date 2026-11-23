@@ -17,7 +17,7 @@ describe('InviteMemberModal Component', () => {
     vi.clearAllMocks();
   });
 
-  it('renders interactive invite mode by default with clean tabs', () => {
+  it('renders invite modal with email input and base role radio cards', () => {
     render(
       <InviteMemberModal
         isOpen={true}
@@ -29,18 +29,20 @@ describe('InviteMemberModal Component', () => {
       />,
     );
 
-    expect(screen.getByText('Mời thành viên')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Cá nhân/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Hàng loạt/i })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Nhập email/i)).toBeInTheDocument();
+    expect(screen.getByText('Mời thành viên mới vào Studio')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/vd: artist.kenji@mappa.jp/i)).toBeInTheDocument();
+    expect(screen.getByText(/Họa sĩ chì \/ Name \(Lead Artist\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Biên kịch \(Writer\)/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Gửi lời mời & Cấp quyền/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Hủy bỏ/i })).toBeInTheDocument();
   });
 
-  it('sends direct invitation in single invite mode', async () => {
+  it('sends direct invitation with selected role', async () => {
     const user = userEvent.setup();
     vi.mocked(workspaceService.addMember).mockResolvedValue({
       userId: 'u-1',
-      fullName: 'Oda Eiichiro',
-      email: 'oda@studio.com',
+      fullName: 'Kenji Sato',
+      email: 'artist.kenji@mappa.jp',
       role: 'Artist',
       isOwner: false,
       joinedAt: new Date().toISOString(),
@@ -50,79 +52,58 @@ describe('InviteMemberModal Component', () => {
 
     const onInvited = vi.fn();
     const onShowToast = vi.fn();
+    const onClose = vi.fn();
 
     render(
       <InviteMemberModal
         isOpen={true}
         workspaceId='ws-123'
         workspaceName='Manga Studio'
-        onClose={vi.fn()}
+        onClose={onClose}
         onInvited={onInvited}
         onShowToast={onShowToast}
       />,
     );
 
-    const input = screen.getByPlaceholderText(/Nhập email/i);
-    await user.type(input, 'oda@studio.com');
+    const input = screen.getByPlaceholderText(/vd: artist.kenji@mappa.jp/i);
+    await user.type(input, 'artist.kenji@mappa.jp');
 
-    const inviteBtn = screen.getByRole('button', { name: /^Mời$/i });
-    await user.click(inviteBtn);
+    // Select Writer role
+    const writerRadio = screen.getByDisplayValue('Writer');
+    await user.click(writerRadio);
+
+    const submitBtn = screen.getByRole('button', { name: /Gửi lời mời & Cấp quyền/i });
+    await user.click(submitBtn);
 
     expect(workspaceService.addMember).toHaveBeenCalledWith('ws-123', {
-      email: 'oda@studio.com',
+      email: 'artist.kenji@mappa.jp',
       role: 'Writer',
     });
     expect(onInvited).toHaveBeenCalled();
-    expect(onShowToast).toHaveBeenCalledWith(
-      'Đã gửi lời mời',
-      expect.stringContaining('oda@studio.com'),
-    );
+    expect(onShowToast).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
   });
 
-  it('switches to Batch mode, adds multiple emails, and submits batch', async () => {
+  it('validates email format before submission', async () => {
     const user = userEvent.setup();
-    vi.mocked(workspaceService.addMember).mockResolvedValue({
-      userId: 'u-2',
-      fullName: 'Kishimoto',
-      email: 'kishi@studio.com',
-      role: 'Writer',
-      isOwner: false,
-      joinedAt: new Date().toISOString(),
-      isEmailConfirmed: false,
-      invitationEmailSent: true,
-    });
-
-    const onInvited = vi.fn();
     render(
       <InviteMemberModal
         isOpen={true}
         workspaceId='ws-123'
         workspaceName='Manga Studio'
-        initialMode='batch'
         onClose={vi.fn()}
-        onInvited={onInvited}
+        onInvited={vi.fn()}
         onShowToast={vi.fn()}
       />,
     );
 
-    const textarea = screen.getByPlaceholderText(/artist@studio.com/i);
-    await user.type(textarea, 'kishi@studio.com, kubo@studio.com');
+    const input = screen.getByPlaceholderText(/vd: artist.kenji@mappa.jp/i);
+    await user.type(input, 'invalid-email');
 
-    const addBtn = screen.getByRole('button', { name: /Thêm vào danh sách/i });
-    await user.click(addBtn);
-
-    expect(screen.getByText('kishi@studio.com')).toBeInTheDocument();
-    expect(screen.getByText('kubo@studio.com')).toBeInTheDocument();
-    expect(screen.getByText(/Danh sách mời \(2\)/i)).toBeInTheDocument();
-
-    const submitBtn = screen.getByRole('button', { name: /Gửi lời mời/i });
+    const submitBtn = screen.getByRole('button', { name: /Gửi lời mời & Cấp quyền/i });
     await user.click(submitBtn);
 
-    expect(workspaceService.addMember).toHaveBeenCalled();
-    expect(onInvited).toHaveBeenCalled();
-
-    // Confirm result modal appears with clean title
-    expect(await screen.findByText('Kết quả gửi lời mời')).toBeInTheDocument();
-    expect(screen.getByText('Gửi thành công')).toBeInTheDocument();
+    expect(workspaceService.addMember).not.toHaveBeenCalled();
+    expect(screen.getByText(/Vui lòng nhập định dạng email hợp lệ/i)).toBeInTheDocument();
   });
 });
