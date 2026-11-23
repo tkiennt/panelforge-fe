@@ -46,6 +46,7 @@ import {
   Palette,
   CreditCard,
   Download,
+  Plus,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
@@ -257,6 +258,23 @@ export function AppShell({
       : 'PRODUCER';
 
   const isSeriesContext = !!seriesId;
+  // Studio level (Context 1) is a top-bar-only layout: the series sidebar belongs to Context 2.
+  const isStudioHome =
+    !!workspaceId &&
+    !isSeriesContext &&
+    /^\/workspaces\/[^/]+(\/(overview|series))?\/?$/.test(location.pathname);
+  const canManageStudio =
+    effectiveRole === 'PRODUCER' ||
+    effectiveRole === 'ADMINISTRATOR' ||
+    currentUser.role === 'ADMINISTRATOR';
+  const studioTab = searchParams.get('tab') ?? 'series';
+  const setStudioQuery = (key: 'tab' | 'action', value: string | null) => {
+    const next = new URLSearchParams(location.search);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    const search = next.toString();
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : '' });
+  };
   const effectiveActiveSeries = isSeriesContext
     ? activeSeries
     : { title: activeWorkspace?.name || 'Studio Workspace', subtitle: 'Overview' };
@@ -282,7 +300,11 @@ export function AppShell({
                 icon: Kanban,
                 label: t('navigation.menu.production'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
-                badge: { type: 'text', text: `Ch. ${chapterId ? chapterId.replace(/^chapter-?/i, '').replace(/^chap-?/i, '') : '5'}`, color: 'bg-orange-50 text-orange-600' },
+                badge: {
+                  type: 'text',
+                  text: `Ch. ${chapterId ? chapterId.replace(/^chapter-?/i, '').replace(/^chap-?/i, '') : '5'}`,
+                  color: 'bg-orange-50 text-orange-600',
+                },
               },
               {
                 icon: FileText,
@@ -728,7 +750,9 @@ export function AppShell({
       );
     }
     if (badge.type === 'dot') {
-      return <span className={`w-1.5 h-1.5 rounded-full ${badge.color || 'bg-orange-600'} shrink-0`} />;
+      return (
+        <span className={`w-1.5 h-1.5 rounded-full ${badge.color || 'bg-orange-600'} shrink-0`} />
+      );
     }
     if (badge.type === 'text') {
       return (
@@ -752,7 +776,7 @@ export function AppShell({
   return (
     <div className='h-screen w-full flex overflow-hidden text-stone-900 bg-[#FAF9F5]'>
       {/* --- MOBILE DRAWER (< md) --- */}
-      {!isReader && (
+      {!isReader && !isStudioHome && (
         <SidebarDrawer
           isOpen={isMobileDrawerOpen}
           onClose={() => setIsMobileDrawerOpen(false)}
@@ -790,7 +814,7 @@ export function AppShell({
       )}
 
       {/* --- PERMANENT SIDEBAR (>= md) --- */}
-      {!isReader && (
+      {!isReader && !isStudioHome && (
         <AppShellSidebar
           currentUser={currentUser}
           activeWorkspace={activeWorkspace}
@@ -815,7 +839,24 @@ export function AppShell({
       <div className='flex-1 flex flex-col min-w-0 h-full bg-[#FAF9F5] relative overflow-hidden'>
         <header className='h-16 bg-white border-b border-stone-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-20 shadow-xs'>
           <div className='flex items-center gap-2 min-w-0'>
-            {!isReader && (
+            {isStudioHome && (
+              <div className='flex items-center shrink-0'>
+                <button
+                  type='button'
+                  onClick={() => navigate('/workspaces')}
+                  className='flex items-center gap-1.5 cursor-pointer'
+                >
+                  <span className='text-lg font-bold text-orange-600 tracking-tight'>
+                    {t('workspace.studioHub.brand')}
+                  </span>
+                  <span className='text-xs font-bold tracking-wider uppercase bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded'>
+                    {t('workspace.studioHub.studioBadge')}
+                  </span>
+                </button>
+                <div className='h-5 w-px bg-stone-200 mx-3' aria-hidden />
+              </div>
+            )}
+            {!isReader && !isStudioHome && (
               <button
                 type='button'
                 onClick={() => setIsMobileDrawerOpen(true)}
@@ -898,7 +939,9 @@ export function AppShell({
                     </button>
                     {chapterId && (
                       <>
-                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
+                          /
+                        </span>
                         <div
                           className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-orange-700 truncate bg-orange-50 rounded border border-orange-200/80 shrink-0 cursor-pointer'
                           data-testid='header-chapter-breadcrumb'
@@ -915,7 +958,9 @@ export function AppShell({
                     )}
                     {isArtistDesk && (
                       <>
-                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
+                          /
+                        </span>
                         <div
                           className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
                           data-testid='header-artist-breadcrumb'
@@ -929,7 +974,9 @@ export function AppShell({
                     )}
                     {isScriptDesk && (
                       <>
-                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
+                          /
+                        </span>
                         <div
                           className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
                           data-testid='header-script-breadcrumb'
@@ -941,7 +988,9 @@ export function AppShell({
                     )}
                     {isLettererDesk && (
                       <>
-                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
+                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
+                          /
+                        </span>
                         <div
                           className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
                           data-testid='header-letterer-breadcrumb'
@@ -956,6 +1005,37 @@ export function AppShell({
               </nav>
             )}
           </div>
+
+          {isStudioHome && canManageStudio && (
+            <nav
+              className='hidden lg:flex items-center gap-6 h-full text-sm font-medium'
+              aria-label={t('workspace.studioHub.tabsLabel')}
+              data-testid='studio-hub-tabs'
+            >
+              {(
+                [
+                  ['series', t('workspace.studioHub.tabs.series')],
+                  ['members', t('workspace.studioHub.tabs.crew')],
+                  ['schedule', t('workspace.studioHub.tabs.schedule')],
+                  ['audit', t('workspace.studioHub.tabs.audit')],
+                ] as const
+              ).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  type='button'
+                  aria-current={studioTab === tab ? 'page' : undefined}
+                  onClick={() => setStudioQuery('tab', tab === 'series' ? null : tab)}
+                  className={`h-16 flex items-center border-b-2 px-1 whitespace-nowrap transition-colors cursor-pointer ${
+                    studioTab === tab
+                      ? 'border-orange-600 text-orange-600 font-semibold'
+                      : 'border-transparent text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          )}
 
           <div className='flex items-center gap-3 shrink-0'>
             {!isReader && (
@@ -1116,6 +1196,18 @@ export function AppShell({
                 </>
               )}
             </div>
+
+            {isStudioHome && canManageStudio && (
+              <button
+                type='button'
+                onClick={() => setStudioQuery('action', 'create-series')}
+                className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs whitespace-nowrap'
+                data-testid='studio-hub-create-series'
+              >
+                <Plus className='w-4 h-4' />
+                <span>{t('workspace.studioHub.createSeries')}</span>
+              </button>
+            )}
 
             {isReader && (
               <button
