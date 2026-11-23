@@ -609,58 +609,6 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(await screen.findByTestId('concurrency-error-banner')).toBeInTheDocument();
   }, 15000);
 
-  it('chạy Kiểm tra nhất quán: hiển thị findings, cuộn tới dòng script, hiển thị badge trên dòng và KHÔNG có nút triage', async () => {
-    vi.mocked(assignmentService.runConsistencyCheck).mockResolvedValue({
-      chapterId: 'chap-1',
-      checkedAt: '2026-10-08T10:00:00Z',
-      newCount: 1,
-      openCount: 1,
-      blockingOpenCount: 1,
-      clearedCount: 0,
-      findings: [
-        {
-          id: 'find-1',
-          chapterId: 'chap-1',
-          ruleCode: 'SPEAKER_UNKNOWN',
-          severity: 'Blocking',
-          message: 'Nhân vật nói "Akira" không khớp mục Canon Bible nào.',
-          evidence: 'Họ đang di chuyển. Chuẩn bị đi!',
-          scriptLineId: 'line-1',
-          status: 'Open',
-          createdAt: '2026-10-08T10:00:00Z',
-          lastDetectedAt: '2026-10-08T10:00:00Z',
-        },
-      ],
-    });
-
-    const user = userEvent.setup();
-    renderView();
-
-    const railBtn = await screen.findByTestId('rail-consistency-btn');
-    await user.click(railBtn);
-
-    const checkBtn = await screen.findByTestId('run-consistency-check-btn');
-    await user.click(checkBtn);
-
-    expect(assignmentService.runConsistencyCheck).toHaveBeenCalledWith('chap-1');
-
-    // Hiển thị panel findings và badge trên dòng kịch bản
-    expect(await screen.findByTestId('consistency-findings-panel')).toBeInTheDocument();
-    expect(screen.getAllByText(/Nhân vật nói "Akira" không khớp/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('SPEAKER_UNKNOWN').length).toBeGreaterThanOrEqual(1);
-
-    // Hiển thị badge trên dòng kịch bản tương ứng
-    expect(await screen.findByTestId('line-finding-line-1')).toBeInTheDocument();
-
-    // Kiểm tra TUYỆT ĐỐI KHÔNG CÓ bất kỳ nút triage nào (Confirmed, Rejected, Ignored, NeedsClarification)
-    expect(screen.queryByRole('button', { name: /xác nhận|confirmed/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /từ chối|rejected/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /bỏ qua|ignored/i })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /làm rõ|needsclarification/i }),
-    ).not.toBeInTheDocument();
-  });
-
   it('formatChapterOption không làm lặp "Chương 1: Chương 1"', async () => {
     const { formatChapterOption } = await import('../utils/chapterFormat');
     expect(formatChapterOption(1, 'Chương 1: Cơn Bão Deadline')).toBe('Chương 1: Cơn Bão Deadline');

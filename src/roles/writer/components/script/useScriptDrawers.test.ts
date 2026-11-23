@@ -38,12 +38,12 @@ describe('useScriptDrawers', () => {
     const { result } = renderHook(() => useScriptDrawers({ initialRightDrawer: null }));
 
     act(() => {
-      result.current.toggleRightDrawer('consistency');
+      result.current.toggleRightDrawer('characters');
     });
-    expect(result.current.activeRightDrawer).toBe('consistency');
+    expect(result.current.activeRightDrawer).toBe('characters');
 
     act(() => {
-      result.current.toggleRightDrawer('consistency');
+      result.current.toggleRightDrawer('characters');
     });
     expect(result.current.activeRightDrawer).toBeNull();
   });

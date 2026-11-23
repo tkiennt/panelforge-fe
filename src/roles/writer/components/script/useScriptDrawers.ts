@@ -3,7 +3,6 @@ import { useState } from 'react';
 export type LeftDrawer = 'chapters' | 'scenes' | null;
 export type RightDrawer =
   | 'narrative'
-  | 'consistency'
   | 'characters'
   | 'versions'
   | 'comments'
