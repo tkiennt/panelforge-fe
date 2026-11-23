@@ -1,32 +1,39 @@
 # Role: Writer (WorkspaceRole / TaskRole)
 
 ## 1. Mô tả
-Biên kịch (Writer) chịu trách nhiệm sáng tác kịch bản truyện tranh, biên soạn đề cương chương (outline), sử dụng AI Breakdown để phân rã kịch bản thành các khối cảnh (scene), hành động (action), thoại (dialogue), và liên kết thực thể Kinh thánh bộ truyện (Bible Entities).
+Biên kịch (Writer) chịu trách nhiệm sáng tác kịch bản truyện tranh (Graphic Novel Full Script), phân đoạn phân cảnh (scenes), gõ liền mạch trên bàn viết Screenplay Flow Editor, liên kết thực thể Series Bible, tiếp nhận góp ý từ Editor, và quản lý các phiên bản kịch bản (Script Versions).
 
 ## 2. Route & Màn hình
 - **Route mặc định**: `/workspaces/:workspaceId/series/:seriesId/script`
 - **Màn hình chính**:
-  - `ScriptEditorView.tsx`: Bàn viết kịch bản, bố cục theo Bàn vẽ của Artist:
-    - Header chung (`FocusWorkspaceLayout`): Bộ truyện / Chương, công đoạn Viết → Editor duyệt → Khóa kịch bản, nút Gửi duyệt kịch bản (Producer: Duyệt kịch bản).
-    - Thanh công cụ kịch bản (Toolbar): Nút mở/thu gọn Phân cảnh (n), dải nút chuyển loại dòng (Trang, Panel, Hành động, Nhân vật, ( ) Sắc thái, Thoại, Dẫn truyện, SFX), phím tắt Ctrl+S và nút Lưu, các tab mở Bảng công cụ Biên kịch bên phải (Series Bible, Góp ý, Version, Nhất quán).
-    - Cột phân cảnh bên trái (`ScriptScenesDrawer`): Danh sách phân cảnh, ghi chú phân đoạn, cấu hình phân cảnh, nút thu gọn thành sidetab 44px (`#scene-collapsed-tab`).
-    - Trang giấy ở giữa (`ScreenplayFlowEditor`) theo định dạng full script truyện tranh: Writer chia Trang → Panel, không làm thumbnail (Artist vẽ theo kịch bản).
-      - Mỗi Panel: dòng "PANEL N:" và mô tả khung tranh; thoại / dẫn truyện / SFX là dòng hai cột "1. TÊN (OFF):  lời thoại", đánh số lại từ 1 ở mỗi trang.
-      - Gõ `TÊN:` hoặc `TÊN (OFF):` ở đầu dòng để viết thoại; cảnh chỉ là đường phân cách nhẹ, Trợ lý AI và Lịch sử dùng cảnh tại con trỏ.
-      - Nút nổi Trợ lý kịch bản AI màu tím (`#btn-ai-script-assistant`): Popover gợi ý nhanh theo ngữ cảnh (thoại đối kháng, SFX cao trào, phản xạ nhân vật), chèn nhanh vào kịch bản hoặc mở prompt AI modal.
-    - Bảng công cụ Biên kịch bên phải: Ngăn kéo đa năng gồm Series Bible (`BibleCharactersDrawer`), Góp ý biên tập theo dòng thoại (`ScriptReviewSidePanel`), Lịch sử bản thảo diff (`ScriptVersionsDrawer`).
-    - Thanh công cụ nổi ở đáy: chế độ xem, dải trang + "Thêm trang" (4 hoặc 5 khung), loại dòng hiện tại, lưu (Ctrl+S).
-    - Gõ kịch bản: Enter = dòng hành động mới; gõ `Tên:` đầu dòng = lời thoại có nhãn người nói (khớp Series Bible,
-      hoặc tên viết HOA); Tab / Shift+Tab đổi loại dòng (Hành động → Thoại → Lời dẫn → SFX); Enter trên dòng trống
-      quay về hành động; Backspace đầu lời thoại bỏ nhãn người nói.
-    - Định dạng lưu giữ tương thích Bàn vẽ: thoại `Tên: "lời thoại"`, `SFX: ...`, `Lời dẫn: ...`.
-  - `WriterWorkspace.tsx`: Bàn làm việc nhanh của biên kịch trong cửa sổ phân cảnh / Spread Workbench.
+  - `ScriptEditorView.tsx`: Bàn viết kịch bản chuẩn Stitch `writer.html`:
+    - **Header**: Thanh điều hướng phân cấp (Workspace / Series / Script Editor), thông tin Chương hiện tại, trạng thái quy trình (Đang viết → Chờ duyệt → Đã chốt), nút hành động theo vai trò (Gửi duyệt / Bắt đầu sản xuất).
+    - **Thanh công cụ kịch bản (Top Toolbar)**:
+      - Nút mở/thu gọn Phân cảnh (`#btn-toggle-scene-outline`): bật/tắt ngăn kéo phân cảnh bên trái (`ScriptScenesDrawer`).
+      - Tiêu đề chương / kịch bản và nhãn trạng thái lưu (`Đã lưu` / `Chưa lưu (Ctrl+S)`).
+      - Nút Lưu nhanh (`Ctrl+S`).
+      - Cụm tab mở Bảng công cụ Biên kịch bên phải: **Series Bible** (`ScriptRightBiblePanel`), **Góp ý** (`ScriptReviewSidePanel`), **Version** (`ScriptVersionsDrawer`).
+    - **Cột phân cảnh bên trái (`ScriptScenesDrawer`)**: Danh sách phân cảnh, ghi chú phạm vi panel, chọn cảnh, cấu hình / đổi tên / xoá cảnh (Producer có quyền xoá chương). Có thể thu gọn thành thanh sidetab 44px (`#scene-collapsed-tab`).
+    - **Bàn viết trung tâm (`ScreenplayFlowEditor`)**: Bàn viết Graphic Novel Full Script hiện đại trên nền giấy trắng:
+      - Chia Trang (`TRANG N - PANEL: K`) và Panel (`PANEL N`).
+      - Gõ phím liền mạch: `Enter` xuống dòng kế tiếp, `Tab` đổi sang nhân vật / `( )` sắc thái, `Ctrl+1..8` đổi loại dòng, `Ctrl+S` lưu kịch bản.
+      - Nút nổi Trợ lý kịch bản AI (`#btn-ai-script-assistant`): Popover gợi ý nhanh theo ngữ cảnh (thoại đối kháng, SFX cao trào, phản xạ nhân vật).
+    - **Bảng điều khiển bên phải (Right Drawers)**:
+      - **Series Bible (`ScriptRightBiblePanel`)**: Danh sách thực thể Series Bible với 2 tab "Trong chương" (Chapter Cast) và "Toàn bộ" (All Bible entries). Hỗ trợ tra cứu nhanh, xem tag phân loại (Nhân vật, Địa điểm, Đạo cụ...), liên kết trực tiếp tới Series Bible vault.
+      - **Góp ý biên tập (`ScriptReviewSidePanel`)**: Danh sách góp ý từ Editor theo từng dòng kịch bản, cho phép Writer đánh dấu đã giải quyết (Resolve) và nhảy đến dòng tương ứng.
+      - **Lịch sử phiên bản (`ScriptVersionsDrawer`)**: Danh sách các phiên bản kịch bản (commits/pushes), so sánh diff chi tiết và khôi phục revision (UC-18, UC-13).
+  - `WriterWorkspace.tsx`: Bàn làm việc của biên kịch trong cửa sổ phân cảnh / Spread Workbench.
 
 ## 3. Thành phần (Components)
-- `ScriptEditor.tsx`: Trình soạn thảo kịch bản tích hợp trong Task Editor đa vai trò.
-- `components/script/`:
-  - `ScriptScenesDrawer.tsx`: Ngăn kéo danh sách phân cảnh chuẩn Stitch (chọn, cấu hình, đổi tên, xoá cảnh; Producer xoá chương).
-  - `ScriptLineItem.tsx`: Biên tập chi tiết từng dòng kịch bản (Speaker, loại thoại, nội dung, ghi chú âm thanh/hành động).
-  - `BibleCharactersDrawer.tsx`: Drawer tra cứu và gán nhanh nhân vật/thực thể Bible vào dòng kịch bản.
-  - `NarrativeContextDrawer.tsx`: Drawer xem mạch truyện (Story Arc) và đề cương chương (Outline).
-  - `ScriptHistoryModal.tsx`: Hộp thoại lịch sử phiên bản kịch bản phân cảnh, so sánh đối chiếu diff và khôi phục revision (UC-18, UC-13).
+- `src/roles/writer/components/script/`:
+  - `ScriptScenesDrawer.tsx`: Ngăn kéo danh sách phân cảnh chuẩn Stitch.
+  - `ScriptRightBiblePanel.tsx`: Bảng Series Bible bên phải chuẩn Stitch `writer.html` (tab "Trong chương" & "Toàn bộ", liên kết Series Bible).
+  - `ScriptReviewSidePanel.tsx`: Bảng góp ý biên tập và phản hồi kịch bản từ Editor.
+  - `ScriptVersionsDrawer.tsx`: Ngăn kéo quản lý lịch sử phiên bản kịch bản và khôi phục revision.
+  - `useScriptDrawers.ts`: Hook quản lý trạng thái mở/đóng các drawer (trái: `scenes`; phải: `bible`, `comments`, `versions`).
+  - `flow/`:
+    - `ScreenplayFlowEditor.tsx`: Bàn viết kịch bản Graphic Novel với TipTap engine.
+    - `grammar/scriptGrammar.ts`: Văn phạm các khối kịch bản Graphic Novel.
+    - `nodes/ScriptLineBlockNode.ts`: Các node dòng kịch bản TipTap (Page, Panel, Action, Character, Dialogue, SFX...).
+    - `scriptFlowAdapter.ts`: Bộ chuyển đổi dữ liệu giữa tài liệu TipTap và API Backend.
+    - `BibleRefFloatingMenu.tsx`: Menu nổi tham chiếu Series Bible trong bàn viết.

@@ -1,15 +1,8 @@
+// src/roles/writer/components/script/useScriptDrawers.ts
 import { useState } from 'react';
 
-export type LeftDrawer = 'chapters' | 'scenes' | null;
-export type RightDrawer =
-  | 'narrative'
-  | 'characters'
-  | 'versions'
-  | 'comments'
-  | 'status'
-  | 'ai-draft'
-  | 'ai-storyboard'
-  | null;
+export type LeftDrawer = 'scenes' | null;
+export type RightDrawer = 'bible' | 'comments' | 'versions' | null;
 
 export const isTestEnvironment =
   typeof process !== 'undefined' &&
@@ -27,7 +20,7 @@ export function useScriptDrawers(options: UseScriptDrawersOptions = {}) {
     options.initialLeftDrawer ?? null,
   );
   const [activeRightDrawer, setActiveRightDrawer] = useState<RightDrawer>(
-    options.initialRightDrawer ?? (isTestEnvironment ? 'status' : null),
+    options.initialRightDrawer ?? null,
   );
 
   const toggleLeftDrawer = (drawer: NonNullable<LeftDrawer>) => {

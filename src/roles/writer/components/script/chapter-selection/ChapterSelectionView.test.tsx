@@ -110,9 +110,7 @@ describe('ChapterSelectionView Component', () => {
     );
 
     expect(screen.getByText('Chưa có chương')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Liên hệ Producer để tạo chương/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Liên hệ Producer để tạo chương/i)).toBeInTheDocument();
   });
 
   it('filters chapters based on search query', () => {
