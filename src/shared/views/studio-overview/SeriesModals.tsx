@@ -26,32 +26,12 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
       onClose={onClose}
       closeLabel='Đóng'
       size='lg'
-      title='Chọn ảnh bìa'
+      title={`Chọn ảnh bìa cho “${series.title}”`}
+      description='Chọn một ảnh bìa có sẵn của hệ thống (không cần tải ảnh từ máy).'
       data-testid='system-cover-picker'
       dismissible={!savingCoverId}
     >
-      <div
-        className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-2xl max-w-xl w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto'
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className='flex items-center justify-between'>
-          <h3 id='cover-picker-title' className='text-sm font-bold text-[#44403C]'>
-            Chọn ảnh bìa cho “{series.title}”
-          </h3>
-          <button
-            type='button'
-            autoFocus
-            onClick={onClose}
-            disabled={Boolean(savingCoverId)}
-            className='p-1 text-[#57534E] hover:text-[#44403C] cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-[#F97316]'
-            aria-label='Đóng'
-          >
-            <X className='w-4 h-4' />
-          </button>
-        </div>
-        <p className='text-xs text-[#57534E]'>
-          Chọn một ảnh bìa có sẵn của hệ thống (không cần tải ảnh từ máy).
-        </p>
+      <div className='space-y-4'>
         <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
           {SYSTEM_COVERS.map((img) => (
             <button
@@ -124,31 +104,16 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeLabel='Đóng' size='lg' title='Khởi tạo Dự án Series mới'>
-      <div className='bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto flex flex-col text-xs'>
-        {/* Header */}
-        <div className='p-5 border-b border-stone-200 flex items-center justify-between'>
-          <div className='flex items-center gap-3'>
-            <div className='w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold shrink-0'>
-              <BookOpen className='w-5 h-5' />
-            </div>
-            <div>
-              <h3 className='font-bold text-stone-900 text-base'>Khởi tạo Dự án Series mới</h3>
-              <p className='text-xs text-stone-500'>
-                Thiết lập thông số xuất bản, khổ giấy và phân bổ ê-kíp sáng tác
-              </p>
-            </div>
-          </div>
-          <button
-            type='button'
-            onClick={onClose}
-            className='p-1 rounded-lg text-stone-400 hover:text-stone-700 cursor-pointer'
-          >
-            <X className='w-5 h-5' />
-          </button>
-        </div>
-
-        <form onSubmit={onSubmit} className='p-6 flex flex-col gap-4 text-xs'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel='Đóng'
+      size='lg'
+      title='Khởi tạo Dự án Series mới'
+      description='Thiết lập thông số xuất bản, khổ giấy và phân bổ ê-kíp sáng tác'
+    >
+      <div className='flex flex-col text-xs'>
+        <form onSubmit={onSubmit} className='flex flex-col gap-4 text-xs'>
           <div className='flex flex-col gap-3.5'>
             <h4 className='font-semibold text-stone-800 pb-1 border-b border-stone-100 text-sm'>
               1. Thông tin xuất bản
@@ -156,9 +121,7 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
 
             {/* Title */}
             <div className='flex flex-col gap-1'>
-              <label className='font-semibold text-stone-700'>
-                Tên Series (Tiêu đề truyện) *
-              </label>
+              <label className='font-semibold text-stone-700'>Tên Series (Tiêu đề truyện) *</label>
               <input
                 type='text'
                 value={title}
@@ -263,9 +226,7 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
 
             {/* Synopsis */}
             <div className='flex flex-col gap-1'>
-              <label className='font-semibold text-stone-700'>
-                Tóm Tắt Cốt Truyện (Synopsis)
-              </label>
+              <label className='font-semibold text-stone-700'>Tóm Tắt Cốt Truyện (Synopsis)</label>
               <textarea
                 rows={2}
                 value={synopsis}
@@ -371,17 +332,7 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
       size='lg'
       title='Chỉnh sửa Series'
     >
-      <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
-        <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-          <div className='flex items-center gap-2'>
-            <Edit2 className='w-4 h-4 text-[#F97316]' />
-            <h3 className='text-sm font-bold text-[#171717]'>Chỉnh Sửa Thông Tin Series</h3>
-          </div>
-          <button type='button' onClick={onClose} className='text-[#888888] hover:text-[#171717]'>
-            <X className='w-4 h-4' />
-          </button>
-        </div>
-
+      <div className='space-y-4'>
         <form onSubmit={onSubmit} className='space-y-3.5 text-xs'>
           <div>
             <label className='block font-semibold text-[#171717] mb-1'>Tên Dự Án (Title) *</label>
