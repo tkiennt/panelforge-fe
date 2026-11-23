@@ -13,10 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { BibleEntryDto } from '@/services/bible.service';
-import {
-  ChapterCastDto,
-  chapterCastService,
-} from '@/services/chapterCast.service';
+import { ChapterCastDto, chapterCastService } from '@/services/chapterCast.service';
 import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { BibleEntryAccordionItem, BibleAccordionEntity } from './BibleEntryAccordionItem';
@@ -207,7 +204,10 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast(t('production.cast.crowdUpdateFailed', 'Cập nhật cờ Quần chúng thất bại'), err?.message);
+        onShowToast(
+          t('production.cast.crowdUpdateFailed', 'Cập nhật cờ Quần chúng thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setActingEntryId(null);
@@ -238,12 +238,18 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
       if (onShowToast) {
         onShowToast(
           t('production.cast.cancelReplacementSuccess', 'Đã huỷ bản thay thế'),
-          t('production.cast.cancelReplacementSuccessDesc', 'Binding của chương đã quay về bản kế thừa.'),
+          t(
+            'production.cast.cancelReplacementSuccessDesc',
+            'Binding của chương đã quay về bản kế thừa.',
+          ),
         );
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast(t('production.cast.cancelReplacementFailed', 'Huỷ bản thay thế thất bại'), err?.message);
+        onShowToast(
+          t('production.cast.cancelReplacementFailed', 'Huỷ bản thay thế thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setActingEntryId(null);
@@ -348,7 +354,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
             id='bible-subtab-chapter'
             data-testid='filter-tab-cast'
             onClick={() => setFilterTab('cast')}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+            className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
               filterTab === 'cast'
                 ? 'bg-primary text-white shadow-xs'
                 : 'text-stone-600 hover:bg-stone-200/60'
@@ -361,7 +367,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
             id='bible-subtab-all'
             data-testid='filter-tab-all'
             onClick={() => setFilterTab('all')}
-            className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+            className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
               filterTab === 'all'
                 ? 'bg-primary text-white shadow-xs'
                 : 'text-stone-600 hover:bg-stone-200/60'
@@ -385,7 +391,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
             to={vaultUrl}
             target='_blank'
             rel='noopener noreferrer'
-            className='px-2 py-1 rounded text-[11px] font-semibold text-primary hover:underline flex items-center gap-1'
+            className='px-2 py-1 rounded text-xs font-semibold text-primary hover:underline flex items-center gap-1'
           >
             <span>{t('collaboration.writerStudio.fullVaultLink', 'Vault đầy đủ')}</span>
             <ExternalLink className='w-3 h-3' />
@@ -425,25 +431,26 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
             {/* NHÂN VẬT XUẤT HIỆN */}
             <div className='space-y-2.5'>
               <div className='flex items-center justify-between px-0.5'>
-                <span className='text-[10.5px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1'>
+                <span className='text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1'>
                   <ShieldCheck className='w-3.5 h-3.5 text-primary' />
                   {t('collaboration.writerStudio.charactersInChapter', {
                     count: filteredRegular.length,
                   })}
                 </span>
-                <span className='text-[10px] font-mono text-stone-400'>
+                <span className='text-xs font-mono text-stone-400'>
                   {t('collaboration.writerStudio.canonGate1', 'Canon Gate 1')}
                 </span>
               </div>
 
               {filteredRegular.length === 0 ? (
                 <div className='p-4 text-center text-stone-400 border border-dashed border-stone-200 rounded-xl bg-white text-xs'>
-                  {t('production.cast.noCharactersInChapter', 'Chưa có nhân vật nào xuất hiện trong phân cảnh.')}
+                  {t(
+                    'production.cast.noCharactersInChapter',
+                    'Chưa có nhân vật nào xuất hiện trong phân cảnh.',
+                  )}
                 </div>
               ) : (
-                <div className='space-y-2.5'>
-                  {filteredRegular.map(renderEntityItem)}
-                </div>
+                <div className='space-y-2.5'>{filteredRegular.map(renderEntityItem)}</div>
               )}
             </div>
 
@@ -452,15 +459,15 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
               <div className='flex items-center justify-between px-0.5'>
                 <div className='flex items-center gap-1.5'>
                   <Users className='w-3.5 h-3.5 text-stone-400' />
-                  <span className='text-[10.5px] font-bold uppercase tracking-wider text-stone-500'>
+                  <span className='text-xs font-bold uppercase tracking-wider text-stone-500'>
                     {t('collaboration.writerStudio.crowdAndExtras', 'QUẦN CHÚNG & EXTRAS')}
                   </span>
                 </div>
-                <span className='px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 text-[9.5px] font-semibold border border-stone-200'>
+                <span className='px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 text-xs font-semibold border border-stone-200'>
                   {t('collaboration.writerStudio.exemptGate1', 'Miễn trừ Gate 1')}
                 </span>
               </div>
-              <p className='text-[10.5px] text-stone-500 leading-relaxed px-0.5'>
+              <p className='text-xs text-stone-500 leading-relaxed px-0.5'>
                 {t(
                   'collaboration.writerStudio.exemptGate1Hint',
                   'Nhân vật phụ làm nền không yêu cầu Model Sheet đa góc xoay hoặc khóa chuẩn v2.0.',
@@ -469,12 +476,13 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
 
               {filteredCrowd.length === 0 ? (
                 <div className='p-3 text-center text-stone-400 border border-dashed border-stone-200 rounded-xl bg-white text-xs'>
-                  {t('production.cast.noCrowdCharacters', 'Chưa có nhân vật quần chúng được gắn cờ.')}
+                  {t(
+                    'production.cast.noCrowdCharacters',
+                    'Chưa có nhân vật quần chúng được gắn cờ.',
+                  )}
                 </div>
               ) : (
-                <div className='space-y-2'>
-                  {filteredCrowd.map(renderEntityItem)}
-                </div>
+                <div className='space-y-2'>{filteredCrowd.map(renderEntityItem)}</div>
               )}
             </div>
           </>
@@ -486,8 +494,14 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
                 <User className='w-8 h-8 text-stone-300 mx-auto mb-2' />
                 <p className='text-xs font-semibold text-stone-800'>
                   {searchQuery
-                    ? t('production.cast.noMatchingCharacterFound', 'Không tìm thấy nhân vật nào phù hợp.')
-                    : t('production.cast.noCharactersInBible', 'Chưa có nhân vật nào trong Series Bible.')}
+                    ? t(
+                        'production.cast.noMatchingCharacterFound',
+                        'Không tìm thấy nhân vật nào phù hợp.',
+                      )
+                    : t(
+                        'production.cast.noCharactersInBible',
+                        'Chưa có nhân vật nào trong Series Bible.',
+                      )}
                 </p>
               </div>
             ) : (

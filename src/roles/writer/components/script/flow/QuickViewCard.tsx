@@ -153,7 +153,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
       <div className='flex items-center justify-between gap-1.5 pb-2 mb-2 border-b border-[#E5E0D8]'>
         <div className='flex items-center gap-1.5 min-w-0'>
           <span
-            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${getCategoryColor(
+            className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider border ${getCategoryColor(
               data.category,
             )}`}
           >
@@ -166,7 +166,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
 
         {data.type === 'bible' && data.isLocked && (
           <span
-            className='inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'
+            className='inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'
             title='Đã khóa chuẩn (Canon Locked)'
           >
             <Lock className='w-2.5 h-2.5 text-purple-600' /> 🔒 Đã khóa chuẩn
@@ -174,7 +174,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
         )}
 
         {data.type === 'stub' && (
-          <span className='px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-dashed border-amber-300 shrink-0'>
+          <span className='px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-dashed border-amber-300 shrink-0'>
             Mã tạm
           </span>
         )}
@@ -202,14 +202,12 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
             <div className='min-w-0 flex-1'>
               <h4 className='font-bold text-sm text-zinc-900 truncate'>{data.name}</h4>
               {data.stageName && (
-                <span className='inline-block mt-0.5 text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded font-medium border border-purple-200'>
+                <span className='inline-block mt-0.5 text-xs text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded font-medium border border-purple-200'>
                   {data.stageName}
                 </span>
               )}
               {data.description && (
-                <p className='text-[11px] text-zinc-600 line-clamp-2 mt-1 italic'>
-                  {data.description}
-                </p>
+                <p className='text-xs text-zinc-600 line-clamp-2 mt-1 italic'>{data.description}</p>
               )}
             </div>
           </div>
@@ -240,7 +238,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
                 className='h-24 w-full rounded-lg bg-zinc-100 border border-dashed border-zinc-300 flex flex-col items-center justify-center text-zinc-400 gap-1'
               >
                 <ImageOff className='w-5 h-5 text-zinc-400' />
-                <span className='text-[11px] font-medium'>Chưa có phác thảo</span>
+                <span className='text-xs font-medium'>Chưa có phác thảo</span>
               </div>
             )}
           </div>
@@ -253,7 +251,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
               <AlertCircle className='w-3.5 h-3.5 text-amber-600 shrink-0' />
               <span className='truncate'>{data.name}</span>
             </div>
-            <p className='text-[11px] text-amber-800/90 leading-tight'>
+            <p className='text-xs text-amber-800/90 leading-tight'>
               Mã tạm <code className='font-mono font-bold text-amber-950'>@{data.code}</code> chưa
               có hồ sơ chính thức trong Series Bible.
             </p>

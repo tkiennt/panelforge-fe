@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { Clapperboard, Edit2, PanelLeftClose, Plus, PlusCircle, Search, Trash2 } from 'lucide-react';
+import {
+  Clapperboard,
+  Edit2,
+  PanelLeftClose,
+  Plus,
+  PlusCircle,
+  Search,
+  Trash2,
+} from 'lucide-react';
 import { SceneDto } from '@/services/scriptLine.service';
 import { useTranslation } from '@/lib/i18n';
 import { parseScenePanelRange } from '../../utils/sceneUtils';
@@ -52,8 +60,11 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
               {t('scriptStudio.scenes.title', 'Phân cảnh')}
             </h3>
           </div>
-          <p className='text-[11px] text-stone-500 mt-0.5'>
-            {t('collaboration.writerStudio.sceneOutlineHint', 'Ghi chú phân đoạn · Không ảnh hưởng logic')}
+          <p className='text-xs text-stone-500 mt-0.5'>
+            {t(
+              'collaboration.writerStudio.sceneOutlineHint',
+              'Ghi chú phân đoạn · Không ảnh hưởng logic',
+            )}
           </p>
         </div>
         <div className='flex items-center gap-1 shrink-0'>
@@ -136,15 +147,16 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
                 <div className={`${isSelected ? 'pl-1.5' : ''} space-y-2`}>
                   <div className='flex items-center justify-between gap-1'>
                     <div className='flex items-center gap-1.5 min-w-0'>
-                      <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 shrink-0 font-mono'>
+                      <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary border border-primary/20 shrink-0 font-mono'>
                         {t('collaboration.writerStudio.sceneNumber', { n: s.sceneNumber })}
                       </span>
                       <h4
-                        className={`text-[12.5px] font-bold truncate transition-colors uppercase ${
+                        className={`text-xs font-bold truncate transition-colors uppercase ${
                           isSelected ? 'text-primary' : 'text-stone-900 group-hover:text-primary'
                         }`}
                       >
-                        {s.heading || t('collaboration.writerStudio.untitledScene', 'PHÂN ĐOẠN KHÔNG TÊN')}
+                        {s.heading ||
+                          t('collaboration.writerStudio.untitledScene', 'PHÂN ĐOẠN KHÔNG TÊN')}
                       </h4>
                     </div>
 
@@ -179,7 +191,7 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
                     )}
                   </div>
 
-                  <div className='flex flex-wrap items-center gap-2 text-[11px] text-stone-500'>
+                  <div className='flex flex-wrap items-center gap-2 text-xs text-stone-500'>
                     <span className='font-mono font-medium text-stone-900'>{rangeLabel}</span>
                     <span>•</span>
                     <span className='font-mono text-stone-500'>
@@ -188,7 +200,7 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
                   </div>
 
                   {rangeInfo.cleanSummary && (
-                    <p className='text-[11.5px] text-stone-600 leading-relaxed line-clamp-2 bg-[#FAF9F5] p-2 rounded-lg border border-stone-200/80'>
+                    <p className='text-xs text-stone-600 leading-relaxed line-clamp-2 bg-[#FAF9F5] p-2 rounded-lg border border-stone-200/80'>
                       {rangeInfo.cleanSummary}
                     </p>
                   )}
@@ -203,7 +215,7 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
             type='button'
             data-testid='add-scene-dashed-btn'
             onClick={onAdd}
-            className='w-full py-2.5 px-3 rounded-xl border border-dashed border-stone-300 hover:border-primary text-stone-500 hover:text-primary text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-colors bg-white/60 shadow-xs cursor-pointer'
+            className='w-full py-2.5 px-3 rounded-xl border border-dashed border-stone-300 hover:border-primary text-stone-500 hover:text-primary text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors bg-white/60 shadow-xs cursor-pointer'
           >
             <PlusCircle className='w-4 h-4' />
             <span>{t('collaboration.writerStudio.addScene', '+ Thêm phân cảnh')}</span>
