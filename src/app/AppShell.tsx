@@ -838,7 +838,7 @@ export function AppShell({
       {/* --- RIGHT WRAPPER --- */}
       <div className='flex-1 flex flex-col min-w-0 h-full bg-[#FAF9F5] relative overflow-hidden'>
         <header className='h-16 bg-white border-b border-stone-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-20 shadow-xs'>
-          <div className='flex items-center gap-2 min-w-0'>
+          <div className={`flex items-center gap-2 ${isStudioHome ? 'shrink-0' : 'min-w-0'}`}>
             {isStudioHome && (
               <div className='flex items-center shrink-0'>
                 <button
@@ -1038,7 +1038,7 @@ export function AppShell({
           )}
 
           <div className='flex items-center gap-3 shrink-0'>
-            {!isReader && (
+            {!isReader && !isStudioHome && (
               <button
                 type='button'
                 onClick={() => {
