@@ -205,7 +205,7 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
           <button
             type='button'
             onClick={load}
-            className='mt-4 rounded-full bg-[#EA580C] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C]'
+            className='mt-4 rounded-lg bg-[#EA580C] px-4 py-2 text-xs font-semibold text-white hover:bg-[#C2410C] shadow-xs cursor-pointer'
           >
             {t('scriptReview.common.retry')}
           </button>
@@ -378,7 +378,7 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
                         type='button'
                         onClick={() => setReworking(true)}
                         disabled={busy}
-                        className='inline-flex min-w-40 flex-1 items-center justify-center gap-1.5 rounded-full border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50'
+                        className='inline-flex min-w-40 flex-1 items-center justify-center gap-1.5 rounded-lg border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50 shadow-xs cursor-pointer'
                       >
                         <CornerUpLeft className='h-4 w-4' aria-hidden='true' />
                         {t('bibleReview.requestRework')}
@@ -388,7 +388,7 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
                           type='button'
                           onClick={lockCanon}
                           disabled={busy}
-                          className='inline-flex min-w-40 flex-1 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50'
+                          className='inline-flex min-w-40 flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 shadow-xs cursor-pointer'
                         >
                           <CheckCircle2 className='h-4 w-4' aria-hidden='true' />
                           {t('bibleReview.lockCanon')}
