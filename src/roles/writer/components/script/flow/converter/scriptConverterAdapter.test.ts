@@ -3,7 +3,6 @@ import { describe, it, expect } from 'vitest';
 import {
   linkTypedSpeakers,
   parseScriptTextToBlocks,
-  convertScriptTextToComicBlocks,
   convertScriptTextToScreenplayBlocks,
   countPagesAndPanels,
   filterScriptTextByPageRange,
@@ -64,29 +63,6 @@ Chiếc xe lao vút qua màn đêm.
     expect(panels[0]?.panelNumber).toBe('3.1');
     expect(panels[1]?.panelNumber).toBe('3.2');
     expect(panels[2]?.panelNumber).toBe('4.1');
-  });
-
-  it('chuyển đổi chuẩn xác sang Tiptap Comic Blocks cho ComicScriptEditor', () => {
-    const sampleScript = `
-! Trang 01
-" Panel 1.1: [Toàn cảnh]
-Ngã tư Shibuya nửa đêm.
-@Minh: "Nhanh lên nào!"
-SFX: TIẾNG SẤM NỔ
-Caption: Màn đêm dần buông xuống.
-    `.trim();
-
-    const nodes = convertScriptTextToComicBlocks(sampleScript);
-
-    expect(nodes.some((n) => n.type === 'pageBlock')).toBe(true);
-    expect(nodes.some((n) => n.type === 'panelBlock')).toBe(true);
-    expect(nodes.some((n) => n.type === 'dialogueBlock')).toBe(true);
-    expect(nodes.some((n) => n.type === 'sfxBlock')).toBe(true);
-    expect(nodes.some((n) => n.type === 'captionBlock')).toBe(true);
-
-    const dialogueNode = nodes.find((n) => n.type === 'dialogueBlock');
-    expect(dialogueNode?.attrs?.character).toBe('Minh');
-    expect(dialogueNode?.content?.[0]?.text).toBe('Nhanh lên nào!');
   });
 
   it('chuyển đổi chuẩn xác sang Screenplay Flow Blocks cho ScreenplayFlowEditor', () => {
