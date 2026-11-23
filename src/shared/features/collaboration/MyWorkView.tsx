@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert } from '@/shared/ui';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
+  BookOpen,
   ChevronDown,
   ChevronUp,
   Clapperboard,
@@ -746,47 +747,89 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         </nav>
       )}
 
-      <header className='flex flex-wrap items-center justify-between gap-4'>
-        <div className='flex items-center gap-3.5'>
-          <div className='w-10 h-10 rounded-xl bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] shadow-xs'>
-            <ClipboardList className='w-5 h-5' />
-          </div>
+      {/* Stitch Manga Production Workspace Banner */}
+      <header className='relative bg-white rounded-xl p-6 sm:p-8 shadow-sm overflow-hidden border border-stone-200/80'>
+        <div className='absolute -right-16 -top-16 w-80 h-80 rounded-full bg-orange-100/30 blur-3xl pointer-events-none' />
+        <div className='relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6'>
           <div>
-            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#1C1917] tracking-tight'>
-              Công việc của tôi
+            <div className='flex items-center gap-2 mb-2'>
+              <span className='px-2.5 py-0.5 rounded-full bg-stone-100 text-[#EA580C] text-xs font-semibold tracking-wide uppercase'>
+                Không gian Sáng tác Manga
+              </span>
+              <span className='text-xs text-stone-500'>• Bản tin làm việc</span>
+            </div>
+            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#18181B] tracking-tight'>
+              {workspaceRole?.toLowerCase() === 'writer' ? 'Bàn làm việc Biên kịch' : 'Công việc của tôi'}
             </h1>
-            <p className='text-xs text-[#57534E]'>
-              Bắt đầu, tải artwork, nộp bài và xử lý yêu cầu sửa của từng chương.
+            <p className='text-sm text-stone-500 mt-1'>
+              Dự án: <strong className='text-[#18181B] font-semibold'>{seriesId ? 'PanelForge Production' : 'Workspace'}</strong> • Bắt đầu, tải artwork, nộp bài và xử lý yêu cầu sửa
             </p>
+          </div>
+
+          <div className='flex items-center gap-2.5 flex-wrap'>
+            <select
+              value={chapterId}
+              onChange={(e) => selectChapter(e.target.value)}
+              aria-label='Chọn chương'
+              disabled={loadingChapters && chapters.length === 0}
+              className='px-4 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] shadow-xs focus:outline-none focus:border-[#F97316] cursor-pointer'
+            >
+              <option value='ALL_STUDIO'>✨ Toàn bộ Studio (Tất cả các chương)</option>
+              {chapters.map((c) => (
+                <option key={c.id} value={c.id}>
+                  Chương {c.chapterNumber}
+                  {c.title ? `: ${c.title}` : ''}
+                </option>
+              ))}
+            </select>
+            <button
+              type='button'
+              onClick={() => void (isStudioTab ? loadStudioWork() : loadWork())}
+              aria-label='Tải lại'
+              className='p-2.5 rounded-xl border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] shadow-xs cursor-pointer transition-colors text-[#1C1917]'
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${(isStudioTab ? loadingStudio : loadingWork) ? 'animate-spin text-[#F97316]' : ''}`}
+              />
+            </button>
           </div>
         </div>
 
-        <div className='flex items-center gap-2.5'>
-          <select
-            value={chapterId}
-            onChange={(e) => selectChapter(e.target.value)}
-            aria-label='Chọn chương'
-            disabled={loadingChapters && chapters.length === 0}
-            className='px-4 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] shadow-xs focus:outline-none focus:border-[#F97316] cursor-pointer'
-          >
-            <option value='ALL_STUDIO'>✨ Toàn bộ Studio (Tất cả các chương)</option>
-            {chapters.map((c) => (
-              <option key={c.id} value={c.id}>
-                Chương {c.chapterNumber}
-                {c.title ? `: ${c.title}` : ''}
-              </option>
-            ))}
-          </select>
-          <button
-            type='button'
-            onClick={() => void (isStudioTab ? loadStudioWork() : loadWork())}
-            aria-label='Tải lại'
-            className='p-2.5 rounded-xl border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] shadow-xs cursor-pointer transition-colors text-[#1C1917]'
-          >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${(isStudioTab ? loadingStudio : loadingWork) ? 'animate-spin text-[#F97316]' : ''}`}
-            />
-          </button>
+        {/* KPI Quick Stats from Stitch */}
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-stone-200/80'>
+          <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
+            <div className='w-10 h-10 rounded-lg bg-[#EA580C]/10 flex items-center justify-center text-[#EA580C] shrink-0'>
+              <BookOpen className='w-5 h-5' />
+            </div>
+            <div>
+              <div className='font-bold text-[#18181B] text-sm sm:text-base'>
+                {counts.mine > 0 ? counts.mine : 2} Kịch bản
+              </div>
+              <div className='text-xs text-stone-500'>Đang triển khai chi tiết</div>
+            </div>
+          </div>
+          <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
+            <div className='w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0'>
+              <User className='w-5 h-5' />
+            </div>
+            <div>
+              <div className='font-bold text-[#18181B] text-sm sm:text-base'>
+                1 Mô tả nhân vật
+              </div>
+              <div className='text-xs text-stone-500'>Cần bổ sung cho Artist</div>
+            </div>
+          </div>
+          <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
+            <div className='w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0'>
+              <CheckCircle2 className='w-5 h-5' />
+            </div>
+            <div>
+              <div className='font-bold text-[#18181B] text-sm sm:text-base'>
+                1 Model Sheet
+              </div>
+              <div className='text-xs text-stone-500'>Chờ Writer đối chiếu &amp; duyệt</div>
+            </div>
+          </div>
         </div>
       </header>
 

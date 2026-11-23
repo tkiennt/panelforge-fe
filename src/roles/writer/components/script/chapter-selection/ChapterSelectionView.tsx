@@ -559,75 +559,116 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
       ) : viewMode === 'grid' ? (
         /* CHẾ ĐỘ XEM GRID (CSS Grid co giãn thích ứng full-width) */
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5'>
-          {filteredChapters.map((chapter) => (
-            <div
-              key={chapter.id}
-              data-testid={`chapter-card-${chapter.chapterNumber}`}
-              onClick={() => onSelectChapter(chapter)}
-              className='group bg-white hover:bg-white border border-[#D8D2C5]/70 hover:border-[#F97316]/50 rounded-2xl p-5 shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden'
-            >
-              <div className='space-y-3.5'>
-                {/* Header card: Số thứ tự chương, phiên bản & trạng thái */}
-                <div className='flex items-center justify-between gap-2'>
-                  <span className='font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-[#1C1917] group-hover:border-[#F97316]/40 transition-colors'>
-                    CHƯƠNG {chapter.chapterNumber}
-                  </span>
-                  <span className='font-mono text-[11px] text-[#78716C] bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-[#E5E0D8]'>
-                    v{chapter.versionVector || 1}
-                  </span>
+          {filteredChapters.map((chapter) => {
+            const isActive = !chapter.isScriptFrozen;
+            const formattedDate = chapter.targetReleaseDate
+              ? chapter.targetReleaseDate
+              : chapter.updatedAt
+                ? new Intl.DateTimeFormat(undefined, {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  }).format(new Date(chapter.updatedAt))
+                : '—';
+
+            return (
+              <div
+                key={chapter.id}
+                data-testid={`chapter-card-${chapter.chapterNumber}`}
+                onClick={() => onSelectChapter(chapter)}
+                className='group bg-white hover:bg-white border border-stone-200/80 hover:border-primary/50 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden'
+              >
+                {isActive && (
+                  <div className='absolute top-0 left-0 w-1.5 h-full bg-primary' />
+                )}
+
+                <div className='space-y-3.5'>
+                  {/* Header card: Số thứ tự chương, định dạng & phiên bản */}
+                  <div className='flex items-center justify-between gap-2'>
+                    <div className='flex items-center gap-1.5'>
+                      <span className='font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-200/60 text-primary group-hover:border-primary/40 transition-colors'>
+                        CH.{chapter.chapterNumber}
+                      </span>
+                      <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 font-label-sm text-[11px] font-semibold'>
+                        Manga B5
+                      </span>
+                    </div>
+                    <span className='font-mono text-[11px] text-stone-500 bg-[#FAF9F5] px-2 py-0.5 rounded-md border border-stone-200/80'>
+                      v{chapter.versionVector || 1}
+                    </span>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div>{getStatusBadge(chapter)}</div>
+
+                  {/* Body card: Tiêu đề chương */}
+                  <div>
+                    <h3 className='text-base font-bold font-serif text-stone-900 group-hover:text-primary transition-colors line-clamp-1'>
+                      {formatChapterOption(chapter.chapterNumber, chapter.title)}
+                    </h3>
+                  </div>
+
+                  {/* Body card: Đoạn tóm tắt/ghi chú */}
+                  <div className='text-xs text-stone-600 line-clamp-3 leading-relaxed italic bg-[#FAF9F5] p-3 rounded-xl border border-stone-200/80 min-h-[4.75rem]'>
+                    {chapter.outline ? `“${chapter.outline}”` : 'Chưa có đề cương kịch bản tóm tắt.'}
+                  </div>
+
+                  {/* Tiến độ trang */}
+                  <div className='space-y-1.5 pt-1'>
+                    <div className='flex justify-between text-[11px] font-medium'>
+                      <span className='text-stone-500'>Tiến độ kịch bản</span>
+                      <span className='font-mono font-bold text-stone-900'>
+                        {chapter.pagesCount ?? 0} trang
+                      </span>
+                    </div>
+                    <div className='w-full h-1.5 rounded-full bg-stone-100 overflow-hidden'>
+                      <div
+                        className='h-full bg-primary rounded-full transition-all duration-500'
+                        style={{
+                          width: chapter.isScriptFrozen
+                            ? '100%'
+                            : (chapter.pagesCount ?? 0) > 0
+                              ? '60%'
+                              : '10%',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Thống kê quy mô phân cảnh & trang */}
+                  <div className='flex items-center gap-3 text-[11px] text-stone-500'>
+                    <span className='inline-flex items-center gap-1'>
+                      <Film className='w-3.5 h-3.5 text-stone-400' />
+                      <span>{chapter.scenesCount ?? 0} phân cảnh</span>
+                    </span>
+                    <span>•</span>
+                    <span className='inline-flex items-center gap-1'>
+                      <Layers className='w-3.5 h-3.5 text-stone-400' />
+                      <span>{chapter.pagesCount ?? 0} trang</span>
+                    </span>
+                  </div>
                 </div>
 
-                {/* Status Badge */}
-                <div>{getStatusBadge(chapter)}</div>
+                {/* Card Footer: Hạn chót/Ngày cập nhật & Nút hành động */}
+                <div className='pt-3 border-t border-stone-200/80 flex items-center justify-between'>
+                  <div className='flex items-center gap-1.5 text-[11px] text-stone-500 font-mono'>
+                    <Calendar className='w-3.5 h-3.5 text-stone-400' />
+                    <span>{formattedDate}</span>
+                  </div>
 
-                {/* Body card: Tiêu đề chương */}
-                <div>
-                  <h3 className='text-base font-bold font-serif text-[#1C1917] group-hover:text-[#C2410C] transition-colors line-clamp-1'>
-                    {formatChapterOption(chapter.chapterNumber, chapter.title)}
-                  </h3>
-                </div>
-
-                {/* Body card: Đoạn tóm tắt/ghi chú có line-clamp-3 để đều chiều cao */}
-                <div className='text-xs text-[#57534E] line-clamp-3 leading-relaxed italic bg-[#FAF8F5] p-3 rounded-xl border border-[#EBE7DF] min-h-[4.75rem]'>
-                  {chapter.outline ? `“${chapter.outline}”` : 'Chưa có đề cương kịch bản tóm tắt.'}
-                </div>
-
-                {/* Thống kê quy mô phân cảnh & trang */}
-                <div className='flex items-center gap-3 text-[11px] text-[#78716C] pt-1'>
-                  <span className='inline-flex items-center gap-1'>
-                    <Film className='w-3.5 h-3.5 text-[#A8A29E]' />
-                    <span>{chapter.scenesCount ?? 0} phân cảnh</span>
-                  </span>
-                  <span>•</span>
-                  <span className='inline-flex items-center gap-1'>
-                    <Layers className='w-3.5 h-3.5 text-[#A8A29E]' />
-                    <span>{chapter.pagesCount ?? 0} trang</span>
-                  </span>
+                  <button
+                    type='button'
+                    className='inline-flex items-center gap-1 text-xs font-bold text-primary group-hover:translate-x-0.5 transition-transform cursor-pointer'
+                  >
+                    <span>
+                      {chapter.isScriptFrozen ? 'Xem kịch bản' : `Mở Kịch bản Ch.${chapter.chapterNumber}`}
+                    </span>
+                    <ChevronRight className='w-4 h-4' />
+                  </button>
                 </div>
               </div>
-
-              {/* Card Footer: Hạn chót/Ngày cập nhật & Nút hành động */}
-              <div className='pt-3 border-t border-[#EBE7DF] flex items-center justify-between'>
-                <div className='flex items-center gap-1.5 text-[11px] text-[#78716C] font-mono'>
-                  <Calendar className='w-3.5 h-3.5 text-[#78716C]' />
-                  <span>
-                    {chapter.targetReleaseDate ||
-                      (chapter.updatedAt
-                        ? new Date(chapter.updatedAt).toLocaleDateString('vi-VN')
-                        : 'Chưa ấn định')}
-                  </span>
-                </div>
-
-                <button
-                  type='button'
-                  className='inline-flex items-center gap-1 text-xs font-bold text-[#C2410C] group-hover:translate-x-1 transition-transform'
-                >
-                  <span>{chapter.isScriptFrozen ? 'Xem kịch bản' : 'Viết kịch bản'}</span>
-                  <ChevronRight className='w-4 h-4' />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         /* CHẾ ĐỘ XEM BẢNG (Table/List View để duyệt nhanh nhiều chương) */

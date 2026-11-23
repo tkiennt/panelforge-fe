@@ -10,7 +10,20 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { Loader2, MessageSquare, Save, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  Clapperboard,
+  History,
+  Loader2,
+  MessageSquare,
+  PanelLeft,
+  Save,
+  ShieldCheck,
+  Sparkles,
+  X,
+  Zap,
+} from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { SceneDetailDto } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
@@ -75,6 +88,13 @@ export interface ScreenplayFlowEditorProps {
   flowAiSlot?: React.ReactNode;
   /** Bản xem thay đổi của đề xuất AI; khi có thì thay trang viết và khoá sửa. */
   diffPreview?: React.ReactNode;
+  sceneCount?: number;
+  onToggleSceneOutline?: () => void;
+  isSceneOutlineOpen?: boolean;
+  activeRightDrawer?: string | null;
+  onToggleRightDrawer?: (drawer: any) => void;
+  openFindingsCount?: number;
+  onOpenAiPromptModal?: () => void;
   registerSetPanelStage?: (
     fn:
       | ((
@@ -96,25 +116,28 @@ export interface ScreenplayFlowEditorProps {
 
 const SHEET_CSS = `
 .gn-sheet .ProseMirror { outline: none; font-family: 'Courier Prime', 'Courier New', ui-monospace, monospace;
-  font-size: 15px; line-height: 1.75rem; color: #1c1917; caret-color: #c2410c; min-height: 900px; }
+  font-size: 14px; line-height: 1.75rem; color: #18181B; caret-color: #EA580C; min-height: 900px; }
 .gn-sheet .gn-line { clear: both; min-height: 1.75rem; white-space: pre-wrap; word-break: break-word; }
 .gn-sheet .gn-comment-highlight { background-color: #FDE047; border-radius: 2px; padding: 1px 2px; color: #0c0a09; }
-.gn-sheet .gn-page { margin-top: 3.5rem; padding-top: 1rem; border-top: 2px solid #a8a29e;
-  font-weight: 800; font-size: 18px; letter-spacing: .05em; color: #0c0a09; }
+.gn-sheet .gn-page { margin-top: 3.5rem; padding-top: 1rem; border-top: 2px solid #D4CBBF;
+  font-weight: 800; font-size: 16px; letter-spacing: .05em; color: #18181B; }
 .gn-sheet .gn-page:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
-.gn-sheet .gn-page::before { content: attr(data-label); font-weight: 800; color: #0c0a09; }
-.gn-sheet .gn-panel { margin-top: 1.5rem; font-weight: 800; font-size: 15px; letter-spacing: .03em; color: #0c0a09; text-transform: uppercase; }
-.gn-sheet .gn-panel::before { content: attr(data-label) "\\00a0\\00a0"; font-weight: 800; color: #0c0a09; }
-.gn-sheet .gn-action { margin-top: .5rem; }
-.gn-sheet .gn-character { float: left; clear: both; width: 10rem; margin-top: .5rem; text-transform: uppercase; }
-.gn-sheet .gn-dialogue { clear: none; margin-left: 11rem; }
-.gn-sheet .gn-parens { clear: none; margin-left: 14rem; text-transform: uppercase; }
+.gn-sheet .gn-page::before { content: attr(data-label); font-weight: 800; color: #18181B; }
+.gn-sheet .gn-panel { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed #E7E5E4;
+  font-weight: 800; font-size: 14px; letter-spacing: .03em; color: #18181B; text-transform: uppercase; }
+.gn-sheet .gn-panel:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.gn-sheet .gn-panel::before { content: attr(data-label) "\\00a0\\00a0"; font-weight: 800; color: #18181B; }
+.gn-sheet .gn-action { margin-top: .5rem; color: #18181B; }
+.gn-sheet .gn-character { float: left; clear: both; width: 10rem; margin-top: .5rem; text-transform: uppercase; font-weight: 700; color: #18181B; }
+.gn-sheet .gn-dialogue { clear: none; margin-left: 11rem; color: #18181B; }
+.gn-sheet .gn-parens { clear: none; margin-left: 14rem; font-style: italic; color: #57534E; }
 .gn-sheet .gn-parens::before { content: '('; }
 .gn-sheet .gn-parens::after { content: ')'; }
 .gn-sheet .gn-character + .gn-dialogue, .gn-sheet .gn-character + .gn-parens { margin-top: .5rem; }
 .gn-sheet .gn-caption, .gn-sheet .gn-sfx { display: grid; grid-template-columns: 11rem 1fr; margin-top: .5rem; }
 .gn-sheet .gn-caption::before, .gn-sheet .gn-sfx::before { content: attr(data-label); grid-column: 1; }
-.gn-sheet .gn-sfx { font-weight: 700; }
+.gn-sheet .gn-sfx { font-weight: 700; color: #EA580C; }
+.gn-sheet .gn-sfx::before { color: #EA580C; font-weight: 800; }
 .gn-sheet .gn-diff .ProseMirror { min-height: 0; }
 .gn-sheet .gn-diff .gn-character { float: none; width: auto; }
 .gn-sheet .gn-diff .gn-dialogue { margin-left: 4rem; }
@@ -151,6 +174,13 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   rewritingLineId,
   flowAiSlot,
   diffPreview,
+  sceneCount,
+  onToggleSceneOutline,
+  isSceneOutlineOpen,
+  activeRightDrawer,
+  onToggleRightDrawer,
+  openFindingsCount,
+  onOpenAiPromptModal,
   registerSetPanelStage,
 }) => {
   const { t } = useTranslation('production');
@@ -160,6 +190,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [active, setActive] = useState<GnElement | null>(null);
   const [activeDialogueLineId, setActiveDialogueLineId] = useState<string | null>(null);
+  const [showAiPopover, setShowAiPopover] = useState(false);
   /** Menu chọn loại dòng (Enter trên dòng trống): vị trí neo theo con trỏ + mục đang chọn. */
   const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
   const dirtyRef = useRef(false);
@@ -557,100 +588,190 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         : t('scriptStudio.dock.idle');
 
   return (
-    <div className='relative flex-1 min-h-0 flex flex-col bg-[#DDD5C7]'>
+    <div className='relative flex-1 min-h-0 flex flex-col bg-[#FAF9F5]'>
       <style>{SHEET_CSS}</style>
 
-      {/* Thanh loại dòng: bấm không làm mất con trỏ trong trang, giữ cố định khi mở tab */}
-      <div className='shrink-0 flex items-center gap-x-2 border-b border-[#D4CBBF] bg-[#F4EFEA]/95 text-stone-900 px-3 py-1.5 flex-nowrap overflow-x-auto custom-scrollbar'>
-        {dockLeading}
-        {dockLeading && <span className='w-px h-6 bg-[#D4CBBF] shrink-0' aria-hidden='true' />}
-        <div
-          role='toolbar'
-          aria-label={t('scriptStudio.gn.toolbar')}
-          className='flex items-center gap-0.5 min-w-0 shrink-0 flex-nowrap'
-        >
-          {GN_ELEMENTS.map((el, i) => {
-            const isActive = active === el;
-            return (
-              <button
-                key={el}
-                type='button'
-                disabled={isReadOnly}
-                aria-pressed={isActive}
-                title={`${t(`scriptStudio.gn.el.${el}`)} · Ctrl+${i + 1}`}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => editor && setLineElement(editor, el)}
-                className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 whitespace-nowrap ${
-                  isActive
-                    ? 'bg-orange-100 text-[#C2410C] font-semibold ring-1 ring-orange-300'
-                    : 'text-stone-700 hover:bg-stone-200/80 hover:text-stone-900'
-                }`}
-              >
-                {t(`scriptStudio.gn.el.${el}`)}
-              </button>
-            );
-          })}
+      {/* Toolbar row: Chuẩn Stitch Writer Studio (Phân cảnh toggle + Line Types + Right Drawer Pills + Ctrl+S + Lưu) */}
+      <div className='w-full bg-[#FBF9F4] border-b border-[#E8E3DA] px-4 py-2 flex items-center justify-between text-[13px] select-none shrink-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'>
+        {/* Left: Phân cảnh toggle chip + dockLeading */}
+        <div className='flex items-center gap-2 shrink-0'>
+          {dockLeading}
+          {onToggleSceneOutline && (
+            <button
+              id='btn-toggle-scene-drawer'
+              data-testid='rail-scenes-btn'
+              type='button'
+              onClick={onToggleSceneOutline}
+              title={t('collaboration.writerStudio.sceneOutline', 'Phân cảnh')}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border transition-colors shadow-2xs mr-1 cursor-pointer text-[12px] font-semibold ${
+                isSceneOutlineOpen
+                  ? 'border-primary/40 bg-orange-50 text-primary'
+                  : 'border-stone-200/80 hover:border-primary/40 bg-white text-stone-900'
+              }`}
+            >
+              <Clapperboard className='w-4 h-4 text-primary' />
+              <span>{t('collaboration.writerStudio.sceneOutline', 'Phân cảnh')}</span>
+              {sceneCount !== undefined && (
+                <span className='px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-primary/10 text-primary font-mono'>
+                  {sceneCount}
+                </span>
+              )}
+            </button>
+          )}
         </div>
 
-        {!isReadOnly && activeDialogueLineId && onRewriteLineId && (
-          <button
-            type='button'
-            data-testid={`ai-rewrite-line-${activeDialogueLineId}`}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => onRewriteLineId(activeDialogueLineId)}
-            disabled={rewritingLineId === activeDialogueLineId}
-            className='shrink-0 inline-flex items-center gap-1.5 rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-[#C2410C] hover:bg-orange-100 cursor-pointer disabled:opacity-50'
+        {/* Center: Segmented line-type tabs */}
+        <div className='flex-1 flex items-center justify-center'>
+          <div
+            role='toolbar'
+            aria-label={t('scriptStudio.gn.toolbar')}
+            className='flex items-center justify-center gap-1 bg-[#FAF9F5]/70 p-0.5 rounded-lg border border-stone-200/80 shadow-2xs'
           >
-            {rewritingLineId === activeDialogueLineId ? (
-              <Loader2 className='w-3.5 h-3.5 animate-spin' />
-            ) : (
-              <Sparkles className='w-3.5 h-3.5' />
-            )}
-            Viết lại bằng AI
-          </button>
-        )}
+            {GN_ELEMENTS.map((el, i) => {
+              const isActive = active === el;
+              return (
+                <button
+                  key={el}
+                  type='button'
+                  disabled={isReadOnly}
+                  aria-pressed={isActive}
+                  title={`${t(`scriptStudio.gn.el.${el}`)} · Ctrl+${i + 1}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => editor && setLineElement(editor, el)}
+                  className={`px-2.5 py-1 rounded text-[12px] font-medium transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 whitespace-nowrap ${
+                    isActive
+                      ? 'border border-primary bg-primary/10 text-primary font-semibold shadow-2xs'
+                      : 'text-stone-600 hover:bg-stone-200/60 text-stone-700'
+                  }`}
+                >
+                  {t(`scriptStudio.gn.el.${el}`)}
+                </button>
+              );
+            })}
+          </div>
 
-        {comments && comments.length > 0 && (
-          <button
-            type='button'
-            onClick={onToggleCommentsSidePanel}
-            className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
-              isCommentsSidePanelOpen
-                ? 'bg-[#EA580C] text-white shadow-xs'
-                : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
-            }`}
-            title='Xem nhận xét của Editor'
-          >
-            <MessageSquare className='w-3.5 h-3.5' />
-            Nhận xét ({comments.filter((c) => !c.resolvedAt).length})
-          </button>
-        )}
+          {!isReadOnly && activeDialogueLineId && onRewriteLineId && (
+            <button
+              type='button'
+              data-testid={`ai-rewrite-line-${activeDialogueLineId}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onRewriteLineId(activeDialogueLineId)}
+              disabled={rewritingLineId === activeDialogueLineId}
+              className='ml-2 shrink-0 inline-flex items-center gap-1.5 rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-orange-100 cursor-pointer disabled:opacity-50'
+            >
+              {rewritingLineId === activeDialogueLineId ? (
+                <Loader2 className='w-3.5 h-3.5 animate-spin' />
+              ) : (
+                <Sparkles className='w-3.5 h-3.5' />
+              )}
+              Viết lại bằng AI
+            </button>
+          )}
+        </div>
 
-        <span
-          className='ml-auto shrink-0 text-xs text-stone-600 whitespace-nowrap'
-          aria-live='polite'
-        >
-          {saveStatus}
-        </span>
-        {!isReadOnly && (
-          <button
-            type='button'
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => void handleSave()}
-            disabled={!isDirty || isSaving}
-            title='Ctrl + S'
-            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer disabled:cursor-default ${
-              isDirty ? 'bg-[#EA580C] text-white hover:bg-[#C2410C]' : 'text-stone-400'
-            }`}
-          >
-            {isSaving ? (
-              <Loader2 className='w-3.5 h-3.5 animate-spin' />
-            ) : (
-              <Save className='w-3.5 h-3.5' />
+        {/* Right: Drawer tabs + Ctrl+S hint + Save */}
+        <div className='flex items-center gap-2 shrink-0 text-stone-600 text-[12px]'>
+          <div className='flex items-center gap-1 bg-[#FAF9F5] p-0.5 rounded-lg border border-stone-200/80 shadow-2xs mr-1 select-none' id='toolbar-drawer-tabs'>
+            {onToggleRightDrawer && (
+              <>
+                <button
+                  type='button'
+                  id='right-tab-btn-bible'
+                  data-testid='rail-characters-btn'
+                  onClick={() => onToggleRightDrawer('characters')}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11.5px] font-semibold transition-all cursor-pointer ${
+                    activeRightDrawer === 'characters'
+                      ? 'bg-primary text-white shadow-2xs'
+                      : 'text-stone-600 hover:bg-stone-200/60 font-medium'
+                  }`}
+                >
+                  <BookOpen className='w-3.5 h-3.5' />
+                  <span>Series Bible</span>
+                </button>
+
+                <button
+                  type='button'
+                  id='right-tab-btn-feedback'
+                  data-testid='rail-comments-btn'
+                  onClick={() => onToggleRightDrawer('comments')}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11.5px] font-medium transition-all cursor-pointer ${
+                    activeRightDrawer === 'comments'
+                      ? 'bg-primary text-white shadow-2xs font-semibold'
+                      : 'text-stone-600 hover:bg-stone-200/60'
+                  }`}
+                >
+                  <MessageSquare className='w-3.5 h-3.5' />
+                  <span>
+                    Góp ý ({comments ? comments.filter((c) => !c.resolvedAt).length : 0})
+                  </span>
+                </button>
+
+                <button
+                  type='button'
+                  id='right-tab-btn-history'
+                  data-testid='open-script-history-btn'
+                  onClick={() => onToggleRightDrawer('versions')}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11.5px] font-medium transition-all cursor-pointer ${
+                    activeRightDrawer === 'versions'
+                      ? 'bg-primary text-white shadow-2xs font-semibold'
+                      : 'text-stone-600 hover:bg-stone-200/60'
+                  }`}
+                >
+                  <History className='w-3.5 h-3.5' />
+                  <span>Version</span>
+                </button>
+
+                {openFindingsCount !== undefined && (
+                  <button
+                    type='button'
+                    data-testid='rail-consistency-btn'
+                    onClick={() => onToggleRightDrawer('consistency')}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11.5px] font-medium transition-all cursor-pointer ${
+                      activeRightDrawer === 'consistency'
+                        ? 'bg-primary text-white shadow-2xs font-semibold'
+                        : 'text-stone-600 hover:bg-stone-200/60'
+                    }`}
+                    title='Kiểm tra nhất quán'
+                  >
+                    <ShieldCheck className='w-3.5 h-3.5' />
+                    {openFindingsCount > 0 && (
+                      <span className='px-1 py-0.2 rounded-full text-[9px] font-bold bg-amber-500 text-white font-mono'>
+                        {openFindingsCount}
+                      </span>
+                    )}
+                  </button>
+                )}
+              </>
             )}
-            {t('scriptStudio.gn.save')}
-          </button>
-        )}
+          </div>
+
+          <div className='h-4 w-px bg-stone-300 mx-1' />
+
+          <span className='font-mono text-stone-400 text-[11px] hidden sm:inline'>Ctrl+S</span>
+
+          {!isReadOnly && (
+            <button
+              type='button'
+              id='btn-save'
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => void handleSave()}
+              disabled={!isDirty || isSaving}
+              title='Ctrl + S'
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer disabled:cursor-default ${
+                isDirty
+                  ? 'bg-primary text-white hover:bg-secondary shadow-xs'
+                  : 'text-stone-400 hover:text-stone-600'
+              }`}
+            >
+              {isSaving ? (
+                <Loader2 className='w-3.5 h-3.5 animate-spin' />
+              ) : (
+                <Save className='w-3.5 h-3.5' />
+              )}
+              <span>{t('scriptStudio.gn.save', 'Lưu')}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {flowAiSlot && (
@@ -659,36 +780,173 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         </div>
       )}
 
-      <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-6 sm:py-10 pb-32'>
-        <div className='max-w-[1240px] mx-auto flex items-start justify-center gap-6'>
-          <div
-            data-testid='paper-editor-sheet'
-            className='gn-sheet paper-editor-sheet w-full max-w-[760px] shrink-0 bg-white rounded-md border border-[#C5BDAF] shadow-[0_8px_30px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)] px-6 sm:px-16 lg:px-20 pt-14 pb-48 my-2 sm:my-4 transition-all duration-150 min-h-[1100px] sm:min-h-[1200px] cursor-text'
-            onClick={() => {
-              if (editor && !editor.isFocused) editor.commands.focus();
-            }}
-          >
-            {manuscriptTitle && (
-              <header className='text-center mb-12 select-none'>
-                <h2 className='font-serif text-3xl text-stone-900'>{manuscriptTitle}</h2>
-                {!isReadOnly && (
-                  <p className='mt-3 text-xs text-stone-500'>{t('scriptStudio.gn.help')}</p>
-                )}
-              </header>
-            )}
-            {diffPreview}
-            <div className={diffPreview ? 'hidden' : undefined}>
-              <EditorContent editor={editor} />
-            </div>
-            <BibleRefFloatingMenu
-              editor={editor}
-              allBibleEntries={allBibleEntries || []}
-              canEditScript={!isReadOnly}
-              t={t}
-            />
+      {/* Center Paper Sheet */}
+      <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-[#F4EFE8]/70 px-4 sm:px-8 py-6 sm:py-8 flex flex-col items-center pb-32'>
+        <div
+          data-testid='paper-editor-sheet'
+          className='gn-sheet paper-editor-sheet w-full max-w-3xl shrink-0 bg-white rounded-lg shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-[#E8E3DA] px-6 sm:px-14 py-12 sm:py-16 my-2 sm:my-4 transition-all duration-150 min-h-[960px] cursor-text'
+          onClick={() => {
+            if (editor && !editor.isFocused) editor.commands.focus();
+          }}
+        >
+          {manuscriptTitle && (
+            <header className='text-center mb-10 select-none'>
+              <h1 className='font-serif text-[28px] font-medium tracking-tight text-stone-900 mb-2'>
+                {manuscriptTitle}
+              </h1>
+              {!isReadOnly && (
+                <p className='font-sans text-[11.5px] text-stone-500'>
+                  Enter: dòng kế tiếp · Tab: nhân vật / ( ) · Shift+Tab: lùi loại dòng · Ctrl+1..8: đổi loại dòng · Ctrl+S: lưu
+                </p>
+              )}
+            </header>
+          )}
+          {diffPreview}
+          <div className={diffPreview ? 'hidden' : undefined}>
+            <EditorContent editor={editor} />
           </div>
+          <BibleRefFloatingMenu
+            editor={editor}
+            allBibleEntries={allBibleEntries || []}
+            canEditScript={!isReadOnly}
+            t={t}
+          />
         </div>
       </div>
+
+      {/* AI script assistant floating button & popover */}
+      {!isReadOnly && (
+        <div className='fixed bottom-6 right-20 sm:right-88 z-40 flex flex-col items-end select-none' id='ai-script-assistant-wrapper'>
+          {showAiPopover && (
+            <div
+              id='ai-script-suggestions-popover'
+              className='mb-3 w-80 bg-[#FFFDF9] rounded-xl border border-stone-200/90 shadow-xl overflow-hidden font-sans transition-all duration-300'
+            >
+              <div className='px-4 py-3 bg-[#FBF9F4] border-b border-stone-200/80 flex items-center justify-between'>
+                <div className='flex items-center gap-2'>
+                  <Sparkles className='w-4 h-4 text-primary' />
+                  <span className='font-headline-sm text-[13px] font-bold text-stone-900'>
+                    {t('collaboration.writerStudio.aiAssistantTitle', 'Trợ lý Kịch bản AI')}
+                  </span>
+                  <span className='px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20'>
+                    {t('collaboration.writerStudio.beta', 'Beta')}
+                  </span>
+                </div>
+                <button
+                  type='button'
+                  className='p-1 text-stone-400 hover:text-stone-700 rounded transition-colors cursor-pointer'
+                  onClick={() => setShowAiPopover(false)}
+                  title='Đóng'
+                >
+                  <X className='w-4 h-4' />
+                </button>
+              </div>
+
+              <div className='p-3 space-y-2 text-[12px]'>
+                <div className='text-[11px] font-bold uppercase tracking-wider text-stone-400 px-1'>
+                  {t('collaboration.writerStudio.quickSuggestions', 'GỢI Ý NHANH THEO NGỮ CẢNH')}
+                </div>
+
+                <div
+                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-primary hover:bg-orange-50/40 cursor-pointer transition-colors shadow-2xs group'
+                  onClick={() => {
+                    if (editor) {
+                      editor.commands.insertContent('<p class="gn-dialogue">"Cổng đã đồng bộ 90%. Cho dù ngươi có gọi cả sư đoàn tới cũng quá muộn."</p>');
+                      setShowAiPopover(false);
+                    }
+                  }}
+                >
+                  <div className='flex items-center justify-between mb-1'>
+                    <span className='font-semibold text-stone-900 group-hover:text-primary flex items-center gap-1.5'>
+                      <MessageSquare className='w-3.5 h-3.5 text-primary' />
+                      {t('collaboration.writerStudio.nextDialogue', 'Thoại đối kháng kế tiếp')}
+                    </span>
+                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-primary' />
+                  </div>
+                  <p className='text-[11px] text-stone-500 line-clamp-2'>
+                    Kael: "Cổng đã đồng bộ 90%. Cho dù ngươi có gọi cả sư đoàn tới cũng quá muộn."
+                  </p>
+                </div>
+
+                <div
+                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-primary hover:bg-orange-50/40 cursor-pointer transition-colors shadow-2xs group'
+                  onClick={() => {
+                    if (editor) {
+                      editor.commands.insertContent('<p class="gn-sfx">SHAKIIIIN!!</p>');
+                      setShowAiPopover(false);
+                    }
+                  }}
+                >
+                  <div className='flex items-center justify-between mb-1'>
+                    <span className='font-semibold text-stone-900 group-hover:text-primary flex items-center gap-1.5'>
+                      <Zap className='w-3.5 h-3.5 text-amber-600' />
+                      {t('collaboration.writerStudio.climaxSfx', 'SFX cao trào cho Panel')}
+                    </span>
+                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-primary' />
+                  </div>
+                  <p className='text-[11px] text-stone-500 line-clamp-2'>
+                    SHAKIIIIN!! Âm thanh chấn động không gian làm vỡ vụn các mảnh kính neon.
+                  </p>
+                </div>
+
+                <div
+                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-primary hover:bg-orange-50/40 cursor-pointer transition-colors shadow-2xs group'
+                  onClick={() => {
+                    if (editor) {
+                      editor.commands.insertContent('<p class="gn-action">Akira đạp mạnh lên biển hiệu vỡ, phóng vút người về phía lõi năng lượng với tốc độ mắt thường không bắt kịp.</p>');
+                      setShowAiPopover(false);
+                    }
+                  }}
+                >
+                  <div className='flex items-center justify-between mb-1'>
+                    <span className='font-semibold text-stone-900 group-hover:text-primary flex items-center gap-1.5'>
+                      <Sparkles className='w-3.5 h-3.5 text-emerald-600' />
+                      {t('collaboration.writerStudio.reflexAction', 'Hành động phản xạ nhân vật')}
+                    </span>
+                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-primary' />
+                  </div>
+                  <p className='text-[11px] text-stone-500 line-clamp-2'>
+                    Akira đạp mạnh lên biển hiệu vỡ, phóng vút người về phía lõi năng lượng với tốc độ mắt thường không bắt kịp.
+                  </p>
+                </div>
+              </div>
+
+              <div className='p-2.5 bg-[#FAF9F5] border-t border-stone-200/80 flex items-center justify-between text-[11px]'>
+                <span className='text-stone-500 flex items-center gap-1'>
+                  <Zap className='w-3 h-3 text-stone-400' />
+                  {t('collaboration.writerStudio.clickToInsert', 'Nhấn để chèn vào kịch bản')}
+                </span>
+                {onOpenAiPromptModal && (
+                  <button
+                    type='button'
+                    className='text-primary hover:underline font-semibold cursor-pointer'
+                    onClick={() => {
+                      setShowAiPopover(false);
+                      onOpenAiPromptModal();
+                    }}
+                  >
+                    AI Prompt →
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <button
+            type='button'
+            id='btn-ai-script-assistant'
+            data-testid='btn-ai-script-assistant'
+            onClick={() => setShowAiPopover(!showAiPopover)}
+            className='flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary hover:bg-secondary text-white font-semibold text-[13px] shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 hover:scale-105 active:scale-95 cursor-pointer'
+          >
+            <Sparkles className='w-4 h-4 animate-pulse' />
+            <span>{t('collaboration.writerStudio.scriptSuggestions', 'Gợi ý kịch bản')}</span>
+            <span className='px-1.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-mono font-bold'>
+              AI
+            </span>
+          </button>
+        </div>
+      )}
 
       {menu && editor && (
         <ul
@@ -708,12 +966,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               }}
               className={`flex items-center justify-between px-3 py-1.5 cursor-pointer ${
                 i === menu.index
-                  ? 'bg-orange-50 text-[#C2410C]'
+                  ? 'bg-orange-50 text-primary'
                   : 'text-stone-700 hover:bg-stone-50'
               }`}
             >
               <span>{t(`scriptStudio.gn.el.${el}`)}</span>
-              <span className='text-xs text-stone-400'>Ctrl+{i + 1}</span>
+              <span className='text-xs text-stone-400 font-mono'>Ctrl+{i + 1}</span>
             </li>
           ))}
         </ul>
