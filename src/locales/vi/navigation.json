@@ -88,6 +88,12 @@
     "currentChapterSubtitle": "Chương hiện tại",
     "seriesListSubtitle": "Danh sách Series",
     "activeSeriesFallback": "Bộ truyện",
+    "backToStudio": "Về Sảnh Studio",
+    "activeSeriesLabel": "BỘ TRUYỆN ĐANG MỞ",
+    "activeWorkspaceLabel": "WORKSPACE HIỆN TẠI",
+    "chapterProduction": "SẢN XUẤT CHƯƠNG",
+    "seriesOverview": "TỔNG QUAN",
+    "crew": "Đội ngũ",
     "themes": {
       "paper": "Giấy sáng",
       "ink": "Mực đậm",

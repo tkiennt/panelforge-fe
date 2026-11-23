@@ -88,6 +88,12 @@
     "currentChapterSubtitle": "Current chapter",
     "seriesListSubtitle": "Series list",
     "activeSeriesFallback": "Series",
+    "backToStudio": "Back to Studio Hub",
+    "activeSeriesLabel": "OPEN SERIES",
+    "activeWorkspaceLabel": "CURRENT WORKSPACE",
+    "chapterProduction": "CHAPTER PRODUCTION",
+    "seriesOverview": "OVERVIEW",
+    "crew": "Crew",
     "themes": {
       "paper": "Light paper",
       "ink": "Dark ink",
