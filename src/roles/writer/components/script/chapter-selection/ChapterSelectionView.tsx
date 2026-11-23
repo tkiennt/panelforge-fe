@@ -570,15 +570,15 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                 key={chapter.id}
                 data-testid={`chapter-card-${chapter.chapterNumber}`}
                 onClick={() => onSelectChapter(chapter)}
-                className='group bg-white hover:bg-white border border-stone-200/80 hover:border-primary/50 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden'
+                className='group bg-white hover:bg-white border border-stone-200/80 hover:border-[#EA580C]/50 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden'
               >
-                {isActive && <div className='absolute top-0 left-0 w-1.5 h-full bg-primary' />}
+                {isActive && <div className='absolute top-0 left-0 w-1.5 h-full bg-[#EA580C]' />}
 
                 <div className='space-y-3.5'>
                   {/* Header card: Số thứ tự chương, định dạng & phiên bản */}
                   <div className='flex items-center justify-between gap-2'>
                     <div className='flex items-center gap-1.5'>
-                      <span className='font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-200/60 text-primary group-hover:border-primary/40 transition-colors'>
+                      <span className='font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-200/60 text-[#EA580C] group-hover:border-[#EA580C]/40 transition-colors'>
                         CH.{chapter.chapterNumber}
                       </span>
                       <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 font-label-sm text-xs font-semibold'>
@@ -595,7 +595,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
 
                   {/* Body card: Tiêu đề chương */}
                   <div>
-                    <h3 className='text-base font-bold font-serif text-stone-900 group-hover:text-primary transition-colors line-clamp-1'>
+                    <h3 className='text-base font-bold font-serif text-stone-900 group-hover:text-[#EA580C] transition-colors line-clamp-1'>
                       {formatChapterOption(chapter.chapterNumber, chapter.title)}
                     </h3>
                   </div>
@@ -617,7 +617,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                     </div>
                     <div className='w-full h-1.5 rounded-full bg-stone-100 overflow-hidden'>
                       <div
-                        className='h-full bg-primary rounded-full transition-all duration-500'
+                        className='h-full bg-[#EA580C] rounded-full transition-all duration-500'
                         style={{
                           width: chapter.isScriptFrozen
                             ? '100%'
@@ -652,7 +652,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
 
                   <button
                     type='button'
-                    className='inline-flex items-center gap-1 text-xs font-bold text-primary group-hover:translate-x-0.5 transition-transform cursor-pointer'
+                    className='inline-flex items-center gap-1 text-xs font-bold text-[#EA580C] group-hover:translate-x-0.5 transition-transform cursor-pointer'
                   >
                     <span>
                       {chapter.isScriptFrozen

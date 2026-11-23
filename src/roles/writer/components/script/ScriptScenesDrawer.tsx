@@ -55,7 +55,7 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
       <div className='p-3.5 border-b border-stone-200/80 flex items-start justify-between bg-white'>
         <div className='min-w-0 pr-2'>
           <div className='flex items-center gap-1.5'>
-            <Clapperboard className='w-4 h-4 text-primary' />
+            <Clapperboard className='w-4 h-4 text-[#EA580C]' />
             <h3 className='font-headline-sm text-[15px] font-bold text-stone-900 leading-tight'>
               {t('scriptStudio.scenes.title', 'Phân cảnh')}
             </h3>
@@ -75,7 +75,7 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
               onClick={onAdd}
               title={t('scriptStudio.scenes.add', 'Thêm cảnh mới')}
               aria-label={t('scriptStudio.scenes.add', 'Thêm cảnh mới')}
-              className='p-1 text-primary hover:bg-orange-50 rounded transition-colors cursor-pointer'
+              className='p-1 text-[#EA580C] hover:bg-orange-50 rounded transition-colors cursor-pointer'
             >
               <Plus className='w-4 h-4' />
             </button>
@@ -139,20 +139,22 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
                 onClick={() => onSelect(s)}
                 className={`bg-white rounded-xl p-3 shadow-xs transition-all relative overflow-hidden group cursor-pointer ${
                   isSelected
-                    ? 'border border-primary/40'
-                    : 'border border-stone-200/80 hover:border-primary/40'
+                    ? 'border border-[#EA580C]/40'
+                    : 'border border-stone-200/80 hover:border-[#EA580C]/40'
                 }`}
               >
-                {isSelected && <div className='absolute top-0 left-0 w-1 h-full bg-primary' />}
+                {isSelected && <div className='absolute top-0 left-0 w-1 h-full bg-[#EA580C]' />}
                 <div className={`${isSelected ? 'pl-1.5' : ''} space-y-2`}>
                   <div className='flex items-center justify-between gap-1'>
                     <div className='flex items-center gap-1.5 min-w-0'>
-                      <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary border border-primary/20 shrink-0 font-mono'>
+                      <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-[#EA580C]/10 text-[#EA580C] border border-[#EA580C]/20 shrink-0 font-mono'>
                         {t('collaboration.writerStudio.sceneNumber', { n: s.sceneNumber })}
                       </span>
                       <h4
                         className={`text-xs font-bold truncate transition-colors uppercase ${
-                          isSelected ? 'text-primary' : 'text-stone-900 group-hover:text-primary'
+                          isSelected
+                            ? 'text-[#EA580C]'
+                            : 'text-stone-900 group-hover:text-[#EA580C]'
                         }`}
                       >
                         {s.heading ||
