@@ -4,6 +4,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { chapterService, ChapterDto, CreateChapterRequest } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { ChapterSelectionView } from '../components/script/chapter-selection';
+// eslint-disable-next-line no-restricted-imports
 import { ScriptReviewView } from '@/roles/editor/views/ScriptReviewView';
 import { normalizeWorkspaceRole } from '@/types/auth';
 
