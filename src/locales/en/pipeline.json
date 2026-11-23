@@ -449,5 +449,25 @@
       "btnAssignPages": "Assign Pages",
       "btnPermissions": "Permissions"
     }
+  },
+  "revenueView": {
+    "title": "Revenue & Reader Analytics",
+    "subtitle": "Consolidated data from print publishers and digital platforms Shonen Jump+, MangaPlus (VND)",
+    "exportCsv": "Export Report (CSV)",
+    "totalRevenue": "Total Period Revenue",
+    "printRevenue": "Print Revenue (Tankōbon)",
+    "digitalRevenue": "Digital & Rights Revenue",
+    "globalReads": "Global Online Reads",
+    "chapterAnalysis": "Chapter Breakdown: Revenue & Reads",
+    "currencyUnit": "Currency: VND (₫)",
+    "thChapter": "Chapter / Title",
+    "thViews": "Cumulative Views",
+    "thCompletion": "Completion Rate",
+    "thPrint": "Print Revenue",
+    "thDigital": "Digital Revenue",
+    "thTotal": "Total Revenue (VND)",
+    "thStatus": "Review & Status",
+    "footerNotice": "Revenue figures are updated daily at 24:00 from MangaPlus API and Tankōbon distribution orders.",
+    "cumulativeTotal": "Cumulative Total"
   }
 }
