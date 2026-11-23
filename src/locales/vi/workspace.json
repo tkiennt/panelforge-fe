@@ -271,5 +271,47 @@
       "createNew": "+ Tạo Studio mới",
       "viewAll": "Xem tất cả Studio (/workspaces)"
     }
+  },
+  "portal": {
+    "eyebrow": "Studio",
+    "title": "Chọn Bộ truyện để làm việc",
+    "greeting": "Chào mừng trở lại, {name}. Chọn bộ truyện để xem các việc được giao cho bạn.",
+    "openTasks_one": "{count} đầu việc đang giao",
+    "openTasks_other": "{count} đầu việc đang giao",
+    "urgentTasks_one": "{count} việc cần sửa gấp",
+    "urgentTasks_other": "{count} việc cần sửa gấp",
+    "searchLabel": "Tìm bộ truyện",
+    "searchPlaceholder": "Tìm bộ truyện theo tên, thể loại hoặc định dạng...",
+    "clearSearch": "Xoá tìm kiếm",
+    "showing": "Hiển thị {shown}/{total} bộ truyện",
+    "emptyTitle": "Bạn chưa được thêm vào bộ truyện nào trong Studio này.",
+    "noResults": "Không tìm thấy bộ truyện phù hợp",
+    "resetSearch": "Xoá bộ lọc",
+    "formatWebtoon": "Webtoon cuộn dọc",
+    "chapterLabel": "Chương {number}: {title}",
+    "chapterCount": "{count} chương",
+    "completed": "Hoàn thành",
+    "inProduction": "Đang sản xuất",
+    "dueOn": "Hạn: {date}",
+    "tasksForYou": "{count} việc đang giao cho bạn",
+    "priority": "Cần ưu tiên",
+    "noTasks": "Chưa có việc nào được giao cho bạn ở bộ truyện này.",
+    "openMyWork": "Xem việc của tôi",
+    "role": {
+      "WRITER": "Biên kịch",
+      "ARTIST": "Họa sĩ",
+      "LETTERER": "Đặt thoại",
+      "EDITOR": "Biên tập",
+      "PRODUCER": "Producer"
+    },
+    "status": {
+      "Assigned": "Chưa nhận",
+      "InProgress": "Đang làm",
+      "Submitted": "Đã nộp",
+      "UnderReview": "Đang duyệt",
+      "Approved": "Đã duyệt",
+      "ReworkRequired": "Cần sửa",
+      "Blocked": "Bị chặn"
+    }
   }
 }
