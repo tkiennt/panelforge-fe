@@ -316,12 +316,14 @@ export function AppShell({
                 label: t('navigation.menu.scriptAndReview', 'Kịch bản & Cổng duyệt'),
                 href: chapterId
                   ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapterId}/script/review`
-                  : `/workspaces/${workspaceId}/series/${seriesId}/script`,
+                  : `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
               },
               {
                 icon: BookOpen,
                 label: t('navigation.menu.artworkReview', 'Đọc duyệt tranh'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk${chapterQuery}`,
+                href: chapterId
+                  ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapterId}/review/latest`
+                  : `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
               },
               {
                 icon: Download,
