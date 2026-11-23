@@ -10,7 +10,7 @@ const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   Pending: { label: 'Chờ duyệt', className: 'bg-purple-50 text-purple-700 border-purple-200' },
   Approved: { label: 'Đã duyệt', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   Rejected: { label: 'Bị trả về', className: 'bg-red-50 text-red-700 border-red-200' },
-  Superseded: { label: 'Đã thay thế', className: 'bg-zinc-100 text-zinc-600 border-zinc-200' },
+  Superseded: { label: 'Đã thay thế', className: 'bg-stone-100 text-stone-600 border-stone-200' },
 };
 
 /** Lịch sử các lần nộp của một việc (CF3, UC-09): lần nào bị trả về kèm lý do, lần nào được duyệt. */

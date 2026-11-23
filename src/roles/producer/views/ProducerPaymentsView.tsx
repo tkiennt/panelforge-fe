@@ -460,19 +460,26 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
   };
 
   const kpiCardBase =
-    'p-4.5 rounded-2xl bg-white border shadow-xs relative overflow-hidden transition-colors';
+    'p-4 rounded-xl bg-white border border-stone-200 shadow-xs space-y-2 relative overflow-hidden transition-colors';
 
   return (
-    <div className='p-6 max-w-7xl mx-auto space-y-6'>
-      {/* ─── 1. Header ─── */}
-      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-[#E7E7E7]'>
-        <div className='flex items-center gap-2.5'>
-          <div className='p-2 rounded-xl bg-[#F97316]/10 text-[#F97316]'>
-            <CreditCard className='w-6 h-6' />
+    <div className='p-6 max-w-7xl mx-auto space-y-6 bg-[#FAF9F5]/30 min-h-screen'>
+      {/* ─── 1. Header (Stitch view-revenue style) ─── */}
+      <div className='p-5 rounded-xl bg-white border border-stone-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4'>
+        <div className='flex items-center gap-3'>
+          <div className='w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center shrink-0'>
+            <CreditCard className='w-5 h-5 text-orange-600' />
           </div>
           <div>
-            <h1 className='text-xl font-bold text-[#171717] tracking-tight'>{t('title')}</h1>
-            <p className='text-xs text-[#737373] mt-0.5'>{t('subtitle')}</p>
+            <div className='flex items-center gap-2.5 flex-wrap'>
+              <h1 className='text-lg font-bold text-stone-900 leading-tight'>{t('title')}</h1>
+              {selectedSeriesId && (
+                <span className='px-2 py-0.5 rounded bg-orange-100 text-orange-800 font-mono text-xs font-semibold'>
+                  {seriesList.find((s) => s.id === selectedSeriesId)?.title || ''}
+                </span>
+              )}
+            </div>
+            <p className='text-xs text-stone-500 mt-0.5'>{t('subtitle')}</p>
           </div>
         </div>
 
@@ -481,54 +488,104 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
             <button
               type='button'
               onClick={openBankModal}
-              className='hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-[11px] text-emerald-800 font-medium cursor-pointer transition-colors'
+              className='hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs text-emerald-800 font-medium cursor-pointer transition-colors'
             >
-              <Building2 className='w-3.5 h-3.5' />
-              {savedBank.bankName} • <span className='font-mono'>{savedBank.bankAccountNo}</span>
+              <Building2 className='w-3.5 h-3.5 text-emerald-600' />
+              <span>{savedBank.bankName}</span>
+              <span className='font-mono'>• {savedBank.bankAccountNo}</span>
             </button>
           ) : (
             <button
               type='button'
               onClick={openBankModal}
-              className='hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-[11px] text-amber-800 font-medium cursor-pointer transition-colors'
+              className='hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-xs text-amber-800 font-medium cursor-pointer transition-colors'
             >
-              <Building2 className='w-3.5 h-3.5' />
-              {t('bank.notConfigured')}
+              <Building2 className='w-3.5 h-3.5 text-amber-600' />
+              <span>{t('bank.notConfigured')}</span>
             </button>
           )}
           <button
             type='button'
             onClick={() => fetchPayments(true)}
             disabled={refreshing || loading}
-            className='inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#E7E7E7] bg-white hover:bg-[#FAF8F5] text-xs font-semibold text-[#555555] transition-colors shadow-2xs cursor-pointer disabled:opacity-50'
+            className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 transition-colors shadow-2xs cursor-pointer disabled:opacity-50'
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#F97316]' : ''}`}
+              className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-orange-600' : ''}`}
             />
             <span>{refreshing ? t('refreshing') : t('refresh')}</span>
           </button>
         </div>
       </div>
 
-      {/* ─── 2. KPI Cards ─── */}
-      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-        <div className={`${kpiCardBase} border-[#E7E7E7] hover:border-[#F97316]/40`}>
-          <div className='flex items-center justify-between'>
-            <span className='text-xs font-semibold text-[#737373] uppercase tracking-wider'>
-              {t('kpi.totalRevenue')}
-            </span>
-            <div className='p-2 rounded-xl bg-emerald-50 text-emerald-600'>
+      {/* ─── 2. KPI Cards (4 columns matching Stitch view-revenue) ─── */}
+      <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
+        {/* Card 1: Tổng doanh thu kỳ */}
+        <div className={`${kpiCardBase} hover:border-orange-200`}>
+          <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-semibold'>
+            <span>{t('kpi.totalRevenue')}</span>
+            <div className='p-1.5 rounded-lg bg-orange-50 text-orange-600'>
               <DollarSign className='w-4 h-4' />
             </div>
           </div>
-          <div className='mt-2 text-2xl font-black font-mono text-[#171717] tracking-tight'>
-            {formatVnd(summary.totalRevenueVnd)}
+          <div className='flex items-baseline gap-2'>
+            <span className='text-2xl font-bold font-mono text-stone-900 tracking-tight'>
+              {formatVnd(summary.totalRevenueVnd)}
+            </span>
           </div>
-          <div className='mt-1 text-[11px] text-emerald-700 font-medium'>
-            {t('kpi.totalRevenueSub')}
+          <div className='flex items-center justify-between text-xs pt-1 border-t border-stone-100 text-stone-500'>
+            <span className='text-emerald-700 font-semibold'>
+              {summary.paidTransactionsCount} {t('kpi.paidTransactionsSub')}
+            </span>
+            <span className='font-mono text-stone-400'>
+              {summary.pendingCount > 0 ? `${summary.pendingCount} chờ` : '0 chờ'}
+            </span>
           </div>
         </div>
 
+        {/* Card 2: Doanh thu bản in (Tankōbon) — Unconnected API field */}
+        <div className={`${kpiCardBase} hover:border-orange-200`}>
+          <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-semibold'>
+            <span>Doanh thu bản in (Tankōbon)</span>
+            <div className='p-1.5 rounded-lg bg-stone-100 text-stone-400'>
+              <BookOpen className='w-4 h-4' />
+            </div>
+          </div>
+          <div className='flex items-baseline gap-2'>
+            <span className='text-2xl font-bold font-mono text-stone-400'>—</span>
+            <span className='text-xs text-stone-400 font-mono'>0%</span>
+          </div>
+          <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden'>
+            <div className='bg-stone-300 h-full w-0' />
+          </div>
+          <div className='text-[11px] text-stone-400 pt-0.5 truncate'>
+            Chưa kết nối dữ liệu in ấn (API chưa hỗ trợ)
+          </div>
+        </div>
+
+        {/* Card 3: Doanh thu đọc số & bản quyền */}
+        <div className={`${kpiCardBase} hover:border-blue-200`}>
+          <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-semibold'>
+            <span>Doanh thu đọc số &amp; bản quyền</span>
+            <div className='p-1.5 rounded-lg bg-blue-50 text-blue-600'>
+              <Wallet className='w-4 h-4' />
+            </div>
+          </div>
+          <div className='flex items-baseline gap-2'>
+            <span className='text-2xl font-bold font-mono text-blue-700 tracking-tight'>
+              {formatVnd(summary.totalRevenueVnd)}
+            </span>
+            <span className='text-xs text-stone-500 font-mono'>100%</span>
+          </div>
+          <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden'>
+            <div className='bg-blue-600 h-full w-full' />
+          </div>
+          <div className='text-[11px] text-stone-500 pt-0.5 truncate'>
+            {summary.totalUnlockedChapters.toLocaleString('vi-VN')} chương mở khóa trực tuyến
+          </div>
+        </div>
+
+        {/* Card 4: Giao dịch chờ duyệt & Lượt đọc */}
         <button
           type='button'
           onClick={() => {
@@ -537,74 +594,43 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
           }}
           className={`${kpiCardBase} text-left cursor-pointer ${
             summary.pendingCount > 0
-              ? 'border-amber-400 bg-amber-50/60 ring-2 ring-amber-200'
-              : 'border-[#E7E7E7] hover:border-amber-200'
+              ? 'border-amber-400 bg-amber-50/50 ring-1 ring-amber-300'
+              : 'hover:border-stone-300'
           }`}
         >
-          <div className='flex items-center justify-between'>
-            <span className='text-xs font-semibold text-[#737373] uppercase tracking-wider'>
-              {t('kpi.pendingCount')}
-            </span>
-            <div className='p-2 rounded-xl bg-amber-100 text-amber-600'>
+          <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-semibold'>
+            <span>{t('kpi.pendingCount')}</span>
+            <div className='p-1.5 rounded-lg bg-amber-100 text-amber-700'>
               <Clock className='w-4 h-4' />
             </div>
           </div>
-          <div className='mt-2 flex items-baseline gap-2'>
-            <span className='text-2xl font-black font-mono text-amber-700 tracking-tight'>
+          <div className='flex items-baseline gap-2'>
+            <span
+              className={`text-2xl font-bold font-mono tracking-tight ${
+                summary.pendingCount > 0 ? 'text-amber-800' : 'text-stone-900'
+              }`}
+            >
               {summary.pendingCount}
             </span>
             {summary.pendingCount > 0 && (
-              <span className='px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse'>
+              <span className='px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500 text-white animate-pulse'>
                 {t('kpi.needsReview')}
               </span>
             )}
           </div>
-          <div className='mt-1 text-[11px] text-stone-500'>
-            {summary.pendingCount > 0 ? t('kpi.pendingCountSub') : t('kpi.pendingNone')}
+          <div className='flex items-center justify-between text-xs pt-1 border-t border-stone-100 text-stone-500'>
+            <span>{summary.pendingCount > 0 ? t('kpi.pendingCountSub') : t('kpi.pendingNone')}</span>
+            <span className='text-stone-400 text-[11px]'>Lượt toàn cầu: —</span>
           </div>
         </button>
-
-        <div className={`${kpiCardBase} border-[#E7E7E7] hover:border-blue-200`}>
-          <div className='flex items-center justify-between'>
-            <span className='text-xs font-semibold text-[#737373] uppercase tracking-wider'>
-              {t('kpi.unlockedChapters')}
-            </span>
-            <div className='p-2 rounded-xl bg-blue-50 text-blue-600'>
-              <BookOpen className='w-4 h-4' />
-            </div>
-          </div>
-          <div className='mt-2 text-2xl font-black font-mono text-[#171717] tracking-tight'>
-            {summary.totalUnlockedChapters.toLocaleString('vi-VN')}
-          </div>
-          <div className='mt-1 text-[11px] text-blue-700 font-medium'>
-            {t('kpi.unlockedChaptersSub')}
-          </div>
-        </div>
-
-        <div className={`${kpiCardBase} border-[#E7E7E7] hover:border-purple-200`}>
-          <div className='flex items-center justify-between'>
-            <span className='text-xs font-semibold text-[#737373] uppercase tracking-wider'>
-              {t('kpi.paidTransactions')}
-            </span>
-            <div className='p-2 rounded-xl bg-purple-50 text-purple-600'>
-              <ShieldCheck className='w-4 h-4' />
-            </div>
-          </div>
-          <div className='mt-2 text-2xl font-black font-mono text-[#171717] tracking-tight'>
-            {summary.paidTransactionsCount.toLocaleString('vi-VN')}
-          </div>
-          <div className='mt-1 text-[11px] text-purple-700 font-medium'>
-            {t('kpi.paidTransactionsSub')}
-          </div>
-        </div>
       </div>
 
       {/* ─── 3. Filters ─── */}
-      <div className='bg-white p-3.5 rounded-2xl border border-[#E7E7E7] shadow-2xs'>
+      <div className='bg-white p-3.5 rounded-xl border border-stone-200 shadow-xs'>
         <div className='flex flex-wrap items-center justify-between gap-3'>
           <div
             role='tablist'
-            className='flex flex-wrap items-center gap-1.5 p-1 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-semibold'
+            className='flex flex-wrap items-center gap-1.5 p-1 bg-stone-100 border border-stone-200 rounded-lg text-xs font-semibold'
           >
             {STATUS_TABS.map((tab) => {
               const active = selectedStatus === tab;
@@ -619,16 +645,16 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                     setSelectedStatus(tab);
                     setPageIndex(1);
                   }}
-                  className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
                     active
-                      ? 'bg-white text-[#171717] shadow-xs font-bold'
-                      : 'text-[#737373] hover:text-[#171717] hover:bg-white/50'
+                      ? 'bg-white text-stone-900 shadow-xs font-bold'
+                      : 'text-stone-600 hover:text-stone-900 hover:bg-white/50'
                   }`}
                 >
                   <span>{statusTabLabel[tab]}</span>
                   {showCount && (
                     <span
-                      className={`px-1.5 rounded-full text-[10px] font-mono ${
+                      className={`px-1.5 rounded-full text-[11px] font-mono ${
                         active ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800'
                       }`}
                     >
@@ -648,7 +674,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                 setPageIndex(1);
               }}
               aria-label={t('filters.series')}
-              className='w-48 sm:w-56 px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-xl text-xs font-medium text-[#171717] focus:outline-none focus:border-[#F97316] shadow-2xs'
+              className='w-48 sm:w-56 px-3 py-1.5 bg-white border border-stone-200 rounded-lg text-xs font-medium text-stone-900 focus:outline-none focus:border-orange-500 shadow-2xs'
             >
               <option value=''>{t('filters.allSeries')}</option>
               {seriesList.map((s) => (
@@ -659,14 +685,14 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
             </select>
 
             <div className='relative w-64 sm:w-72'>
-              <Search className='w-3.5 h-3.5 text-[#888888] absolute left-3 top-1/2 -translate-y-1/2' />
+              <Search className='w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2' />
               <input
                 type='text'
                 placeholder={t('filters.searchPlaceholder')}
                 aria-label={t('filters.searchPlaceholder')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className='w-full pl-9 pr-7 py-1.5 bg-white border border-[#E7E7E7] rounded-xl text-xs text-[#171717] placeholder:text-[#888888] focus:outline-none focus:border-[#F97316] shadow-2xs'
+                className='w-full pl-9 pr-7 py-1.5 bg-white border border-stone-200 rounded-lg text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-orange-500 shadow-2xs'
               />
               {searchInput && (
                 <button
@@ -684,34 +710,48 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
       </div>
 
       {/* ─── 4. Transactions table ─── */}
-      <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-xs overflow-hidden'>
+      <div className='bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden'>
+        <div className='px-5 py-3.5 bg-stone-50 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3'>
+          <div className='flex items-center gap-2'>
+            <span className='text-xs font-bold text-stone-900 uppercase tracking-wider'>
+              Danh sách giao dịch thanh toán
+            </span>
+            <span className='text-xs px-2 py-0.5 rounded bg-stone-200 text-stone-700 font-mono'>
+              {totalCount} giao dịch
+            </span>
+          </div>
+          <div className='flex items-center gap-2 text-xs text-stone-500'>
+            <span>Đơn vị tiền tệ: <strong className='text-stone-800'>VNĐ (₫)</strong></span>
+          </div>
+        </div>
+
         <div className='overflow-x-auto'>
-          <table className='w-full text-left border-collapse min-w-[1050px]'>
-            <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] text-[10px] font-mono text-[#737373] uppercase tracking-wider'>
+          <table className='w-full text-left border-collapse min-w-[1050px] text-xs'>
+            <thead className='bg-stone-50/70 border-b border-stone-200 text-stone-600 uppercase tracking-wider font-semibold text-[11px]'>
               <tr>
                 <th className='py-3 px-4'>{t('table.orderCode')}</th>
                 <th className='py-3 px-4'>{t('table.reader')}</th>
                 <th className='py-3 px-4'>{t('table.content')}</th>
-                <th className='py-3 px-4'>{t('table.amount')}</th>
+                <th className='py-3 px-4 text-right'>{t('table.amount')}</th>
                 <th className='py-3 px-4'>{t('table.createdAt')}</th>
-                <th className='py-3 px-4'>{t('table.status')}</th>
-                <th className='py-3 px-4'>{t('table.actions')}</th>
+                <th className='py-3 px-4 text-center'>{t('table.status')}</th>
+                <th className='py-3 px-4 text-right'>{t('table.actions')}</th>
               </tr>
             </thead>
-            <tbody className='divide-y divide-[#E7E7E7] text-xs'>
+            <tbody className='divide-y divide-stone-200 text-stone-800'>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className='py-16 text-center text-[#888888]'>
-                    <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
+                  <td colSpan={7} className='py-16 text-center text-stone-400'>
+                    <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-orange-600' />
                     <span className='font-medium'>{t('table.loading')}</span>
                   </td>
                 </tr>
               ) : transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className='py-16 text-center text-[#888888] space-y-1'>
+                  <td colSpan={7} className='py-16 text-center text-stone-400 space-y-1'>
                     <CreditCard className='w-8 h-8 mx-auto text-stone-300' />
-                    <div className='font-bold text-[#171717]'>{t('table.emptyTitle')}</div>
-                    <div className='text-xs text-[#737373] max-w-sm mx-auto'>
+                    <div className='font-bold text-stone-900'>{t('table.emptyTitle')}</div>
+                    <div className='text-xs text-stone-500 max-w-sm mx-auto'>
                       {t('table.emptyDesc')}
                     </div>
                   </td>
@@ -720,17 +760,17 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                 transactions.map((tx) => {
                   const isActionLoading = actionLoadingId === tx.id;
                   return (
-                    <tr key={tx.id} className='hover:bg-[#FAF8F5]/80 transition-colors align-top'>
+                    <tr key={tx.id} className='hover:bg-stone-50/70 transition-colors align-top'>
                       <td className='py-3.5 px-4'>
                         <div className='flex items-center gap-1.5'>
-                          <span className='px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-stone-100 text-[#171717] border border-stone-200'>
+                          <span className='px-2 py-0.5 rounded font-mono font-bold text-xs bg-stone-100 text-stone-900 border border-stone-200'>
                             {tx.orderCode}
                           </span>
                           {tx.qrImageUrl && (
                             <button
                               type='button'
                               onClick={() => setPreviewQrTx(tx)}
-                              className='p-1 rounded-md text-stone-400 hover:text-[#F97316] hover:bg-[#F97316]/10 transition-colors cursor-pointer'
+                              className='p-1 rounded text-stone-400 hover:text-orange-600 hover:bg-orange-50 transition-colors cursor-pointer'
                               title={t('actions.viewQr')}
                               aria-label={t('actions.viewQr')}
                             >
@@ -754,10 +794,10 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                             )}
                           </div>
                           <div className='min-w-0'>
-                            <div className='font-semibold text-[#171717] truncate max-w-[180px]'>
+                            <div className='font-semibold text-stone-900 truncate max-w-[180px]'>
                               {tx.readerName || t('table.unknownReader')}
                             </div>
-                            <div className='text-[10px] text-stone-400 truncate max-w-[180px]'>
+                            <div className='text-[11px] text-stone-400 truncate max-w-[180px]'>
                               {tx.readerEmail || '—'}
                             </div>
                           </div>
@@ -766,19 +806,19 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
 
                       <td className='py-3.5 px-4 max-w-[240px]'>{renderContent(tx)}</td>
 
-                      <td className='py-3.5 px-4 font-mono font-bold text-sm text-[#171717] whitespace-nowrap'>
+                      <td className='py-3.5 px-4 font-mono font-bold text-sm text-stone-900 whitespace-nowrap text-right'>
                         {formatVnd(tx.amountVnd)}
                       </td>
 
-                      <td className='py-3.5 px-4 text-[11px] text-stone-500 font-mono whitespace-nowrap'>
+                      <td className='py-3.5 px-4 text-xs text-stone-500 font-mono whitespace-nowrap'>
                         {formatDate(tx.createdAt)}
                       </td>
 
-                      <td className='py-3.5 px-4'>{renderStatusBadge(tx.status)}</td>
+                      <td className='py-3.5 px-4 text-center'>{renderStatusBadge(tx.status)}</td>
 
-                      <td className='py-3.5 px-4'>
+                      <td className='py-3.5 px-4 text-right'>
                         {tx.status === 'Pending' ? (
-                          <div className='flex flex-wrap items-center gap-2'>
+                          <div className='flex items-center justify-end gap-2'>
                             <button
                               type='button'
                               onClick={() => handleApprove(tx)}
@@ -803,29 +843,29 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                             </button>
                           </div>
                         ) : tx.status === 'Approved' ? (
-                          <div className='space-y-1'>
-                            <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200'>
+                          <div className='space-y-0.5 text-right'>
+                            <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200'>
                               <CheckCircle2 className='w-3 h-3' />
                               {t('status.approved')}
                             </span>
-                            <div className='text-[10px] text-stone-500 font-mono'>
+                            <div className='text-[11px] text-stone-500 font-mono'>
                               {t('table.confirmedAt', { time: formatDate(tx.confirmedAt) })}
                             </div>
                             {tx.confirmedByName && (
-                              <div className='text-[10px] text-stone-500'>
+                              <div className='text-[11px] text-stone-400'>
                                 {t('table.confirmedBy', { name: tx.confirmedByName })}
                               </div>
                             )}
                           </div>
                         ) : tx.status === 'Rejected' ? (
-                          <div className='space-y-1'>
-                            <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200'>
+                          <div className='space-y-0.5 text-right'>
+                            <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200'>
                               <XCircle className='w-3 h-3' />
                               {t('status.rejected')}
                             </span>
                             {tx.rejectionReason && (
                               <div
-                                className='text-[10px] text-rose-600 font-medium line-clamp-2 max-w-[220px]'
+                                className='text-[11px] text-rose-600 font-medium line-clamp-2 max-w-[220px] ml-auto'
                                 title={tx.rejectionReason}
                               >
                                 {t('table.reason', { reason: tx.rejectionReason })}
@@ -833,7 +873,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                             )}
                           </div>
                         ) : (
-                          <span className='text-[11px] text-stone-400'>—</span>
+                          <span className='text-xs text-stone-400'>—</span>
                         )}
                       </td>
                     </tr>
@@ -845,7 +885,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
         </div>
 
         {totalPages > 1 && (
-          <div className='p-3.5 border-t border-[#E7E7E7] flex items-center justify-between text-xs text-[#737373]'>
+          <div className='p-3.5 border-t border-stone-200 flex items-center justify-between text-xs text-stone-500 bg-stone-50/50'>
             <div>{t('pagination.showing', { shown: transactions.length, total: totalCount })}</div>
             <div className='flex items-center gap-1.5'>
               <button
@@ -853,7 +893,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                 onClick={() => setPageIndex((p) => Math.max(1, p - 1))}
                 disabled={pageIndex <= 1 || loading}
                 aria-label={t('pagination.prev')}
-                className='p-1.5 rounded-lg border border-[#E7E7E7] hover:bg-[#FAF8F5] disabled:opacity-40 cursor-pointer'
+                className='p-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-40 cursor-pointer'
               >
                 <ChevronLeft className='w-4 h-4' />
               </button>
@@ -865,7 +905,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                 onClick={() => setPageIndex((p) => Math.min(totalPages, p + 1))}
                 disabled={pageIndex >= totalPages || loading}
                 aria-label={t('pagination.next')}
-                className='p-1.5 rounded-lg border border-[#E7E7E7] hover:bg-[#FAF8F5] disabled:opacity-40 cursor-pointer'
+                className='p-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-40 cursor-pointer'
               >
                 <ChevronRight className='w-4 h-4' />
               </button>
@@ -884,22 +924,22 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
           description={t('bank.modalSubtitle')}
           closeLabel={t('actions.close')}
         >
-          <div className='bg-white w-full max-w-2xl rounded-2xl border border-[#E7E7E7] shadow-2xl overflow-hidden'>
-            <div className='p-5 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5]'>
+          <div className='bg-white w-full max-w-2xl rounded-2xl border border-stone-200 shadow-2xl overflow-hidden'>
+            <div className='p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50'>
               <div className='flex items-center gap-2'>
-                <div className='p-1.5 rounded-lg bg-[#F97316]/10 text-[#F97316]'>
+                <div className='p-1.5 rounded-lg bg-orange-100 text-orange-600'>
                   <Building2 className='w-5 h-5' />
                 </div>
                 <div>
-                  <h3 className='font-bold text-sm text-[#171717]'>{t('bank.modalTitle')}</h3>
-                  <p className='text-xs text-[#737373]'>{t('bank.modalSubtitle')}</p>
+                  <h3 className='font-bold text-sm text-stone-900'>{t('bank.modalTitle')}</h3>
+                  <p className='text-xs text-stone-500'>{t('bank.modalSubtitle')}</p>
                 </div>
               </div>
               <button
                 type='button'
                 onClick={() => setShowBankModal(false)}
                 aria-label={t('actions.close')}
-                className='p-1 text-[#888888] hover:text-[#171717] rounded-lg cursor-pointer'
+                className='p-1 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer'
               >
                 <X className='w-4 h-4' />
               </button>
@@ -911,7 +951,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                   <div>
                     <label
                       htmlFor='pf-bank-bin'
-                      className='block text-xs font-semibold text-[#171717] mb-1'
+                      className='block text-xs font-semibold text-stone-900 mb-1'
                     >
                       {t('bank.bankLabel')} *
                     </label>
@@ -921,12 +961,12 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                       onChange={(e) => {
                         const found = POPULAR_VIETNAM_BANKS.find((b) => b.bin === e.target.value);
                         setBankForm((prev) => ({
-                          ...prev,
+                           ...prev,
                           bankBin: e.target.value,
                           bankName: found ? found.name : prev.bankName,
                         }));
                       }}
-                      className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-xl text-xs focus:outline-none focus:border-[#F97316]'
+                      className='w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-orange-500'
                     >
                       {!POPULAR_VIETNAM_BANKS.some((b) => b.bin === bankForm.bankBin) && (
                         <option value={bankForm.bankBin}>
@@ -944,7 +984,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                   <div>
                     <label
                       htmlFor='pf-bank-no'
-                      className='block text-xs font-semibold text-[#171717] mb-1'
+                      className='block text-xs font-semibold text-stone-900 mb-1'
                     >
                       {t('bank.accountNoLabel')} *
                     </label>
@@ -961,7 +1001,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                           bankAccountNo: e.target.value.replace(/\D/g, ''),
                         }))
                       }
-                      className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-xl font-mono text-xs focus:outline-none focus:border-[#F97316]'
+                      className='w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono text-xs focus:outline-none focus:border-orange-500'
                     />
                     {bankForm.bankAccountNo && !/^\d{6,19}$/.test(bankForm.bankAccountNo) && (
                       <p className='text-[10px] text-rose-600 mt-1'>{t('bank.accountNoInvalid')}</p>
@@ -971,7 +1011,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                   <div>
                     <label
                       htmlFor='pf-bank-name'
-                      className='block text-xs font-semibold text-[#171717] mb-1'
+                      className='block text-xs font-semibold text-stone-900 mb-1'
                     >
                       {t('bank.accountNameLabel')} *
                     </label>
@@ -987,13 +1027,13 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                           bankAccountName: toBankAccountName(e.target.value),
                         }))
                       }
-                      className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-xl font-mono uppercase text-xs focus:outline-none focus:border-[#F97316]'
+                      className='w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono uppercase text-xs focus:outline-none focus:border-orange-500'
                     />
                     <p className='text-[10px] text-stone-500 mt-1'>{t('bank.accountNameHint')}</p>
                   </div>
                 </div>
 
-                <div className='p-4 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl flex flex-col items-center justify-center text-center space-y-2'>
+                <div className='p-4 bg-stone-50 border border-stone-200 rounded-xl flex flex-col items-center justify-center text-center space-y-2'>
                   <span className='text-[11px] font-bold text-stone-600 uppercase tracking-wider'>
                     {t('bank.previewTitle')}
                   </span>
@@ -1014,7 +1054,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                   <div className='text-[11px] text-stone-600 font-mono'>
                     {bankForm.bankName} • {bankForm.bankAccountNo || '---'}
                   </div>
-                  <div className='text-[11px] font-bold text-[#171717] uppercase'>
+                  <div className='text-[11px] font-bold text-stone-900 uppercase'>
                     {bankForm.bankAccountName || '---'}
                   </div>
                   <div className='text-[10px] text-stone-500'>
@@ -1026,18 +1066,18 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                 </div>
               </div>
 
-              <div className='flex justify-end gap-2.5 pt-3 border-t border-[#E7E7E7]'>
+              <div className='flex justify-end gap-2.5 pt-3 border-t border-stone-200'>
                 <button
                   type='button'
                   onClick={() => setShowBankModal(false)}
-                  className='px-4 py-2 rounded-xl border border-[#E7E7E7] bg-white text-xs font-semibold text-[#555555] hover:bg-[#FAF8F5] cursor-pointer'
+                  className='px-4 py-2 rounded-xl border border-stone-200 bg-white text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer'
                 >
                   {t('actions.cancel')}
                 </button>
                 <button
                   type='submit'
                   disabled={bankFormLoading || !bankFormValid}
-                  className='px-5 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs disabled:opacity-50 cursor-pointer'
+                  className='px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs disabled:opacity-50 cursor-pointer'
                 >
                   {bankFormLoading ? (
                     <Loader2 className='w-3.5 h-3.5 animate-spin' />
@@ -1062,10 +1102,10 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
           description={previewQrTx.readerName}
           closeLabel={t('actions.close')}
         >
-          <div className='bg-white w-full max-w-sm rounded-2xl border border-[#E7E7E7] shadow-2xl p-6 text-center space-y-4'>
-            <div className='flex items-center justify-between pb-2 border-b border-[#E7E7E7]'>
+          <div className='bg-white w-full max-w-sm rounded-2xl border border-stone-200 shadow-2xl p-6 text-center space-y-4'>
+            <div className='flex items-center justify-between pb-2 border-b border-stone-200'>
               <div className='text-left'>
-                <div className='font-bold text-sm text-[#171717]'>
+                <div className='font-bold text-sm text-stone-900'>
                   {t('qrModal.title', { orderCode: previewQrTx.orderCode })}
                 </div>
                 <div className='text-[11px] text-stone-500'>{previewQrTx.readerName}</div>
@@ -1086,7 +1126,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
                 className='w-full h-full object-contain'
               />
             </div>
-            <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7] text-left text-xs space-y-1.5'>
+            <div className='bg-stone-50 p-3 rounded-xl border border-stone-200 text-left text-xs space-y-1.5'>
               <div className='flex justify-between'>
                 <span className='text-stone-500'>{t('qrModal.amount')}</span>
                 <span className='font-bold font-mono text-emerald-700'>
@@ -1095,7 +1135,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
               </div>
               <div className='flex justify-between'>
                 <span className='text-stone-500'>{t('qrModal.transferContent')}</span>
-                <span className='font-mono font-bold text-[#F97316]'>{previewQrTx.orderCode}</span>
+                <span className='font-mono font-bold text-orange-600'>{previewQrTx.orderCode}</span>
               </div>
               <div className='flex justify-between'>
                 <span className='text-stone-500'>{t('qrModal.status')}</span>
@@ -1105,7 +1145,7 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
             <button
               type='button'
               onClick={() => setPreviewQrTx(null)}
-              className='w-full py-2 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-xl cursor-pointer'
+              className='w-full py-2 bg-stone-900 hover:bg-black text-white text-xs font-semibold rounded-xl cursor-pointer'
             >
               {t('actions.close')}
             </button>
@@ -1123,8 +1163,8 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
           description={t('reject.description')}
           closeLabel={t('actions.close')}
         >
-          <div className='bg-white w-full max-w-md rounded-2xl border border-[#E7E7E7] shadow-2xl p-6 space-y-4'>
-            <div className='flex items-center justify-between pb-2 border-b border-[#E7E7E7]'>
+          <div className='bg-white w-full max-w-md rounded-2xl border border-stone-200 shadow-2xl p-6 space-y-4'>
+            <div className='flex items-center justify-between pb-2 border-b border-stone-200'>
               <div className='flex items-center gap-2 text-rose-600 font-bold text-sm'>
                 <XCircle className='w-4 h-4' />
                 <span>{t('reject.title', { orderCode: rejectTx.orderCode })}</span>
@@ -1145,13 +1185,13 @@ export const ProducerPaymentsView: React.FC<ProducerPaymentsViewProps> = ({ onSh
               onChange={(e) => setRejectionReason(e.target.value)}
               placeholder={t('reject.placeholder')}
               aria-label={t('reject.placeholder')}
-              className='w-full p-3 bg-white border border-[#E7E7E7] rounded-xl text-xs focus:outline-none focus:border-rose-500'
+              className='w-full p-3 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-rose-500'
             />
             <div className='flex justify-end gap-2.5 pt-2'>
               <button
                 type='button'
                 onClick={() => setRejectTx(null)}
-                className='px-3.5 py-1.5 rounded-xl border border-[#E7E7E7] text-xs font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer'
+                className='px-3.5 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer'
               >
                 {t('actions.cancel')}
               </button>

@@ -107,15 +107,15 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
             type='button'
             onClick={onClose}
             aria-label='Đóng'
-            className='p-1.5 rounded-lg hover:bg-zinc-100 cursor-pointer'
+            className='p-1.5 rounded-lg hover:bg-stone-100 cursor-pointer'
           >
             <X className='w-4 h-4' />
           </button>
         </div>
 
-        <div className='flex-1 overflow-y-auto overflow-x-hidden bg-zinc-100 p-4 flex justify-center'>
+        <div className='flex-1 overflow-y-auto overflow-x-hidden bg-stone-100 p-4 flex justify-center'>
           {loading ? (
-            <div className='flex items-center gap-2 text-xs text-zinc-500 py-20'>
+            <div className='flex items-center gap-2 text-xs text-stone-500 py-20'>
               <Loader2 className='w-4 h-4 animate-spin' /> Đang ghép trang…
             </div>
           ) : dataUrl ? (
@@ -127,7 +127,7 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
               style={{ maxHeight: 'calc(92vh - 230px)' }}
             />
           ) : (
-            <p className='text-xs text-zinc-500 py-20' data-testid='submit-preview-empty'>
+            <p className='text-xs text-stone-500 py-20' data-testid='submit-preview-empty'>
               Chưa có ảnh nào để xem trước ở stage này.
             </p>
           )}
@@ -150,7 +150,7 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
               : `Panel đã có ảnh: ${coverage.covered}/${coverage.total}`}
           </div>
           {mode === 'page' && (
-            <p className='text-[10px] text-zinc-500'>
+            <p className='text-[10px] text-stone-500'>
               Hiển thị ảnh cả trang (không ghép từng Panel).
             </p>
           )}
@@ -166,7 +166,7 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
             <button
               type='button'
               onClick={onClose}
-              className='px-3 py-1.5 rounded-lg border border-[#E7E7E7] text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 cursor-pointer'
+              className='px-3 py-1.5 rounded-lg border border-[#E7E7E7] text-xs font-semibold flex items-center gap-1.5 hover:bg-stone-50 cursor-pointer'
             >
               <ArrowLeft className='w-3 h-3' /> Quay lại sửa
             </button>

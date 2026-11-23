@@ -60,7 +60,7 @@ const ScopeBadge: React.FC<{ art: AssetReferenceDto; matchedPanelNumber?: number
   matchedPanelNumber,
 }) =>
   !art.panelId ? (
-    <span className='px-1.5 py-0.5 rounded border text-xs font-bold bg-zinc-100 text-zinc-700 border-zinc-200'>
+    <span className='px-1.5 py-0.5 rounded border text-xs font-bold bg-stone-100 text-stone-700 border-stone-200'>
       Cả trang
     </span>
   ) : matchedPanelNumber != null ? (
@@ -446,7 +446,7 @@ export const PageArtCrop: React.FC<{
       role='img'
       aria-label={alt}
       data-testid={testId}
-      className='rounded-lg border border-zinc-200 bg-zinc-50 max-w-full'
+      className='rounded-lg border border-stone-200 bg-stone-50 max-w-full'
       style={{
         width: 240,
         aspectRatio: `${Math.max(1, b.pixelW)} / ${Math.max(1, b.pixelH)}`,
@@ -786,8 +786,8 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
             borderClass = 'border-2 border-emerald-500 bg-emerald-500/15 text-emerald-700';
             badgeBg = 'bg-emerald-600 text-white';
           } else if (st === 'Rejected') {
-            borderClass = 'border-2 border-dashed border-zinc-400 bg-zinc-400/15 text-zinc-600';
-            badgeBg = 'bg-zinc-600 text-white';
+            borderClass = 'border-2 border-dashed border-stone-400 bg-stone-400/15 text-stone-600';
+            badgeBg = 'bg-stone-600 text-white';
           }
 
           const left = `${(box.x * 100).toFixed(2)}%`;
@@ -826,7 +826,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
           Artwork của trang ({mine.length} phiên bản)
           {mine.length > 0 && (
             <span
-              className='font-normal text-zinc-500'
+              className='font-normal text-stone-500'
               data-testid='artwork-version-breakdown'
               title='Mỗi phạm vi (cả trang / từng khung) đánh số phiên bản riêng'
             >
@@ -933,7 +933,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
               <LayoutTemplate className='w-3.5 h-3.5 text-blue-600' />
               <span>Ảnh theo từng khung ({panels.length} Panels)</span>
             </span>
-            <span className='text-xs text-zinc-500 font-normal'>
+            <span className='text-xs text-stone-500 font-normal'>
               Mỗi khung quản lý bản hiện tại và lịch sử riêng biệt
             </span>
           </div>
@@ -948,14 +948,14 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
               return (
                 <div
                   key={p.id}
-                  className='p-2.5 bg-white rounded-xl border border-zinc-200 shadow-2xs space-y-2 transition-all group hover:border-zinc-300 hover:shadow-soft-sm'
+                  className='p-2.5 bg-white rounded-xl border border-stone-200 shadow-2xs space-y-2 transition-all group hover:border-stone-300 hover:shadow-soft-sm'
                 >
                   <div className='flex items-center justify-between gap-2 flex-wrap'>
                     <div className='flex items-center gap-2 flex-wrap min-w-0'>
-                      <span className='font-mono font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 text-xs border border-zinc-200'>
+                      <span className='font-mono font-bold px-2 py-0.5 rounded-md bg-stone-100 text-stone-800 text-xs border border-stone-200'>
                         Khung #{p.panelNumber}
                       </span>
-                      <span className='text-zinc-500 font-mono text-xs'>Đọc #{p.readingOrder}</span>
+                      <span className='text-stone-500 font-mono text-xs'>Đọc #{p.readingOrder}</span>
                       {latestPanelArt ? (
                         <div className='flex items-center gap-1.5 flex-wrap'>
                           <span className='font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-xs'>
@@ -966,7 +966,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                             Bản hiện tại
                           </span>
                           <span
-                            className='text-zinc-700 font-medium text-xs truncate max-w-[200px]'
+                            className='text-stone-700 font-medium text-xs truncate max-w-[200px]'
                             title={latestPanelArt.fileName}
                           >
                             {latestPanelArt.fileName}
@@ -992,7 +992,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           Dùng ảnh cả trang v{latestPageArt.versionNumber}
                         </span>
                       ) : (
-                        <span className='text-zinc-400 italic text-xs'>Chưa có ảnh</span>
+                        <span className='text-stone-400 italic text-xs'>Chưa có ảnh</span>
                       )}
                     </div>
 
@@ -1003,12 +1003,12 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           onClick={() =>
                             setExpandedPanelHistory((prev) => ({ ...prev, [p.id]: !prev[p.id] }))
                           }
-                          className='px-2 py-1 rounded-md border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-xs font-semibold text-zinc-700 flex items-center gap-1 cursor-pointer transition-colors'
+                          className='px-2 py-1 rounded-md border border-stone-200 bg-stone-50 hover:bg-stone-100 text-xs font-semibold text-stone-700 flex items-center gap-1 cursor-pointer transition-colors'
                         >
                           {isHistoryOpen ? (
-                            <ChevronUp className='w-3 h-3 text-zinc-500' />
+                            <ChevronUp className='w-3 h-3 text-stone-500' />
                           ) : (
-                            <ChevronDown className='w-3 h-3 text-zinc-500' />
+                            <ChevronDown className='w-3 h-3 text-stone-500' />
                           )}
                           <span>{olderPanelArts.length} bản cũ</span>
                         </button>
@@ -1017,7 +1017,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         <button
                           type='button'
                           onClick={() => void handlePreview(latestPanelArt)}
-                          className='px-2.5 py-1 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
+                          className='px-2.5 py-1 rounded-md border border-stone-200 bg-white hover:bg-stone-50 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
                         >
                           <Eye className='w-3 h-3' />
                           <span>
@@ -1032,7 +1032,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           type='button'
                           onClick={() => void handlePreview(latestPageArt)}
                           data-testid={`panel-page-art-preview-btn-${p.id}`}
-                          className='px-2.5 py-1 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
+                          className='px-2.5 py-1 rounded-md border border-stone-200 bg-white hover:bg-stone-50 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
                         >
                           <Eye className='w-3 h-3' />
                           <span>
@@ -1098,31 +1098,31 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   )}
 
                   {olderPanelArts.length > 0 && isHistoryOpen && (
-                    <div className='mt-2 pt-2 border-t border-dashed border-zinc-200 space-y-1.5 pl-2 border-l-2 border-l-amber-400'>
-                      <p className='text-xs font-semibold text-zinc-500 uppercase tracking-wider'>
+                    <div className='mt-2 pt-2 border-t border-dashed border-stone-200 space-y-1.5 pl-2 border-l-2 border-l-amber-400'>
+                      <p className='text-xs font-semibold text-stone-500 uppercase tracking-wider'>
                         Lịch sử bản vẽ cũ của Khung #{p.panelNumber} ({olderPanelArts.length} bản
                         cũ):
                       </p>
                       {olderPanelArts.map((art) => (
                         <div
                           key={art.id}
-                          className='p-2 rounded-lg bg-zinc-50 border border-zinc-200 text-xs space-y-1.5'
+                          className='p-2 rounded-lg bg-stone-50 border border-stone-200 text-xs space-y-1.5'
                         >
                           <div className='flex items-center justify-between gap-2 flex-wrap'>
                             <div className='flex items-center gap-2 flex-wrap min-w-0'>
-                              <span className='font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-700 text-xs'>
+                              <span className='font-mono font-semibold px-1.5 py-0.5 rounded bg-stone-200 text-stone-700 text-xs'>
                                 v{art.versionNumber} (Bản cũ)
                               </span>
                               <span
-                                className='text-zinc-700 font-medium text-xs truncate max-w-[200px]'
+                                className='text-stone-700 font-medium text-xs truncate max-w-[200px]'
                                 title={art.fileName}
                               >
                                 {getDisplayArtworkTitle(art, p, false)}
                               </span>
-                              <strong className='font-mono font-bold text-zinc-600 text-xs'>
+                              <strong className='font-mono font-bold text-stone-600 text-xs'>
                                 (v{art.versionNumber})
                               </strong>
-                              <span className='text-xs text-zinc-500 font-mono'>
+                              <span className='text-xs text-stone-500 font-mono'>
                                 {formatSize(art.sizeBytes)} ·{' '}
                                 {new Date(art.createdAt).toLocaleString('vi-VN')}
                               </span>
@@ -1144,7 +1144,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                     [art.id]: !prev[art.id],
                                   }))
                                 }
-                                className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
+                                className='text-xs text-stone-500 hover:text-stone-800 flex items-center gap-0.5 cursor-pointer font-medium'
                               >
                                 <Info className='w-3 h-3' />
                                 {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
@@ -1152,7 +1152,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               <button
                                 type='button'
                                 onClick={() => void handlePreview(art)}
-                                className='px-2 py-0.5 rounded border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-2xs'
+                                className='px-2 py-0.5 rounded border border-stone-200 bg-white hover:bg-stone-50 text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-2xs'
                               >
                                 <Eye className='w-3 h-3' />
                                 <span>
@@ -1164,11 +1164,11 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           {detailsExpanded[art.id] && (
                             <div
                               data-testid={`artwork-details-${art.id}`}
-                              className='p-2 rounded bg-white border border-zinc-200 text-xs font-mono text-zinc-600 space-y-0.5'
+                              className='p-2 rounded bg-white border border-stone-200 text-xs font-mono text-stone-600 space-y-0.5'
                             >
                               <div>
                                 Tên file:{' '}
-                                <span className='text-zinc-900 font-medium'>{art.fileName}</span>
+                                <span className='text-stone-900 font-medium'>{art.fileName}</span>
                               </div>
                               <div>
                                 Dung lượng: {formatSize(art.sizeBytes)} (
@@ -1180,7 +1180,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                   Đã niêm phong an toàn
                                 </span>
                               </div>
-                              <div className='truncate text-[11px] text-zinc-500'>
+                              <div className='truncate text-[11px] text-stone-500'>
                                 Mã toàn vẹn: {art.sha256}
                               </div>
                               <div>
@@ -1217,7 +1217,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       ) : fullPageArts.length > 0 ? (
         <div className='space-y-2'>
           {panels.length > 0 && (
-            <p className='text-xs font-bold text-zinc-800 flex items-center gap-1.5'>
+            <p className='text-xs font-bold text-stone-800 flex items-center gap-1.5'>
               <ImageIcon className='w-3.5 h-3.5 text-orange-600' />
               <span>Ảnh artwork cả trang ({fullPageArts.length} phiên bản)</span>
             </p>
@@ -1233,25 +1233,25 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   className={`p-2.5 rounded-xl border text-xs space-y-2 transition-all ${
                     isCurrent
                       ? 'bg-emerald-50/30 border-emerald-200/90 shadow-2xs'
-                      : 'bg-zinc-50/70 border-zinc-200'
+                      : 'bg-stone-50/70 border-stone-200'
                   }`}
                 >
                   <div className='flex items-center justify-between gap-2 flex-wrap'>
                     <div className='min-w-0 flex-1'>
                       <div className='flex items-center gap-1.5 flex-wrap'>
-                        <span className='font-mono font-bold text-zinc-900'>
+                        <span className='font-mono font-bold text-stone-900'>
                           v{art.versionNumber}
                         </span>
                         <span
                           className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
                             isCurrent
                               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                              : 'bg-zinc-200 text-zinc-700'
+                              : 'bg-stone-200 text-stone-700'
                           }`}
                         >
                           {isCurrent ? 'Bản hiện tại' : 'Bản cũ'}
                         </span>
-                        <span className='truncate font-semibold text-zinc-900'>{art.fileName}</span>
+                        <span className='truncate font-semibold text-stone-900'>{art.fileName}</span>
                         <strong className='font-mono font-bold text-emerald-800 text-xs'>
                           (v{art.versionNumber})
                         </strong>
@@ -1271,12 +1271,12 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           onClick={() =>
                             setDetailsExpanded((prev) => ({ ...prev, [art.id]: !prev[art.id] }))
                           }
-                          className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
+                          className='text-xs text-stone-500 hover:text-stone-800 flex items-center gap-0.5 cursor-pointer font-medium'
                         >
                           <Info className='w-3 h-3' />
                           {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
                         </button>
-                        <span className='text-xs text-zinc-500 font-mono'>
+                        <span className='text-xs text-stone-500 font-mono'>
                           {formatSize(art.sizeBytes)} ·{' '}
                           {new Date(art.createdAt).toLocaleString('vi-VN')}
                         </span>
@@ -1286,7 +1286,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                       type='button'
                       onClick={() => void handlePreview(art)}
                       disabled={previewLoading === art.id}
-                      className='px-2.5 py-1 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center gap-1 font-semibold disabled:opacity-50 cursor-pointer shrink-0 shadow-2xs'
+                      className='px-2.5 py-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 flex items-center gap-1 font-semibold disabled:opacity-50 cursor-pointer shrink-0 shadow-2xs'
                     >
                       {previewLoading === art.id ? (
                         <Loader2 className='w-3 h-3 animate-spin' />
@@ -1299,10 +1299,10 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   {detailsExpanded[art.id] && (
                     <div
                       data-testid={`artwork-details-${art.id}`}
-                      className='mt-1 p-2 rounded-lg bg-white border border-zinc-200 text-xs font-mono text-zinc-600 space-y-0.5'
+                      className='mt-1 p-2 rounded-lg bg-white border border-stone-200 text-xs font-mono text-stone-600 space-y-0.5'
                     >
                       <div>
-                        Tên file: <span className='text-zinc-900 font-medium'>{art.fileName}</span>
+                        Tên file: <span className='text-stone-900 font-medium'>{art.fileName}</span>
                       </div>
                       <div>
                         Dung lượng: {formatSize(art.sizeBytes)} ({art.sizeBytes.toLocaleString()}{' '}
@@ -1312,7 +1312,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         Trạng thái bảo chứng:{' '}
                         <span className='text-emerald-700 font-medium'>Đã niêm phong an toàn</span>
                       </div>
-                      <div className='truncate text-[11px] text-zinc-500'>
+                      <div className='truncate text-[11px] text-stone-500'>
                         Mã toàn vẹn: {art.sha256}
                       </div>
                       <div>Thời gian tải: {new Date(art.createdAt).toLocaleString('vi-VN')}</div>
@@ -1344,7 +1344,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
             <button
               type='button'
               onClick={() => setShowOlder((prev) => !prev)}
-              className='w-full py-1.5 text-center text-xs font-semibold text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
+              className='w-full py-1.5 text-center text-xs font-semibold text-stone-600 hover:text-stone-900 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
             >
               {showOlder ? (
                 <ChevronUp className='w-3.5 h-3.5' />
@@ -1363,7 +1363,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
           <button
             type='button'
             onClick={() => setShowOlder((prev) => !prev)}
-            className='w-full py-1.5 text-center text-xs font-semibold text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
+            className='w-full py-1.5 text-center text-xs font-semibold text-stone-600 hover:text-stone-900 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
           >
             {showOlder ? (
               <ChevronUp className='w-3.5 h-3.5' />
@@ -1378,7 +1378,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
           </button>
           {showOlder && (
             <div className='mt-2 space-y-2'>
-              <p className='text-xs font-semibold text-zinc-500 uppercase tracking-wider'>
+              <p className='text-xs font-semibold text-stone-500 uppercase tracking-wider'>
                 Lịch sử tải lên toàn trang ({mine.length} bản ghi):
               </p>
               <ul className='space-y-2'>
@@ -1394,25 +1394,25 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                       className={`p-2.5 rounded-xl border text-xs space-y-1.5 ${
                         isCurrent
                           ? 'bg-emerald-50/30 border-emerald-200'
-                          : 'bg-zinc-50/70 border-zinc-200'
+                          : 'bg-stone-50/70 border-stone-200'
                       }`}
                     >
                       <div className='flex items-center justify-between gap-2 flex-wrap'>
                         <div className='min-w-0 flex-1'>
                           <div className='flex items-center gap-1.5 flex-wrap'>
-                            <span className='font-mono font-bold text-zinc-900'>
+                            <span className='font-mono font-bold text-stone-900'>
                               v{art.versionNumber}
                             </span>
                             <span
                               className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
                                 isCurrent
                                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                  : 'bg-zinc-200 text-zinc-700'
+                                  : 'bg-stone-200 text-stone-700'
                               }`}
                             >
                               {isCurrent ? 'Bản hiện tại' : 'Bản cũ'}
                             </span>
-                            <span className='truncate font-semibold text-zinc-900'>
+                            <span className='truncate font-semibold text-stone-900'>
                               {art.fileName}
                             </span>
                             <ScopeBadge art={art} matchedPanelNumber={matchedPanel?.panelNumber} />
@@ -1434,12 +1434,12 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                   [art.id]: !prev[art.id],
                                 }))
                               }
-                              className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
+                              className='text-xs text-stone-500 hover:text-stone-800 flex items-center gap-0.5 cursor-pointer font-medium'
                             >
                               <Info className='w-3 h-3' />
                               {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
                             </button>
-                            <span className='text-xs text-zinc-500 font-mono'>
+                            <span className='text-xs text-stone-500 font-mono'>
                               {formatSize(art.sizeBytes)} ·{' '}
                               {new Date(art.createdAt).toLocaleString('vi-VN')}
                             </span>
@@ -1449,7 +1449,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           type='button'
                           onClick={() => void handlePreview(art)}
                           disabled={previewLoading === art.id}
-                          className='px-2.5 py-1 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center gap-1 font-semibold disabled:opacity-50 cursor-pointer shrink-0 shadow-2xs'
+                          className='px-2.5 py-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 flex items-center gap-1 font-semibold disabled:opacity-50 cursor-pointer shrink-0 shadow-2xs'
                         >
                           {previewLoading === art.id ? (
                             <Loader2 className='w-3 h-3 animate-spin' />
@@ -1462,11 +1462,11 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                       {detailsExpanded[art.id] && (
                         <div
                           data-testid={`artwork-details-${art.id}`}
-                          className='p-2 rounded-lg bg-white border border-zinc-200 text-xs font-mono text-zinc-600 space-y-0.5'
+                          className='p-2 rounded-lg bg-white border border-stone-200 text-xs font-mono text-stone-600 space-y-0.5'
                         >
                           <div>
                             Tên file:{' '}
-                            <span className='text-zinc-900 font-medium'>{art.fileName}</span>
+                            <span className='text-stone-900 font-medium'>{art.fileName}</span>
                           </div>
                           <div>
                             Dung lượng: {formatSize(art.sizeBytes)} (
@@ -1517,7 +1517,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
             type='button'
             onClick={() => setShowDeletedPanelArts((v) => !v)}
             aria-expanded={showDeletedPanelArts}
-            className='w-full py-1.5 text-center text-xs font-semibold text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
+            className='w-full py-1.5 text-center text-xs font-semibold text-stone-600 hover:text-stone-900 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
           >
             {showDeletedPanelArts ? (
               <ChevronUp className='w-3.5 h-3.5' />
@@ -1596,7 +1596,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                     [art.id]: !prev[art.id],
                                   }))
                                 }
-                                className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
+                                className='text-xs text-stone-500 hover:text-stone-800 flex items-center gap-0.5 cursor-pointer font-medium'
                               >
                                 <Info className='w-3 h-3' />
                                 {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
@@ -1605,7 +1605,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                 type='button'
                                 onClick={() => void handlePreview(art)}
                                 disabled={previewLoading === art.id}
-                                className='px-2.5 py-1 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center gap-1 font-semibold disabled:opacity-50 cursor-pointer shadow-2xs'
+                                className='px-2.5 py-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 flex items-center gap-1 font-semibold disabled:opacity-50 cursor-pointer shadow-2xs'
                               >
                                 {previewLoading === art.id ? (
                                   <Loader2 className='w-3 h-3 animate-spin' />
@@ -1624,7 +1624,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                             >
                               <div>
                                 Tên file:{' '}
-                                <span className='text-zinc-900 font-medium'>{art.fileName}</span>
+                                <span className='text-stone-900 font-medium'>{art.fileName}</span>
                               </div>
                               <div>
                                 Dung lượng: {formatSize(art.sizeBytes)} (

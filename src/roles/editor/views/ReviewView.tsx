@@ -922,6 +922,21 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
               {t('artworkReview.toolbar.compare')}
             </button>
           )}
+          {/* Stitch id="btn-rework-count" */}
+          <button
+            id='btn-rework-count'
+            type='button'
+            onClick={() => setTab('notes')}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs ${
+              draftRequestCount + liveCrCount > 0
+                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
+            }`}
+          >
+            <AlertTriangle className='w-3.5 h-3.5 text-rose-600' />
+            <span>Yêu cầu vẽ lại ({draftRequestCount + liveCrCount})</span>
+          </button>
+
           <div className='flex items-center rounded-full border border-stone-200 bg-white'>
             <button
               type='button'
