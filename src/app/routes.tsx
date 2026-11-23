@@ -482,21 +482,12 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     />
                   }
                 />
-                <Route
-                  path='dashboard'
-                  element={<Navigate to='../chapters' replace />}
-                />
+                <Route path='dashboard' element={<Navigate to='../chapters' replace />} />
                 <Route
                   path='chapters'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={[
-                        'PRODUCER',
-                        'ARTIST',
-                        'LETTERER',
-                        'EDITOR',
-                        'ADMINISTRATOR',
-                      ]}
+                      allowedRoles={['PRODUCER', 'ARTIST', 'LETTERER', 'EDITOR', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -512,13 +503,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='workspace'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={[
-                        'PRODUCER',
-                        'ARTIST',
-                        'LETTERER',
-                        'EDITOR',
-                        'ADMINISTRATOR',
-                      ]}
+                      allowedRoles={['PRODUCER', 'ARTIST', 'LETTERER', 'EDITOR', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -563,13 +548,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='my-work'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={[
-                        'WRITER',
-                        'ARTIST',
-                        'LETTERER',
-                        'EDITOR',
-                        'ADMINISTRATOR',
-                      ]}
+                      allowedRoles={['WRITER', 'ARTIST', 'LETTERER', 'EDITOR', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -582,10 +561,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     </RequireWorkspaceRole>
                   }
                 />
-                <Route
-                  path='publishing'
-                  element={<Navigate to='../export' replace />}
-                />
+                <Route path='publishing' element={<Navigate to='../export' replace />} />
                 <Route
                   path='export'
                   element={
@@ -616,13 +592,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='script'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={[
-                        'WRITER',
-                        'EDITOR',
-                        'ARTIST',
-                        'LETTERER',
-                        'ADMINISTRATOR',
-                      ]}
+                      allowedRoles={['WRITER', 'EDITOR', 'ARTIST', 'LETTERER', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -638,12 +608,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='letterer'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={[
-                        'LETTERER',
-                        'ARTIST',
-                        'EDITOR',
-                        'ADMINISTRATOR',
-                      ]}
+                      allowedRoles={['LETTERER', 'ARTIST', 'EDITOR', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -747,10 +712,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     </RequireWorkspaceRole>
                   }
                 />
-                <Route
-                  path='review'
-                  element={<Navigate to='../workspace' replace />}
-                />
+                <Route path='review' element={<Navigate to='../workspace' replace />} />
               </Route>
             </Route>
 
@@ -842,13 +804,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               <Route
                 element={
                   <RequireWorkspaceRole
-                    allowedRoles={[
-                      'WRITER',
-                      'EDITOR',
-                      'ARTIST',
-                      'LETTERER',
-                      'ADMINISTRATOR',
-                    ]}
+                    allowedRoles={['WRITER', 'EDITOR', 'ARTIST', 'LETTERER', 'ADMINISTRATOR']}
                     currentWorkspaceRole={currentWorkspaceRole}
                     currentRole={currentRole}
                     activeRoles={activeProjectRoles}
