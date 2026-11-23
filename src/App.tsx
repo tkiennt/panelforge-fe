@@ -760,26 +760,56 @@ function AppContent() {
       return;
     }
 
-    // BR-23 / F3: Luồng chuẩn PanelForge: Admin -> /admin, Publisher -> /publisher/series, còn lại vào /workspaces -> Series -> Không gian làm việc
+    // 2-tier architecture: Admin -> /admin, Publisher -> /publisher/series, Producer & Creators -> /workspaces/:wId (Studio Hub)
     authService
       .getLandingContext()
-      .then((landing) => {
+      .then(async (landing) => {
         if (landing?.suggestedLanding === 'AdminDashboard' || role === 'ADMINISTRATOR') {
           navigate('/admin');
         } else if (landing?.suggestedLanding === 'PublisherPortal' || role === 'PUBLISHER') {
           navigate('/publisher/series');
         } else {
+          try {
+            const list = await workspaceService.getMyWorkspaces();
+            const lastActiveId =
+              localStorage.getItem('activeWorkspaceId') ||
+              localStorage.getItem('lastActiveWorkspaceId');
+            const target = (lastActiveId && list.find((w) => w.id === lastActiveId)) || list[0];
+            if (target) {
+              localStorage.setItem('activeWorkspaceId', target.id);
+              setActiveWorkspace(target as any);
+              navigate(`/workspaces/${target.id}`);
+              return;
+            }
+          } catch {
+            // fallback if api error
+          }
           navigate('/workspaces');
         }
       })
-      .catch(() => {
-        navigate(
-          role === 'ADMINISTRATOR'
-            ? '/admin'
-            : role === 'PUBLISHER'
-              ? '/publisher/series'
-              : '/workspaces',
-        );
+      .catch(async () => {
+        if (role === 'ADMINISTRATOR') {
+          navigate('/admin');
+        } else if (role === 'PUBLISHER') {
+          navigate('/publisher/series');
+        } else {
+          try {
+            const list = await workspaceService.getMyWorkspaces();
+            const lastActiveId =
+              localStorage.getItem('activeWorkspaceId') ||
+              localStorage.getItem('lastActiveWorkspaceId');
+            const target = (lastActiveId && list.find((w) => w.id === lastActiveId)) || list[0];
+            if (target) {
+              localStorage.setItem('activeWorkspaceId', target.id);
+              setActiveWorkspace(target as any);
+              navigate(`/workspaces/${target.id}`);
+              return;
+            }
+          } catch {
+            // fallback
+          }
+          navigate('/workspaces');
+        }
       });
 
     showToast('Đăng nhập thành công', `Chào mừng ${displayName}!`);

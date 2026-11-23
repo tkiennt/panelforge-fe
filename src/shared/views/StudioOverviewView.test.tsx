@@ -98,6 +98,11 @@ describe('StudioOverviewView Library UX/UI', () => {
     vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([mockWorkspace as any]);
     vi.spyOn(workspaceService, 'getMembers').mockResolvedValue([]);
     vi.spyOn(workspaceService, 'getWorkspaceUsage').mockResolvedValue(mockUsage as any);
+    vi.spyOn(workspaceService, 'getReaderStats').mockResolvedValue({
+      totalViews: 1280,
+      totalUniqueReaders: 450,
+      series: [],
+    });
     vi.spyOn(seriesService, 'getSeriesList').mockResolvedValue(mockSeriesList as any);
     vi.spyOn(pipelineService, 'getActivePipelineTemplates').mockResolvedValue([]);
   });

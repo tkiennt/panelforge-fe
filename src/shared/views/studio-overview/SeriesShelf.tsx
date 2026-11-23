@@ -21,7 +21,7 @@ interface SeriesShelfProps extends CardActions {
 }
 
 const SHELF_GRID =
-  'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-5 gap-y-7';
+  'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch';
 
 const ShelfSkeleton: React.FC = () => (
   <div className={SHELF_GRID} aria-busy='true' aria-label='Đang tải danh sách bộ truyện'>

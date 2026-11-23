@@ -165,13 +165,13 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
     vi.mocked(seriesService.getSeriesMembers).mockResolvedValue([]);
   });
 
-  const renderDashboard = (seriesId = 'series-demo-1') =>
+  const renderDashboard = (seriesId = 'series-demo-1', workspaceRole?: string) =>
     render(
       <MemoryRouter initialEntries={[`/workspaces/ws-demo/series/${seriesId}/dashboard`]}>
         <Routes>
           <Route
             path='/workspaces/:workspaceId/series/:seriesId/dashboard'
-            element={<DashboardView />}
+            element={<DashboardView workspaceRole={workspaceRole} />}
           />
           <Route
             path='/workspaces/:workspaceId/series/:seriesId/workspace'
@@ -377,5 +377,52 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
     expect(screen.getByText(/Chương 1: Neon Awakening/i)).toBeInTheDocument();
     expect(screen.getByText('Công việc còn lại theo thời gian')).toBeInTheDocument();
     expect(screen.getByText('Artist')).toBeInTheDocument();
+  });
+
+  it('phân quyền Editor: ẩn hoàn toàn tab Doanh thu và Đội ngũ, hiển thị vai trò Thẩm định & Kiểm soát', async () => {
+    vi.mocked(seriesService.getSeriesProgress).mockResolvedValueOnce(mockProgress);
+    vi.mocked(seriesService.getSeriesById).mockResolvedValueOnce(mockDetail);
+
+    renderDashboard('series-demo-1', 'EDITOR');
+
+    await waitFor(() => {
+      expect(screen.getByText(/Chương 1: Neon Awakening/i)).toBeInTheDocument();
+    });
+
+    // Editor badge
+    expect(screen.getByText(/EDITOR \/\/ THẨM ĐỊNH & KIỂM SOÁT/i)).toBeInTheDocument();
+    expect(screen.queryByText(/PRODUCER \/\/ TOÀN QUYỀN ĐIỀU PHỐI/i)).not.toBeInTheDocument();
+
+    // Editor CANNOT see revenue or team tab
+    expect(screen.queryByText('Doanh thu & Độc giả')).not.toBeInTheDocument();
+    expect(screen.queryByText('Đội ngũ & Phân công')).not.toBeInTheDocument();
+
+    // But Editor CAN see standard production tabs
+    expect(screen.getByText('Tổng quan toàn diện')).toBeInTheDocument();
+    expect(screen.getByText('Chương & Công đoạn')).toBeInTheDocument();
+    expect(screen.getByText('Ma trận tiến độ')).toBeInTheDocument();
+    expect(screen.getByText('Kịch bản')).toBeInTheDocument();
+    expect(screen.getByText('Đọc thử & Duyệt trang')).toBeInTheDocument();
+    expect(screen.getByText('Bàn giao xuất bản')).toBeInTheDocument();
+    expect(screen.getByText('Series Bible')).toBeInTheDocument();
+    expect(screen.getByText('Báo cáo Burndown')).toBeInTheDocument();
+  });
+
+  it('phân quyền Producer: hiển thị đầy đủ các tab Doanh thu và Đội ngũ, nhãn vai trò Toàn quyền điều phối', async () => {
+    vi.mocked(seriesService.getSeriesProgress).mockResolvedValueOnce(mockProgress);
+    vi.mocked(seriesService.getSeriesById).mockResolvedValueOnce(mockDetail);
+
+    renderDashboard('series-demo-1', 'PRODUCER');
+
+    await waitFor(() => {
+      expect(screen.getByText(/Chương 1: Neon Awakening/i)).toBeInTheDocument();
+    });
+
+    // Producer badge
+    expect(screen.getByText(/PRODUCER \/\/ TOÀN QUYỀN ĐIỀU PHỐI/i)).toBeInTheDocument();
+
+    // Producer CAN see revenue and team tabs
+    expect(screen.getByText('Doanh thu & Độc giả')).toBeInTheDocument();
+    expect(screen.getByText('Đội ngũ & Phân công')).toBeInTheDocument();
   });
 });
