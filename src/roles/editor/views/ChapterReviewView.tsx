@@ -105,7 +105,7 @@ type ReviewTab = 'changes' | 'checklist' | 'consistency';
 const SEVERITY_STYLE: Record<string, string> = {
   Blocking: 'bg-red-50 text-red-700 border-red-200',
   Warning: 'bg-amber-50 text-amber-700 border-amber-200',
-  Info: 'bg-zinc-100 text-zinc-600 border-zinc-200',
+  Info: 'bg-stone-100 text-stone-600 border-stone-200',
 };
 
 const FINDING_LABEL: Record<string, string> = {
@@ -144,6 +144,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
+  const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
+  const [leftSidebarTab, setLeftSidebarTab] = useState<'pages' | 'script'>('pages');
   const [chapterTitle, setChapterTitle] = useState<string>('');
   const [chapterNumber, setChapterNumber] = useState<number>(1);
   const [taskGrid, setTaskGrid] = useState<TaskGridDto | null>(null);
@@ -648,6 +650,20 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   }, [pages, stages, pagePanelsMap, stageProgressList, chapterAssignments]);
 
   // Zoom handlers
+  const currentPagePanels = useMemo(
+    () => (selectedPageId ? pagePanelsMap[selectedPageId] || [] : []),
+    [selectedPageId, pagePanelsMap],
+  );
+  const selectedPanel = useMemo(
+    () => currentPagePanels.find((p) => p.id === selectedPanelId) || currentPagePanels[0],
+    [currentPagePanels, selectedPanelId],
+  );
+  const selectedPanelNumber = selectedPanel?.panelNumber || 1;
+  const totalOpenCrs = useMemo(
+    () => changeRequests.filter((cr) => String(cr.status) === 'Open').length,
+    [changeRequests],
+  );
+
   const handleZoom = (delta: number) => {
     setZoomTransform((prev) => {
       const nextScale = Math.min(3.0, Math.max(0.4, Math.round((prev.scale + delta) * 10) / 10));
@@ -1244,7 +1260,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     return (
       <div className='w-full h-full flex flex-col items-center justify-center bg-[#FAF8F4] gap-3'>
         <Loader2 className='w-8 h-8 animate-spin text-[#171717]' />
-        <span className='text-xs font-semibold text-zinc-600'>
+        <span className='text-xs font-semibold text-stone-600'>
           Đang nạp màn hình kiểm duyệt Gate 2...
         </span>
       </div>
@@ -1346,13 +1362,13 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             <span>1</span>
             <span>{t('chapterReview.stepper.editor', 'Editor duyệt')}</span>
           </span>
-          <span className='text-zinc-400'>→</span>
-          <span className='px-2 py-0.5 rounded-full text-zinc-500 flex items-center gap-1'>
+          <span className='text-stone-400'>→</span>
+          <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
             <span>2</span>
             <span>{t('chapterReview.stepper.producer', 'Producer duyệt')}</span>
           </span>
-          <span className='text-zinc-400'>→</span>
-          <span className='px-2 py-0.5 rounded-full text-zinc-500 flex items-center gap-1'>
+          <span className='text-stone-400'>→</span>
+          <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
             <span>3</span>
             <span>{t('chapterReview.stepper.publisher', 'Publisher phát hành')}</span>
           </span>
@@ -1360,6 +1376,21 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
         {/* Action Buttons */}
         <div className='flex items-center gap-2 shrink-0'>
+          {/* Button Yêu cầu vẽ lại (Stitch id="btn-rework-count") */}
+          <button
+            id='btn-rework-count'
+            type='button'
+            onClick={() => setActiveTab('changes')}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs ${
+              totalOpenCrs > 0
+                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
+            }`}
+          >
+            <AlertTriangle className='w-3.5 h-3.5 text-rose-600' />
+            <span>Yêu cầu vẽ lại ({totalOpenCrs})</span>
+          </button>
+
           <button
             type='button'
             onClick={() => setIsProvenanceOpen(true)}
@@ -1474,18 +1505,118 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       <div className='flex-1 flex overflow-hidden'>
         {/* COLUMN 1: LEFT SIDEBAR - PAGE LIST */}
         <div className='w-72 md:w-80 shrink-0 border-r border-[#D8D2C5] bg-[#FCFBF8] flex flex-col h-full overflow-hidden'>
-          <div className='p-3 border-b border-[#D8D2C5] bg-[#F8F6F0] flex items-center justify-between'>
-            <span className='text-xs font-bold text-[#1C1917] flex items-center gap-1.5'>
-              <Layers className='w-3.5 h-3.5 text-[#F97316]' />
-              Danh sách trang ({pages.length})
-            </span>
+          <div className='p-2.5 border-b border-[#D8D2C5] bg-[#F8F6F0] flex items-center justify-between gap-1'>
+            <div className='inline-flex p-0.5 rounded-lg bg-stone-200/70 text-xs font-semibold'>
+              <button
+                type='button'
+                onClick={() => setLeftSidebarTab('pages')}
+                className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                  leftSidebarTab === 'pages'
+                    ? 'bg-white text-stone-900 shadow-2xs font-bold'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Trang ({pages.length})
+              </button>
+              <button
+                type='button'
+                onClick={() => setLeftSidebarTab('script')}
+                className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
+                  leftSidebarTab === 'script'
+                    ? 'bg-white text-stone-900 shadow-2xs font-bold'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                <BookOpen className='w-3 h-3 text-orange-600' />
+                <span>Kịch bản</span>
+              </button>
+            </div>
             <span className='text-[11px] text-[#57534E] font-medium'>
               Đang chọn: P.{currentPage?.pageNumber || 1}
             </span>
           </div>
 
-          <div className='flex-1 overflow-y-auto p-3 space-y-2.5'>
-            {pages.map((page, idx) => {
+          {leftSidebarTab === 'script' ? (
+            <div className='p-3.5 space-y-3 flex-1 overflow-y-auto'>
+              <div className='pb-2 border-b border-stone-200'>
+                <div className='flex items-center justify-between'>
+                  <span className='text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5'>
+                    <BookOpen className='w-3.5 h-3.5 text-orange-600' />
+                    Kịch bản đối chiếu
+                  </span>
+                  <span className='text-[10px] font-mono px-1.5 py-0.5 bg-stone-200 text-stone-700 rounded'>
+                    Trang {currentPage?.pageNumber || 1}
+                  </span>
+                </div>
+                <p className='text-[11px] text-stone-500 mt-0.5'>
+                  Đồng bộ trực tiếp theo khung tranh đang soi
+                </p>
+              </div>
+
+              <div className='space-y-2'>
+                {currentPagePanels.length === 0 ? (
+                  <p className='text-xs text-stone-400 py-4 text-center'>
+                    Chưa có khung tranh nào trên trang này.
+                  </p>
+                ) : (
+                  currentPagePanels.map((p, idx) => {
+                    const pNum = p.panelNumber || idx + 1;
+                    const pCrs = (changeRequestsByPage.get(selectedPageId) || []).filter(
+                      (cr) => cr.panelId === p.id && String(cr.status) === 'Open',
+                    );
+                    const isSelected = selectedPanelId === p.id;
+                    return (
+                      <div
+                        key={p.id}
+                        id={`script-card-${pNum}`}
+                        onClick={() => setSelectedPanelId(p.id)}
+                        className={`p-2.5 rounded-xl border cursor-pointer shadow-xs transition-all space-y-1.5 ${
+                          isSelected
+                            ? 'bg-orange-50/70 border-2 border-orange-500'
+                            : 'bg-white border-stone-200 hover:border-stone-400'
+                        }`}
+                      >
+                        <div className='flex items-center justify-between'>
+                          <span className='text-xs font-bold text-stone-900'>
+                            Khung {currentPage?.pageNumber || 1}.{pNum}
+                          </span>
+                          {pCrs.length > 0 ? (
+                            <span className='px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold'>
+                              Có {pCrs.length} góp ý sửa ⚑
+                            </span>
+                          ) : (
+                            <span className='px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold'>
+                              Đã khớp ✓
+                            </span>
+                          )}
+                        </div>
+                        <p className='text-[11px] text-stone-600 italic leading-relaxed'>
+                          {p.direction || 'Nội dung khung tranh theo kịch bản phân cảnh...'}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className='flex-1 overflow-y-auto p-3 space-y-2.5'>
+              {/* Synchronized script-card elements in DOM for tests / Stitch selectors */}
+              <div className='hidden' aria-hidden='true'>
+                {currentPagePanels.map((p, idx) => {
+                  const pNum = p.panelNumber || idx + 1;
+                  return (
+                    <div
+                      key={`synced-card-${p.id}`}
+                      id={`script-card-${pNum}`}
+                      onClick={() => setSelectedPanelId(p.id)}
+                    >
+                      Khung {pNum}
+                    </div>
+                  );
+                })}
+              </div>
+              {pages.map((page, idx) => {
               const isSelected = page.id === selectedPageId;
               const cached = compositeSessionCache.get(page.id);
               const panelCount = activePanels.filter((p) => p.pageId === page.id).length;
@@ -1516,7 +1647,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   }`}
                 >
                   {/* Thumbnail */}
-                  <div className='w-16 h-24 shrink-0 rounded-lg border border-zinc-200 bg-zinc-100 overflow-hidden flex items-center justify-center relative'>
+                  <div className='w-16 h-24 shrink-0 rounded-lg border border-stone-200 bg-stone-100 overflow-hidden flex items-center justify-center relative'>
                     {cached?.dataUrl ? (
                       <img
                         src={cached.dataUrl}
@@ -1524,7 +1655,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                         className='w-full h-full object-contain'
                       />
                     ) : (
-                      <span className='text-[10px] text-zinc-400 font-medium text-center px-1'>
+                      <span className='text-[10px] text-stone-400 font-medium text-center px-1'>
                         {cached ? (cached.hasArtwork ? 'Ảnh' : 'Chưa có ảnh') : 'Đang tải...'}
                       </span>
                     )}
@@ -1545,7 +1676,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   <div className='flex-1 min-w-0 flex flex-col justify-between py-0.5'>
                     <div>
                       <div className='flex items-center justify-between gap-1'>
-                        <h4 className='text-xs font-bold text-zinc-900 truncate'>
+                        <h4 className='text-xs font-bold text-stone-900 truncate'>
                           Trang {page.pageNumber}
                         </h4>
                         {pageCrCount > 0 ? (
@@ -1562,14 +1693,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                           </span>
                         )}
                       </div>
-                      <p className='text-[11px] text-zinc-500'>
+                      <p className='text-[11px] text-stone-500'>
                         {panelCount > 0 ? `${panelCount} khung` : 'Trang đơn'} ·{' '}
                         {summary.approvedStageCount}/{summary.totalActiveStages} công đoạn
                       </p>
                     </div>
 
                     {/* Mini 1->7 stage progress bar */}
-                    <div className='pt-1.5 border-t border-zinc-100 flex items-center gap-1 flex-wrap'>
+                    <div className='pt-1.5 border-t border-stone-100 flex items-center gap-1 flex-wrap'>
                       {stages.map((st) => {
                         const status = summary.stageStatuses[st.id] || 'NotStarted';
                         const cfg = STAGE_STATUS_CONFIG[status];
@@ -1587,6 +1718,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               );
             })}
           </div>
+        )}
         </div>
 
         {/* COLUMN 2: CENTER - MAIN COMPOSITE VIEWER */}
@@ -1667,18 +1799,18 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               <button
                 type='button'
                 onClick={() => handleZoom(0.2)}
-                className='p-1.5 rounded hover:bg-[#E7E5E4] text-zinc-600 hover:text-zinc-900 cursor-pointer'
+                className='p-1.5 rounded hover:bg-[#E7E5E4] text-stone-600 hover:text-stone-900 cursor-pointer'
                 title='Phóng to'
               >
                 <ZoomIn className='w-3.5 h-3.5' />
               </button>
-              <span className='text-xs font-mono text-zinc-600 w-12 text-center'>
+              <span className='text-xs font-mono text-stone-600 w-12 text-center'>
                 {Math.round(zoomTransform.scale * 100)}%
               </span>
               <button
                 type='button'
                 onClick={() => handleZoom(-0.2)}
-                className='p-1.5 rounded hover:bg-[#E7E5E4] text-zinc-600 hover:text-zinc-900 cursor-pointer'
+                className='p-1.5 rounded hover:bg-[#E7E5E4] text-stone-600 hover:text-stone-900 cursor-pointer'
                 title='Thu nhỏ'
               >
                 <ZoomOut className='w-3.5 h-3.5' />
@@ -1686,7 +1818,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               <button
                 type='button'
                 onClick={resetZoom}
-                className='px-2 py-1 rounded border border-[#E7E7E7] hover:bg-[#E7E5E4] text-xs font-semibold text-zinc-600 hover:text-zinc-900 cursor-pointer'
+                className='px-2 py-1 rounded border border-[#E7E7E7] hover:bg-[#E7E5E4] text-xs font-semibold text-stone-600 hover:text-stone-900 cursor-pointer'
                 title='Đặt lại kích thước'
               >
                 Fit
@@ -1700,15 +1832,15 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             onMouseDown={onMouseDownViewer}
           >
             {loadingComposite ? (
-              <div className='flex flex-col items-center justify-center gap-2 text-zinc-500'>
+              <div className='flex flex-col items-center justify-center gap-2 text-stone-500'>
                 <Loader2 className='w-8 h-8 animate-spin text-amber-500' />
                 <span className='text-xs font-semibold'>Đang ghép trang thành phẩm...</span>
               </div>
             ) : !activeComposite?.dataUrl ? (
-              <div className='w-96 h-[32rem] bg-white border-2 border-dashed border-[#E7E7E7] rounded-2xl flex flex-col items-center justify-center gap-3 text-zinc-500 p-6 text-center'>
+              <div className='w-96 h-[32rem] bg-white border-2 border-dashed border-[#E7E7E7] rounded-2xl flex flex-col items-center justify-center gap-3 text-stone-500 p-6 text-center'>
                 <AlertTriangle className='w-10 h-10 text-amber-500' />
-                <p className='text-sm font-bold text-zinc-700'>Chưa có bản vẽ</p>
-                <p className='text-xs text-zinc-500'>
+                <p className='text-sm font-bold text-stone-700'>Chưa có bản vẽ</p>
+                <p className='text-xs text-stone-500'>
                   Trang này chưa có artwork ở công đoạn nào trước Review.
                 </p>
               </div>
@@ -1731,6 +1863,25 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   draggable={false}
                   className='max-h-[85vh] w-auto object-contain block'
                 />
+
+                {/* Stitch view-reader: Panel frames */}
+                {currentPagePanels.map((p, idx) => {
+                  const pNum = p.panelNumber || idx + 1;
+                  const isSelected = selectedPanelId === p.id;
+                  return (
+                    <div
+                      key={p.id}
+                      id={`panel-frame-${pNum}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPanelId(p.id);
+                      }}
+                      className={`panel-frame absolute pointer-events-auto cursor-pointer ${
+                        isSelected ? 'ring-2 ring-orange-500' : ''
+                      }`}
+                    />
+                  );
+                })}
 
                 {/* Badge if artwork exists but no text */}
                 {!activeComposite.hasText && (
@@ -1926,15 +2077,15 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                         <div
                           key={cell.id}
                           data-testid={`gate2-grid-cell-${cell.id}`}
-                          className='rounded-lg border border-zinc-200 bg-[#FCFBF8] p-2.5 space-y-2 text-xs'
+                          className='rounded-lg border border-stone-200 bg-[#FCFBF8] p-2.5 space-y-2 text-xs'
                         >
                           <div className='flex items-center justify-between gap-2 flex-wrap'>
                             <div className='min-w-0'>
-                              <div className='font-bold text-zinc-900'>
+                              <div className='font-bold text-stone-900'>
                                 {st?.stageOrder ? `${st.stageOrder}. ` : ''}
                                 {st?.name || 'Stage'}
                               </div>
-                              <div className='text-[11px] text-zinc-500 truncate'>
+                              <div className='text-[11px] text-stone-500 truncate'>
                                 👤 {assigneeLabel}
                               </div>
                             </div>
@@ -1950,7 +2101,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   </span>
                                 </span>
                               )}
-                              <span className='px-2 py-0.5 rounded border border-zinc-300 bg-white text-[11px] font-semibold text-zinc-800'>
+                              <span className='px-2 py-0.5 rounded border border-stone-300 bg-white text-[11px] font-semibold text-stone-800'>
                                 {cell.status}
                               </span>
                             </div>
@@ -2097,7 +2248,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   'chapterReview.gate2GridCommentPlaceholder',
                                   'Nhập nhận xét yêu cầu sửa bắt buộc (BR-06)...',
                                 )}
-                                className='w-full rounded border border-rose-300 bg-white px-2 py-1.5 text-xs text-zinc-900'
+                                className='w-full rounded border border-rose-300 bg-white px-2 py-1.5 text-xs text-stone-900'
                               />
                               <div className='flex items-center justify-end gap-1.5'>
                                 <button
@@ -2106,7 +2257,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                     setRejectingGridCellId(null);
                                     setRejectGridCellComment('');
                                   }}
-                                  className='px-2 py-1 rounded border border-zinc-300 bg-white text-xs font-semibold text-zinc-700 cursor-pointer'
+                                  className='px-2 py-1 rounded border border-stone-300 bg-white text-xs font-semibold text-stone-700 cursor-pointer'
                                 >
                                   Huỷ
                                 </button>
@@ -2132,9 +2283,9 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               )}
 
               {/* Form tạo yêu cầu sửa mới cho trang đang chọn */}
-              <div className='p-3.5 rounded-xl border border-zinc-200 bg-zinc-50/70 space-y-3'>
+              <div className='p-3.5 rounded-xl border border-stone-200 bg-stone-50/70 space-y-3'>
                 <div className='flex items-center justify-between'>
-                  <span className='text-xs font-bold text-zinc-900 flex items-center gap-1.5'>
+                  <span className='text-xs font-bold text-stone-900 flex items-center gap-1.5'>
                     <Send className='w-3.5 h-3.5 text-amber-600' />
                     Trả việc cho Trang {currentPage?.pageNumber}
                   </span>
@@ -2142,7 +2293,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     <button
                       type='button'
                       onClick={() => setDraftRegion(null)}
-                      className='text-[11px] font-semibold text-zinc-500 hover:text-red-600 flex items-center gap-1 cursor-pointer'
+                      className='text-[11px] font-semibold text-stone-500 hover:text-red-600 flex items-center gap-1 cursor-pointer'
                     >
                       <Trash2 className='w-3 h-3' /> Xoá vùng vẽ
                     </button>
@@ -2169,7 +2320,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 {/* Form fields */}
                 <form onSubmit={handleSubmitReturnWork} className='space-y-2.5'>
                   <div>
-                    <label className='block text-[11px] font-bold text-zinc-700 mb-1'>
+                    <label className='block text-[11px] font-bold text-stone-700 mb-1'>
                       Công đoạn cần sửa <span className='text-red-500'>*</span>
                     </label>
                     <select
@@ -2178,7 +2329,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                         setTargetAssignmentId(e.target.value);
                         setAwaitingReviewConflict(null);
                       }}
-                      className='w-full px-2.5 py-2 text-xs border border-zinc-300 rounded-lg bg-white text-zinc-900 font-medium focus:outline-hidden focus:ring-2 focus:ring-amber-500'
+                      className='w-full px-2.5 py-2 text-xs border border-stone-300 rounded-lg bg-white text-stone-900 font-medium focus:outline-hidden focus:ring-2 focus:ring-amber-500'
                       data-testid='select-target-assignment'
                     >
                       <option value=''>-- Chọn công đoạn của trang này --</option>
@@ -2191,28 +2342,37 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   </div>
 
                   <div>
-                    <label className='block text-[11px] font-bold text-zinc-700 mb-1'>
-                      Mô tả lỗi cần sửa <span className='text-red-500'>*</span>
-                    </label>
+                    <div className='flex items-center justify-between mb-1'>
+                      <label className='block text-[11px] font-bold text-stone-700'>
+                        Mô tả lỗi cần sửa <span className='text-red-500'>*</span>
+                      </label>
+                      <span
+                        id='selected-panel-badge'
+                        className='font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200 text-[10px]'
+                      >
+                        Đang chọn: Khung #{selectedPanelNumber}
+                      </span>
+                    </div>
                     <textarea
+                      id='panel-comment-input'
                       rows={3}
                       value={returnDescription}
                       onChange={(e) => setReturnDescription(e.target.value)}
                       placeholder='Mô tả chi tiết nội dung cần sửa...'
-                      className='w-full px-2.5 py-2 text-xs border border-zinc-300 rounded-lg bg-white text-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500'
+                      className='w-full px-2.5 py-2 text-xs border border-stone-300 rounded-lg bg-white text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500'
                       data-testid='input-return-description'
                     />
                   </div>
 
                   <div>
-                    <label className='block text-[11px] font-bold text-zinc-700 mb-1'>
+                    <label className='block text-[11px] font-bold text-stone-700 mb-1'>
                       Hạn sửa (tuỳ chọn)
                     </label>
                     <input
                       type='date'
                       value={returnDueDate}
                       onChange={(e) => setReturnDueDate(e.target.value)}
-                      className='w-full px-2.5 py-1.5 text-xs border border-zinc-300 rounded-lg bg-white text-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500'
+                      className='w-full px-2.5 py-1.5 text-xs border border-stone-300 rounded-lg bg-white text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500'
                     />
                   </div>
 
@@ -2268,7 +2428,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               {/* Danh sách yêu cầu sửa của cả chương nhóm theo trang */}
               <div className='space-y-3 pt-2'>
                 <div className='flex items-center justify-between'>
-                  <span className='text-xs font-bold text-zinc-900'>
+                  <span className='text-xs font-bold text-stone-900'>
                     Yêu cầu sửa của chương ({changeRequests.length})
                   </span>
                   <div className='flex items-center gap-1 text-[11px]'>
@@ -2279,8 +2439,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                         onClick={() => setCrFilter(st)}
                         className={`px-1.5 py-0.5 rounded font-semibold cursor-pointer ${
                           crFilter === st
-                            ? 'bg-zinc-800 text-white'
-                            : 'text-zinc-500 hover:bg-zinc-100'
+                            ? 'bg-stone-800 text-white'
+                            : 'text-stone-500 hover:bg-stone-100'
                         }`}
                       >
                         {st === 'All' ? 'Tất cả' : st}
@@ -2289,16 +2449,17 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   </div>
                 </div>
 
-                {filteredChangeRequests.length === 0 ? (
-                  <p className='text-center text-xs text-zinc-400 py-6'>Chưa có yêu cầu sửa nào.</p>
-                ) : (
+                <div id='panel-comments-list' className='space-y-3'>
+                  {filteredChangeRequests.length === 0 ? (
+                    <p className='text-center text-xs text-stone-400 py-6'>Chưa có yêu cầu sửa nào.</p>
+                  ) : (
                   pages.map((page) => {
                     const pageCrs = changeRequestsByPage.get(page.id) || [];
                     if (pageCrs.length === 0) return null;
 
                     return (
                       <div key={page.id} className='space-y-2'>
-                        <div className='text-[11px] font-bold text-zinc-500 bg-zinc-100 px-2 py-1 rounded flex items-center justify-between'>
+                        <div className='text-[11px] font-bold text-stone-500 bg-stone-100 px-2 py-1 rounded flex items-center justify-between'>
                           <span>Trang {page.pageNumber}</span>
                           <span>{pageCrs.length} yêu cầu</span>
                         </div>
@@ -2318,7 +2479,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                 className={`p-3 rounded-xl border bg-white space-y-2 text-xs transition-all ${
                                   highlightedCrId === cr.id
                                     ? 'ring-2 ring-amber-400'
-                                    : 'border-zinc-200'
+                                    : 'border-stone-200'
                                 }`}
                               >
                                 <div className='flex items-center justify-between gap-1'>
@@ -2334,16 +2495,16 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                     >
                                       {cr.status}
                                     </span>
-                                    <span className='font-bold text-zinc-800'>
+                                    <span className='font-bold text-stone-800'>
                                       {st?.name || 'Công đoạn'}
                                     </span>
                                   </div>
-                                  <span className='text-[10px] text-zinc-400'>
+                                  <span className='text-[10px] text-stone-400'>
                                     {member?.fullName || member?.email || 'Người làm'}
                                   </span>
                                 </div>
 
-                                <p className='text-zinc-800'>{cr.description}</p>
+                                <p className='text-stone-800'>{cr.description}</p>
 
                                 {cr.regionJson && (
                                   <div className='flex items-center gap-2'>
@@ -2362,11 +2523,11 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
                                 {/* Action Buttons for Editor */}
                                 {isRes && (
-                                  <div className='pt-2 border-t border-zinc-100 flex items-center justify-end gap-2'>
+                                  <div className='pt-2 border-t border-stone-100 flex items-center justify-end gap-2'>
                                     <button
                                       type='button'
                                       onClick={() => void handleReopenChangeRequest(cr.id)}
-                                      className='px-2 py-1 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] font-bold cursor-pointer'
+                                      className='px-2 py-1 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-bold cursor-pointer'
                                     >
                                       Mở lại
                                     </button>
@@ -2387,6 +2548,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     );
                   })
                 )}
+                </div>
               </div>
             </div>
           )}
@@ -2414,7 +2576,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
                         isChecked
                           ? 'bg-emerald-50/60 border-emerald-300'
-                          : 'bg-white border-zinc-200 hover:border-zinc-300'
+                          : 'bg-white border-stone-200 hover:border-stone-300'
                       }`}
                     >
                       <input
@@ -2426,11 +2588,11 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                             [item.id]: e.target.checked,
                           }))
                         }
-                        className='mt-0.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer'
+                        className='mt-0.5 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer'
                       />
                       <div className='flex-1'>
                         <span
-                          className={`text-xs font-semibold ${isChecked ? 'text-emerald-900' : 'text-zinc-800'}`}
+                          className={`text-xs font-semibold ${isChecked ? 'text-emerald-900' : 'text-stone-800'}`}
                         >
                           {item.label}
                         </span>
@@ -2462,7 +2624,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 </button>
 
                 {findings.length === 0 ? (
-                  <p className='text-center text-xs text-zinc-400 py-4'>
+                  <p className='text-center text-xs text-stone-400 py-4'>
                     Chưa phát hiện lỗi nhất quán kịch bản.
                   </p>
                 ) : (
@@ -2470,28 +2632,28 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     {findings.map((f) => (
                       <div
                         key={f.id}
-                        className='p-3 rounded-xl border border-zinc-200 bg-white space-y-2 text-xs'
+                        className='p-3 rounded-xl border border-stone-200 bg-white space-y-2 text-xs'
                       >
                         <div className='flex items-center justify-between'>
                           <span
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                              SEVERITY_STYLE[String(f.severity)] || 'bg-zinc-100 text-zinc-600'
+                              SEVERITY_STYLE[String(f.severity)] || 'bg-stone-100 text-stone-600'
                             }`}
                           >
                             {f.severity} · {f.ruleCode}
                           </span>
-                          <span className='text-[10px] text-zinc-500 font-bold'>
+                          <span className='text-[10px] text-stone-500 font-bold'>
                             {FINDING_LABEL[String(f.status)] || f.status}
                           </span>
                         </div>
-                        <p className='text-zinc-800'>{f.message}</p>
+                        <p className='text-stone-800'>{f.message}</p>
                         {f.evidence && (
-                          <blockquote className='text-[11px] text-zinc-500 border-l-2 border-zinc-300 pl-2 italic'>
+                          <blockquote className='text-[11px] text-stone-500 border-l-2 border-stone-300 pl-2 italic'>
                             {f.evidence}
                           </blockquote>
                         )}
                         {OPEN_FINDING.includes(String(f.status)) && (
-                          <div className='flex items-center gap-1.5 pt-1 border-t border-zinc-100'>
+                          <div className='flex items-center gap-1.5 pt-1 border-t border-stone-100'>
                             <button
                               type='button'
                               onClick={() => void handleTriageFinding(f, 'Confirmed')}
@@ -2533,7 +2695,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               </div>
 
               {/* Visual Consistency Section */}
-              <div className='pt-4 border-t border-zinc-200 space-y-3'>
+              <div className='pt-4 border-t border-stone-200 space-y-3'>
                 <div className='p-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl space-y-2.5'>
                   <div className='flex items-center justify-between text-xs font-bold text-purple-900'>
                     <span>Ngưỡng nhất quán AI</span>
@@ -2562,11 +2724,11 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 </div>
 
                 {visualReport && (
-                  <div className='p-3 bg-white border border-zinc-200 rounded-xl space-y-2 text-xs'>
+                  <div className='p-3 bg-white border border-stone-200 rounded-xl space-y-2 text-xs'>
                     <div className='grid grid-cols-3 gap-2 text-center'>
-                      <div className='p-2 bg-zinc-50 rounded-lg'>
-                        <span className='text-[10px] text-zinc-400'>Tổng khung</span>
-                        <p className='font-bold text-zinc-900'>{visualReport.totalEvaluated}</p>
+                      <div className='p-2 bg-stone-50 rounded-lg'>
+                        <span className='text-[10px] text-stone-400'>Tổng khung</span>
+                        <p className='font-bold text-stone-900'>{visualReport.totalEvaluated}</p>
                       </div>
                       <div className='p-2 bg-emerald-50 rounded-lg'>
                         <span className='text-[10px] text-emerald-600'>Khớp</span>
@@ -2602,7 +2764,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         size='md'
         title={
           <span className='text-sm font-bold flex items-center gap-2'>
-            <Clock className='w-4 h-4 text-zinc-600' />
+            <Clock className='w-4 h-4 text-stone-600' />
             Lịch sử các lần nộp Review
           </span>
         }

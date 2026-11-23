@@ -318,7 +318,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                     data-testid={`bible-reference-card-${entry.id}`}
                   >
                     {/* Visual Reference Image */}
-                    <div className='relative w-full h-52 bg-zinc-950 overflow-hidden flex items-center justify-center border-b border-stone-200'>
+                    <div className='relative w-full h-52 bg-stone-950 overflow-hidden flex items-center justify-center border-b border-stone-200'>
                       {entry.referenceImageUrl ? (
                         <div
                           className='w-full h-full relative cursor-pointer group'
@@ -341,7 +341,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                           </div>
                         </div>
                       ) : (
-                        <div className='w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-stone-500 p-4 text-center'>
+                        <div className='w-full h-full flex flex-col items-center justify-center bg-stone-950 text-stone-500 p-4 text-center'>
                           <BookOpen className='w-8 h-8 mb-1.5 opacity-40' />
                           <span className='text-xs font-mono uppercase tracking-wider text-stone-400'>
                             Chưa có ảnh Reference Sheet
@@ -440,7 +440,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                 <X className='w-5 h-5' />
               </button>
             </div>
-            <div className='max-h-[82vh] overflow-hidden rounded-xl border border-white/20 bg-zinc-950 flex items-center justify-center'>
+            <div className='max-h-[82vh] overflow-hidden rounded-xl border border-white/20 bg-stone-950 flex items-center justify-center'>
               <AuthenticatedImage
                 src={selectedImageModal.url}
                 alt={selectedImageModal.name}
