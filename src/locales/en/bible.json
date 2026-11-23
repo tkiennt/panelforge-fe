@@ -577,10 +577,8 @@
     "queueResubmitTitle": "Resubmit if you accidentally uploaded the wrong image file",
     "queueReworkTitle": "Resubmit revised artwork following feedback",
     "clearSearchAria": "Clear search keyword",
-    "statusFilterDraft": "Draft",
     "statusFilterConceptSubmitted": "Concept Submitted",
     "statusFilterReworkRequired": "Rework Required",
-    "statusFilterCanonLocked": "Canon Locked",
     "statusFilterAria": "Filter by Bible lifecycle status",
     "gridViewTitle": "Grid view mode",
     "gridViewAria": "View as grid",
@@ -736,7 +734,6 @@
     "downloadConcept": "Download Concept Art",
     "exportModelSheet": "Export Model Sheet (PDF/ZIP)",
     "zoom": "Zoom",
-    "overlayVerifiedPoints": "3 Vanishing Points",
     "overlayPrintReady": "Publication Print Ready",
     "overlayInkerLocked": "Inker Linework Locked",
     "editSpecsAction": "Edit",
@@ -747,6 +744,8 @@
     "notesLabel": "Notes:",
     "verifiedByEditor": "Editor approved artwork",
     "writerApprovedMechanism": "Writer approved mechanism",
-    "artistLabel": "Artist:"
+    "artistLabel": "Artist:",
+    "artworkUploaded": "Artwork uploaded",
+    "artworkMissing": "No artwork yet"
   }
 }

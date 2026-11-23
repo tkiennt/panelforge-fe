@@ -242,6 +242,8 @@ export function AppShell({
   const searchParams = new URLSearchParams(location.search);
   const chapterId = params.chapterId || searchParams.get('chapterId');
   const chapterQuery = chapterId ? `?chapterId=${encodeURIComponent(chapterId)}` : '';
+  const rawChapterNumber = chapterId?.replace(/^chapter-?/i, '').replace(/^chap-?/i, '') ?? '';
+  const chapterNumberLabel = /^\d+$/.test(rawChapterNumber) ? rawChapterNumber : null;
 
   const isReader =
     currentUser.activeRoles?.includes('READER') ||
@@ -300,11 +302,13 @@ export function AppShell({
                 icon: Kanban,
                 label: t('navigation.menu.production'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
-                badge: {
-                  type: 'text',
-                  text: `Ch. ${chapterId ? chapterId.replace(/^chapter-?/i, '').replace(/^chap-?/i, '') : '5'}`,
-                  color: 'bg-orange-50 text-orange-600',
-                },
+                badge: chapterNumberLabel
+                  ? {
+                      type: 'text',
+                      text: `Ch. ${chapterNumberLabel}`,
+                      color: 'bg-orange-50 text-orange-600',
+                    }
+                  : undefined,
               },
               {
                 icon: FileText,
