@@ -14,7 +14,6 @@ import type { SeriesDto } from '@/services/series.service';
 import type { AssignmentStatus, WorkspaceAssignmentDto } from '@/types/pipeline';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { useTranslation } from '@/lib/i18n';
-import { formatReadingDirection } from './formatters';
 
 interface MemberSeriesPortalProps {
   workspaceId?: string;
@@ -121,11 +120,7 @@ export const MemberSeriesPortal: React.FC<MemberSeriesPortalProps> = ({
       <div className='max-w-6xl mx-auto px-4 md:px-6 py-10 space-y-6'>
         <header className='flex flex-col md:flex-row md:items-end md:justify-between gap-4'>
           <div>
-            <p className='flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-stone-500'>
-              <span className='w-2 h-2 rounded-full bg-orange-500' aria-hidden />
-              {workspaceName ?? t('workspace.portal.eyebrow')}
-            </p>
-            <h1 className='mt-2 text-3xl font-semibold tracking-tight text-stone-900'>
+            <h1 className='text-3xl font-semibold tracking-tight text-stone-900'>
               {t('workspace.portal.title')}
             </h1>
             <p className='mt-2 text-sm text-stone-600 max-w-2xl'>
@@ -214,10 +209,6 @@ export const MemberSeriesPortal: React.FC<MemberSeriesPortalProps> = ({
             {visibleSeries.map((s) => {
               const tasks = tasksBySeries.get(s.id) ?? [];
               const lead = tasks[0];
-              const isWebtoon = String(s.format).toUpperCase().includes('WEBTOON');
-              const formatLabel = isWebtoon
-                ? t('workspace.portal.formatWebtoon')
-                : `${s.format} · ${formatReadingDirection(s.readingDirection).label}`;
               const hasUrgent = tasks.some(isUrgentTask);
               return (
                 <article
@@ -241,12 +232,9 @@ export const MemberSeriesPortal: React.FC<MemberSeriesPortalProps> = ({
                       </div>
                     )}
                     <div className='absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-950/20 to-transparent' />
-                    <div className='absolute top-3 left-3 right-3 flex items-start justify-between gap-2'>
-                      <span className='px-2 py-0.5 rounded bg-stone-950/80 font-mono text-xs text-white uppercase'>
-                        {formatLabel}
-                      </span>
+                    <div className='absolute top-3 left-3 right-3 flex items-center justify-end gap-2'>
                       {workspaceRole && (
-                        <span className='inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white text-xs font-medium text-stone-700'>
+                        <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-xs font-semibold text-stone-700 shadow-xs'>
                           <span className='w-1.5 h-1.5 rounded-full bg-orange-500' aria-hidden />
                           {t(`workspace.portal.role.${workspaceRole}`, workspaceRole)}
                         </span>

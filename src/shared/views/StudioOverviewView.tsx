@@ -14,7 +14,6 @@ import {
   Layers,
   Calendar,
   History,
-  TrendingUp,
   FileText,
   ArrowRight,
 } from 'lucide-react';
@@ -819,7 +818,7 @@ export const StudioOverviewView: React.FC = () => {
       />
 
       <section
-        className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch'
+        className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch'
         id='studio-metrics-strip'
         aria-label={t('workspace.studioHub.metrics.ariaLabel')}
       >
@@ -845,9 +844,6 @@ export const StudioOverviewView: React.FC = () => {
               })}
             </span>
           </div>
-          <p className='text-sm text-stone-500 mt-1'>
-            {t('workspace.studioHub.metrics.seriesOutput')}
-          </p>
           <div className='mt-auto pt-4 flex items-center gap-2 text-sm text-stone-600'>
             <span className='w-2 h-2 rounded-full bg-emerald-600' aria-hidden />
             <span>
@@ -931,32 +927,6 @@ export const StudioOverviewView: React.FC = () => {
             <span>{t('workspace.studioHub.metrics.crewManage')}</span>
             <ArrowRight className='w-4 h-4' />
           </button>
-        </div>
-
-        <div className='bg-white border border-stone-200/80 rounded-xl p-6 flex flex-col shadow-xs'>
-          <div className='flex items-start justify-between gap-2'>
-            <div className='flex items-center gap-2.5'>
-              <TrendingUp className='w-5 h-5 text-emerald-600' />
-              <span className='font-semibold text-stone-900'>
-                {t('workspace.studioHub.metrics.revenueTitle')}
-              </span>
-            </div>
-          </div>
-          {/* No studio-wide revenue endpoint exists yet; show an explicit gap instead of a made-up figure. */}
-          <div className='mt-4 flex items-baseline gap-1.5'>
-            <span className='text-4xl font-bold text-stone-400 tracking-tight'>—</span>
-          </div>
-          <p className='text-sm text-stone-500 mt-1'>
-            {t('workspace.studioHub.metrics.revenueFootnote')}
-          </p>
-          <div className='mt-auto pt-4 border-t border-stone-100 flex items-center gap-2 text-sm text-stone-600'>
-            <TrendingUp className='w-4 h-4 text-stone-400' />
-            <span>
-              {t('workspace.studioHub.metrics.readsCount', {
-                count: numberFmt.format(readerStats?.totalViews ?? 0),
-              })}
-            </span>
-          </div>
         </div>
       </section>
 

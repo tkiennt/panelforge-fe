@@ -53,7 +53,7 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
         {/* Left: Heading & Status Pills */}
         <div className='flex items-center gap-4 flex-wrap'>
           <h2 className='text-xl font-bold text-stone-900'>
-            {t('studioHub.series.title', 'Danh sách Bộ truyện')}{' '}
+            {t('workspace.studioHub.series.title')}{' '}
             <span className='text-stone-400 font-normal text-base' id='series-count-heading'>
               ({totalCount})
             </span>
@@ -73,7 +73,9 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                Tất cả ({statusCounts?.all ?? totalCount})
+                {t('workspace.studioHub.series.filterAll', {
+                  count: statusCounts?.all ?? totalCount,
+                })}
               </button>
               <button
                 type='button'
@@ -84,7 +86,9 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                Đang sản xuất ({statusCounts?.inProd ?? 0})
+                {t('workspace.studioHub.series.filterInProd', {
+                  count: statusCounts?.inProd ?? 0,
+                })}
               </button>
               <button
                 type='button'
@@ -95,7 +99,9 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                Tiền kỳ ({statusCounts?.preProd ?? 0})
+                {t('workspace.studioHub.series.filterPreProd', {
+                  count: statusCounts?.preProd ?? 0,
+                })}
               </button>
               <button
                 type='button'
@@ -106,7 +112,9 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                Hoàn thành ({statusCounts?.completed ?? 0})
+                {t('workspace.studioHub.series.filterCompleted', {
+                  count: statusCounts?.completed ?? 0,
+                })}
               </button>
             </div>
           )}
@@ -122,7 +130,7 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
               id='series-search'
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder='Tìm bộ truyện theo tên, tóm tắt...'
+              placeholder={t('workspace.studioHub.series.searchPlaceholder')}
               className='w-full bg-white pl-8 pr-7 py-1.5 rounded-lg border border-stone-200 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs font-sans'
             />
             {searchQuery && (
@@ -130,7 +138,7 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
                 type='button'
                 onClick={onClearSearch}
                 className='absolute right-2 top-2 text-stone-400 hover:text-stone-700 cursor-pointer'
-                aria-label='Xóa tìm kiếm'
+                aria-label={t('workspace.portal.clearSearch')}
               >
                 <X className='w-3.5 h-3.5' />
               </button>
@@ -143,10 +151,10 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
               <select
                 value={genreFilter}
                 onChange={(e) => onGenreFilterChange(e.target.value)}
-                aria-label='Lọc theo thể loại'
+                aria-label={t('workspace.studioHub.series.allGenres')}
                 className='bg-white border border-stone-200 text-stone-700 px-3 py-1.5 rounded-lg text-xs shadow-2xs focus:outline-none focus:ring-1 focus:ring-orange-600 cursor-pointer pr-7 appearance-none font-sans'
               >
-                <option value='ALL'>Tất cả thể loại</option>
+                <option value='ALL'>{t('workspace.studioHub.series.allGenres')}</option>
                 {availableGenres.map((g) => (
                   <option key={g} value={g}>
                     {formatGenre(g)}
@@ -162,13 +170,13 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
             <select
               value={directionFilter}
               onChange={(e) => onDirectionFilterChange(e.target.value)}
-              aria-label='Lọc theo định dạng đọc'
+              aria-label={t('workspace.studioHub.series.allDirections')}
               className='bg-white border border-stone-200 text-stone-700 px-3 py-1.5 rounded-lg text-xs shadow-2xs focus:outline-none focus:ring-1 focus:ring-orange-600 cursor-pointer pr-7 appearance-none font-sans'
             >
-              <option value='ALL'>Tất cả định dạng đọc</option>
-              <option value='RTL'>Đọc phải → trái (RTL)</option>
-              <option value='LTR'>Đọc trái → phải (LTR)</option>
-              <option value='VERTICAL'>Cuộn dọc (Webtoon)</option>
+              <option value='ALL'>{t('workspace.studioHub.series.allDirections')}</option>
+              <option value='RTL'>{t('workspace.studioHub.series.rtlOption')}</option>
+              <option value='LTR'>{t('workspace.studioHub.series.ltrOption')}</option>
+              <option value='VERTICAL'>{t('workspace.studioHub.series.verticalOption')}</option>
             </select>
             <ChevronDown className='w-3.5 h-3.5 text-stone-400 absolute right-2 top-2.5 pointer-events-none' />
           </div>
@@ -179,13 +187,13 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
               id='series-sort-select'
               value={sortBy}
               onChange={(e) => onSortByChange(e.target.value as any)}
-              aria-label='Sắp xếp'
+              aria-label={t('workspace.shelf.search.sort')}
               className='bg-white border border-stone-200 text-stone-700 px-3 py-1.5 rounded-lg text-xs shadow-2xs focus:outline-none focus:ring-1 focus:ring-orange-600 cursor-pointer pr-7 appearance-none font-sans'
             >
-              <option value='recent'>Mới cập nhật ▾</option>
-              <option value='az'>Tên A-Z ▾</option>
-              <option value='za'>Tên Z-A ▾</option>
-              <option value='chapters'>Nhiều chương nhất ▾</option>
+              <option value='recent'>{t('workspace.studioHub.series.sortRecent')}</option>
+              <option value='az'>{t('workspace.studioHub.series.sortAz')}</option>
+              <option value='za'>{t('workspace.studioHub.series.sortZa')}</option>
+              <option value='chapters'>{t('workspace.studioHub.series.sortChapters')}</option>
             </select>
             <ChevronDown className='w-3.5 h-3.5 text-stone-400 absolute right-2 top-2.5 pointer-events-none' />
           </div>
@@ -195,11 +203,11 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
             <button
               type='button'
               onClick={onClearFilters}
-              aria-label='Xóa bộ lọc'
+              aria-label={t('workspace.studioHub.series.clearFilters')}
               className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors cursor-pointer shrink-0'
             >
               <X className='w-3.5 h-3.5' />
-              <span>Xóa bộ lọc</span>
+              <span>{t('workspace.studioHub.series.clearFilters')}</span>
             </button>
           )}
         </div>

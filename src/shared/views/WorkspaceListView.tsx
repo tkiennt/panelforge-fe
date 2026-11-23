@@ -17,11 +17,7 @@ import {
 } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
 import { formatBytes } from './studio-overview/formatters';
-import {
-  PendingInvitations,
-  TodayTasks,
-  type PendingInvitation,
-} from './WorkspaceShelfSections';
+import { PendingInvitations, TodayTasks, type PendingInvitation } from './WorkspaceShelfSections';
 import { Alert } from '@/shared/ui';
 import { sortByDue, type TodayTask } from './workspaceShelfTasks';
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
@@ -264,8 +260,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
       letterer: 0,
     };
     for (const ws of workspaces) {
-      const isProd =
-        ws.isOwner || String(ws.currentUserRole || '').toUpperCase() === 'PRODUCER';
+      const isProd = ws.isOwner || String(ws.currentUserRole || '').toUpperCase() === 'PRODUCER';
       if (isProd) {
         counts.producer += 1;
       } else {
@@ -330,19 +325,13 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
       );
     }
     if (selectedRoleFilter === 'Editor') {
-      return workspaces.filter(
-        (w) => String(w.currentUserRole || '').toUpperCase() === 'EDITOR',
-      );
+      return workspaces.filter((w) => String(w.currentUserRole || '').toUpperCase() === 'EDITOR');
     }
     if (selectedRoleFilter === 'Artist') {
-      return workspaces.filter(
-        (w) => String(w.currentUserRole || '').toUpperCase() === 'ARTIST',
-      );
+      return workspaces.filter((w) => String(w.currentUserRole || '').toUpperCase() === 'ARTIST');
     }
     if (selectedRoleFilter === 'Writer') {
-      return workspaces.filter(
-        (w) => String(w.currentUserRole || '').toUpperCase() === 'WRITER',
-      );
+      return workspaces.filter((w) => String(w.currentUserRole || '').toUpperCase() === 'WRITER');
     }
     return workspaces;
   }, [workspaces, selectedRoleFilter]);
@@ -516,15 +505,6 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
               {/* STITCH HEADER CARD (VIEW 1: DIRECTORY) */}
               <div className='bg-white border border-stone-200 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6'>
                 <div className='flex flex-col gap-1.5'>
-                  <div className='flex items-center gap-2'>
-                    <span className='text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800'>
-                      {t('workspace.studioHub.directory.managementBadge')}
-                    </span>
-                    <span className='text-xs text-stone-400'>•</span>
-                    <span className='text-xs font-medium text-stone-500'>
-                      {t('workspace.studioHub.directory.editionBadge')}
-                    </span>
-                  </div>
                   <h1 className='text-2xl font-bold text-stone-900 tracking-tight flex items-center gap-3 font-serif'>
                     <span>{t('workspace.studioHub.directory.title')}</span>
                     <span
@@ -763,9 +743,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                                 {ws.name}
                               </h3>
                               <span className='text-xs text-stone-400 block truncate'>
-                                {ws.ownerName
-                                  ? `${t('workspace.owner')}: ${ws.ownerName}`
-                                  : '—'}
+                                {ws.ownerName ? `${t('workspace.owner')}: ${ws.ownerName}` : '—'}
                               </span>
                             </div>
                           </div>
@@ -851,10 +829,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
 
                         {/* Featured Series chips (Stitch Spec: only if API returns them) */}
                         {ws.seriesPreviews && ws.seriesPreviews.length > 0 && (
-                          <div
-                            className='flex flex-col gap-1.5'
-                            data-testid='ws-series-shelf'
-                          >
+                          <div className='flex flex-col gap-1.5' data-testid='ws-series-shelf'>
                             <span className='text-xs font-semibold text-stone-500'>
                               {t('workspace.studioHub.directory.featuredSeries')}
                             </span>
@@ -955,7 +930,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                           <span className='text-xs text-stone-400 font-medium truncate'>
                             {isEditor
                               ? t('workspace.studioHub.directory.rolePermissionEditor')
-                              : t('workspace.studioHub.directory.readySync')}
+                              : '—'}
                           </span>
                         )}
 
@@ -1031,9 +1006,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
           onClose={() => setCoverModalWorkspace(null)}
           onSuccess={(newUrl) => {
             setWorkspaces((prev) =>
-              prev.map((w) =>
-                w.id === coverModalWorkspace.id ? { ...w, coverUrl: newUrl } : w,
-              ),
+              prev.map((w) => (w.id === coverModalWorkspace.id ? { ...w, coverUrl: newUrl } : w)),
             );
           }}
         />
