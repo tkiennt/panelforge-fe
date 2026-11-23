@@ -524,6 +524,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   }, []);
 
   // Side Drawers (Left & Right Drawers Hook)
+  // Scene outline column is open by default on desktop (≥1280px) per Stitch design
   const {
     activeLeftDrawer,
     activeRightDrawer,
@@ -531,7 +532,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setActiveRightDrawer,
     toggleLeftDrawer,
     toggleRightDrawer,
-  } = useScriptDrawers();
+  } = useScriptDrawers({
+    initialLeftDrawer: typeof window !== 'undefined' && window.innerWidth >= 1280 ? 'scenes' : null,
+  });
   const [importRequestKey, setImportRequestKey] = useState(0);
 
   // BIB-16: Nạp danh sách thực thể chương (Chapter Cast)
@@ -1811,16 +1814,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   });
 
   const headerChapters = useMemo(
-    () => chapters.map((c) => ({ id: c.id, chapterNumber: c.chapterNumber, title: c.title })),
+    () =>
+      chapters.map((c) => ({
+        id: c.id,
+        chapterNumber: c.chapterNumber,
+        title: c.title ? `${c.title} (Kịch bản)` : '(Kịch bản)',
+      })),
     [chapters],
-  );
-  const scriptStages = useMemo(
-    () => [
-      { id: 'write', label: t('scriptStudio.stages.write') },
-      { id: 'review', label: t('scriptStudio.stages.review') },
-      { id: 'lock', label: t('scriptStudio.stages.lock') },
-    ],
-    [t],
   );
 
   useEffect(() => {
@@ -1834,15 +1834,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       chapters: headerChapters,
       currentChapterId: currentChapter.id,
       onSelectChapter: (id: string) => selectChapterRef.current(id),
-      stages: scriptStages,
-      currentStageIndex: scriptStageIndex,
+      stages: [],
       isStageFlowCompleted: isScriptFrozen,
       isSubmittingStage: submittingToEditor,
       onSubmitStage: canSubmitScript ? () => submitScriptRef.current() : undefined,
       submitButtonLabel:
         scriptAction === 'resubmit'
-          ? t('scriptStudio.submit.resubmit')
-          : t('scriptStudio.submit.writer'),
+          ? t('scriptStudio.submit.resubmit', 'Gửi lại kịch bản')
+          : t('scriptStudio.submit.writer', 'Gửi duyệt kịch bản'),
     });
   }, [
     focusHeader,
@@ -1851,8 +1850,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     workspaceId,
     seriesId,
     headerChapters,
-    scriptStages,
-    scriptStageIndex,
     isScriptFrozen,
     submittingToEditor,
     canSubmitScript,
@@ -1910,9 +1907,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 : 'border-stone-200/80 hover:border-primary/40 bg-white text-stone-900'
             }`}
           >
-            <Clapperboard className='w-4 h-4 text-primary' />
+            <Clapperboard className='w-4 h-4 text-[#EA580C]' />
             <span>{t('collaboration.writerStudio.sceneOutline', 'Phân cảnh')}</span>
-            <span className='px-1.5 py-0.2 rounded-full text-xs font-bold bg-primary/10 text-primary font-mono'>
+            <span className='px-1.5 py-0.2 rounded-full text-xs font-bold bg-[#EA580C]/10 text-[#EA580C] font-mono'>
               {filteredScenes.length}
             </span>
           </button>
@@ -1934,7 +1931,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               onClick={() => toggleRightDrawer('bible')}
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
                 activeRightDrawer === 'bible'
-                  ? 'bg-primary text-white shadow-2xs'
+                  ? 'bg-[#EA580C] text-white shadow-xs font-semibold'
                   : 'text-stone-600 hover:bg-stone-200/60 font-medium'
               }`}
             >
@@ -1949,7 +1946,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               onClick={() => toggleRightDrawer('comments')}
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs transition-all cursor-pointer ${
                 activeRightDrawer === 'comments'
-                  ? 'bg-primary text-white shadow-2xs font-semibold'
+                  ? 'bg-[#EA580C] text-white shadow-xs font-semibold'
                   : 'text-stone-600 hover:bg-stone-200/60 font-medium'
               }`}
             >
@@ -1964,7 +1961,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               onClick={() => toggleRightDrawer('versions')}
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs transition-all cursor-pointer ${
                 activeRightDrawer === 'versions'
-                  ? 'bg-primary text-white shadow-2xs font-semibold'
+                  ? 'bg-[#EA580C] text-white shadow-xs font-semibold'
                   : 'text-stone-600 hover:bg-stone-200/60 font-medium'
               }`}
             >
@@ -2034,15 +2031,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           >
             <button
               type='button'
-              className='w-7 h-7 rounded flex items-center justify-center text-primary bg-primary/10 border border-primary/20 hover:bg-primary hover:text-white transition-colors cursor-pointer'
+              className='w-7 h-7 rounded flex items-center justify-center text-[#EA580C] bg-[#EA580C]/10 border border-[#EA580C]/20 hover:bg-[#EA580C] hover:text-white transition-colors cursor-pointer'
             >
               <PanelLeft className='w-4 h-4' />
             </button>
-            <span className='px-1.5 py-0.5 rounded-full text-xs font-bold bg-primary text-white font-mono'>
+            <span className='px-1.5 py-0.5 rounded-full text-xs font-bold bg-[#EA580C] text-white font-mono'>
               {filteredScenes.length}
             </span>
             <div className='flex items-center gap-1.5 text-xs font-semibold tracking-wider text-stone-900 uppercase py-3 [writing-mode:vertical-rl] rotate-180 flex-1 flex justify-center'>
-              <Clapperboard className='w-3.5 h-3.5 text-primary rotate-90' />
+              <Clapperboard className='w-3.5 h-3.5 text-[#EA580C] rotate-90' />
               <span>Phân cảnh</span>
             </div>
           </div>

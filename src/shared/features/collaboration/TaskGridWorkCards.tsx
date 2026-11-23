@@ -266,7 +266,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
 
           {isOwner && baseSeriesPath && roleUpper === 'WRITER' && (
             <Link
-              to={`${baseSeriesPath}/script?chapterId=${encodeURIComponent(lot.chapterId)}`}
+              to={`${baseSeriesPath}/script/editor?chapterId=${encodeURIComponent(lot.chapterId)}`}
               className='h-8 px-3 rounded-xl border border-[#EA580C]/30 bg-[#FFF1EC] hover:bg-[#FFE6DC] text-[#EA580C] text-xs font-semibold inline-flex items-center gap-1.5'
             >
               <PenTool className='w-3.5 h-3.5 text-[#EA580C]' />

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from '@/shared/ui';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   BookOpen,
   ChevronDown,
@@ -62,6 +62,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
 }) => {
   const { workspaceId, seriesId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const reviewer = isReviewerRole(workspaceRole);
 
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
@@ -715,53 +716,22 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       ]
     : baseTabs;
   const isStudioTab = tab === 'studio';
+  const currentMember = members.find((m) => m.userId === currentUserId);
+  const currentMemberName =
+    currentMember?.fullName ||
+    (typeof window !== 'undefined' ? localStorage.getItem('userName') : null) ||
+    '—';
 
   return (
     <PageContainer className='space-y-6 py-6 text-[#1C1917] font-sans' data-testid='my-work-view'>
-      {/* Contextual Quick Breadcrumbs */}
-      {workspaceId && seriesId && (
-        <nav
-          aria-label='Đường dẫn ngữ cảnh'
-          className='flex items-center gap-1.5 text-xs text-[#57534E] font-medium'
-        >
-          <Link
-            to={`/workspaces/${workspaceId}`}
-            className='hover:text-[#1C1917] hover:underline transition-colors'
-          >
-            Workspace
-          </Link>
-          <span className='text-[#D8D2C5]'>/</span>
-          <Link
-            to={`/workspaces/${workspaceId}/series/${seriesId}`}
-            className='hover:text-[#1C1917] hover:underline transition-colors'
-          >
-            Series
-          </Link>
-          <span className='text-[#D8D2C5]'>/</span>
-          <span className='text-[#1C1917] font-bold'>
-            {chapterId === 'ALL_STUDIO'
-              ? 'Toàn bộ Studio'
-              : chapters.find((c) => c.id === chapterId)
-                ? `Chương ${chapters.find((c) => c.id === chapterId)?.chapterNumber}`
-                : 'Công việc của tôi'}
-          </span>
-        </nav>
-      )}
-
       {/* Stitch Manga Production Workspace Banner */}
       <header className='relative bg-white rounded-xl p-6 sm:p-8 shadow-sm overflow-hidden border border-stone-200/80'>
         <div className='relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6'>
           <div>
-            <div className='flex items-center gap-2 mb-2'>
-              <span className='px-2.5 py-0.5 rounded-full bg-stone-100 text-[#EA580C] text-xs font-semibold tracking-wide uppercase'>
-                Không gian Sáng tác Manga
-              </span>
-              <span className='text-xs text-stone-500'>• Bản tin làm việc</span>
-            </div>
             <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#18181B] tracking-tight'>
               {workspaceRole?.toLowerCase() === 'writer'
-                ? 'Bàn làm việc Biên kịch'
-                : 'Công việc của tôi'}
+                ? `Bàn làm việc Biên kịch — ${currentMemberName}`
+                : `Công việc của tôi — ${currentMemberName}`}
             </h1>
             <p className='text-sm text-stone-500 mt-1'>
               Dự án:{' '}
@@ -780,7 +750,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 const activeChapter = chapters.find((c) => !c.isScriptFrozen) || chapters[0];
                 return (
                   <Link
-                    to={`/workspaces/${workspaceId}/series/${seriesId}/script?chapterId=${activeChapter.id}`}
+                    to={`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${activeChapter.id}`}
                     className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs transition-colors shadow-xs'
                   >
                     <BookOpen className='w-4 h-4' />
@@ -873,7 +843,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               return (
                 <div
                   key={c.id}
-                  className='bg-white rounded-xl p-5 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden group border border-stone-200/80 flex flex-col justify-between space-y-4'
+                  onClick={() => {
+                    if (workspaceId && seriesId) {
+                      navigate(
+                        `/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${c.id}`,
+                      );
+                    }
+                  }}
+                  className='bg-white rounded-xl p-5 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden group border border-stone-200/80 flex flex-col justify-between space-y-4 cursor-pointer'
                 >
                   <div
                     className={`absolute top-0 left-0 w-1.5 h-full ${
@@ -906,6 +883,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                         {c.outline || 'Chưa có đề cương kịch bản tóm tắt cho chương này.'}
                       </p>
                     </div>
+                    <ChevronRight className='w-5 h-5 text-stone-400 group-hover:text-[#EA580C] transition-colors shrink-0' />
                   </div>
 
                   <div className='space-y-1.5 pt-1'>
@@ -941,7 +919,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                         : '—'}
                     </span>
                     <Link
-                      to={`/workspaces/${workspaceId}/series/${seriesId}/script?chapterId=${c.id}`}
+                      to={`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${c.id}`}
+                      onClick={(e) => e.stopPropagation()}
                       className='inline-flex items-center gap-1 font-semibold text-[#EA580C] hover:underline'
                     >
                       <span>Mở Kịch bản Ch.{c.chapterNumber}</span>

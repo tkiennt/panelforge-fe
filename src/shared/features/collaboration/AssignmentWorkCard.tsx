@@ -603,7 +603,11 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
 
       {isScriptAssignment && (
         <Link
-          to={`../script?chapterId=${chapterId}`}
+          to={
+            actions.isReviewer && !actions.isAssignee
+              ? `../script?chapterId=${chapterId}`
+              : `../script/editor?chapterId=${chapterId}`
+          }
           relative='path'
           data-testid='open-chapter-script'
           className='h-9 px-3.5 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs w-fit'
