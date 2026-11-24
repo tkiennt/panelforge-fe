@@ -95,6 +95,8 @@ export interface AssignmentDto {
   chapterId: string;
   entityType: WorkflowEntityType;
   targetEntityId: string;
+  /** Trang chứa đối tượng (Page → chính trang, Panel → trang chứa khung tranh, Chapter → null). */
+  pageId?: string | null;
   pipelineStageId: string;
   stageName?: string;
   stageOrder?: number;

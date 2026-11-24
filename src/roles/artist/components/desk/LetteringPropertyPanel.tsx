@@ -6,6 +6,7 @@ import {
   Bold,
   CheckCircle2,
   CircleAlert,
+  Compass,
   ExternalLink,
   FileText,
   Italic,
@@ -14,12 +15,14 @@ import {
   Minus,
   Plus,
   Shapes,
+  ShieldAlert,
   Sparkles,
   Trash2,
   Type,
   X,
 } from 'lucide-react';
 import type { ElementSnapshotDto, TextStyleDto } from '@/services/element.service';
+import type { KeepOutZone } from '@/shared/lib/lettering/keepOutZones';
 import { aiAgentsService, type AiSuggestionDto } from '@/services/aiAgents.service';
 import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
 import {
@@ -59,6 +62,8 @@ export interface LetteringPropertyPanelProps {
   pageId?: string;
   canUseAiShorten?: boolean;
   onReloadPage?: () => Promise<void> | void;
+  keepOutCollision?: KeepOutZone | null;
+  onSuggestPosition?: () => void;
 }
 
 const SECTION_TITLE = 'text-xs font-semibold text-stone-800 flex items-center gap-1.5';
@@ -91,6 +96,8 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
   pageId,
   canUseAiShorten = false,
   onReloadPage,
+  keepOutCollision = null,
+  onSuggestPosition,
 }) => {
   const isOriginal = !activeLang || activeLang.toLowerCase() === originalLang.toLowerCase();
   const appearance = resolveAppearance(element.elementType, appearanceFromStyle(element.style));
@@ -244,6 +251,34 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             {linked ? 'Đã liên kết' : 'Chưa liên kết'}
           </span>
         </div>
+
+        {/* Cảnh báo bóng thoại đè vùng cấm chữ */}
+        {keepOutCollision && (
+          <div
+            data-testid='keepout-callout'
+            className='p-3 bg-red-50 border border-red-300 rounded-xl space-y-2 text-red-900'
+          >
+            <div className='font-bold flex items-center gap-1.5 text-xs'>
+              <ShieldAlert className='w-4 h-4 text-red-600 shrink-0' aria-hidden='true' />
+              <span>Bóng thoại che vùng cấm</span>
+            </div>
+            <p className='text-xs leading-relaxed'>
+              Bóng thoại đang che khuất{' '}
+              <strong>{keepOutCollision.label || 'mặt/tay nhân vật'}</strong>. Hãy dời bóng thoại
+              hoặc bấm nút gợi ý bên dưới.
+            </p>
+            {onSuggestPosition && (
+              <button
+                type='button'
+                onClick={onSuggestPosition}
+                data-testid='suggest-position-btn-collision'
+                className='w-full py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs'
+              >
+                <Compass className='w-3.5 h-3.5' aria-hidden='true' /> Gợi ý vị trí thoáng nhất
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Tham chiếu Script */}
         <section className='space-y-2'>

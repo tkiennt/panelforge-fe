@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, RefreshCw, Send, ShieldAlert } from 'lucide-react';
 import { pageService, PageDto, PageHistoryDto, isGuid } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
@@ -47,8 +47,16 @@ import { PageStage } from '../components/desk/ArtistPageSidebar';
 import { ArtistCanvasViewport, type PageSketch } from '../components/desk/ArtistCanvasViewport';
 import { PanelFrameOverlay, type PanelArtworkData } from '../components/desk/PanelFrameOverlay';
 import { LetteringBalloonOverlay } from '../components/desk/LetteringBalloonOverlay';
+import { KeepOutZoneOverlay } from '../components/desk/KeepOutZoneOverlay';
 import { ArtworkPreviewDialog } from '../components/desk/ArtistDeskDialogs';
 import { useLetteringBalloons, type BalloonType } from '../hooks/useLetteringBalloons';
+import { useKeepOutZones } from '../hooks/useKeepOutZones';
+import {
+  findKeepOutCollision,
+  rectsOverlap,
+  suggestBalloonPosition,
+  type Rect,
+} from '@/shared/lib/lettering/keepOutZones';
 import { LanguageSelector } from '@/shared/components/LanguageSelector';
 import { suggestBalloonType } from '../utils/letteringScript';
 import { LetteringPropertyPanel } from '../components/desk/LetteringPropertyPanel';
@@ -226,7 +234,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     Record<string, PanelDto[]>
   >({});
   const [panelPageMap, setPanelPageMap] = useState<
-    Record<string, { pageNumber: number; panelNumber: number; sceneId?: string | null }>
+    Record<string, { pageId?: string; pageNumber: number; panelNumber: number; sceneId?: string | null }>
   >({});
   const [rawBibleEntries, setRawBibleEntries] = useState<BibleEntryDto[]>([]);
   const [hasLoadedRealBible, setHasLoadedRealBible] = useState(false);
@@ -258,6 +266,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [seriesLanguages, setSeriesLanguages] = useState<string[]>(['vi', 'en']);
   const [originalLang, setOriginalLang] = useState<string>('vi');
   const [activeLang, setActiveLang] = useState<string>('vi');
+  const [isRTL, setIsRTL] = useState<boolean>(true);
   const [chapterEditions, setChapterEditions] = useState<ChapterEditionDto[]>([]);
   const [isSubmittingEdition, setIsSubmittingEdition] = useState<boolean>(false);
 
@@ -721,7 +730,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   .catch(() => ({ pageId: pg.id, pageNumber: pg.pageNumber, panels: [] })),
               ),
             );
-            const nextMap: Record<string, { pageNumber: number; panelNumber: number }> = {};
+            const nextMap: Record<
+              string,
+              { pageId: string; pageNumber: number; panelNumber: number }
+            > = {};
             const nextPanelsByPage: Record<string, PanelDto[]> = {};
             const backendSavedMap: Record<string, boolean> = {};
             panelResults.forEach(({ pageId, pageNumber, panels }) => {
@@ -730,6 +742,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 backendSavedMap[pageId] = true;
                 panels.forEach((pnl) => {
                   nextMap[pnl.id] = {
+                    pageId,
                     pageNumber,
                     panelNumber: pnl.panelNumber || pnl.readingOrder || 1,
                   };
@@ -783,8 +796,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           sortedLines.forEach((l: any) => {
             combined.push({
               id: l.id,
-              panelNumber: l.panelNumber,
-              pageNumber: l.pageNumber,
+              pageId: l.pageId ?? undefined,
+              panelNumber: l.panelNumber ?? undefined,
+              pageNumber: l.pageNumber ?? undefined,
               sceneId: sc.id,
               sceneNumber: sc.sceneNumber,
               sceneTitle:
@@ -973,6 +987,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             if (ser.originalLanguage) {
               setOriginalLang(ser.originalLanguage);
               setActiveLang(ser.originalLanguage);
+            }
+            if (ser.readingDirection !== undefined && ser.readingDirection !== null) {
+              setIsRTL(ser.readingDirection === 0 || ser.readingDirection === 'RightToLeft');
             }
           }
         })
@@ -1627,9 +1644,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
     return source.map((line): ScriptLineItem => {
       const fromPanel = line.panelId ? panelPageMap[line.panelId] : undefined;
+      const resolvedPageId = fromPanel?.pageId ?? line.pageId;
       const resolvedPageNum =
         fromPanel?.pageNumber ??
         line.pageNumber ??
+        (resolvedPageId ? pages.find((p) => p.id === resolvedPageId)?.pageNumber : undefined) ??
         (line.sceneId ? sceneToPageMap.get(line.sceneId) : undefined);
       const resolvedPanelNum = fromPanel?.panelNumber ?? line.panelNumber;
 
@@ -1710,6 +1729,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
       return {
         ...line,
+        pageId: resolvedPageId,
         pageNumber: resolvedPageNum,
         panelNumber: resolvedPanelNum,
         characterName: resolvedCharName,
@@ -1971,6 +1991,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           });
           savedPanels.forEach((panel) => {
             next[panel.id] = {
+              pageId: targetPage.id,
               pageNumber: targetPage.pageNumber,
               panelNumber: panel.panelNumber || panel.readingOrder || 1,
               sceneId: panel.sceneId,
@@ -2447,8 +2468,48 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     activeLang,
     originalLang,
   );
+  const keepOut = useKeepOutZones(selectedPage, currentPagePanels, toast, isPageReadOnly);
   const selectedBalloon =
     balloons.pageElements.find((el) => el.elementId === balloons.selectedElementId) ?? null;
+  const selectedKeepOutCollision = useMemo(() => {
+    if (!selectedBalloon || keepOut.zones.length === 0) return null;
+    return findKeepOutCollision(
+      {
+        x: selectedBalloon.x,
+        y: selectedBalloon.y,
+        width: selectedBalloon.width,
+        height: selectedBalloon.height,
+      },
+      keepOut.zones,
+    );
+  }, [selectedBalloon, keepOut.zones]);
+  const handleSuggestBalloonPosition = useCallback(() => {
+    if (!selectedBalloon || !selectedPage) return;
+    const pageW = selectedPage.widthPx || 1200;
+    const pageH = selectedPage.heightPx || 1800;
+    let targetPanelRect: Rect = { x: 0, y: 0, width: pageW, height: pageH };
+    const balloonRect: Rect = {
+      x: selectedBalloon.x,
+      y: selectedBalloon.y,
+      width: selectedBalloon.width,
+      height: selectedBalloon.height,
+    };
+    for (const panel of currentPagePanels) {
+      const pBox = parseBoundingBox(panel.boundingBox, pageW, pageH);
+      const pr: Rect = { x: pBox.pixelX, y: pBox.pixelY, width: pBox.pixelW, height: pBox.pixelH };
+      if (rectsOverlap(balloonRect, pr)) {
+        targetPanelRect = pr;
+        break;
+      }
+    }
+    const suggested = suggestBalloonPosition(
+      { width: selectedBalloon.width, height: selectedBalloon.height },
+      targetPanelRect,
+      keepOut.zones,
+      isRTL,
+    );
+    void balloons.moveElementTo(selectedBalloon.elementId, suggested.x, suggested.y);
+  }, [selectedBalloon, selectedPage, currentPagePanels, keepOut.zones, isRTL, balloons]);
   const normalizedDeskRole =
     normalizeWorkspaceRole(workspaceRole) ||
     (typeof window !== 'undefined'
@@ -2456,11 +2517,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       : null);
   const isLettererRole = normalizedDeskRole === 'LETTERER';
   const handleReloadLetteringPage = useCallback(async () => {
-    await balloons.reloadElements();
+    await Promise.all([balloons.reloadElements(), keepOut.reload()]);
     if (currentChapterId) {
       await loadPages(currentChapterId);
     }
-  }, [balloons, currentChapterId, loadPages]);
+  }, [balloons, keepOut, currentChapterId, loadPages]);
   // Số dòng của bóng đang chọn, đánh số giống cột "Script truyện" (chỉ dòng có chữ để đặt)
   const selectedLineNumber = useMemo(() => {
     if (!selectedBalloon?.scriptLineId) return undefined;
@@ -2878,7 +2939,33 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           linkedScriptLineIds={linkedScriptLineIds}
           letteringHeaderSlot={
             <div className='w-full flex flex-col gap-2'>
-              <div className='flex justify-end'>
+              <div className='flex items-center justify-between gap-2'>
+                <button
+                  type='button'
+                  data-testid='tool-keepout'
+                  onClick={keepOut.toggleDrawingMode}
+                  disabled={isPageReadOnly || keepOut.isSaving}
+                  aria-pressed={keepOut.isDrawingMode}
+                  title='Vẽ vùng cấm chữ trên tranh (tránh mặt/tay nhân vật)'
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                    keepOut.isDrawingMode
+                      ? 'bg-red-600 text-white border-red-700 shadow-2xs'
+                      : 'bg-white text-stone-700 border-stone-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200'
+                  }`}
+                >
+                  <ShieldAlert className='w-3.5 h-3.5' aria-hidden='true' />
+                  <span>Vùng cấm</span>
+                  {keepOut.zones.length > 0 && (
+                    <span
+                      data-testid='keepout-count-badge'
+                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                        keepOut.isDrawingMode ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'
+                      }`}
+                    >
+                      {keepOut.zones.length}
+                    </span>
+                  )}
+                </button>
                 <LanguageSelector
                   languages={seriesLanguages}
                   activeLang={activeLang}
@@ -2887,6 +2974,28 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   counts={untranslatedCounts}
                 />
               </div>
+              {keepOut.conflictMessage && (
+                <div
+                  role='alert'
+                  data-testid='keepout-conflict-banner'
+                  className='flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-xs text-amber-900'
+                >
+                  <span className='leading-snug'>{keepOut.conflictMessage}</span>
+                  <button
+                    type='button'
+                    data-testid='keepout-reload-btn'
+                    onClick={() => void keepOut.reload()}
+                    disabled={keepOut.isLoading}
+                    className='inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-50'
+                  >
+                    <RefreshCw
+                      className={`w-3 h-3 ${keepOut.isLoading ? 'animate-spin' : ''}`}
+                      aria-hidden='true'
+                    />
+                    Tải lại
+                  </button>
+                </div>
+              )}
               {isTranslationMode && (
                 <div
                   data-testid='lettering-edition-bar'
@@ -2989,6 +3098,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   onPreviewArtwork={setPreviewArtwork}
                 />
               )}
+              {selectedPage && (activeSidebarTab === 'lettering' || keepOut.zones.length > 0) && (
+                <KeepOutZoneOverlay
+                  zones={keepOut.zones}
+                  pageWidth={selectedPage.widthPx || 1200}
+                  pageHeight={selectedPage.heightPx || 1800}
+                  isDrawingMode={keepOut.isDrawingMode}
+                  readOnly={isPageReadOnly}
+                  onAddZone={(rect) => {
+                    void keepOut.addZone(rect);
+                  }}
+                  onDeleteZone={(id) => {
+                    void keepOut.deleteZone(id);
+                  }}
+                  onExitDrawingMode={() => keepOut.setIsDrawingMode(false)}
+                />
+              )}
               {selectedPage && balloons.pageElements.length > 0 && (
                 <LetteringBalloonOverlay
                   elements={balloons.pageElements}
@@ -2998,6 +3123,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   selectedId={balloons.selectedElementId}
                   activeGestureId={balloons.draggingId || balloons.resizingId}
                   readOnly={isPageReadOnly}
+                  keepOutZones={keepOut.zones}
                   onSelect={balloons.setSelectedElementId}
                   onScale={balloons.scaleElement}
                   onCopy={balloons.copyElement}
@@ -3047,6 +3173,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   !selectedPage.id.startsWith('page-default-'),
                 )}
                 onReloadPage={handleReloadLetteringPage}
+                keepOutCollision={selectedKeepOutCollision}
+                onSuggestPosition={!isPageReadOnly ? handleSuggestBalloonPosition : undefined}
               />
             )}
           </div>
@@ -3073,6 +3201,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           <ArtistScriptReferenceSidebar
             isOpen={isRightScriptSidebarOpen}
             onToggle={() => setIsRightScriptSidebarOpen((v) => !v)}
+            pageId={selectedPage?.id ?? null}
             pageNumber={selectedPage?.pageNumber || 1}
             panels={currentPagePanels}
             scriptLines={resolvedScriptLines ?? DEFAULT_SCRIPT_LINES}

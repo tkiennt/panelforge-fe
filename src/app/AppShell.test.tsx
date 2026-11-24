@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AppShell, CurrentUser } from './AppShell';
 import { I18nProvider } from '@/lib/i18n';
@@ -10,6 +10,10 @@ vi.mock('@/shared/features/collaboration/NotificationBell', () => ({
 }));
 
 describe('AppShell Component', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   const renderInRouter = (
     user: CurrentUser,
     route = '/workspaces/ws-1/series/ser-1/dashboard',
@@ -278,15 +282,16 @@ describe('AppShell Component', () => {
     fireEvent.click(toggleBtn);
     expect(sidebar).toHaveStyle({ width: '64px' });
     expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('true');
-    expect(toggleBtn).toHaveAttribute('aria-label', 'Mở rộng thanh điều hướng');
-    expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
+    const collapsedToggleBtn = screen.getByTestId('sidebar-rail-toggle-btn');
+    expect(collapsedToggleBtn).toHaveAttribute('aria-label', 'Mở rộng thanh điều hướng');
+    expect(collapsedToggleBtn).toHaveAttribute('aria-expanded', 'false');
 
     // Hover không tự mở rộng
     fireEvent.mouseEnter(sidebar);
     expect(sidebar).toHaveStyle({ width: '64px' });
 
     // Bấm mở rộng lại
-    fireEvent.click(toggleBtn);
+    fireEvent.click(collapsedToggleBtn);
     expect(sidebar).toHaveStyle({ width: '256px' });
     expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('false');
   });
@@ -419,10 +424,11 @@ describe('AppShell Component', () => {
 
     renderInRouter(userWithAvatar, '/workspaces/ws-1/dashboard');
 
-    const avatarImg = screen.getByRole('img', { name: 'Alex Producer' });
+    const headerUserBtn = screen.getByTestId('header-user-menu-btn');
+    const avatarImg = within(headerUserBtn).getByRole('img', { name: 'Alex Producer' });
     expect(avatarImg).toBeInTheDocument();
     expect(avatarImg).toHaveAttribute('src', userWithAvatar.avatarUrl);
-    expect(screen.queryByText('AP')).not.toBeInTheDocument();
+    expect(within(headerUserBtn).queryByText('AP')).not.toBeInTheDocument();
   });
 
   it('fallback về avatarInitials khi avatarUrl bị lỗi tải', () => {
@@ -437,14 +443,17 @@ describe('AppShell Component', () => {
 
     renderInRouter(userWithFailingAvatar, '/workspaces/ws-1/dashboard');
 
-    const avatarImg = screen.getByRole('img', { name: 'Alex Producer' });
+    const headerUserBtn = screen.getByTestId('header-user-menu-btn');
+    const avatarImg = within(headerUserBtn).getByRole('img', { name: 'Alex Producer' });
     expect(avatarImg).toBeInTheDocument();
 
     // Giả lập lỗi tải ảnh (onError)
     fireEvent.error(avatarImg);
 
     // Sau khi ảnh lỗi, component fallback hiển thị initials
-    expect(screen.getByText('AP')).toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: 'Alex Producer' })).not.toBeInTheDocument();
+    expect(within(headerUserBtn).getByText('AP')).toBeInTheDocument();
+    expect(
+      within(headerUserBtn).queryByRole('img', { name: 'Alex Producer' }),
+    ).not.toBeInTheDocument();
   });
 });

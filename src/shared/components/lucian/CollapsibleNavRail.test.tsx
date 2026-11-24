@@ -19,7 +19,9 @@ describe('CollapsibleNavRail (#040)', () => {
   };
 
   it('renders all nav items, logo, and user profile', () => {
-    render(<CollapsibleNavRail items={mockItems} user={mockUser} activeId='home' />);
+    render(
+      <CollapsibleNavRail items={mockItems} user={mockUser} activeId='home' isExpanded={true} />,
+    );
 
     expect(screen.getByTestId('collapsible-nav-rail-root')).toBeInTheDocument();
     expect(screen.getByText('PF')).toBeInTheDocument();

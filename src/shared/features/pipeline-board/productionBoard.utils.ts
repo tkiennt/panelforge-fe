@@ -176,8 +176,11 @@ export type ScopeKey = string; // 'chapter' | 'panel' | `page:${id}`
 
 export const scopeKeyOf = (card: BoardCard): ScopeKey => {
   const t = String(card.entityType);
-  if (t === 'Page') return `page:${card.targetEntityId}`;
-  if (t === 'Panel') return 'panel';
+  if (t === 'Page') return `page:${card.pageId || card.targetEntityId}`;
+  if (t === 'Panel') {
+    const pid = card.pageId ?? card.rawAssignment?.pageId;
+    return pid ? `page:${pid}` : 'panel';
+  }
   return 'chapter';
 };
 
@@ -213,7 +216,8 @@ export const buildScopeOptions = (cards: BoardCard[]): ScopeOption[] => {
     if (key === 'chapter') hasChapter = true;
     else if (key === 'panel') hasPanel = true;
     else if (!pages.has(key)) {
-      pages.set(key, { label: c.targetLabel, n: c.pageNumber ?? Number.MAX_SAFE_INTEGER });
+      const label = c.pageNumber != null ? `Trang ${c.pageNumber}` : c.targetLabel;
+      pages.set(key, { label, n: c.pageNumber ?? Number.MAX_SAFE_INTEGER });
     }
   });
   const pageOptions = [...pages.entries()]
@@ -371,7 +375,10 @@ export const groupCards = (cards: BoardCard[], groupBy: GroupBy): CardGroup[] =>
       if (key === 'chapter') push(key, 'Toàn chương', -1, card);
       else if (key === 'panel')
         push(key, 'Khung tranh (chưa xác định trang)', Number.MAX_SAFE_INTEGER, card);
-      else push(key, card.targetLabel, card.pageNumber ?? Number.MAX_SAFE_INTEGER - 1, card);
+      else {
+        const label = card.pageNumber != null ? `Trang ${card.pageNumber}` : card.targetLabel;
+        push(key, label, card.pageNumber ?? Number.MAX_SAFE_INTEGER - 1, card);
+      }
     } else {
       const key = card.assigneeUserId || 'unassigned';
       push(key, card.assigneeName || 'Chưa gán', normalizeText(card.assigneeName || '~'), card);
@@ -424,13 +431,17 @@ export const mapAssignmentsToCards = (
     const member = membersMap.get(a.assigneeUserId);
 
     let targetLabel = 'Toàn chương';
+    let pageId: string | null = a.pageId ?? null;
     let pageNumber: number | null = null;
     if (String(a.entityType) === 'Page') {
-      const page = pagesMap.get(a.targetEntityId);
+      pageId = pageId || a.targetEntityId;
+      const page = pagesMap.get(pageId);
       targetLabel = page ? `Trang ${page.pageNumber}` : 'Trang bản thảo';
       pageNumber = page?.pageNumber ?? null;
     } else if (String(a.entityType) === 'Panel') {
-      targetLabel = 'Khung tranh';
+      const page = pageId ? pagesMap.get(pageId) : undefined;
+      pageNumber = page?.pageNumber ?? null;
+      targetLabel = page ? `Trang ${page.pageNumber} · Khung tranh` : 'Khung tranh';
     }
 
     const memberName = member?.fullName || member?.email || 'Chưa gán';
@@ -450,6 +461,7 @@ export const mapAssignmentsToCards = (
       entityType: a.entityType,
       targetEntityId: a.targetEntityId,
       targetLabel,
+      pageId,
       pageNumber,
       pipelineStageId: a.pipelineStageId,
       stageName: stage?.name || a.stageName || 'Công đoạn',

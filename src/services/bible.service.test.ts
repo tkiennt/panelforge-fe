@@ -275,4 +275,62 @@ describe('bibleService', () => {
       );
     });
   });
+
+  describe('defineBibleEntry (POST /series/{seriesId}/bible/entries/{entryId}/define)', () => {
+    it('gọi POST .../define với payload chuẩn và trả về BibleEntryDto đã bỏ cờ stub', async () => {
+      const payload = {
+        name: 'Hắc Y Nhân',
+        description: 'Sát thủ mặc áo choàng đen',
+        subtitle: 'Sát thủ bí ẩn',
+      };
+      const mockPromoted = {
+        id: entryId,
+        seriesBibleId: 'bible-1',
+        category: 'Character',
+        code: 'CHR_HACYNHAN',
+        name: 'Hắc Y Nhân',
+        subtitle: 'Sát thủ bí ẩn',
+        description: 'Sát thủ mặc áo choàng đen',
+        detailsJson: '{}',
+        priority: 'Standard',
+        strictCheck: true,
+        isActive: true,
+        isStub: false,
+        createdAt: '2026-11-19T00:00:00Z',
+      };
+      post.mockResolvedValueOnce({ data: mockPromoted });
+
+      const result = await bibleService.defineBibleEntry(seriesId, entryId, payload);
+
+      expect(post).toHaveBeenCalledWith(
+        `/series/${seriesId}/bible/entries/${entryId}/define`,
+        payload,
+      );
+      expect(result.isStub).toBe(false);
+      expect(result.code).toBe('CHR_HACYNHAN');
+    });
+
+    it('giữ nguyên lỗi 409 CONFLICT khi mục đã được định nghĩa trước đó', async () => {
+      post.mockRejectedValueOnce({
+        response: {
+          status: 409,
+          data: {
+            code: 'CONFLICT',
+            error: 'Mục này đã được định nghĩa trước đó, không phải mục nháp (IsStub = false).',
+          },
+        },
+      });
+
+      await expect(
+        bibleService.defineBibleEntry(seriesId, entryId, {
+          name: 'Hắc Y Nhân',
+          description: 'Mô tả mới',
+        }),
+      ).rejects.toMatchObject({
+        status: 409,
+        code: 'CONFLICT',
+        message: 'Mục này đã được định nghĩa trước đó, không phải mục nháp (IsStub = false).',
+      });
+    });
+  });
 });

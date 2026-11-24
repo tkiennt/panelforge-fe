@@ -68,11 +68,13 @@ if (typeof HTMLElement !== 'undefined') {
   if (!HTMLElement.prototype.showPopover) {
     HTMLElement.prototype.showPopover = function () {
       this.classList.add(':popover-open');
+      this.style.display = 'block';
     };
   }
   if (!HTMLElement.prototype.hidePopover) {
     HTMLElement.prototype.hidePopover = function () {
       this.classList.remove(':popover-open');
+      this.style.display = '';
     };
   }
   if (!HTMLElement.prototype.togglePopover) {

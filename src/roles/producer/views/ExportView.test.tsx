@@ -109,6 +109,6 @@ describe('ExportView (UC-12)', () => {
     renderView();
 
     expect(await screen.findByTestId('export-no-chapter')).toBeInTheDocument();
-    expect(screen.queryByTestId('export-submit')).not.toBeInTheDocument();
+    expect(screen.getByTestId('export-submit')).toBeDisabled();
   });
 });

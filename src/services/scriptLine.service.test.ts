@@ -41,7 +41,17 @@ describe('scriptLineService', () => {
         chapterId: 'c1',
         sceneNumber: 1,
         heading: 'Scene 1',
-        scriptLines: [{ id: 'l1', lineOrder: 1, dialogueText: 'Hello' }],
+        scriptLines: [
+          {
+            id: 'l1',
+            lineOrder: 1,
+            dialogueText: 'Hello',
+            panelId: 'p1',
+            pageId: 'pg1',
+            pageNumber: 1,
+            panelNumber: 2,
+          },
+        ],
       };
       vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockDetail });
 

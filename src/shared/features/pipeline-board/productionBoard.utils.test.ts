@@ -8,6 +8,7 @@ import {
   formatChapterLabel,
   groupCards,
   isCompletedLate,
+  mapAssignmentsToCards,
   matchesDetailFilters,
   matchesQuickFilter,
   needsMyAction,
@@ -130,5 +131,61 @@ describe('productionBoard.utils', () => {
     expect(primaryActionFor(cards[2], { userId: 'me', workspaceRole: 'PRODUCER' }).label).toBe(
       'Xem chi tiết',
     );
+  });
+
+  it('thẻ việc cấp Panel có pageId được nhóm đúng theo trang thay vì nhóm chưa xác định trang', () => {
+    const mapped = mapAssignmentsToCards(
+      [
+        {
+          id: 'panel-with-page',
+          seriesId: 's',
+          chapterId: 'ch',
+          entityType: 'Panel',
+          targetEntityId: 'panel-1',
+          pageId: 'p2',
+          pipelineStageId: 'st-1',
+          assigneeUserId: 'u-1',
+          assignedRole: 'ARTIST',
+          brief: 'Vẽ khung 1',
+          priority: 'Medium',
+          status: 'Assigned',
+          createdAt: '2026-10-18T00:00:00Z',
+        },
+        {
+          id: 'panel-no-page',
+          seriesId: 's',
+          chapterId: 'ch',
+          entityType: 'Panel',
+          targetEntityId: 'panel-2',
+          pageId: null,
+          pipelineStageId: 'st-1',
+          assigneeUserId: 'u-1',
+          assignedRole: 'ARTIST',
+          brief: 'Vẽ khung 2',
+          priority: 'Medium',
+          status: 'Assigned',
+          createdAt: '2026-10-18T00:00:00Z',
+        },
+      ],
+      [],
+      [{ id: 'p2', chapterId: 'ch', pageNumber: 2 } as never],
+      [],
+    );
+
+    expect(mapped[0].pageId).toBe('p2');
+    expect(mapped[0].pageNumber).toBe(2);
+    expect(mapped[0].targetLabel).toBe('Trang 2 · Khung tranh');
+    expect(mapped[1].pageId).toBeNull();
+    expect(mapped[1].targetLabel).toBe('Khung tranh');
+
+    const groups = groupCards(mapped, 'page');
+    expect(groups.map((g) => ({ key: g.key, label: g.label, ids: g.cards.map((c) => c.id) }))).toEqual([
+      { key: 'page:p2', label: 'Trang 2', ids: ['panel-with-page'] },
+      { key: 'panel', label: 'Khung tranh (chưa xác định trang)', ids: ['panel-no-page'] },
+    ]);
+    expect(buildScopeOptions(mapped)).toEqual([
+      { key: 'page:p2', label: 'Trang 2' },
+      { key: 'panel', label: 'Khung tranh' },
+    ]);
   });
 });

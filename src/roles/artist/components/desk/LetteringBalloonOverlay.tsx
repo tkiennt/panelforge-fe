@@ -7,8 +7,10 @@ import {
   AlertTriangle,
   MessageCircle,
   MoreVertical,
+  ShieldAlert,
 } from 'lucide-react';
 import type { ElementSnapshotDto } from '@/services/element.service';
+import { findKeepOutCollision, type KeepOutZone } from '@/shared/lib/lettering/keepOutZones';
 import {
   resolveAppearance,
   appearanceFromStyle,
@@ -124,6 +126,7 @@ interface LetteringBalloonOverlayProps {
   selectedId: string | null;
   activeGestureId: string | null;
   readOnly?: boolean;
+  keepOutZones?: KeepOutZone[];
   onSelect: (elementId: string) => void;
   onScale: (elementId: string, factor: number) => void;
   onCopy: (element: ElementSnapshotDto) => void;
@@ -196,6 +199,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
   selectedId,
   activeGestureId,
   readOnly = false,
+  keepOutZones = [],
   onSelect,
   onScale,
   onCopy,
@@ -211,6 +215,10 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
     {elements.map((b, idx) => {
       const isSelected = selectedId === b.elementId;
       const isActive = activeGestureId === b.elementId;
+      const keepOutCollision =
+        keepOutZones.length > 0
+          ? findKeepOutCollision({ x: b.x, y: b.y, width: b.width, height: b.height }, keepOutZones)
+          : null;
 
       return (
         <div
@@ -225,7 +233,13 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
           onPointerUp={!readOnly ? onDragEnd : undefined}
           className={`absolute pointer-events-auto ${readOnly ? 'cursor-default' : 'cursor-move'} select-none touch-none ${
             isActive ? 'z-40 shadow-lg' : 'transition-shadow'
-          } ${isSelected ? 'ring-2 ring-orange-500 z-30' : 'z-20 hover:ring-1 hover:ring-orange-400'}`}
+          } ${
+            keepOutCollision
+              ? 'ring-2 ring-red-500 z-30'
+              : isSelected
+                ? 'ring-2 ring-orange-500 z-30'
+                : 'z-20 hover:ring-1 hover:ring-orange-400'
+          }`}
           style={{
             left: `${(b.x / pageWidth) * 100}%`,
             top: `${(b.y / pageHeight) * 100}%`,
@@ -264,6 +278,16 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
           {!isSelected && (
             <span className='absolute -top-2 -left-2 z-20 min-w-5 h-5 px-1 rounded-full bg-stone-900 text-white font-mono text-xs font-bold flex items-center justify-center'>
               #{b.readingOrder ?? idx + 1}
+            </span>
+          )}
+
+          {keepOutCollision && (
+            <span
+              data-testid={`keepout-collision-badge-${b.elementId}`}
+              className='absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-30 px-1.5 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold flex items-center gap-0.5 shadow-sm whitespace-nowrap pointer-events-none'
+              title={`Bóng thoại đang che ${keepOutCollision.label || 'vùng cấm'}`}
+            >
+              <ShieldAlert className='w-2.5 h-2.5' aria-hidden='true' /> Che mặt/tay
             </span>
           )}
 

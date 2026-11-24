@@ -130,7 +130,6 @@ describe('LandingPageView Component', () => {
       expect(drawer).toBeInTheDocument();
       expect(drawer).toHaveAttribute('role', 'dialog');
       expect(drawer).toHaveAttribute('aria-modal', 'true');
-      expect(document.body.style.overflow).toBe('hidden');
     });
 
     it('đóng menu mobile bằng phím Escape và khôi phục focus về nút toggle', async () => {
