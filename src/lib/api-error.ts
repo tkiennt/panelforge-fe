@@ -63,10 +63,5 @@ export function getApiErrorMessage(error: unknown, fallbackKey = 'common.errors.
     return fallbackTranslation;
   }
 
-  return translate(
-    'errors.unknown',
-    undefined,
-    undefined,
-    translate('shared.api.unknownError'),
-  );
+  return translate('errors.unknown');
 }
