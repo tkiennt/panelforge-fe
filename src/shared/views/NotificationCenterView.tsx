@@ -18,6 +18,7 @@ import { SystemRole, NotificationDto } from '@/types';
 import { notificationService } from '@/services/notification.service';
 import { formatRelativeTime } from '@/shared/features/collaboration/collaborationRules';
 import { resolveNotificationTargetPath } from '@/shared/features/collaboration/notificationBadge';
+import { useTranslation } from '@/lib/i18n';
 
 interface NotificationCenterViewProps {
   onNavigateToWorkspace?: (workspaceId: string, targetView?: string, role?: SystemRole) => void;
@@ -26,100 +27,100 @@ interface NotificationCenterViewProps {
 
 const TYPE_CONFIG: Record<
   string,
-  { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }
+  { labelKey: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }
 > = {
   AssignmentAssigned: {
-    label: 'Công việc mới',
+    labelKey: 'notifications.types.AssignmentAssigned',
     icon: Layers,
     color: 'text-blue-600',
     bg: 'bg-blue-50 border-blue-200',
   },
   AssignmentUnassigned: {
-    label: 'Thu hồi việc',
+    labelKey: 'notifications.types.AssignmentUnassigned',
     icon: AlertTriangle,
     color: 'text-stone-600',
     bg: 'bg-stone-50 border-stone-200',
   },
   AssignmentUpdated: {
-    label: 'Cập nhật việc',
+    labelKey: 'notifications.types.AssignmentUpdated',
     icon: RefreshCw,
     color: 'text-sky-600',
     bg: 'bg-sky-50 border-sky-200',
   },
   AssignmentSubmitted: {
-    label: 'Chờ xét duyệt',
+    labelKey: 'notifications.types.AssignmentSubmitted',
     icon: Clock,
     color: 'text-amber-600',
     bg: 'bg-amber-50 border-amber-200',
   },
   AssignmentApproved: {
-    label: 'Đã phê duyệt',
+    labelKey: 'notifications.types.AssignmentApproved',
     icon: CheckCircle2,
     color: 'text-emerald-600',
     bg: 'bg-emerald-50 border-emerald-200',
   },
   AssignmentChangesRequested: {
-    label: 'Yêu cầu sửa đổi',
+    labelKey: 'notifications.types.AssignmentChangesRequested',
     icon: AlertTriangle,
     color: 'text-rose-600',
     bg: 'bg-rose-50 border-rose-200',
   },
   AssignmentReady: {
-    label: 'Đến lượt bạn',
+    labelKey: 'workspace.notifications.assignmentReady',
     icon: CheckCircle2,
     color: 'text-emerald-600',
     bg: 'bg-emerald-50 border-emerald-200',
   },
   ChangeRequestResolved: {
-    label: 'Đã giải quyết yêu cầu',
+    labelKey: 'notifications.types.ChangeRequestResolved',
     icon: CheckCircle2,
     color: 'text-teal-600',
     bg: 'bg-teal-50 border-teal-200',
   },
   ChangeRequestReopened: {
-    label: 'Mở lại yêu cầu sửa',
+    labelKey: 'notifications.types.ChangeRequestReopened',
     icon: AlertTriangle,
     color: 'text-amber-600',
     bg: 'bg-amber-50 border-amber-200',
   },
   ChapterReadyForPublication: {
-    label: 'Sẵn sàng xuất bản',
+    labelKey: 'notifications.types.ChapterReadyForPublication',
     icon: Sparkles,
     color: 'text-purple-600',
     bg: 'bg-purple-50 border-purple-200',
   },
   ChapterReopened: {
-    label: 'Chương được mở lại',
+    labelKey: 'notifications.types.ChapterReopened',
     icon: AlertTriangle,
     color: 'text-amber-600',
     bg: 'bg-amber-50 border-amber-200',
   },
   ChapterPublished: {
-    label: 'Đã xuất bản thành công',
+    labelKey: 'notifications.types.ChapterPublished',
     icon: Sparkles,
     color: 'text-purple-600',
     bg: 'bg-purple-50 border-purple-200',
   },
   AssignmentDueSoon: {
-    label: 'Sắp đến hạn',
+    labelKey: 'notifications.types.AssignmentDueSoon',
     icon: Clock,
     color: 'text-amber-600',
     bg: 'bg-amber-50 border-amber-200',
   },
   AssignmentOverdue: {
-    label: 'Đã quá hạn',
+    labelKey: 'notifications.types.AssignmentOverdue',
     icon: AlertTriangle,
     color: 'text-rose-600',
     bg: 'bg-rose-50 border-rose-200',
   },
   ChangeRequestDueSoon: {
-    label: 'Hạn sửa sắp đến',
+    labelKey: 'notifications.types.ChangeRequestDueSoon',
     icon: Clock,
     color: 'text-amber-600',
     bg: 'bg-amber-50 border-amber-200',
   },
   ChangeRequestOverdue: {
-    label: 'Hạn sửa đã quá hạn',
+    labelKey: 'notifications.types.ChangeRequestOverdue',
     icon: AlertTriangle,
     color: 'text-rose-600',
     bg: 'bg-rose-50 border-rose-200',
@@ -130,6 +131,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
   onNavigateToWorkspace,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -228,17 +230,16 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             <div>
               <div className='flex items-center gap-2.5'>
                 <h1 className='text-2xl font-serif font-bold text-[#1C1917] tracking-tight'>
-                  Trung Tâm Thông Báo
+                  {t('notifications.title')}
                 </h1>
                 {unreadCount > 0 && (
                   <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#F97316]/15 text-[#C2410C] border border-[#F97316]/30'>
-                    {unreadCount} chưa đọc
+                    {t('notifications.unread', { count: unreadCount })}
                   </span>
                 )}
               </div>
               <p className='text-xs sm:text-sm text-[#57534E] mt-0.5'>
-                Theo dõi phân công việc, tiến độ chương và các yêu cầu chỉnh sửa từ đội ngũ sản
-                xuất.
+                {t('notifications.subtitle')}
               </p>
             </div>
           </div>
@@ -250,11 +251,11 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             type='button'
             onClick={() => void fetchNotifications()}
             disabled={loading}
-            title='Làm mới danh sách'
+            title={t('notifications.refreshTooltip')}
             className='px-3 py-2 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50'
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className='hidden sm:inline'>Làm mới</span>
+            <span className='hidden sm:inline'>{t('notifications.refresh')}</span>
           </button>
           <button
             type='button'
@@ -263,13 +264,13 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             className='px-3.5 py-2 rounded-lg bg-[#1C1917] hover:bg-black text-[#FCFBF8] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs'
           >
             <CheckCheck className='w-3.5 h-3.5' />
-            <span>Đánh dấu đã đọc tất cả</span>
+            <span>{t('notifications.markAllAsRead')}</span>
           </button>
           {onClose && (
             <button
               type='button'
               onClick={onClose}
-              aria-label='Đóng'
+              aria-label={t('common.actions.close')}
               className='p-2 rounded-lg hover:bg-[#EFECE6] border border-transparent hover:border-[#D8D2C5] text-[#57534E] hover:text-[#1C1917] transition-colors cursor-pointer'
             >
               <X className='w-5 h-5' />
@@ -289,7 +290,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
               : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
           }`}
         >
-          Tất cả thông báo ({totalCount})
+          {t('notifications.allCount', { count: totalCount })}
         </button>
         <button
           type='button'
@@ -300,7 +301,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
               : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
           }`}
         >
-          <span>Chưa đọc</span>
+          <span>{t('notifications.unreadTab')}</span>
           {unreadCount > 0 && (
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
@@ -318,9 +319,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
         {loading ? (
           <div className='py-20 text-center text-[#78716C] flex flex-col items-center justify-center gap-3'>
             <RefreshCw className='w-7 h-7 animate-spin text-[#F97316]' />
-            <span className='text-sm font-medium text-[#57534E]'>
-              Đang tải danh sách thông báo từ hệ thống...
-            </span>
+            <span className='text-sm font-medium text-[#57534E]'>{t('notifications.loading')}</span>
           </div>
         ) : displayedNotifications.length === 0 ? (
           <div className='py-20 text-center text-[#78716C] flex flex-col items-center justify-center gap-3'>
@@ -329,11 +328,10 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             </div>
             <div className='space-y-1'>
               <h3 className='text-base font-semibold text-[#1C1917]'>
-                {filter === 'unread' ? 'Không có thông báo chưa đọc nào' : 'Chưa có thông báo nào'}
+                {filter === 'unread' ? t('notifications.emptyUnread') : t('notifications.emptyAll')}
               </h3>
               <p className='text-xs text-[#78716C] max-w-sm mx-auto'>
-                Khi có tác vụ mới, biên tập viên phản hồi hoặc tiến độ chương cập nhật, thông báo sẽ
-                xuất hiện tại đây.
+                {t('notifications.emptyDesc')}
               </p>
             </div>
           </div>
@@ -342,7 +340,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             {displayedNotifications.map((n) => {
               const isUnread = !n.readAt;
               const config = TYPE_CONFIG[String(n.type)] || {
-                label: 'Thông báo',
+                labelKey: 'notifications.types.default',
                 icon: Bell,
                 color: 'text-[#78716C]',
                 bg: 'bg-[#F1EEE8] border-[#D8D2C5]',
@@ -373,7 +371,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
                         <span
                           className={`text-[11px] font-mono px-2 py-0.5 rounded font-semibold border ${config.bg} ${config.color}`}
                         >
-                          {config.label}
+                          {t(config.labelKey)}
                         </span>
                         <h2
                           className={`text-sm font-semibold truncate ${
@@ -395,7 +393,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
 
                     <div className='flex items-center justify-between text-xs'>
                       <div className='flex items-center text-[#F97316] group-hover:text-[#EA580C] font-semibold text-xs'>
-                        <span>Mở chi tiết công việc</span>
+                        <span>{t('notifications.viewTaskDetail')}</span>
                         <ArrowRight className='w-3.5 h-3.5 ml-1 transform group-hover:translate-x-1 transition-transform' />
                       </div>
 
@@ -403,11 +401,11 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
                         <button
                           type='button'
                           onClick={(e) => void handleMarkAsRead(e, n)}
-                          title='Đánh dấu là đã đọc'
+                          title={t('notifications.markReadTooltip')}
                           className='text-[11px] font-mono text-[#78716C] hover:text-[#1C1917] hover:underline flex items-center gap-1 p-1'
                         >
                           <CheckCheck className='w-3 h-3' />
-                          <span>Đã đọc</span>
+                          <span>{t('notifications.markRead')}</span>
                         </button>
                       )}
                     </div>

@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { WorkspaceDto, WorkspaceUsageDto } from '@/services/workspace.service';
+import { useTranslation } from '@/lib/i18n';
 import { formatBytes, formatGb, formatTokens } from './formatters';
 
 export interface StudioGovernanceBarProps {
@@ -26,6 +27,8 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
   onToggleResourcesExpanded,
   onOpenAuditModal,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className='pt-2 border-t border-stone-100'>
       {/* Collapsed Summary Bar */}
@@ -33,7 +36,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
         <div className='flex flex-wrap items-center gap-2.5 text-xs'>
           <div className='flex items-center gap-1.5 font-bold text-stone-800 shrink-0'>
             <HardDrive className='w-4 h-4 text-orange-500 shrink-0' />
-            <span>Tài nguyên Studio:</span>
+            <span>{t('workspace.governance.resourcesLabel')}</span>
           </div>
 
           {/* Storage Chip */}
@@ -59,12 +62,18 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                     ? 'bg-amber-50 text-amber-800 border-amber-300 font-bold'
                     : 'bg-white text-stone-700 border-stone-200/80'
                 }`}
-                title={isUnlimited ? 'Không giới hạn dung lượng' : `Đã dùng ${percent}% dung lượng`}
+                title={
+                  isUnlimited
+                    ? t('workspace.governance.unlimitedStorageTitle')
+                    : t('workspace.governance.usedPercentTitle', { percent })
+                }
               >
-                <span className='text-stone-500 font-sans'>Lưu trữ:</span>
+                <span className='text-stone-500 font-sans'>
+                  {t('workspace.governance.storageShort')}
+                </span>
                 <span>
                   {workspaceUsage
-                    ? `${formatBytes(used)} / ${isUnlimited ? 'Không giới hạn' : formatBytes(quota)}`
+                    ? `${formatBytes(used)} / ${isUnlimited ? t('workspace.governance.unlimited') : formatBytes(quota)}`
                     : `${formatGb(activeWorkspace.usedStorageBytes)} / ${formatGb(activeWorkspace.storageQuotaBytes)} GB`}
                 </span>
                 {isWarning && <AlertTriangle className='w-3 h-3 text-amber-600' />}
@@ -75,13 +84,15 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
           {/* AI Tokens Chip */}
           <div className='px-2.5 py-1 rounded-lg border bg-white border-stone-200/80 font-mono text-[11px] flex items-center gap-1.5 text-stone-700'>
             <Cpu className='w-3.5 h-3.5 text-blue-500 shrink-0' />
-            <span className='text-stone-500 font-sans'>Token AI:</span>
+            <span className='text-stone-500 font-sans'>
+              {t('workspace.governance.aiTokenShort')}
+            </span>
             <span>
               {workspaceUsage?.aiTokens
                 ? workspaceUsage.aiTokens.isUnlimited
-                  ? 'Không giới hạn'
+                  ? t('workspace.governance.unlimited')
                   : `${formatTokens(workspaceUsage.aiTokens.used)} / ${formatTokens(workspaceUsage.aiTokens.quota)}`
-                : 'Chưa cấp quota'}
+                : t('workspace.governance.noQuota')}
             </span>
           </div>
         </div>
@@ -91,7 +102,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
             type='button'
             onClick={onOpenAuditModal}
             className='px-2.5 py-1 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer'
-            title='Xem lịch sử audit studio (BR-18)'
+            title={t('workspace.governance.auditTitle')}
           >
             <History className='w-3.5 h-3.5 text-stone-400' />
             <span>Audit Trail</span>
@@ -103,7 +114,11 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
             aria-expanded={isResourcesExpanded}
             className='px-3 py-1 text-xs font-semibold text-stone-700 hover:text-stone-900 bg-white hover:bg-stone-100 border border-stone-200/80 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs'
           >
-            <span>{isResourcesExpanded ? 'Thu gọn' : 'Chi tiết tài nguyên'}</span>
+            <span>
+              {isResourcesExpanded
+                ? t('workspace.governance.collapse')
+                : t('workspace.governance.expandDetails')}
+            </span>
             <ChevronDown
               className={`w-3.5 h-3.5 transition-transform duration-200 ${
                 isResourcesExpanded ? 'rotate-180' : ''
@@ -121,13 +136,13 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
             <div className='flex items-center justify-between gap-2'>
               <div className='flex items-center gap-2 text-xs font-bold text-stone-800'>
                 <HardDrive className='w-4 h-4 text-orange-500 shrink-0' />
-                <span>Dung Lượng Lưu Trữ</span>
+                <span>{t('workspace.governance.storageHeading')}</span>
               </div>
               <div className='font-mono text-xs font-bold text-stone-900 shrink-0'>
                 {workspaceUsage
                   ? `${formatBytes(workspaceUsage.storage.used)} / ${
                       workspaceUsage.storage.isUnlimited
-                        ? 'Không giới hạn'
+                        ? t('workspace.governance.unlimited')
                         : formatBytes(workspaceUsage.storage.quota)
                     }`
                   : `${formatGb(activeWorkspace.usedStorageBytes)} / ${formatGb(
@@ -155,7 +170,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                   {isUnlimited ? (
                     <div className='flex items-center gap-1.5 text-xs text-blue-600 font-medium py-0.5'>
                       <CheckCircle2 className='w-3.5 h-3.5' />
-                      <span>Lưu trữ không giới hạn</span>
+                      <span>{t('workspace.governance.storageUnlimitedText')}</span>
                     </div>
                   ) : (
                     <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
@@ -172,9 +187,15 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                     </div>
                   )}
                   <div className='flex items-center justify-between text-[11px] leading-relaxed text-stone-600'>
-                    <span>{isUnlimited ? 'Gói vô hạn dung lượng' : `Đã dùng ${percent}%`}</span>
+                    <span>
+                      {isUnlimited
+                        ? t('workspace.governance.unlimitedPlan')
+                        : t('workspace.governance.usedPercent', { percent })}
+                    </span>
                     <span className='font-mono text-stone-500 text-[10px]'>
-                      {isUnlimited ? 'Không giới hạn' : 'Chặn khi chạm 100%'}
+                      {isUnlimited
+                        ? t('workspace.governance.unlimited')
+                        : t('workspace.governance.blockAt100')}
                     </span>
                   </div>
                 </div>
@@ -187,18 +208,18 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
             <div className='flex items-center justify-between gap-2'>
               <div className='flex items-center gap-2 text-xs font-bold text-stone-800'>
                 <Cpu className='w-4 h-4 text-blue-500 shrink-0' />
-                <span>Hạn Mức AI Tokens</span>
+                <span>{t('workspace.governance.aiTokenHeading')}</span>
               </div>
               {workspaceUsage?.aiTokens ? (
                 <div className='font-mono text-xs font-bold text-stone-900 shrink-0'>
                   {formatTokens(workspaceUsage.aiTokens.used)} /{' '}
                   {workspaceUsage.aiTokens.isUnlimited
-                    ? 'Không giới hạn'
+                    ? t('workspace.governance.unlimited')
                     : `${formatTokens(workspaceUsage.aiTokens.quota)}`}
                 </div>
               ) : (
                 <span className='whitespace-nowrap px-2 py-0.5 text-[10px] font-medium rounded-full text-amber-700 bg-amber-50 border border-amber-200 font-mono shrink-0'>
-                  Chưa cấp quota
+                  {t('workspace.governance.noQuota')}
                 </span>
               )}
             </div>
@@ -208,7 +229,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                 {workspaceUsage.aiTokens.isUnlimited ? (
                   <div className='flex items-center gap-1.5 text-xs text-blue-600 font-medium py-0.5'>
                     <CheckCircle2 className='w-3.5 h-3.5' />
-                    <span>Token AI không giới hạn</span>
+                    <span>{t('workspace.governance.aiTokenUnlimitedText')}</span>
                   </div>
                 ) : (
                   <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
@@ -227,21 +248,25 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                 <div className='flex items-center justify-between text-[11px] leading-relaxed text-stone-600'>
                   <span>
                     {workspaceUsage.aiTokens.isUnlimited
-                      ? 'Token theo tháng'
-                      : `Đã dùng ${workspaceUsage.aiTokens.percentUsed ?? 0}%`}
+                      ? t('workspace.governance.monthlyTokens')
+                      : t('workspace.governance.usedPercent', {
+                          percent: workspaceUsage.aiTokens.percentUsed ?? 0,
+                        })}
                   </span>
                   <span
                     className={`font-semibold text-[11px] ${
                       workspaceUsage.aiEnabled ? 'text-emerald-600' : 'text-stone-400'
                     }`}
                   >
-                    {workspaceUsage.aiEnabled ? '● AI Đang bật' : '○ AI Đã tắt'}
+                    {workspaceUsage.aiEnabled
+                      ? t('workspace.governance.aiOn')
+                      : t('workspace.governance.aiOff')}
                   </span>
                 </div>
               </div>
             ) : (
               <div className='pt-1 text-xs leading-relaxed text-stone-500 italic'>
-                Liên hệ Admin để cấu hình quota AI Studio
+                {t('workspace.governance.contactAdminQuota')}
               </div>
             )}
           </div>
@@ -251,18 +276,20 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
             <div className='flex items-center justify-between gap-2'>
               <div className='flex items-center gap-2 text-xs font-bold text-stone-800'>
                 <ImageIcon className='w-4 h-4 text-purple-500 shrink-0' />
-                <span>Hạn Mức Sinh Ảnh AI</span>
+                <span>{t('workspace.governance.aiImageHeading')}</span>
               </div>
               {workspaceUsage?.images ? (
                 <div className='font-mono text-xs font-bold text-stone-900 shrink-0'>
                   {workspaceUsage.images.used.toLocaleString()} /{' '}
                   {workspaceUsage.images.isUnlimited
-                    ? 'Không giới hạn'
-                    : `${workspaceUsage.images.quota.toLocaleString()} ảnh`}
+                    ? t('workspace.governance.unlimited')
+                    : t('workspace.governance.imageQuotaCount', {
+                        count: workspaceUsage.images.quota.toLocaleString(),
+                      })}
                 </div>
               ) : (
                 <span className='whitespace-nowrap px-2 py-0.5 text-[10px] font-medium rounded-full text-purple-700 bg-purple-50 border border-purple-200 font-mono shrink-0'>
-                  Chưa cấp quota
+                  {t('workspace.governance.noQuota')}
                 </span>
               )}
             </div>
@@ -272,7 +299,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                 {workspaceUsage.images.isUnlimited ? (
                   <div className='flex items-center gap-1.5 text-xs text-purple-600 font-medium py-0.5'>
                     <CheckCircle2 className='w-3.5 h-3.5' />
-                    <span>Sinh ảnh không giới hạn</span>
+                    <span>{t('workspace.governance.imageUnlimitedText')}</span>
                   </div>
                 ) : (
                   <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
@@ -293,22 +320,26 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                 <div className='flex items-center justify-between text-[11px] leading-relaxed text-stone-600'>
                   <span>
                     {workspaceUsage.images.isUnlimited
-                      ? 'Ảnh không giới hạn'
-                      : `Đã dùng ${workspaceUsage.images.percentUsed ?? 0}%`}
+                      ? t('workspace.governance.unlimitedImages')
+                      : t('workspace.governance.usedPercent', {
+                          percent: workspaceUsage.images.percentUsed ?? 0,
+                        })}
                   </span>
                   <span
                     className={`font-semibold text-[11px] ${
                       workspaceUsage.aiEnabled ? 'text-purple-600' : 'text-stone-400'
                     }`}
                   >
-                    {workspaceUsage.aiEnabled ? '● Đang kích hoạt' : '○ AI Đã tắt'}
+                    {workspaceUsage.aiEnabled
+                      ? t('workspace.governance.imageActive')
+                      : t('workspace.governance.aiOff')}
                   </span>
                 </div>
               </div>
             ) : (
               <div className='space-y-1 pt-1'>
                 <p className='text-xs leading-relaxed text-stone-500 italic'>
-                  Pipeline sinh ảnh AI chưa bật (đã dùng: 0).
+                  {t('workspace.governance.imageNotEnabled')}
                 </p>
               </div>
             )}

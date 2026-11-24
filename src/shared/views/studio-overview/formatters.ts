@@ -1,3 +1,5 @@
+import { getInitialLanguage, translate } from '@/lib/i18n';
+
 export const formatGb = (bytes?: number | null) => {
   if (!bytes) return '0.0';
   return (bytes / (1024 * 1024 * 1024)).toFixed(1);
@@ -13,24 +15,37 @@ export const formatBytes = (bytes?: number | null) => {
 
 export const formatTokens = (tokens?: number | null) => {
   if (!tokens) return '0';
-  return Number(tokens).toLocaleString('vi-VN');
+  const locale = getInitialLanguage() === 'en' ? 'en-US' : 'vi-VN';
+  return Number(tokens).toLocaleString(locale);
 };
 
 export const formatGenre = (genre: string | undefined | null) => {
   if (!genre || !genre.trim() || genre.trim().toUpperCase() === 'GENERAL') {
-    return 'Tổng hợp';
+    return translate('workspace.formatters.genreGeneral');
   }
   return genre.trim();
 };
 
 export const formatReadingDirection = (direction: number | string | undefined) => {
   if (direction === 'Vertical' || direction === 2 || direction === '2') {
-    return { label: 'Cuộn dọc', shortLabel: 'Dọc', type: 'vertical' as const };
+    return {
+      label: translate('workspace.formatters.directionVertical'),
+      shortLabel: translate('workspace.formatters.directionVerticalShort'),
+      type: 'vertical' as const,
+    };
   }
   if (direction === 'LeftToRight' || direction === 0 || direction === '0') {
-    return { label: 'Đọc trái → phải', shortLabel: 'LTR', type: 'ltr' as const };
+    return {
+      label: translate('workspace.formatters.directionLtr'),
+      shortLabel: 'LTR',
+      type: 'ltr' as const,
+    };
   }
-  return { label: 'Đọc phải → trái', shortLabel: 'RTL', type: 'rtl' as const };
+  return {
+    label: translate('workspace.formatters.directionRtl'),
+    shortLabel: 'RTL',
+    type: 'rtl' as const,
+  };
 };
 
 export const formatSeriesDate = (dateStr: string | null | undefined) => {
@@ -38,7 +53,8 @@ export const formatSeriesDate = (dateStr: string | null | undefined) => {
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('vi-VN', {
+    const locale = getInitialLanguage() === 'en' ? 'en-US' : 'vi-VN';
+    return d.toLocaleDateString(locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

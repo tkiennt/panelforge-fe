@@ -71,7 +71,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   recentWorkspaceId,
 }) => {
   const confirm = useConfirm();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -197,24 +197,20 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const handleOpenCreate = async () => {
     if (isAdmin) {
       await confirm({
-        title: t('workspace.adminNoticeTitle') || 'Giới hạn vai trò Quản trị viên',
-        description:
-          t('workspace.adminNotice') ||
-          'Tài khoản Administrator không thể tạo Studio Workspace. Liên hệ Quản trị viên để cấp quyền Producer.',
-        confirmText: t('common.understood') || 'Đã hiểu',
-        cancelText: t('common.close') || 'Đóng',
+        title: t('workspace.notices.adminTitle'),
+        description: t('workspace.adminNotice'),
+        confirmText: t('workspace.shelf.understood'),
+        cancelText: t('common.actions.close'),
         variant: 'warning',
       });
       return;
     }
     if (!currentUser?.canCreateStudio) {
       await confirm({
-        title: t('workspace.producerNoticeTitle') || 'Yêu cầu quyền Producer',
-        description:
-          t('workspace.producerNotice') ||
-          'Tài khoản chưa có quyền Producer để tạo Studio. Liên hệ Quản trị viên để nâng quyền.',
-        confirmText: t('common.understood') || 'Đã hiểu',
-        cancelText: t('common.close') || 'Đóng',
+        title: t('workspace.notices.producerTitle'),
+        description: t('workspace.producerNotice'),
+        confirmText: t('workspace.shelf.understood'),
+        cancelText: t('common.actions.close'),
         variant: 'warning',
       });
       return;
@@ -283,7 +279,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
     !showSearch || sort === 'created'
       ? searched
       : [...searched].sort((a, b) =>
-          sort === 'name' ? a.name.localeCompare(b.name, 'vi') : activityTime(b) - activityTime(a),
+          sort === 'name'
+            ? a.name.localeCompare(b.name, lang === 'en' ? 'en' : 'vi')
+            : activityTime(b) - activityTime(a),
         );
 
   const createButton = (
@@ -382,8 +380,8 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
           {isAdmin && (
             <LucianInlineAlert
               type='info'
-              title='Tài khoản Quản trị viên hệ thống'
-              description='Tài khoản Administrator không trực tiếp sở hữu hoặc tạo Studio Workspace theo quy tắc BR-07 nhằm đảm bảo tính bảo mật và phân lập dữ liệu.'
+              title={t('workspace.notices.adminBadge')}
+              description={t('workspace.shelf.adminRestrictionDesc')}
               dismissible={true}
             />
           )}
@@ -485,7 +483,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                     className='bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs shrink-0 self-start md:self-auto'
                   >
                     <Plus className='w-4 h-4' />
-                    <span>+ Tạo Studio mới</span>
+                    <span>{t('workspace.shelf.createNewBtn')}</span>
                   </button>
                 )}
               </div>
@@ -548,7 +546,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                       aria-label={t('workspace.shelf.filter.label')}
                     >
                       <span className='text-xs font-semibold text-stone-500 mr-1'>
-                        Lọc theo vai trò:
+                        {t('workspace.shelf.filterByRole')}
                       </span>
                       <button
                         type='button'
@@ -658,7 +656,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                           {ws.coverUrl ? (
                             <AuthenticatedImage
                               src={ws.coverUrl}
-                              alt={`Ảnh bìa Studio ${ws.name}`}
+                              alt={t('workspace.notices.coverAlt', { name: ws.name })}
                               className='w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.02]'
                               loading='lazy'
                               fallback={
@@ -716,7 +714,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                               <span className='text-[11px] text-stone-400 block truncate'>
                                 {ws.ownerName
                                   ? `${t('workspace.owner')}: ${ws.ownerName}`
-                                  : 'Tổ chức Studio'}
+                                  : t('workspace.shelf.studioOrg')}
                               </span>
                             </div>
                           </div>
@@ -744,7 +742,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                         {/* Operational Stats Box (Stitch Spec) */}
                         <div className='grid grid-cols-2 gap-2 bg-[#FAF9F5] p-2.5 rounded-xl border border-stone-200/80 text-xs'>
                           <div>
-                            <span className='text-[11px] text-stone-400 block'>Bộ truyện</span>
+                            <span className='text-[11px] text-stone-400 block'>
+                              {t('workspace.shelf.seriesStatLabel')}
+                            </span>
                             <span className='font-bold text-stone-900 text-xs'>
                               {ws.seriesCount !== undefined && ws.seriesCount > 0
                                 ? t('workspace.shelf.series', { count: ws.seriesCount })
@@ -752,7 +752,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                             </span>
                           </div>
                           <div>
-                            <span className='text-[11px] text-stone-400 block'>Quy mô</span>
+                            <span className='text-[11px] text-stone-400 block'>
+                              {t('workspace.shelf.scaleStatLabel')}
+                            </span>
                             <span className='font-bold text-stone-900 text-xs'>
                               {t('workspace.shelf.members', { count: ws.memberCount ?? 1 })}
                             </span>
@@ -797,7 +799,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                         {ws.coverUrl && ws.seriesPreviews && ws.seriesPreviews.length > 0 && (
                           <div className='flex flex-col gap-1'>
                             <span className='text-[11px] font-semibold text-stone-500'>
-                              Bộ truyện tiêu biểu:
+                              {t('workspace.shelf.featuredSeries')}
                             </span>
                             <div className='flex items-center gap-1.5 overflow-hidden flex-wrap'>
                               {ws.seriesPreviews.map((s) => (
@@ -890,7 +892,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                           className='bg-orange-600 hover:bg-orange-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer shadow-xs whitespace-nowrap'
                         >
                           <span>
-                            {isEditor ? t('workspace.shelf.enterReview') : 'Vào Studio Hub'}
+                            {isEditor
+                              ? t('workspace.shelf.enterReview')
+                              : t('workspace.shelf.enterHub')}
                           </span>
                           <ArrowRight className='w-3.5 h-3.5' aria-hidden='true' />
                         </button>
@@ -909,17 +913,17 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   </div>
                   <div>
                     <h3 className='font-bold text-stone-900 text-base group-hover:text-orange-600 transition-colors'>
-                      + Tạo Không Gian Studio Mới
+                      {t('workspace.shelf.createCardTitle')}
                     </h3>
                     <p className='text-xs text-stone-500 max-w-xs mt-1 leading-relaxed'>
-                      Khởi tạo Studio riêng biệt với kho lưu trữ, ê-kíp và danh mục xuất bản độc lập
+                      {t('workspace.shelf.createCardDesc')}
                     </p>
                   </div>
                   <button
                     type='button'
                     className='mt-2 px-4 py-2 rounded-xl bg-white border border-stone-300 text-stone-700 font-semibold text-xs group-hover:bg-orange-600 group-hover:border-orange-600 group-hover:text-white transition-colors cursor-pointer shadow-2xs'
                   >
-                    Bắt đầu thiết lập
+                    {t('workspace.shelf.createCardCta')}
                   </button>
                 </div>
               </div>

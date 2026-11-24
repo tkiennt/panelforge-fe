@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { SeriesDto } from '@/services/series.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
+import { useTranslation } from '@/lib/i18n';
 import { formatGenre, formatReadingDirection } from './formatters';
 
 export interface SeriesCardItemProps {
@@ -47,8 +48,10 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
   onClearCover,
   onEditSeries,
   onDeleteSeries,
-  openLabel = 'Mở bộ truyện',
+  openLabel,
 }) => {
+  const { t } = useTranslation();
+  const resolvedOpenLabel = openLabel ?? t('workspace.library.open.default');
   const displayCoverUrl = s.coverUrl || s.avatarUrl;
   const initial = (
     <span className='font-serif text-5xl font-bold text-stone-400 select-none'>
@@ -88,8 +91,8 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
           <button
             type='button'
             onClick={() => onOpenSeries(s.id)}
-            aria-label={`${openLabel}: ${s.title}`}
-            title={`${openLabel}: ${s.title}`}
+            aria-label={`${resolvedOpenLabel}: ${s.title}`}
+            title={`${resolvedOpenLabel}: ${s.title}`}
             className='focus-ring block w-full h-full relative cursor-pointer text-left'
           >
             {displayCoverUrl ? (
@@ -117,7 +120,8 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                 {s.title}
               </h3>
               <span className='text-[11px] text-stone-200 line-clamp-1 mt-0.5'>
-                {s.synopsis || 'Dự án sản xuất truyện tranh'} • Mã: {seriesCode}
+                {s.synopsis || t('workspace.seriesCard.defaultSynopsis')} •{' '}
+                {t('workspace.seriesCard.codePrefix')} {seriesCode}
               </span>
             </div>
           </button>
@@ -137,7 +141,11 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
             <span
               className={`px-2 py-0.5 rounded-md text-[11px] font-semibold shadow-xs flex items-center gap-1 ${statusBadgeColor}`}
             >
-              {isCompleted ? 'Hoàn thành' : isPreProd ? 'Tiền kỳ' : 'Đang sản xuất'}
+              {isCompleted
+                ? t('workspace.seriesCard.statusCompleted')
+                : isPreProd
+                  ? t('workspace.seriesCard.statusPreProd')
+                  : t('workspace.seriesCard.statusInProd')}
             </span>
 
             {/* Accessible 3-dots Menu for Producer / Admin */}
@@ -147,7 +155,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                   type='button'
                   onClick={onToggleMenu}
                   className='p-1.5 rounded-lg bg-white/90 hover:bg-white text-stone-700 hover:text-stone-900 shadow-xs transition-colors cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center'
-                  aria-label={`Tùy chọn cho bộ truyện ${s.title}`}
+                  aria-label={t('workspace.seriesCard.optionsForSeries', { title: s.title })}
                   aria-haspopup='menu'
                   aria-expanded={isOpenMenu}
                 >
@@ -157,7 +165,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                 {isOpenMenu && (
                   <div
                     role='menu'
-                    aria-label={`Tùy chọn ${s.title}`}
+                    aria-label={t('workspace.seriesCard.optionsMenuAria', { title: s.title })}
                     className='absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-stone-200 z-30 py-1 overflow-hidden animate-in fade-in-50 zoom-in-95'
                   >
                     <button
@@ -170,7 +178,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                       className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                     >
                       <Sliders className='w-3.5 h-3.5 text-blue-500' />
-                      <span>Cấu hình Pipeline</span>
+                      <span>{t('workspace.seriesCard.menuPipeline')}</span>
                     </button>
                     <button
                       type='button'
@@ -195,7 +203,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                         className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                       >
                         <Users className='w-3.5 h-3.5 text-emerald-600' />
-                        <span>Đội ngũ Series</span>
+                        <span>{t('workspace.seriesCard.menuMembers')}</span>
                       </button>
                     )}
                     <div className='border-t border-stone-100 my-1' />
@@ -209,7 +217,11 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                       className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                     >
                       <ImagePlus className='w-3.5 h-3.5 text-orange-500' />
-                      <span>{s.coverUrl ? 'Đổi ảnh bìa' : 'Thêm ảnh bìa'}</span>
+                      <span>
+                        {s.coverUrl
+                          ? t('workspace.seriesCard.menuChangeCover')
+                          : t('workspace.seriesCard.menuAddCover')}
+                      </span>
                     </button>
                     {s.coverUrl && (
                       <button
@@ -222,7 +234,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                         className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                       >
                         <ImageOff className='w-3.5 h-3.5 text-stone-500' />
-                        <span>Xoá ảnh bìa</span>
+                        <span>{t('workspace.seriesCard.menuClearCover')}</span>
                       </button>
                     )}
                     <button
@@ -235,7 +247,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                       className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                     >
                       <Edit2 className='w-3.5 h-3.5 text-stone-600' />
-                      <span>Chỉnh sửa thông tin</span>
+                      <span>{t('workspace.seriesCard.menuEdit')}</span>
                     </button>
                     <button
                       type='button'
@@ -247,7 +259,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                       className='w-full text-left px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer'
                     >
                       <Trash2 className='w-3.5 h-3.5' />
-                      <span>Xóa bộ truyện</span>
+                      <span>{t('workspace.seriesCard.menuDelete')}</span>
                     </button>
                   </div>
                 )}
@@ -263,10 +275,12 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
             <div className='flex items-center justify-between text-xs'>
               <span className='font-semibold text-stone-800 flex items-center gap-1'>
                 <PenTool className='w-3.5 h-3.5 text-orange-600' />
-                Tiến độ: {pct}%
+                {t('workspace.seriesCard.progress', { pct })}
               </span>
               <span className='text-stone-500'>
-                {s.chaptersCount ? `${s.chaptersCount} Chương` : 'Bản thảo Name'}
+                {s.chaptersCount
+                  ? t('workspace.seriesCard.chaptersCountUpper', { count: s.chaptersCount })
+                  : t('workspace.seriesCard.nameDraft')}
               </span>
             </div>
             <div className='w-full bg-stone-100 h-2 rounded-full overflow-hidden'>
@@ -278,10 +292,10 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
             <div className='flex items-center justify-between text-[11px] text-stone-500'>
               <span className='text-stone-700 font-medium truncate'>
                 {isCompleted
-                  ? 'Xuất bản ấn phẩm giấy & chuyển ngữ'
+                  ? t('workspace.seriesCard.statusCompletedDetail')
                   : isPreProd
-                    ? 'Chương 1 đang viết kịch bản & vẽ tạo hình'
-                    : `Chương ${s.chaptersCount ?? 1} đang sản xuất`}
+                    ? t('workspace.seriesCard.statusPreProdDetail')
+                    : t('workspace.seriesCard.statusInProdDetail', { count: s.chaptersCount ?? 1 })}
               </span>
             </div>
           </div>
@@ -290,18 +304,23 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
           <div className='flex items-center justify-between bg-[#FAF9F5] px-3 py-2 rounded-lg border border-stone-200 text-xs'>
             <div className='flex items-center gap-1.5 text-stone-700 font-medium truncate'>
               <BookOpen className='w-3.5 h-3.5 text-sky-600 shrink-0' />
-              <span className='truncate'>{s.format || 'Tiêu chuẩn'} • {formatGenre(s.genre)}</span>
+              <span className='truncate'>
+                {s.format || t('workspace.seriesCard.defaultFormat')} • {formatGenre(s.genre)}
+              </span>
             </div>
             <span className='text-[11px] text-stone-600 font-medium shrink-0'>
-              {s.chaptersCount} chương · {formatReadingDirection(s.readingDirection).label}
+              {t('workspace.seriesCard.chaptersCountLower', { count: s.chaptersCount ?? 0 })} ·{' '}
+              {formatReadingDirection(s.readingDirection).label}
             </span>
           </div>
 
           {/* Status Details Row */}
           <div className='flex items-center justify-between text-xs text-stone-600'>
-            <span>Tiến độ chương:</span>
+            <span>{t('workspace.seriesCard.chapterProgressLabel')}</span>
             <span className='font-semibold text-stone-900'>
-              {s.chaptersCount ? `${s.chaptersCount} Chương đã tạo` : 'Khởi tạo bản thảo'}
+              {s.chaptersCount
+                ? t('workspace.seriesCard.chaptersCreated', { count: s.chaptersCount })
+                : t('workspace.seriesCard.initDraft')}
             </span>
           </div>
         </div>
@@ -312,11 +331,11 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
         <button
           type='button'
           onClick={() => onOpenSeries(s.id)}
-          aria-label={`Không gian làm việc: ${s.title}`}
+          aria-label={t('workspace.seriesCard.workspaceAria', { title: s.title })}
           className='w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer'
           data-testid={`open-series-btn-${s.id}`}
         >
-          <span>Mở không gian truyện</span>
+          <span>{t('workspace.seriesCard.openWorkspace')}</span>
           <ArrowRight className='w-4 h-4' />
         </button>
       </div>

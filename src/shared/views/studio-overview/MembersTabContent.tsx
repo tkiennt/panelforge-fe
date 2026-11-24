@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Mail, Key, Edit3, Trash2, ShieldCheck } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 const ROLE_BADGE_STYLE: Record<string, string> = {
   PRODUCER: 'bg-purple-50 text-purple-700 border-purple-200',
@@ -39,20 +40,25 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
   onDeleteMember,
   onOpenInviteModal,
 }) => {
+  const { t } = useTranslation();
+
   return (
-    <div role='tabpanel' id='tabpanel-members' aria-labelledby='tab-members' className='space-y-5 animate-in fade-in duration-200'>
+    <div
+      role='tabpanel'
+      id='tabpanel-members'
+      aria-labelledby='tab-members'
+      className='space-y-5 animate-in fade-in duration-200'
+    >
       {/* Stitch Header Row with Heading & Invite CTA */}
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
         <div>
           <h2 className='text-xl font-bold text-stone-900 flex items-center gap-2'>
-            <span>Danh sách Nhân sự Studio</span>
+            <span>{t('workspace.membersTab.title')}</span>
             <span className='text-stone-500 font-normal text-base'>
-              ({filteredMembers.length} Thành viên)
+              {t('workspace.membersTab.memberCount', { count: filteredMembers.length })}
             </span>
           </h2>
-          <p className='text-xs text-stone-500 mt-0.5'>
-            Phân quyền vai trò sáng tác, phụ trách bảng mẫu nhân vật và giám sát biên tập
-          </p>
+          <p className='text-xs text-stone-500 mt-0.5'>{t('workspace.membersTab.subtitle')}</p>
         </div>
 
         {canCreateStudio && onOpenInviteModal && (
@@ -62,7 +68,7 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
             className='inline-flex items-center gap-1.5 bg-orange-600 text-white px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-orange-700 transition-colors shadow-xs cursor-pointer shrink-0'
           >
             <ShieldCheck className='w-4 h-4' />
-            <span>+ Mời thành viên</span>
+            <span>{t('workspace.membersTab.inviteBtn')}</span>
           </button>
         )}
       </div>
@@ -71,11 +77,23 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
       <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
         <div className='flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 custom-scrollbar'>
           {[
-            { key: 'ALL', label: 'Tất cả thành viên', count: tabCounts.ALL },
-            { key: 'LEAD', label: 'Giám đốc Sản xuất', count: tabCounts.LEAD },
-            { key: 'ARTIST', label: 'Họa sĩ', count: tabCounts.ARTIST },
-            { key: 'WRITER', label: 'Biên kịch', count: tabCounts.WRITER },
-            { key: 'EDITOR', label: 'Biên tập viên', count: tabCounts.EDITOR },
+            { key: 'ALL', label: t('workspace.membersTab.filterAll'), count: tabCounts.ALL },
+            { key: 'LEAD', label: t('workspace.membersTab.filterLead'), count: tabCounts.LEAD },
+            {
+              key: 'ARTIST',
+              label: t('workspace.membersTab.filterArtist'),
+              count: tabCounts.ARTIST,
+            },
+            {
+              key: 'WRITER',
+              label: t('workspace.membersTab.filterWriter'),
+              count: tabCounts.WRITER,
+            },
+            {
+              key: 'EDITOR',
+              label: t('workspace.membersTab.filterEditor'),
+              count: tabCounts.EDITOR,
+            },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -105,7 +123,7 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
           <Search className='w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2' />
           <input
             type='text'
-            placeholder='Tìm kiếm thành viên theo tên, vai trò...'
+            placeholder={t('workspace.membersTab.searchPlaceholder')}
             value={memberSearchQuery}
             onChange={(e) => onMemberSearchQueryChange(e.target.value)}
             className='pl-9 pr-3 py-2 bg-white rounded-xl border border-stone-200 text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-orange-600 w-full shadow-2xs transition-all'
@@ -119,18 +137,18 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
           <table className='w-full text-left border-collapse text-xs'>
             <thead>
               <tr className='border-b border-stone-200 bg-[#FAF9F5] text-stone-500 font-semibold uppercase tracking-wider text-[11px]'>
-                <th className='py-3.5 px-4'>Thành viên</th>
-                <th className='py-3.5 px-4'>Vai trò cốt lõi</th>
-                <th className='py-3.5 px-4'>Bộ truyện đang tham gia</th>
-                <th className='py-3.5 px-4'>Trạng thái công việc</th>
-                <th className='py-3.5 px-4 text-right'>Tác vụ</th>
+                <th className='py-3.5 px-4'>{t('workspace.membersTab.colMember')}</th>
+                <th className='py-3.5 px-4'>{t('workspace.membersTab.colCoreRole')}</th>
+                <th className='py-3.5 px-4'>{t('workspace.membersTab.colSeries')}</th>
+                <th className='py-3.5 px-4'>{t('workspace.membersTab.colStatus')}</th>
+                <th className='py-3.5 px-4 text-right'>{t('workspace.membersTab.colActions')}</th>
               </tr>
             </thead>
             <tbody className='divide-y divide-stone-100 text-stone-800'>
               {filteredMembers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className='py-12 text-center text-xs text-stone-500'>
-                    Không có thành viên nào phù hợp với bộ lọc hiện tại.
+                    {t('workspace.membersTab.emptyFiltered')}
                   </td>
                 </tr>
               ) : (
@@ -152,14 +170,14 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                           : 'bg-stone-100 text-stone-700';
 
                   const roleDisplayName = isProducer
-                    ? 'Producer / Chủ nhiệm'
+                    ? t('workspace.membersTab.roleProducer')
                     : isWriter
-                      ? 'Biên kịch chính (Writer)'
+                      ? t('workspace.membersTab.roleWriter')
                       : isArtist
-                        ? 'Họa sĩ chính (Lead Artist)'
+                        ? t('workspace.membersTab.roleArtist')
                         : isEditor
-                          ? 'Biên tập viên (Editor)'
-                          : member.role || 'Thành viên';
+                          ? t('workspace.membersTab.roleEditor')
+                          : member.role || t('workspace.membersTab.roleDefault');
 
                   const avatarBg = isProducer
                     ? '#FFEDD5'
@@ -192,12 +210,12 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                               <span>{member.name}</span>
                               {member.isOwner && (
                                 <span className='text-[9px] px-1.5 py-0.2 rounded bg-orange-100 text-orange-700 font-bold'>
-                                  Chủ Studio
+                                  {t('workspace.membersTab.ownerBadge')}
                                 </span>
                               )}
                               {member.isYou && (
                                 <span className='text-[9px] px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 font-bold'>
-                                  Bạn
+                                  {t('workspace.membersTab.youBadge')}
                                 </span>
                               )}
                             </div>
@@ -209,14 +227,18 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                       </td>
 
                       <td className='py-3 px-4'>
-                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${roleBadgeClass}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${roleBadgeClass}`}
+                        >
                           {roleDisplayName}
                         </span>
                       </td>
 
                       <td className='py-3 px-4'>
                         <span className='font-medium text-stone-700'>
-                          {isProducer ? 'Tất cả Series (Toàn quyền)' : 'Theo phân bổ dự án'}
+                          {isProducer
+                            ? t('workspace.membersTab.allSeriesScope')
+                            : t('workspace.membersTab.assignedSeriesScope')}
                         </span>
                       </td>
 
@@ -224,12 +246,12 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                         {member.isEmailConfirmed === false ? (
                           <span className='inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[11px] font-semibold'>
                             <span className='w-1.5 h-1.5 rounded-full bg-amber-500' />
-                            Chờ kích hoạt
+                            {t('workspace.membersTab.statusPending')}
                           </span>
                         ) : (
                           <span className='inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold'>
                             <span className='w-1.5 h-1.5 rounded-full bg-emerald-600' />
-                            Đang hoạt động
+                            {t('workspace.membersTab.statusActive')}
                           </span>
                         )}
                       </td>
@@ -243,7 +265,7 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                                 onClick={() => onResendInvitation(member.id)}
                                 className='text-xs font-semibold text-stone-600 hover:text-stone-900 cursor-pointer'
                               >
-                                Gửi lại
+                                {t('workspace.membersTab.resend')}
                               </button>
                             )}
                             <button
@@ -251,15 +273,17 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                               onClick={() => onOpenEditAccess(member)}
                               className='text-xs font-semibold text-orange-600 hover:text-orange-700 cursor-pointer'
                             >
-                              Điều chỉnh
+                              {t('workspace.membersTab.adjust')}
                             </button>
                             {!member.isOwner && (
                               <button
                                 type='button'
-                                onClick={() => onDeleteMember({ id: member.id, email: member.email })}
+                                onClick={() =>
+                                  onDeleteMember({ id: member.id, email: member.email })
+                                }
                                 className='text-xs font-semibold text-red-600 hover:text-red-700 cursor-pointer'
                               >
-                                Xóa
+                                {t('common.actions.delete')}
                               </button>
                             )}
                           </div>

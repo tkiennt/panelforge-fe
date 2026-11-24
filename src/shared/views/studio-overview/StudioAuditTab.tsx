@@ -1,5 +1,15 @@
 import React from 'react';
-import { History, RefreshCw, Search, ShieldCheck, Download, CheckCircle2, Lock, FileSpreadsheet, User } from 'lucide-react';
+import {
+  History,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Download,
+  CheckCircle2,
+  Lock,
+  FileSpreadsheet,
+  User,
+} from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
 export interface StudioAuditTabProps {
@@ -19,7 +29,7 @@ export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
   onRefresh,
   workspaceName,
 }) => {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
 
   const filteredLogs = React.useMemo(() => {
     if (!filterEntity.trim()) return logs;
@@ -35,11 +45,17 @@ export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
 
   const handleExportCsv = () => {
     if (filteredLogs.length === 0) return;
-    const headers = ['Thời gian', 'Nhân sự', 'Hành động', 'Đối tượng', 'Chi tiết'];
+    const headers = [
+      t('workspace.auditTab.csvTime'),
+      t('workspace.auditTab.csvActor'),
+      t('workspace.auditTab.csvAction'),
+      t('workspace.auditTab.csvTarget'),
+      t('workspace.auditTab.csvDetails'),
+    ];
     const rows = filteredLogs.map((log) => [
       `"${log.timestamp || log.createdAt || log.createdUtc || ''}"`,
-      `"${log.actorName || log.userName || log.userEmail || 'Hệ thống'}"`,
-      `"${log.action || log.operation || 'Cập nhật'}"`,
+      `"${log.actorName || log.userName || log.userEmail || t('workspace.auditTab.systemActor')}"`,
+      `"${log.action || log.operation || t('workspace.auditTab.defaultAction')}"`,
       `"${log.entityName || log.targetType || ''}"`,
       `"${(log.description || log.details || '').replace(/"/g, '""')}"`,
     ]);
@@ -60,13 +76,9 @@ export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
         <div>
           <div className='flex items-center gap-2'>
             <History className='w-4 h-4 text-orange-600' />
-            <h2 className='text-xl font-bold text-stone-900'>
-              Nhật ký hoạt động kiểm soát biên tập
-            </h2>
+            <h2 className='text-xl font-bold text-stone-900'>{t('workspace.auditTab.title')}</h2>
           </div>
-          <p className='text-xs text-stone-500 mt-0.5'>
-            Theo dõi lịch sử thay đổi phiên bản trang vẽ, duyệt kịch bản và phân quyền thành viên
-          </p>
+          <p className='text-xs text-stone-500 mt-0.5'>{t('workspace.auditTab.subtitle')}</p>
         </div>
 
         {/* Filter Controls & Export */}
@@ -77,7 +89,7 @@ export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
               type='text'
               value={filterEntity}
               onChange={(e) => onFilterChange(e.target.value)}
-              placeholder='Lọc thao tác, nhân sự, dự án...'
+              placeholder={t('workspace.auditTab.filterPlaceholder')}
               className='w-full pl-9 pr-3 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-orange-500 transition-colors'
             />
           </div>
@@ -86,10 +98,10 @@ export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
             type='button'
             onClick={handleExportCsv}
             className='inline-flex items-center gap-1.5 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 px-3 py-1.5 rounded-lg text-xs shadow-2xs font-medium cursor-pointer transition-colors whitespace-nowrap'
-            title='Xuất báo cáo tập tin CSV'
+            title={t('workspace.auditTab.exportCsvTitle')}
           >
             <Download className='w-3.5 h-3.5 text-orange-600' />
-            <span>.CSV Xuất dữ liệu</span>
+            <span>{t('workspace.auditTab.exportCsvBtn')}</span>
           </button>
 
           <button
@@ -97,10 +109,10 @@ export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
             onClick={onRefresh}
             disabled={loading}
             className='focus-ring min-h-9 px-3 text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 border border-stone-200/80 rounded-xl inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
-            title='Làm mới nhật ký'
+            title={t('workspace.auditTab.refreshTitle')}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-orange-600' : ''}`} />
-            <span className='hidden sm:inline'>Làm mới</span>
+            <span className='hidden sm:inline'>{t('common.actions.refresh')}</span>
           </button>
         </div>
       </div>
@@ -110,16 +122,18 @@ export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
         {loading && logs.length === 0 ? (
           <div className='py-12 flex flex-col items-center justify-center gap-2 text-stone-500 text-xs'>
             <RefreshCw className='w-5 h-5 animate-spin text-orange-600' />
-            <span>Đang tải dữ liệu nhật ký kiểm soát...</span>
+            <span>{t('workspace.auditTab.loading')}</span>
           </div>
         ) : filteredLogs.length === 0 ? (
           <div className='py-12 px-4 text-center space-y-2'>
             <ShieldCheck className='w-8 h-8 text-stone-400 mx-auto' />
-            <h4 className='text-sm font-bold text-stone-800'>Chưa có bản ghi nhật ký</h4>
+            <h4 className='text-sm font-bold text-stone-800'>
+              {t('workspace.auditTab.emptyTitle')}
+            </h4>
             <p className='text-xs text-stone-500 max-w-sm mx-auto'>
               {filterEntity
-                ? 'Không tìm thấy sự kiện nào khớp với từ khóa tìm kiếm.'
-                : 'Mọi hoạt động tạo dự án, phân công và kiểm soát biên tập sẽ được ghi nhận tại đây.'}
+                ? t('workspace.auditTab.emptySearchDesc')
+                : t('workspace.auditTab.emptyDefaultDesc')}
             </p>
           </div>
         ) : (
@@ -127,19 +141,26 @@ export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
             <table className='w-full text-left text-xs'>
               <thead className='bg-[#FAF9F5] border-b border-stone-200 text-stone-600 font-semibold uppercase tracking-wider text-[11px]'>
                 <tr>
-                  <th className='py-3 px-4'>Thời gian</th>
-                  <th className='py-3 px-4'>Nhân sự thực hiện</th>
-                  <th className='py-3 px-4'>Hành động</th>
-                  <th className='py-3 px-4'>Đối tượng</th>
-                  <th className='py-3 px-4'>Chi tiết</th>
+                  <th className='py-3 px-4'>{t('workspace.auditTab.colTime')}</th>
+                  <th className='py-3 px-4'>{t('workspace.auditTab.colActor')}</th>
+                  <th className='py-3 px-4'>{t('workspace.auditTab.colAction')}</th>
+                  <th className='py-3 px-4'>{t('workspace.auditTab.colTarget')}</th>
+                  <th className='py-3 px-4'>{t('workspace.auditTab.colDetails')}</th>
                 </tr>
               </thead>
               <tbody className='divide-y divide-stone-100 text-stone-800'>
                 {filteredLogs.map((log, idx) => {
                   const time = log.timestamp || log.createdAt || log.createdUtc;
-                  const formattedTime = time ? new Date(time).toLocaleString('vi-VN') : '—';
-                  const actor = log.actorName || log.userName || log.userEmail || 'Hệ thống';
-                  const action = log.action || log.operation || 'Cập nhật';
+                  const formattedTime = time
+                    ? new Date(time).toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN')
+                    : '—';
+                  const actor =
+                    log.actorName ||
+                    log.userName ||
+                    log.userEmail ||
+                    t('workspace.auditTab.systemActor');
+                  const action =
+                    log.action || log.operation || t('workspace.auditTab.defaultAction');
                   const target = log.entityName || log.targetType || log.entityType || '—';
                   const details = log.description || log.details || log.metadataJson || '—';
 

@@ -1,7 +1,8 @@
 import React from 'react';
-import { X, RefreshCw, Shield, AlertTriangle } from 'lucide-react';
+import { X, RefreshCw, Shield } from 'lucide-react';
 import { WorkspaceDto } from '@/services/workspace.service';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 export interface WorkspaceAuditModalProps {
   isOpen: boolean;
@@ -24,10 +25,17 @@ export const WorkspaceAuditModal: React.FC<WorkspaceAuditModalProps> = ({
   loading,
   logs,
 }) => {
+  const { t, lang } = useTranslation();
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeLabel='Đóng' size='xl' title='Nhật ký Studio'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel={t('common.actions.close')}
+      size='xl'
+      title={t('workspace.auditModal.title')}
+    >
       <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col p-6 space-y-4'>
         <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
           <div>
@@ -38,7 +46,7 @@ export const WorkspaceAuditModal: React.FC<WorkspaceAuditModalProps> = ({
               <span className='text-xs text-[#888888] font-mono'>BR-18 Provenance Guarantee</span>
             </div>
             <h3 className='text-sm font-bold text-[#171717]'>
-              Lịch Sử Thay Đổi Studio: {activeWorkspace?.name}
+              {t('workspace.auditModal.heading', { name: activeWorkspace?.name || '' })}
             </h3>
           </div>
           <button onClick={onClose} className='text-[#888888] hover:text-[#171717]'>
@@ -50,7 +58,7 @@ export const WorkspaceAuditModal: React.FC<WorkspaceAuditModalProps> = ({
         <div className='flex items-center gap-3 text-xs'>
           <input
             type='text'
-            placeholder='Lọc theo Entity (Series, BibleEntry, PipelineStage...)'
+            placeholder={t('workspace.auditModal.filterPlaceholder')}
             value={filterEntity}
             onChange={(e) => onFilterEntityChange(e.target.value)}
             className='px-3 py-1.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs w-64 focus:outline-none focus:border-[#F97316]'
@@ -60,7 +68,7 @@ export const WorkspaceAuditModal: React.FC<WorkspaceAuditModalProps> = ({
             className='px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#E7E7E7] hover:bg-[#F3F1EB] font-semibold flex items-center gap-1.5 cursor-pointer'
           >
             <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-            <span>Tìm kiếm</span>
+            <span>{t('common.actions.search')}</span>
           </button>
         </div>
 
@@ -69,11 +77,11 @@ export const WorkspaceAuditModal: React.FC<WorkspaceAuditModalProps> = ({
           <table className='w-full text-left'>
             <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-xs text-[#737373] sticky top-0'>
               <tr>
-                <th className='py-2.5 px-3'>Hành Động</th>
-                <th className='py-2.5 px-3'>Thực Thể</th>
-                <th className='py-2.5 px-3'>Người Thực Hiện</th>
-                <th className='py-2.5 px-3'>Thời Gian (UTC)</th>
-                <th className='py-2.5 px-3'>Chi Tiết Thay Đổi</th>
+                <th className='py-2.5 px-3'>{t('workspace.auditModal.colAction')}</th>
+                <th className='py-2.5 px-3'>{t('workspace.auditModal.colEntity')}</th>
+                <th className='py-2.5 px-3'>{t('workspace.auditModal.colActor')}</th>
+                <th className='py-2.5 px-3'>{t('workspace.auditModal.colTime')}</th>
+                <th className='py-2.5 px-3'>{t('workspace.auditModal.colDetails')}</th>
               </tr>
             </thead>
             <tbody className='divide-y divide-[#E7E7E7]'>
@@ -81,13 +89,13 @@ export const WorkspaceAuditModal: React.FC<WorkspaceAuditModalProps> = ({
                 <tr>
                   <td colSpan={5} className='py-8 text-center text-[#888888]'>
                     <RefreshCw className='w-5 h-5 animate-spin mx-auto mb-1 text-[#F97316]' />
-                    <span>Đang tải lịch sử audit...</span>
+                    <span>{t('workspace.auditModal.loading')}</span>
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={5} className='py-8 text-center text-[#888888]'>
-                    Chưa có bản ghi audit nào trong Studio này.
+                    {t('workspace.auditModal.empty')}
                   </td>
                 </tr>
               ) : (
@@ -110,10 +118,10 @@ export const WorkspaceAuditModal: React.FC<WorkspaceAuditModalProps> = ({
                       {log.entityName} {log.entityId ? `#${log.entityId.substring(0, 6)}` : ''}
                     </td>
                     <td className='py-2.5 px-3 text-[#555555]'>
-                      {log.userEmail || log.userId || 'Hệ thống'}
+                      {log.userEmail || log.userId || t('workspace.auditModal.systemActor')}
                     </td>
                     <td className='py-2.5 px-3 font-mono text-xs text-[#888888] whitespace-nowrap'>
-                      {new Date(log.createdAtUtc).toLocaleString('vi-VN')}
+                      {new Date(log.createdAtUtc).toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN')}
                     </td>
                     <td className='py-2.5 px-3 font-mono text-xs text-[#737373] max-w-xs truncate'>
                       {log.changesJson || log.details || '—'}

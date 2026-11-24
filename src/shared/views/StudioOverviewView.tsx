@@ -57,7 +57,7 @@ import { useTranslation } from '@/lib/i18n';
 
 export const StudioOverviewView: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const confirm = useConfirm();
   const { workspaceId } = useParams();
   const [, setWorkspaces] = useState<WorkspaceDto[]>([]);
@@ -201,14 +201,17 @@ export const StudioOverviewView: React.FC = () => {
         role: roleStr,
         avatarBg: '#171717',
         initials,
-        status: m.isEmailConfirmed === false ? 'Chờ kích hoạt' : 'Đang hoạt động',
+        status:
+          m.isEmailConfirmed === false
+            ? t('workspace.membersTab.statusPending')
+            : t('workspace.membersTab.statusActive'),
         isEmailConfirmed: m.isEmailConfirmed,
         invitationEmailSent: m.invitationEmailSent,
         isOwner: m.isOwner,
         isYou: currentUser?.id === m.userId || currentUser?.email === m.email,
       };
     });
-  }, [members, currentUser]);
+  }, [members, currentUser, t]);
 
   const filteredMembers = React.useMemo(() => {
     return studioMembers.filter((m) => {
@@ -340,8 +343,11 @@ export const StudioOverviewView: React.FC = () => {
         }
       } catch (err: any) {
         console.error(err);
-        setLoadError(err.message || 'Không thể kết nối máy chủ.');
-        showToast('Lỗi tải dữ liệu', err.message || 'Không thể kết nối máy chủ.');
+        setLoadError(err.message || t('workspace.overviewView.serverConnectError'));
+        showToast(
+          t('workspace.overviewView.loadDataErrorTitle'),
+          err.message || t('workspace.overviewView.serverConnectError'),
+        );
       } finally {
         inFlightLoadRef.current = null;
         setLoading(false);
@@ -375,7 +381,10 @@ export const StudioOverviewView: React.FC = () => {
   const handleCreateSeries = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeWorkspace) {
-      showToast('Lỗi', 'Chọn hoặc tạo Studio Workspace trước.');
+      showToast(
+        t('workspace.overviewView.errorTitle'),
+        t('workspace.overviewView.selectWorkspaceFirst'),
+      );
       return;
     }
     if (!newSeriesTitle.trim()) return;
@@ -401,11 +410,11 @@ export const StudioOverviewView: React.FC = () => {
       setNewSeriesDirection(2);
       setNewSeriesTemplateId('');
       showToast(
-        'Tạo Series thành công',
-        `Đã tạo bộ truyện "${created.title}" với cấu hình pipeline và metadata hoàn chỉnh.`,
+        t('workspace.overviewView.createSeriesSuccessTitle'),
+        t('workspace.overviewView.createSeriesSuccessDesc', { title: created.title }),
       );
     } catch (err: any) {
-      showToast('Lỗi tạo Series', err.message);
+      showToast(t('workspace.overviewView.createSeriesErrorTitle'), err.message);
     } finally {
       setCreatingSeries(false);
     }
@@ -426,10 +435,10 @@ export const StudioOverviewView: React.FC = () => {
     try {
       const file = await systemImageToFile(img);
       setSeriesCover(target.id, await seriesService.setCover(target.id, file));
-      showToast('Đã cập nhật ảnh bìa', `${target.title}: ${img.name}`);
+      showToast(t('workspace.overviewView.coverUpdatedTitle'), `${target.title}: ${img.name}`);
       setCoverPickerSeries(null);
     } catch (err: any) {
-      showToast('Lỗi ảnh bìa', err.message);
+      showToast(t('workspace.overviewView.coverErrorTitle'), err.message);
     } finally {
       setSavingCoverId(null);
     }
@@ -439,9 +448,12 @@ export const StudioOverviewView: React.FC = () => {
     try {
       await seriesService.clearCover(seriesId);
       setSeriesCover(seriesId, null);
-      showToast('Đã xoá ảnh bìa', 'Thẻ bộ truyện quay về bìa chữ cái.');
+      showToast(
+        t('workspace.overviewView.coverClearedTitle'),
+        t('workspace.overviewView.coverClearedDesc'),
+      );
     } catch (err: any) {
-      showToast('Lỗi ảnh bìa', err.message);
+      showToast(t('workspace.overviewView.coverErrorTitle'), err.message);
     }
   };
 
@@ -501,9 +513,12 @@ export const StudioOverviewView: React.FC = () => {
 
       setSeriesList((prev) => prev.map((s) => (s.id === finalSeries.id ? finalSeries : s)));
       setEditingSeries(null);
-      showToast('Cập nhật thành công', `Đã cập nhật thông tin Series "${finalSeries.title}".`);
+      showToast(
+        t('workspace.overviewView.updateSeriesSuccessTitle'),
+        t('workspace.overviewView.updateSeriesSuccessDesc', { title: finalSeries.title }),
+      );
     } catch (err: any) {
-      showToast('Lỗi cập nhật Series', err.message);
+      showToast(t('workspace.overviewView.updateSeriesErrorTitle'), err.message);
     } finally {
       setUpdatingSeries(false);
     }
@@ -513,10 +528,10 @@ export const StudioOverviewView: React.FC = () => {
   const handleDeleteSeries = async (series: SeriesDto) => {
     if (
       !(await confirm({
-        title: `Xóa bộ truyện "${series.title}"?`,
-        description: 'Thao tác này sẽ xóa Series và toàn bộ dữ liệu liên quan khỏi Workspace.',
-        confirmText: 'Xác nhận xóa Series',
-        cancelText: 'Giữ lại',
+        title: t('workspace.overviewView.deleteSeriesTitle', { title: series.title }),
+        description: t('workspace.overviewView.deleteSeriesDesc'),
+        confirmText: t('workspace.overviewView.deleteSeriesConfirm'),
+        cancelText: t('workspace.overviewView.keepBtn'),
         variant: 'danger',
       }))
     )
@@ -526,11 +541,14 @@ export const StudioOverviewView: React.FC = () => {
       await seriesService.deleteSeries(series.id);
       setSeriesList((prev) => prev.filter((s) => s.id !== series.id));
       toast.success(
-        'Đã xóa Series thành công',
-        `Bộ truyện "${series.title}" đã được xóa khỏi Workspace.`,
+        t('workspace.overviewView.deleteSeriesSuccessTitle'),
+        t('workspace.overviewView.deleteSeriesSuccessDesc', { title: series.title }),
       );
     } catch (err: any) {
-      toast.error('Lỗi xóa Series', err.message || 'Không thể xóa Series.');
+      toast.error(
+        t('workspace.overviewView.deleteSeriesErrorTitle'),
+        err.message || t('workspace.overviewView.deleteSeriesErrorFallback'),
+      );
     }
   };
 
@@ -539,10 +557,10 @@ export const StudioOverviewView: React.FC = () => {
     if (!activeWorkspace) return;
     if (
       !(await confirm({
-        title: 'Xóa thành viên khỏi Workspace?',
-        description: `Bạn có chắc chắn muốn xóa thành viên "${member.email}" khỏi Workspace? Quyền truy cập Studio sẽ bị thu hồi ngay lập tức.`,
-        confirmText: 'Xác nhận xóa thành viên',
-        cancelText: 'Giữ lại',
+        title: t('workspace.overviewView.deleteMemberTitle'),
+        description: t('workspace.overviewView.deleteMemberDesc', { email: member.email }),
+        confirmText: t('workspace.overviewView.deleteMemberConfirm'),
+        cancelText: t('workspace.overviewView.keepBtn'),
         variant: 'danger',
       }))
     )
@@ -551,11 +569,14 @@ export const StudioOverviewView: React.FC = () => {
     try {
       await workspaceService.removeMember(activeWorkspace.id, member.id);
       setMembers((prev) => prev.filter((m) => m.userId !== member.id));
-      toast.success('Đã xóa thành viên thành công', `Đã xóa ${member.email} khỏi Workspace.`);
+      toast.success(
+        t('workspace.overviewView.deleteMemberSuccessTitle'),
+        t('workspace.overviewView.deleteMemberSuccessDesc', { email: member.email }),
+      );
     } catch (err: any) {
       toast.error(
-        'Xóa thành viên thất bại',
-        err.message || 'Không thể xóa thành viên khỏi Workspace.',
+        t('workspace.overviewView.deleteMemberErrorTitle'),
+        err.message || t('workspace.overviewView.deleteMemberErrorFallback'),
       );
     }
   };
@@ -571,7 +592,7 @@ export const StudioOverviewView: React.FC = () => {
       });
       setAuditLogs(res?.items || []);
     } catch (err: any) {
-      showToast('Lỗi tải Audit Log', err.message);
+      showToast(t('workspace.overviewView.auditLoadErrorTitle'), err.message);
     } finally {
       setAuditLoading(false);
     }
@@ -594,9 +615,12 @@ export const StudioOverviewView: React.FC = () => {
     if (!activeWorkspace) return;
     try {
       await workspaceService.resendInvitation(activeWorkspace.id, userId);
-      showToast('Gửi lại thành công', 'Đã gửi lại lời mời qua email.');
+      showToast(
+        t('workspace.overviewView.resendSuccessTitle'),
+        t('workspace.overviewView.resendSuccessDesc'),
+      );
     } catch (err: any) {
-      showToast('Lỗi gửi lại lời mời', err.message);
+      showToast(t('workspace.overviewView.resendErrorTitle'), err.message);
     }
   };
 
@@ -617,7 +641,10 @@ export const StudioOverviewView: React.FC = () => {
       showToast('Permissions Saved', `Updated role & access policies for ${editingMember.name}.`);
       setEditingMember(null);
     } catch (err: any) {
-      showToast('Lỗi cập nhật vai trò', err.message || 'Không thể cập nhật vai trò thành viên.');
+      showToast(
+        t('workspace.overviewView.updateRoleErrorTitle'),
+        err.message || t('workspace.overviewView.updateRoleErrorFallback'),
+      );
     }
   };
 
@@ -706,17 +733,17 @@ export const StudioOverviewView: React.FC = () => {
           return timeB - timeA;
         }
         if (sortBy === 'az') {
-          return a.title.localeCompare(b.title, 'vi');
+          return a.title.localeCompare(b.title, lang === 'en' ? 'en' : 'vi');
         }
         if (sortBy === 'za') {
-          return b.title.localeCompare(a.title, 'vi');
+          return b.title.localeCompare(a.title, lang === 'en' ? 'en' : 'vi');
         }
         if (sortBy === 'chapters') {
           return (b.chaptersCount ?? 0) - (a.chaptersCount ?? 0);
         }
         return 0;
       });
-  }, [seriesList, searchQuery, genreFilter, directionFilter, statusFilter, sortBy]);
+  }, [seriesList, searchQuery, genreFilter, directionFilter, statusFilter, sortBy, lang]);
 
   const statusCounts = useMemo(() => {
     let inProd = 0;
@@ -794,24 +821,31 @@ export const StudioOverviewView: React.FC = () => {
                 className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-semibold shadow-xs active:scale-[0.98] transition-all cursor-pointer'
               >
                 <Plus className='w-4 h-4' />
-                <span>Tạo bộ truyện</span>
-                <span className='sr-only'>Tạo Series Mới</span>
+                <span>{t('workspace.overviewView.createSeriesBtn')}</span>
+                <span className='sr-only'>{t('workspace.overviewView.createSeriesSrOnly')}</span>
               </button>
             </div>
           )}
         </div>
 
         {/* Quick Studio Operational Metrics (Stitch Architecture - 100% Real API Data) */}
-        <section className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch pt-1' id='studio-metrics-strip'>
+        <section
+          className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch pt-1'
+          id='studio-metrics-strip'
+        >
           {/* Card 1: Bộ truyện (Series) */}
           <div className='bg-white border border-stone-200 rounded-xl p-5 flex flex-col justify-between shadow-xs'>
             <div className='flex items-start justify-between gap-2'>
               <div className='flex items-center gap-2'>
                 <Layers className='w-5 h-5 text-orange-600' />
-                <span className='font-semibold text-stone-900 text-sm'>Dự án Series</span>
+                <span className='font-semibold text-stone-900 text-sm'>
+                  {t('workspace.overviewView.metricSeriesTitle')}
+                </span>
               </div>
               <span className='px-2 py-0.5 rounded-full bg-orange-50 font-semibold text-xs text-orange-700'>
-                {seriesList.filter((s) => !s.isCompleted).length} Đang chạy
+                {t('workspace.overviewView.metricRunning', {
+                  count: seriesList.filter((s) => !s.isCompleted).length,
+                })}
               </span>
             </div>
             <div className='my-4'>
@@ -820,16 +854,25 @@ export const StudioOverviewView: React.FC = () => {
                   {seriesList.length}
                 </span>
                 <span className='text-stone-500 text-sm'>
-                  Bộ ({seriesList.reduce((acc, s) => acc + (s.chaptersCount ?? 0), 0)} Chương)
+                  {t('workspace.overviewView.metricSeriesChapters', {
+                    count: seriesList.reduce((acc, s) => acc + (s.chaptersCount ?? 0), 0),
+                  })}
                 </span>
               </div>
               <p className='text-xs text-stone-500 mt-1'>
-                {seriesList.filter((s) => !s.isCompleted).length} đang sáng tác • {seriesList.filter((s) => s.isCompleted).length} hoàn tất
+                {t('workspace.overviewView.metricActiveCompleted', {
+                  active: seriesList.filter((s) => !s.isCompleted).length,
+                  completed: seriesList.filter((s) => s.isCompleted).length,
+                })}
               </p>
             </div>
             <div className='flex items-center gap-2 pt-3 border-t border-stone-100 text-xs text-stone-500'>
               <span className='inline-block w-2 h-2 rounded-full bg-emerald-600' />
-              <span>{seriesList.length > 0 ? 'Dữ liệu thực tế từ Studio' : 'Chưa có bộ truyện nào'}</span>
+              <span>
+                {seriesList.length > 0
+                  ? t('workspace.overviewView.metricLiveData')
+                  : t('workspace.overviewView.metricNoSeries')}
+              </span>
             </div>
           </div>
 
@@ -838,13 +881,21 @@ export const StudioOverviewView: React.FC = () => {
             <div className='flex items-start justify-between gap-2'>
               <div className='flex items-center gap-2'>
                 <HardDrive className='w-5 h-5 text-orange-500' />
-                <span className='font-semibold text-stone-900 text-sm'>Dung lượng lưu trữ</span>
+                <span className='font-semibold text-stone-900 text-sm'>
+                  {t('workspace.overviewView.metricStorageTitle')}
+                </span>
               </div>
               <span className='px-2 py-0.5 rounded-full bg-stone-100 font-semibold text-xs text-stone-700'>
                 {(() => {
-                  const used = workspaceUsage ? workspaceUsage.storage.used : activeWorkspace?.usedStorageBytes || 0;
-                  const quota = workspaceUsage ? workspaceUsage.storage.quota : activeWorkspace?.storageQuotaBytes || 0;
-                  return quota > 0 ? `${Math.min(100, Math.round((used / quota) * 100))}%` : 'Không giới hạn';
+                  const used = workspaceUsage
+                    ? workspaceUsage.storage.used
+                    : activeWorkspace?.usedStorageBytes || 0;
+                  const quota = workspaceUsage
+                    ? workspaceUsage.storage.quota
+                    : activeWorkspace?.storageQuotaBytes || 0;
+                  return quota > 0
+                    ? `${Math.min(100, Math.round((used / quota) * 100))}%`
+                    : t('workspace.governance.unlimited');
                 })()}
               </span>
             </div>
@@ -852,14 +903,21 @@ export const StudioOverviewView: React.FC = () => {
               <div className='flex items-baseline gap-1.5'>
                 <span className='text-2xl font-bold text-stone-900 tracking-tight'>
                   {(() => {
-                    const used = workspaceUsage ? workspaceUsage.storage.used : activeWorkspace?.usedStorageBytes || 0;
+                    const used = workspaceUsage
+                      ? workspaceUsage.storage.used
+                      : activeWorkspace?.usedStorageBytes || 0;
                     return formatBytes(used);
                   })()}
                 </span>
                 <span className='text-stone-500 text-sm'>
-                  / {(() => {
-                    const quota = workspaceUsage ? workspaceUsage.storage.quota : activeWorkspace?.storageQuotaBytes || 0;
-                    return quota > 0 ? formatBytes(quota) : 'Vô hạn';
+                  /{' '}
+                  {(() => {
+                    const quota = workspaceUsage
+                      ? workspaceUsage.storage.quota
+                      : activeWorkspace?.storageQuotaBytes || 0;
+                    return quota > 0
+                      ? formatBytes(quota)
+                      : t('workspace.overviewView.metricUnlimitedShort');
                   })()}
                 </span>
               </div>
@@ -868,8 +926,12 @@ export const StudioOverviewView: React.FC = () => {
                   className='bg-orange-500 h-full rounded-full transition-all duration-500'
                   style={{
                     width: (() => {
-                      const used = workspaceUsage ? workspaceUsage.storage.used : activeWorkspace?.usedStorageBytes || 0;
-                      const quota = workspaceUsage ? workspaceUsage.storage.quota : activeWorkspace?.storageQuotaBytes || 0;
+                      const used = workspaceUsage
+                        ? workspaceUsage.storage.used
+                        : activeWorkspace?.usedStorageBytes || 0;
+                      const quota = workspaceUsage
+                        ? workspaceUsage.storage.quota
+                        : activeWorkspace?.storageQuotaBytes || 0;
                       const pct = quota > 0 ? Math.min(100, Math.round((used / quota) * 100)) : 0;
                       return `${pct}%`;
                     })(),
@@ -879,7 +941,7 @@ export const StudioOverviewView: React.FC = () => {
             </div>
             <div className='flex items-center gap-1.5 pt-3 border-t border-stone-100 text-xs text-stone-500'>
               <FileText className='w-3.5 h-3.5 text-stone-400' />
-              <span className='truncate'>Lưu trữ bản vẽ gốc & file chế bản in</span>
+              <span className='truncate'>{t('workspace.overviewView.metricStorageFooter')}</span>
             </div>
           </div>
 
@@ -888,11 +950,17 @@ export const StudioOverviewView: React.FC = () => {
             <div className='flex items-start justify-between gap-2'>
               <div className='flex items-center gap-2'>
                 <Users className='w-5 h-5 text-sky-600' />
-                <span className='font-semibold text-stone-900 text-sm'>Nhân sự Studio</span>
+                <span className='font-semibold text-stone-900 text-sm'>
+                  {t('workspace.overviewView.metricMembersTitle')}
+                </span>
               </div>
               <span className='px-2 py-0.5 rounded-full bg-emerald-50 font-semibold text-xs text-emerald-700 flex items-center gap-1'>
                 <span className='w-1.5 h-1.5 rounded-full bg-emerald-600' />
-                <span>{members.filter((m) => m.isEmailConfirmed !== false).length} Đang hoạt động</span>
+                <span>
+                  {t('workspace.overviewView.metricActiveMembers', {
+                    count: members.filter((m) => m.isEmailConfirmed !== false).length,
+                  })}
+                </span>
               </span>
             </div>
             <div className='my-4'>
@@ -900,10 +968,16 @@ export const StudioOverviewView: React.FC = () => {
                 <span className='text-3xl font-bold text-stone-900 tracking-tight'>
                   {members.length}
                 </span>
-                <span className='text-stone-500 text-sm'>Thành viên</span>
+                <span className='text-stone-500 text-sm'>
+                  {t('workspace.overviewView.metricMembersUnit')}
+                </span>
               </div>
               <p className='text-xs text-stone-500 mt-1'>
-                {tabCounts.WRITER} Biên kịch • {tabCounts.ARTIST} Họa sĩ • {tabCounts.EDITOR} Biên tập
+                {t('workspace.overviewView.metricRoleBreakdown', {
+                  writers: tabCounts.WRITER,
+                  artists: tabCounts.ARTIST,
+                  editors: tabCounts.EDITOR,
+                })}
               </p>
             </div>
             <button
@@ -911,7 +985,7 @@ export const StudioOverviewView: React.FC = () => {
               onClick={() => setActiveTab('members')}
               className='w-full pt-3 border-t border-stone-100 flex items-center justify-between text-left text-xs text-orange-600 hover:text-orange-700 font-semibold transition-colors cursor-pointer'
             >
-              <span>Quản lý nhân sự</span>
+              <span>{t('workspace.overviewView.metricManageMembers')}</span>
               <ArrowRight className='w-4 h-4' />
             </button>
           </div>
@@ -921,27 +995,49 @@ export const StudioOverviewView: React.FC = () => {
             <div className='flex items-start justify-between gap-2'>
               <div className='flex items-center gap-2'>
                 <TrendingUp className='w-5 h-5 text-emerald-600' />
-                <span className='font-semibold text-stone-900 text-sm'>Tương tác Độc giả</span>
+                <span className='font-semibold text-stone-900 text-sm'>
+                  {t('workspace.overviewView.metricReadersTitle')}
+                </span>
               </div>
               <span className='px-2 py-0.5 rounded-full bg-sky-50 font-semibold text-xs text-sky-700'>
-                {readerStats?.totalUniqueReaders ? `${readerStats.totalUniqueReaders.toLocaleString('vi-VN')} Độc giả` : 'Trực tiếp'}
+                {readerStats?.totalUniqueReaders
+                  ? t('workspace.overviewView.metricReadersBadge', {
+                      count: readerStats.totalUniqueReaders.toLocaleString(
+                        lang === 'en' ? 'en-US' : 'vi-VN',
+                      ),
+                    })
+                  : t('workspace.overviewView.metricLiveBadge')}
               </span>
             </div>
             <div className='my-4'>
               <div className='flex items-baseline gap-1.5'>
                 <span className='text-3xl font-bold text-stone-900 tracking-tight'>
-                  {readerStats?.totalViews ? readerStats.totalViews.toLocaleString('vi-VN') : '0'}
+                  {readerStats?.totalViews
+                    ? readerStats.totalViews.toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN')
+                    : '0'}
                 </span>
-                <span className='text-stone-500 text-sm'>Lượt đọc</span>
+                <span className='text-stone-500 text-sm'>
+                  {t('workspace.overviewView.metricViewsUnit')}
+                </span>
               </div>
               <p className='text-xs text-stone-500 mt-1'>
-                {readerStats?.series?.length ? `Ghi nhận trên ${readerStats.series.length} bộ truyện phát hành` : 'Chưa có dữ liệu lượt đọc'}
+                {readerStats?.series?.length
+                  ? t('workspace.overviewView.metricReadersSeries', {
+                      count: readerStats.series.length,
+                    })
+                  : t('workspace.overviewView.metricNoViews')}
               </p>
             </div>
             <div className='flex items-center gap-1.5 pt-3 border-t border-stone-100 text-xs text-stone-500'>
               <TrendingUp className='w-3.5 h-3.5 text-sky-600' />
               <span className='font-semibold text-stone-800'>
-                {readerStats?.totalUniqueReaders ? `${readerStats.totalUniqueReaders.toLocaleString('vi-VN')} độc giả duy nhất` : 'Thống kê thời gian thực'}
+                {readerStats?.totalUniqueReaders
+                  ? t('workspace.overviewView.metricUniqueReaders', {
+                      count: readerStats.totalUniqueReaders.toLocaleString(
+                        lang === 'en' ? 'en-US' : 'vi-VN',
+                      ),
+                    })
+                  : t('workspace.overviewView.metricRealtimeStats')}
               </span>
             </div>
           </div>
@@ -965,7 +1061,7 @@ export const StudioOverviewView: React.FC = () => {
         <div className='border-b border-stone-200/80 pb-0'>
           <nav
             role='tablist'
-            aria-label='Điều hướng không gian làm việc'
+            aria-label={t('workspace.overviewView.navAria')}
             className='flex items-center gap-6 h-12 text-sm font-medium overflow-x-auto custom-scrollbar'
           >
             <button
@@ -982,7 +1078,7 @@ export const StudioOverviewView: React.FC = () => {
               }`}
             >
               <BookOpen className='w-4 h-4' />
-              <span>Danh sách Series</span>
+              <span>{t('workspace.overview.seriesList')}</span>
               <span
                 className={`px-1.5 py-0.2 rounded-full text-[11px] font-mono font-bold ${
                   activeTab === 'series'
@@ -1009,7 +1105,7 @@ export const StudioOverviewView: React.FC = () => {
                 }`}
               >
                 <Users className='w-4 h-4' />
-                <span>Nhân sự Studio</span>
+                <span>{t('workspace.overviewView.tabMembers')}</span>
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[11px] font-mono font-bold ${
                     activeTab === 'members'
@@ -1037,7 +1133,7 @@ export const StudioOverviewView: React.FC = () => {
               }`}
             >
               <Calendar className='w-4 h-4' />
-              <span>Lịch phát hành tổng</span>
+              <span>{t('workspace.overviewView.tabSchedule')}</span>
             </button>
 
             {/* Tab 4: Nhật ký hoạt động */}
@@ -1056,7 +1152,7 @@ export const StudioOverviewView: React.FC = () => {
                 }`}
               >
                 <History className='w-4 h-4' />
-                <span>Nhật ký hoạt động</span>
+                <span>{t('workspace.overviewView.tabAudit')}</span>
               </button>
             )}
           </nav>
@@ -1082,7 +1178,7 @@ export const StudioOverviewView: React.FC = () => {
                   onClick={() => loadData()}
                   className='btn-cta-danger focus-ring min-h-9 px-3.5 text-xs font-semibold cursor-pointer shrink-0'
                 >
-                  Thử lại
+                  {t('workspace.shelf.retry')}
                 </button>
               </Alert>
             )}

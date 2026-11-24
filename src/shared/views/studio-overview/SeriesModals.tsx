@@ -4,6 +4,7 @@ import { PipelineTemplateDto } from '@/services/pipeline.service';
 import { SeriesDto } from '@/services/series.service';
 import { SYSTEM_COVERS, type SystemImage } from '@/shared/utils/systemImages';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 export interface CoverPickerModalProps {
   series: { id: string; title: string } | null;
@@ -18,15 +19,16 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
   onClose,
   onPickSystemCover,
 }) => {
+  const { t } = useTranslation();
   if (!series) return null;
 
   return (
     <Modal
       isOpen={Boolean(series)}
       onClose={onClose}
-      closeLabel='Đóng'
+      closeLabel={t('common.actions.close')}
       size='lg'
-      title='Chọn ảnh bìa'
+      title={t('workspace.seriesModals.coverTitle')}
       data-testid='system-cover-picker'
       dismissible={!savingCoverId}
     >
@@ -36,7 +38,7 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
       >
         <div className='flex items-center justify-between'>
           <h3 id='cover-picker-title' className='text-sm font-bold text-[#44403C]'>
-            Chọn ảnh bìa cho “{series.title}”
+            {t('workspace.seriesModals.coverHeading', { title: series.title })}
           </h3>
           <button
             type='button'
@@ -44,14 +46,12 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
             onClick={onClose}
             disabled={Boolean(savingCoverId)}
             className='p-1 text-[#57534E] hover:text-[#44403C] cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-[#F97316]'
-            aria-label='Đóng'
+            aria-label={t('common.actions.close')}
           >
             <X className='w-4 h-4' />
           </button>
         </div>
-        <p className='text-xs text-[#57534E]'>
-          Chọn một ảnh bìa có sẵn của hệ thống (không cần tải ảnh từ máy).
-        </p>
+        <p className='text-xs text-[#57534E]'>{t('workspace.seriesModals.coverDesc')}</p>
         <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
           {SYSTEM_COVERS.map((img) => (
             <button
@@ -68,7 +68,7 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
                 className='w-full aspect-[366/594] object-cover rounded-md'
               />
               <span className='text-[11px] font-semibold text-[#44403C]'>
-                {savingCoverId === img.id ? 'Đang lưu…' : img.name}
+                {savingCoverId === img.id ? t('workspace.seriesModals.savingEllipsis') : img.name}
               </span>
             </button>
           ))}
@@ -121,10 +121,17 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
   onTemplateIdChange,
   creating,
 }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeLabel='Đóng' size='lg' title='Khởi tạo Dự án Series mới'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel={t('common.actions.close')}
+      size='lg'
+      title={t('workspace.seriesModals.createTitle')}
+    >
       <div className='bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto flex flex-col text-xs'>
         {/* Header */}
         <div className='p-5 border-b border-stone-200 flex items-center justify-between'>
@@ -133,10 +140,10 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
               <BookOpen className='w-5 h-5' />
             </div>
             <div>
-              <h3 className='font-bold text-stone-900 text-base'>Khởi tạo Dự án Series mới</h3>
-              <p className='text-xs text-stone-500'>
-                Thiết lập thông số xuất bản, khổ giấy và phân bổ ê-kíp sáng tác
-              </p>
+              <h3 className='font-bold text-stone-900 text-base'>
+                {t('workspace.seriesModals.createTitle')}
+              </h3>
+              <p className='text-xs text-stone-500'>{t('workspace.seriesModals.createSubtitle')}</p>
             </div>
           </div>
           <button
@@ -151,19 +158,19 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
         <form onSubmit={onSubmit} className='p-6 flex flex-col gap-4 text-xs'>
           <div className='flex flex-col gap-3.5'>
             <h4 className='font-semibold text-stone-800 pb-1 border-b border-stone-100 text-sm'>
-              1. Thông tin xuất bản
+              {t('workspace.seriesModals.sectionPubInfo')}
             </h4>
 
             {/* Title */}
             <div className='flex flex-col gap-1'>
               <label className='font-semibold text-stone-700'>
-                Tên Series (Tiêu đề truyện) *
+                {t('workspace.seriesModals.seriesNameLabel')}
               </label>
               <input
                 type='text'
                 value={title}
                 onChange={(e) => onTitleChange(e.target.value)}
-                placeholder='VD: Shinigami no Kagi, Shibuya Overdrive...'
+                placeholder={t('workspace.seriesModals.seriesNamePlaceholder')}
                 className='w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs font-medium'
                 required
               />
@@ -171,12 +178,14 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
 
             {/* Genre */}
             <div className='flex flex-col gap-1'>
-              <label className='font-semibold text-stone-700'>Thể loại chính *</label>
+              <label className='font-semibold text-stone-700'>
+                {t('workspace.seriesModals.genreLabel')}
+              </label>
               <input
                 type='text'
                 value={genre}
                 onChange={(e) => onGenreChange(e.target.value)}
-                placeholder='Hành động / Phiêu lưu (Shonen), Dark Fantasy...'
+                placeholder={t('workspace.seriesModals.genrePlaceholder')}
                 className='w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs'
                 required
               />
@@ -184,7 +193,9 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
 
             {/* Format Radio Cards */}
             <div className='flex flex-col gap-1.5'>
-              <label className='font-semibold text-stone-700'>Định dạng *</label>
+              <label className='font-semibold text-stone-700'>
+                {t('workspace.seriesModals.formatLabel')}
+              </label>
               <div className='grid grid-cols-2 gap-2'>
                 <label
                   className={`border rounded-xl p-3 flex flex-col gap-1 cursor-pointer transition-all ${
@@ -207,7 +218,9 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
                       className='accent-orange-600'
                     />
                   </div>
-                  <span className='text-[11px] text-stone-500'>600 DPI RTL (Phải sang trái)</span>
+                  <span className='text-[11px] text-stone-500'>
+                    {t('workspace.seriesModals.mangaDesc')}
+                  </span>
                 </label>
 
                 <label
@@ -231,7 +244,9 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
                       className='accent-orange-600'
                     />
                   </div>
-                  <span className='text-[11px] text-stone-500'>800px RGB (Cuộn dọc số)</span>
+                  <span className='text-[11px] text-stone-500'>
+                    {t('workspace.seriesModals.webtoonDesc')}
+                  </span>
                 </label>
               </div>
             </div>
@@ -242,7 +257,7 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
                 htmlFor='create-series-pipeline-template'
                 className='font-semibold text-stone-700'
               >
-                Mẫu Quy Trình Sản Xuất (Pipeline Template)
+                {t('workspace.seriesModals.pipelineLabel')}
               </label>
               <select
                 id='create-series-pipeline-template'
@@ -250,12 +265,10 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
                 onChange={(e) => onTemplateIdChange(e.target.value)}
                 className='w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs'
               >
-                <option value=''>
-                  Mặc định chuẩn V3 (Pencil → Ink / Letter song song → Review → Approved)
-                </option>
+                <option value=''>{t('workspace.seriesModals.pipelineDefault')}</option>
                 {pipelineTemplates.map((tpl) => (
                   <option key={tpl.id} value={tpl.id}>
-                    {tpl.name} {tpl.isDefault ? '(Mẫu hệ thống)' : ''}
+                    {tpl.name} {tpl.isDefault ? t('workspace.seriesModals.systemTemplateTag') : ''}
                   </option>
                 ))}
               </select>
@@ -264,13 +277,13 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
             {/* Synopsis */}
             <div className='flex flex-col gap-1'>
               <label className='font-semibold text-stone-700'>
-                Tóm Tắt Cốt Truyện (Synopsis)
+                {t('workspace.seriesModals.synopsisLabel')}
               </label>
               <textarea
                 rows={2}
                 value={synopsis}
                 onChange={(e) => onSynopsisChange(e.target.value)}
-                placeholder='Mô tả ngắn gọn bối cảnh và cốt truyện chính của dự án...'
+                placeholder={t('workspace.seriesModals.synopsisPlaceholder')}
                 className='w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs resize-none'
               />
             </div>
@@ -282,7 +295,7 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
               onClick={onClose}
               className='px-4 py-2 rounded-lg border border-stone-200 bg-white font-medium text-stone-700 hover:bg-stone-50 cursor-pointer transition-colors'
             >
-              Hủy bỏ
+              {t('workspace.seriesModals.cancelBtn')}
             </button>
             <button
               type='submit'
@@ -292,12 +305,12 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
               {creating ? (
                 <>
                   <Loader2 className='w-4 h-4 animate-spin' />
-                  <span>Đang khởi tạo...</span>
+                  <span>{t('workspace.seriesModals.creatingBtn')}</span>
                 </>
               ) : (
                 <>
                   <Check className='w-4 h-4 stroke-[2.5]' />
-                  <span>Tạo Series & Cấp quyền</span>
+                  <span>{t('workspace.seriesModals.submitCreateBtn')}</span>
                 </>
               )}
             </button>
@@ -361,21 +374,24 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
   onReleaseLanguagesChange,
   updating,
 }) => {
+  const { t } = useTranslation();
   if (!series) return null;
 
   return (
     <Modal
       isOpen={Boolean(series)}
       onClose={onClose}
-      closeLabel='Đóng'
+      closeLabel={t('common.actions.close')}
       size='lg'
-      title='Chỉnh sửa Series'
+      title={t('workspace.seriesModals.editTitle')}
     >
       <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
         <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
           <div className='flex items-center gap-2'>
             <Edit2 className='w-4 h-4 text-[#F97316]' />
-            <h3 className='text-sm font-bold text-[#171717]'>Chỉnh Sửa Thông Tin Series</h3>
+            <h3 className='text-sm font-bold text-[#171717]'>
+              {t('workspace.seriesModals.editHeading')}
+            </h3>
           </div>
           <button type='button' onClick={onClose} className='text-[#888888] hover:text-[#171717]'>
             <X className='w-4 h-4' />
@@ -384,7 +400,9 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
 
         <form onSubmit={onSubmit} className='space-y-3.5 text-xs'>
           <div>
-            <label className='block font-semibold text-[#171717] mb-1'>Tên Dự Án (Title) *</label>
+            <label className='block font-semibold text-[#171717] mb-1'>
+              {t('workspace.seriesModals.editNameLabel')}
+            </label>
             <input
               type='text'
               value={title}
@@ -396,13 +414,13 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
 
           <div>
             <label className='block font-semibold text-[#171717] mb-1'>
-              Tóm Tắt Cốt Truyện (Synopsis)
+              {t('workspace.seriesModals.synopsisLabel')}
             </label>
             <textarea
               rows={2}
               value={synopsis}
               onChange={(e) => onSynopsisChange(e.target.value)}
-              placeholder='Mô tả ngắn gọn nội dung cốt truyện...'
+              placeholder={t('workspace.seriesModals.editSynopsisPlaceholder')}
               className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
             />
           </div>
@@ -410,26 +428,29 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
           <div>
             <div className='flex items-center justify-between mb-1'>
               <label className='block font-semibold text-[#171717]'>
-                Cung Truyện Tổng Thể (Story Arc)
+                {t('workspace.seriesModals.storyArcLabel')}
               </label>
-              <span className='text-xs text-[#888888] font-mono'>Đầu vào AI Writer</span>
+              <span className='text-xs text-[#888888] font-mono'>
+                {t('workspace.seriesModals.aiWriterInput')}
+              </span>
             </div>
             <textarea
               rows={3}
               value={storyArc}
               onChange={(e) => onStoryArcChange(e.target.value)}
-              placeholder='Tuyến truyện chính, các mốc xung đột và bước ngoặt xuyên suốt Series...'
+              placeholder={t('workspace.seriesModals.storyArcPlaceholder')}
               className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
             />
             <p className='text-xs text-[#737373] mt-1'>
-              Story arc sẽ được chuyển vào snapshot và nạp vào prompt cho AI Writer Agent khi sinh
-              kịch bản.
+              {t('workspace.seriesModals.storyArcHint')}
             </p>
           </div>
 
           <div className='grid grid-cols-2 gap-3'>
             <div>
-              <label className='block font-semibold text-[#171717] mb-1'>Thể Loại (Genre)</label>
+              <label className='block font-semibold text-[#171717] mb-1'>
+                {t('workspace.seriesModals.editGenreLabel')}
+              </label>
               <select
                 value={genre}
                 onChange={(e) => onGenreChange(e.target.value)}
@@ -444,7 +465,9 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
             </div>
 
             <div>
-              <label className='block font-semibold text-[#171717] mb-1'>Định Dạng (Format)</label>
+              <label className='block font-semibold text-[#171717] mb-1'>
+                {t('workspace.seriesModals.editFormatLabel')}
+              </label>
               <select
                 value={format}
                 onChange={(e) => onFormatChange(e.target.value)}
@@ -459,25 +482,29 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
 
           <div className='grid grid-cols-2 gap-3'>
             <div>
-              <label className='block font-semibold text-[#171717] mb-1'>Hướng Đọc</label>
+              <label className='block font-semibold text-[#171717] mb-1'>
+                {t('workspace.seriesModals.directionLabel')}
+              </label>
               <select
                 value={direction}
                 onChange={(e) => onDirectionChange(parseInt(e.target.value, 10))}
                 className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
               >
-                <option value={1}>Phải sang Trái (Manga RTL)</option>
-                <option value={0}>Trái sang Phải (Comic LTR)</option>
-                <option value={2}>Cuộn Dọc (Webtoon)</option>
+                <option value={1}>{t('workspace.seriesModals.dirRtl')}</option>
+                <option value={0}>{t('workspace.seriesModals.dirLtr')}</option>
+                <option value={2}>{t('workspace.seriesModals.dirVertical')}</option>
               </select>
             </div>
 
             <div>
-              <label className='block font-semibold text-[#171717] mb-1'>Lịch Xuất Bản</label>
+              <label className='block font-semibold text-[#171717] mb-1'>
+                {t('workspace.seriesModals.scheduleLabel')}
+              </label>
               <input
                 type='text'
                 value={schedule}
                 onChange={(e) => onScheduleChange(e.target.value)}
-                placeholder='Ví dụ: Thứ 6 hàng tuần'
+                placeholder={t('workspace.seriesModals.schedulePlaceholder')}
                 className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
               />
             </div>
@@ -490,9 +517,9 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
                 className='w-4 h-4 accent-[#F97316]'
                 data-testid='edit-series-completed'
               />
-              Bộ truyện đã hoàn thành
+              {t('workspace.seriesModals.completedLabel')}
               <span className='font-normal text-xs text-[#888888]'>
-                (độc giả thấy “Hoàn thành” thay vì “Đang ra”)
+                {t('workspace.seriesModals.completedHint')}
               </span>
             </label>
           </div>
@@ -501,13 +528,13 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
           <div className='p-3 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-2.5'>
             <div className='flex items-center gap-1.5 font-bold text-[#171717]'>
               <Globe className='w-4 h-4 text-[#F97316]' />
-              <span>Ngôn Ngữ & Phát Hành Đa Ngữ (BR-34)</span>
+              <span>{t('workspace.seriesModals.multilingualHeading')}</span>
             </div>
 
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
               <div>
                 <label className='block font-semibold text-[#171717] mb-1'>
-                  Ngôn Ngữ Gốc (Original Language) *
+                  {t('workspace.seriesModals.originalLangLabel')}
                 </label>
                 <select
                   value={originalLanguage || 'vi'}
@@ -520,14 +547,14 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
                   }}
                   className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                 >
-                  <option value='vi'>Tiếng Việt (VI)</option>
+                  <option value='vi'>{t('workspace.seriesModals.langVi')}</option>
                   <option value='en'>English (EN)</option>
                 </select>
               </div>
 
               <div>
                 <label className='block font-semibold text-[#171717] mb-1'>
-                  Các Ngôn Ngữ Phát Hành (Release Languages)
+                  {t('workspace.seriesModals.releaseLangsLabel')}
                 </label>
                 <div className='flex flex-wrap gap-2 pt-1'>
                   {['vi', 'en'].map((code) => {
@@ -559,7 +586,7 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
                         />
                         <span>
                           {code.toUpperCase()}
-                          {isOrig ? ' (Gốc)' : ''}
+                          {isOrig ? t('workspace.seriesModals.originalTag') : ''}
                         </span>
                       </label>
                     );
@@ -575,14 +602,14 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
               onClick={onClose}
               className='px-3 py-1.5 rounded-lg text-[#555555] hover:bg-[#F3F1EB]'
             >
-              Hủy
+              {t('common.actions.cancel')}
             </button>
             <button
               type='submit'
               disabled={updating || !title.trim()}
               className='px-4 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold disabled:opacity-50'
             >
-              {updating ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+              {updating ? t('common.actions.saving') : t('workspace.seriesModals.saveChangesBtn')}
             </button>
           </div>
         </form>
