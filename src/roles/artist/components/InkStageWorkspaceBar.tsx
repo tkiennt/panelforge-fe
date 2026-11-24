@@ -1,6 +1,7 @@
 /* Lucian UX/UI Prompt #039 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/ */
 import React, { useEffect } from 'react';
 import { Eye, EyeOff, ShieldCheck, Upload, CheckCircle2, Loader2 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 export type InkingNib = 'g-pen' | 'maru-pen' | 'turnip-pen' | 'fill-bucket';
 export type ScreenToneLpi = 60 | 80 | 100;
@@ -57,6 +58,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
   onHandoffToLettering,
   isSubmitting = false,
 }) => {
+  const { t } = useTranslation('artist');
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
@@ -78,7 +80,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
       <div
         data-testid='badge-ink-upload-mode'
         className='sr-only'
-        title='Công đoạn Ink: Upload Line-art'
+        title={t('inkBar.stageBadgeTitle')}
       >
         <span>Upload Line-art</span>
       </div>
@@ -92,7 +94,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
           data-testid='btn-upload-ink-art'
           onClick={onTriggerUpload}
           disabled={isUploading}
-          title='Tải tệp ảnh Line-art/Ink hoàn thiện (PNG, JPG, WEBP) cho trang này'
+          title={t('inkBar.uploadTitle')}
           className={`h-7 px-3 flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 ${
             hasInkArtwork
               ? 'bg-indigo-100 hover:bg-indigo-200 text-indigo-950 border border-indigo-300'
@@ -108,10 +110,10 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
           )}
           <span>
             {isUploading
-              ? 'Đang tải...'
+              ? t('inkBar.uploading')
               : hasInkArtwork
-                ? `Line-art v${inkArtworkVersion ?? 1} (Tải bản mới)`
-                : '+ Tải ảnh Line-art'}
+                ? t('inkBar.uploadNewVersion', { version: inkArtworkVersion ?? 1 })
+                : t('inkBar.uploadLineArt')}
           </span>
         </button>
       )}
@@ -126,11 +128,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
             data-testid='btn-toggle-pencil-underlay'
             onClick={onTogglePencilUnderlay}
             disabled={!hasPencilArt}
-            title={
-              hasPencilArt
-                ? 'Ẩn / hiện chì nền để đối chiếu (Phím tắt: H)'
-                : 'Chưa có bản vẽ chì nền'
-            }
+            title={hasPencilArt ? t('inkBar.toggleUnderlayTitle') : t('inkBar.noPencilUnderlay')}
             className={`flex items-center gap-1 font-semibold cursor-pointer ${
               pencilUnderlayVisible && hasPencilArt
                 ? 'text-cyan-700 font-bold'
@@ -142,7 +140,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
             ) : (
               <EyeOff className='w-3 h-3' />
             )}
-            <span className='hidden sm:inline'>Chì nền (H):</span>
+            <span className='hidden sm:inline'>{t('inkBar.pencilUnderlayLabel')}</span>
           </button>
 
           <input
@@ -167,7 +165,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
           type='button'
           data-testid='btn-toggle-safe-zone'
           onClick={onToggleSafeZone}
-          title='Bật/tắt hiển thị khung an toàn in ấn: Live Area, Trim Line & Bleed'
+          title={t('inkBar.toggleSafeZoneTitle')}
           className={`h-7 flex items-center gap-1 px-2.5 rounded-lg border font-semibold text-[11px] cursor-pointer transition-colors ${
             safeZoneVisible
               ? 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold'
@@ -175,7 +173,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
           }`}
         >
           <ShieldCheck className='w-3 h-3 text-emerald-600' />
-          <span>Khung in</span>
+          <span>{t('inkBar.safeZoneButton')}</span>
         </button>
       </div>
       {/* Nút bàn giao sang Lettering test compatibility */}
@@ -184,10 +182,10 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
         data-testid='btn-handoff-ink-lettering-direct'
         onClick={onHandoffToLettering}
         disabled={isSubmitting}
-        title='Bàn giao nét mực sang Lettering'
+        title={t('inkBar.handoffTitle')}
         className='sr-only'
       >
-        <span>Bàn giao sang Lettering</span>
+        <span>{t('inkBar.handoffButton')}</span>
       </button>
     </div>
   );

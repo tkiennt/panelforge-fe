@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight, FileText, X } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import { resolveScriptLineMeta, type ScriptLineItem } from './ArtistCanvaSidebar';
 import type { PanelDto } from '@/types/pipeline';
 
@@ -34,6 +35,7 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
   onSelectPanel,
   isLoading = false,
 }) => {
+  const { t } = useTranslation('artist');
   // Lấy các dòng kịch bản của trang hiện tại (hoặc các dòng chưa gắn trang nếu trang chưa có dòng nào)
   const pageLines = useMemo(() => {
     const matched = scriptLines.filter((l) => l.pageNumber === pageNumber);
@@ -59,7 +61,10 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
           key,
           sceneNumber: line.sceneNumber,
           sceneTitle:
-            line.sceneTitle || (line.sceneNumber ? `Phân cảnh ${line.sceneNumber}` : 'Phân cảnh'),
+            line.sceneTitle ||
+            (line.sceneNumber
+              ? t('scriptRefSidebar.sceneNumbered', { sceneNumber: line.sceneNumber })
+              : t('scriptRefSidebar.sceneFallback')),
           sceneSlugline: line.sceneSlugline,
           lines: [line],
         });
@@ -68,7 +73,7 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
       }
     }
     return groups;
-  }, [pageLines]);
+  }, [pageLines, t]);
 
   const hasPanelFilter = Boolean(selectedPanelId || selectedPanelNumber);
 
@@ -93,8 +98,8 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
           type='button'
           onClick={onToggle}
           data-testid='artist-script-ref-toggle'
-          title='Mở kịch bản tham chiếu'
-          aria-label='Mở kịch bản tham chiếu'
+          title={t('scriptRefSidebar.openTitle')}
+          aria-label={t('scriptRefSidebar.openTitle')}
           className='w-8 h-8 rounded-lg border border-[#D8D2C5] bg-white hover:bg-stone-100 text-stone-700 flex items-center justify-center cursor-pointer transition-colors shadow-2xs'
         >
           <ChevronLeft className='w-4 h-4' />
@@ -103,11 +108,11 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
           type='button'
           onClick={onToggle}
           className='mt-3 flex flex-col items-center gap-1.5 text-stone-600 hover:text-stone-900 cursor-pointer'
-          title='Mở kịch bản tham chiếu'
+          title={t('scriptRefSidebar.openTitle')}
         >
           <FileText className='w-4 h-4 text-[#EA580C]' />
           <span className='text-[10px] font-mono font-bold uppercase tracking-widest [writing-mode:vertical-rl] rotate-180'>
-            Kịch bản · Trang {pageNumber}
+            {t('scriptRefSidebar.verticalLabel', { pageNumber })}
           </span>
         </button>
       </div>
@@ -117,7 +122,7 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
   return (
     <aside
       data-testid='artist-script-ref-sidebar'
-      aria-label='Kịch bản tham chiếu cho Họa sĩ'
+      aria-label={t('scriptRefSidebar.asideAria')}
       className='w-[300px] sm:w-[320px] h-full border-l border-[#D8D2C5] bg-[#FAF8F4] text-[#1C1917] flex flex-col shrink-0 z-20 select-none'
     >
       {/* Header thu gọn & lọc nhanh theo Khung */}
@@ -126,10 +131,10 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
           <div className='flex items-center gap-1.5 min-w-0'>
             <FileText className='w-3.5 h-3.5 text-[#EA580C] shrink-0' />
             <span className='text-xs font-bold uppercase tracking-wider text-stone-800 truncate'>
-              Kịch bản tham chiếu
+              {t('scriptRefSidebar.headerTitle')}
             </span>
             <span className='text-[10px] font-mono px-1.5 py-0.2 rounded bg-stone-200/80 text-stone-700 font-semibold shrink-0'>
-              Trang {pageNumber}
+              {t('scriptRefSidebar.pageBadge', { pageNumber })}
             </span>
           </div>
 
@@ -137,8 +142,8 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
             type='button'
             onClick={onToggle}
             data-testid='artist-script-ref-toggle'
-            title='Thu gọn kịch bản tham chiếu'
-            aria-label='Thu gọn kịch bản tham chiếu'
+            title={t('scriptRefSidebar.collapseTitle')}
+            aria-label={t('scriptRefSidebar.collapseTitle')}
             className='p-1 rounded-md hover:bg-stone-200/70 text-stone-500 hover:text-stone-800 cursor-pointer transition-colors'
           >
             <ChevronRight className='w-4 h-4' />
@@ -158,7 +163,7 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
                   : 'bg-stone-200/70 text-stone-600 hover:text-stone-900'
               }`}
             >
-              Cả trang
+              {t('scriptRefSidebar.allPage')}
             </button>
             {panels.map((pnl, idx) => {
               const pNum = pnl.panelNumber || pnl.readingOrder || idx + 1;
@@ -176,7 +181,7 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
                       : 'bg-stone-200/70 text-stone-700 hover:bg-stone-300/70'
                   }`}
                 >
-                  Khung #{pNum}
+                  {t('scriptRefSidebar.panelButton', { panelNum: pNum })}
                 </button>
               );
             })}
@@ -185,13 +190,15 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
 
         {hasPanelFilter && panels.length === 0 && (
           <div className='flex items-center justify-between text-[10px] font-mono text-[#C2410C]'>
-            <span>Đang lọc: Khung #{selectedPanelNumber || '?'}</span>
+            <span>
+              {t('scriptRefSidebar.filteringPanel', { panelNum: selectedPanelNumber || '?' })}
+            </span>
             <button
               type='button'
               onClick={() => onSelectPanel(null)}
               className='inline-flex items-center gap-0.5 underline cursor-pointer'
             >
-              <X className='w-3 h-3' /> Hiện tất cả
+              <X className='w-3 h-3' /> {t('scriptRefSidebar.showAll')}
             </button>
           </div>
         )}
@@ -203,16 +210,18 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
         className='flex-1 overflow-y-auto px-3.5 py-3 space-y-3 text-left select-text custom-scrollbar'
       >
         {isLoading && pageLines.length === 0 ? (
-          <p className='text-xs text-stone-500 italic py-6 text-center'>Đang tải kịch bản...</p>
+          <p className='text-xs text-stone-500 italic py-6 text-center'>
+            {t('scriptRefSidebar.loading')}
+          </p>
         ) : sceneGroups.length === 0 ? (
           <p className='text-xs text-stone-500 italic py-6 text-center'>
-            Trang {pageNumber} chưa có dòng kịch bản nào.
+            {t('scriptRefSidebar.emptyPage', { pageNumber })}
           </p>
         ) : (
           <>
             {isShowingUnpagedFallback && (
               <p className='text-[10px] font-mono text-stone-500 italic pb-1 border-b border-dashed border-[#DFD9CC]'>
-                Các dòng kịch bản của chương (chưa gán khung vào Trang {pageNumber}):
+                {t('scriptRefSidebar.unpagedFallback', { pageNumber })}
               </p>
             )}
 
@@ -261,7 +270,7 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
                               </span>
                             )}
                             <span className='font-mono text-[10px] font-bold uppercase tracking-wider text-stone-500 mr-1.5'>
-                              [Mô tả cảnh]
+                              {t('scriptRefSidebar.sceneDescriptionTag')}
                             </span>
                             <span className='italic text-stone-700'>{line.stageDirection}</span>
                           </p>

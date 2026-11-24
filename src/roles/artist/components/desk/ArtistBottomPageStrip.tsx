@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   LayoutGrid,
   Maximize2,
@@ -50,6 +51,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
   onToggleFullscreen,
   canEdit = true,
 }) => {
+  const { t } = useTranslation('artist');
   const selectedIndex = pages.findIndex((p) => p.id === selectedPageId);
   const activePageNumber = selectedIndex >= 0 ? pages[selectedIndex].pageNumber : 1;
   const totalPages = pages.length;
@@ -92,7 +94,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                         ? 'border-[#7C3AED] ring-2 ring-[#7C3AED]/35 shadow-sm scale-[1.02]'
                         : 'border-stone-300/80 hover:border-stone-400 hover:shadow-xs'
                     }`}
-                    aria-label={`Trang ${page.pageNumber}`}
+                    aria-label={t('bottomPageStrip.pageAria', { pageNumber: page.pageNumber })}
                   >
                     {/* Trang giấy trắng thu nhỏ tự nhiên theo chiều dọc */}
                     <div className='w-full h-full p-1.5 flex items-center justify-center pointer-events-none'>
@@ -105,7 +107,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                         {onDuplicatePage && (
                           <button
                             type='button'
-                            title='Nhân bản trang'
+                            title={t('bottomPageStrip.duplicatePageTitle')}
                             onClick={(e) => {
                               e.stopPropagation();
                               onDuplicatePage(page);
@@ -118,7 +120,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                         {onDeletePage && pages.length > 1 && (
                           <button
                             type='button'
-                            title='Xóa trang'
+                            title={t('bottomPageStrip.deletePageTitle')}
                             onClick={(e) => {
                               e.stopPropagation();
                               onDeletePage(page.id);
@@ -150,15 +152,15 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                 <button
                   type='button'
                   onClick={onAddPage}
-                  title='Thêm trang mới'
+                  title={t('bottomPageStrip.addPageTitle')}
                   data-testid='canva-add-page-btn'
                   className='w-[58px] h-[82px] rounded-[3px] border border-dashed border-stone-400/80 hover:border-[#7C3AED] hover:bg-violet-50/40 text-stone-500 hover:text-[#7C3AED] flex flex-col items-center justify-center gap-1 cursor-pointer transition-all duration-200'
                 >
                   <Plus className='w-4 h-4' />
                   <span className='text-[10px] font-semibold leading-tight text-center px-1'>
-                    Thêm
+                    {t('bottomPageStrip.addLine1')}
                     <br />
-                    trang
+                    {t('bottomPageStrip.addLine2')}
                   </span>
                 </button>
                 <span className='text-xs text-transparent select-none'>+</span>
@@ -180,7 +182,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
               type='button'
               onClick={() => onZoomChange(Math.max(0.3, zoomScale - 0.1))}
               className='p-1 rounded hover:bg-stone-300/40 text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors'
-              title='Thu nhỏ'
+              title={t('bottomPageStrip.zoomOutTitle')}
             >
               <ZoomOut className='w-3.5 h-3.5' />
             </button>
@@ -193,14 +195,14 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
               value={zoomScale}
               onChange={(e) => onZoomChange(parseFloat(e.target.value))}
               className='w-16 sm:w-24 h-1.5 bg-stone-300/70 rounded-lg appearance-none cursor-pointer accent-[#7C3AED]'
-              title='Phóng to / thu nhỏ trang vẽ'
+              title={t('bottomPageStrip.zoomSliderTitle')}
             />
 
             <button
               type='button'
               onClick={() => onZoomChange(Math.min(2.0, zoomScale + 0.1))}
               className='p-1 rounded hover:bg-stone-300/40 text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors'
-              title='Phóng to'
+              title={t('bottomPageStrip.zoomInTitle')}
             >
               <ZoomIn className='w-3.5 h-3.5' />
             </button>
@@ -222,10 +224,14 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                 ? 'bg-[#7C3AED]/10 text-[#7C3AED] font-semibold'
                 : 'hover:bg-stone-300/40 text-[#57534E] hover:text-[#1C1917]'
             }`}
-            title={isFilmstripOpen ? 'Thu gọn hàng trang' : 'Mở hàng trang'}
+            title={
+              isFilmstripOpen
+                ? t('bottomPageStrip.collapseFilmstrip')
+                : t('bottomPageStrip.expandFilmstrip')
+            }
           >
             <LayoutGrid className='w-3.5 h-3.5' />
-            <span>Trang</span>
+            <span>{t('bottomPageStrip.pagesLabel')}</span>
             {isFilmstripOpen ? (
               <ChevronDown className='w-3 h-3 opacity-70' />
             ) : (
@@ -247,7 +253,9 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
               type='button'
               onClick={onToggleFullscreen}
               className='p-1 rounded hover:bg-stone-300/40 text-[#57534E] hover:text-[#1C1917] transition-colors cursor-pointer'
-              title={isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
+              title={
+                isFullscreen ? t('bottomPageStrip.exitFullscreen') : t('bottomPageStrip.fullscreen')
+              }
             >
               {isFullscreen ? (
                 <Minimize2 className='w-3.5 h-3.5' />

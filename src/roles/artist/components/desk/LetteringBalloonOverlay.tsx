@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   Copy,
   Trash2,
@@ -42,6 +43,7 @@ const SelectedChrome: React.FC<{
   onCopy: (el: ElementSnapshotDto) => void;
   onDelete: (id: string) => void;
 }> = ({ element, label, nearTop, nearRight, onScale, onCopy, onDelete }) => {
+  const { t } = useTranslation('artist');
   const [open, setOpen] = React.useState(false);
   const id = element.elementId;
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
@@ -62,7 +64,7 @@ const SelectedChrome: React.FC<{
         <button
           type='button'
           data-testid={`lettering-menu-${id}`}
-          aria-label='Thao tác bóng thoại'
+          aria-label={t('balloonOverlay.actionsAria')}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
           className='w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-stone-200 shadow-sm text-stone-600 hover:text-stone-900 cursor-pointer'
@@ -80,7 +82,7 @@ const SelectedChrome: React.FC<{
               className={MENU_ITEM}
               onClick={() => onScale(id, 1.15)}
             >
-              <ZoomIn className='w-3.5 h-3.5' aria-hidden='true' /> Phóng to
+              <ZoomIn className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.zoomIn')}
             </button>
             <button
               type='button'
@@ -88,7 +90,7 @@ const SelectedChrome: React.FC<{
               className={MENU_ITEM}
               onClick={() => onScale(id, 0.85)}
             >
-              <ZoomOut className='w-3.5 h-3.5' aria-hidden='true' /> Thu nhỏ
+              <ZoomOut className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.zoomOut')}
             </button>
             <button
               type='button'
@@ -99,7 +101,7 @@ const SelectedChrome: React.FC<{
                 setOpen(false);
               }}
             >
-              <Copy className='w-3.5 h-3.5' aria-hidden='true' /> Sao chép
+              <Copy className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.copy')}
             </button>
             <button
               type='button'
@@ -107,7 +109,7 @@ const SelectedChrome: React.FC<{
               className={`${MENU_ITEM} text-rose-600 hover:bg-rose-50`}
               onClick={() => onDelete(id)}
             >
-              <Trash2 className='w-3.5 h-3.5' aria-hidden='true' /> Xóa thoại
+              <Trash2 className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.delete')}
             </button>
           </div>
         )}
@@ -206,77 +208,83 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
   onResizeStart,
   onResizeMove,
   onResizeEnd,
-}) => (
-  <div data-testid='canvas-lettering-overlay' className='absolute inset-0 z-25 pointer-events-none'>
-    {elements.map((b, idx) => {
-      const isSelected = selectedId === b.elementId;
-      const isActive = activeGestureId === b.elementId;
+}) => {
+  const { t } = useTranslation('artist');
+  return (
+    <div
+      data-testid='canvas-lettering-overlay'
+      className='absolute inset-0 z-25 pointer-events-none'
+    >
+      {elements.map((b, idx) => {
+        const isSelected = selectedId === b.elementId;
+        const isActive = activeGestureId === b.elementId;
 
-      return (
-        <div
-          key={b.elementId}
-          data-testid={`lettering-element-${b.elementId}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect(b.elementId);
-          }}
-          onPointerDown={(e) => !readOnly && onDragStart(e, b.elementId)}
-          onPointerMove={!readOnly ? onDragMove : undefined}
-          onPointerUp={!readOnly ? onDragEnd : undefined}
-          className={`absolute pointer-events-auto ${readOnly ? 'cursor-default' : 'cursor-move'} select-none touch-none ${
-            isActive ? 'z-40 shadow-lg' : 'transition-shadow'
-          } ${isSelected ? 'ring-2 ring-orange-500 z-30' : 'z-20 hover:ring-1 hover:ring-orange-400'}`}
-          style={{
-            left: `${(b.x / pageWidth) * 100}%`,
-            top: `${(b.y / pageHeight) * 100}%`,
-            width: `${(b.width / pageWidth) * 100}%`,
-            height: `${(b.height / pageHeight) * 100}%`,
-          }}
-        >
-          {isSelected && !readOnly && (
-            <SelectedChrome
-              element={b}
-              label={`Thoại ${b.readingOrder ?? idx + 1}`}
-              nearTop={b.y / pageHeight < 0.07}
-              nearRight={(b.x + b.width) / pageWidth > 0.9}
-              onScale={onScale}
-              onCopy={onCopy}
-              onDelete={onDelete}
-            />
-          )}
-
-          {isSelected &&
-            !readOnly &&
-            HANDLES.map((h) => (
-              <div
-                key={h.id}
-                data-testid={`lettering-resize-${h.id}-${b.elementId}`}
-                onPointerDown={(e) => onResizeStart(e, b.elementId, h.id)}
-                onPointerMove={onResizeMove}
-                onPointerUp={onResizeEnd}
-                className={`absolute ${h.position} ${h.cursor} w-4 h-4 bg-white border-2 border-orange-500 rounded-full z-40 pointer-events-auto touch-none`}
-                title='Kéo để thay đổi kích thước'
+        return (
+          <div
+            key={b.elementId}
+            data-testid={`lettering-element-${b.elementId}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(b.elementId);
+            }}
+            onPointerDown={(e) => !readOnly && onDragStart(e, b.elementId)}
+            onPointerMove={!readOnly ? onDragMove : undefined}
+            onPointerUp={!readOnly ? onDragEnd : undefined}
+            className={`absolute pointer-events-auto ${readOnly ? 'cursor-default' : 'cursor-move'} select-none touch-none ${
+              isActive ? 'z-40 shadow-lg' : 'transition-shadow'
+            } ${isSelected ? 'ring-2 ring-orange-500 z-30' : 'z-20 hover:ring-1 hover:ring-orange-400'}`}
+            style={{
+              left: `${(b.x / pageWidth) * 100}%`,
+              top: `${(b.y / pageHeight) * 100}%`,
+              width: `${(b.width / pageWidth) * 100}%`,
+              height: `${(b.height / pageHeight) * 100}%`,
+            }}
+          >
+            {isSelected && !readOnly && (
+              <SelectedChrome
+                element={b}
+                label={t('balloonOverlay.labelPrefix', { order: b.readingOrder ?? idx + 1 })}
+                nearTop={b.y / pageHeight < 0.07}
+                nearRight={(b.x + b.width) / pageWidth > 0.9}
+                onScale={onScale}
+                onCopy={onCopy}
+                onDelete={onDelete}
               />
-            ))}
+            )}
 
-          <BalloonShape element={b} activeLang={activeLang} />
+            {isSelected &&
+              !readOnly &&
+              HANDLES.map((h) => (
+                <div
+                  key={h.id}
+                  data-testid={`lettering-resize-${h.id}-${b.elementId}`}
+                  onPointerDown={(e) => onResizeStart(e, b.elementId, h.id)}
+                  onPointerMove={onResizeMove}
+                  onPointerUp={onResizeEnd}
+                  className={`absolute ${h.position} ${h.cursor} w-4 h-4 bg-white border-2 border-orange-500 rounded-full z-40 pointer-events-auto touch-none`}
+                  title={t('balloonOverlay.resizeTitle')}
+                />
+              ))}
 
-          {!isSelected && (
-            <span className='absolute -top-2 -left-2 z-20 min-w-5 h-5 px-1 rounded-full bg-stone-900 text-white font-mono text-xs font-bold flex items-center justify-center'>
-              #{b.readingOrder ?? idx + 1}
-            </span>
-          )}
+            <BalloonShape element={b} activeLang={activeLang} />
 
-          {b.isStale && (
-            <span
-              className='absolute -top-2.5 right-2 z-30 px-1 py-0.2 rounded bg-amber-500 text-stone-900 text-[10px] font-bold flex items-center gap-0.5 shadow-sm'
-              title='Kịch bản đã đổi sau khi đặt bóng (BR-05 / isStale)'
-            >
-              <AlertTriangle className='w-2.5 h-2.5' /> Sửa kịch bản
-            </span>
-          )}
-        </div>
-      );
-    })}
-  </div>
-);
+            {!isSelected && (
+              <span className='absolute -top-2 -left-2 z-20 min-w-5 h-5 px-1 rounded-full bg-stone-900 text-white font-mono text-xs font-bold flex items-center justify-center'>
+                #{b.readingOrder ?? idx + 1}
+              </span>
+            )}
+
+            {b.isStale && (
+              <span
+                className='absolute -top-2.5 right-2 z-30 px-1 py-0.2 rounded bg-amber-500 text-stone-900 text-[10px] font-bold flex items-center gap-0.5 shadow-sm'
+                title={t('balloonOverlay.staleTitle')}
+              >
+                <AlertTriangle className='w-2.5 h-2.5' /> {t('balloonOverlay.staleBadge')}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};

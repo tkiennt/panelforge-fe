@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import type { PageDto } from '@/services/page.service';
 import {
   elementService,
@@ -82,6 +83,7 @@ export function useLetteringBalloons(
   activeLang?: string,
   originalLang: string = 'vi',
 ) {
+  const { t } = useTranslation('artist');
   const [elementsByPageId, setElementsByPageId] = useState<Record<string, ElementSnapshotDto[]>>(
     {},
   );
@@ -231,11 +233,11 @@ export function useLetteringBalloons(
 
   const notifyForbidden = useCallback(
     (err?: any) => {
-      const detail =
-        err?.message && err.message !== 'Bạn không có ô đang mở cho trang này' ? err.message : '';
-      toast.error?.('Bạn không có ô đang mở cho trang này', detail);
+      const forbiddenMsg = t('lettering.balloons.forbidden');
+      const detail = err?.message && err.message !== forbiddenMsg ? err.message : '';
+      toast.error?.(forbiddenMsg, detail);
     },
-    [toast],
+    [toast, t],
   );
 
   const scaleElement = useCallback(
@@ -343,8 +345,8 @@ export function useLetteringBalloons(
         }
         updatePageElements((list) => list.filter((item) => item.elementId !== id));
         toast.error?.(
-          'Không lưu được bóng thoại',
-          (err as Error)?.message || 'Thử lại sau ít phút.',
+          t('lettering.balloons.saveFailed'),
+          (err as Error)?.message || t('lettering.balloons.tryAgainLater'),
         );
       }
     },
@@ -357,15 +359,16 @@ export function useLetteringBalloons(
       updatePageElements,
       updateElement,
       toast,
+      t,
     ],
   );
 
   const copyElement = useCallback(
     (el: ElementSnapshotDto) => {
       setClipboard(el);
-      toast.info('Đã sao chép bóng thoại', 'Nhấn Ctrl+V để dán');
+      toast.info(t('lettering.balloons.copied'), t('lettering.balloons.copiedHint'));
     },
-    [toast],
+    [toast, t],
   );
 
   const addElement = async (
@@ -383,8 +386,8 @@ export function useLetteringBalloons(
     // Trang giả lập (chương chưa có trang thật trên server) không lưu được bóng
     if (pageId.startsWith('page-default-')) {
       toast.error?.(
-        'Trang chưa được tạo',
-        'Chương chưa có trang thật. Hãy tạo trang (Thêm trang / chọn mẫu khung) trước khi đặt bóng thoại.',
+        t('lettering.balloons.pageNotCreated'),
+        t('lettering.balloons.pageNotCreatedDesc'),
       );
       return;
     }
@@ -394,10 +397,10 @@ export function useLetteringBalloons(
     if (existing && !options?.allowDuplicate) {
       if (existing.pageId === pageId) setSelectedElementId(existing.elementId);
       toast.info(
-        'Dòng thoại đã có bóng',
+        t('lettering.balloons.alreadyHasBalloon'),
         existing.pageId === pageId
-          ? 'Đã chọn bóng đang gắn với dòng này.'
-          : 'Dòng này đã được đặt ở trang khác.',
+          ? t('lettering.balloons.alreadyHasBalloonSamePage')
+          : t('lettering.balloons.alreadyHasBalloonOtherPage'),
       );
       return;
     }
@@ -427,7 +430,7 @@ export function useLetteringBalloons(
     const id = newElementId();
     const pos = clampToPanel(x, y, w, h);
 
-    let content = 'Lời thoại mới...';
+    let content = t('lettering.balloons.defaultContent');
     if (scriptLine) {
       const classification = classifyScriptLine({
         dialogueText: scriptLine.dialogueText,
@@ -474,7 +477,7 @@ export function useLetteringBalloons(
         panelId: panel?.id,
       });
 
-      toast.success('Đã thêm bóng thoại', '');
+      toast.success(t('lettering.balloons.added'), '');
       if (res?.elementId && res.elementId !== id) {
         updateElement(id, (el) => ({ ...el, elementId: res.elementId, version: 1 }));
         setSelectedElementId((cur) => (cur === id ? res.elementId : cur));
@@ -488,7 +491,10 @@ export function useLetteringBalloons(
       }
       updatePageElements((list) => list.filter((item) => item.elementId !== id));
       setSelectedElementId((cur) => (cur === id ? null : cur));
-      toast.error?.('Không lưu được bóng thoại', (err as Error)?.message || 'Thử lại sau ít phút.');
+      toast.error?.(
+        t('lettering.balloons.saveFailed'),
+        (err as Error)?.message || t('lettering.balloons.tryAgainLater'),
+      );
     }
   };
 
@@ -510,8 +516,8 @@ export function useLetteringBalloons(
         // Nếu bóng đã gắn kịch bản (BR-05), không cho sửa chữ gốc tự do
         if (target.scriptLineId) {
           toast.info(
-            'Không sửa được chữ gốc',
-            'Bóng này gắn với dòng kịch bản đã duyệt (BR-05). Hãy sửa trong kịch bản, hoặc chọn ngôn ngữ dịch để nhập bản dịch.',
+            t('lettering.balloons.cannotEditOriginal'),
+            t('lettering.balloons.cannotEditOriginalDesc'),
           );
           return;
         }
@@ -535,10 +541,16 @@ export function useLetteringBalloons(
         } catch (err: any) {
           if (err?.response?.status === 409) {
             reloadElements();
-            toast.info('Đã tải lại', 'Phần tử vừa được chỉnh sửa từ nơi khác.');
+            toast.info(
+              t('lettering.balloons.reloaded'),
+              t('lettering.balloons.reloadedElementDesc'),
+            );
           } else {
             reloadElements();
-            toast.error?.('Không lưu được nội dung', err?.message || 'Thử lại sau ít phút.');
+            toast.error?.(
+              t('lettering.balloons.saveContentFailed'),
+              err?.message || t('lettering.balloons.tryAgainLater'),
+            );
           }
         }
       } else {
@@ -564,10 +576,16 @@ export function useLetteringBalloons(
         } catch (err: any) {
           if (err?.response?.status === 409) {
             reloadElements();
-            toast.info('Đã tải lại', 'Bản dịch vừa được chỉnh sửa từ nơi khác.');
+            toast.info(
+              t('lettering.balloons.reloaded'),
+              t('lettering.balloons.reloadedTranslationDesc'),
+            );
           } else {
             reloadElements();
-            toast.error?.('Không lưu được bản dịch', err?.message || 'Thử lại sau ít phút.');
+            toast.error?.(
+              t('lettering.balloons.saveTranslationFailed'),
+              err?.message || t('lettering.balloons.tryAgainLater'),
+            );
           }
         }
       }
@@ -582,6 +600,7 @@ export function useLetteringBalloons(
       updateElement,
       reloadElements,
       toast,
+      t,
     ],
   );
 
@@ -612,10 +631,13 @@ export function useLetteringBalloons(
       } catch (err: any) {
         if (err?.response?.status === 409) {
           reloadElements();
-          toast.info('Đã tải lại', 'Kiểu chữ vừa được chỉnh sửa từ nơi khác.');
+          toast.info(t('lettering.balloons.reloaded'), t('lettering.balloons.reloadedStyleDesc'));
         } else {
           reloadElements();
-          toast.error?.('Không lưu được kiểu chữ', err?.message || 'Thử lại sau ít phút.');
+          toast.error?.(
+            t('lettering.balloons.saveStyleFailed'),
+            err?.message || t('lettering.balloons.tryAgainLater'),
+          );
         }
       }
     },
@@ -627,6 +649,7 @@ export function useLetteringBalloons(
       updateElement,
       reloadElements,
       toast,
+      t,
     ],
   );
 
@@ -643,7 +666,7 @@ export function useLetteringBalloons(
       if (selectedPage?.id) {
         try {
           await elementService.removeElement(selectedPage.id, elementId, el?.version);
-          toast.info('Đã xóa bóng thoại', '');
+          toast.info(t('lettering.balloons.deleted'), '');
         } catch (err: any) {
           if (isForbiddenError(err)) {
             if (el) {
@@ -652,14 +675,14 @@ export function useLetteringBalloons(
             notifyForbidden(err);
             return;
           }
-          toast.info('Đã xóa bóng thoại', '');
+          toast.info(t('lettering.balloons.deleted'), '');
           console.warn('Xóa bóng thoại trên server thất bại:', err);
         }
       } else {
-        toast.info('Đã xóa bóng thoại', '');
+        toast.info(t('lettering.balloons.deleted'), '');
       }
     },
-    [readOnly, notifyForbidden, selectedPage?.id, pageElements, updatePageElements, toast],
+    [readOnly, notifyForbidden, selectedPage?.id, pageElements, updatePageElements, toast, t],
   );
 
   const onDragStart = (e: React.PointerEvent, elementId: string) => {
@@ -815,10 +838,10 @@ export function useLetteringBalloons(
         copyElement(selected);
       } else if (mod && key === 'v' && clipboard && selectedPage) {
         e.preventDefault();
-        appendCopy(clipboard, 'Đã dán bóng thoại');
+        appendCopy(clipboard, t('lettering.balloons.pasted'));
       } else if (mod && key === 'd' && selected) {
         e.preventDefault();
-        appendCopy(selected, 'Đã nhân bản bóng thoại');
+        appendCopy(selected, t('lettering.balloons.duplicated'));
       } else if (selectedElementId && (e.key === '+' || e.key === '=')) {
         e.preventDefault();
         scaleElement(selectedElementId, 1.15);
@@ -839,6 +862,7 @@ export function useLetteringBalloons(
     copyElement,
     appendCopy,
     scaleElement,
+    t,
   ]);
 
   return {

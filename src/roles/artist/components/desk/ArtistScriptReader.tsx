@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, FileText, ImageOff, Minus, Plus, Search, Volume2 } from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
+import { useTranslation } from '@/lib/i18n';
 import type { BibleEntityItem, ScriptLineItem, SidebarChapterOption } from './ArtistCanvaSidebar';
 
 type ScriptViewMode = 'current-page' | 'all';
@@ -44,14 +45,16 @@ function readFontStep(): number {
   }
 }
 
-function formatNarrationMode(mode?: string): string | null {
+function formatNarrationMode(mode?: string, t?: (key: string) => string): string | null {
   if (!mode || mode === 'Present') return null;
   const lower = mode.toLowerCase();
-  if (lower.includes('flashback')) return 'Hồi tưởng';
+  if (lower.includes('flashback')) return t ? t('scriptReader.narrationFlashback') : 'Hồi tưởng';
   if (lower.includes('inner') || lower.includes('monologue') || lower.includes('thought')) {
-    return 'Độc thoại nội tâm';
+    return t ? t('scriptReader.narrationInner') : 'Độc thoại nội tâm';
   }
-  if (lower.includes('voice') || lower.includes('narrat')) return 'Lời dẫn';
+  if (lower.includes('voice') || lower.includes('narrat')) {
+    return t ? t('scriptReader.narrationVoice') : 'Lời dẫn';
+  }
   return null;
 }
 
@@ -114,8 +117,9 @@ const EntityChip: React.FC<{ entity: BibleEntityItem }> = ({ entity }) => (
 );
 
 const ScriptLine: React.FC<{ line: ScriptLineItem; fontSize: number }> = ({ line, fontSize }) => {
+  const { t } = useTranslation('artist');
   const kind = lineKind(line);
-  const narrationMode = formatNarrationMode(line.narrationMode);
+  const narrationMode = formatNarrationMode(line.narrationMode, t);
   return (
     <div data-testid={`script-line-${line.id}`} className='space-y-1.5'>
       {line.stageDirection && (
@@ -137,7 +141,7 @@ const ScriptLine: React.FC<{ line: ScriptLineItem; fontSize: number }> = ({ line
       {line.dialogueText && kind === 'caption' && (
         <div className='border-l-2 border-[var(--sb-accent)] bg-[var(--sb-surface)] px-3 py-2'>
           <span className='mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--sb-muted)]'>
-            {narrationMode || 'Lời dẫn'}
+            {narrationMode || t('scriptReader.narrationVoice')}
           </span>
           <p className='font-serif leading-relaxed text-[var(--sb-text)]' style={{ fontSize }}>
             {line.dialogueText}
@@ -184,6 +188,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
   width,
   onWidthChange,
 }) => {
+  const { t } = useTranslation('artist');
   const [query, setQuery] = useState('');
   const [viewMode, setViewMode] = useState<ScriptViewMode>('current-page');
   const [fontStep, setFontStep] = useState(readFontStep);
@@ -267,7 +272,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
     >
       <div
         role='separator'
-        aria-label='Thay đổi chiều rộng trình đọc kịch bản'
+        aria-label={t('scriptReader.resizeAriaLabel')}
         aria-orientation='vertical'
         aria-valuemin={MIN_WIDTH}
         aria-valuemax={MAX_WIDTH}
@@ -292,7 +297,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
           <div className='min-w-0'>
             {chapters && chapters.length > 1 && onSelectChapter ? (
               <select
-                aria-label='Chọn chương'
+                aria-label={t('scriptReader.selectChapterAriaLabel')}
                 value={selectedChapterId || ''}
                 onChange={(event) => onSelectChapter(event.target.value)}
                 data-testid='canva-script-chapter-select'
@@ -300,23 +305,26 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
               >
                 {chapters.map((chapter) => (
                   <option key={chapter.id} value={chapter.id}>
-                    {`Chương ${chapter.chapterNumber}${chapter.title ? `: ${chapter.title}` : ''}`}
+                    {t('scriptReader.chapterOption', {
+                      number: chapter.chapterNumber,
+                      title: chapter.title ? `: ${chapter.title}` : '',
+                    })}
                   </option>
                 ))}
               </select>
             ) : (
               <h2 className='truncate text-sm font-bold text-[var(--sb-text)]'>
-                {chapterTitle || 'Kịch bản tham chiếu'}
+                {chapterTitle || t('scriptReader.fallbackTitle')}
               </h2>
             )}
             {isLoading && (
-              <span className='text-xs text-[var(--sb-muted)]'>Đang tải kịch bản…</span>
+              <span className='text-xs text-[var(--sb-muted)]'>{t('scriptReader.loading')}</span>
             )}
           </div>
           <div className='flex items-center rounded-md border border-[var(--sb-border)] bg-[var(--sb-bg)]'>
             <button
               type='button'
-              aria-label='Giảm cỡ chữ'
+              aria-label={t('scriptReader.decreaseFontAriaLabel')}
               disabled={fontStep === 0}
               onClick={() => changeFontStep(fontStep - 1)}
               className='p-1.5 text-[var(--sb-text)] disabled:opacity-35'
@@ -327,7 +335,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
             <span className='text-[11px] font-bold text-[var(--sb-muted)]'>A</span>
             <button
               type='button'
-              aria-label='Tăng cỡ chữ'
+              aria-label={t('scriptReader.increaseFontAriaLabel')}
               disabled={fontStep === FONT_STEPS.length - 1}
               onClick={() => changeFontStep(fontStep + 1)}
               className='p-1.5 text-[var(--sb-text)] disabled:opacity-35'
@@ -350,7 +358,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
                 : 'text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
             }`}
           >
-            Trang đang vẽ
+            {t('scriptReader.currentPage')}
           </button>
           <button
             type='button'
@@ -363,12 +371,12 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
                 : 'text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
             }`}
           >
-            Cả chương
+            {t('scriptReader.allChapter')}
           </button>
         </div>
 
         <label className='relative block'>
-          <span className='sr-only'>Tìm trong kịch bản</span>
+          <span className='sr-only'>{t('scriptReader.searchLabel')}</span>
           <Search
             className='absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--sb-muted)]'
             aria-hidden='true'
@@ -377,7 +385,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
             type='search'
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder='Tìm thoại, nhân vật, cảnh…'
+            placeholder={t('scriptReader.searchPlaceholder')}
             data-testid='canva-input-search-script'
             className='w-full rounded-lg border border-[var(--sb-border)] bg-[var(--sb-bg)] py-2 pl-8 pr-3 text-sm text-[var(--sb-text)] outline-none placeholder:text-[var(--sb-muted)] focus-visible:ring-2 focus-visible:ring-[var(--sb-accent)]'
           />
@@ -393,8 +401,8 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
             <FileText className='mx-auto mb-2 h-6 w-6' aria-hidden='true' />
             <p>
               {query
-                ? 'Không tìm thấy nội dung phù hợp.'
-                : `Trang ${activePageNumber} chưa có kịch bản.`}
+                ? t('scriptReader.noMatch')
+                : t('scriptReader.noScriptForPage', { page: activePageNumber })}
             </p>
             {viewMode === 'current-page' && !query && scriptLines.length > 0 && (
               <button
@@ -402,7 +410,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
                 onClick={() => setViewMode('all')}
                 className='mt-3 font-semibold text-[var(--sb-accent)] underline-offset-2 hover:underline'
               >
-                Xem cả chương
+                {t('scriptReader.viewAllChapter')}
               </button>
             )}
           </div>
@@ -449,7 +457,9 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
                     <div className='mb-2 border-b border-[var(--sb-border)] pb-2'>
                       <div className='text-xs font-bold uppercase tracking-wide text-[var(--sb-accent)]'>
                         {group.lines[0]?.sceneTitle ||
-                          `Phân cảnh ${group.lines[0]?.sceneNumber || ''}`}
+                          t('scriptReader.sceneFallback', {
+                            number: group.lines[0]?.sceneNumber || '',
+                          })}
                       </div>
                       {group.lines[0]?.sceneSlugline && (
                         <div className='mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--sb-muted)]'>
@@ -460,7 +470,9 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
                   )}
                   <div className='mb-3 flex items-center justify-between gap-2'>
                     <strong className='text-sm text-[var(--sb-text)]'>
-                      {group.panelNumber > 0 ? `Khung ${group.panelNumber}` : 'Chưa gán khung'}
+                      {group.panelNumber > 0
+                        ? t('scriptReader.panelLabel', { number: group.panelNumber })
+                        : t('scriptReader.unassignedPanel')}
                     </strong>
                     {group.panelNumber > 0 && group.pageNumber === activePageNumber && (
                       <span className='inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--sb-muted)]'>
@@ -472,7 +484,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
                         ) : (
                           <ImageOff className='h-3.5 w-3.5' aria-hidden='true' />
                         )}
-                        {hasArtwork ? 'Đã có tranh' : 'Chưa vẽ'}
+                        {hasArtwork ? t('scriptReader.hasArtwork') : t('scriptReader.notDrawn')}
                       </span>
                     )}
                   </div>
@@ -500,7 +512,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
             className='rounded-xl border border-dashed border-[var(--sb-border)] bg-[var(--sb-surface)] p-3'
           >
             <h3 className='mb-3 text-xs font-bold uppercase tracking-wide text-[var(--sb-muted)]'>
-              Phân cảnh chưa gán trang
+              {t('scriptReader.unpagedScenes')}
             </h3>
             <div className='space-y-3'>
               {groups.unpaged.map((line) => (

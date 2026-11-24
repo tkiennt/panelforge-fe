@@ -22,6 +22,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { CollapsibleSidebar, SidebarSection } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 export type PageStage = 'pencil' | 'ink' | 'lettering' | 'completed';
 
@@ -52,31 +53,31 @@ export interface ArtistPageSidebarProps {
 
 const STAGE_CONFIG: Record<
   PageStage,
-  { label: string; bg: string; text: string; border: string; dot: string }
+  { labelKey: string; bg: string; text: string; border: string; dot: string }
 > = {
   pencil: {
-    label: 'Chì',
+    labelKey: 'pageSidebar.stagePencil',
     bg: 'bg-amber-950/40',
     text: 'text-amber-300',
     border: 'border-amber-700/50',
     dot: 'bg-amber-400',
   },
   ink: {
-    label: 'Mực',
+    labelKey: 'pageSidebar.stageInk',
     bg: 'bg-cyan-950/40',
     text: 'text-cyan-300',
     border: 'border-cyan-700/50',
     dot: 'bg-cyan-400',
   },
   lettering: {
-    label: 'Thoại',
+    labelKey: 'pageSidebar.stageLettering',
     bg: 'bg-purple-950/40',
     text: 'text-purple-300',
     border: 'border-purple-700/50',
     dot: 'bg-purple-400',
   },
   completed: {
-    label: 'Hoàn tất',
+    labelKey: 'pageSidebar.stageCompleted',
     bg: 'bg-emerald-950/40',
     text: 'text-emerald-300',
     border: 'border-emerald-700/50',
@@ -106,6 +107,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
   isCollapsed,
   onToggleCollapse,
 }) => {
+  const { t } = useTranslation('artist');
   const [filterStage, setFilterStage] = useState<PageStage | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'thumbnail' | 'compact'>('thumbnail');
@@ -132,7 +134,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
     return (
       <CollapsibleSidebar
         collapsed
-        label='Quản lý trang'
+        label={t('pageSidebar.sidebarLabel')}
         data-testid='artist-page-sidebar-collapsed'
         className='bg-[#252526] border-r border-[#383838] flex flex-col items-center py-2 select-none z-20 transition-all duration-200'
       >
@@ -140,7 +142,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
         <button
           type='button'
           onClick={onToggleCollapse}
-          title='Mở rộng bảng quản lý trang (Phím [)'
+          title={t('pageSidebar.expandTitle')}
           data-testid='btn-expand-sidebar'
           className='w-8 h-8 flex items-center justify-center rounded-xs text-[#CCCCCC] hover:text-white hover:bg-[#3E3E42] transition-colors mb-2'
         >
@@ -151,7 +153,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
 
         {/* Biểu tượng Tab Pages */}
         <div
-          title='Trang bản vẽ (Photoshop Pages)'
+          title={t('pageSidebar.pagesTabTitle')}
           className='w-8 h-8 flex items-center justify-center text-[#CCCCCC]/70 mb-2'
         >
           <Layers className='w-4 h-4' />
@@ -160,7 +162,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
         {/* Danh sách trang dạng mini strip */}
         <SidebarSection
           collapsed
-          label='Trang'
+          label={t('pageSidebar.pagesSectionLabel')}
           className='flex-1 w-full overflow-y-auto overflow-x-hidden flex flex-col items-center gap-1.5 px-1 py-1 scrollbar-thin scrollbar-thumb-[#3E3E42]'
         >
           {pages.map((p) => {
@@ -170,7 +172,11 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                 key={p.id}
                 type='button'
                 onClick={() => onSelectPage(p.id)}
-                title={`Trang ${p.pageNumber}: ${p.title} (${STAGE_CONFIG[p.stage].label})`}
+                title={t('pageSidebar.miniPageTitle', {
+                  page: p.pageNumber,
+                  title: p.title,
+                  stage: t(STAGE_CONFIG[p.stage].labelKey),
+                })}
                 data-testid={`mini-page-btn-${p.pageNumber}`}
                 className={`w-8 h-10 rounded-xs flex flex-col items-center justify-center border text-[10px] font-mono relative transition-all ${
                   isSelected
@@ -192,7 +198,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
         <button
           type='button'
           onClick={onAddPage}
-          title='Tạo trang mới (+)'
+          title={t('pageSidebar.addPageTitle')}
           data-testid='btn-add-page-collapsed'
           className='w-8 h-8 flex items-center justify-center rounded-xs text-[#CCCCCC] hover:text-white hover:bg-[#3E3E42] transition-colors'
         >
@@ -206,7 +212,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
   return (
     <CollapsibleSidebar
       collapsed={false}
-      label='Quản lý trang'
+      label={t('pageSidebar.sidebarLabel')}
       data-testid='artist-page-sidebar'
       className='bg-[#252526] text-[#CCCCCC] border-r border-[#383838] flex flex-col h-full select-none z-20 font-sans shadow-lg'
     >
@@ -215,7 +221,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
         <div className='flex items-center gap-2'>
           <Layers className='w-3.5 h-3.5 text-[#007ACC]' />
           <span className='text-[11px] font-bold tracking-wider uppercase text-[#CCCCCC]'>
-            QUẢN LÝ TRANG
+            {t('pageSidebar.headerTitle')}
           </span>
           <span className='text-[10px] bg-[#1E1E1E] border border-[#3E3E42] text-[#858585] px-1.5 py-0.2 rounded-xs font-mono'>
             {pages.length}
@@ -227,7 +233,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
           <button
             type='button'
             onClick={() => setIsFlyoutOpen((prev) => !prev)}
-            title='Tuỳ chọn bảng trang'
+            title={t('pageSidebar.flyoutTitle')}
             data-testid='btn-panel-flyout'
             className='w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#3E3E42] text-[#CCCCCC] hover:text-white transition-colors'
           >
@@ -238,7 +244,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
           <button
             type='button'
             onClick={onToggleCollapse}
-            title='Thu gọn bảng trang (Phím [)'
+            title={t('pageSidebar.collapseTitle')}
             data-testid='btn-collapse-sidebar'
             className='w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#3E3E42] text-[#CCCCCC] hover:text-white transition-colors'
           >
@@ -259,7 +265,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                 }}
                 className='w-full text-left px-3 py-1.5 hover:bg-[#094771] hover:text-white flex items-center gap-2 text-[#CCCCCC]'
               >
-                <Plus className='w-3.5 h-3.5' /> Tạo trang mới
+                <Plus className='w-3.5 h-3.5' /> {t('pageSidebar.addPage')}
               </button>
               {selectedPage && (
                 <>
@@ -271,7 +277,8 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                     }}
                     className='w-full text-left px-3 py-1.5 hover:bg-[#094771] hover:text-white flex items-center gap-2 text-[#CCCCCC]'
                   >
-                    <Copy className='w-3.5 h-3.5' /> Nhân bản Trang {selectedPage.pageNumber}
+                    <Copy className='w-3.5 h-3.5' />{' '}
+                    {t('pageSidebar.duplicatePageNumber', { page: selectedPage.pageNumber })}
                   </button>
                   <button
                     type='button'
@@ -281,13 +288,14 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                     }}
                     className='w-full text-left px-3 py-1.5 hover:bg-rose-900/60 hover:text-rose-200 flex items-center gap-2 text-rose-400'
                   >
-                    <Trash2 className='w-3.5 h-3.5' /> Xoá Trang {selectedPage.pageNumber}
+                    <Trash2 className='w-3.5 h-3.5' />{' '}
+                    {t('pageSidebar.deletePageNumber', { page: selectedPage.pageNumber })}
                   </button>
                 </>
               )}
               <div className='my-1 border-t border-[#2D2D30]' />
               <div className='px-3 py-1 text-[10px] text-[#858585] uppercase tracking-wider font-semibold'>
-                Chế độ hiển thị
+                {t('pageSidebar.viewModeHeader')}
               </div>
               <button
                 type='button'
@@ -299,7 +307,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                   viewMode === 'thumbnail' ? 'text-[#007ACC] font-medium' : 'text-[#CCCCCC]'
                 }`}
               >
-                <span>Xem ảnh thu nhỏ</span>
+                <span>{t('pageSidebar.viewThumbnails')}</span>
                 {viewMode === 'thumbnail' && <CheckCircle2 className='w-3 h-3' />}
               </button>
               <button
@@ -312,7 +320,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                   viewMode === 'compact' ? 'text-[#007ACC] font-medium' : 'text-[#CCCCCC]'
                 }`}
               >
-                <span>Xem danh sách rút gọn</span>
+                <span>{t('pageSidebar.viewCompact')}</span>
                 {viewMode === 'compact' && <CheckCircle2 className='w-3 h-3' />}
               </button>
             </div>
@@ -330,7 +338,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
               type='text'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder='Tìm trang...'
+              placeholder={t('pageSidebar.searchPlaceholder')}
               data-testid='input-search-pages'
               className='w-full h-7 bg-[#252526] border border-[#3E3E42] rounded-xs pl-7 pr-2 text-[11px] text-[#CCCCCC] placeholder-[#858585] focus:outline-none focus:border-[#007ACC]'
             />
@@ -340,7 +348,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
             <button
               type='button'
               onClick={() => setViewMode('thumbnail')}
-              title='Xem dạng ô ảnh (Thumbnails)'
+              title={t('pageSidebar.viewThumbnailTitle')}
               data-testid='btn-view-thumbnail'
               className={`w-5 h-5 flex items-center justify-center rounded-xs transition-colors ${
                 viewMode === 'thumbnail'
@@ -353,7 +361,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
             <button
               type='button'
               onClick={() => setViewMode('compact')}
-              title='Xem dạng danh sách (List)'
+              title={t('pageSidebar.viewCompactTitle')}
               data-testid='btn-view-compact'
               className={`w-5 h-5 flex items-center justify-center rounded-xs transition-colors ${
                 viewMode === 'compact'
@@ -370,7 +378,8 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
         <div className='flex items-center gap-1 overflow-x-auto py-0.5 text-[10px] scrollbar-none'>
           {(['all', 'pencil', 'ink', 'lettering', 'completed'] as const).map((stage) => {
             const isActive = filterStage === stage;
-            const label = stage === 'all' ? 'Tất cả' : STAGE_CONFIG[stage].label;
+            const label =
+              stage === 'all' ? t('pageSidebar.filterAll') : t(STAGE_CONFIG[stage].labelKey);
             return (
               <button
                 key={stage}
@@ -398,7 +407,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
         {filteredPages.length === 0 ? (
           <div className='py-8 text-center text-[#858585] text-[11px] flex flex-col items-center justify-center'>
             <FileText className='w-6 h-6 mb-1 text-[#858585]/60' />
-            <span>Không tìm thấy trang nào</span>
+            <span>{t('pageSidebar.noPagesFound')}</span>
           </div>
         ) : (
           filteredPages.map((page) => {
@@ -426,7 +435,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                         e.stopPropagation();
                         onToggleVisibility(page.id);
                       }}
-                      title={page.isVisible ? 'Ẩn trang' : 'Hiện trang'}
+                      title={page.isVisible ? t('pageSidebar.hidePage') : t('pageSidebar.showPage')}
                       className='text-[#858585] hover:text-white shrink-0'
                       data-testid={`btn-eye-${page.pageNumber}`}
                     >
@@ -448,7 +457,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                     <span
                       className={`text-[9px] px-1 py-0.2 rounded-xs border ${stageMeta.bg} ${stageMeta.text} ${stageMeta.border}`}
                     >
-                      {stageMeta.label}
+                      {t(stageMeta.labelKey)}
                     </span>
                   </div>
                 </div>
@@ -475,7 +484,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                       e.stopPropagation();
                       onToggleVisibility(page.id);
                     }}
-                    title={page.isVisible ? 'Ẩn trang' : 'Hiện trang'}
+                    title={page.isVisible ? t('pageSidebar.hidePage') : t('pageSidebar.showPage')}
                     className='text-[#858585] hover:text-white transition-colors'
                     data-testid={`btn-eye-${page.pageNumber}`}
                   >
@@ -500,7 +509,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                   {page.thumbnailUrl ? (
                     <img
                       src={page.thumbnailUrl}
-                      alt={`Trang ${page.pageNumber}`}
+                      alt={t('pageSidebar.pageAlt', { page: page.pageNumber })}
                       className='w-full h-full object-cover'
                     />
                   ) : (
@@ -529,22 +538,22 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                   <div>
                     <div className='flex items-center justify-between gap-1'>
                       <span className='text-[11px] font-semibold truncate'>
-                        Trang {page.pageNumber}
+                        {t('pageSidebar.pageLabel', { page: page.pageNumber })}
                       </span>
                       <span
                         className={`text-[9px] px-1 py-0.2 rounded-xs border font-medium ${stageMeta.bg} ${stageMeta.text} ${stageMeta.border}`}
                       >
-                        {stageMeta.label}
+                        {t(stageMeta.labelKey)}
                       </span>
                     </div>
 
                     <p className='text-[10px] text-[#858585] truncate mt-0.5'>
-                      {page.title || 'Chưa đặt tiêu đề'}
+                      {page.title || t('pageSidebar.untitled')}
                     </p>
                   </div>
 
                   <div className='flex items-center justify-between text-[9px] text-[#858585] mt-1'>
-                    <span>{page.panelsCount} khung</span>
+                    <span>{t('pageSidebar.panelsCount', { count: page.panelsCount })}</span>
                     <span>{page.format || 'B5 Master'}</span>
                   </div>
                 </div>
@@ -557,7 +566,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                       e.stopPropagation();
                       onDuplicatePage(page.id);
                     }}
-                    title='Nhân bản trang'
+                    title={t('pageSidebar.duplicatePageTitle')}
                     data-testid={`btn-quick-duplicate-${page.pageNumber}`}
                     className='w-4 h-4 flex items-center justify-center text-[#CCCCCC] hover:text-white hover:bg-[#3E3E42] rounded-xs'
                   >
@@ -569,7 +578,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                       e.stopPropagation();
                       onDeletePage(page.id);
                     }}
-                    title='Xoá trang'
+                    title={t('pageSidebar.deletePageTitle')}
                     data-testid={`btn-quick-delete-${page.pageNumber}`}
                     className='w-4 h-4 flex items-center justify-center text-rose-400 hover:text-rose-200 hover:bg-rose-900/60 rounded-xs'
                   >
@@ -589,7 +598,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
           type='button'
           disabled={!selectedPage || pages.length <= 1}
           onClick={() => selectedPage && onDeletePage(selectedPage.id)}
-          title='Xoá trang đang chọn (Trash)'
+          title={t('pageSidebar.footerDeleteTitle')}
           data-testid='btn-footer-delete'
           className='w-6 h-6 flex items-center justify-center rounded-xs text-[#858585] hover:text-rose-400 hover:bg-[#3E3E42] disabled:opacity-30 disabled:pointer-events-none transition-colors'
         >
@@ -602,7 +611,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
             type='button'
             disabled={!selectedPage || selectedPageIndex === 0}
             onClick={() => selectedPage && onMovePage(selectedPage.id, 'up')}
-            title='Di chuyển trang lên trên'
+            title={t('pageSidebar.footerMoveUpTitle')}
             data-testid='btn-footer-move-up'
             className='w-6 h-6 flex items-center justify-center rounded-xs text-[#858585] hover:text-white hover:bg-[#3E3E42] disabled:opacity-30 disabled:pointer-events-none transition-colors'
           >
@@ -614,7 +623,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
             type='button'
             disabled={!selectedPage || selectedPageIndex === pages.length - 1}
             onClick={() => selectedPage && onMovePage(selectedPage.id, 'down')}
-            title='Di chuyển trang xuống dưới'
+            title={t('pageSidebar.footerMoveDownTitle')}
             data-testid='btn-footer-move-down'
             className='w-6 h-6 flex items-center justify-center rounded-xs text-[#858585] hover:text-white hover:bg-[#3E3E42] disabled:opacity-30 disabled:pointer-events-none transition-colors'
           >
@@ -626,7 +635,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
             type='button'
             disabled={!selectedPage}
             onClick={() => selectedPage && onDuplicatePage(selectedPage.id)}
-            title='Nhân bản trang đang chọn'
+            title={t('pageSidebar.footerDuplicateTitle')}
             data-testid='btn-footer-duplicate'
             className='w-6 h-6 flex items-center justify-center rounded-xs text-[#858585] hover:text-white hover:bg-[#3E3E42] disabled:opacity-30 disabled:pointer-events-none transition-colors'
           >
@@ -638,7 +647,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
         <button
           type='button'
           onClick={onAddPage}
-          title='Tạo trang mới (+)'
+          title={t('pageSidebar.addPageTitle')}
           data-testid='btn-footer-add-page'
           className='w-6 h-6 flex items-center justify-center rounded-xs bg-[#007ACC] hover:bg-[#0062A3] text-white transition-colors shadow-xs'
         >

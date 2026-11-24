@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   Sparkles,
   Calendar,
@@ -36,6 +37,7 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
   onUpdateStage,
   onShowToast,
 }) => {
+  const { t } = useTranslation('artist');
   const [noteText, setNoteText] = useState('');
   const [comments, setComments] = useState<string[]>(() => [
     card?.editorialNote
@@ -62,14 +64,14 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
       isOpen={Boolean(card)}
       onClose={onClose}
       size='lg'
-      closeLabel='Đóng'
+      closeLabel={t('common.close')}
       title={
         <div className='flex items-center gap-2.5'>
           <span className='px-2.5 py-1 rounded-lg bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] font-mono text-xs font-bold shadow-2xs'>
             {card.pageNumber}
           </span>
           <span className='text-xs font-mono text-[#57534E] font-medium'>
-            {card.pageType} • Chi Tiết Phân Cảnh
+            {t('pageDetailModal.sceneDetails', { pageType: card.pageType })}
           </span>
         </div>
       }
@@ -78,8 +80,8 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
           <button
             onClick={() => {
               onShowToast(
-                'Duyệt Trang Thành Công',
-                `${card.pageNumber} đã được ký duyệt bản in Tankōbon.`,
+                t('pageDetailModal.approveToastTitle'),
+                t('pageDetailModal.approveToastDesc', { pageNumber: card.pageNumber }),
               );
               handleStageChange('approved');
               onClose();
@@ -87,13 +89,13 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
             className='px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-soft-sm transition-all cursor-pointer flex items-center gap-1.5 active:scale-95'
           >
             <CheckCircle className='w-3.5 h-3.5' />
-            <span>Ký Duyệt &amp; Hoàn Tất Trang</span>
+            <span>{t('pageDetailModal.approveButton')}</span>
           </button>
           <button
             onClick={onClose}
             className='px-3.5 py-2 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E] text-xs font-semibold rounded-xl transition-colors cursor-pointer'
           >
-            Đóng
+            {t('common.close')}
           </button>
         </div>
       }
@@ -114,7 +116,10 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
                 {card.pageNumber}: {card.title}
               </div>
               <div className='text-xs text-[#57534E] mt-1 font-mono'>
-                Công đoạn: {card.stage.toUpperCase()} • Phụ trách: {card.assignee}
+                {t('pageDetailModal.stageAssignee', {
+                  stage: card.stage.toUpperCase(),
+                  assignee: card.assignee,
+                })}
               </div>
             </div>
           </div>
@@ -135,7 +140,7 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
           <div className='p-3.5 bg-rose-50/80 border border-rose-200 rounded-xl flex items-center justify-between'>
             <div className='flex items-center gap-2 text-xs text-rose-800 font-bold'>
               <AlertTriangle className='w-4 h-4 text-rose-600' />
-              <span>Trễ Hạn: {card.dueText}</span>
+              <span>{t('pageDetailModal.overdue', { dueText: card.dueText })}</span>
             </div>
             <span className='text-xs font-mono font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-md'>
               {card.overdueText}
@@ -146,7 +151,7 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
         {/* Stage Progression Selector */}
         <div>
           <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#57534E] mb-2'>
-            Chuyển Tiến Độ Công Đoạn (Pipeline Stage)
+            {t('pageDetailModal.pipelineStageLabel')}
           </label>
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
             {STAGES.map((s) => (
@@ -168,32 +173,32 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
         {/* Metadata Grid */}
         <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] text-xs font-mono'>
           <div className='flex items-center justify-between'>
-            <span className='text-[#57534E]'>Người Phụ Trách:</span>
+            <span className='text-[#57534E]'>{t('pageDetailModal.assigneeLabel')}</span>
             <strong className='text-[#1C1917]'>
               {card.assignee} ({card.assigneeRole})
             </strong>
           </div>
           <div className='flex items-center justify-between'>
-            <span className='text-[#57534E]'>Hạn Hoàn Tất:</span>
+            <span className='text-[#57534E]'>{t('pageDetailModal.dueDateLabel')}</span>
             <strong className='text-[#1C1917]'>{card.dueText}</strong>
           </div>
           <div className='flex items-center justify-between'>
-            <span className='text-[#57534E]'>Chế Độ Hỗ Trợ AI:</span>
+            <span className='text-[#57534E]'>{t('pageDetailModal.aiAssistLabel')}</span>
             <span className='text-[#C2410C] font-bold flex items-center gap-1'>
               <Sparkles className='w-3 h-3' />
               {card.aiAssistBadge || 'Standard Vector Check'}
             </span>
           </div>
           <div className='flex items-center justify-between'>
-            <span className='text-[#57534E]'>Trạng thái bản vẽ:</span>
-            <span className='text-emerald-700 font-bold'>Đã lưu an toàn</span>
+            <span className='text-[#57534E]'>{t('pageDetailModal.artworkStatusLabel')}</span>
+            <span className='text-emerald-700 font-bold'>{t('pageDetailModal.artworkSaved')}</span>
           </div>
         </div>
 
         {/* Comments & Editorial Feedback */}
         <div>
           <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#57534E] mb-2'>
-            Ghi Chú Biên Tập &amp; Yêu Cầu Chỉnh Sửa
+            {t('pageDetailModal.editorialNotesLabel')}
           </label>
           <div className='space-y-2 mb-3'>
             {comments.map((c, i) => (
@@ -209,7 +214,7 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
           <div className='flex items-center gap-2'>
             <input
               type='text'
-              placeholder='Nhập hướng dẫn biên tập hoặc phản hồi chỉnh sửa...'
+              placeholder={t('pageDetailModal.notePlaceholder')}
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
               onKeyDown={(e) => {
@@ -225,7 +230,7 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
               className='px-3.5 py-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm active:scale-95'
             >
               <Send className='w-3.5 h-3.5' />
-              <span>Gửi</span>
+              <span>{t('pageDetailModal.send')}</span>
             </button>
           </div>
         </div>

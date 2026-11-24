@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   Upload,
   Image as ImageIcon,
@@ -37,6 +38,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
   viewMode = 'panel',
   pageNumber = 1,
 }) => {
+  const { t } = useTranslation('artist');
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [draggingOverPanelId, setDraggingOverPanelId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -188,7 +190,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                     #{panel.panelNumber}
                   </span>
                   <span className='text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-white/90 text-stone-800 border border-stone-200 shadow-2xs'>
-                    Đọc #{panel.readingOrder}
+                    {t('artworkDropzone.readingOrder', { order: panel.readingOrder })}
                   </span>
                   {panel.cameraAngle && (
                     <span className='text-[9px] font-mono px-1 py-0.5 rounded bg-stone-100/90 text-stone-600 border border-stone-200 uppercase'>
@@ -203,7 +205,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                   <div className='w-full h-full relative group/img bg-stone-900/5'>
                     <img
                       src={panel.imageUrl}
-                      alt={`Artwork Khung #${panel.panelNumber}`}
+                      alt={t('artworkDropzone.artworkAlt', { panelNumber: panel.panelNumber })}
                       className='w-full h-full object-contain'
                     />
 
@@ -218,7 +220,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                     <div className='absolute inset-0 bg-stone-950/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-1.5 backdrop-blur-2xs z-30'>
                       <button
                         type='button'
-                        title='Đổi ảnh mới'
+                        title={t('artworkDropzone.replaceImageTitle')}
                         onClick={(e) => {
                           e.stopPropagation();
                           triggerFileInput(panel.id);
@@ -230,7 +232,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
 
                       <button
                         type='button'
-                        title='Phóng to xem chi tiết'
+                        title={t('artworkDropzone.zoomDetailTitle')}
                         onClick={(e) => {
                           e.stopPropagation();
                           onZoomArtwork?.(panel.id);
@@ -242,7 +244,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
 
                       <button
                         type='button'
-                        title='Xóa ảnh này'
+                        title={t('artworkDropzone.deleteImageTitle')}
                         onClick={(e) => {
                           e.stopPropagation();
                           onDeleteArtwork?.(panel.id);
@@ -260,7 +262,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                       <div className='flex flex-col items-center gap-1 text-orange-600 animate-pulse'>
                         <Upload className='w-6 h-6 stroke-[2]' />
                         <span className='text-xs font-bold font-sans'>
-                          Thả ảnh vào Khung #{panel.panelNumber}
+                          {t('artworkDropzone.dropIntoPanel', { panelNumber: panel.panelNumber })}
                         </span>
                       </div>
                     ) : (
@@ -271,9 +273,11 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
 
                         <div className='space-y-0.5'>
                           <p className='text-[11px] font-semibold text-stone-700'>
-                            Kéo thả ảnh vào đây
+                            {t('artworkDropzone.dragDropHere')}
                           </p>
-                          <p className='text-[9px] text-stone-400'>Hỗ trợ PNG, JPG, WebP</p>
+                          <p className='text-[9px] text-stone-400'>
+                            {t('artworkDropzone.supportedFormats')}
+                          </p>
                         </div>
 
                         <div className='flex items-center gap-1 pt-1'>
@@ -286,7 +290,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                             className='px-2 py-1 text-[10px] font-bold rounded bg-stone-900 hover:bg-orange-600 text-white transition-colors cursor-pointer shadow-2xs flex items-center gap-1'
                           >
                             <Upload className='w-3 h-3' />
-                            <span>+ Tải artwork</span>
+                            <span>{t('artworkDropzone.uploadArtwork')}</span>
                           </button>
 
                           <button
@@ -295,11 +299,11 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                               e.stopPropagation();
                               onSelectPanel(panel.id);
                             }}
-                            title='Dán ảnh từ Clipboard (Ctrl+V)'
+                            title={t('artworkDropzone.pasteTitle')}
                             className='px-2 py-1 text-[10px] font-medium rounded bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 transition-colors cursor-pointer shadow-2xs flex items-center gap-1'
                           >
                             <Clipboard className='w-3 h-3' />
-                            <span>Dán (Ctrl+V)</span>
+                            <span>{t('artworkDropzone.pasteButton')}</span>
                           </button>
                         </div>
                       </div>
@@ -314,7 +318,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
         {/* Page Footer Note */}
         <div className='text-center pt-2 border-t border-stone-100'>
           <span className='text-[9px] font-mono text-stone-400 uppercase tracking-widest'>
-            PanelForge Manga Production · Trang {pageNumber}
+            {t('artworkDropzone.footerNote', { pageNumber })}
           </span>
         </div>
       </div>
@@ -328,7 +332,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
         <button
           type='button'
           onClick={() => setZoomLevel((z) => Math.max(50, z - 10))}
-          title='Thu nhỏ canvas'
+          title={t('artworkDropzone.zoomOutTitle')}
           className='p-1.5 rounded-lg hover:bg-stone-100 active:bg-stone-200 transition-colors cursor-pointer'
         >
           <ZoomOut className='w-4 h-4' />
@@ -341,7 +345,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
         <button
           type='button'
           onClick={() => setZoomLevel((z) => Math.min(180, z + 10))}
-          title='Phóng to canvas'
+          title={t('artworkDropzone.zoomInTitle')}
           className='p-1.5 rounded-lg hover:bg-stone-100 active:bg-stone-200 transition-colors cursor-pointer'
         >
           <ZoomIn className='w-4 h-4' />
@@ -352,7 +356,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
         <button
           type='button'
           onClick={() => setZoomLevel(100)}
-          title='Khôi phục tỷ lệ 100%'
+          title={t('artworkDropzone.resetZoomTitle')}
           className='p-1.5 rounded-lg hover:bg-stone-100 active:bg-stone-200 transition-colors cursor-pointer text-xs font-mono font-semibold'
         >
           <Maximize2 className='w-3.5 h-3.5' />

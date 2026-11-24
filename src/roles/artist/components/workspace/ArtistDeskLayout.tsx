@@ -4,6 +4,7 @@ import { ScriptReaderPanel } from './ScriptReaderPanel';
 import { ArtworkCanvasDropzone } from './ArtworkCanvasDropzone';
 import { ImageViewerLightbox } from '@/shared/components/image-viewer/ImageViewerLightbox';
 import { ScriptLineItem, CanvasPanelItem, BibleCharacterRef, ViewMode } from './workspace.types';
+import { useTranslation } from '@/lib/i18n';
 
 // Realistic Manga Production Mock Data for demonstration and fallback
 const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
@@ -147,13 +148,14 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
   onBackToDashboard,
   onSubmitReview,
 }) => {
+  const { t } = useTranslation('artist');
   const [panels, setPanels] = useState<CanvasPanelItem[]>(initialPanels);
   const [scriptLines] = useState<ScriptLineItem[]>(initialScriptLines);
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>('panel-1');
   const [viewMode, setViewMode] = useState<ViewMode>('panel');
   const [pageNumber, setPageNumber] = useState<number>(currentPageNumber);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [saveTimestamp, setSaveTimestamp] = useState<string>('Vừa xong');
+  const [saveTimestamp, setSaveTimestamp] = useState<string>(() => t('deskLayout.justNow'));
   const [lightboxSlide, setLightboxSlide] = useState<{ src: string; title: string } | null>(null);
 
   const handleZoomArtwork = (panelId: string) => {
@@ -161,7 +163,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
     if (target?.imageUrl) {
       setLightboxSlide({
         src: target.imageUrl,
-        title: `Bản vẽ Khung #${target.panelNumber} (Trang ${pageNumber})`,
+        title: t('deskLayout.lightboxTitle', { panel: target.panelNumber, page: pageNumber }),
       });
     }
   };
@@ -180,12 +182,12 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
           : p,
       ),
     );
-    setSaveTimestamp('Vừa lưu');
+    setSaveTimestamp(t('deskLayout.justSaved'));
   };
 
   const handleDeleteArtwork = (panelId: string) => {
     setPanels((prev) => prev.map((p) => (p.id === panelId ? { ...p, imageUrl: null } : p)));
-    setSaveTimestamp('Vừa lưu');
+    setSaveTimestamp(t('deskLayout.justSaved'));
   };
 
   // Auto-sync script lines to panels based on reading order
@@ -193,7 +195,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
     setIsSyncing(true);
     setTimeout(() => {
       setIsSyncing(false);
-      setSaveTimestamp('Đã đồng bộ');
+      setSaveTimestamp(t('deskLayout.synced'));
     }, 600);
   };
 
@@ -215,7 +217,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
             <button
               type='button'
               onClick={onBackToDashboard}
-              title='Quay lại Dashboard'
+              title={t('deskLayout.backToDashboard')}
               className='p-1 rounded-md text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer mr-1'
             >
               <ArrowLeft className='w-4 h-4' />
@@ -236,7 +238,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
           <ChevronRight className='w-3.5 h-3.5 text-stone-400' />
 
           <span className='font-mono font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'>
-            Trang {pageNumber}
+            {t('deskLayout.pageBadge', { page: pageNumber })}
           </span>
         </div>
 
@@ -248,21 +250,21 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
               type='button'
               onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
               disabled={pageNumber <= 1}
-              title='Trang trước'
+              title={t('deskLayout.prevPage')}
               className='p-1 rounded-md text-stone-600 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer'
             >
               <ChevronLeft className='w-3.5 h-3.5' />
             </button>
 
             <span className='text-xs font-mono font-bold px-2.5 text-stone-900'>
-              Trang {pageNumber} / {totalPages}
+              {t('deskLayout.pageOfTotal', { current: pageNumber, total: totalPages })}
             </span>
 
             <button
               type='button'
               onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
               disabled={pageNumber >= totalPages}
-              title='Trang kế tiếp'
+              title={t('deskLayout.nextPage')}
               className='p-1 rounded-md text-stone-600 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer'
             >
               <ChevronRight className='w-3.5 h-3.5' />
@@ -280,7 +282,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              Chế độ Khung (Panel)
+              {t('deskLayout.panelMode')}
             </button>
             <button
               type='button'
@@ -291,7 +293,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              Cả Trang (Full-Page)
+              {t('deskLayout.fullPageMode')}
             </button>
           </div>
         </div>
@@ -312,7 +314,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
             className='bg-[#F97316] hover:bg-orange-600 active:bg-orange-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer'
           >
             <Send className='w-3.5 h-3.5' />
-            <span>Nộp kiểm duyệt</span>
+            <span>{t('deskLayout.submitReview')}</span>
           </button>
         </div>
       </header>

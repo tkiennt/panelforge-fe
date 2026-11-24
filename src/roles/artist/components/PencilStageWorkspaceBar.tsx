@@ -1,5 +1,6 @@
 /* Lucian UX/UI Prompt #039 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/ */
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   Eye,
   EyeOff,
@@ -60,6 +61,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
   onHandoffToInk,
   isSubmitting = false,
 }) => {
+  const { t } = useTranslation('artist');
   const [modelSheetOpen, setModelSheetOpen] = useState(false);
   const [refMenuOpen, setRefMenuOpen] = useState(false);
 
@@ -72,9 +74,9 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
       <div
         data-testid='badge-pencil-upload-mode'
         className='sr-only'
-        title='Công đoạn Pencil: Upload ảnh nét chì'
+        title={t('pencilBar.stageBadgeTitle')}
       >
-        <span>Upload ảnh nét chì</span>
+        <span>{t('pencilBar.stageBadgeText')}</span>
       </div>
 
       {/* =========================================================================
@@ -86,7 +88,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
           data-testid='btn-upload-pencil-art'
           onClick={onTriggerUpload}
           disabled={isUploading}
-          title='Tải tệp ảnh nét chì (PNG, JPG, WEBP) lên máy chủ'
+          title={t('pencilBar.uploadTitle')}
           className={`h-7 px-3 flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 ${
             hasPencilArtwork
               ? 'bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300'
@@ -102,10 +104,10 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
           )}
           <span>
             {isUploading
-              ? 'Đang tải...'
+              ? t('pencilBar.uploading')
               : hasPencilArtwork
-                ? `Nét chì v${pencilArtworkVersion ?? 1} (Tải bản mới)`
-                : '+ Tải ảnh nét chì'}
+                ? t('pencilBar.uploadNewVersion', { version: pencilArtworkVersion ?? 1 })
+                : t('pencilBar.uploadPencilArt')}
           </span>
         </button>
       )}
@@ -121,9 +123,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
             onClick={onToggleStoryboardOverlay}
             disabled={!hasStoryboard}
             title={
-              hasStoryboard
-                ? 'Ẩn / hiện lớp Storyboard để so sánh nét chì'
-                : 'Chưa có ảnh Storyboard phân cảnh'
+              hasStoryboard ? t('pencilBar.toggleStoryboardTitle') : t('pencilBar.noStoryboard')
             }
             className={`flex items-center gap-1 font-semibold cursor-pointer ${
               showStoryboardOverlay && hasStoryboard
@@ -178,22 +178,20 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
               className='absolute top-full left-0 mt-1 w-64 bg-white border border-stone-200 rounded-xl shadow-lg p-2.5 z-50 space-y-1.5'
             >
               <div className='text-[10px] font-bold text-stone-400 uppercase px-1 pb-1 border-b border-stone-100 flex items-center justify-between'>
-                <span>Thiết kế nhân vật (Reference)</span>
+                <span>{t('pencilBar.characterDesignRef')}</span>
                 {selectedBibleEntryId && (
                   <button
                     type='button'
                     onClick={() => onSelectBibleEntry(null)}
                     className='text-orange-600 hover:underline text-[10px] cursor-pointer'
                   >
-                    Bỏ ghim
+                    {t('pencilBar.unpin')}
                   </button>
                 )}
               </div>
               <div className='max-h-48 overflow-y-auto space-y-1 py-1'>
                 {bibleEntries.length === 0 ? (
-                  <p className='text-xs text-stone-400 p-2 italic'>
-                    Chưa có Model Sheet nào được tạo.
-                  </p>
+                  <p className='text-xs text-stone-400 p-2 italic'>{t('pencilBar.noModelSheet')}</p>
                 ) : (
                   bibleEntries.map((b) => (
                     <button
@@ -239,7 +237,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
           type='button'
           data-testid='btn-pencil-blue'
           onClick={() => onSketchColorChange('blue')}
-          title='Chế độ xem Chì Xanh: Nét phác thảo dáng & phối cảnh'
+          title={t('pencilBar.bluePencilTitle')}
           className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
             sketchColor === 'blue'
               ? 'bg-sky-600 text-white shadow-2xs font-bold'
@@ -247,13 +245,13 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
           }`}
         >
           <span className='w-1.5 h-1.5 rounded-full bg-sky-400 border border-white' />
-          <span>Chì Xanh</span>
+          <span>{t('pencilBar.bluePencil')}</span>
         </button>
         <button
           type='button'
           data-testid='btn-pencil-graphite'
           onClick={() => onSketchColorChange('graphite')}
-          title='Chế độ xem Chì Đen: Định hình nét đậm'
+          title={t('pencilBar.graphitePencilTitle')}
           className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
             sketchColor === 'graphite'
               ? 'bg-stone-800 text-white shadow-2xs font-bold'
@@ -261,7 +259,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
           }`}
         >
           <span className='w-1.5 h-1.5 rounded-full bg-stone-700 border border-white' />
-          <span>Chì Đen</span>
+          <span>{t('pencilBar.graphitePencil')}</span>
         </button>
       </div>
 
@@ -271,10 +269,10 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
         data-testid='btn-handoff-pencil-ink-direct'
         onClick={onHandoffToInk}
         disabled={isSubmitting}
-        title='Bàn giao nét chì sang Ink'
+        title={t('pencilBar.handoffTitle')}
         className='sr-only'
       >
-        <span>Bàn giao sang Ink</span>
+        <span>{t('pencilBar.handoffButton')}</span>
       </button>
     </div>
   );

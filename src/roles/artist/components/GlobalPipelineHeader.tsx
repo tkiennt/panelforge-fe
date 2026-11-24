@@ -22,6 +22,7 @@ import { PageDto } from '@/services/page.service';
 import { ChapterDto } from '@/services/chapter.service';
 import { PipelineStageDto } from '@/services/pipeline.service';
 import { getArtistStageKind } from '../utils/artistStage';
+import { useTranslation } from '@/lib/i18n';
 
 interface Props {
   seriesTitle?: string;
@@ -69,6 +70,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
   currentArtworkVersion,
   onTriggerDetect,
 }) => {
+  const { t } = useTranslation('artist');
   const currentIndex = selectedPage ? pages.findIndex((p) => p.id === selectedPage.id) : -1;
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < pages.length - 1;
@@ -115,7 +117,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
     <header
       data-testid='global-pipeline-header'
       role='region'
-      aria-label='Tiến độ công đoạn và bàn giao'
+      aria-label={t('pipelineHeader.regionAriaLabel')}
       className='w-full bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 py-1.5 min-h-[44px] flex items-center justify-between gap-3 shrink-0 select-none shadow-xs z-30'
     >
       {/* =========================================================================
@@ -129,9 +131,15 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
             aria-expanded={!isLeftCollapsed}
             aria-controls='artist-left-column'
             aria-label={
-              isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'
+              isLeftCollapsed
+                ? t('pipelineHeader.expandLeftColumn')
+                : t('pipelineHeader.collapseLeftColumn')
             }
-            title={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
+            title={
+              isLeftCollapsed
+                ? t('pipelineHeader.expandLeftColumn')
+                : t('pipelineHeader.collapseLeftColumn')
+            }
             data-testid='toggle-left-column'
             className='h-7 w-7 inline-flex items-center justify-center rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-stone-700 hover:text-stone-900 transition-colors cursor-pointer text-xs shrink-0'
           >
@@ -148,12 +156,12 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
             type='button'
             onClick={onBackToChapters}
             data-testid='switch-chapter-btn'
-            title='Quay lại màn hình danh sách chọn chương'
-            aria-label='Đổi chương'
+            title={t('pipelineHeader.backToChaptersTitle')}
+            aria-label={t('pipelineHeader.switchChapter')}
             className='h-7 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-stone-700 hover:text-stone-900 transition-colors cursor-pointer text-xs font-semibold shrink-0'
           >
             <ChevronLeft className='w-3.5 h-3.5 text-stone-600' />
-            <span className='hidden sm:inline'>Đổi chương</span>
+            <span className='hidden sm:inline'>{t('pipelineHeader.switchChapter')}</span>
           </button>
         )}
 
@@ -205,13 +213,13 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           const isCompleted = idx < activeIndex;
           const isLocked = idx > activeIndex;
 
-          let statusText = 'Chưa bắt đầu';
+          let statusText = t('pipelineHeader.statusNotStarted');
           if (isCurrentActive) {
-            statusText = 'Đang thực hiện';
+            statusText = t('pipelineHeader.statusInProgress');
           } else if (isCompleted) {
-            statusText = 'Hoàn thành';
+            statusText = t('pipelineHeader.statusCompleted');
           } else if (idx === activeIndex + 1) {
-            statusText = 'Chờ tiếp nhận';
+            statusText = t('pipelineHeader.statusWaiting');
           }
 
           return (
@@ -233,8 +241,13 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                 role='tab'
                 title={
                   isLocked
-                    ? `Chưa mở — Phải hoàn tất và nộp công đoạn ${activeStage?.name || 'trước'} mới mở công đoạn này`
-                    : `Chuyển sang công đoạn ${stage.name} (${statusText})`
+                    ? t('pipelineHeader.stageLockedTitle', {
+                        stage: activeStage?.name || t('pipelineHeader.stagePreviousFallback'),
+                      })
+                    : t('pipelineHeader.stageSwitchTitle', {
+                        stage: stage.name,
+                        status: statusText,
+                      })
                 }
                 className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                   isLocked
@@ -293,7 +306,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
               data-testid='btn-prev-page'
               onClick={handlePrev}
               disabled={!hasPrev}
-              title='Trang trước'
+              title={t('pipelineHeader.prevPageTitle')}
               className='p-1 rounded text-stone-700 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
             >
               <ChevronLeft className='w-3.5 h-3.5' />
@@ -303,11 +316,13 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
               data-testid='current-page-indicator'
               className='font-bold px-2 text-stone-800 text-xs whitespace-nowrap'
             >
-              Trang {selectedPage ? String(selectedPage.pageNumber).padStart(2, '0') : '--'}/
-              {String(pages.length).padStart(2, '0')}
+              {t('pipelineHeader.pageIndicator', {
+                current: selectedPage ? String(selectedPage.pageNumber).padStart(2, '0') : '--',
+                total: String(pages.length).padStart(2, '0'),
+              })}
               {selectedPage && (
                 <span data-testid='toolbar-page-context' className='sr-only'>
-                  Trang {selectedPage.pageNumber}
+                  {t('pipelineHeader.pageContext', { page: selectedPage.pageNumber })}
                 </span>
               )}
             </span>
@@ -317,7 +332,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
               data-testid='btn-next-page'
               onClick={handleNext}
               disabled={!hasNext}
-              title='Trang sau'
+              title={t('pipelineHeader.nextPageTitle')}
               className='p-1 rounded text-stone-700 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
             >
               <ChevronRight className='w-3.5 h-3.5' />
@@ -328,10 +343,10 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           <div
             data-testid='uploaded-assets-count-badge'
             className='sr-only'
-            title={`Trang này có ${uploadedArtworksCount} ảnh/bản vẽ đã tải lên`}
+            title={t('pipelineHeader.uploadedCountTitle', { count: uploadedArtworksCount })}
           >
             <Layers className='w-3 h-3 text-stone-400' />
-            <span>{uploadedArtworksCount} ảnh đã upload</span>
+            <span>{t('pipelineHeader.uploadedCount', { count: uploadedArtworksCount })}</span>
           </div>
         </div>
 
@@ -341,11 +356,11 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
             type='button'
             onClick={onTriggerDetect}
             data-testid='header-workflow-detect-btn'
-            title='Rà soát và nhận diện AI khung tranh (panels) & bóng thoại (speech balloons)'
+            title={t('pipelineHeader.detectTitle')}
             className='h-7 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-800 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer'
           >
             <ScanSearch className='w-3.5 h-3.5 text-orange-600' />
-            <span className='hidden sm:inline'>Nhận diện AI</span>
+            <span className='hidden sm:inline'>{t('pipelineHeader.detectBtn')}</span>
           </button>
         )}
 
@@ -369,8 +384,8 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                     data-testid='btn-handoff-pencil-ink'
                     title={
                       !hasArtworkForCurrentStage
-                        ? 'Tải lên ảnh nét chì trước khi bàn giao sang Ink'
-                        : 'Kiểm tra ảnh nét chì và bàn giao sang Ink Stage'
+                        ? t('pipelineHeader.handoffPencilDisabled')
+                        : t('pipelineHeader.handoffPencilReady')
                     }
                     className={`h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs ${
                       canSubmit
@@ -383,7 +398,11 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                     ) : (
                       <ArrowRight className='w-3.5 h-3.5' />
                     )}
-                    <span>{isSubmittingHandoff ? 'Đang bàn giao...' : 'Submit to Ink'}</span>
+                    <span>
+                      {isSubmittingHandoff
+                        ? t('pipelineHeader.handingOff')
+                        : t('pipelineHeader.submitToInk')}
+                    </span>
                   </button>
                 );
               }
@@ -398,8 +417,8 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                     data-testid='btn-handoff-ink-lettering'
                     title={
                       !hasArtworkForCurrentStage
-                        ? 'Tải lên ảnh Line-art trước khi chuyển sang Lettering'
-                        : 'Bàn giao nét mực hoàn thiện cho Letterer'
+                        ? t('pipelineHeader.handoffInkDisabled')
+                        : t('pipelineHeader.handoffInkReady')
                     }
                     className={`h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs ${
                       canSubmit
@@ -412,7 +431,11 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                     ) : (
                       <Sparkles className='w-3.5 h-3.5' />
                     )}
-                    <span>{isSubmittingHandoff ? 'Đang bàn giao...' : 'Submit to Lettering'}</span>
+                    <span>
+                      {isSubmittingHandoff
+                        ? t('pipelineHeader.handingOff')
+                        : t('pipelineHeader.submitToLettering')}
+                    </span>
                   </button>
                 );
               }
@@ -426,8 +449,8 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                   data-testid='btn-handoff-lettering-gate2'
                   title={
                     !hasArtworkForCurrentStage
-                      ? 'Hoàn thiện bản vẽ & thoại trước khi nộp duyệt'
-                      : 'Nộp bản thảo hoàn chỉnh cho Editor ở Gate 2'
+                      ? t('pipelineHeader.handoffLetteringDisabled')
+                      : t('pipelineHeader.handoffLetteringReady')
                   }
                   className={`h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs ${
                     canSubmit
@@ -440,7 +463,11 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                   ) : (
                     <Send className='w-3.5 h-3.5' />
                   )}
-                  <span>{isSubmittingHandoff ? 'Đang nộp...' : 'Submit for Review'}</span>
+                  <span>
+                    {isSubmittingHandoff
+                      ? t('pipelineHeader.submitting')
+                      : t('pipelineHeader.submitForReview')}
+                  </span>
                 </button>
               );
             })()}

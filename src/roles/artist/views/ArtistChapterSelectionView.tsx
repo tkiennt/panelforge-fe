@@ -22,6 +22,7 @@ import {
 import { PageContainer } from '@/shared/components/PageContainer';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
+import { useTranslation } from '@/lib/i18n';
 
 interface ArtistChapterSelectionViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -31,12 +32,12 @@ type StatusFilterType = 'all' | 'frozen' | 'in_progress' | 'approved';
 type SortByType = 'chapter_asc' | 'chapter_desc' | 'newest' | 'oldest';
 type ViewModeType = 'grid' | 'table';
 
-const getOpenBlockReason = (chapter: ChapterDto): string | null => {
+const getOpenBlockReason = (chapter: ChapterDto, t: (key: string) => string): string | null => {
   if (String(chapter.status) === 'PreProduction') {
-    return 'Chương đang ở giai đoạn tiền kỳ. Hãy chờ Producer bắt đầu sản xuất.';
+    return t('chapterSelection.blockPreProduction');
   }
   if (!chapter.isScriptFrozen) {
-    return 'Kịch bản chưa được đóng băng nên chưa thể mở bàn vẽ.';
+    return t('chapterSelection.blockNotFrozen');
   }
   return null;
 };
@@ -47,6 +48,7 @@ const isCompletedChapter = (chapter: ChapterDto): boolean =>
 export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProps> = ({
   onShowToast,
 }) => {
+  const { t, lang } = useTranslation('artist');
   const { workspaceId, seriesId } = useParams<{ workspaceId: string; seriesId: string }>();
   const navigate = useNavigate();
 
@@ -84,13 +86,13 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
         throw chaptersRes.reason;
       }
     } catch (err: any) {
-      const msg = err?.message || 'Không thể tải danh sách chương.';
+      const msg = err?.message || t('chapterSelection.loadError');
       setError(msg);
-      onShowToast?.('Lỗi tải dữ liệu', msg);
+      onShowToast?.(t('chapterSelection.loadErrorToastTitle'), msg);
     } finally {
       setLoading(false);
     }
-  }, [seriesId, onShowToast]);
+  }, [seriesId, onShowToast, t]);
 
   useEffect(() => {
     loadData();
@@ -159,9 +161,9 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
   // Chuyển sang bàn vẽ độc lập (FocusWorkspaceLayout) cho chương được chọn
   const handleOpenArtistDesk = (chapter: ChapterDto) => {
     if (!workspaceId || !seriesId) return;
-    const blockReason = getOpenBlockReason(chapter);
+    const blockReason = getOpenBlockReason(chapter, t);
     if (blockReason) {
-      onShowToast?.('Chưa thể mở bàn vẽ', blockReason);
+      onShowToast?.(t('chapterSelection.cannotOpenDeskTitle'), blockReason);
       return;
     }
     const targetUrl = `/workspaces/${workspaceId}/series/${seriesId}/artist/desk?chapterId=${encodeURIComponent(chapter.id)}`;
@@ -176,14 +178,14 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
     }
   };
 
-  const seriesTitle = seriesDetail?.title || 'Bộ truyện';
+  const seriesTitle = seriesDetail?.title || t('chapterSelection.seriesFallback');
 
   const renderStatusBadge = (chapter: ChapterDto) => {
     if (String(chapter.status) === 'ChapterApproved') {
       return (
         <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
           <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-          <span>Nghiệm thu hoàn tất (Gate 3)</span>
+          <span>{t('chapterSelection.statusApproved')}</span>
         </span>
       );
     }
@@ -191,7 +193,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
       return (
         <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
           <Sparkles className='w-3 h-3 text-purple-600' />
-          <span>Đã bàn giao và phát hành</span>
+          <span>{t('chapterSelection.statusPublishedFull')}</span>
         </span>
       );
     }
@@ -199,7 +201,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
       return (
         <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0'>
           <Lock className='w-3 h-3 text-indigo-600' />
-          <span>Kịch bản đã chốt</span>
+          <span>{t('chapterSelection.statusScriptFrozen')}</span>
           {chapter.scriptContentHash && (
             <span
               className='font-mono text-[10px] font-semibold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded border border-indigo-200'
@@ -217,28 +219,28 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-50 text-stone-700 border border-stone-200 shrink-0'>
             <Clock className='w-3 h-3 text-stone-500' />
-            <span>Tiền kỳ (viết kịch bản)</span>
+            <span>{t('chapterSelection.statusPreProduction')}</span>
           </span>
         );
       case 'ChapterApproved':
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
             <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-            <span>Nghiệm thu hoàn tất (Gate 3)</span>
+            <span>{t('chapterSelection.statusApproved')}</span>
           </span>
         );
       case 'HandedOffAndPublished':
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
             <Sparkles className='w-3 h-3 text-purple-600' />
-            <span>Đã phát hành</span>
+            <span>{t('chapterSelection.statusPublishedShort')}</span>
           </span>
         );
       default:
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0'>
             <Clock className='w-3 h-3 text-amber-600' />
-            <span>Đang sản xuất</span>
+            <span>{t('chapterSelection.statusInProduction')}</span>
           </span>
         );
     }
@@ -258,16 +260,14 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
               <span>ARTIST PRODUCTION DESK</span>
             </span>
             <h1 className='text-xl sm:text-2xl font-bold font-serif text-[#1C1917] tracking-tight'>
-              Bàn vẽ họa sĩ — {seriesTitle}
+              {t('chapterSelection.pageTitlePrefix', { series: seriesTitle })}
             </h1>
           </div>
           <p className='text-xs text-[#57534E] leading-relaxed max-w-3xl'>
             <strong className='text-[#1C1917] font-semibold'>
-              Chọn Chương Để Mở Bàn Vẽ Chuyên Dụng
-            </strong>{' '}
-            — Lựa chọn một chương để bước vào không gian vẽ toàn màn hình độc lập (Focus Workspace),
-            phân rã bố cục khung tranh (Panel Templates), nạp bản thảo chì (Pencil), đi nét mực
-            (Ink) và tải tranh hoàn thiện.
+              {t('chapterSelection.subtitleHighlight')}
+            </strong>
+            {t('chapterSelection.subtitleBody')}
           </p>
         </div>
 
@@ -278,7 +278,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
             className='bg-white border border-[#D8D2C5] rounded-xl px-4 py-2.5 shadow-2xs min-w-[100px]'
           >
             <div className='text-[10.5px] uppercase font-bold tracking-wider text-[#78716C]'>
-              Tổng chương
+              {t('chapterSelection.statsTotal')}
             </div>
             <div className='text-xl font-black text-[#1C1917] mt-0.5'>{stats.total}</div>
           </div>
@@ -289,7 +289,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
           >
             <div className='text-[10.5px] uppercase font-bold tracking-wider text-indigo-800 flex items-center gap-1'>
               <Lock className='w-3 h-3' />
-              <span>Sẵn sàng vẽ</span>
+              <span>{t('chapterSelection.statsFrozen')}</span>
             </div>
             <div className='text-xl font-black text-indigo-900 mt-0.5'>{stats.frozen}</div>
           </div>
@@ -300,7 +300,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
           >
             <div className='text-[10.5px] uppercase font-bold tracking-wider text-amber-800 flex items-center gap-1'>
               <Clock className='w-3 h-3' />
-              <span>Đang sản xuất</span>
+              <span>{t('chapterSelection.statsInProgress')}</span>
             </div>
             <div className='text-xl font-black text-amber-900 mt-0.5'>{stats.inProgress}</div>
           </div>
@@ -318,7 +318,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
               data-testid='artist-chapter-search-input'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder='Tìm theo số chương, tiêu đề hoặc nội dung tóm tắt...'
+              placeholder={t('chapterSelection.searchPlaceholder')}
               className='w-full pl-9.5 pr-8 py-2 rounded-xl bg-white border border-[#D8D2C5] text-xs text-[#1C1917] placeholder-[#A8A29E] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/20 focus:border-[#C2410C] transition-all'
             />
             {searchQuery && (
@@ -326,7 +326,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                 type='button'
                 onClick={() => setSearchQuery('')}
                 className='absolute right-2.5 top-1/2 -translate-y-1/2 text-[#78716C] hover:text-[#1C1917] text-xs p-1 cursor-pointer'
-                title='Xóa tìm kiếm'
+                title={t('chapterSelection.clearSearchTitle')}
               >
                 ✕
               </button>
@@ -339,16 +339,16 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
             <div className='flex items-center gap-1.5 bg-white border border-[#D8D2C5] rounded-xl px-2.5 py-1.5 shadow-2xs'>
               <ArrowUpDown className='w-3.5 h-3.5 text-[#78716C]' />
               <select
-                aria-label='Sắp xếp chương'
+                aria-label={t('chapterSelection.sortAriaLabel')}
                 data-testid='artist-chapter-sort-select'
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortByType)}
                 className='bg-transparent text-xs font-semibold text-[#1C1917] focus:outline-none cursor-pointer'
               >
-                <option value='chapter_asc'>Chương tăng dần (1 → N)</option>
-                <option value='chapter_desc'>Chương giảm dần (N → 1)</option>
-                <option value='newest'>Mới cập nhật</option>
-                <option value='oldest'>Cũ nhất</option>
+                <option value='chapter_asc'>{t('chapterSelection.sortAsc')}</option>
+                <option value='chapter_desc'>{t('chapterSelection.sortDesc')}</option>
+                <option value='newest'>{t('chapterSelection.sortNewest')}</option>
+                <option value='oldest'>{t('chapterSelection.sortOldest')}</option>
               </select>
             </div>
 
@@ -363,7 +363,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                     ? 'bg-white text-[#C2410C] shadow-2xs font-semibold'
                     : 'text-[#78716C] hover:text-[#1C1917]'
                 }`}
-                title='Xem dạng thẻ lưới'
+                title={t('chapterSelection.viewGridTitle')}
               >
                 <LayoutGrid className='w-4 h-4' />
               </button>
@@ -376,7 +376,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                     ? 'bg-white text-[#C2410C] shadow-2xs font-semibold'
                     : 'text-[#78716C] hover:text-[#1C1917]'
                 }`}
-                title='Xem dạng bảng danh sách'
+                title={t('chapterSelection.viewTableTitle')}
               >
                 <List className='w-4 h-4' />
               </button>
@@ -387,7 +387,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
         {/* Các nút Tab lọc trạng thái */}
         <div className='flex items-center gap-1.5 flex-wrap pt-1 border-t border-[#EBE7DF]'>
           <span className='text-[11px] font-bold text-[#78716C] mr-1 select-none'>
-            Lọc trạng thái:
+            {t('chapterSelection.filterLabel')}
           </span>
 
           <button
@@ -400,7 +400,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                 : 'bg-white text-[#57534E] border border-[#D8D2C5] hover:bg-[#FAF8F5]'
             }`}
           >
-            Tất cả ({stats.total})
+            {t('chapterSelection.filterAll', { count: stats.total })}
           </button>
 
           <button
@@ -414,7 +414,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
             }`}
           >
             <Lock className='w-3 h-3' />
-            <span>Sẵn sàng vẽ ({stats.frozen})</span>
+            <span>{t('chapterSelection.filterFrozen', { count: stats.frozen })}</span>
           </button>
 
           <button
@@ -428,7 +428,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
             }`}
           >
             <Clock className='w-3 h-3' />
-            <span>Đang sản xuất ({stats.inProgress})</span>
+            <span>{t('chapterSelection.filterInProgress', { count: stats.inProgress })}</span>
           </button>
 
           <button
@@ -442,7 +442,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
             }`}
           >
             <CheckCircle2 className='w-3 h-3' />
-            <span>Đã duyệt ({stats.approved})</span>
+            <span>{t('chapterSelection.filterApproved', { count: stats.approved })}</span>
           </button>
         </div>
       </div>
@@ -454,7 +454,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
           className='py-20 flex flex-col items-center justify-center gap-3 text-[#57534E] bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl'
         >
           <Loader2 className='w-8 h-8 animate-spin text-[#C2410C]' />
-          <p className='text-xs font-semibold'>Đang tải danh sách chương của bộ truyện...</p>
+          <p className='text-xs font-semibold'>{t('chapterSelection.loadingChapters')}</p>
         </div>
       ) : error ? (
         <div
@@ -462,7 +462,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
           className='py-12 px-6 rounded-2xl bg-red-50 border border-red-200 text-center max-w-lg mx-auto space-y-3'
         >
           <AlertCircle className='w-8 h-8 text-red-600 mx-auto' />
-          <h3 className='text-sm font-bold text-red-900'>Lỗi tải danh sách chương</h3>
+          <h3 className='text-sm font-bold text-red-900'>{t('chapterSelection.errorTitle')}</h3>
           <p className='text-xs text-red-700'>{error}</p>
           <button
             type='button'
@@ -470,7 +470,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
             className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs'
           >
             <RotateCcw className='w-3.5 h-3.5' />
-            <span>Thử lại</span>
+            <span>{t('chapterSelection.retry')}</span>
           </button>
         </div>
       ) : filteredChapters.length === 0 ? (
@@ -483,13 +483,13 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
           </div>
           <h3 className='text-sm font-bold font-serif text-[#1C1917]'>
             {chapters.length === 0
-              ? 'Chưa có chương'
-              : 'Không tìm thấy chương'}
+              ? t('chapterSelection.emptyNoChapters')
+              : t('chapterSelection.emptyNotFound')}
           </h3>
           <p className='text-xs text-[#78716C] leading-relaxed'>
             {chapters.length === 0
-              ? 'Liên hệ Producer để thêm chương và phân bổ công việc.'
-              : 'Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc trạng thái.'}
+              ? t('chapterSelection.emptyNoChaptersHint')
+              : t('chapterSelection.emptyNotFoundHint')}
           </p>
           {chapters.length > 0 && (searchQuery || statusFilter !== 'all') && (
             <button
@@ -501,7 +501,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#D8D2C5] hover:bg-[#FAF8F5] text-xs font-semibold text-[#1C1917] transition-colors cursor-pointer'
             >
               <RotateCcw className='w-3.5 h-3.5 text-[#78716C]' />
-              <span>Xóa bộ lọc tìm kiếm</span>
+              <span>{t('chapterSelection.clearFilters')}</span>
             </button>
           )}
         </div>
@@ -513,7 +513,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
         >
           {filteredChapters.map((chapter) => {
             const isFrozen = !!chapter.isScriptFrozen;
-            const blockReason = getOpenBlockReason(chapter);
+            const blockReason = getOpenBlockReason(chapter, t);
             return (
               <div
                 key={chapter.id}
@@ -535,12 +535,12 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                   <div className='flex items-center justify-between gap-2 flex-wrap'>
                     <div className='flex items-center gap-2'>
                       <span className='px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-[#1C1917] group-hover:border-[#F97316]/40 text-xs font-black font-mono tracking-tight transition-colors'>
-                        CHƯƠNG {chapter.chapterNumber}
+                        {t('chapterSelection.chapterBadgeUpper', { number: chapter.chapterNumber })}
                       </span>
                       {isFrozen && (
                         <span className='text-[10.5px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200 inline-flex items-center gap-1'>
                           <Lock className='w-2.5 h-2.5' />
-                          <span>Đã chốt</span>
+                          <span>{t('chapterSelection.frozenBadge')}</span>
                         </span>
                       )}
                     </div>
@@ -550,10 +550,11 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                   {/* Tiêu đề chương */}
                   <div>
                     <h3 className='text-base font-bold font-serif text-[#1C1917] group-hover:text-[#C2410C] transition-colors line-clamp-1'>
-                      {chapter.title || `Chương ${chapter.chapterNumber}`}
+                      {chapter.title ||
+                        t('chapterSelection.chapterLabel', { number: chapter.chapterNumber })}
                     </h3>
                     <p className='text-xs text-[#57534E] mt-1.5 line-clamp-2 leading-relaxed bg-[#FAF8F5] p-2.5 rounded-xl border border-[#EBE7DF] min-h-[3.25rem]'>
-                      {chapter.outline || 'Chưa có mô tả tóm tắt cho chương này.'}
+                      {chapter.outline || t('chapterSelection.noOutlineLong')}
                     </p>
                   </div>
 
@@ -562,23 +563,27 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                     <div className='flex items-center gap-3'>
                       <span className='flex items-center gap-1 font-semibold text-[#1C1917]'>
                         <Layers className='w-3.5 h-3.5 text-[#78716C]' />
-                        <span>{chapter.pagesCount || 0} trang</span>
+                        <span>
+                          {t('chapterSelection.pagesCount', { count: chapter.pagesCount || 0 })}
+                        </span>
                       </span>
                       <span className='flex items-center gap-1'>
                         <FileText className='w-3.5 h-3.5 text-[#A8A29E]' />
-                        <span>{chapter.scenesCount || 0} cảnh</span>
+                        <span>
+                          {t('chapterSelection.scenesCount', { count: chapter.scenesCount || 0 })}
+                        </span>
                       </span>
                     </div>
 
                     {isFrozen ? (
                       <span className='font-bold text-emerald-700 flex items-center gap-1'>
                         <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-                        <span>Sẵn sàng vẽ</span>
+                        <span>{t('chapterSelection.readyToDraw')}</span>
                       </span>
                     ) : (
                       <span className='font-medium text-amber-800 flex items-center gap-1'>
                         <Clock className='w-3 h-3 text-amber-600' />
-                        <span>Chưa chốt kịch bản</span>
+                        <span>{t('chapterSelection.scriptNotFrozen')}</span>
                       </span>
                     )}
                   </div>
@@ -588,8 +593,12 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                 <div className='mt-4 pt-3 border-t border-[#EBE7DF] flex items-center justify-between'>
                   <span className='text-[10px] text-[#78716C] font-mono'>
                     {chapter.updatedAt
-                      ? `Cập nhật: ${new Date(chapter.updatedAt).toLocaleDateString('vi-VN')}`
-                      : 'Mới tạo'}
+                      ? t('chapterSelection.updatedAt', {
+                          date: new Date(chapter.updatedAt).toLocaleDateString(
+                            lang === 'en' ? 'en-US' : 'vi-VN',
+                          ),
+                        })
+                      : t('chapterSelection.newlyCreated')}
                   </span>
 
                   <button
@@ -604,7 +613,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                     className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1C1917] hover:bg-[#C2410C] text-white text-xs font-bold transition-all duration-150 cursor-pointer shadow-xs group-hover:translate-x-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-[#1C1917]'
                   >
                     <LayoutTemplate className='w-3.5 h-3.5 text-orange-400' />
-                    <span>Vào bàn vẽ</span>
+                    <span>{t('chapterSelection.enterDesk')}</span>
                     <ArrowRight className='w-3 h-3 transition-transform duration-150 group-hover:translate-x-0.5' />
                   </button>
                 </div>
@@ -622,17 +631,21 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
             <table className='w-full text-left text-xs'>
               <thead className='bg-[#FAF8F5] text-[#78716C] font-bold border-b border-[#EBE7DF] uppercase text-[10.5px] tracking-wider select-none'>
                 <tr>
-                  <th className='py-3.5 px-4'>Chương</th>
-                  <th className='py-3.5 px-4'>Tiêu đề & Tóm tắt</th>
-                  <th className='py-3.5 px-4'>Trạng thái kịch bản</th>
-                  <th className='py-3.5 px-4 text-center'>Số trang</th>
-                  <th className='py-3.5 px-4 text-center'>Số phân cảnh</th>
-                  <th className='py-3.5 px-4 text-right'>Thao tác</th>
+                  <th className='py-3.5 px-4'>{t('chapterSelection.tableColChapter')}</th>
+                  <th className='py-3.5 px-4'>{t('chapterSelection.tableColTitleOutline')}</th>
+                  <th className='py-3.5 px-4'>{t('chapterSelection.tableColStatus')}</th>
+                  <th className='py-3.5 px-4 text-center'>{t('chapterSelection.tableColPages')}</th>
+                  <th className='py-3.5 px-4 text-center'>
+                    {t('chapterSelection.tableColScenes')}
+                  </th>
+                  <th className='py-3.5 px-4 text-right'>
+                    {t('chapterSelection.tableColActions')}
+                  </th>
                 </tr>
               </thead>
               <tbody className='divide-y divide-[#EBE7DF]'>
                 {filteredChapters.map((chapter) => {
-                  const blockReason = getOpenBlockReason(chapter);
+                  const blockReason = getOpenBlockReason(chapter, t);
                   return (
                     <tr
                       key={chapter.id}
@@ -648,15 +661,16 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                     >
                       <td className='py-3.5 px-4 whitespace-nowrap'>
                         <span className='px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-[#1C1917] font-mono font-bold text-xs group-hover:border-[#F97316]/50'>
-                          Chương {chapter.chapterNumber}
+                          {t('chapterSelection.chapterLabel', { number: chapter.chapterNumber })}
                         </span>
                       </td>
                       <td className='py-3.5 px-4 min-w-[220px] max-w-sm'>
                         <div className='font-bold font-serif text-[#1C1917] group-hover:text-[#C2410C] transition-colors truncate'>
-                          {chapter.title || `Chương ${chapter.chapterNumber}`}
+                          {chapter.title ||
+                            t('chapterSelection.chapterLabel', { number: chapter.chapterNumber })}
                         </div>
                         <div className='text-[11px] text-[#57534E] truncate mt-0.5'>
-                          {chapter.outline || 'Chưa có mô tả tóm tắt.'}
+                          {chapter.outline || t('chapterSelection.noOutlineShort')}
                         </div>
                       </td>
                       <td className='py-3.5 px-4 whitespace-nowrap'>
@@ -680,7 +694,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                           className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1C1917] hover:bg-[#C2410C] text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs'
                         >
                           <LayoutTemplate className='w-3.5 h-3.5 text-orange-400' />
-                          <span>Vào bàn vẽ</span>
+                          <span>{t('chapterSelection.enterDesk')}</span>
                           <ArrowRight className='w-3 h-3' />
                         </button>
                       </td>

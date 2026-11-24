@@ -1,3 +1,5 @@
+import { translate } from '@/lib/i18n';
+
 /**
  * panelDetection.ts - Thuật toán Nhận diện & Tách Panel Manga từ Ảnh Phác Thảo Toàn Trang
  * Chuyên biệt cho công đoạn PENCIL (Artist Desk):
@@ -319,7 +321,7 @@ export async function cropImageByBoundingBox(
 
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    throw new Error('Không thể khởi tạo 2D Context để cắt tranh panel.');
+    throw new Error(translate('artist.panelDetection.canvasContextError'));
   }
 
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);

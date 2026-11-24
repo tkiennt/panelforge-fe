@@ -341,13 +341,13 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         <header className='flex items-center justify-between gap-2 px-3 py-2.5 border-b border-stone-100'>
           <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
             <BookOpen className='w-4 h-4 text-stone-600' aria-hidden='true' />
-            Script truyện
+            {t('artist.letteringScript.title')}
           </h3>
           <span
             data-testid='lettering-script-total'
             className='px-2 py-0.5 rounded-full bg-stone-100 text-xs text-stone-600'
           >
-            Tổng: {lines.length} dòng
+            {t('artist.letteringScript.totalLines', { count: lines.length })}
           </span>
         </header>
 
@@ -425,21 +425,23 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
             className={`w-4 h-4 text-stone-500 transition-transform ${expanded ? '' : '-rotate-90'}`}
             aria-hidden='true'
           />
-          <span className='truncate'>{chapterTitle || 'Chương hiện tại'}</span>
+          <span className='truncate'>
+            {chapterTitle || t('artist.letteringScript.currentChapterFallback')}
+          </span>
         </button>
 
         {expanded && (
           <div className='px-2 pb-2 space-y-2'>
             <div
               role='group'
-              aria-label='Lọc theo trạng thái liên kết'
+              aria-label={t('artist.letteringScript.filterAriaLabel')}
               className='grid grid-cols-3 gap-1 p-0.5 rounded-lg bg-stone-100'
             >
               {(
                 [
-                  ['all', 'Tất cả'],
-                  ['unlinked', 'Chưa liên kết'],
-                  ['linked', 'Đã liên kết'],
+                  ['all', t('artist.letteringScript.filterAll')],
+                  ['unlinked', t('artist.letteringScript.filterUnlinked')],
+                  ['linked', t('artist.letteringScript.filterLinked')],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -462,7 +464,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
             <ul className='space-y-2 max-h-[42vh] overflow-y-auto custom-scrollbar'>
               {visibleLines.length === 0 && (
                 <li className='text-xs text-stone-500 italic px-2 py-3 text-center'>
-                  Không có dòng thoại nào.
+                  {t('artist.letteringScript.emptyLines')}
                 </li>
               )}
               {visibleLines.map(({ line, type, text, number }) => {
@@ -517,12 +519,17 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                           className='text-xs font-bold truncate'
                           style={{ color: line.characterColor || '#C2410C' }}
                         >
-                          {isNarration ? 'Dẫn truyện' : line.characterName || 'Nhân vật'}
+                          {isNarration
+                            ? t('artist.letteringScript.narrationSpeaker')
+                            : line.characterName || t('artist.letteringScript.characterFallback')}
                           <span
                             data-testid={`lettering-script-kind-${line.id}`}
                             className='ml-1.5 font-normal text-xs text-stone-400'
                           >
-                            {BALLOON_TYPE_LABELS[type]} · Trang {line.pageNumber ?? '?'}
+                            {BALLOON_TYPE_LABELS[type]} ·{' '}
+                            {t('artist.letteringScript.pageSuffix', {
+                              page: line.pageNumber ?? '?',
+                            })}
                           </span>
                         </p>
                         <p className='text-[13px] text-stone-800 line-clamp-2'>{text}</p>
@@ -534,7 +541,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                         <CheckCircle2
                           data-testid={`lettering-script-linked-${line.id}`}
                           className='w-5 h-5 text-orange-500 shrink-0'
-                          aria-label='Đã liên kết'
+                          aria-label={t('artist.letteringScript.linkedAriaLabel')}
                         />
                       )}
                     </div>
@@ -696,7 +703,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
             <p className='flex items-start gap-2 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-900'>
               <Info className='w-3.5 h-3.5 mt-0.5 shrink-0' aria-hidden='true' />
-              Chọn hoặc kéo dòng thoại để đặt vào bóng thoại trên trang truyện.
+              {t('artist.letteringScript.hint')}
             </p>
           </div>
         )}
@@ -707,7 +714,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         <div className='flex items-center justify-between gap-2 px-1'>
           <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
             <Link2 className='w-4 h-4 text-stone-600' aria-hidden='true' />
-            Liên kết thoại trên trang {activePageNumber}
+            {t('artist.letteringScript.pageLinksTitle', { page: activePageNumber })}
           </h3>
           {elements.length > 4 && (
             <button
@@ -715,7 +722,9 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
               onClick={() => setShowAllElements((v) => !v)}
               className='text-xs font-semibold text-orange-600 hover:underline cursor-pointer'
             >
-              {showAllElements ? 'Thu gọn' : 'Hiển thị tất cả'}
+              {showAllElements
+                ? t('artist.letteringScript.collapse')
+                : t('artist.letteringScript.showAll')}
             </button>
           )}
         </div>
@@ -725,13 +734,16 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
             data-testid='lettering-missing-translations'
             className='px-1 text-xs font-semibold text-amber-700'
           >
-            Thiếu bản dịch {activeLang!.toUpperCase()}: {missingTranslations}
+            {t('artist.letteringScript.missingTranslations', {
+              lang: activeLang!.toUpperCase(),
+              count: missingTranslations,
+            })}
           </p>
         )}
 
         {elements.length === 0 ? (
           <p className='text-xs text-stone-500 italic rounded-lg bg-white border border-dashed border-stone-200 p-3 text-center'>
-            Trang chưa có bóng thoại.
+            {t('artist.letteringScript.noBalloons')}
           </p>
         ) : (
           <ul className='space-y-1.5'>
@@ -755,14 +767,16 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                     </span>
                     <span className='min-w-0 flex-1'>
                       <span className='block text-xs font-bold text-stone-900'>
-                        Thoại {el.readingOrder ?? idx + 1}
+                        {t('artist.letteringScript.balloonTitle', {
+                          order: el.readingOrder ?? idx + 1,
+                        })}
                       </span>
                       <span
                         className={`block text-xs ${el.scriptLineId ? 'text-emerald-700' : 'text-stone-500'}`}
                       >
                         {el.scriptLineId
-                          ? `Đã liên kết với dòng ${lineNo ?? '?'}`
-                          : 'Chưa liên kết'}
+                          ? t('artist.letteringScript.linkedToLine', { line: lineNo ?? '?' })
+                          : t('artist.letteringScript.unlinked')}
                       </span>
                     </span>
                     {el.scriptLineId ? (
@@ -783,7 +797,8 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         {/* Bóng không theo kịch bản (SFX, chữ tự do) */}
         <div className='pt-1'>
           <p className='px-1 pb-1.5 text-xs font-semibold text-stone-500 flex items-center gap-1'>
-            <Plus className='w-3 h-3' aria-hidden='true' /> Thêm bóng trống
+            <Plus className='w-3 h-3' aria-hidden='true' />{' '}
+            {t('artist.letteringScript.addEmptyBalloon')}
           </p>
           <div className='grid grid-cols-4 gap-1.5'>
             {(

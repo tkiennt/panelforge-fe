@@ -23,6 +23,7 @@ import { PipelineStageDto } from '@/services/pipeline.service';
 import { PencilStageWorkspaceBar } from '../PencilStageWorkspaceBar';
 import { InkStageWorkspaceBar, InkingNib, ScreenToneLpi } from '../InkStageWorkspaceBar';
 import { LetteringStageWorkspaceBar } from '../LetteringStageWorkspaceBar';
+import { useTranslation } from '@/lib/i18n';
 
 interface ArtistBottomDockProps {
   selectedPage: PageDto | null;
@@ -215,6 +216,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
   setSettingsModalOpen,
   handleDeletePage,
 }) => {
+  const { t } = useTranslation('artist');
   const [openMenu, setOpenMenu] = useState<'upload' | 'page' | null>(null);
 
   const toolbarBtn =
@@ -229,7 +231,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
     <div
       className='absolute bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] rounded-xl px-2.5 py-1.5 shadow-[0_8px_28px_-6px_rgba(40,30,20,0.22),0_2px_8px_rgba(0,0,0,0.06)] flex items-center gap-1.5 select-none shrink-0'
       role='toolbar'
-      aria-label='Thanh công cụ bàn vẽ nổi'
+      aria-label={t('bottomDock.toolbarAriaLabel')}
       data-testid='artist-main-toolbar'
     >
       {/* CỤM 1 (BÊN TRÁI): TRẠNG THÁI & GATEWAY CTA */}
@@ -281,21 +283,22 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
           {/* Chọn Layer Ảnh hiển thị */}
           <label
             className='flex items-center gap-1 text-[11px] font-medium text-stone-600 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8] h-7 cursor-pointer'
-            title='Chỉ đổi ảnh đang xem trên canvas, không đổi công đoạn'
+            title={t('bottomDock.viewLayerTitle')}
           >
             <Eye className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
             <span className='hidden 2xl:inline whitespace-nowrap text-[11px] font-medium'>
-              Ảnh hiển thị:
+              {t('bottomDock.viewLayerLabel')}
             </span>
             <select
               value={viewStageId}
               onChange={(e) => handleSelectStageFilter(e.target.value)}
               data-testid='desk-stage-select'
-              title='Chỉ đổi ảnh đang xem trên canvas, không đổi công đoạn công việc'
+              title={t('bottomDock.stageSelectTitle')}
               className='h-6 max-w-[8rem] bg-white border border-[#D8D2C5] rounded px-1 font-semibold text-xs text-[#1C1917] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
             >
               <option value='AUTO'>
-                Tự động{myStageOnPage ? ` (${stageLabel(myStageOnPage)})` : ''}
+                {t('bottomDock.autoOption')}
+                {myStageOnPage ? ` (${stageLabel(myStageOnPage)})` : ''}
               </option>
               {stages.map((s) => {
                 const sIdx = sortedStages.findIndex((st) => st.id === s.id);
@@ -304,8 +307,8 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
                 return (
                   <option key={s.id} value={s.id} disabled={isFutureStage}>
                     {s.stageOrder}. {s.name}
-                    {s.isEnabled === false ? ' (đã tắt)' : ''}
-                    {isFutureStage ? ' (chưa mở)' : ''}
+                    {s.isEnabled === false ? t('bottomDock.stageDisabledSuffix') : ''}
+                    {isFutureStage ? t('bottomDock.stageLockedSuffix') : ''}
                   </option>
                 );
               })}
@@ -321,20 +324,27 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
                 aria-expanded={openMenu === 'upload'}
                 onClick={() => setOpenMenu((m) => (m === 'upload' ? null : 'upload'))}
                 data-testid='upload-menu-btn'
-                aria-label={`Chế độ tải ảnh: ${uploadMode === 'page' ? 'cả trang' : 'từng khung'}`}
-                title='Chọn chế độ tải ảnh: Tải cả trang liền mạch hoặc tải từng khung riêng biệt'
+                aria-label={t('bottomDock.uploadModeAriaLabel', {
+                  mode:
+                    uploadMode === 'page'
+                      ? t('bottomDock.uploadModePageLower')
+                      : t('bottomDock.uploadModePanelLower'),
+                })}
+                title={t('bottomDock.uploadModeTitle')}
                 className={`${toolbarBtn} ${toolbarIdle} h-7 text-xs px-2 flex items-center gap-1`}
               >
                 <Layers className='w-3.5 h-3.5 text-[#C2410C]' />
                 <span className='hidden md:inline font-medium text-xs'>
-                  {uploadMode === 'page' ? 'Cả trang' : 'Từng khung'}
+                  {uploadMode === 'page'
+                    ? t('bottomDock.uploadModePage')
+                    : t('bottomDock.uploadModePanel')}
                 </span>
                 <ChevronDown className='w-3 h-3 text-[#57534E]' />
               </button>
               {openMenu === 'upload' && (
                 <div
                   role='menu'
-                  aria-label='Chế độ tải ảnh'
+                  aria-label={t('bottomDock.uploadModeMenuAriaLabel')}
                   data-testid='upload-mode-toggle'
                   className='absolute left-0 bottom-full mb-2 w-64 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl py-1 z-50'
                 >
@@ -342,18 +352,22 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
                     {
                       mode: 'panel' as const,
                       testId: 'mode-panel-slice',
-                      title: 'Từng khung',
+                      title: t('bottomDock.uploadModePanel'),
                       hint: selectedPanelDetail
-                        ? `Tải cho Khung #${selectedPanelDetail.panelNumber} đang chọn`
-                        : 'Chọn một khung trên trang để tải ảnh riêng',
+                        ? t('bottomDock.uploadModePanelSelectedHint', {
+                            panel: selectedPanelDetail.panelNumber,
+                          })
+                        : t('bottomDock.uploadModePanelEmptyHint'),
                     },
                     ...(!hasPanelOnlyAssignmentOnPage
                       ? [
                           {
                             mode: 'page' as const,
                             testId: 'mode-full-page',
-                            title: 'Cả trang',
-                            hint: `Một ảnh cho cả Trang ${selectedPage.pageNumber}, có nhận diện khung & bóng thoại`,
+                            title: t('bottomDock.uploadModePage'),
+                            hint: t('bottomDock.uploadModePageHint', {
+                              page: selectedPage.pageNumber,
+                            }),
                           },
                         ]
                       : []),
@@ -394,7 +408,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
               data-testid='toggle-layout-edit'
               className='sr-only'
             >
-              <span>Sửa bố cục</span>
+              <span>{t('bottomDock.editLayout')}</span>
             </button>
           )}
 
@@ -406,7 +420,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
               data-testid='desk-open-ai-assist-btn'
               className='sr-only'
             >
-              <span>Tạo mô tả vẽ (cả cảnh)</span>
+              <span>{t('bottomDock.generateScenePrompts')}</span>
             </button>
           )}
         </div>
@@ -488,15 +502,15 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
           <div
             className='inline-flex items-center h-8 bg-[#F3F0E9] p-1 rounded-xl border border-[#D8D2C5] shrink-0'
             role='group'
-            aria-label='Thu phóng'
+            aria-label={t('bottomDock.zoomGroupAriaLabel')}
           >
             <button
               type='button'
               onClick={handleZoomOut}
               disabled={zoomScale <= 0.3}
               className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
-              title='Thu nhỏ'
-              aria-label='Thu nhỏ'
+              title={t('bottomDock.zoomOut')}
+              aria-label={t('bottomDock.zoomOut')}
             >
               <ZoomOut className='w-3 h-3' />
             </button>
@@ -504,8 +518,10 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
               type='button'
               onClick={handleResetZoom}
               className='hidden 2xl:block px-1 text-[11px] font-mono font-bold text-[#1C1917] rounded hover:bg-[#FCFBF8] cursor-pointer min-w-[2.5rem] focus-visible:outline-2 focus-visible:outline-[#F97316]'
-              title='Đặt lại 100%'
-              aria-label={`Thu phóng ${Math.round(zoomScale * 100)}%, bấm để đặt lại 100%`}
+              title={t('bottomDock.zoomReset')}
+              aria-label={t('bottomDock.zoomResetAriaLabel', {
+                percent: Math.round(zoomScale * 100),
+              })}
             >
               {Math.round(zoomScale * 100)}%
             </button>
@@ -514,8 +530,8 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
               onClick={handleZoomIn}
               disabled={zoomScale >= 2.5}
               className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
-              title='Phóng to'
-              aria-label='Phóng to'
+              title={t('bottomDock.zoomIn')}
+              aria-label={t('bottomDock.zoomIn')}
             >
               <ZoomIn className='w-3 h-3' />
             </button>
@@ -529,9 +545,9 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
                   ? 'bg-white text-[#C2410C] shadow-2xs'
                   : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8]'
               }`}
-              title='Vừa khung: nhìn trọn trang'
+              title={t('bottomDock.fitScreenTitle')}
             >
-              Vừa khung
+              {t('bottomDock.fitScreen')}
             </button>
           </div>
         )}
@@ -544,11 +560,15 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
             aria-expanded={!isRightCollapsed}
             aria-controls='artist-details'
             data-testid='toggle-details'
-            title={isRightCollapsed ? 'Mở bảng chi tiết & layer' : 'Đóng bảng chi tiết'}
+            title={
+              isRightCollapsed
+                ? t('bottomDock.openDetailsTitle')
+                : t('bottomDock.closeDetailsTitle')
+            }
             className={`${toolbarBtn} ${isRightCollapsed ? toolbarIdle : toolbarOn} h-7 px-2 rounded-lg flex items-center gap-1 shrink-0 cursor-pointer`}
           >
             <PanelRightOpen className='w-3.5 h-3.5 text-stone-600' />
-            <span className='text-xs font-semibold'>Chi tiết</span>
+            <span className='text-xs font-semibold'>{t('bottomDock.details')}</span>
           </button>
         )}
 
@@ -558,8 +578,8 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
             type='button'
             aria-haspopup='menu'
             aria-expanded={openMenu === 'page'}
-            aria-label='Thao tác trang'
-            title='Thao tác trang'
+            aria-label={t('bottomDock.pageActionsAriaLabel')}
+            title={t('bottomDock.pageActionsAriaLabel')}
             onClick={() => setOpenMenu((m) => (m === 'page' ? null : 'page'))}
             data-testid='page-menu-btn'
             className={`${toolbarBtn} ${toolbarIdle} w-7 h-7 px-0 justify-center rounded-lg`}
@@ -569,7 +589,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
           {openMenu === 'page' && (
             <div
               role='menu'
-              aria-label='Thao tác trang'
+              aria-label={t('bottomDock.pageActionsAriaLabel')}
               className='absolute right-0 bottom-full mb-2 w-56 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl py-1 z-50'
             >
               <button
@@ -582,7 +602,8 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
                 disabled={loading}
                 className={menuItem}
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Làm mới
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />{' '}
+                {t('bottomDock.refresh')}
               </button>
               <button
                 type='button'
@@ -595,7 +616,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
                 }}
                 className={menuItem}
               >
-                <BookOpen className='w-3.5 h-3.5' /> Tham chiếu Series Bible
+                <BookOpen className='w-3.5 h-3.5' /> {t('bottomDock.bibleReference')}
               </button>
               {canEditPages && (
                 <>
@@ -609,7 +630,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
                     disabled={!currentChapterId}
                     className={menuItem}
                   >
-                    <Plus className='w-3.5 h-3.5' /> Tạo trang mới
+                    <Plus className='w-3.5 h-3.5' /> {t('bottomDock.createNewPage')}
                   </button>
                   {selectedPage && (
                     <>
@@ -627,7 +648,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
                         }}
                         className={menuItem}
                       >
-                        <Settings className='w-3.5 h-3.5' /> Cài đặt trang
+                        <Settings className='w-3.5 h-3.5' /> {t('bottomDock.pageSettings')}
                       </button>
                       <div className='my-1 border-t border-[#D8D2C5]' />
                       <button
@@ -639,7 +660,8 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
                         }}
                         className={`${menuItem} text-rose-700 hover:bg-rose-50`}
                       >
-                        <Trash2 className='w-3.5 h-3.5' /> Xóa Trang {selectedPage.pageNumber}…
+                        <Trash2 className='w-3.5 h-3.5' />{' '}
+                        {t('bottomDock.deletePage', { page: selectedPage.pageNumber })}
                       </button>
                     </>
                   )}

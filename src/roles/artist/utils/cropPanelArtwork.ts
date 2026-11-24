@@ -1,3 +1,5 @@
+import { translate } from '@/lib/i18n';
+
 /**
  * Cắt một vùng ảnh [x, y, w, h] từ tệp ảnh gốc sang File ảnh mới để tải lên cho từng ô khung tranh (Panel).
  */
@@ -19,7 +21,7 @@ export async function cropPanelArtwork(
       }
       return new Promise((resolve, reject) => {
         source.onload = () => resolve({ img: source, cleanup: () => {} });
-        source.onerror = () => reject(new Error('Không thể tải ảnh nguồn để cắt.'));
+        source.onerror = () => reject(new Error(translate('artist.crop.loadSourceError')));
       });
     }
 
@@ -39,7 +41,7 @@ export async function cropPanelArtwork(
       };
       img.onerror = () => {
         if (isFile) URL.revokeObjectURL(url);
-        reject(new Error('Không thể tải ảnh nguồn để cắt.'));
+        reject(new Error(translate('artist.crop.loadSourceError')));
       };
       img.src = url;
     });
@@ -52,7 +54,7 @@ export async function cropPanelArtwork(
     canvas.height = safeH;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-      throw new Error('Canvas 2D context không khả dụng.');
+      throw new Error(translate('artist.crop.canvasContextError'));
     }
 
     if (corners && corners.length >= 3) {
@@ -68,7 +70,7 @@ export async function cropPanelArtwork(
     return await new Promise<File>((resolve, reject) => {
       canvas.toBlob((blob) => {
         if (!blob) {
-          reject(new Error('Không thể tạo blob ảnh cắt từ canvas.'));
+          reject(new Error(translate('artist.crop.createBlobError')));
           return;
         }
         const file = new File([blob], fileName, { type: 'image/png' });

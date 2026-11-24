@@ -37,6 +37,7 @@ import {
 import type { ScriptLineItem } from './ArtistCanvaSidebar';
 import { BalloonTextEditor } from './BalloonTextEditor';
 import { SpeakerAvatar } from './SpeakerAvatar';
+import { useTranslation } from '@/lib/i18n';
 
 export interface LetteringPropertyPanelProps {
   element: ElementSnapshotDto;
@@ -92,13 +93,16 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
   canUseAiShorten = false,
   onReloadPage,
 }) => {
+  const { t } = useTranslation('artist');
   const isOriginal = !activeLang || activeLang.toLowerCase() === originalLang.toLowerCase();
   const appearance = resolveAppearance(element.elementType, appearanceFromStyle(element.style));
   const text = resolveTextStyle(element);
   const linked = Boolean(element.scriptLineId);
   // Thoại hiện hành của Writer (currentLineText) — chỉ đọc
   const scriptText = element.currentLineText ?? scriptLine?.dialogueText ?? null;
-  const name = `Thoại ${displayNumber ?? element.readingOrder ?? ''}`.trim();
+  const name = t('letteringProperty.balloonTitle', {
+    number: displayNumber ?? element.readingOrder ?? '',
+  }).trim();
   const currentBubbleText = (element.renderedText || element.content || '').trim();
 
   const [sizeDraft, setSizeDraft] = useState(String(text.fontSize));
@@ -147,7 +151,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
       });
       setAiSuggestion(sug);
     } catch (err: any) {
-      setAiError(err?.message || 'Không thể chạy AI Copilot.');
+      setAiError(err?.message || t('letteringProperty.aiCopilotError'));
     } finally {
       setRunningAi(false);
     }
@@ -179,7 +183,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
         });
       }
     } catch (err: any) {
-      setAiError(err?.message || 'Không thể ghi quyết định.');
+      setAiError(err?.message || t('letteringProperty.aiDecisionError'));
       if (err?.status === 409) {
         await onReloadPage?.();
       }
@@ -198,19 +202,19 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
   return (
     <aside
       data-testid='lettering-property-panel'
-      aria-label='Thuộc tính thoại'
+      aria-label={t('letteringProperty.panelAriaLabel')}
       className='w-80 shrink-0 h-full overflow-y-auto custom-scrollbar p-3'
     >
       <div className='rounded-2xl border border-stone-200 bg-white shadow-sm p-4 space-y-5'>
         <header className='flex items-center justify-between'>
           <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
             <MessageCircle className='w-4 h-4' aria-hidden='true' />
-            Thuộc tính thoại
+            {t('letteringProperty.panelTitle')}
           </h3>
           {onClose && (
             <button
               type='button'
-              aria-label='Đóng thuộc tính'
+              aria-label={t('letteringProperty.closeAriaLabel')}
               onClick={onClose}
               className='p-1 rounded-md text-stone-400 hover:text-stone-800 hover:bg-stone-100 cursor-pointer'
             >
@@ -241,14 +245,15 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             ) : (
               <CircleAlert className='w-3 h-3' aria-hidden='true' />
             )}
-            {linked ? 'Đã liên kết' : 'Chưa liên kết'}
+            {linked ? t('letteringProperty.linked') : t('letteringProperty.unlinked')}
           </span>
         </div>
 
         {/* Tham chiếu Script */}
         <section className='space-y-2'>
           <h4 className={SECTION_TITLE}>
-            <FileText className='w-3.5 h-3.5' aria-hidden='true' /> Tham chiếu Script
+            <FileText className='w-3.5 h-3.5' aria-hidden='true' />{' '}
+            {t('letteringProperty.scriptRefTitle')}
           </h4>
           {linked ? (
             <div
@@ -264,20 +269,25 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
                 />
                 <div className='min-w-0'>
                   <p className='text-xs font-semibold text-stone-900'>
-                    Dòng {lineNumber ?? '?'}: “{scriptText ?? '…'}”
+                    {t('letteringProperty.linePrefix', { line: lineNumber ?? '?' })} “
+                    {scriptText ?? '…'}”
                   </p>
                   <p
                     data-testid='lettering-property-speaker'
                     className='text-[11px] text-stone-500'
                   >
-                    Nhân vật: {scriptLine?.characterName || 'Người dẫn'}
-                    {scriptLine?.pageNumber ? ` · Trang ${scriptLine.pageNumber}` : ''}
+                    {t('letteringProperty.characterLabel', {
+                      name: scriptLine?.characterName || t('letteringProperty.narratorFallback'),
+                    })}
+                    {scriptLine?.pageNumber
+                      ? t('letteringProperty.pageSuffix', { page: scriptLine.pageNumber })
+                      : ''}
                   </p>
                 </div>
               </div>
               {element.isStale && (
                 <p className='text-[11px] font-semibold text-amber-700'>
-                  Writer đã sửa thoại — cần cập nhật chữ.
+                  {t('letteringProperty.staleWarning')}
                 </p>
               )}
               {onViewScript && (
@@ -287,14 +297,15 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
                     onClick={onViewScript}
                     className='inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-stone-200 text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer'
                   >
-                    Xem script <ExternalLink className='w-3 h-3' aria-hidden='true' />
+                    {t('letteringProperty.viewScript')}{' '}
+                    <ExternalLink className='w-3 h-3' aria-hidden='true' />
                   </button>
                 </div>
               )}
             </div>
           ) : (
             <p className='text-xs text-stone-500 rounded-xl border border-dashed border-stone-200 p-3'>
-              Bóng chưa gắn dòng kịch bản (chữ tự do).
+              {t('letteringProperty.unlinkedHint')}
             </p>
           )}
         </section>
@@ -316,8 +327,8 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             className='space-y-2.5 rounded-xl border border-orange-200/80 bg-[#FAF8F5] p-3'
           >
             <h4 className={SECTION_TITLE}>
-              <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' /> Rút gọn bóng
-              thoại (AI)
+              <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />{' '}
+              {t('letteringProperty.aiShortenTitle')}
             </h4>
             <div className='flex items-end gap-2'>
               <div className='flex-1'>
@@ -325,7 +336,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
                   htmlFor={`shorten-max-chars-${element.elementId}`}
                   className='block text-[11px] font-semibold text-stone-700 mb-1'
                 >
-                  Số ký tự tối đa
+                  {t('letteringProperty.maxCharsLabel')}
                 </label>
                 <input
                   id={`shorten-max-chars-${element.elementId}`}
@@ -357,7 +368,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
                 ) : (
                   <Sparkles className='w-3.5 h-3.5' />
                 )}
-                Rút gọn bằng AI
+                {t('letteringProperty.shortenBtn')}
               </button>
             </div>
 
@@ -384,7 +395,8 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
         {/* Kiểu hiển thị */}
         <section className='space-y-2'>
           <h4 className={SECTION_TITLE}>
-            <Shapes className='w-3.5 h-3.5' aria-hidden='true' /> Kiểu hiển thị
+            <Shapes className='w-3.5 h-3.5' aria-hidden='true' />{' '}
+            {t('letteringProperty.appearanceTitle')}
           </h4>
           <div className='flex items-center gap-2'>
             <span
@@ -403,7 +415,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             </span>
             <select
               data-testid='lettering-property-shape'
-              aria-label='Hình bóng'
+              aria-label={t('letteringProperty.shapeAriaLabel')}
               value={appearance.shape}
               onChange={(e) =>
                 onChangeStyle({ balloonShape: e.target.value as TextStyleDto['balloonShape'] })
@@ -419,7 +431,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
           </div>
           <div className='grid grid-cols-2 gap-2'>
             <label className='flex items-center justify-between gap-1 rounded-lg border border-stone-200 px-2 py-1 text-xs text-stone-600'>
-              Nền
+              {t('letteringProperty.fillLabel')}
               <input
                 type='color'
                 data-testid='lettering-property-fill'
@@ -429,7 +441,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
               />
             </label>
             <label className='flex items-center justify-between gap-1 rounded-lg border border-stone-200 px-2 py-1 text-xs text-stone-600'>
-              Viền
+              {t('letteringProperty.borderLabel')}
               <input
                 type='color'
                 data-testid='lettering-property-border'
@@ -444,11 +456,12 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
         {/* Kiểu chữ */}
         <section className='space-y-2'>
           <h4 className={SECTION_TITLE}>
-            <Type className='w-3.5 h-3.5' aria-hidden='true' /> Kiểu chữ
+            <Type className='w-3.5 h-3.5' aria-hidden='true' />{' '}
+            {t('letteringProperty.typographyTitle')}
           </h4>
           <select
             data-testid='lettering-font-family'
-            aria-label='Phông chữ'
+            aria-label={t('letteringProperty.fontFamilyAriaLabel')}
             value={text.fontFamily}
             onChange={(e) => onChangeStyle({ fontFamily: e.target.value })}
             className='w-full h-9 px-2 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:border-orange-500 cursor-pointer'
@@ -464,7 +477,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             <button
               type='button'
               data-testid='lettering-font-size-dec'
-              aria-label='Giảm cỡ chữ'
+              aria-label={t('letteringProperty.decreaseFontAriaLabel')}
               disabled={text.fontSize <= MIN_LETTERING_FONT_PX}
               onClick={() => onChangeStyle({ fontSize: clampFontSize(text.fontSize - 2) })}
               className={ICON_BTN(false)}
@@ -473,7 +486,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             </button>
             <input
               data-testid='lettering-font-size-input'
-              aria-label='Cỡ chữ (px)'
+              aria-label={t('letteringProperty.fontSizeAriaLabel')}
               inputMode='numeric'
               value={sizeDraft}
               onChange={(e) => setSizeDraft(e.target.value.replace(/[^0-9]/g, ''))}
@@ -489,7 +502,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             <button
               type='button'
               data-testid='lettering-font-size-inc'
-              aria-label='Tăng cỡ chữ'
+              aria-label={t('letteringProperty.increaseFontAriaLabel')}
               disabled={text.fontSize >= MAX_TEXT_FONT_PX}
               onClick={() => onChangeStyle({ fontSize: clampFontSize(text.fontSize + 2) })}
               className={ICON_BTN(false)}
@@ -499,7 +512,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             <input
               type='color'
               data-testid='lettering-color-picker'
-              aria-label='Màu chữ'
+              aria-label={t('letteringProperty.textColorAriaLabel')}
               value={text.color ?? '#171717'}
               onChange={(e) => onChangeStyle({ color: e.target.value.toUpperCase() })}
               className='w-8 h-8 p-0.5 rounded-lg border border-stone-200 cursor-pointer'
@@ -509,7 +522,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             <button
               type='button'
               data-testid='lettering-btn-bold'
-              aria-label='In đậm'
+              aria-label={t('letteringProperty.boldAriaLabel')}
               aria-pressed={Boolean(text.bold)}
               onClick={() => onChangeStyle({ bold: !text.bold })}
               className={ICON_BTN(Boolean(text.bold))}
@@ -519,7 +532,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             <button
               type='button'
               data-testid='lettering-btn-italic'
-              aria-label='In nghiêng'
+              aria-label={t('letteringProperty.italicAriaLabel')}
               aria-pressed={Boolean(text.italic)}
               onClick={() => onChangeStyle({ italic: !text.italic })}
               className={ICON_BTN(Boolean(text.italic))}
@@ -529,9 +542,9 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             <span className='w-px h-5 bg-stone-200 mx-1' aria-hidden='true' />
             {(
               [
-                ['left', AlignLeft, 'Căn trái'],
-                ['center', AlignCenter, 'Căn giữa'],
-                ['right', AlignRight, 'Căn phải'],
+                ['left', AlignLeft, t('letteringProperty.alignLeftAriaLabel')],
+                ['center', AlignCenter, t('letteringProperty.alignCenterAriaLabel')],
+                ['right', AlignRight, t('letteringProperty.alignRightAriaLabel')],
               ] as const
             ).map(([value, Icon, label]) => (
               <button
@@ -557,7 +570,8 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
               onClick={onDelete}
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-xs font-semibold text-rose-600 hover:bg-rose-100 cursor-pointer'
             >
-              <Trash2 className='w-3.5 h-3.5' aria-hidden='true' /> Xóa thoại
+              <Trash2 className='w-3.5 h-3.5' aria-hidden='true' />{' '}
+              {t('letteringProperty.deleteBalloon')}
             </button>
           </div>
         )}

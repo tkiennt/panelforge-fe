@@ -282,7 +282,7 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
         isOpen={Boolean(previewEntry)}
         onClose={() => setPreviewEntry(null)}
         size='sm'
-        closeLabel='Đóng'
+        closeLabel={t('artist.common.close')}
         data-testid='panel-model-sheet-preview-modal'
         title={
           <div>

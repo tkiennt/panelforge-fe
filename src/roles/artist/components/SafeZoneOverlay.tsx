@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '@/lib/i18n';
 
 interface Props {
   widthPx: number;
@@ -13,6 +14,7 @@ interface Props {
  * - Live Area / Safe Zone (Vùng nội dung an toàn): Đảm bảo text & hình vẽ quan trọng không bị cắt mất
  */
 export const SafeZoneOverlay: React.FC<Props> = ({ widthPx, heightPx, visible }) => {
+  const { t } = useTranslation('artist');
   if (!visible) return null;
 
   // Tính margin an toàn theo tỷ lệ chuẩn
@@ -35,7 +37,7 @@ export const SafeZoneOverlay: React.FC<Props> = ({ widthPx, heightPx, visible })
         }}
       >
         <span className='absolute top-1 left-1 font-mono text-[9px] uppercase tracking-wider bg-rose-500 text-white px-1 py-0.2 rounded opacity-80'>
-          Trim Line (Cắt)
+          {t('safeZone.trimLine')}
         </span>
       </div>
 
@@ -50,7 +52,7 @@ export const SafeZoneOverlay: React.FC<Props> = ({ widthPx, heightPx, visible })
         }}
       >
         <span className='absolute bottom-1 right-1 font-mono text-[9px] uppercase tracking-wider bg-emerald-600 text-white px-1 py-0.2 rounded opacity-80'>
-          Live Safe Zone (Nội dung an toàn)
+          {t('safeZone.liveSafeZone')}
         </span>
       </div>
     </div>

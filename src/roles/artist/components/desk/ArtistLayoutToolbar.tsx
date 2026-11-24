@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Check, LayoutTemplate, Loader2, Lock, Scissors, Upload } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 interface ArtistLayoutToolbarProps {
   currentStep: 1 | 2 | 3 | 4;
@@ -16,7 +17,12 @@ interface ArtistLayoutToolbarProps {
   onSaveLayout: () => void;
 }
 
-const STEPS = ['Phác thảo', 'Tách khung / Chọn mẫu', 'Lưu bố cục', 'Nạp tranh'];
+const STEP_KEYS = [
+  'layoutToolbar.steps.sketch',
+  'layoutToolbar.steps.splitOrTemplate',
+  'layoutToolbar.steps.saveLayout',
+  'layoutToolbar.steps.uploadArtwork',
+] as const;
 
 export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
   currentStep,
@@ -32,40 +38,42 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
   onSplitPanels,
   onSaveLayout,
 }) => {
+  const { t } = useTranslation('artist');
   const sketchInputRef = useRef<HTMLInputElement | null>(null);
   const isLayoutDisabled = readOnly || Boolean(layoutLockedReason);
   const splitReason = layoutLockedReason
     ? layoutLockedReason
     : readOnly
-      ? 'Bạn không có ô đang mở cho trang này'
+      ? t('common.noOpenSlotForPage')
       : !hasSketch
-        ? 'Cần tải phác thảo trước'
+        ? t('layoutToolbar.needSketchFirst')
         : undefined;
   const saveReason = layoutLockedReason
     ? layoutLockedReason
     : readOnly
-      ? 'Bạn không có ô đang mở cho trang này'
+      ? t('common.noOpenSlotForPage')
       : !hasPanels
-        ? 'Cần chọn mẫu khung hoặc tách khung trước'
+        ? t('layoutToolbar.needPanelsFirst')
         : !isLayoutDirty
-          ? 'Chưa có thay đổi để lưu'
+          ? t('layoutToolbar.noChangesToSave')
           : undefined;
   const buttonClass = (step: number) =>
     `${currentStep === step ? 'btn-cta-primary' : 'btn-cta-secondary'} focus-ring min-h-9 px-3 text-xs font-bold inline-flex items-center justify-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-50`;
 
   return (
     <section
-      aria-label='Quy trình bố cục trang'
+      aria-label={t('layoutToolbar.ariaLabel')}
       className='w-full shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-surface-3)] px-3 py-2'
       data-testid='artist-layout-toolbar'
     >
       <div className='flex flex-wrap items-center justify-between gap-2'>
         <ol className='flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-[var(--studio-ink-muted)]'>
-          {STEPS.map((label, index) => {
+          {STEP_KEYS.map((key, index) => {
             const step = index + 1;
+            const label = t(key);
             return (
               <li
-                key={label}
+                key={key}
                 aria-current={step === currentStep ? 'step' : undefined}
                 className={`inline-flex items-center gap-1 ${step === currentStep ? 'font-bold text-[var(--studio-ink)]' : ''}`}
               >
@@ -73,7 +81,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
                 <span>
                   {step} {label}
                 </span>
-                {step < STEPS.length && <span aria-hidden='true'>→</span>}
+                {step < STEP_KEYS.length && <span aria-hidden='true'>→</span>}
               </li>
             );
           })}
@@ -97,7 +105,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
             className={buttonClass(1)}
           >
             <Upload className='h-3.5 w-3.5' aria-hidden='true' />
-            Tải phác thảo
+            {t('layoutToolbar.uploadSketch')}
           </button>
           <button
             type='button'
@@ -108,7 +116,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
             className={buttonClass(2)}
           >
             <LayoutTemplate className='h-3.5 w-3.5' aria-hidden='true' />
-            Chọn mẫu khung
+            {t('layoutToolbar.chooseTemplate')}
           </button>
           <span title={splitReason}>
             <button
@@ -124,7 +132,9 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
               ) : (
                 <Scissors className='h-3.5 w-3.5' aria-hidden='true' />
               )}
-              {isDetectingPanels ? 'Đang tách khung...' : 'Tách khung'}
+              {isDetectingPanels
+                ? t('layoutToolbar.splittingPanels')
+                : t('layoutToolbar.splitPanels')}
             </button>
           </span>
           <span title={saveReason}>
@@ -141,7 +151,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
               ) : (
                 <Check className='h-3.5 w-3.5' aria-hidden='true' />
               )}
-              Lưu bố cục
+              {t('layoutToolbar.saveLayout')}
             </button>
           </span>
         </div>

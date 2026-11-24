@@ -1,5 +1,6 @@
 import React from 'react';
 import { BookOpen, Sparkles, RefreshCw, Layers } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import { ScriptLineItem } from './workspace.types';
 
 interface ScriptReaderPanelProps {
@@ -15,14 +16,17 @@ interface ScriptReaderPanelProps {
 
 export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
   pageNumber,
-  sceneTitle = 'CẢNH 1: MỞ ĐẦU',
-  sceneSlugline = 'NGOẠI · CỔNG THÀNH · SÁNG',
+  sceneTitle,
+  sceneSlugline,
   lines,
   selectedPanelId,
   onSelectPanel,
   onAutoSync,
   isSyncing = false,
 }) => {
+  const { t } = useTranslation('artist');
+  const resolvedSceneTitle = sceneTitle ?? t('scriptReaderPanel.defaultSceneTitle');
+  const resolvedSceneSlugline = sceneSlugline ?? t('scriptReaderPanel.defaultSceneSlugline');
   return (
     <aside
       data-testid='writer-script-reader-panel'
@@ -34,21 +38,21 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
           <div className='flex items-center gap-2'>
             <BookOpen className='w-4 h-4 text-orange-600' />
             <h2 className='text-xs font-bold uppercase tracking-wider text-stone-900'>
-              Kịch bản Trang {pageNumber}
+              {t('scriptReaderPanel.pageScriptTitle', { pageNumber })}
             </h2>
           </div>
           <span className='text-[10px] font-mono px-1.5 py-0.5 rounded bg-stone-200/70 text-stone-700 font-semibold'>
-            {lines.length} đoạn kịch bản
+            {t('scriptReaderPanel.linesCount', { count: lines.length })}
           </span>
         </div>
 
         {/* Scene Heading & Slugline */}
         <div className='pt-1'>
           <div className='font-serif font-bold text-stone-900 text-sm tracking-tight truncate'>
-            {sceneTitle}
+            {resolvedSceneTitle}
           </div>
           <div className='text-[10px] font-mono text-stone-500 uppercase tracking-wide truncate mt-0.5'>
-            {sceneSlugline}
+            {resolvedSceneSlugline}
           </div>
         </div>
       </div>
@@ -58,7 +62,7 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
         {lines.length === 0 ? (
           <div className='h-full flex flex-col items-center justify-center text-center p-6 text-stone-400'>
             <BookOpen className='w-8 h-8 stroke-[1.5] text-stone-300 mb-2' />
-            <p className='text-xs font-serif italic'>Trang này chưa có nội dung kịch bản nào.</p>
+            <p className='text-xs font-serif italic'>{t('scriptReaderPanel.emptyScript')}</p>
           </div>
         ) : (
           lines.map((line) => {
@@ -81,18 +85,22 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
                 <div className='absolute right-2.5 top-2.5 flex items-center gap-1'>
                   {line.panelId ? (
                     <span
-                      title={`Được liên kết với Khung #${line.panelId.replace('panel-', '')}`}
+                      title={t('scriptReaderPanel.linkedToPanelTitle', {
+                        panelNumber: line.panelId.replace('panel-', ''),
+                      })}
                       className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded transition-colors ${
                         isLinkedToSelectedPanel
                           ? 'bg-orange-500 text-white shadow-2xs'
                           : 'bg-stone-100 text-stone-600 group-hover:bg-stone-200'
                       }`}
                     >
-                      Khung #{line.panelId.replace('panel-', '')}
+                      {t('scriptReaderPanel.panelBadge', {
+                        panelNumber: line.panelId.replace('panel-', ''),
+                      })}
                     </span>
                   ) : (
                     <span
-                      title='Chưa gán khung tranh'
+                      title={t('scriptReaderPanel.unassignedPanelTitle')}
                       className='text-[10px] font-mono text-stone-300'
                     >
                       —
@@ -156,12 +164,12 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
           {isSyncing ? (
             <>
               <RefreshCw className='w-3.5 h-3.5 animate-spin text-orange-600' />
-              <span>Đang đồng bộ khung...</span>
+              <span>{t('scriptReaderPanel.syncing')}</span>
             </>
           ) : (
             <>
               <Sparkles className='w-3.5 h-3.5 text-orange-600' />
-              <span>Tự động đồng bộ khung với thoại</span>
+              <span>{t('scriptReaderPanel.autoSync')}</span>
             </>
           )}
         </button>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import { ArtistLayoutToolbar } from './ArtistLayoutToolbar';
 
 export interface PageSketch {
@@ -50,6 +51,7 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
   onSaveLayout,
   children,
 }) => {
+  const { t } = useTranslation('artist');
   const currentStep: 1 | 2 | 3 | 4 =
     !sketch && !hasPanels ? 1 : !hasPanels ? 2 : !isLayoutSaved ? 3 : 4;
 
@@ -90,11 +92,11 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
               >
                 <div
                   className='absolute inset-[1.8%] border border-dashed border-stone-300/50 pointer-events-none z-10'
-                  title='Đường xén thành phẩm (Trim Line - 3mm Bleed)'
+                  title={t('canvasViewport.trimLineTitle')}
                 />
                 <div
                   className='absolute inset-[2.8%] border border-dotted border-stone-200/60 pointer-events-none z-10'
-                  title='Vùng an toàn nội dung thoại & hình vẽ chính (Live Safe Area)'
+                  title={t('canvasViewport.safeAreaTitle')}
                 />
                 {CROP_MARKS.map((position) => (
                   <div
@@ -117,13 +119,13 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
                       className='px-4 py-2 rounded-xl bg-stone-900/90 text-white text-xs font-semibold shadow-lg flex items-center gap-2'
                     >
                       <Loader2 className='w-4 h-4 text-amber-400 animate-spin' aria-hidden='true' />
-                      <span>Đang dò rãnh tranh và tách các ô panel...</span>
+                      <span>{t('canvasViewport.detectingPanels')}</span>
                     </div>
                   </div>
                 )}
                 {!hasPanels && !sketch && (
                   <p className='absolute inset-0 z-20 flex items-center justify-center p-4 text-center text-xs text-stone-500'>
-                    Tải phác thảo hoặc chọn mẫu khung để bắt đầu.
+                    {t('canvasViewport.emptyPrompt')}
                   </p>
                 )}
                 {children}

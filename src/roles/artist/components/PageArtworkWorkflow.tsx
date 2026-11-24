@@ -29,6 +29,7 @@ import type { PanelDto } from '@/types/pipeline';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { cropPanelArtwork } from '../utils/cropPanelArtwork';
 import { detectPanelsFromSketchImage } from '../lib/panelDetection';
+import { useTranslation } from '@/lib/i18n';
 import {
   clampRegion,
   draftFromSplitResult,
@@ -101,6 +102,7 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
   onUploadPending,
   onApplied,
 }) => {
+  const { t } = useTranslation('artist');
   const [internalReviewOpen, setInternalReviewOpen] = useState(false);
   const reviewOpen = forceOpenReview ?? internalReviewOpen;
   const handleCloseReview = () => {
@@ -115,8 +117,15 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
       data-testid='page-artwork-workflow'
     >
       <div className='flex flex-wrap items-center justify-between gap-2'>
-        <ol className='flex items-center gap-1.5 text-[11px] font-semibold' aria-label='Các bước'>
-          {['Tải ảnh', 'Rà soát vùng', 'Xác nhận'].map((label, i) => (
+        <ol
+          className='flex items-center gap-1.5 text-[11px] font-semibold'
+          aria-label={t('pageArtwork.stepsAriaLabel')}
+        >
+          {[
+            t('pageArtwork.stepUpload'),
+            t('pageArtwork.stepReview'),
+            t('pageArtwork.stepConfirm'),
+          ].map((label, i) => (
             <li
               key={label}
               aria-current={step === i + 1 ? 'step' : undefined}
@@ -135,11 +144,11 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
           className='text-[11px] text-[#57534E] truncate max-w-full'
           data-testid='workflow-context'
         >
-          Trang {page.pageNumber}
-          {stageName ? ` · Công đoạn ${stageName}` : ''}
+          {t('pageArtwork.pagePrefix', { page: page.pageNumber })}
+          {stageName ? t('pageArtwork.stageSuffix', { stage: stageName }) : ''}
           {assignmentBrief
-            ? ` · Việc: ${assignmentBrief}`
-            : ' · Chưa có việc đang làm cho trang này'}
+            ? t('pageArtwork.assignmentSuffix', { brief: assignmentBrief })
+            : t('pageArtwork.noAssignmentSuffix')}
         </p>
       </div>
 
@@ -155,7 +164,7 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
       ) : artwork ? (
         <div className='flex flex-wrap items-center gap-2'>
           <span className='text-[11px] font-mono font-bold text-[#C2410C] bg-white border border-[#D8D2C5] rounded px-1.5 py-0.5'>
-            {artwork.isLocal ? 'Ảnh trên máy · chưa lưu' : `Artwork v${artwork.versionNumber}`}
+            {artwork.isLocal ? t('pageArtwork.localUnsaved') : `Artwork v${artwork.versionNumber}`}
           </span>
           {canEdit && (
             <button
@@ -166,7 +175,7 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
               className='px-2.5 py-1 text-xs font-semibold rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#F3F0E9] text-[#1C1917] flex items-center gap-1 cursor-pointer disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[#F97316]'
             >
               <Upload className='w-3 h-3' aria-hidden />{' '}
-              {artwork.isLocal ? 'Đổi ảnh' : 'Tải phiên bản mới'}
+              {artwork.isLocal ? t('pageArtwork.changeImage') : t('pageArtwork.uploadNewVersion')}
             </button>
           )}
           <button
@@ -175,7 +184,7 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
             data-testid='workflow-detect-btn'
             className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white flex items-center gap-1 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C]'
           >
-            <ScanSearch className='w-3 h-3' aria-hidden /> Nhận diện panel
+            <ScanSearch className='w-3 h-3' aria-hidden /> {t('pageArtwork.detectPanels')}
           </button>
         </div>
       ) : (
@@ -187,10 +196,10 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
               data-testid='workflow-pick-btn'
               className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white flex items-center gap-1 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C]'
             >
-              <FileImage className='w-3 h-3' aria-hidden /> Chọn ảnh trang truyện
+              <FileImage className='w-3 h-3' aria-hidden /> {t('pageArtwork.pickPageImage')}
             </button>
           )}
-          <span>hoặc kéo thả một ảnh PNG / JPEG / WEBP vào khung trang bên dưới.</span>
+          <span>{t('pageArtwork.dropHint')}</span>
         </div>
       )}
 
@@ -220,6 +229,7 @@ const PendingFileRow: React.FC<{
   onCancel: () => void;
   onUpload: () => void;
 }> = ({ file, uploading, progressMsg, onChange, onCancel, onUpload }) => {
+  const { t } = useTranslation('artist');
   const [thumb, setThumb] = useState<string | null>(null);
   useEffect(() => {
     const url = URL.createObjectURL(file);
@@ -245,9 +255,7 @@ const PendingFileRow: React.FC<{
         </p>
         <p className='text-[11px] text-[#57534E]' aria-live='polite'>
           {formatBytes(file.size)} ·{' '}
-          {uploading
-            ? progressMsg || 'Đang tải lên…'
-            : 'Chưa tải lên — đang xem trước trên khung trang'}
+          {uploading ? progressMsg || t('pageArtwork.uploading') : t('pageArtwork.previewing')}
         </p>
       </div>
       <button
@@ -262,7 +270,7 @@ const PendingFileRow: React.FC<{
         ) : (
           <Upload className='w-3 h-3' aria-hidden />
         )}
-        {uploading ? 'Đang tải…' : 'Tải lên'}
+        {uploading ? t('pageArtwork.uploadingShort') : t('pageArtwork.uploadBtn')}
       </button>
       <button
         type='button'
@@ -271,7 +279,7 @@ const PendingFileRow: React.FC<{
         data-testid='pending-change-btn'
         className='px-2 py-1 text-xs font-semibold rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#F3F0E9] cursor-pointer disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[#F97316]'
       >
-        Đổi ảnh
+        {t('pageArtwork.changeImage')}
       </button>
       <button
         type='button'
@@ -280,7 +288,7 @@ const PendingFileRow: React.FC<{
         data-testid='pending-cancel-btn'
         className='px-2 py-1 text-xs font-semibold rounded-lg text-[#57534E] hover:text-rose-700 hover:bg-rose-50 cursor-pointer disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[#F97316]'
       >
-        Hủy
+        {t('pageArtwork.cancelBtn')}
       </button>
     </div>
   );
@@ -313,6 +321,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
   onClose,
   onApplied,
 }) => {
+  const { t } = useTranslation('artist');
   const confirm = useConfirm();
   const [rtl, setRtl] = useState(defaultRightToLeft);
   const [detecting, setDetecting] = useState(false);
@@ -373,10 +382,10 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
   const confirmDiscard = async () => {
     if (!dirty) return true;
     return await confirm({
-      title: 'Bỏ bản nháp chưa lưu?',
-      description: 'Bạn có các chỉnh sửa phân vùng chưa lưu trong bản nháp này.',
-      confirmText: 'Bỏ bản nháp',
-      cancelText: 'Giữ lại chỉnh sửa',
+      title: t('pageArtwork.discardTitle'),
+      description: t('pageArtwork.discardDescription'),
+      confirmText: t('pageArtwork.discardConfirm'),
+      cancelText: t('pageArtwork.discardCancel'),
       variant: 'warning',
     });
   };
@@ -397,15 +406,11 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
     setSaveMsg(null);
     try {
       const res = await fetch(artwork.url);
-      if (!res.ok)
-        throw new Error(
-          'Không tải được artwork để nhận diện (link có thể đã hết hạn), hãy thử lại.',
-        );
+      if (!res.ok) throw new Error(t('pageArtwork.fetchArtworkExpiredError'));
       const blob = await res.blob();
-      if (!SPLIT_TYPES.includes(blob.type))
-        throw new Error('Nhận diện chỉ hỗ trợ ảnh PNG, JPEG, WEBP.');
+      if (!SPLIT_TYPES.includes(blob.type)) throw new Error(t('pageArtwork.unsupportedTypeError'));
       if (blob.size > SPLIT_MAX_BYTES)
-        throw new Error(`Ảnh ${formatBytes(blob.size)} vượt giới hạn nhận diện 20 MB.`);
+        throw new Error(t('pageArtwork.sizeLimitError', { size: formatBytes(blob.size) }));
       const file = new File([blob], `page-${page.pageNumber}-v${artwork.versionNumber}`, {
         type: blob.type,
       });
@@ -418,10 +423,10 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
       setDirty(false);
       setSelectedId(null);
       setFit(true);
-      setNotice(`Tìm thấy ${d.panels.length} panel.`);
+      setNotice(t('pageArtwork.foundPanelsNotice', { count: d.panels.length }));
     } catch (err: unknown) {
       if (req !== reqRef.current) return;
-      setError(err instanceof Error ? err.message : 'Nhận diện thất bại.');
+      setError(err instanceof Error ? err.message : t('pageArtwork.detectFailedError'));
     } finally {
       if (req === reqRef.current) setDetecting(false);
     }
@@ -438,7 +443,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
     setSaveMsg(null);
     try {
       const res = await fetch(artwork.url);
-      if (!res.ok) throw new Error('Không tải được artwork để nhận diện.');
+      if (!res.ok) throw new Error(t('pageArtwork.fetchArtworkError'));
       const blob = await res.blob();
       const file = new File([blob], `page-${page.pageNumber}-v${artwork.versionNumber}`, {
         type: blob.type,
@@ -468,10 +473,10 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
       setDirty(false);
       setSelectedId(null);
       setFit(true);
-      setNotice(`Đã tách ${d.panels.length} panel bằng thuật toán dự phòng trên trình duyệt.`);
+      setNotice(t('pageArtwork.browserSplitNotice', { count: d.panels.length }));
     } catch (err: unknown) {
       if (req !== reqRef.current) return;
-      setError(err instanceof Error ? err.message : 'Tách rãnh dự phòng thất bại.');
+      setError(err instanceof Error ? err.message : t('pageArtwork.browserSplitFailedError'));
     } finally {
       if (req === reqRef.current) setDetecting(false);
     }
@@ -712,13 +717,9 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
         savedBubbles += 1;
       }
       setDirty(false);
-      setSaveMsg(`Đã lưu ${savedPanels} panel vào trang ${page.pageNumber}.`);
+      setSaveMsg(t('pageArtwork.savedPanelsMsg', { count: savedPanels, page: page.pageNumber }));
       if (failedCrops > 0) {
-        setError(
-          (prev) =>
-            prev ||
-            `${failedCrops} khung chưa có tranh (cắt hoặc tải ảnh lỗi). Hãy nạp tranh cho các khung đó ở bàn vẽ.`,
-        );
+        setError((prev) => prev || t('pageArtwork.failedCropsError', { count: failedCrops }));
       }
       await onApplied();
     } catch (err: unknown) {
@@ -729,13 +730,13 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
         response?: { status?: number };
       };
       const status = e.status ?? e.response?.status;
-      const done = `Đã lưu ${savedPanels} panel trước khi lỗi.`;
+      const done = t('pageArtwork.savedBeforeError', { count: savedPanels });
       setError(
         status === 403 || e.code === 'FORBIDDEN'
-          ? 'Bạn không có ô đang mở cho trang này'
+          ? t('pageArtwork.noOpenSlotError')
           : status === 409
-            ? `Dữ liệu trang vừa thay đổi ở nơi khác (409). ${done} Hãy đóng hộp này, tải lại trang và rà soát phiên bản trước khi lưu tiếp.`
-            : `${e.message || 'Lưu thất bại.'} ${done}`,
+            ? t('pageArtwork.conflict409Error', { done })
+            : `${e.message || t('pageArtwork.saveFailedFallback')} ${done}`,
       );
       if (savedPanels + savedBubbles > 0) await onApplied();
     } finally {
@@ -755,10 +756,10 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
         tabIndex={0}
         aria-label={
           isPanel
-            ? `Panel ${label}`
+            ? t('pageArtwork.regionPanelAria', { label })
             : isCaption
-              ? `Khung dẫn chuyện ${label}`
-              : `Bóng thoại ${label}`
+              ? t('pageArtwork.regionCaptionAria', { label })
+              : t('pageArtwork.regionBubbleAria', { label })
         }
         aria-pressed={isSelected}
         data-testid={`split-region-${r.kind}`}
@@ -869,23 +870,25 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
       isOpen={true}
       onClose={close}
       size='full'
-      closeLabel='Đóng'
+      closeLabel={t('pageArtwork.closeLabel')}
       data-testid='split-review-dialog'
       className='w-full max-w-6xl h-[92vh] flex flex-col'
       title={
         <div className='flex items-center justify-between w-full'>
           <div className='min-w-0'>
             <h2 id='split-review-title' className='text-sm font-bold text-[#1C1917]'>
-              Nhận diện panel — Trang {page.pageNumber},{' '}
-              {artwork.isLocal
-                ? 'ảnh trên máy (chỉ lưu các khung đã cắt)'
-                : `artwork v${artwork.versionNumber}`}
+              {t('pageArtwork.dialogTitle', {
+                page: page.pageNumber,
+                source: artwork.isLocal
+                  ? t('pageArtwork.dialogSourceLocal')
+                  : t('pageArtwork.dialogSourceVersion', { version: artwork.versionNumber }),
+              })}
             </h2>
           </div>
           <button
             type='button'
             onClick={close}
-            aria-label='Đóng'
+            aria-label={t('pageArtwork.closeLabel')}
             data-testid='split-close-btn'
             className='hidden'
           >
@@ -893,7 +896,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
           </button>
         </div>
       }
-      description='Gợi ý tự động phù hợp với panel có viền rõ và có thể nhận nhầm vùng trắng; hãy kiểm tra trước khi xác nhận.'
+      description={t('pageArtwork.dialogDescription')}
     >
       <div
         ref={dialogRef}
@@ -903,10 +906,10 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
       >
         <div className='shrink-0 flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[#D8D2C5] bg-[#F7F4EE]'>
           <fieldset className='inline-flex items-center p-0.5 bg-white rounded-lg border border-[#D8D2C5]'>
-            <legend className='sr-only'>Hướng đọc</legend>
+            <legend className='sr-only'>{t('pageArtwork.readingDirectionLegend')}</legend>
             {[
-              { v: false, label: 'Trái → phải' },
-              { v: true, label: 'Phải → trái' },
+              { v: false, label: t('pageArtwork.ltr') },
+              { v: true, label: t('pageArtwork.rtl') },
             ].map((o) => (
               <label
                 key={o.label}
@@ -938,7 +941,11 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
             ) : (
               <ScanSearch className='w-3 h-3' aria-hidden />
             )}
-            {detecting ? 'Đang nhận diện…' : draft ? 'Nhận diện lại' : 'Nhận diện'}
+            {detecting
+              ? t('pageArtwork.detecting')
+              : draft
+                ? t('pageArtwork.redetect')
+                : t('pageArtwork.detect')}
           </button>
 
           {draft && (
@@ -950,8 +957,10 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                 aria-pressed={!showOverlay}
                 data-testid='split-toggle-overlay'
                 className={iconBtn}
-                aria-label={showOverlay ? 'Ẩn lớp gợi ý' : 'Hiện lớp gợi ý'}
-                title={showOverlay ? 'Ẩn lớp gợi ý' : 'Hiện lớp gợi ý'}
+                aria-label={
+                  showOverlay ? t('pageArtwork.hideOverlay') : t('pageArtwork.showOverlay')
+                }
+                title={showOverlay ? t('pageArtwork.hideOverlay') : t('pageArtwork.showOverlay')}
               >
                 {showOverlay ? <EyeOff className='w-4 h-4' /> : <Eye className='w-4 h-4' />}
               </button>
@@ -959,7 +968,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                 <button
                   type='button'
                   className={iconBtn}
-                  aria-label='Thu nhỏ'
+                  aria-label={t('pageArtwork.zoomOut')}
                   data-testid='split-zoom-out'
                   disabled={scale <= 0.1}
                   onClick={() => {
@@ -978,7 +987,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                 <button
                   type='button'
                   className={iconBtn}
-                  aria-label='Phóng to'
+                  aria-label={t('pageArtwork.zoomIn')}
                   data-testid='split-zoom-in'
                   disabled={scale >= 4}
                   onClick={() => {
@@ -997,7 +1006,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                     fit ? 'text-[#C2410C]' : 'text-[#57534E]'
                   }`}
                 >
-                  Vừa khung
+                  {t('pageArtwork.fit')}
                 </button>
               </div>
             </>
@@ -1019,7 +1028,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                   data-testid='split-fallback-btn'
                   className='px-2 py-0.5 rounded bg-rose-100 hover:bg-rose-200 border border-rose-300 text-rose-900 font-semibold text-[11px] cursor-pointer transition-colors'
                 >
-                  Tách rãnh trên trình duyệt (dự phòng)
+                  {t('pageArtwork.fallbackBrowserSplit')}
                 </button>
               </div>
             )}
@@ -1061,7 +1070,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
               >
                 <img
                   src={artwork.url}
-                  alt={`Artwork trang ${page.pageNumber}`}
+                  alt={t('pageArtwork.artworkAlt', { page: page.pageNumber })}
                   draggable={false}
                   data-testid='split-image'
                   className='block select-none'
@@ -1080,7 +1089,8 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                 {detecting && (
                   <div className='absolute inset-0 bg-stone-900/30 flex items-center justify-center'>
                     <span className='text-xs font-semibold text-white bg-black/60 px-2.5 py-1 rounded flex items-center gap-1.5'>
-                      <Loader2 className='w-3.5 h-3.5 animate-spin' aria-hidden /> Đang nhận diện…
+                      <Loader2 className='w-3.5 h-3.5 animate-spin' aria-hidden />{' '}
+                      {t('pageArtwork.detecting')}
                     </span>
                   </div>
                 )}
@@ -1088,7 +1098,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
             </div>
             {!draft && !detecting && (
               <p className='sticky bottom-3 mx-auto w-fit text-xs text-[#57534E] bg-white/90 border border-[#D8D2C5] rounded-lg px-2.5 py-1'>
-                Chọn hướng đọc rồi bấm “Nhận diện”. Kết quả chỉ là bản nháp, chưa lưu gì.
+                {t('pageArtwork.emptyDraftHint')}
               </p>
             )}
           </div>
@@ -1097,7 +1107,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
             <aside className='lg:w-72 shrink-0 flex flex-col min-h-0 gap-2 max-h-[45vh] lg:max-h-none'>
               <div className='flex-1 min-h-0 overflow-auto space-y-3 pr-1'>
                 <RegionList
-                  title='Panel (thứ tự đọc)'
+                  title={t('pageArtwork.panelListTitle')}
                   kind='panel'
                   items={draft.panels}
                   selectedId={selectedId}
@@ -1110,7 +1120,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                       <button
                         type='button'
                         className={iconBtn}
-                        aria-label={`Đưa panel ${i + 1} lên trước`}
+                        aria-label={t('pageArtwork.movePanelUp', { number: i + 1 })}
                         disabled={!canEdit || i === 0}
                         onClick={() => movePanel(p.id, -1)}
                       >
@@ -1119,7 +1129,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                       <button
                         type='button'
                         className={iconBtn}
-                        aria-label={`Đưa panel ${i + 1} xuống sau`}
+                        aria-label={t('pageArtwork.movePanelDown', { number: i + 1 })}
                         disabled={!canEdit || i === draft.panels.length - 1}
                         onClick={() => movePanel(p.id, 1)}
                       >
@@ -1133,9 +1143,18 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                     className='text-[11px] font-mono text-[#57534E]'
                     data-testid='split-selected-rect'
                   >
-                    {selected.kind === 'panel' ? `Panel ${selectedPanelNo}` : 'Bóng thoại'}: x{' '}
-                    {selected.x}, y {selected.y}, {selected.w}×{selected.h}px (ảnh gốc {iw}×{ih}).
-                    Mũi tên để dịch 1px, Shift + mũi tên 10px, Delete để xoá.
+                    {t('pageArtwork.selectedRectHint', {
+                      kind:
+                        selected.kind === 'panel'
+                          ? t('pageArtwork.selectedPanelLabel', { number: selectedPanelNo })
+                          : t('pageArtwork.selectedBubbleLabel'),
+                      x: selected.x,
+                      y: selected.y,
+                      w: selected.w,
+                      h: selected.h,
+                      iw,
+                      ih,
+                    })}
                   </p>
                 )}
               </div>
@@ -1148,15 +1167,14 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                       checked={savePanels}
                       onChange={(e) => setSavePanels(e.target.checked)}
                     />
-                    Tạo {draft.panels.length} panel mới
+                    {t('pageArtwork.createPanelsCheckbox', { count: draft.panels.length })}
                   </label>
                   {existingPanels.length > 0 && savePanels && (
                     <p
                       className='text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1'
                       data-testid='split-existing-warning'
                     >
-                      Trang đã có {existingPanels.length} panel. Xác nhận sẽ thêm panel mới (đánh số
-                      tiếp theo), không xoá hay sửa panel cũ.
+                      {t('pageArtwork.existingPanelsWarning', { count: existingPanels.length })}
                     </p>
                   )}
                   <button
@@ -1167,7 +1185,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                     className='w-full px-3 py-1.5 text-xs font-bold rounded-lg bg-[#1C1917] hover:bg-black text-white flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316]'
                   >
                     {saving && <Loader2 className='w-3 h-3 animate-spin' aria-hidden />}
-                    {saving ? 'Đang lưu…' : 'Xác nhận & lưu vào trang'}
+                    {saving ? t('pageArtwork.saving') : t('pageArtwork.confirmAndSave')}
                   </button>
                 </div>
               )}
@@ -1201,67 +1219,74 @@ const RegionList: React.FC<{
   onRemove,
   onAdd,
   renderExtra,
-}) => (
-  <section aria-label={title}>
-    <div className='flex items-center justify-between mb-1'>
-      <h3 className='text-[11px] font-bold uppercase tracking-wide text-[#57534E] flex items-center gap-1'>
-        {kind === 'bubble' && <MessageCircle className='w-3 h-3' aria-hidden />}
-        {title} ({items.length})
-      </h3>
-      {canEdit && (
-        <button
-          type='button'
-          onClick={onAdd}
-          data-testid={`split-add-${kind}`}
-          className='text-[11px] font-semibold text-[#C2410C] hover:underline flex items-center gap-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] rounded'
-        >
-          <Plus className='w-3 h-3' aria-hidden /> Thêm
-        </button>
-      )}
-    </div>
-    {items.length === 0 ? (
-      <p className='text-[11px] text-[#57534E] italic' data-testid={`split-empty-${kind}`}>
-        {empty ?? 'Chưa có vùng nào.'}
-      </p>
-    ) : (
-      <ul className='space-y-1'>
-        {items.map((r, i) => (
-          <li
-            key={r.id}
-            className={`flex items-center gap-1 rounded-lg border px-1.5 py-0.5 ${
-              selectedId === r.id ? 'border-[#F97316] bg-[#FFF7ED]' : 'border-[#D8D2C5] bg-white'
-            }`}
+}) => {
+  const { t } = useTranslation('artist');
+  return (
+    <section aria-label={title}>
+      <div className='flex items-center justify-between mb-1'>
+        <h3 className='text-[11px] font-bold uppercase tracking-wide text-[#57534E] flex items-center gap-1'>
+          {kind === 'bubble' && <MessageCircle className='w-3 h-3' aria-hidden />}
+          {title} ({items.length})
+        </h3>
+        {canEdit && (
+          <button
+            type='button'
+            onClick={onAdd}
+            data-testid={`split-add-${kind}`}
+            className='text-[11px] font-semibold text-[#C2410C] hover:underline flex items-center gap-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] rounded'
           >
-            <button
-              type='button'
-              onClick={() => onSelect(r.id)}
-              aria-pressed={selectedId === r.id}
-              className='flex-1 text-left text-xs font-semibold text-[#1C1917] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] rounded'
+            <Plus className='w-3 h-3' aria-hidden /> {t('pageArtwork.addRegion')}
+          </button>
+        )}
+      </div>
+      {items.length === 0 ? (
+        <p className='text-[11px] text-[#57534E] italic' data-testid={`split-empty-${kind}`}>
+          {empty ?? t('pageArtwork.emptyRegions')}
+        </p>
+      ) : (
+        <ul className='space-y-1'>
+          {items.map((r, i) => (
+            <li
+              key={r.id}
+              className={`flex items-center gap-1 rounded-lg border px-1.5 py-0.5 ${
+                selectedId === r.id ? 'border-[#F97316] bg-[#FFF7ED]' : 'border-[#D8D2C5] bg-white'
+              }`}
             >
-              {kind === 'panel' ? `#${i + 1}` : r.isCaption ? `C${i + 1}` : `B${i + 1}`}
-              {r.isCaption && (
-                <span className='ml-1 text-[9px] px-1 py-0.2 rounded bg-sky-100 text-sky-800 font-medium'>
-                  Cap
-                </span>
-              )}
-              <span className='ml-1 font-mono text-[10px] text-[#57534E]'>
-                {r.w}×{r.h}
-              </span>
-            </button>
-            {renderExtra(r, i)}
-            {canEdit && (
               <button
                 type='button'
-                onClick={() => onRemove(r.id)}
-                aria-label={`Xoá ${kind === 'panel' ? 'panel' : 'bóng thoại'} ${i + 1}`}
-                className='p-1 rounded-md text-[#57534E] hover:text-rose-700 hover:bg-rose-50 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                onClick={() => onSelect(r.id)}
+                aria-pressed={selectedId === r.id}
+                className='flex-1 text-left text-xs font-semibold text-[#1C1917] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] rounded'
               >
-                <Trash2 className='w-3 h-3' />
+                {kind === 'panel' ? `#${i + 1}` : r.isCaption ? `C${i + 1}` : `B${i + 1}`}
+                {r.isCaption && (
+                  <span className='ml-1 text-[9px] px-1 py-0.2 rounded bg-sky-100 text-sky-800 font-medium'>
+                    Cap
+                  </span>
+                )}
+                <span className='ml-1 font-mono text-[10px] text-[#57534E]'>
+                  {r.w}×{r.h}
+                </span>
               </button>
-            )}
-          </li>
-        ))}
-      </ul>
-    )}
-  </section>
-);
+              {renderExtra(r, i)}
+              {canEdit && (
+                <button
+                  type='button'
+                  onClick={() => onRemove(r.id)}
+                  aria-label={
+                    kind === 'panel'
+                      ? t('pageArtwork.removePanelAria', { number: i + 1 })
+                      : t('pageArtwork.removeBubbleAria', { number: i + 1 })
+                  }
+                  className='p-1 rounded-md text-[#57534E] hover:text-rose-700 hover:bg-rose-50 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                >
+                  <Trash2 className='w-3 h-3' />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+};

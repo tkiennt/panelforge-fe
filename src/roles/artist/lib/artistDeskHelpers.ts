@@ -1,3 +1,4 @@
+import { translate } from '@/lib/i18n';
 import type { PageDto } from '@/services/page.service';
 import type { BibleEntryDto } from '@/services/bible.service';
 import type { PipelineStageDto } from '@/services/pipeline.service';
@@ -90,25 +91,26 @@ export function mapBibleCategory(cat: string | number): 'character' | 'location'
 export function getBibleCategoryTag(cat: string | number, subtitle?: string | null): string {
   if (subtitle?.trim()) return subtitle.trim();
   const s = String(cat).toLowerCase();
-  if (s.includes('char') || s === '0' || s === '1') return 'Nhân vật';
-  if (s.includes('loc') || s === '2') return 'Bối cảnh';
-  if (s.includes('style') || s === '4') return 'Quy tắc mỹ thuật';
-  if (s.includes('prop') || s === '3') return 'Đạo cụ & Thuật ngữ';
-  return 'Thiết lập thế giới';
+  if (s.includes('char') || s === '0' || s === '1')
+    return translate('artist.bibleCategory.character');
+  if (s.includes('loc') || s === '2') return translate('artist.bibleCategory.location');
+  if (s.includes('style') || s === '4') return translate('artist.bibleCategory.style');
+  if (s.includes('prop') || s === '3') return translate('artist.bibleCategory.prop');
+  return translate('artist.bibleCategory.world');
 }
 
-const ATTRIBUTE_LABELS: Record<string, string> = {
-  appearance: 'Ngoại hình',
-  costume: 'Trang phục',
-  hair: 'Kiểu tóc',
-  eyes: 'Màu mắt',
-  height: 'Chiều cao',
-  weapon: 'Vũ khí / Đạo cụ',
-  distinguishingMarks: 'Dấu ấn đặc trưng',
-  personality: 'Tính cách',
-  role: 'Vai trò',
-  atmosphere: 'Không khí / Ánh sáng',
-  architecture: 'Kiến trúc',
+const ATTRIBUTE_LABEL_KEYS: Record<string, string> = {
+  appearance: 'artist.bibleAttributes.appearance',
+  costume: 'artist.bibleAttributes.costume',
+  hair: 'artist.bibleAttributes.hair',
+  eyes: 'artist.bibleAttributes.eyes',
+  height: 'artist.bibleAttributes.height',
+  weapon: 'artist.bibleAttributes.weapon',
+  distinguishingMarks: 'artist.bibleAttributes.distinguishingMarks',
+  personality: 'artist.bibleAttributes.personality',
+  role: 'artist.bibleAttributes.role',
+  atmosphere: 'artist.bibleAttributes.atmosphere',
+  architecture: 'artist.bibleAttributes.architecture',
 };
 
 const parseJsonObject = (raw?: string | null): Record<string, any> | null => {
@@ -145,7 +147,8 @@ export function extractBibleVisualDetails(entry: BibleEntryDto): {
   if (details.attributes && typeof details.attributes === 'object') {
     Object.entries(details.attributes).forEach(([k, v]) => {
       if (typeof v === 'string' && v.trim()) {
-        notes.push(`${ATTRIBUTE_LABELS[k] || k}: ${v.trim()}`);
+        const label = ATTRIBUTE_LABEL_KEYS[k] ? translate(ATTRIBUTE_LABEL_KEYS[k]) : k;
+        notes.push(`${label}: ${v.trim()}`);
       } else if (Array.isArray(v)) {
         v.forEach((item) => {
           if (typeof item === 'string' && item.trim()) notes.push(item.trim());

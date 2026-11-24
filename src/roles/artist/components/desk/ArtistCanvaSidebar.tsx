@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { ArtistPageItem, PageStage } from './ArtistPageSidebar';
 import { SidebarTheme } from '@/app/sidebarTheme';
+import { translate, useTranslation } from '@/lib/i18n';
 import { PanelModelSheetBlock } from './PanelModelSheetBlock';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { FrameTemplateDto } from '@/services/frameTemplate.service';
@@ -171,11 +172,13 @@ export interface ArtistCanvaSidebarProps {
 function formatNarrationMode(mode?: string): string | null {
   if (!mode || mode === 'Present') return null;
   const lower = mode.toLowerCase();
-  if (lower.includes('flashback')) return 'Hồi tưởng';
+  if (lower.includes('flashback')) return translate('artist.canvaSidebar.narrationFlashback');
   if (lower.includes('inner') || lower.includes('monologue') || lower.includes('thought')) {
-    return 'Độc thoại nội tâm';
+    return translate('artist.canvaSidebar.narrationInner');
   }
-  if (lower.includes('voice') || lower.includes('narrat')) return 'Lời dẫn';
+  if (lower.includes('voice') || lower.includes('narrat')) {
+    return translate('artist.canvaSidebar.narrationVoice');
+  }
   return null;
 }
 
@@ -226,10 +229,13 @@ export function resolveScriptLineMeta(line: ScriptLineItem): {
     rawKind.includes('inner') ||
     rawKind.includes('monologue')
   ) {
-    const spk = speakerName && speakerName !== 'Người dẫn' ? speakerName : 'Nhân vật';
+    const spk =
+      speakerName && speakerName !== 'Người dẫn'
+        ? speakerName
+        : translate('artist.canvaSidebar.characterFallback');
     return {
       kind: 'thought',
-      typeLabel: `Suy nghĩ · ${spk}`,
+      typeLabel: translate('artist.canvaSidebar.thoughtPrefix', { speaker: spk }),
       speaker: spk,
       text: (line.dialogueText || line.text || line.stageDirection || '').trim(),
       secondaryAction:
@@ -240,10 +246,13 @@ export function resolveScriptLineMeta(line: ScriptLineItem): {
   }
 
   if (rawKind === '2' || rawKind === 'dialogue' || hasDialogue) {
-    const spk = speakerName && speakerName !== 'Người dẫn' ? speakerName : 'Nhân vật';
+    const spk =
+      speakerName && speakerName !== 'Người dẫn'
+        ? speakerName
+        : translate('artist.canvaSidebar.characterFallback');
     return {
       kind: 'dialogue',
-      typeLabel: `Thoại · ${spk}`,
+      typeLabel: translate('artist.canvaSidebar.dialoguePrefix', { speaker: spk }),
       speaker: spk,
       text: (line.dialogueText || line.text || '').trim(),
       secondaryAction:
@@ -255,7 +264,7 @@ export function resolveScriptLineMeta(line: ScriptLineItem): {
 
   return {
     kind: 'action',
-    typeLabel: 'Mô tả cảnh',
+    typeLabel: translate('artist.canvaSidebar.actionTypeLabel'),
     text: (line.stageDirection || line.text || line.dialogueText || '').trim(),
   };
 }
@@ -937,6 +946,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   linkedScriptLineIds,
   letteringHeaderSlot,
 }) => {
+  const { t, lang } = useTranslation('artist');
   // Đồng bộ theme hệ thống từ localStorage hoặc prop, mặc định theme màu sáng 'paper'
   const [currentTheme, setCurrentTheme] = useState<SidebarTheme>(() => {
     if (theme) return theme;
@@ -1135,13 +1145,13 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
           ========================================================================= */}
       <CollapsibleSidebar
         collapsed
-        label='Công cụ bàn vẽ'
+        label={t('canvaSidebar.dockLabel')}
         data-testid='canva-primary-dock'
         className='bg-[var(--sb-bg)] text-[var(--sb-muted)] flex flex-col items-center py-3 border-r border-[var(--sb-border)] justify-between transition-colors'
       >
         <SidebarSection
           collapsed
-          label='Công cụ'
+          label={t('canvaSidebar.toolsSectionLabel')}
           className='w-full flex flex-col items-center gap-2'
         >
           {/* Nút Tab 1: Pages (Trang) - Có thể ẩn nếu đã có quản lý trang ở đáy */}
@@ -1161,7 +1171,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   activeTab === 'pages' && isDrawerOpen ? 'text-[var(--sb-accent)]' : 'text-current'
                 }`}
               />
-              <span className='text-[10px] tracking-tight'>Trang</span>
+              <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabPages')}</span>
             </button>
           )}
 
@@ -1181,7 +1191,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 activeTab === 'script' && isDrawerOpen ? 'text-[var(--sb-accent)]' : 'text-current'
               }`}
             />
-            <span className='text-[10px] tracking-tight'>Kịch bản</span>
+            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabScript')}</span>
           </button>
 
           {/* Nút Tab 3: Series Bible */}
@@ -1200,7 +1210,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 activeTab === 'bible' && isDrawerOpen ? 'text-[var(--sb-accent)]' : 'text-current'
               }`}
             />
-            <span className='text-[10px] tracking-tight'>Hồ sơ</span>
+            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabBible')}</span>
           </button>
 
           {/* Nút Tab 4: Mẫu Khung Tranh */}
@@ -1208,7 +1218,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             type='button'
             disabled={layoutLocked}
             title={
-              layoutLocked ? 'Chỉ công đoạn Pencil mới được sửa bố cục khung' : 'Mẫu khung tranh'
+              layoutLocked
+                ? t('canvaSidebar.tabTemplatesLockedTitle')
+                : t('canvaSidebar.tabTemplatesTitle')
             }
             onClick={() => !layoutLocked && handleTabClick('templates')}
             data-testid='canva-tab-templates'
@@ -1227,7 +1239,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   : 'text-current'
               }`}
             />
-            <span className='text-[10px] tracking-tight'>Mẫu khung</span>
+            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabTemplates')}</span>
           </button>
 
           {/* Nút Tab: Chèn thoại & Bóng thoại (Lettering Sidetab P0) */}
@@ -1240,7 +1252,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
                 : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
             }`}
-            title='Chèn thoại & Bóng thoại'
+            title={t('canvaSidebar.tabLetteringTitle')}
           >
             <Type
               className={`w-5 h-5 mb-1 ${
@@ -1249,7 +1261,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   : 'text-current'
               }`}
             />
-            <span className='text-[10px] tracking-tight'>Thoại</span>
+            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabLettering')}</span>
           </button>
 
           {/* Nút Tab 5: Yêu cầu chỉnh sửa (Sidetab Change Requests) */}
@@ -1262,7 +1274,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
                 : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
             }`}
-            title='Yêu cầu chỉnh sửa bản thảo'
+            title={t('canvaSidebar.tabChangesTitle')}
           >
             <div className='relative'>
               <AlertCircle
@@ -1283,7 +1295,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 </span>
               )}
             </div>
-            <span className='text-[10px] tracking-tight'>Sửa đổi</span>
+            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabChanges')}</span>
           </button>
 
           {/* Nút Tab 6: Lịch sử phiên bản trang (Page History Drawer) */}
@@ -1296,14 +1308,14 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
                 : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
             }`}
-            title='Lịch sử phiên bản trang'
+            title={t('canvaSidebar.tabHistoryTitle')}
           >
             <HistoryIcon
               className={`w-5 h-5 mb-1 ${
                 activeTab === 'history' && isDrawerOpen ? 'text-[var(--sb-accent)]' : 'text-current'
               }`}
             />
-            <span className='text-[10px] tracking-tight'>Lịch sử</span>
+            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabHistory')}</span>
           </button>
         </SidebarSection>
 
@@ -1311,7 +1323,11 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         <button
           type='button'
           onClick={() => setIsDrawerOpen((prev) => !prev)}
-          title={isDrawerOpen ? 'Thu gọn ngăn chi tiết' : 'Mở rộng ngăn chi tiết'}
+          title={
+            isDrawerOpen
+              ? t('canvaSidebar.collapseDrawerTitle')
+              : t('canvaSidebar.expandDrawerTitle')
+          }
           data-testid='canva-drawer-toggle'
           className='w-10 h-10 rounded-lg hover:bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] flex items-center justify-center transition-colors cursor-pointer'
         >
@@ -1347,10 +1363,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               <div>
                 <h2 className='text-xs font-bold uppercase tracking-wider text-[var(--sb-text)] flex items-center gap-1.5'>
                   <Layers className='w-4 h-4 text-[var(--sb-accent)]' />
-                  Quản Lý Trang ({pages.length})
+                  {t('canvaSidebar.pagesHeaderTitle', { count: pages.length })}
                 </h2>
                 <p className='text-[11px] text-[var(--sb-muted)] mt-0.5'>
-                  Khổ trang truyện tiêu chuẩn
+                  {t('canvaSidebar.pagesHeaderSubtitle')}
                 </p>
               </div>
 
@@ -1361,7 +1377,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 data-testid='canva-btn-add-page-header'
                 className='h-7 px-2.5 rounded-lg bg-[var(--sb-accent)] hover:opacity-90 text-white text-[11px] font-semibold flex items-center gap-1 transition-all shadow-xs cursor-pointer'
               >
-                <Plus className='w-3.5 h-3.5' /> Thêm trang
+                <Plus className='w-3.5 h-3.5' /> {t('canvaSidebar.addPageBtn')}
               </button>
             </div>
 
@@ -1374,7 +1390,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     type='text'
                     value={pageSearchQuery}
                     onChange={(e) => setPageSearchQuery(e.target.value)}
-                    placeholder='Tìm theo tên trang hoặc số...'
+                    placeholder={t('canvaSidebar.searchPagesPlaceholder')}
                     data-testid='canva-input-search-pages'
                     className='w-full h-8 bg-[var(--sb-surface)] border border-[var(--sb-border)] rounded-lg pl-8 pr-3 text-[11px] text-[var(--sb-text)] placeholder-[var(--sb-muted)] focus:outline-none focus:border-[var(--sb-accent)]'
                   />
@@ -1412,11 +1428,11 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               <div className='flex items-center gap-1 overflow-x-auto text-[10px] scrollbar-none'>
                 {(['all', 'pencil', 'ink', 'lettering', 'completed'] as const).map((stage) => {
                   const labels: Record<string, string> = {
-                    all: 'Tất cả',
-                    pencil: 'Chì',
-                    ink: 'Mực',
-                    lettering: 'Thoại',
-                    completed: 'Hoàn tất',
+                    all: t('canvaSidebar.stageAll'),
+                    pencil: t('canvaSidebar.stagePencil'),
+                    ink: t('canvaSidebar.stageInk'),
+                    lettering: t('canvaSidebar.stageLettering'),
+                    completed: t('canvaSidebar.stageCompleted'),
                   };
                   return (
                     <button
@@ -1480,7 +1496,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       <div>
                         <div className='flex items-center justify-between gap-1'>
                           <span className='text-xs font-bold text-[var(--sb-text)] truncate'>
-                            Trang {page.pageNumber}
+                            {t('canvaSidebar.pageLabel', { page: page.pageNumber })}
                           </span>
                           <span className='text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-medium'>
                             {page.stage}
@@ -1492,8 +1508,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       </div>
 
                       <div className='flex items-center justify-between text-[10px] text-[var(--sb-muted)]'>
-                        <span>{page.panelsCount} khung</span>
-                        <span>{page.format || 'Khổ tiêu chuẩn'}</span>
+                        <span>{t('canvaSidebar.panelsCount', { count: page.panelsCount })}</span>
+                        <span>{page.format || t('canvaSidebar.standardFormatFallback')}</span>
                       </div>
                     </div>
 
@@ -1507,7 +1523,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                         }}
                         data-testid={`canva-btn-eye-${page.pageNumber}`}
                         className='p-1 text-[var(--sb-muted)] hover:text-[var(--sb-text)] rounded hover:bg-[var(--sb-hover)] cursor-pointer'
-                        title={page.isVisible ? 'Ẩn trang' : 'Hiện trang'}
+                        title={
+                          page.isVisible ? t('canvaSidebar.hidePage') : t('canvaSidebar.showPage')
+                        }
                       >
                         {page.isVisible ? (
                           <Eye className='w-3.5 h-3.5 text-[var(--sb-accent)]' />
@@ -1522,7 +1540,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           onDuplicatePage(page.id);
                         }}
                         className='p-1 text-[var(--sb-muted)] hover:text-[var(--sb-text)] rounded hover:bg-[var(--sb-hover)] cursor-pointer'
-                        title='Nhân đôi trang'
+                        title={t('canvaSidebar.duplicatePage')}
                       >
                         <Copy className='w-3.5 h-3.5' />
                       </button>
@@ -1533,7 +1551,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           onDeletePage(page.id);
                         }}
                         className='p-1 text-rose-400 hover:text-rose-200 rounded hover:bg-rose-950/50 cursor-pointer'
-                        title='Xoá trang'
+                        title={t('canvaSidebar.deletePage')}
                       >
                         <Trash2 className='w-3.5 h-3.5' />
                       </button>
@@ -1545,14 +1563,16 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
 
             {/* Footer quản lý trang */}
             <div className='p-2.5 border-t border-[var(--sb-border)] bg-[var(--sb-surface)] flex items-center justify-between text-xs text-[var(--sb-muted)] shrink-0'>
-              <span>Đang chọn: Trang {selectedPage?.pageNumber || 1}</span>
+              <span>
+                {t('canvaSidebar.selectedPageFooter', { page: selectedPage?.pageNumber || 1 })}
+              </span>
               <div className='flex items-center gap-1'>
                 <button
                   type='button'
                   disabled={!selectedPage || selectedPageIndex === 0}
                   onClick={() => selectedPage && onMovePage(selectedPage.id, 'up')}
                   className='p-1.5 rounded-lg hover:bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] disabled:opacity-30 cursor-pointer'
-                  title='Di chuyển trang lên'
+                  title={t('canvaSidebar.movePageUp')}
                 >
                   <ChevronUp className='w-4 h-4' />
                 </button>
@@ -1561,7 +1581,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   disabled={!selectedPage || selectedPageIndex === pages.length - 1}
                   onClick={() => selectedPage && onMovePage(selectedPage.id, 'down')}
                   className='p-1.5 rounded-lg hover:bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] disabled:opacity-30 cursor-pointer'
-                  title='Di chuyển trang xuống'
+                  title={t('canvaSidebar.movePageDown')}
                 >
                   <ChevronDown className='w-4 h-4' />
                 </button>
@@ -1599,11 +1619,11 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               <div className='flex items-center justify-between mb-1'>
                 <div className='flex items-center gap-1.5'>
                   <span className='text-[10px] uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold'>
-                    Hồ sơ truyện
+                    {t('canvaSidebar.bibleBadge')}
                   </span>
                   {isLoadingBible && (
                     <span className='text-[10px] text-[var(--sb-muted)] animate-pulse'>
-                      Đang tải...
+                      {t('canvaSidebar.loading')}
                     </span>
                   )}
                 </div>
@@ -1612,7 +1632,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 </span>
               </div>
               <h2 className='text-xs font-bold text-[var(--sb-text)] tracking-tight'>
-                Tra cứu nhân vật & bối cảnh
+                {t('canvaSidebar.bibleTitle')}
               </h2>
             </div>
 
@@ -1634,7 +1654,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   type='text'
                   value={bibleSearchQuery}
                   onChange={(e) => setBibleSearchQuery(e.target.value)}
-                  placeholder='Tìm nhân vật, địa danh, quy tắc...'
+                  placeholder={t('canvaSidebar.searchBiblePlaceholder')}
                   data-testid='canva-input-search-bible'
                   className='w-full h-8 bg-[var(--sb-surface)] border border-[var(--sb-border)] rounded-lg pl-8 pr-3 text-[11px] text-[var(--sb-text)] placeholder-[var(--sb-muted)] focus:outline-none focus:border-[var(--sb-accent)]'
                 />
@@ -1642,10 +1662,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
 
               <div className='flex items-center gap-1 text-[10px]'>
                 {[
-                  { id: 'all', label: 'Tất cả' },
-                  { id: 'character', label: 'Nhân vật' },
-                  { id: 'location', label: 'Bối cảnh' },
-                  { id: 'lore', label: 'Quy tắc' },
+                  { id: 'all', label: t('canvaSidebar.bibleCatAll') },
+                  { id: 'character', label: t('canvaSidebar.bibleCatCharacter') },
+                  { id: 'location', label: t('canvaSidebar.bibleCatLocation') },
+                  { id: 'lore', label: t('canvaSidebar.bibleCatLore') },
                 ].map((cat) => (
                   <button
                     key={cat.id}
@@ -1668,8 +1688,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               {filteredBible.length === 0 ? (
                 <div className='py-12 px-3 text-center text-[var(--sb-muted)] text-xs italic'>
                   {bibleEntities.length === 0 && !isLoadingBible
-                    ? 'Bộ truyện chưa có hồ sơ tham chiếu nào.'
-                    : 'Không tìm thấy thông tin phù hợp.'}
+                    ? t('canvaSidebar.bibleEmpty')
+                    : t('canvaSidebar.bibleNoMatch')}
                 </div>
               ) : (
                 filteredBible.map((item) => (
@@ -1706,7 +1726,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       <div className='flex items-center gap-1 shrink-0'>
                         {item.status === 'CanonLocked' && (
                           <span className='text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 font-semibold'>
-                            Đã chốt
+                            {t('canvaSidebar.canonLocked')}
                           </span>
                         )}
                         <span className='text-[9px] px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-muted)] font-medium'>
@@ -1724,7 +1744,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     {item.visualNotes && item.visualNotes.length > 0 && (
                       <div className='space-y-1 pt-1 border-t border-[var(--sb-border)]'>
                         <span className='text-[9px] font-semibold text-[var(--sb-accent)] uppercase tracking-wider'>
-                          Đặc điểm tạo hình:
+                          {t('canvaSidebar.visualNotesLabel')}
                         </span>
                         <ul className='text-[10px] text-[var(--sb-muted)] space-y-0.5 list-disc list-inside'>
                           {item.visualNotes.map((note, idx) => (
@@ -1755,31 +1775,31 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               <div className='flex items-center justify-between gap-2'>
                 <div className='flex items-center gap-1.5'>
                   <span className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold'>
-                    Mẫu Khung
+                    {t('canvaSidebar.templatesBadge')}
                   </span>
                   {isLoadingTemplates && (
                     <span className='text-[10px] text-[var(--sb-muted)] animate-pulse'>
-                      Đang nạp...
+                      {t('canvaSidebar.templatesLoading')}
                     </span>
                   )}
                   {isApplyingTemplate && (
                     <span className='text-[10px] text-[var(--sb-accent)] animate-pulse font-medium'>
-                      Đang áp dụng...
+                      {t('canvaSidebar.templatesApplying')}
                     </span>
                   )}
                 </div>
                 <span className='text-[10px] font-semibold text-[var(--sb-accent)]'>
-                  Trang {activePageNumber}
+                  {t('canvaSidebar.pageLabel', { page: activePageNumber })}
                 </span>
               </div>
 
               <div className='flex items-center justify-between gap-2'>
                 <div>
                   <h2 className='text-xs font-bold text-[var(--sb-text)] tracking-tight'>
-                    Mẫu Khung Tranh Tham Khảo
+                    {t('canvaSidebar.templatesTitle')}
                   </h2>
                   <p className='text-[10.5px] text-[var(--sb-muted)] mt-0.5'>
-                    Chọn mẫu để áp dụng trực tiếp vào Trang {activePageNumber}
+                    {t('canvaSidebar.templatesSubtitle', { page: activePageNumber })}
                   </p>
                 </div>
 
@@ -1788,11 +1808,11 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     type='button'
                     onClick={onClearTemplate}
                     data-testid='canva-btn-clear-template'
-                    title='Xoá khung tham khảo trên trang này'
+                    title={t('canvaSidebar.clearTemplateTitle')}
                     className='px-2 py-1 rounded-lg text-[10px] font-semibold border border-[var(--sb-border)] bg-[var(--sb-hover)] hover:bg-rose-500/10 hover:text-rose-600 hover:border-rose-300 text-[var(--sb-muted)] flex items-center gap-1 transition-colors cursor-pointer shrink-0'
                   >
                     <RotateCcw className='w-3 h-3' />
-                    <span>Đặt lại</span>
+                    <span>{t('canvaSidebar.resetBtn')}</span>
                   </button>
                 )}
               </div>
@@ -1806,7 +1826,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   type='text'
                   value={templateSearchQuery}
                   onChange={(e) => setTemplateSearchQuery(e.target.value)}
-                  placeholder='Tìm mẫu khung (TPL-MANGA-01, Shonen, 4-Koma...)'
+                  placeholder={t('canvaSidebar.searchTemplatesPlaceholder')}
                   data-testid='canva-input-search-templates'
                   className='w-full h-8 bg-[var(--sb-surface)] border border-[var(--sb-border)] rounded-lg pl-8 pr-3 text-[11px] text-[var(--sb-text)] placeholder-[var(--sb-muted)] focus:outline-none focus:border-[var(--sb-accent)]'
                 />
@@ -1815,11 +1835,11 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               {/* 1. Bộ lọc Nhóm Mục đích Kể chuyện (Koma-wari Storytelling Purpose) */}
               <div className='flex items-center gap-1 overflow-x-auto custom-scrollbar pb-0.5 text-[9.5px]'>
                 {[
-                  { id: 'all', label: 'Tất cả' },
-                  { id: 'narrative', label: 'Tự sự' },
-                  { id: 'action', label: 'Hành động' },
-                  { id: 'cinematic', label: 'Đại cảnh' },
-                  { id: 'webtoon', label: 'Cuộn dọc' },
+                  { id: 'all', label: t('canvaSidebar.tplCatAll') },
+                  { id: 'narrative', label: t('canvaSidebar.tplCatNarrative') },
+                  { id: 'action', label: t('canvaSidebar.tplCatAction') },
+                  { id: 'cinematic', label: t('canvaSidebar.tplCatCinematic') },
+                  { id: 'webtoon', label: t('canvaSidebar.tplCatWebtoon') },
                 ].map((cat) => (
                   <button
                     key={cat.id}
@@ -1839,10 +1859,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               {/* 2. Bộ lọc số lượng khung */}
               <div className='flex items-center gap-1 text-[9.5px]'>
                 {[
-                  { id: 'all', label: 'Mọi số ô' },
-                  { id: '1-2', label: '1–2 ô' },
-                  { id: '3', label: '3 ô' },
-                  { id: '4+', label: '4+ ô' },
+                  { id: 'all', label: t('canvaSidebar.tplCountAll') },
+                  { id: '1-2', label: t('canvaSidebar.tplCount12') },
+                  { id: '3', label: t('canvaSidebar.tplCount3') },
+                  { id: '4+', label: t('canvaSidebar.tplCount4Plus') },
                 ].map((f) => (
                   <button
                     key={f.id}
@@ -1871,7 +1891,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             <div className='flex-1 overflow-y-auto p-3 custom-scrollbar'>
               {filteredTemplates.length === 0 ? (
                 <div className='py-12 px-3 text-center text-[var(--sb-muted)] text-xs italic'>
-                  Không tìm thấy mẫu khung phù hợp.
+                  {t('canvaSidebar.templatesEmpty')}
                 </div>
               ) : (
                 <div className='grid grid-cols-2 gap-2.5'>
@@ -1880,21 +1900,21 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     const catBadge =
                       tpl.category === 'action'
                         ? {
-                            label: 'Hành động',
+                            label: t('canvaSidebar.tplCatAction'),
                             cls: 'bg-red-500/15 text-red-600 border-red-500/30',
                           }
                         : tpl.category === 'cinematic'
                           ? {
-                              label: 'Đại cảnh',
+                              label: t('canvaSidebar.tplCatCinematic'),
                               cls: 'bg-purple-500/15 text-purple-600 border-purple-500/30',
                             }
                           : tpl.category === 'webtoon'
                             ? {
-                                label: 'Cuộn dọc',
+                                label: t('canvaSidebar.tplCatWebtoon'),
                                 cls: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
                               }
                             : {
-                                label: 'Tự sự',
+                                label: t('canvaSidebar.tplCatNarrative'),
                                 cls: 'bg-blue-500/15 text-blue-600 border-blue-500/30',
                               };
 
@@ -2010,7 +2030,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                                   : 'bg-[var(--sb-surface-hover)] text-[var(--sb-muted)]'
                               }`}
                             >
-                              {tpl.panelCount || tpl.slots.length} ô
+                              {t('canvaSidebar.templatePanelCount', {
+                                count: tpl.panelCount || tpl.slots.length,
+                              })}
                             </span>
                           </div>
                         </div>
@@ -2033,27 +2055,32 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 <div className='flex items-center gap-2'>
                   <AlertCircle className='w-4 h-4 text-rose-500' />
                   <h3 className='text-xs font-bold text-[var(--sb-text)] uppercase tracking-wider'>
-                    Yêu cầu chỉnh sửa
+                    {t('canvaSidebar.changesTitle')}
                   </h3>
                 </div>
                 {openChangeRequestsCount > 0 && (
                   <span className='px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[10px] font-bold border border-rose-500/20'>
-                    {openChangeRequestsCount} cần xử lý
+                    {t('canvaSidebar.changesOpenCount', { count: openChangeRequestsCount })}
                   </span>
                 )}
               </div>
 
               <p className='text-[11px] text-[var(--sb-muted)] leading-relaxed'>
-                Các ghi chú và phản hồi từ Đạo diễn & Biên tập viên yêu cầu chỉnh sửa bản vẽ.
+                {t('canvaSidebar.changesSubtitle')}
               </p>
 
               {/* Filter Chips */}
               <div className='flex items-center gap-1.5 pt-1'>
                 {(
                   [
-                    { key: 'all', label: 'Tất cả' },
-                    { key: 'open', label: `Cần sửa (${openChangeRequestsCount})` },
-                    { key: 'resolved', label: 'Đã xong' },
+                    { key: 'all', label: t('canvaSidebar.changesFilterAll') },
+                    {
+                      key: 'open',
+                      label: t('canvaSidebar.changesFilterOpen', {
+                        count: openChangeRequestsCount,
+                      }),
+                    },
+                    { key: 'resolved', label: t('canvaSidebar.changesFilterResolved') },
                   ] as const
                 ).map((chip) => (
                   <button
@@ -2078,7 +2105,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               {isLoadingChangeRequests ? (
                 <div className='flex flex-col items-center justify-center py-12 gap-2 text-[var(--sb-muted)]'>
                   <Loader2 className='w-5 h-5 animate-spin text-[var(--sb-accent)]' />
-                  <span className='text-xs'>Đang tải danh sách yêu cầu...</span>
+                  <span className='text-xs'>{t('canvaSidebar.changesLoading')}</span>
                 </div>
               ) : filteredChangeRequests.length === 0 ? (
                 <div className='flex flex-col items-center justify-center py-12 text-center p-4 space-y-2'>
@@ -2086,12 +2113,12 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     <CheckCircle2 className='w-5 h-5' />
                   </div>
                   <div className='text-xs font-semibold text-[var(--sb-text)]'>
-                    Không có yêu cầu chỉnh sửa nào
+                    {t('canvaSidebar.changesEmptyTitle')}
                   </div>
                   <div className='text-[11px] text-[var(--sb-muted)] max-w-[220px]'>
                     {changeFilterStatus === 'open'
-                      ? 'Tất cả yêu cầu đã được xử lý xong!'
-                      : 'Biên tập viên chưa ghi nhận yêu cầu chỉnh sửa cho chương này.'}
+                      ? t('canvaSidebar.changesEmptyOpen')
+                      : t('canvaSidebar.changesEmptyAll')}
                   </div>
                 </div>
               ) : (
@@ -2129,17 +2156,23 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           }`}
                         >
                           {isOpen
-                            ? 'Cần sửa'
+                            ? t('canvaSidebar.crStatusOpen')
                             : isResolved
-                              ? 'Đã báo sửa'
+                              ? t('canvaSidebar.crStatusResolved')
                               : isVerified
-                                ? 'Đã duyệt đạt'
-                                : 'Đã đóng'}
+                                ? t('canvaSidebar.crStatusVerified')
+                                : t('canvaSidebar.crStatusClosed')}
                         </span>
                         {cr.dueDate && (
                           <span className='text-[10px] text-[var(--sb-muted)] flex items-center gap-1'>
                             <Clock className='w-3 h-3' />
-                            <span>Hạn: {new Date(cr.dueDate).toLocaleDateString('vi-VN')}</span>
+                            <span>
+                              {t('canvaSidebar.crDueDate', {
+                                date: new Date(cr.dueDate).toLocaleDateString(
+                                  lang === 'en' ? 'en-US' : 'vi-VN',
+                                ),
+                              })}
+                            </span>
                           </span>
                         )}
                       </div>
@@ -2151,7 +2184,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       {cr.reviewerComment && (
                         <div className='p-2 rounded-lg bg-[var(--sb-surface-hover)] border border-[var(--sb-border)] text-[11px] text-[var(--sb-muted)] space-y-0.5'>
                           <div className='font-semibold text-[10px] text-[var(--sb-text)]'>
-                            Phản hồi của kiểm duyệt:
+                            {t('canvaSidebar.crReviewerCommentLabel')}
                           </div>
                           <div className='italic'>{cr.reviewerComment}</div>
                         </div>
@@ -2160,7 +2193,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       {cr.resolutionNote && (
                         <div className='p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 space-y-0.5'>
                           <div className='font-semibold text-[10px]'>
-                            Ghi chú đã sửa của Họa sĩ:
+                            {t('canvaSidebar.crResolutionNoteLabel')}
                           </div>
                           <div>{cr.resolutionNote}</div>
                         </div>
@@ -2174,7 +2207,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             onChange={(e) =>
                               setResolveNoteByCrId((prev) => ({ ...prev, [cr.id]: e.target.value }))
                             }
-                            placeholder='Ghi chú cách bạn đã khắc phục (tuỳ chọn)...'
+                            placeholder={t('canvaSidebar.crResolutionPlaceholder')}
                             className='w-full px-2.5 py-1.5 rounded-lg border border-[var(--sb-border)] bg-[var(--sb-surface)] text-xs text-[var(--sb-text)] placeholder:text-[var(--sb-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--sb-accent)]'
                           />
                           <div className='flex items-center justify-end gap-1.5'>
@@ -2183,7 +2216,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                               onClick={() => setActiveResolveInputId(null)}
                               className='px-2 py-1 rounded-md text-[10px] text-[var(--sb-muted)] hover:bg-[var(--sb-surface-hover)] cursor-pointer'
                             >
-                              Hủy
+                              {t('canvaSidebar.cancelBtn')}
                             </button>
                             <button
                               type='button'
@@ -2196,7 +2229,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                               className='px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors'
                             >
                               <Check className='w-3 h-3' />
-                              <span>Xác nhận đã sửa</span>
+                              <span>{t('canvaSidebar.crConfirmResolveBtn')}</span>
                             </button>
                           </div>
                         </div>
@@ -2211,7 +2244,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             className='px-2 py-1 rounded-lg border border-[var(--sb-border)] hover:bg-[var(--sb-surface-hover)] text-[10px] font-semibold text-[var(--sb-text)] flex items-center gap-1 cursor-pointer transition-colors'
                           >
                             <ArrowUpRight className='w-3 h-3 text-[var(--sb-accent)]' />
-                            <span>Xem vị trí</span>
+                            <span>{t('canvaSidebar.crViewLocationBtn')}</span>
                           </button>
                         )}
 
@@ -2223,7 +2256,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors'
                           >
                             <Check className='w-3 h-3' />
-                            <span>Báo đã sửa...</span>
+                            <span>{t('canvaSidebar.crReportResolvedBtn')}</span>
                           </button>
                         )}
                       </div>
@@ -2246,7 +2279,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 <div className='flex items-center gap-1.5'>
                   <HistoryIcon className='w-4 h-4 text-[var(--sb-accent)]' />
                   <h3 className='text-xs font-bold text-[var(--sb-text)] uppercase tracking-wider'>
-                    Lịch sử trang
+                    {t('canvaSidebar.historyTitle')}
                   </h3>
                 </div>
                 {onRefreshHistory && (
@@ -2254,7 +2287,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     type='button'
                     onClick={onRefreshHistory}
                     data-testid='btn-refresh-history'
-                    title='Tải lại lịch sử phiên bản'
+                    title={t('canvaSidebar.historyRefreshTitle')}
                     className='w-6 h-6 rounded-md hover:bg-[var(--sb-surface-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] flex items-center justify-center transition-colors cursor-pointer'
                   >
                     <RotateCcw className='w-3.5 h-3.5' />
@@ -2263,7 +2296,11 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               </div>
 
               <div className='flex items-center justify-between text-[11px] text-[var(--sb-muted)]'>
-                <span>Trang {selectedPage?.pageNumber || activePageNumber}</span>
+                <span>
+                  {t('canvaSidebar.pageLabel', {
+                    page: selectedPage?.pageNumber || activePageNumber,
+                  })}
+                </span>
                 <span className='font-mono font-bold text-[var(--sb-accent)]'>
                   v{pageHistory?.currentVersion || 1}
                 </span>
@@ -2275,17 +2312,16 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               {isLoadingPageHistory ? (
                 <div className='flex flex-col items-center justify-center py-10 gap-2 text-[var(--sb-muted)]'>
                   <Loader2 className='w-4 h-4 animate-spin text-[var(--sb-accent)]' />
-                  <span className='text-[11px]'>Đang tải lịch sử...</span>
+                  <span className='text-[11px]'>{t('canvaSidebar.historyLoading')}</span>
                 </div>
               ) : !pageHistory || !pageHistory.items || pageHistory.items.length === 0 ? (
                 <div className='flex flex-col items-center justify-center py-10 text-center space-y-2 text-[var(--sb-muted)]'>
                   <Clock className='w-6 h-6 text-stone-400' />
                   <div className='text-xs font-semibold text-[var(--sb-text)]'>
-                    Phiên bản ban đầu
+                    {t('canvaSidebar.historyInitialTitle')}
                   </div>
                   <div className='text-[10px] leading-relaxed max-w-[200px]'>
-                    Trang chưa có lịch sử chỉnh sửa. Mọi thay đổi khung vẽ sẽ tự động tạo phiên bản
-                    mới.
+                    {t('canvaSidebar.historyInitialDesc')}
                   </div>
                 </div>
               ) : (
@@ -2297,21 +2333,21 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     const eventLabel = (() => {
                       switch (entry.eventType) {
                         case 'PageCreated':
-                          return 'Khởi tạo trang';
+                          return t('canvaSidebar.eventPageCreated');
                         case 'ElementAdded':
-                          return 'Thêm đối tượng';
+                          return t('canvaSidebar.eventElementAdded');
                         case 'ElementMoved':
-                          return 'Di chuyển đối tượng';
+                          return t('canvaSidebar.eventElementMoved');
                         case 'ElementRemoved':
-                          return 'Xóa đối tượng';
+                          return t('canvaSidebar.eventElementRemoved');
                         case 'ElementRestored':
-                          return 'Phục hồi đối tượng';
+                          return t('canvaSidebar.eventElementRestored');
                         case 'CanvasUpdated':
-                          return 'Cập nhật canvas';
+                          return t('canvaSidebar.eventCanvasUpdated');
                         case 'VersionRestored':
-                          return 'Khôi phục bản cũ';
+                          return t('canvaSidebar.eventVersionRestored');
                         default:
-                          return entry.eventType || 'Chỉnh sửa bản vẽ';
+                          return entry.eventType || t('canvaSidebar.eventDefault');
                       }
                     })();
 
@@ -2335,7 +2371,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           </span>
                           {isCurrent && (
                             <span className='px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold border border-emerald-500/20'>
-                              Hiện hành
+                              {t('canvaSidebar.historyCurrentBadge')}
                             </span>
                           )}
                         </div>
@@ -2347,7 +2383,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             {isConfirming ? (
                               <div className='p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-1.5 animate-in fade-in duration-150'>
                                 <div className='text-[10px] text-amber-700 dark:text-amber-300 font-semibold'>
-                                  Khôi phục về v{entry.version}?
+                                  {t('canvaSidebar.historyRestoreConfirmTitle', {
+                                    version: entry.version,
+                                  })}
                                 </div>
                                 <div className='flex items-center gap-1'>
                                   <button
@@ -2360,14 +2398,16 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                                     data-testid={`btn-confirm-restore-v${entry.version}`}
                                     className='flex-1 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold cursor-pointer transition-colors'
                                   >
-                                    {isRestoringVersion ? 'Đang khôi phục...' : 'Đồng ý'}
+                                    {isRestoringVersion
+                                      ? t('canvaSidebar.historyRestoring')
+                                      : t('canvaSidebar.confirmBtn')}
                                   </button>
                                   <button
                                     type='button'
                                     onClick={() => setConfirmRestoreVersion(null)}
                                     className='px-2 py-1 rounded text-[10px] text-[var(--sb-muted)] hover:bg-[var(--sb-surface-hover)] cursor-pointer'
                                   >
-                                    Hủy
+                                    {t('canvaSidebar.cancelBtn')}
                                   </button>
                                 </div>
                               </div>
@@ -2379,7 +2419,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                                 className='text-[10px] font-semibold text-[var(--sb-accent)] hover:underline flex items-center gap-1 cursor-pointer'
                               >
                                 <RotateCcw className='w-3 h-3' />
-                                <span>Khôi phục bản này</span>
+                                <span>{t('canvaSidebar.historyRestoreBtn')}</span>
                               </button>
                             )}
                           </div>

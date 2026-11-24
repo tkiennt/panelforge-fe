@@ -17,6 +17,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import '@/styles/modules/lucian/lucian-011.css';
+import { useTranslation } from '@/lib/i18n';
 
 interface BibleEntryReference {
   id: string;
@@ -79,6 +80,7 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
   safeZoneVisible = false,
   onToggleSafeZone,
 }) => {
+  const { t } = useTranslation('artist');
   const [isOpen, setIsOpen] = useState(false);
   const [modelSheetOpen, setModelSheetOpen] = useState(false);
   const [storyboardSliderOpen, setStoryboardSliderOpen] = useState(false);
@@ -140,13 +142,13 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
               '--item-bg': 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
             } as React.CSSProperties
           }
-          title='Tạo mô tả vẽ cho tất cả khung trong phân cảnh (Bước 1)'
-          aria-label='Tạo mô tả vẽ (cả cảnh)'
+          title={t('radialMenu.aiTitle')}
+          aria-label={t('radialMenu.aiLabel')}
         >
           <div className='u011-item-inner'>
             <Sparkles className='w-4 h-4' />
           </div>
-          <span className='u011-item-label'>Tạo mô tả vẽ (cả cảnh)</span>
+          <span className='u011-item-label'>{t('radialMenu.aiLabel')}</span>
         </button>
       )}
 
@@ -175,10 +177,10 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
             className='w-full h-full flex items-center justify-center rounded-full cursor-pointer disabled:opacity-40'
             title={
               hasStoryboard
-                ? 'Ẩn / hiện lớp Storyboard để so sánh nét chì'
-                : 'Chưa có ảnh Storyboard phân cảnh'
+                ? t('radialMenu.storyboardShowHideTitle')
+                : t('radialMenu.storyboardEmptyTitle')
             }
-            aria-label='Lớp Storyboard'
+            aria-label={t('radialMenu.storyboardAriaLabel')}
           >
             <div className='u011-item-inner'>
               {showStoryboardOverlay && hasStoryboard ? (
@@ -188,7 +190,8 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
               )}
             </div>
             <span className='u011-item-label'>
-              Storyboard {hasStoryboard ? `(${storyboardOpacity}%)` : '(Chưa có)'}
+              Storyboard{' '}
+              {hasStoryboard ? `(${storyboardOpacity}%)` : t('radialMenu.storyboardMissing')}
             </span>
           </button>
         </div>
@@ -211,13 +214,17 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
             onClick={onTogglePencilUnderlay}
             disabled={!hasPencilArt}
             className='w-full h-full flex items-center justify-center rounded-full cursor-pointer disabled:opacity-40'
-            title={hasPencilArt ? 'Ẩn / hiện chì nền để đối chiếu' : 'Chưa có bản vẽ chì nền'}
-            aria-label='Lớp chì nền'
+            title={
+              hasPencilArt
+                ? t('radialMenu.pencilUnderlayTitle')
+                : t('radialMenu.pencilUnderlayEmptyTitle')
+            }
+            aria-label={t('radialMenu.pencilUnderlayAriaLabel')}
           >
             <div className='u011-item-inner'>
               <Layers className='w-4 h-4' />
             </div>
-            <span className='u011-item-label'>Chì nền</span>
+            <span className='u011-item-label'>{t('radialMenu.pencilUnderlayLabel')}</span>
           </button>
         </div>
       ) : null}
@@ -242,8 +249,8 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
             data-testid='radial-item-model-sheet'
             onClick={() => setModelSheetOpen((v) => !v)}
             className='w-full h-full flex items-center justify-center rounded-full cursor-pointer'
-            title={`Thiết kế nhân vật (${bibleEntries.length})`}
-            aria-label={`Thiết kế nhân vật (${bibleEntries.length})`}
+            title={t('radialMenu.modelSheetTitle', { count: bibleEntries.length })}
+            aria-label={t('radialMenu.modelSheetTitle', { count: bibleEntries.length })}
           >
             <div className='u011-item-inner'>
               <User className='w-4 h-4' />
@@ -276,17 +283,17 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           }
           title={
             disabledLayoutEdit
-              ? 'Trang này đã được tách việc cho người khác, không thể sửa bố cục'
+              ? t('radialMenu.layoutDisabledTitle')
               : layoutEdit
-                ? 'Tắt chế độ sửa bố cục'
-                : 'Bật chế độ sửa bố cục khung'
+                ? t('radialMenu.layoutTurnOffTitle')
+                : t('radialMenu.layoutTurnOnTitle')
           }
-          aria-label='Sửa bố cục khung'
+          aria-label={t('radialMenu.layoutAriaLabel')}
         >
           <div className='u011-item-inner'>
             <Grid2x2 className='w-4 h-4' />
           </div>
-          <span className='u011-item-label'>Sửa bố cục</span>
+          <span className='u011-item-label'>{t('radialMenu.layoutLabel')}</span>
         </button>
       ) : isInkStage && onToggleSafeZone ? (
         <button
@@ -306,8 +313,8 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
                 : 'linear-gradient(135deg, #52525B, #3F3F46)',
             } as React.CSSProperties
           }
-          title='Bật / tắt hiển thị Vùng An Toàn (Safe Zone)'
-          aria-label='Vùng an toàn Safe Zone'
+          title={t('radialMenu.safeZoneTitle')}
+          aria-label={t('radialMenu.safeZoneAriaLabel')}
         >
           <div className='u011-item-inner'>
             <ShieldAlert className='w-4 h-4' />
@@ -330,8 +337,8 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           }
         }}
         aria-expanded={isOpen}
-        aria-label={isOpen ? 'Đóng công cụ phụ' : 'Mở công cụ phụ'}
-        title='Công cụ hỗ trợ phụ (AI Mô tả, Storyboard, Model Sheet, Sửa bố cục)'
+        aria-label={isOpen ? t('radialMenu.closeFabAriaLabel') : t('radialMenu.openFabAriaLabel')}
+        title={t('radialMenu.fabTitle')}
         className='u011-fab'
       >
         <Wand2 className='u011-icon' />
@@ -346,7 +353,9 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           onClick={(e) => e.stopPropagation()}
         >
           <Eye className='w-3.5 h-3.5 text-orange-600 shrink-0' />
-          <span className='text-[11px] font-bold text-stone-700 whitespace-nowrap'>Độ mờ:</span>
+          <span className='text-[11px] font-bold text-stone-700 whitespace-nowrap'>
+            {t('radialMenu.opacityLabel')}
+          </span>
           <input
             type='range'
             data-testid='radial-storyboard-opacity-input'
@@ -372,20 +381,20 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           onClick={(e) => e.stopPropagation()}
         >
           <div className='text-[10px] font-bold text-stone-400 uppercase px-1 pb-1 border-b border-stone-100 flex items-center justify-between'>
-            <span>Thiết kế nhân vật (Bible)</span>
+            <span>{t('radialMenu.modelSheetHeader')}</span>
             {selectedBibleEntryId && (
               <button
                 type='button'
                 onClick={() => onSelectBibleEntry(null)}
                 className='text-orange-600 hover:underline text-[10px] cursor-pointer'
               >
-                Bỏ ghim
+                {t('radialMenu.unpin')}
               </button>
             )}
           </div>
           <div className='max-h-48 overflow-y-auto space-y-1 py-1'>
             {bibleEntries.length === 0 ? (
-              <p className='text-xs text-stone-400 p-2 italic'>Chưa có Model Sheet nào.</p>
+              <p className='text-xs text-stone-400 p-2 italic'>{t('radialMenu.emptyModelSheet')}</p>
             ) : (
               bibleEntries.map((b) => (
                 <button

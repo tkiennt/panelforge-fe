@@ -1,6 +1,7 @@
 /* Lucian UX/UI Prompt #039 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/ */
 import React from 'react';
 import { Type, Sparkles, MessageSquare, Volume2, Compass, Send, Sliders } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 interface Props {
   // Reading Flow Path Previewer
@@ -38,6 +39,7 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
   onSubmitToGate2,
   isSubmitting = false,
 }) => {
+  const { t } = useTranslation('artist');
   return (
     <div
       data-testid='lettering-stage-workspace-bar'
@@ -55,7 +57,7 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
         }`}
       >
         <MessageSquare className='w-3 h-3 text-orange-600' />
-        <span>Kịch bản</span>
+        <span>{t('letteringBar.script')}</span>
         <span
           className={`px-1 rounded text-[10px] font-mono font-bold ${
             unplacedCount === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
@@ -70,11 +72,11 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
         type='button'
         data-testid='lettering-bar-auto-assign-btn'
         onClick={onOpenAutoAssignModal}
-        title='AI Tách Thoại: Tự động phân bổ câu thoại vào đúng khung'
+        title={t('letteringBar.aiSplitTitle')}
         className='flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 text-white font-bold text-[11px] shadow-2xs cursor-pointer transition-all active:scale-95'
       >
         <Sparkles className='w-3 h-3' />
-        <span>AI Tách thoại</span>
+        <span>{t('letteringBar.aiSplitButton')}</span>
       </button>
 
       {/* Bộ công cụ bóng thoại & SFX */}
@@ -83,7 +85,7 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
           type='button'
           data-testid='btn-tool-balloon'
           onClick={() => onSelectTool('balloon')}
-          title='Bóng thoại (Speech Balloon)'
+          title={t('letteringBar.toolBalloonTitle')}
           className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
             activeTool === 'balloon'
               ? 'bg-purple-600 text-white shadow-2xs font-bold'
@@ -91,39 +93,39 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
           }`}
         >
           <Type className='w-3 h-3' />
-          <span>Thoại</span>
+          <span>{t('letteringBar.toolBalloon')}</span>
         </button>
         <button
           type='button'
           data-testid='btn-tool-thought'
           onClick={() => onSelectTool('thought')}
-          title='Bóng suy nghĩ (Thought Bubble)'
+          title={t('letteringBar.toolThoughtTitle')}
           className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
             activeTool === 'thought'
               ? 'bg-purple-600 text-white shadow-2xs font-bold'
               : 'text-stone-600 hover:text-stone-900'
           }`}
         >
-          <span>💭 Nghĩ</span>
+          <span>{t('letteringBar.toolThought')}</span>
         </button>
         <button
           type='button'
           data-testid='btn-tool-tail-edit'
           onClick={() => onSelectTool('tail-edit')}
-          title='Chỉnh đuôi bóng thoại'
+          title={t('letteringBar.toolTailTitle')}
           className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
             activeTool === 'tail-edit'
               ? 'bg-purple-600 text-white shadow-2xs font-bold'
               : 'text-stone-600 hover:text-stone-900'
           }`}
         >
-          Đuôi
+          {t('letteringBar.toolTail')}
         </button>
         <button
           type='button'
           data-testid='btn-tool-sfx'
           onClick={() => onSelectTool('sfx')}
-          title='Hiệu ứng âm thanh (SFX Manga)'
+          title={t('letteringBar.toolSfxTitle')}
           className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
             activeTool === 'sfx'
               ? 'bg-purple-600 text-white shadow-2xs font-bold'
@@ -140,7 +142,7 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
         type='button'
         data-testid='btn-toggle-reading-flow'
         onClick={onToggleReadingFlow}
-        title='Ẩn / hiện luồng đọc Manga (Reading Flow Z-pattern)'
+        title={t('letteringBar.readingFlowTitle')}
         className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg border font-semibold text-[11px] cursor-pointer transition-colors ${
           readingFlowVisible
             ? 'bg-indigo-50 text-indigo-900 border-indigo-300 font-bold'
@@ -148,7 +150,7 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
         }`}
       >
         <Compass className='w-3 h-3 text-indigo-600' />
-        <span>Dòng đọc</span>
+        <span>{t('letteringBar.readingFlow')}</span>
       </button>
 
       {/* Nút nộp Gate 2 */}
@@ -157,7 +159,7 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
         data-testid='btn-submit-gate2'
         onClick={onSubmitToGate2}
         disabled={isSubmitting}
-        title='Nộp duyệt Gate 2'
+        title={t('letteringBar.submitGate2Title')}
         className='hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAF8F5] hover:bg-[#F3EFE6] text-stone-700 border border-[#DDD6C8] text-[11px] font-semibold cursor-pointer transition-all active:scale-95 disabled:opacity-50 shrink-0'
       >
         <span>➔ Gate 2</span>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import type { ElementSnapshotDto } from '@/services/element.service';
 
 /**
@@ -12,6 +13,7 @@ export const BalloonTextEditor: React.FC<{
   readOnly?: boolean;
   onCommit: (text: string) => void;
 }> = ({ element, isOriginal, langLabel, readOnly = false, onCommit }) => {
+  const { t } = useTranslation('artist');
   const original = element.content || element.renderedText || '';
   const initial = isOriginal ? original : (element.texts?.[langLabel.toLowerCase()] ?? '');
   const [draft, setDraft] = useState(initial);
@@ -26,9 +28,11 @@ export const BalloonTextEditor: React.FC<{
   return (
     <div data-testid='lettering-text-editor' className='space-y-1.5'>
       <label className='text-xs font-semibold text-stone-800 flex items-center justify-between'>
-        <span>Nội dung hiển thị ({langLabel})</span>
+        <span>{t('lettering.textEditor.displayContent', { lang: langLabel })}</span>
         {lockedByScript && (
-          <span className='text-[10px] font-normal text-stone-500'>Theo kịch bản</span>
+          <span className='text-[10px] font-normal text-stone-500'>
+            {t('lettering.textEditor.fromScript')}
+          </span>
         )}
       </label>
       {!isOriginal && (
@@ -36,7 +40,9 @@ export const BalloonTextEditor: React.FC<{
           data-testid='lettering-original-reference'
           className='text-[11px] text-stone-500 bg-stone-50 border border-stone-200 rounded-md px-2 py-1'
         >
-          Gốc: {original || '(trống)'}
+          {t('lettering.textEditor.originalPrefix', {
+            text: original || t('lettering.textEditor.empty'),
+          })}
         </p>
       )}
       <textarea
@@ -46,7 +52,11 @@ export const BalloonTextEditor: React.FC<{
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         rows={4}
-        placeholder={isOriginal ? 'Nhập lời thoại…' : `Nhập bản dịch ${langLabel}…`}
+        placeholder={
+          isOriginal
+            ? t('lettering.textEditor.placeholderOriginal')
+            : t('lettering.textEditor.placeholderTranslation', { lang: langLabel })
+        }
         className='w-full text-sm rounded-xl border border-stone-200 px-3 py-2 bg-white focus:outline-none focus:border-orange-500 read-only:bg-stone-50 read-only:text-stone-500'
       />
     </div>

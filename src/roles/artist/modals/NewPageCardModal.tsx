@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layers } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import { KanbanCard, KanbanStageKey } from '@/types';
 import { Modal } from '@/shared/ui';
 
@@ -16,6 +17,7 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
   onAddCard,
   onShowToast,
 }) => {
+  const { t } = useTranslation('artist');
   const [pageNumber, setPageNumber] = useState('');
   const [title, setTitle] = useState('');
   const [stage, setStage] = useState<KanbanStageKey>('pencil');
@@ -62,27 +64,29 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size='md'
-      closeLabel='Đóng'
+      closeLabel={t('common.close')}
       title={
         <div className='flex items-center gap-2.5'>
           <div className='p-2 bg-[#FFF2E6] text-[#C2410C] rounded-xl border border-[#FDBA74]'>
             <Layers className='w-4 h-4' />
           </div>
           <span className='font-serif font-bold text-sm text-[#1C1917]'>
-            Tạo Thẻ Tiến Độ Trang (Page Card)
+            {t('newPageCardModal.title')}
           </span>
         </div>
       }
-      description='Thêm thẻ trang vào quy trình phân cảnh'
+      description={t('newPageCardModal.description')}
     >
       <form onSubmit={handleSubmit} className='space-y-4 text-xs'>
         <div className='grid grid-cols-2 gap-3'>
           <div>
-            <label className='block font-semibold text-[#1C1917] mb-1.5'>Số Trang (Page #)</label>
+            <label className='block font-semibold text-[#1C1917] mb-1.5'>
+              {t('newPageCardModal.pageNumberLabel')}
+            </label>
             <input
               type='text'
               required
-              placeholder='Ví dụ: 25'
+              placeholder={t('newPageCardModal.pageNumberPlaceholder')}
               value={pageNumber}
               onChange={(e) => setPageNumber(e.target.value)}
               className='w-full px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-[#1C1917] focus:outline-none focus:border-[#F97316] font-mono'
@@ -91,28 +95,28 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
 
           <div>
             <label className='block font-semibold text-[#1C1917] mb-1.5'>
-              Loại Trang (Page Type)
+              {t('newPageCardModal.pageTypeLabel')}
             </label>
             <select
               value={pageType}
               onChange={(e) => setPageType(e.target.value as any)}
               className='w-full px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-[#1C1917] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
             >
-              <option value='Action'>Action Sequence (Hành động)</option>
-              <option value='Dialogue'>Dialogue Heavy (Hội thoại)</option>
-              <option value='Spread'>Spread / Splash (Trang đôi / Tràn)</option>
+              <option value='Action'>{t('newPageCardModal.pageTypeAction')}</option>
+              <option value='Dialogue'>{t('newPageCardModal.pageTypeDialogue')}</option>
+              <option value='Spread'>{t('newPageCardModal.pageTypeSpread')}</option>
             </select>
           </div>
         </div>
 
         <div>
           <label className='block font-semibold text-[#1C1917] mb-1.5'>
-            Tiêu Đề Cảnh (Scene Title)
+            {t('newPageCardModal.sceneTitleLabel')}
           </label>
           <input
             type='text'
             required
-            placeholder='Ví dụ: Zor đột nhập qua cửa sổ trần tầng áp mái'
+            placeholder={t('newPageCardModal.sceneTitlePlaceholder')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className='w-full px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-[#1C1917] focus:outline-none focus:border-[#F97316]'
@@ -121,24 +125,28 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
 
         <div className='grid grid-cols-2 gap-3'>
           <div>
-            <label className='block font-semibold text-[#1C1917] mb-1.5'>Công Đoạn Ban Đầu</label>
+            <label className='block font-semibold text-[#1C1917] mb-1.5'>
+              {t('newPageCardModal.initialStageLabel')}
+            </label>
             <select
               value={stage}
               onChange={(e) => setStage(e.target.value as KanbanStageKey)}
               className='w-full px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-[#1C1917] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
             >
-              <option value='script'>1. Kịch bản (Script)</option>
-              <option value='pencil'>2. Nét chì (Pencil)</option>
-              <option value='ink'>3. Đi mực (Ink)</option>
-              <option value='color'>4. Đổ màu (Color)</option>
-              <option value='letter'>5. Thoại &amp; SFX (Letter)</option>
-              <option value='review'>6. Duyệt (Review)</option>
-              <option value='approved'>7. Hoàn tất (Approved)</option>
+              <option value='script'>{t('newPageCardModal.stages.script')}</option>
+              <option value='pencil'>{t('newPageCardModal.stages.pencil')}</option>
+              <option value='ink'>{t('newPageCardModal.stages.ink')}</option>
+              <option value='color'>{t('newPageCardModal.stages.color')}</option>
+              <option value='letter'>{t('newPageCardModal.stages.letter')}</option>
+              <option value='review'>{t('newPageCardModal.stages.review')}</option>
+              <option value='approved'>{t('newPageCardModal.stages.approved')}</option>
             </select>
           </div>
 
           <div>
-            <label className='block font-semibold text-[#1C1917] mb-1.5'>Người Phụ Trách</label>
+            <label className='block font-semibold text-[#1C1917] mb-1.5'>
+              {t('newPageCardModal.assigneeLabel')}
+            </label>
             <select
               value={assignee}
               onChange={(e) => setAssignee(e.target.value)}
@@ -159,13 +167,13 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
             onClick={onClose}
             className='px-3.5 py-2 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E] text-xs font-semibold rounded-xl transition-colors cursor-pointer'
           >
-            Hủy
+            {t('newPageCardModal.cancel')}
           </button>
           <button
             type='submit'
             className='px-4 py-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-xl shadow-soft-sm transition-all cursor-pointer active:scale-95'
           >
-            Tạo Thẻ Trang
+            {t('newPageCardModal.submit')}
           </button>
         </div>
       </form>

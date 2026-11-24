@@ -29,6 +29,7 @@ import {
 } from '@/shared/utils/panelLayout';
 import type { PanelDto } from '@/types/pipeline';
 import type { PageDto } from '@/services/page.service';
+import { useTranslation } from '@/lib/i18n';
 
 const HANDLES: Array<{
   id: Exclude<DragMode, 'move'>;
@@ -117,19 +118,19 @@ interface ToolbarProps {
   trailing?: React.ReactNode;
 }
 
-const PRESET_LABEL: Record<SplitPreset, string> = {
-  vertical: 'Xếp dọc (mỗi khung 1 dải)',
-  horizontal: 'Xếp ngang (1 hàng)',
-  grid: 'Lưới (2 cột; N lẻ → 2/3)',
+const PRESET_LABEL_KEYS: Record<SplitPreset, string> = {
+  vertical: 'panelLayout.presetVertical',
+  horizontal: 'panelLayout.presetHorizontal',
+  grid: 'panelLayout.presetGrid',
 };
 
-const ALIGN_BUTTONS: Array<{ mode: AlignMode; label: string; Icon: React.ElementType }> = [
-  { mode: 'left', label: 'Căn trái', Icon: AlignStartVertical },
-  { mode: 'centerX', label: 'Căn giữa ngang', Icon: AlignCenterVertical },
-  { mode: 'right', label: 'Căn phải', Icon: AlignEndVertical },
-  { mode: 'top', label: 'Căn trên', Icon: AlignStartHorizontal },
-  { mode: 'centerY', label: 'Căn giữa dọc', Icon: AlignCenterHorizontal },
-  { mode: 'bottom', label: 'Căn dưới', Icon: AlignEndHorizontal },
+const ALIGN_BUTTONS: Array<{ mode: AlignMode; labelKey: string; Icon: React.ElementType }> = [
+  { mode: 'left', labelKey: 'panelLayout.alignLeft', Icon: AlignStartVertical },
+  { mode: 'centerX', labelKey: 'panelLayout.alignCenterX', Icon: AlignCenterVertical },
+  { mode: 'right', labelKey: 'panelLayout.alignRight', Icon: AlignEndVertical },
+  { mode: 'top', labelKey: 'panelLayout.alignTop', Icon: AlignStartHorizontal },
+  { mode: 'centerY', labelKey: 'panelLayout.alignCenterY', Icon: AlignCenterHorizontal },
+  { mode: 'bottom', labelKey: 'panelLayout.alignBottom', Icon: AlignEndHorizontal },
 ];
 
 /**
@@ -150,6 +151,7 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
   leading,
   trailing,
 }) => {
+  const { t } = useTranslation('artist');
   const [open, setOpen] = useState(false);
   const [count, setCount] = useState(Math.max(panelCount, 1));
   const [preset, setPreset] = useState<SplitPreset>('vertical');
@@ -181,42 +183,45 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
                 onClick={() => setOpen((v) => !v)}
                 disabled={busy}
                 className='px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-orange-50 text-orange-900 border border-orange-200/80 hover:bg-orange-100 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs'
-                title='Chia lại bố cục thành N khung đều nhau, giữ khung và ảnh đã có'
+                title={t('panelLayout.relayoutTitle')}
               >
                 <Grid2x2 className='w-3.5 h-3.5 text-orange-600' />
-                <span>Chia lại thành N khung</span>
+                <span>{t('panelLayout.relayoutBtn')}</span>
               </button>
               <button
                 type='button'
                 onClick={onSelectAll}
                 className='px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-[#E7E7E7] text-stone-700 hover:bg-stone-50 cursor-pointer transition-colors shadow-2xs'
-                title='Chọn tất cả khung (hoặc Shift + bấm từng khung)'
+                title={t('panelLayout.selectAllTitle')}
               >
-                Chọn tất cả
+                {t('panelLayout.selectAllBtn')}
               </button>
               <span className='w-px h-5 bg-[#E7E7E7] mx-0.5' />
             </>
           )}
 
           {/* Nhóm Căn chỉnh */}
-          {ALIGN_BUTTONS.map(({ mode, label, Icon }) => (
-            <button
-              key={mode}
-              type='button'
-              title={`${label}${!canAlign ? ' (chọn ≥ 2 khung)' : ''}`}
-              aria-label={label}
-              disabled={!canAlign}
-              onClick={() => onAlign(mode)}
-              className='p-1.5 rounded-lg border border-[#E7E7E7] text-stone-700 hover:bg-stone-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs'
-            >
-              <Icon className='w-3.5 h-3.5' />
-            </button>
-          ))}
+          {ALIGN_BUTTONS.map(({ mode, labelKey, Icon }) => {
+            const label = t(labelKey);
+            return (
+              <button
+                key={mode}
+                type='button'
+                title={`${label}${!canAlign ? t('panelLayout.minTwoPanelsHint') : ''}`}
+                aria-label={label}
+                disabled={!canAlign}
+                onClick={() => onAlign(mode)}
+                className='p-1.5 rounded-lg border border-[#E7E7E7] text-stone-700 hover:bg-stone-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs'
+              >
+                <Icon className='w-3.5 h-3.5' />
+              </button>
+            );
+          })}
           <span className='w-px h-5 bg-[#E7E7E7] mx-0.5' />
           <button
             type='button'
-            title={`Giãn đều ngang${!canDistribute ? ' (chọn ≥ 3 khung)' : ''}`}
-            aria-label='Giãn đều ngang'
+            title={`${t('panelLayout.distributeX')}${!canDistribute ? t('panelLayout.minThreePanelsHint') : ''}`}
+            aria-label={t('panelLayout.distributeX')}
             disabled={!canDistribute}
             onClick={() => onDistribute('x')}
             className='p-1.5 rounded-lg border border-[#E7E7E7] text-stone-700 hover:bg-stone-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs'
@@ -225,8 +230,8 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
           </button>
           <button
             type='button'
-            title={`Giãn đều dọc${!canDistribute ? ' (chọn ≥ 3 khung)' : ''}`}
-            aria-label='Giãn đều dọc'
+            title={`${t('panelLayout.distributeY')}${!canDistribute ? t('panelLayout.minThreePanelsHint') : ''}`}
+            aria-label={t('panelLayout.distributeY')}
             disabled={!canDistribute}
             onClick={() => onDistribute('y')}
             className='p-1.5 rounded-lg border border-[#E7E7E7] text-stone-700 hover:bg-stone-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs'
@@ -239,7 +244,7 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
         {/* Phải: Dòng trạng thái ngắn + Huy hiệu */}
         <div className='flex items-center gap-2 shrink-0 flex-nowrap ml-auto'>
           <span className='text-xs text-stone-500 font-medium'>
-            Đang chọn {selectedCount} khung · Shift+bấm để chọn nhiều
+            {t('panelLayout.selectedCountHint', { count: selectedCount })}
           </span>
           {panelCount >= 2 &&
             (issues.length === 0 ? (
@@ -248,7 +253,7 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
                 data-testid='layout-ok'
               >
                 <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                Bố cục cân đối
+                {t('panelLayout.layoutBalanced')}
               </span>
             ) : (
               <span
@@ -256,7 +261,7 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
                 data-testid='layout-issues-badge'
               >
                 <AlertTriangle className='w-3.5 h-3.5 text-amber-600' />
-                Bố cục lệch ({issues.length})
+                {t('panelLayout.layoutIssues', { count: issues.length })}
               </span>
             ))}
         </div>
@@ -269,7 +274,9 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
           data-testid='layout-relayout-form'
         >
           <label className='flex flex-col gap-1'>
-            <span className='text-stone-700 font-semibold'>Số khung (≥ {panelCount})</span>
+            <span className='text-stone-700 font-semibold'>
+              {t('panelLayout.panelCountLabel', { count: panelCount })}
+            </span>
             <input
               type='number'
               min={Math.max(panelCount, 1)}
@@ -281,22 +288,22 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
             />
           </label>
           <label className='flex flex-col gap-1'>
-            <span className='text-stone-700 font-semibold'>Kiểu chia</span>
+            <span className='text-stone-700 font-semibold'>{t('panelLayout.splitTypeLabel')}</span>
             <select
               value={preset}
               data-testid='layout-preset'
               onChange={(e) => setPreset(e.target.value as SplitPreset)}
               className='px-2.5 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs font-medium focus:outline-none focus:border-orange-500'
             >
-              {(Object.keys(PRESET_LABEL) as SplitPreset[]).map((k) => (
+              {(Object.keys(PRESET_LABEL_KEYS) as SplitPreset[]).map((k) => (
                 <option key={k} value={k}>
-                  {PRESET_LABEL[k]}
+                  {t(PRESET_LABEL_KEYS[k])}
                 </option>
               ))}
             </select>
           </label>
           <label className='flex flex-col gap-1'>
-            <span className='text-stone-700 font-semibold'>Lề trang (%)</span>
+            <span className='text-stone-700 font-semibold'>{t('panelLayout.marginLabel')}</span>
             <input
               type='number'
               step={0.5}
@@ -308,7 +315,7 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
             />
           </label>
           <label className='flex flex-col gap-1'>
-            <span className='text-stone-700 font-semibold'>Khoảng cách giữa khung (%)</span>
+            <span className='text-stone-700 font-semibold'>{t('panelLayout.gapLabel')}</span>
             <input
               type='number'
               step={0.5}
@@ -320,8 +327,7 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
             />
           </label>
           <p className='col-span-1 sm:col-span-2 text-xs text-stone-500'>
-            Khung đã có giữ nguyên ảnh, Scene và thứ tự đọc; khung mới được thêm vào cuối và cần tải
-            ảnh riêng.
+            {t('panelLayout.relayoutNote')}
           </p>
           <button
             type='button'
@@ -330,7 +336,7 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
             onClick={() => onRelayout(preset, count, margin, gap)}
             className='col-span-1 sm:col-span-2 py-2 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs shadow-soft-sm disabled:opacity-50 cursor-pointer transition-all'
           >
-            {busy ? 'Đang áp dụng…' : `Chia lại thành ${count} khung`}
+            {busy ? t('panelLayout.applying') : t('panelLayout.applyRelayout', { count })}
           </button>
         </div>
       )}
@@ -353,9 +359,9 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
               onClick={onStraighten}
               disabled={busy}
               className='mt-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs'
-              title='Gom các cạnh lệch nhẹ về cùng một đường'
+              title={t('panelLayout.straightenTitle')}
             >
-              <Wand2 className='w-3.5 h-3.5' /> Tự căn thẳng các cạnh lệch
+              <Wand2 className='w-3.5 h-3.5' /> {t('panelLayout.straightenBtn')}
             </button>
           )}
         </div>
@@ -369,8 +375,9 @@ export const PanelReadout: React.FC<{
   selectedPanel?: PanelDto | null;
   selectedPage?: PageDto | null;
   panelRect?: Rect | null;
-}> = ({ selectedPanel, selectedPage, panelRect }) =>
-  selectedPanel && panelRect && selectedPage ? (
+}> = ({ selectedPanel, selectedPage, panelRect }) => {
+  const { t } = useTranslation('artist');
+  return selectedPanel && panelRect && selectedPage ? (
     (() => {
       const pw = selectedPage.widthPx || 1200;
       const ph = selectedPage.heightPx || 1800;
@@ -390,15 +397,17 @@ export const PanelReadout: React.FC<{
           <div className='flex items-center justify-between gap-2 flex-wrap'>
             <div className='flex items-center gap-1.5'>
               <span className='px-1.5 py-0.2 rounded-md bg-orange-100/80 text-orange-900 border border-orange-200/80 font-bold text-xs shadow-2xs'>
-                Khung #{selectedPanel.panelNumber}
+                {t('panelLayout.panelNumberBadge', { number: selectedPanel.panelNumber })}
               </span>
               {selectedPanel.sceneId && (
-                <span className='text-[11px] text-stone-500 font-medium'>Đã gán phân cảnh</span>
+                <span className='text-[11px] text-stone-500 font-medium'>
+                  {t('panelLayout.sceneAssigned')}
+                </span>
               )}
             </div>
             <div className='flex items-center gap-2 flex-wrap'>
               <div>
-                <span className='text-stone-500 font-medium'>Vị trí: </span>
+                <span className='text-stone-500 font-medium'>{t('panelLayout.positionLabel')}</span>
                 <span className='text-stone-800 font-medium font-mono'>
                   X {left}%{' '}
                   <span className='text-stone-500 font-normal'>({px(panelRect.x, pw)}px)</span> · Y{' '}
@@ -408,7 +417,7 @@ export const PanelReadout: React.FC<{
               </div>
               <span className='text-stone-300'>•</span>
               <div>
-                <span className='text-stone-500 font-medium'>Kích thước: </span>
+                <span className='text-stone-500 font-medium'>{t('panelLayout.sizeLabel')}</span>
                 <span className='text-stone-800 font-medium font-mono'>
                   {round1(panelRect.w)}% × {round1(panelRect.h)}%{' '}
                   <span className='text-stone-500 font-normal'>
@@ -422,20 +431,20 @@ export const PanelReadout: React.FC<{
           <div className='pt-1 border-t border-[#E7E7E7] flex items-center justify-between flex-wrap gap-2 text-xs'>
             <div className='flex items-center gap-1.5 flex-wrap'>
               <span className='font-mono text-stone-700'>
-                Lề trái {left}% · phải {rightM}%
+                {t('panelLayout.marginLeftRight', { left, right: rightM })}
               </span>
               {symmetric ? (
                 <span className='inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium'>
-                  <Check className='w-3 h-3 text-emerald-600' /> Cân giữa
+                  <Check className='w-3 h-3 text-emerald-600' /> {t('panelLayout.centered')}
                 </span>
               ) : (
                 <span className='inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-medium'>
-                  Lệch {diffM}%
+                  {t('panelLayout.offset', { diff: diffM })}
                 </span>
               )}
             </div>
             <div className='font-mono text-stone-700'>
-              Lề trên {topM}% · dưới {bottomM}%
+              {t('panelLayout.marginTopBottom', { top: topM, bottom: bottomM })}
             </div>
           </div>
         </div>
@@ -448,7 +457,8 @@ export const PanelReadout: React.FC<{
     >
       <span className='flex items-center gap-2 text-stone-500 font-medium'>
         <MousePointerClick className='w-4 h-4 text-stone-400 shrink-0' />
-        Bấm vào một khung để xem vị trí &amp; kích thước
+        {t('panelLayout.selectPanelHint')}
       </span>
     </div>
   );
+};

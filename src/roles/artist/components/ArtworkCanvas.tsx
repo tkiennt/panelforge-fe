@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   Image as ImageIcon,
   UploadCloud,
@@ -16,6 +17,7 @@ interface ArtworkCanvasProps {
 }
 
 export const ArtworkCanvas: React.FC<ArtworkCanvasProps> = ({ isReadOnly, initialImageUrl }) => {
+  const { t } = useTranslation('artist');
   const [fileInfo, setFileInfo] = useState<{
     name: string;
     size: string;
@@ -24,7 +26,7 @@ export const ArtworkCanvas: React.FC<ArtworkCanvasProps> = ({ isReadOnly, initia
     initialImageUrl
       ? {
           name: initialImageUrl.split('/').pop() || 'Artwork.png',
-          size: 'Máy chủ',
+          size: t('artworkCanvas.serverSize'),
           previewUrl: initialImageUrl,
         }
       : null,
@@ -113,11 +115,11 @@ export const ArtworkCanvas: React.FC<ArtworkCanvasProps> = ({ isReadOnly, initia
                 <UploadCloud className='w-8 h-8 text-[#555555]' />
               </div>
               <p className='font-bold text-[#171717] text-lg mb-1'>
-                {isReadOnly ? 'Chưa có bản vẽ nào' : 'Kéo & Thả Bản Vẽ Vào Đây'}
+                {isReadOnly ? t('artworkCanvas.emptyReadOnly') : t('artworkCanvas.dropHere')}
               </p>
-              {!isReadOnly && <p className='text-sm'>hoặc nhấp để chọn tệp từ máy tính</p>}
+              {!isReadOnly && <p className='text-sm'>{t('artworkCanvas.orClickToSelect')}</p>}
               <p className='text-[10px] font-mono mt-4 border border-[#E7E7E7] px-2 py-1 rounded bg-white'>
-                PNG, JPG, WEBP (Tối đa 50MB)
+                {t('artworkCanvas.fileFormatsLimit')}
               </p>
             </div>
           ) : (
@@ -149,23 +151,25 @@ export const ArtworkCanvas: React.FC<ArtworkCanvasProps> = ({ isReadOnly, initia
         <div className='p-4 border-b border-[#E7E7E7] flex items-center gap-2'>
           <Layers className='w-4 h-4 text-[#3B82F6]' />
           <h4 className='font-bold text-sm uppercase tracking-wider text-[#171717]'>
-            Thông Tin Bản Vẽ
+            {t('artworkCanvas.artworkInfo')}
           </h4>
         </div>
 
         {fileInfo ? (
           <div className='p-4 space-y-6'>
             <div>
-              <h5 className='text-[10px] font-bold text-[#A3A3A3] uppercase mb-2'>Chi Tiết Tệp</h5>
+              <h5 className='text-[10px] font-bold text-[#A3A3A3] uppercase mb-2'>
+                {t('artworkCanvas.fileDetails')}
+              </h5>
               <div className='bg-[#F8F6F0] rounded-lg p-3 space-y-2 text-xs font-mono text-[#555555]'>
                 <div className='flex justify-between'>
-                  <span className='text-[#A3A3A3]'>Tên tệp</span>
+                  <span className='text-[#A3A3A3]'>{t('artworkCanvas.fileName')}</span>
                   <span className='font-bold text-[#171717] truncate max-w-[140px]'>
                     {fileInfo.name}
                   </span>
                 </div>
                 <div className='flex justify-between'>
-                  <span className='text-[#A3A3A3]'>Dung lượng</span>
+                  <span className='text-[#A3A3A3]'>{t('artworkCanvas.fileSize')}</span>
                   <span className='font-bold text-[#171717]'>{fileInfo.size}</span>
                 </div>
               </div>
@@ -176,16 +180,16 @@ export const ArtworkCanvas: React.FC<ArtworkCanvasProps> = ({ isReadOnly, initia
                 <button
                   onClick={() => setFileInfo(null)}
                   className='w-full py-2 flex items-center justify-center gap-1.5 bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#EF4444] rounded text-xs font-bold transition-colors cursor-pointer'
-                  title='Xoá bản vẽ'
+                  title={t('artworkCanvas.removeTitle')}
                 >
-                  <Trash2 className='w-3.5 h-3.5' /> Gỡ bản vẽ
+                  <Trash2 className='w-3.5 h-3.5' /> {t('artworkCanvas.removeButton')}
                 </button>
               )}
             </div>
           </div>
         ) : (
           <div className='p-4 text-center text-sm text-[#A3A3A3]'>
-            Chưa có tệp bản vẽ được tải lên.
+            {t('artworkCanvas.noFileUploaded')}
           </div>
         )}
       </div>

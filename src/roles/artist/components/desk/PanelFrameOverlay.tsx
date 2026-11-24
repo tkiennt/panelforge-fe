@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Eye, ImagePlus, Trash2, UploadCloud } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import type { PanelDto } from '@/types/pipeline';
 import { parseBoundingBox } from '../../utils/panelBoundingBox';
 
@@ -56,6 +57,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
   onRemoveArtwork,
   onPreviewArtwork,
 }) => {
+  const { t } = useTranslation('artist');
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const boxes = panels.map((p) => parseBoundingBox(p.boundingBox, pageWidth, pageHeight));
 
@@ -135,7 +137,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                 onSelectPanel?.(isSelected ? null : pnl.id);
               }}
               data-testid={`canvas-panel-badge-${panelNum}`}
-              title={`Chọn Khung #${panelNum} để làm nổi dòng kịch bản tương ứng`}
+              title={t('panelFrame.selectPanelTitle', { panelNum })}
               className={`absolute top-1 left-1.5 z-20 px-1 rounded text-xs font-mono font-bold border cursor-pointer transition-colors ${
                 isSelected
                   ? 'bg-[#F97316] text-white border-[#EA580C]'
@@ -158,13 +160,16 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                     onClick={() =>
                       onPreviewArtwork({
                         imageUrl: artwork.imageUrl,
-                        title: `Khung #${panelNum} - ${artwork.fileName}`,
+                        title: t('panelFrame.previewTitle', {
+                          panelNum,
+                          fileName: artwork.fileName,
+                        }),
                       })
                     }
                     data-testid={`panel-btn-view-${panelNum}`}
                     className={`${HOVER_ACTION} bg-white/90 hover:bg-white text-stone-800`}
-                    title='Xem phóng to tranh'
-                    aria-label={`Xem phóng to tranh khung ${panelNum}`}
+                    title={t('panelFrame.zoomTitle')}
+                    aria-label={t('panelFrame.zoomAria', { panelNum })}
                   >
                     <Eye className='w-4 h-4' aria-hidden='true' />
                   </button>
@@ -176,10 +181,10 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                     className={`${HOVER_ACTION} bg-white/90 hover:bg-white text-stone-800 disabled:opacity-40 disabled:cursor-not-allowed`}
                     title={
                       canUploadArtwork
-                        ? 'Thay đổi ảnh'
-                        : 'Bạn không giữ ô đang mở cho trang × công đoạn này'
+                        ? t('panelFrame.replaceTitle')
+                        : t('common.noOpenSlotForPageStage')
                     }
-                    aria-label={`Thay tranh khung ${panelNum}`}
+                    aria-label={t('panelFrame.replaceAria', { panelNum })}
                   >
                     <UploadCloud className='w-4 h-4' aria-hidden='true' />
                   </button>
@@ -191,10 +196,10 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                     className={`${HOVER_ACTION} bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-40 disabled:cursor-not-allowed`}
                     title={
                       canUploadArtwork
-                        ? 'Gỡ tranh'
-                        : 'Bạn không giữ ô đang mở cho trang × công đoạn này'
+                        ? t('panelFrame.removeTitle')
+                        : t('common.noOpenSlotForPageStage')
                     }
-                    aria-label={`Gỡ tranh khung ${panelNum}`}
+                    aria-label={t('panelFrame.removeAria', { panelNum })}
                   >
                     <Trash2 className='w-4 h-4' aria-hidden='true' />
                   </button>
@@ -215,9 +220,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                 }}
                 onClick={openPicker}
                 data-testid={`panel-dropzone-${panelNum}`}
-                title={
-                  canUploadArtwork ? undefined : 'Bạn không giữ ô đang mở cho trang × công đoạn này'
-                }
+                title={canUploadArtwork ? undefined : t('common.noOpenSlotForPageStage')}
                 className='focus-ring w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-50/50 cursor-pointer transition-colors border border-dashed border-stone-300 hover:border-stone-500 disabled:opacity-40 disabled:cursor-not-allowed'
               >
                 <span
@@ -226,8 +229,10 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                 >
                   <ImagePlus className='w-4 h-4 text-stone-600' />
                 </span>
-                <span className='text-xs font-semibold'>+ Nạp tranh Khung #{panelNum}</span>
-                <span className='text-xs text-stone-500'>Kéo thả hoặc nhấn để chọn</span>
+                <span className='text-xs font-semibold'>
+                  {t('panelFrame.uploadPanel', { panelNum })}
+                </span>
+                <span className='text-xs text-stone-500'>{t('panelFrame.dropOrClick')}</span>
               </button>
             ) : null}
 
