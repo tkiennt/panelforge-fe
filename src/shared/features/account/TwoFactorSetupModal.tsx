@@ -15,6 +15,7 @@ import {
 import { QRCodeSVG } from 'qrcode.react';
 import { authService } from '@/services/auth.service';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 interface TwoFactorSetupModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   onSuccess,
   onDisabled,
 }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState<
     'status' | 'loading' | 'setup' | 'success' | 'error' | 'disabled'
   >('loading');
@@ -97,11 +99,11 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
       setQrUri(data.authenticatorUri);
       setStep('setup');
     } catch (err: any) {
-      console.error('Lỗi khởi tạo 2FA:', err);
-      setErrorMessage(err.message || 'Không thể liên lạc với server để tạo mã 2FA');
+      console.error('2FA init error:', err);
+      setErrorMessage(err.message || t('profile.twoFactorModal.initError'));
       setStep('error');
     }
-  }, [activeToken]);
+  }, [activeToken, t]);
 
   useEffect(() => {
     if (isOpen) {
@@ -130,18 +132,19 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
     try {
       await authService.forgetDevice();
       localStorage.removeItem('pf_remember_device');
-      setStatusMessage(
-        'Đã xóa thiết bị tin cậy khỏi máy này. Lần đăng nhập tới hệ thống sẽ yêu cầu nhập mã 2FA.',
-      );
+      setStatusMessage(t('profile.twoFactorModal.forgetSuccess'));
     } catch (err: any) {
-      setStatusMessage('Không thể xóa thiết bị: ' + (err.message || 'Lỗi không xác định'));
+      setStatusMessage(
+        t('profile.twoFactorModal.forgetErrorPrefix') +
+          (err.message || t('profile.twoFactorModal.unknownError')),
+      );
     }
   };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (code.trim().length !== 6) {
-      setErrorMessage('Nhập đủ 6 chữ số OTP.');
+      setErrorMessage(t('profile.twoFactorModal.otpLengthError'));
       return;
     }
 
@@ -160,8 +163,8 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
       setStep('success');
       if (onSuccess) onSuccess();
     } catch (err: any) {
-      console.error('Lỗi xác thực 2FA:', err);
-      setErrorMessage(err.message || 'Mã xác thực 2FA không đúng hoặc đã hết hạn. Hãy thử lại.');
+      console.error('2FA verify error:', err);
+      setErrorMessage(err.message || t('profile.twoFactorModal.verifyError'));
     } finally {
       setIsVerifying(false);
     }
@@ -170,7 +173,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   const handleDisable = async (e: React.FormEvent) => {
     e.preventDefault();
     if (disableCode.trim().length !== 6) {
-      setErrorMessage('Nhập đủ 6 chữ số OTP.');
+      setErrorMessage(t('profile.twoFactorModal.otpLengthError'));
       return;
     }
     setIsDisabling(true);
@@ -199,7 +202,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
       setShowDisableForm(false);
       setStep('disabled');
     } catch (err: any) {
-      setErrorMessage(err.message || 'Không thể tắt 2FA. Kiểm tra lại mật khẩu và mã xác thực.');
+      setErrorMessage(err.message || t('profile.twoFactorModal.disableError'));
     } finally {
       setIsDisabling(false);
     }
@@ -220,9 +223,9 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      closeLabel='Đóng'
+      closeLabel={t('profile.twoFactorModal.close')}
       size='md'
-      title='Xác thực hai bước'
+      title={t('profile.twoFactorModal.modalTitle')}
     >
       <div className='w-[540px] max-w-[95vw] bg-white rounded-2xl shadow-2xl border border-[#E7E7E7] overflow-hidden relative animate-in zoom-in-95 duration-200'>
         {/* Top Accent Stripe */}
@@ -232,7 +235,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
         <button
           onClick={handleClose}
           className='absolute top-4 right-4 z-20 text-[#555555] hover:text-[#171717] bg-[#FAF8F5] hover:bg-[#E7E7E7] rounded-full p-1.5 transition-colors cursor-pointer'
-          title='Đóng'
+          title={t('profile.twoFactorModal.close')}
         >
           <X className='w-4 h-4' />
         </button>
@@ -245,10 +248,10 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
             </div>
             <div>
               <h3 className='font-serif text-xl font-bold text-[#171717] leading-tight'>
-                Bảo Mật 2 Lớp (2FA Authenticator)
+                {t('profile.twoFactorModal.heading')}
               </h3>
               <p className='text-xs text-[#555555] mt-0.5'>
-                Bảo vệ tài khoản và tài sản studio theo tiêu chuẩn RFC 6238 TOTP.
+                {t('profile.twoFactorModal.subheading')}
               </p>
             </div>
           </div>
@@ -262,12 +265,10 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                 </div>
                 <div>
                   <h4 className='text-sm font-bold text-emerald-900'>
-                    2FA đang hoạt động và bảo vệ tài khoản
+                    {t('profile.twoFactorModal.activeTitle')}
                   </h4>
                   <p className='text-xs text-emerald-700 mt-1 leading-relaxed'>
-                    Tài khoản của bạn đã được liên kết với ứng dụng Google / Microsoft
-                    Authenticator. Mỗi khi đăng nhập trên thiết bị mới, bạn sẽ được yêu cầu mã 6 số
-                    từ ứng dụng.
+                    {t('profile.twoFactorModal.activeDesc')}
                   </p>
                 </div>
               </div>
@@ -281,18 +282,26 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
 
               <div className='bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl p-4 space-y-2.5 text-xs text-[#555555]'>
                 <div className='flex items-center justify-between py-1 border-b border-[#E7E7E7]'>
-                  <span className='font-medium text-[#171717]'>Trạng thái bảo mật:</span>
+                  <span className='font-medium text-[#171717]'>
+                    {t('profile.twoFactorModal.securityStatusLabel')}
+                  </span>
                   <span className='inline-flex items-center gap-1 font-semibold text-emerald-600'>
                     <span className='w-2 h-2 rounded-full bg-emerald-500'></span>
-                    Đang bật (Active)
+                    {t('profile.twoFactorModal.securityStatusActive')}
                   </span>
                 </div>
                 <div className='flex items-center justify-between py-1 border-b border-[#E7E7E7]'>
-                  <span className='font-medium text-[#171717]'>Ghi nhớ thiết bị tin cậy:</span>
-                  <span className='font-medium text-[#171717]'>30 ngày (1 tháng)</span>
+                  <span className='font-medium text-[#171717]'>
+                    {t('profile.twoFactorModal.trustedDeviceLabel')}
+                  </span>
+                  <span className='font-medium text-[#171717]'>
+                    {t('profile.twoFactorModal.trustedDeviceValue')}
+                  </span>
                 </div>
                 <div className='flex items-center justify-between py-1'>
-                  <span className='font-medium text-[#171717]'>Ứng dụng hỗ trợ:</span>
+                  <span className='font-medium text-[#171717]'>
+                    {t('profile.twoFactorModal.supportedAppsLabel')}
+                  </span>
                   <span className='text-[#555555]'>Google / Microsoft Authenticator</span>
                 </div>
               </div>
@@ -304,7 +313,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                 >
                   <h4 className='text-sm font-bold text-red-700 flex items-center gap-1.5'>
                     <ShieldOff className='w-4 h-4' />
-                    Tắt bảo mật 2 lớp
+                    {t('profile.twoFactorModal.disableHeading')}
                   </h4>
                   {errorMessage && (
                     <div className='p-2.5 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg flex items-center gap-2'>
@@ -314,9 +323,9 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                   )}
                   <div>
                     <label className='text-[11px] font-semibold text-[#171717] block mb-1'>
-                      Mật khẩu hiện tại{' '}
+                      {t('profile.twoFactorModal.currentPasswordLabel')}{' '}
                       <span className='font-normal text-[#888888]'>
-                        (bỏ trống nếu chỉ đăng nhập bằng mạng xã hội)
+                        {t('profile.twoFactorModal.socialLoginHint')}
                       </span>
                     </label>
                     <input
@@ -329,7 +338,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                   </div>
                   <div>
                     <label className='text-[11px] font-semibold text-[#171717] block mb-1'>
-                      Mã 6 số hiện tại từ Authenticator
+                      {t('profile.twoFactorModal.currentOtpLabel')}
                     </label>
                     <input
                       type='text'
@@ -351,7 +360,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                       disabled={isDisabling}
                       className='px-3 py-2 text-xs font-semibold text-[#555555] hover:text-[#171717] cursor-pointer'
                     >
-                      Hủy
+                      {t('profile.twoFactorModal.cancel')}
                     </button>
                     <button
                       type='submit'
@@ -361,10 +370,10 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                       {isDisabling ? (
                         <>
                           <RefreshCw className='w-3.5 h-3.5 animate-spin' />
-                          Đang tắt...
+                          {t('profile.twoFactorModal.disabling')}
                         </>
                       ) : (
-                        'Xác nhận tắt 2FA'
+                        t('profile.twoFactorModal.confirmDisable')
                       )}
                     </button>
                   </div>
@@ -378,7 +387,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                       className='w-full sm:w-auto px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200 flex items-center justify-center gap-1.5 cursor-pointer'
                     >
                       <Trash2 className='w-3.5 h-3.5' />
-                      Quên thiết bị này
+                      {t('profile.twoFactorModal.forgetDeviceBtn')}
                     </button>
                     <button
                       type='button'
@@ -389,7 +398,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                       className='w-full sm:w-auto px-3 py-2 text-xs font-medium text-[#555555] hover:text-[#171717] hover:bg-gray-100 rounded-lg transition-colors border border-[#E7E7E7] flex items-center justify-center gap-1.5 cursor-pointer'
                     >
                       <ShieldOff className='w-3.5 h-3.5' />
-                      Tắt 2FA
+                      {t('profile.twoFactorModal.disableBtn')}
                     </button>
                   </div>
                   <button
@@ -397,7 +406,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                     onClick={onClose}
                     className='w-full sm:w-auto bg-[#171717] hover:bg-[#262626] text-white text-xs font-semibold px-6 py-2 rounded-lg transition-colors cursor-pointer'
                   >
-                    Đóng
+                    {t('profile.twoFactorModal.close')}
                   </button>
                 </div>
               )}
@@ -408,7 +417,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
           {step === 'loading' && (
             <div className='py-12 flex flex-col items-center justify-center gap-3 text-[#555555]'>
               <RefreshCw className='w-8 h-8 text-[#F97316] animate-spin' />
-              <p className='text-xs font-medium'>Đang chuẩn bị khóa bảo mật 2FA...</p>
+              <p className='text-xs font-medium'>{t('profile.twoFactorModal.loadingKey')}</p>
             </div>
           )}
 
@@ -419,7 +428,9 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                 <AlertCircle className='w-6 h-6' />
               </div>
               <div>
-                <h4 className='font-bold text-sm text-[#171717]'>Không thể tạo mã 2FA</h4>
+                <h4 className='font-bold text-sm text-[#171717]'>
+                  {t('profile.twoFactorModal.errorTitle')}
+                </h4>
                 <p className='text-xs text-red-600 mt-1'>{errorMessage}</p>
               </div>
               <button
@@ -427,7 +438,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                 onClick={loadTwoFactorData}
                 className='px-4 py-2 bg-[#171717] text-white rounded-lg text-xs font-medium hover:bg-[#262626] transition-colors cursor-pointer'
               >
-                Thử lại
+                {t('profile.twoFactorModal.retry')}
               </button>
             </div>
           )}
@@ -450,7 +461,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                   </span>
                   <h4 className='text-sm font-bold text-[#171717] flex items-center gap-1.5'>
                     <Smartphone className='w-4 h-4 text-[#F97316]' />
-                    Quét mã QR bằng ứng dụng Authenticator
+                    {t('profile.twoFactorModal.step1Title')}
                   </h4>
                 </div>
 
@@ -460,21 +471,25 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                       <QRCodeSVG value={qrUri} size={150} level='M' />
                     ) : (
                       <div className='w-[150px] h-[150px] bg-gray-100 flex items-center justify-center text-xs text-gray-400'>
-                        Mã QR
+                        {t('profile.twoFactorModal.qrPlaceholder')}
                       </div>
                     )}
                   </div>
 
                   <div className='space-y-3 flex-1 text-xs text-[#555555]'>
                     <p>
-                      Mở ứng dụng <strong>Google Authenticator</strong> hoặc{' '}
-                      <strong>Microsoft Authenticator</strong> trên điện thoại, bấm dấu{' '}
-                      <strong>+</strong> và chọn <strong>Quét mã QR</strong>.
+                      {t('profile.twoFactorModal.step1GuidePrefix')}{' '}
+                      <strong>Google Authenticator</strong>{' '}
+                      {t('profile.twoFactorModal.step1GuideOr')}{' '}
+                      <strong>Microsoft Authenticator</strong>{' '}
+                      {t('profile.twoFactorModal.step1GuideMiddle')} <strong>+</strong>{' '}
+                      {t('profile.twoFactorModal.step1GuideAndSelect')}{' '}
+                      <strong>{t('profile.twoFactorModal.step1GuideScanQr')}</strong>.
                     </p>
                     <div className='pt-2 border-t border-[#E7E7E7]'>
                       <span className='text-[11px] font-semibold text-[#171717] block mb-1 flex items-center gap-1'>
                         <Key className='w-3.5 h-3.5 text-[#888888]' />
-                        Khóa dự phòng (nhập thủ công):
+                        {t('profile.twoFactorModal.backupKeyLabel')}
                       </span>
                       <div className='flex items-center gap-2'>
                         <code className='bg-white px-2.5 py-1.5 rounded border border-[#E7E7E7] font-mono text-[11px] text-[#171717] tracking-wider font-semibold select-all break-all'>
@@ -484,7 +499,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                           type='button'
                           onClick={handleCopyKey}
                           className='p-1.5 rounded bg-white hover:bg-gray-100 border border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-colors cursor-pointer shrink-0'
-                          title='Sao chép khóa'
+                          title={t('profile.twoFactorModal.copyKeyTitle')}
                         >
                           {copied ? (
                             <Check className='w-3.5 h-3.5 text-green-600' />
@@ -506,7 +521,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                   </span>
                   <h4 className='text-sm font-bold text-[#171717] flex items-center gap-1.5'>
                     <Lock className='w-4 h-4 text-[#F97316]' />
-                    Nhập mã 6 chữ số để kích hoạt
+                    {t('profile.twoFactorModal.step2Title')}
                   </h4>
                 </div>
 
@@ -521,7 +536,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                     autoFocus
                   />
                   <p className='text-center text-[11px] text-[#888888] mt-1.5'>
-                    Mã 6 chữ số nhảy mới mỗi 30 giây trong ứng dụng Authenticator
+                    {t('profile.twoFactorModal.otpRefreshHint')}
                   </p>
                 </div>
 
@@ -532,7 +547,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                     disabled={isVerifying}
                     className='px-4 py-2 text-xs font-semibold text-[#555555] hover:text-[#171717] transition-colors cursor-pointer'
                   >
-                    Hủy bỏ
+                    {t('profile.twoFactorModal.cancelFull')}
                   </button>
                   <button
                     type='submit'
@@ -542,10 +557,10 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                     {isVerifying ? (
                       <>
                         <RefreshCw className='w-3.5 h-3.5 animate-spin' />
-                        Đang xác thực...
+                        {t('profile.twoFactorModal.verifying')}
                       </>
                     ) : (
-                      'Xác nhận kích hoạt 2FA'
+                      t('profile.twoFactorModal.confirmEnable')
                     )}
                   </button>
                 </div>
@@ -560,9 +575,11 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                 <ShieldOff className='w-10 h-10' />
               </div>
               <div>
-                <h3 className='text-xl font-bold font-serif text-[#171717]'>Đã tắt 2FA</h3>
+                <h3 className='text-xl font-bold font-serif text-[#171717]'>
+                  {t('profile.twoFactorModal.disabledTitle')}
+                </h3>
                 <p className='text-xs text-[#555555] mt-2 max-w-md mx-auto leading-relaxed'>
-                  Khóa bí mật và thiết bị tin cậy đã xóa. Có thể bật lại 2FA bất cứ lúc nào.
+                  {t('profile.twoFactorModal.disabledDesc')}
                 </p>
               </div>
               <button
@@ -570,7 +587,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                 onClick={handleClose}
                 className='bg-[#171717] hover:bg-[#262626] text-white text-xs font-semibold px-8 py-2.5 rounded-lg transition-colors cursor-pointer'
               >
-                Đóng
+                {t('profile.twoFactorModal.close')}
               </button>
             </div>
           )}
@@ -583,18 +600,18 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
 
               <div>
                 <h3 className='text-xl font-bold font-serif text-[#171717]'>
-                  Đã kích hoạt 2FA thành công!
+                  {t('profile.twoFactorModal.successTitle')}
                 </h3>
                 <p className='text-xs text-[#555555] mt-2 max-w-md mx-auto leading-relaxed'>
-                  Tài khoản của bạn hiện đã được bảo vệ với tiêu chuẩn quốc tế RFC 6238 TOTP. Thiết
-                  bị này sẽ được ghi nhớ trong vòng 30 ngày (1 tháng) trước khi cần nhập lại mã 2FA.
+                  {t('profile.twoFactorModal.successDesc')}
                 </p>
               </div>
 
               <div className='bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl p-3 max-w-sm mx-auto text-[11px] text-[#555555] flex items-center justify-center gap-2'>
                 <Check className='w-4 h-4 text-emerald-600 shrink-0' />
                 <span>
-                  Trạng thái bảo vệ: <strong>Đang hoạt động (Active)</strong>
+                  {t('profile.twoFactorModal.protectionStatusLabel')}{' '}
+                  <strong>{t('profile.twoFactorModal.protectionStatusActive')}</strong>
                 </span>
               </div>
 
@@ -604,7 +621,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                   onClick={onClose}
                   className='bg-[#171717] hover:bg-[#262626] text-white text-xs font-semibold px-8 py-2.5 rounded-lg transition-colors cursor-pointer'
                 >
-                  Hoàn tất & Đóng
+                  {t('profile.twoFactorModal.doneAndClose')}
                 </button>
               </div>
             </div>

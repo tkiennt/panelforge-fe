@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { KeyRound, CheckCircle2, ShieldAlert, Mail, Send, RefreshCw } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { Alert, Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   token,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -64,11 +66,11 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 
     try {
       await authService.sendChangePasswordOtp(activeToken || undefined);
-      setOtpSentMessage('Mã OTP 6 chữ số đã được gửi đến email đăng ký của bạn.');
+      setOtpSentMessage(t('profile.changePasswordModal.otpSent'));
       setCountdown(60);
     } catch (err: any) {
-      console.error('Lỗi gửi OTP đổi mật khẩu:', err);
-      setError(err.message || 'Không thể gửi mã OTP. Thử lại sau.');
+      console.error('OTP send error:', err);
+      setError(err.message || t('profile.changePasswordModal.otpSendError'));
     } finally {
       setIsSendingOtp(false);
     }
@@ -79,23 +81,23 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     setError(null);
 
     if (newPassword !== confirmPassword) {
-      setError('Confirm password does not match new password.');
+      setError(t('profile.changePasswordModal.passwordMismatch'));
       return;
     }
 
     const pwdRegex = /^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{6,}$/;
     if (!pwdRegex.test(newPassword)) {
-      setError('Mật khẩu mới phải có ít nhất 6 ký tự, chứa ít nhất 1 chữ hoa và 1 ký tự đặc biệt.');
+      setError(t('profile.changePasswordModal.passwordPolicy'));
       return;
     }
 
     if (emailOtp.trim().length !== 6 && !emailOtp.trim()) {
-      setError('Nhập mã OTP 6 chữ số từ email.');
+      setError(t('profile.changePasswordModal.emailOtpRequired'));
       return;
     }
 
     if (is2FA && otpCode.trim().length !== 6) {
-      setError('2FA is enabled. Enter the 6-digit code from Authenticator.');
+      setError(t('profile.changePasswordModal.twoFactorRequired'));
       return;
     }
 
