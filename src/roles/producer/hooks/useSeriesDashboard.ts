@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { translate } from '@/lib/i18n';
 import {
   seriesService,
   type ChapterProgressDto,
@@ -107,9 +108,9 @@ export function useSeriesDashboard(
         );
       }
     } catch (err: any) {
-      const msg = err.message || 'Không thể tải tiến độ Series.';
+      const msg = err.message || translate('production.dashboard.kpi.loadError');
       setError(msg);
-      onError('Lỗi tiến độ', msg);
+      onError(translate('production.dashboard.kpi.errorTitle'), msg);
     } finally {
       setLoading(false);
     }

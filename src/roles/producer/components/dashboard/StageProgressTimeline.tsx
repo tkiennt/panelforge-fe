@@ -1,11 +1,12 @@
 import React from 'react';
 import { BookOpen, CheckCircle2, Palette, PenTool } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 const STAGES = [
-  { label: 'Bản thảo', short: 'Script', icon: BookOpen },
-  { label: 'Phác thảo', short: 'Sketch', icon: PenTool },
-  { label: 'Vẽ nét & màu', short: 'Ink/Color', icon: Palette },
-  { label: 'Hoàn tất', short: 'Done', icon: CheckCircle2 },
+  { labelKey: 'dashboard.timeline.stageScript', short: 'Script', icon: BookOpen },
+  { labelKey: 'dashboard.timeline.stageSketch', short: 'Sketch', icon: PenTool },
+  { labelKey: 'dashboard.timeline.stageInkColor', short: 'Ink/Color', icon: Palette },
+  { labelKey: 'dashboard.timeline.stageDone', short: 'Done', icon: CheckCircle2 },
 ];
 
 // Backend only reports a chapter-level percent, so the four steps are thirds of that value.
@@ -20,6 +21,7 @@ export const StageProgressTimeline: React.FC<{ percentComplete: number; status?:
   percentComplete,
   status,
 }) => {
+  const { t } = useTranslation('production');
   const isFinished =
     status === 'ChapterApproved' || status === 'HandedOffAndPublished' || percentComplete >= 100;
   const currentIndex = stageIndexFor(percentComplete, isFinished);
@@ -27,15 +29,16 @@ export const StageProgressTimeline: React.FC<{ percentComplete: number; status?:
   return (
     <div
       className='flex items-center gap-1 sm:gap-2 shrink-0 py-0.5'
-      aria-label={`Tiến trình chương: ${percentComplete}%`}
+      aria-label={t('dashboard.timeline.ariaLabel', { percent: percentComplete })}
     >
       {STAGES.map((stage, idx) => {
         const isReached = idx <= currentIndex;
         const isCurrent = !isFinished && idx === currentIndex;
         const Icon = stage.icon;
+        const stageLabel = t(stage.labelKey);
 
         return (
-          <React.Fragment key={stage.label}>
+          <React.Fragment key={stage.short}>
             {idx > 0 && (
               <div
                 className={`h-[2px] w-4 sm:w-6 md:w-8 lg:w-10 rounded-full ${
@@ -51,7 +54,7 @@ export const StageProgressTimeline: React.FC<{ percentComplete: number; status?:
                     ? 'bg-studio-accent text-white'
                     : 'bg-stone-100 text-stone-500 border border-stone-200'
               }`}
-              title={`${stage.label} (${stage.short}): ${isReached ? 'Đã hoàn thành / Đang thực hiện' : 'Chưa bắt đầu'}`}
+              title={`${stageLabel} (${stage.short}): ${isReached ? t('dashboard.timeline.statusReached') : t('dashboard.timeline.statusNotStarted')}`}
             >
               <Icon className='w-3 h-3 sm:w-3.5 sm:h-3.5' aria-hidden='true' />
             </div>

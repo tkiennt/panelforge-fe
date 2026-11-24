@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, AlertTriangle, Copy, Check } from 'lucide-react';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 export interface InviteResultItem {
   email: string;
@@ -22,6 +23,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
   results,
   workspaceName,
 }) => {
+  const { t } = useTranslation('production');
   const [copied, setCopied] = React.useState(false);
 
   if (!isOpen || results.length === 0) return null;
@@ -33,7 +35,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
     const text = results
       .map(
         (r) =>
-          `${r.email} - ${r.role}: ${r.success ? 'Thành công' : `Thất bại (${r.message || 'Lỗi'})`}`,
+          `${r.email} - ${r.role}: ${r.success ? t('producer.inviteResultModal.copySuccess') : t('producer.inviteResultModal.copyFailure', { message: r.message || t('producer.inviteResultModal.copyErrorFallback') })}`,
       )
       .join('\n');
     navigator.clipboard.writeText(text);
@@ -46,9 +48,9 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size='md'
-      title='Kết quả gửi lời mời'
+      title={t('producer.inviteResultModal.title')}
       description={workspaceName}
-      closeLabel='Đóng'
+      closeLabel={t('producer.inviteResultModal.close')}
     >
       <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]'>
         {/* Summary Badges */}
@@ -58,8 +60,12 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
               {successCount}
             </div>
             <div className='text-xs'>
-              <div className='font-bold text-emerald-800'>Gửi thành công</div>
-              <div className='text-emerald-600 text-[11px]'>Chờ xác nhận email</div>
+              <div className='font-bold text-emerald-800'>
+                {t('producer.inviteResultModal.sentSuccess')}
+              </div>
+              <div className='text-emerald-600 text-[11px]'>
+                {t('producer.inviteResultModal.waitingEmailConfirm')}
+              </div>
             </div>
           </div>
 
@@ -78,9 +84,11 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
               {failureCount}
             </div>
             <div className='text-xs'>
-              <div className='font-bold'>Thất bại</div>
+              <div className='font-bold'>{t('producer.inviteResultModal.failed')}</div>
               <div className='text-[11px]'>
-                {failureCount > 0 ? 'Kiểm tra lại email' : 'Không có lỗi'}
+                {failureCount > 0
+                  ? t('producer.inviteResultModal.checkEmailAgain')
+                  : t('producer.inviteResultModal.noErrors')}
               </div>
             </div>
           </div>
@@ -89,7 +97,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
         {/* Detailed Results List */}
         <div className='p-4 overflow-y-auto space-y-2 flex-1 custom-scrollbar text-xs'>
           <div className='text-[11px] text-stone-500 font-semibold mb-1'>
-            Chi tiết ({results.length})
+            {t('producer.inviteResultModal.detailsCount', { count: results.length })}
           </div>
 
           {results.map((item, idx) => (
@@ -120,8 +128,8 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
                     }`}
                   >
                     {item.success
-                      ? 'Đã gửi lời mời (Chờ xác nhận)'
-                      : item.message || 'Lỗi gửi lời mời'}
+                      ? t('producer.inviteResultModal.inviteSentPending')
+                      : item.message || t('producer.inviteResultModal.inviteError')}
                   </p>
                 </div>
               </div>
@@ -131,7 +139,9 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
                   item.success ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
                 }`}
               >
-                {item.success ? 'Chờ duyệt' : 'Lỗi'}
+                {item.success
+                  ? t('producer.inviteResultModal.badgePending')
+                  : t('producer.inviteResultModal.badgeError')}
               </span>
             </div>
           ))}
@@ -149,7 +159,9 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             ) : (
               <Copy className='w-3.5 h-3.5 text-stone-500' />
             )}
-            <span>{copied ? 'Đã sao chép' : 'Sao chép'}</span>
+            <span>
+              {copied ? t('producer.inviteResultModal.copied') : t('producer.inviteResultModal.copy')}
+            </span>
           </button>
 
           <button
@@ -157,7 +169,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             onClick={onClose}
             className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer'
           >
-            Đóng
+            {t('producer.inviteResultModal.close')}
           </button>
         </div>
       </div>

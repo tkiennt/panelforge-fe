@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserPlus, Users } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import type { SeriesProgressDto } from '@/services/series.service';
 import { NEUTRAL_BADGE } from './dashboardFormat';
 
@@ -29,6 +30,7 @@ export const WorkloadCard: React.FC<WorkloadCardProps> = ({
   onAssign,
   onManageMembers,
 }) => {
+  const { t } = useTranslation('production');
   const rows = workload ?? [];
 
   return (
@@ -37,14 +39,12 @@ export const WorkloadCard: React.FC<WorkloadCardProps> = ({
         <div>
           <h2 className='text-base font-bold text-stone-900 flex items-center gap-2'>
             <Users className='w-4 h-4 text-orange-600' aria-hidden='true' />
-            <span>Phân Bổ Khối Lượng Công Việc</span>
+            <span>{t('dashboard.team.workloadTitle')}</span>
           </h2>
-          <p className='text-xs text-stone-600 mt-0.5'>
-            Số lượng panel và nhiệm vụ đang phụ trách theo từng nhân sự
-          </p>
+          <p className='text-xs text-stone-600 mt-0.5'>{t('dashboard.team.workloadDesc')}</p>
         </div>
         <span className='self-start sm:self-auto px-2.5 py-1 rounded-lg bg-stone-50 border border-stone-200 text-xs font-mono font-semibold text-stone-700'>
-          {rows.length} Nhân sự có việc
+          {t('dashboard.team.workloadCount', { count: rows.length })}
         </span>
       </div>
 
@@ -52,13 +52,13 @@ export const WorkloadCard: React.FC<WorkloadCardProps> = ({
         <div className='border-2 border-dashed border-stone-300 rounded-xl p-6 flex flex-col items-center text-center gap-2'>
           <p className='font-semibold text-stone-900 text-xs'>
             {memberCount > 0
-              ? `Đội ngũ sẵn sàng (${memberCount} thành viên) · Chưa có phân công đang mở`
-              : 'Chưa có nhân sự được phân công vào Series'}
+              ? t('dashboard.team.workloadReady', { count: memberCount })
+              : t('dashboard.team.workloadEmpty')}
           </p>
           <p className='text-xs text-stone-600 max-w-xs'>
             {memberCount > 0
-              ? 'Giao nhiệm vụ vẽ/lên kịch bản cho nghệ sĩ để bắt đầu theo dõi khối lượng công việc.'
-              : 'Gán thành viên vào ban sản xuất để phân bổ trang và panel.'}
+              ? t('dashboard.team.workloadReadyHint')
+              : t('dashboard.team.workloadEmptyHint')}
           </p>
           {memberCount > 0 && assignChapterNumber !== null ? (
             <button
@@ -67,7 +67,7 @@ export const WorkloadCard: React.FC<WorkloadCardProps> = ({
               className='btn-cta-primary focus-ring h-9 px-3 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer'
             >
               <UserPlus className='w-3.5 h-3.5' aria-hidden='true' />
-              <span>Giao việc mới (Chương {assignChapterNumber})</span>
+              <span>{t('dashboard.team.assignNewBtn', { number: assignChapterNumber })}</span>
             </button>
           ) : (
             <button
@@ -76,7 +76,7 @@ export const WorkloadCard: React.FC<WorkloadCardProps> = ({
               className='btn-cta-secondary focus-ring h-9 px-3 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap'
             >
               <UserPlus className='w-3.5 h-3.5' aria-hidden='true' />
-              <span>Gán thành viên vào Series</span>
+              <span>{t('dashboard.team.assignMemberBtn')}</span>
             </button>
           )}
         </div>
@@ -103,14 +103,18 @@ export const WorkloadCard: React.FC<WorkloadCardProps> = ({
                 </div>
                 {w.overdue > 0 && (
                   <span className='px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-rose-50 text-rose-800 border border-rose-200 shrink-0'>
-                    {w.overdue} Quá hạn
+                    {t('dashboard.team.overdueBadge', { count: w.overdue })}
                   </span>
                 )}
               </div>
               <div className='grid grid-cols-3 gap-2 pt-2 border-t border-stone-100 text-xs font-mono text-center tabular-nums'>
-                <Counter label='Đang làm' value={w.open} tone='text-blue-800' />
-                <Counter label='Chờ duyệt' value={w.waitingReview} tone='text-amber-800' />
-                <Counter label='Hoàn thành' value={w.done} tone='text-emerald-700' />
+                <Counter label={t('dashboard.team.working')} value={w.open} tone='text-blue-800' />
+                <Counter
+                  label={t('dashboard.team.waitingReview')}
+                  value={w.waitingReview}
+                  tone='text-amber-800'
+                />
+                <Counter label={t('dashboard.team.done')} value={w.done} tone='text-emerald-700' />
               </div>
             </div>
           ))}

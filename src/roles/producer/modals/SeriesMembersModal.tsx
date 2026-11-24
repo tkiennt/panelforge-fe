@@ -75,7 +75,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 }) => {
   const confirm = useConfirm();
   const toast = useToast();
-  const { t } = useTranslation();
+  const { t: tProd, lang } = useTranslation('production');
 
   const [currentWorkspaceName, setCurrentWorkspaceName] = useState<string>(() => {
     if (workspaceName?.trim()) return workspaceName.trim();
@@ -168,7 +168,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       setCandidates(cList || []);
       setWorkspaceMembers(wsMembers || []);
     } catch (err: any) {
-      toast.error('Lỗi tải dữ liệu', err.message || 'Không thể tải danh sách nhân sự');
+      toast.error(
+        tProd('producer.seriesMembersModal.loadErrorTitle'),
+        err.message || tProd('producer.seriesMembersModal.loadErrorDesc'),
+      );
     } finally {
       setLoading(false);
     }
@@ -274,33 +277,27 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 
       setStatusAlert({
         type: 'success',
-        title: t('members.alerts.addSuccessTitle', 'Bổ sung thành viên thành công'),
-        message: t(
-          'members.alerts.addSuccessMsg',
-          { name: memberName, seriesTitle },
-          `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`,
-        ),
+        title: tProd('producer.seriesMembersModal.addSuccessTitle'),
+        message: tProd('producer.seriesMembersModal.addSuccessMsg', {
+          name: memberName,
+          seriesTitle,
+        }),
       });
 
       toast.success(
-        t('members.alerts.addSuccessTitle', 'Bổ sung thành viên thành công'),
-        t(
-          'members.alerts.addSuccessMsg',
-          { name: memberName, seriesTitle },
-          `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`,
-        ),
+        tProd('producer.seriesMembersModal.addSuccessTitle'),
+        tProd('producer.seriesMembersModal.addSuccessMsg', { name: memberName, seriesTitle }),
       );
       await loadData();
       onMembersChanged?.();
     } catch (err: any) {
-      const errorMsg =
-        err.message || t('members.alerts.addErrorTitle', 'Không thể thêm thành viên');
+      const errorMsg = err.message || tProd('producer.seriesMembersModal.addErrorTitle');
       setStatusAlert({
         type: 'danger',
-        title: t('members.alerts.addErrorTitle', 'Không thể thêm thành viên'),
+        title: tProd('producer.seriesMembersModal.addErrorTitle'),
         message: errorMsg,
       });
-      toast.error(t('members.alerts.addErrorTitle', 'Thêm thất bại'), errorMsg);
+      toast.error(tProd('producer.seriesMembersModal.addErrorTitle'), errorMsg);
     } finally {
       setActionLoadingId(null);
     }
@@ -312,33 +309,29 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
     if (isProducer) {
       setStatusAlert({
         type: 'warning',
-        title: t('members.alerts.cannotRemoveProducerTitle', 'Không thể xóa thành viên'),
-        message: t(
-          'members.alerts.cannotRemoveProducerMsg',
-          'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
-        ),
+        title: tProd('producer.seriesMembersModal.cannotRemoveProducerTitle'),
+        message: tProd('producer.seriesMembersModal.cannotRemoveProducerMsg'),
       });
       toast.warning(
-        t('members.alerts.cannotRemoveProducerTitle', 'Không thể xóa thành viên'),
-        t(
-          'members.alerts.cannotRemoveProducerMsg',
-          'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
-        ),
+        tProd('producer.seriesMembersModal.cannotRemoveProducerTitle'),
+        tProd('producer.seriesMembersModal.cannotRemoveProducerMsg'),
       );
       return;
     }
 
-    const memberName = member.fullName?.trim() || member.email?.split('@')[0] || 'nhân sự';
+    const memberName =
+      member.fullName?.trim() ||
+      member.email?.split('@')[0] ||
+      tProd('producer.seriesMembersModal.defaultMember');
 
     const confirmed = await confirm({
-      title: t('members.confirms.removeMemberTitle', 'Xóa thành viên?'),
-      description: t(
-        'members.confirms.removeMemberDesc',
-        { name: memberName, seriesTitle },
-        `Bạn có chắc muốn xóa "${memberName}" khỏi bộ truyện "${seriesTitle}"?`,
-      ),
-      confirmText: t('members.confirms.confirmRemoveBtn', 'Xóa thành viên'),
-      cancelText: t('members.confirms.cancelBtn', 'Hủy'),
+      title: tProd('producer.seriesMembersModal.removeMemberTitle'),
+      description: tProd('producer.seriesMembersModal.removeMemberDesc', {
+        name: memberName,
+        seriesTitle,
+      }),
+      confirmText: tProd('producer.seriesMembersModal.confirmRemoveBtn'),
+      cancelText: tProd('producer.seriesMembersModal.cancelBtn'),
       variant: 'danger',
     });
 
@@ -349,37 +342,29 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       await seriesService.removeSeriesMember(workspaceId, seriesId, member.userId);
       setStatusAlert({
         type: 'info',
-        title: t(
-          'members.alerts.removeSuccessTitle',
-          { seriesTitle },
-          `Đã xóa thành viên khỏi "${seriesTitle}"`,
-        ),
-        message: t(
-          'members.alerts.removeSuccessMsg',
-          { name: memberName, seriesTitle },
-          `"${memberName}" đã được xóa khỏi "${seriesTitle}".`,
-        ),
+        title: tProd('producer.seriesMembersModal.removeSuccessTitle', { seriesTitle }),
+        message: tProd('producer.seriesMembersModal.removeSuccessMsg', {
+          name: memberName,
+          seriesTitle,
+        }),
       });
       toast.success(
-        t('members.alerts.updateRoleSuccessTitle', 'Đã cập nhật danh sách'),
-        t(
-          'members.alerts.removeSuccessMsg',
-          { name: memberName, seriesTitle },
-          `"${memberName}" đã được xóa khỏi "${seriesTitle}".`,
-        ),
+        tProd('producer.seriesMembersModal.updateRoleSuccessTitle'),
+        tProd('producer.seriesMembersModal.removeSuccessMsg', {
+          name: memberName,
+          seriesTitle,
+        }),
       );
       await loadData();
       onMembersChanged?.();
     } catch (err: any) {
-      const errorMsg =
-        err.message ||
-        t('members.alerts.removeErrorTitle', 'Không thể xóa thành viên khỏi bộ truyện');
+      const errorMsg = err.message || tProd('producer.seriesMembersModal.removeErrorTitle');
       setStatusAlert({
         type: 'danger',
-        title: t('members.alerts.removeErrorTitle', 'Thao tác không thành công'),
+        title: tProd('producer.seriesMembersModal.removeErrorTitle'),
         message: errorMsg,
       });
-      toast.error(t('members.alerts.removeErrorTitle', 'Thao tác thất bại'), errorMsg);
+      toast.error(tProd('producer.seriesMembersModal.removeErrorTitle'), errorMsg);
     } finally {
       setActionLoadingId(null);
     }
@@ -392,9 +377,9 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size='full'
-      title={t('members.modal.title', 'Đội ngũ sản xuất Series')}
-      description={t('members.modal.seriesSubtitle', { seriesTitle }, `Bộ truyện: ${seriesTitle}`)}
-      closeLabel='Đóng modal'
+      title={tProd('producer.seriesMembersModal.modalTitle')}
+      description={tProd('producer.seriesMembersModal.modalSubtitle', { seriesTitle })}
+      closeLabel={tProd('producer.seriesMembersModal.closeLabel')}
     >
       <div className='u285-modal-card w-full max-w-5xl xl:max-w-6xl max-h-[88vh] shadow-2xl flex flex-col'>
         {/* Header - Chuẩn Lucian với không gian rộng rãi */}
@@ -409,15 +394,19 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                   id='series-members-modal-title'
                   className='font-display font-bold text-base text-[#171717] tracking-tight'
                 >
-                  {t('members.modal.title', 'Đội ngũ sản xuất Series')}
+                  {tProd('producer.seriesMembersModal.modalTitle')}
                 </h3>
-                <span className='u285-ct text-xs'>{seriesMembers.length} thành viên</span>
+                <span className='u285-ct text-xs'>
+                  {tProd('producer.seriesMembersModal.memberCount', {
+                    count: seriesMembers.length,
+                  })}
+                </span>
               </div>
               <p
                 id='series-members-modal-desc'
                 className='text-xs text-[#737373] leading-none mt-1 truncate max-w-xl'
               >
-                {t('members.modal.seriesSubtitle', { seriesTitle }, `Bộ truyện: ${seriesTitle}`)}
+                {tProd('producer.seriesMembersModal.modalSubtitle', { seriesTitle })}
               </p>
             </div>
           </div>
@@ -425,7 +414,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
           <button
             type='button'
             onClick={onClose}
-            aria-label='Đóng modal'
+            aria-label={tProd('producer.seriesMembersModal.closeLabel')}
             className='w-8 h-8 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
           >
             <X className='w-4.5 h-4.5' />
@@ -473,7 +462,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
               <button
                 type='button'
                 onClick={() => setStatusAlert(null)}
-                aria-label='Đóng thông báo'
+                aria-label={tProd('producer.seriesMembersModal.closeAlertLabel')}
                 className='w-6 h-6 rounded-md hover:bg-black/5 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors shrink-0'
               >
                 <X className='w-3.5 h-3.5' />
@@ -496,18 +485,17 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     </div>
                     <div>
                       <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
-                        {t('members.candidatePool.title', 'Thành viên Workspace')}
+                        {tProd('producer.seriesMembersModal.candidatePoolTitle')}
                       </h4>
                       <p className='text-[11px] text-[#737373]'>
-                        {t(
-                          'members.candidatePool.subtitle',
-                          'Chọn vai trò và thêm trực tiếp vào Series',
-                        )}
+                        {tProd('producer.seriesMembersModal.candidatePoolSubtitle')}
                       </p>
                     </div>
                   </div>
                   <span className='text-[10.5px] font-mono px-2 py-0.5 rounded-md bg-white text-[#737373] font-semibold border border-[#E7E7E7] shrink-0'>
-                    {availableWorkspaceMembers.length} người
+                    {tProd('producer.seriesMembersModal.personCount', {
+                      count: availableWorkspaceMembers.length,
+                    })}
                   </span>
                 </div>
 
@@ -516,7 +504,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                   <Search className='w-3.5 h-3.5 text-[#737373] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none' />
                   <input
                     type='text'
-                    placeholder={t('members.candidatePool.searchPlaceholder', 'Tìm thành viên...')}
+                    placeholder={tProd('producer.seriesMembersModal.candidatePoolSearch')}
                     value={candidateSearchQuery}
                     onChange={(e) => setCandidateSearchQuery(e.target.value)}
                     className='w-full h-8 pl-8 pr-7 text-xs rounded-lg border border-[#E7E7E7] bg-white text-[#171717] placeholder-[#737373] focus:outline-none focus:border-orange-500'
@@ -538,34 +526,26 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                 {loading ? (
                   <div className='py-20 text-center text-[#737373] text-xs flex flex-col items-center justify-center gap-2'>
                     <Loader2 className='w-6 h-6 animate-spin text-orange-500' />
-                    <span className='font-mono text-xs'>Đang nạp danh sách nhân sự...</span>
+                    <span className='font-mono text-xs'>
+                      {tProd('producer.seriesMembersModal.loadingCandidates')}
+                    </span>
                   </div>
                 ) : filteredCandidates.length === 0 ? (
                   <div className='py-10 px-4 text-center space-y-2 text-[#737373]'>
                     <CheckCircle2 className='w-9 h-9 text-emerald-600 mx-auto' />
                     <p className='text-xs font-semibold text-[#171717]'>
                       {candidateSearchQuery
-                        ? t(
-                            'members.candidatePool.emptySearch',
-                            'Không tìm thấy thành viên phù hợp',
-                          )
-                        : t(
-                            'members.candidatePool.emptyAllAssigned',
-                            { workspaceName: displayWsName },
-                            `Tất cả thành viên ${displayWsName} đã được gán vào Series.`,
-                          )}
+                        ? tProd('producer.seriesMembersModal.candidatePoolEmptySearch')
+                        : tProd('producer.seriesMembersModal.candidatePoolEmptyAll', {
+                            workspaceName: displayWsName,
+                          })}
                     </p>
                     <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {candidateSearchQuery
-                        ? t(
-                            'members.candidatePool.emptySearchDesc',
-                            'Hãy thử tìm với từ khóa hoặc email khác.',
-                          )
-                        : t(
-                            'members.candidatePool.emptyAllAssignedDesc',
-                            { workspaceName: displayWsName },
-                            `Mời thêm thành viên vào ${displayWsName} để mở rộng đội ngũ.`,
-                          )}
+                        ? tProd('producer.seriesMembersModal.candidatePoolEmptySearchDesc')
+                        : tProd('producer.seriesMembersModal.candidatePoolEmptyAllDesc', {
+                            workspaceName: displayWsName,
+                          })}
                     </p>
                     {workspaceId && !candidateSearchQuery && (
                       <div className='pt-2'>
@@ -575,7 +555,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                           className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-50 hover:bg-orange-50 border border-zinc-200 hover:border-orange-200 text-zinc-700 hover:text-orange-600 text-xs font-medium transition-colors cursor-pointer shadow-2xs'
                         >
                           <UserPlus className='w-3.5 h-3.5' />
-                          <span>Quản lý thành viên Workspace →</span>
+                          <span>{tProd('producer.seriesMembersModal.manageWorkspaceMembers')}</span>
                         </a>
                       </div>
                     )}
@@ -584,7 +564,9 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                   filteredCandidates.map((candidate, idx) => {
                     const avatarColor = PALETTE[idx % PALETTE.length];
                     const displayName =
-                      candidate.fullName?.trim() || candidate.email?.split('@')[0] || 'Thành viên';
+                      candidate.fullName?.trim() ||
+                      candidate.email?.split('@')[0] ||
+                      tProd('producer.seriesMembersModal.defaultMemberTitle');
                     const initialLetter = displayName.charAt(0).toUpperCase();
                     const isAdding = actionLoadingId === candidate.userId;
 
@@ -633,14 +615,16 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                             disabled={isAdding}
                             onClick={() => handleAddCandidateToSeries(candidate.userId)}
                             className='h-8 px-3.5 bg-[#171717] hover:bg-black active:scale-[0.98] disabled:bg-[#888888] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0 whitespace-nowrap'
-                            title={t('members.candidatePool.addBtn', 'Thêm thành viên')}
+                            title={tProd('producer.seriesMembersModal.candidatePoolAddBtn')}
                           >
                             {isAdding ? (
                               <Loader2 className='w-3.5 h-3.5 animate-spin' />
                             ) : (
                               <>
                                 <Plus className='w-3.5 h-3.5 text-orange-400' />
-                                <span>{t('members.candidatePool.addBtn', 'Thêm thành viên')}</span>
+                                <span>
+                                  {tProd('producer.seriesMembersModal.candidatePoolAddBtn')}
+                                </span>
                               </>
                             )}
                           </button>
@@ -663,18 +647,17 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     </div>
                     <div>
                       <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
-                        {t('members.seriesRoster.title', 'Thành viên bộ truyện')}
+                        {tProd('producer.seriesMembersModal.rosterTitle')}
                       </h4>
                       <p className='text-[11px] text-[#737373]'>
-                        {t(
-                          'members.seriesRoster.subtitle',
-                          'Đang tham gia sản xuất và phân quyền trong Series',
-                        )}
+                        {tProd('producer.seriesMembersModal.rosterSubtitle')}
                       </p>
                     </div>
                   </div>
                   <span className='text-[10.5px] font-mono px-2 py-0.5 rounded-md bg-white text-stone-800 font-bold border border-[#E7E7E7] shrink-0'>
-                    {seriesMembers.length} thành viên
+                    {tProd('producer.seriesMembersModal.memberCount', {
+                      count: seriesMembers.length,
+                    })}
                   </span>
                 </div>
 
@@ -684,7 +667,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     <Search className='w-3.5 h-3.5 text-[#737373] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none' />
                     <input
                       type='text'
-                      placeholder={t('members.seriesRoster.searchPlaceholder', 'Tìm thành viên...')}
+                      placeholder={tProd('producer.seriesMembersModal.rosterSearch')}
                       value={seriesSearchQuery}
                       onChange={(e) => setSeriesSearchQuery(e.target.value)}
                       className='w-full h-8 pl-8 pr-7 text-xs rounded-lg border border-[#E7E7E7] bg-white text-[#171717] placeholder-[#737373] focus:outline-none focus:border-orange-500'
@@ -706,7 +689,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     className='h-8 px-2.5 text-xs font-semibold rounded-lg border border-[#E7E7E7] bg-white text-[#171717] focus:outline-none focus:border-orange-500 shrink-0 w-32 cursor-pointer'
                   >
                     <option value='ALL'>
-                      {t('members.seriesRoster.allRoles', 'Tất cả vai trò')}
+                      {tProd('producer.seriesMembersModal.rosterAllRoles')}
                     </option>
                     <option value='Producer'>Producer</option>
                     {SERIES_ROLES.map((r) => (
@@ -723,26 +706,22 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                 {loading ? (
                   <div className='py-20 text-center text-[#737373] text-xs flex flex-col items-center justify-center gap-2'>
                     <Loader2 className='w-6 h-6 animate-spin text-orange-500' />
-                    <span className='font-mono text-xs'>Đang nạp thành viên series...</span>
+                    <span className='font-mono text-xs'>
+                      {tProd('producer.seriesMembersModal.loadingSeriesMembers')}
+                    </span>
                   </div>
                 ) : filteredSeriesMembers.length === 0 ? (
                   <div className='py-20 px-4 text-center space-y-2 text-[#737373]'>
                     <Users className='w-9 h-9 text-stone-300 mx-auto' />
                     <p className='text-xs font-semibold text-[#171717]'>
                       {seriesSearchQuery || filterRole !== 'ALL'
-                        ? t('members.seriesRoster.emptySearch', 'Không tìm thấy thành viên phù hợp')
-                        : t('members.seriesRoster.emptyRoster', 'Chưa có nhân sự trong Series.')}
+                        ? tProd('producer.seriesMembersModal.rosterEmptySearch')
+                        : tProd('producer.seriesMembersModal.rosterEmpty')}
                     </p>
                     <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {seriesSearchQuery || filterRole !== 'ALL'
-                        ? t(
-                            'members.seriesRoster.emptySearchDesc',
-                            'Hãy thử điều chỉnh bộ lọc tìm kiếm.',
-                          )
-                        : t(
-                            'members.seriesRoster.emptyRosterDesc',
-                            'Chọn vai trò và bấm "+ Thêm thành viên" từ danh sách bên trái.',
-                          )}
+                        ? tProd('producer.seriesMembersModal.rosterEmptySearchDesc')
+                        : tProd('producer.seriesMembersModal.rosterEmptyDesc')}
                     </p>
                   </div>
                 ) : (
@@ -764,27 +743,40 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     );
 
                     const roleConfig = isProducer
-                      ? { value: 'Producer', label: 'Producer (Sản xuất)', slug: 'producer' }
-                      : matched || {
-                          value: memberRole,
-                          label:
-                            memberRole.toLowerCase() === 'artist' ? 'Artist (Họa sĩ)' : memberRole,
-                          slug: normalizedRole.includes('writer')
-                            ? 'writer'
-                            : normalizedRole.includes('artist')
-                              ? 'artist'
-                              : normalizedRole.includes('letter')
-                                ? 'letterer'
-                                : normalizedRole.includes('edit')
-                                  ? 'editor'
-                                  : normalizedRole.includes('publish')
-                                    ? 'publisher'
-                                    : 'artist',
-                        };
+                      ? {
+                          value: 'Producer',
+                          label: tProd('producer.seriesMembersModal.roles.Producer'),
+                          slug: 'producer',
+                        }
+                      : matched
+                        ? {
+                            ...matched,
+                            label: tProd(`producer.seriesMembersModal.roles.${matched.value}`),
+                          }
+                        : {
+                            value: memberRole,
+                            label:
+                              memberRole.toLowerCase() === 'artist'
+                                ? tProd('producer.seriesMembersModal.roles.Artist')
+                                : memberRole,
+                            slug: normalizedRole.includes('writer')
+                              ? 'writer'
+                              : normalizedRole.includes('artist')
+                                ? 'artist'
+                                : normalizedRole.includes('letter')
+                                  ? 'letterer'
+                                  : normalizedRole.includes('edit')
+                                    ? 'editor'
+                                    : normalizedRole.includes('publish')
+                                      ? 'publisher'
+                                      : 'artist',
+                          };
 
                     const avatarColor = isProducer ? '#F59E0B' : PALETTE[idx % PALETTE.length];
                     const displayName =
-                      m.fullName?.trim() || m.email?.split('@')[0] || 'Thành viên';
+                      m.fullName?.trim() ||
+                      m.email?.split('@')[0] ||
+                      tProd('producer.seriesMembersModal.defaultMemberTitle');
                     const initialLetter = displayName.charAt(0).toUpperCase();
                     const isRowActionLoading = actionLoadingId === m.userId;
 
@@ -823,13 +815,13 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                 <span className='text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1 shrink-0'>
                                   <Crown className='w-2.5 h-2.5 text-amber-600' />
                                   <span>
-                                    {t('members.seriesRoster.producerAdminTag', 'Quản trị')}
+                                    {tProd('producer.seriesMembersModal.producerAdminTag')}
                                   </span>
                                 </span>
                               )}
                               {m.joinedAt && (
                                 <span className='text-[10.5px] font-mono text-[#737373] hidden sm:inline'>
-                                  • {new Date(m.joinedAt).toLocaleDateString('vi-VN')}
+                                  • {new Date(m.joinedAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'vi-VN')}
                                 </span>
                               )}
                             </div>
@@ -857,10 +849,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                             {isProducer ? (
                               <span
                                 className='w-7 h-7 rounded-lg flex items-center justify-center text-amber-600'
-                                title={t(
-                                  'members.seriesRoster.producerLockTooltip',
-                                  'Producer là thành viên quản trị mặc định (không thể sửa hoặc xóa)',
-                                )}
+                                title={tProd('producer.seriesMembersModal.producerLockTooltip')}
                               >
                                 <Lock className='w-3.5 h-3.5 opacity-60' />
                               </span>
@@ -871,10 +860,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                   disabled={isRowActionLoading}
                                   onClick={() => handleRemoveMember(m)}
                                   className='w-7 h-7 rounded-lg text-[#737373] hover:text-[#DC2626] hover:bg-[#FEE2E2]/60 border border-transparent hover:border-[#FECACA] flex items-center justify-center transition-all cursor-pointer'
-                                  title={t(
-                                    'members.seriesRoster.removeMemberTooltip',
-                                    'Xóa thành viên',
-                                  )}
+                                  title={tProd('producer.seriesMembersModal.removeMemberTooltip')}
                                 >
                                   <Trash2 className='w-3.5 h-3.5' />
                                 </button>
@@ -896,14 +882,9 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
           <div className='flex items-center gap-2 text-xs text-[#737373]'>
             <span className='w-2 h-2 rounded-full bg-emerald-500 shrink-0 inline-block' />
             <span className='font-mono'>
-              {t(
-                'members.footer.status',
-                {
-                  seriesCount: seriesMembers.length,
-                  availableCount: availableWorkspaceMembers.length,
-                },
-                `Đang tham gia: ${seriesMembers.length}`,
-              )}
+              {tProd('producer.seriesMembersModal.footerStatus', {
+                seriesCount: seriesMembers.length,
+              })}
             </span>
           </div>
           <button
@@ -911,7 +892,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
             onClick={onClose}
             className='px-4 py-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F3F1EB] active:scale-[0.98] border border-[#E7E7E7] text-[#171717] text-xs font-bold transition-all cursor-pointer shadow-2xs'
           >
-            {t('members.footer.close', 'Đóng')}
+            {tProd('producer.seriesMembersModal.footerClose')}
           </button>
         </div>
       </div>

@@ -12,6 +12,7 @@ import {
   UploadCloud,
 } from 'lucide-react';
 import { PageContainer } from '@/shared/components/PageContainer';
+import { useTranslation } from '@/lib/i18n';
 import { notificationService } from '@/services/notification.service';
 import type { ChapterProgressDto } from '@/services/series.service';
 import { MangaProject, AssistantRosterItem, ProvenanceLogItem } from '@/types';
@@ -60,6 +61,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   activeProject,
   onShowToast = noopToast,
 }) => {
+  const { t } = useTranslation('production');
   const navigate = useNavigate();
   const { workspaceId, seriesId: routeSeriesId } = useParams<{
     workspaceId: string;
@@ -90,7 +92,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   }, [isProducer, activeTab]);
 
-  const seriesTitle = seriesDetail?.title || activeProject?.title || 'Bộ truyện';
+  const seriesTitle =
+    seriesDetail?.title || activeProject?.title || t('dashboard.view.defaultSeriesTitle');
   const canRoute = !!(workspaceId && seriesId);
 
   const showSection = (...tabs: DashboardTab[]) => {
@@ -117,13 +120,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     try {
       const res = await notificationService.sendReminders();
       onShowToast(
-        'Thông báo nhắc hạn',
+        t('dashboard.view.remindersToastTitle'),
         res.created > 0
-          ? `Đã gửi ${res.created} thông báo nhắc hạn cho các công việc & yêu cầu sửa quá hạn.`
-          : 'Người phụ trách các mục quá hạn đều đã được nhắc gần đây, không gửi thêm.',
+          ? t('dashboard.view.remindersToastSent', { count: res.created })
+          : t('dashboard.view.remindersToastNone'),
       );
     } catch {
-      onShowToast('Gửi nhắc hạn thất bại', 'Máy chủ không nhận yêu cầu nhắc hạn. Hãy thử lại sau.');
+      onShowToast(
+        t('dashboard.view.remindersToastErrorTitle'),
+        t('dashboard.view.remindersToastErrorDesc'),
+      );
     } finally {
       setSendingReminders(false);
     }
@@ -139,16 +145,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             data-testid='back-to-studio-hub-btn'
             onClick={() => navigate(`/workspaces/${workspaceId}`)}
             className='inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-200/80 hover:border-orange-300 text-stone-700 hover:text-stone-900 text-xs font-semibold shadow-2xs transition-all cursor-pointer'
-            title='Quay lại Sảnh Studio Hub (Cấp 1)'
+            title={t('dashboard.view.backToStudioHubTooltip')}
           >
             <ArrowLeft className='w-3.5 h-3.5 text-orange-600' />
-            <span>Về Sảnh Studio</span>
+            <span>{t('dashboard.view.backToStudioHub')}</span>
           </button>
         )}
 
         <div className='flex items-center gap-2 text-xs ml-auto'>
           <span className='text-stone-500 font-medium hidden sm:inline'>
-            Quyền hạn bàn làm việc:
+            {t('dashboard.view.workspaceRoleLabel')}
           </span>
           <span
             className={`px-2.5 py-0.5 rounded-full font-bold font-mono text-[11px] uppercase border ${
@@ -160,9 +166,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             }`}
           >
             {isProducer
-              ? 'PRODUCER // TOÀN QUYỀN ĐIỀU PHỐI'
+              ? t('dashboard.view.roleBadgeProducer')
               : isEditor
-                ? 'EDITOR // THẨM ĐỊNH & KIỂM SOÁT'
+                ? t('dashboard.view.roleBadgeEditor')
                 : (workspaceRole ?? 'MEMBER')}
           </span>
         </div>
@@ -183,8 +189,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             d ? { ...d, [kind === 'avatar' ? 'avatarUrl' : 'bannerUrl']: url } : d,
           );
           onShowToast(
-            'Đã lưu ảnh',
-            kind === 'avatar' ? 'Avatar Series đã cập nhật.' : 'Banner Series đã cập nhật.',
+            t('dashboard.identity.imageSavedTitle'),
+            kind === 'avatar'
+              ? t('dashboard.identity.avatarSavedDesc')
+              : t('dashboard.identity.bannerSavedDesc'),
           );
         }}
         onOpenChapters={() => setIsChapterModalOpen(true)}
@@ -206,7 +214,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => void dashboard.fetchProgress()}
             className='btn-cta-danger focus-ring min-h-9 px-3 text-xs font-semibold cursor-pointer'
           >
-            Thử lại
+            {t('dashboard.kpi.retry')}
           </button>
         </div>
       )}
@@ -265,12 +273,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className='flex items-center gap-2'>
                 <FileText className='w-5 h-5 text-orange-600' />
                 <h3 className='font-serif text-lg font-bold text-stone-900'>
-                  Kịch bản & Góp ý Biên tập
+                  {t('dashboard.view.scriptTitle')}
                 </h3>
               </div>
-              <p className='text-xs text-stone-500 mt-1'>
-                Soạn thảo kịch bản phân cảnh, soát thoại và kiểm duyệt trước khi đưa vào khâu vẽ.
-              </p>
+              <p className='text-xs text-stone-500 mt-1'>{t('dashboard.view.scriptDesc')}</p>
             </div>
             {canRoute && (
               <div className='flex items-center gap-2'>
@@ -286,7 +292,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   className='btn-cta-primary focus-ring min-h-9 px-4 text-xs font-semibold inline-flex items-center gap-1.5 rounded-xl cursor-pointer'
                 >
                   <FileText className='w-3.5 h-3.5' />
-                  <span>Mở Soạn thảo Kịch bản</span>
+                  <span>{t('dashboard.view.openScriptEditor')}</span>
                 </button>
                 <button
                   type='button'
@@ -302,7 +308,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   className='focus-ring min-h-9 px-3.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-200'
                 >
                   <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                  <span>Duyệt Kịch bản</span>
+                  <span>{t('dashboard.view.reviewScript')}</span>
                 </button>
               </div>
             )}
@@ -316,17 +322,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               >
                 <div className='flex items-center justify-between'>
                   <span className='font-mono font-bold text-xs text-stone-500'>
-                    Chương {ch.chapterNumber}
+                    {t('dashboard.view.chapterNumber', { number: ch.chapterNumber })}
                   </span>
                   <span className='px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 text-[11px] font-semibold border border-stone-200'>
-                    {ch.status || 'Kịch bản'}
+                    {ch.status || t('dashboard.view.statusScriptFallback')}
                   </span>
                 </div>
                 <h4 className='text-sm font-bold text-stone-900 truncate'>
-                  {ch.title || `Chương ${ch.chapterNumber}`}
+                  {ch.title || t('dashboard.view.chapterNumber', { number: ch.chapterNumber })}
                 </h4>
                 <div className='text-xs text-stone-500 flex items-center justify-between pt-1'>
-                  <span>{ch.panelCount ?? 0} khung tranh</span>
+                  <span>{t('dashboard.view.panelsCount', { count: ch.panelCount ?? 0 })}</span>
                   <button
                     type='button'
                     onClick={() =>
@@ -336,7 +342,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     }
                     className='text-orange-600 hover:text-orange-700 font-semibold text-xs flex items-center gap-1 cursor-pointer'
                   >
-                    <span>Chi tiết</span>
+                    <span>{t('dashboard.view.detailsBtn')}</span>
                     <ArrowRight className='w-3 h-3' />
                   </button>
                 </div>
@@ -354,12 +360,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className='flex items-center gap-2'>
                 <Eye className='w-5 h-5 text-sky-600' />
                 <h3 className='font-serif text-lg font-bold text-stone-900'>
-                  Đọc thử & Soát tranh Bản thảo
+                  {t('dashboard.view.readerTitle')}
                 </h3>
               </div>
-              <p className='text-xs text-stone-500 mt-1'>
-                Kiểm tra bản vẽ, đối chiếu lời thoại và thẩm định chất lượng từng trang tranh.
-              </p>
+              <p className='text-xs text-stone-500 mt-1'>{t('dashboard.view.readerDesc')}</p>
             </div>
             {canRoute && (
               <div className='flex items-center gap-2'>
@@ -375,7 +379,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   className='btn-cta-primary focus-ring min-h-9 px-4 text-xs font-semibold inline-flex items-center gap-1.5 rounded-xl cursor-pointer'
                 >
                   <Eye className='w-3.5 h-3.5' />
-                  <span>Vào Bàn duyệt Thẩm định</span>
+                  <span>{t('dashboard.view.openEditorDesk')}</span>
                 </button>
                 <button
                   type='button'
@@ -388,7 +392,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   }
                   className='focus-ring min-h-9 px-3.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-200'
                 >
-                  <span>Mở Bàn vẽ & Khung tranh</span>
+                  <span>{t('dashboard.view.openArtistDesk')}</span>
                 </button>
               </div>
             )}
@@ -402,18 +406,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               >
                 <div className='flex items-center justify-between'>
                   <span className='font-mono font-bold text-xs text-stone-500'>
-                    Chương {ch.chapterNumber}
+                    {t('dashboard.view.chapterNumber', { number: ch.chapterNumber })}
                   </span>
                   <span className='text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200'>
                     {ch.percentComplete?.toFixed(0) ?? 0}%
                   </span>
                 </div>
                 <h4 className='text-sm font-bold text-stone-900 truncate'>
-                  {ch.title || `Chương ${ch.chapterNumber}`}
+                  {ch.title || t('dashboard.view.chapterNumber', { number: ch.chapterNumber })}
                 </h4>
                 <div className='text-xs text-stone-500 flex items-center justify-between'>
                   <span>
-                    {ch.pageCount ?? 0} trang · {ch.panelCount ?? 0} khung
+                    {t('dashboard.view.pagesAndFrames', {
+                      pages: ch.pageCount ?? 0,
+                      panels: ch.panelCount ?? 0,
+                    })}
                   </span>
                   <button
                     type='button'
@@ -424,7 +431,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     }
                     className='text-sky-600 hover:text-sky-700 font-semibold text-xs flex items-center gap-1 cursor-pointer'
                   >
-                    <span>Soát trang</span>
+                    <span>{t('dashboard.view.proofPageBtn')}</span>
                     <ArrowRight className='w-3 h-3' />
                   </button>
                 </div>
@@ -442,13 +449,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className='flex items-center gap-2'>
                 <UploadCloud className='w-5 h-5 text-purple-600' />
                 <h3 className='font-serif text-lg font-bold text-stone-900'>
-                  Đóng gói Bản thảo & Bàn giao Xuất bản
+                  {t('dashboard.view.handoffTitle')}
                 </h3>
               </div>
-              <p className='text-xs text-stone-500 mt-1'>
-                Xuất file PDF/X-1a, Greyscale K-100%, kiểm soát trame và thông số kỹ thuật in ấn
-                tiêu chuẩn.
-              </p>
+              <p className='text-xs text-stone-500 mt-1'>{t('dashboard.view.handoffDesc')}</p>
             </div>
             {canRoute && (
               <button
@@ -457,28 +461,41 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 className='btn-cta-primary focus-ring min-h-9 px-4 text-xs font-semibold inline-flex items-center gap-1.5 rounded-xl cursor-pointer'
               >
                 <UploadCloud className='w-3.5 h-3.5' />
-                <span>Mở Bàn giao Xuất bản</span>
+                <span>{t('dashboard.view.openExportBtn')}</span>
               </button>
             )}
           </div>
 
           <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-1.5'>
-              <span className='text-xs text-stone-500 font-medium'>Định dạng xuất bản</span>
-              <p className='text-sm font-bold text-stone-900'>PDF/X-1a tiêu chuẩn Shonen</p>
-              <p className='text-[11px] text-stone-500'>Độ phân giải 600 DPI, Trame 60 LPI</p>
-            </div>
-            <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-1.5'>
-              <span className='text-xs text-stone-500 font-medium'>Bảo mật bản quyền</span>
-              <p className='text-sm font-bold text-stone-900'>Đóng dấu chìm biên tập</p>
-              <p className='text-[11px] text-stone-500'>Tự động định danh mã biên tập viên</p>
-            </div>
-            <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-1.5'>
-              <span className='text-xs text-stone-500 font-medium'>Chương đã sẵn sàng</span>
-              <p className='text-sm font-bold text-emerald-700'>
-                {chapters.filter((c) => c.percentComplete >= 100).length} / {chapters.length} chương
+              <span className='text-xs text-stone-500 font-medium'>
+                {t('dashboard.view.publishFormatLabel')}
+              </span>
+              <p className='text-sm font-bold text-stone-900'>
+                {t('dashboard.view.publishFormatValue')}
               </p>
-              <p className='text-[11px] text-stone-500'>Đạt chuẩn chất lượng xuất bản</p>
+              <p className='text-[11px] text-stone-500'>{t('dashboard.view.publishFormatSub')}</p>
+            </div>
+            <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-1.5'>
+              <span className='text-xs text-stone-500 font-medium'>
+                {t('dashboard.view.copyrightLabel')}
+              </span>
+              <p className='text-sm font-bold text-stone-900'>
+                {t('dashboard.view.copyrightValue')}
+              </p>
+              <p className='text-[11px] text-stone-500'>{t('dashboard.view.copyrightSub')}</p>
+            </div>
+            <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-1.5'>
+              <span className='text-xs text-stone-500 font-medium'>
+                {t('dashboard.view.readyChaptersLabel')}
+              </span>
+              <p className='text-sm font-bold text-emerald-700'>
+                {t('dashboard.view.readyChaptersCount', {
+                  ready: chapters.filter((c) => c.percentComplete >= 100).length,
+                  total: chapters.length,
+                })}
+              </p>
+              <p className='text-[11px] text-stone-500'>{t('dashboard.view.readyChaptersSub')}</p>
             </div>
           </div>
         </div>
@@ -492,13 +509,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className='flex items-center gap-2'>
                 <BookMarked className='w-5 h-5 text-indigo-600' />
                 <h3 className='font-serif text-lg font-bold text-stone-900'>
-                  Hồ sơ Thiết kế & Model Sheets (Series Bible)
+                  {t('dashboard.view.bibleTitle')}
                 </h3>
               </div>
-              <p className='text-xs text-stone-500 mt-1'>
-                Kho quy chuẩn tạo hình nhân vật, bối cảnh địa điểm, đạo cụ và quy tắc tính nhất
-                quán.
-              </p>
+              <p className='text-xs text-stone-500 mt-1'>{t('dashboard.view.bibleDesc')}</p>
             </div>
             {canRoute && (
               <button
@@ -507,31 +521,45 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 className='btn-cta-primary focus-ring min-h-9 px-4 text-xs font-semibold inline-flex items-center gap-1.5 rounded-xl cursor-pointer'
               >
                 <BookMarked className='w-3.5 h-3.5' />
-                <span>Mở Series Bible Toàn diện</span>
+                <span>{t('dashboard.view.openBibleBtn')}</span>
               </button>
             )}
           </div>
 
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 text-center space-y-1'>
-              <span className='text-xs text-stone-500 font-semibold'>Nhân vật</span>
+              <span className='text-xs text-stone-500 font-semibold'>
+                {t('dashboard.view.bibleCharacters')}
+              </span>
               <p className='text-xl font-mono font-bold text-stone-900'>Model Sheets</p>
-              <p className='text-[11px] text-stone-500'>Đã chuẩn hóa biểu cảm & phục trang</p>
+              <p className='text-[11px] text-stone-500'>{t('dashboard.view.bibleCharactersSub')}</p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 text-center space-y-1'>
-              <span className='text-xs text-stone-500 font-semibold'>Địa điểm</span>
-              <p className='text-xl font-mono font-bold text-stone-900'>Bối cảnh 3D/2D</p>
-              <p className='text-[11px] text-stone-500'>Phối cảnh & màu nền</p>
+              <span className='text-xs text-stone-500 font-semibold'>
+                {t('dashboard.view.bibleLocations')}
+              </span>
+              <p className='text-xl font-mono font-bold text-stone-900'>
+                {t('dashboard.view.bibleLocationsValue')}
+              </p>
+              <p className='text-[11px] text-stone-500'>{t('dashboard.view.bibleLocationsSub')}</p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 text-center space-y-1'>
-              <span className='text-xs text-stone-500 font-semibold'>Đạo cụ</span>
-              <p className='text-xl font-mono font-bold text-stone-900'>Vũ khí & Xe cộ</p>
-              <p className='text-[11px] text-stone-500'>Quy chuẩn kích thước & góc vẽ</p>
+              <span className='text-xs text-stone-500 font-semibold'>
+                {t('dashboard.view.bibleProps')}
+              </span>
+              <p className='text-xl font-mono font-bold text-stone-900'>
+                {t('dashboard.view.biblePropsValue')}
+              </p>
+              <p className='text-[11px] text-stone-500'>{t('dashboard.view.biblePropsSub')}</p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50/50 text-center space-y-1'>
-              <span className='text-xs text-stone-500 font-semibold'>Quy tắc Lore</span>
-              <p className='text-xl font-mono font-bold text-stone-900'>Tính nhất quán</p>
-              <p className='text-[11px] text-stone-500'>AI tự động kiểm soát sai lệch</p>
+              <span className='text-xs text-stone-500 font-semibold'>
+                {t('dashboard.view.bibleLore')}
+              </span>
+              <p className='text-xl font-mono font-bold text-stone-900'>
+                {t('dashboard.view.bibleLoreValue')}
+              </p>
+              <p className='text-[11px] text-stone-500'>{t('dashboard.view.bibleLoreSub')}</p>
             </div>
           </div>
         </div>
@@ -545,12 +573,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className='flex items-center gap-2'>
                 <DollarSign className='w-5 h-5 text-emerald-600' />
                 <h3 className='font-serif text-lg font-bold text-stone-900'>
-                  Doanh thu & Thống kê Độc giả (Producer)
+                  {t('dashboard.view.revenueTitle')}
                 </h3>
               </div>
-              <p className='text-xs text-stone-500 mt-1'>
-                Dữ liệu phát hành ấn bản và phân phối số, doanh số VietQR và chỉ số đọc truyện.
-              </p>
+              <p className='text-xs text-stone-500 mt-1'>{t('dashboard.view.revenueDesc')}</p>
             </div>
             {canRoute && (
               <button
@@ -559,28 +585,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 className='btn-cta-primary focus-ring min-h-9 px-4 text-xs font-semibold inline-flex items-center gap-1.5 rounded-xl cursor-pointer'
               >
                 <DollarSign className='w-3.5 h-3.5' />
-                <span>Chi tiết Doanh thu & Cổng VietQR</span>
+                <span>{t('dashboard.view.revenueDetailBtn')}</span>
               </button>
             )}
           </div>
 
           <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
             <div className='p-4 rounded-xl border border-stone-200 bg-emerald-50/50 space-y-1'>
-              <span className='text-xs font-semibold text-emerald-800'>Doanh số ấn phẩm</span>
+              <span className='text-xs font-semibold text-emerald-800'>
+                {t('dashboard.view.printSalesLabel')}
+              </span>
               <p className='text-2xl font-mono font-bold text-stone-900'>Tankōbon Vol. 1-2</p>
-              <p className='text-[11px] text-emerald-700 font-medium'>Đã phát hành toàn quốc</p>
+              <p className='text-[11px] text-emerald-700 font-medium'>
+                {t('dashboard.view.printSalesSub')}
+              </p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-sky-50/50 space-y-1'>
-              <span className='text-xs font-semibold text-sky-800'>Kênh phát hành số</span>
-              <p className='text-2xl font-mono font-bold text-stone-900'>Bản quyền số</p>
+              <span className='text-xs font-semibold text-sky-800'>
+                {t('dashboard.view.digitalChannelLabel')}
+              </span>
+              <p className='text-2xl font-mono font-bold text-stone-900'>
+                {t('dashboard.view.digitalChannelValue')}
+              </p>
               <p className='text-[11px] text-sky-700 font-medium'>
-                Hỗ trợ thanh toán VietQR theo chương
+                {t('dashboard.view.digitalChannelSub')}
               </p>
             </div>
             <div className='p-4 rounded-xl border border-stone-200 bg-stone-50 space-y-1'>
-              <span className='text-xs font-semibold text-stone-600'>Tình trạng thanh toán</span>
-              <p className='text-2xl font-mono font-bold text-stone-900'>Tự động đối soát</p>
-              <p className='text-[11px] text-stone-500'>Đồng bộ cùng Publisher Desk</p>
+              <span className='text-xs font-semibold text-stone-600'>
+                {t('dashboard.view.paymentStatusLabel')}
+              </span>
+              <p className='text-2xl font-mono font-bold text-stone-900'>
+                {t('dashboard.view.paymentStatusValue')}
+              </p>
+              <p className='text-[11px] text-stone-500'>{t('dashboard.view.paymentStatusSub')}</p>
             </div>
           </div>
         </div>
@@ -589,7 +627,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* 8. CREW & ASSIGNMENTS (PRODUCER ONLY) */}
       {isProducer && showSection('team') && (
         <section
-          aria-label='Đội ngũ và rủi ro'
+          aria-label={t('dashboard.view.teamAndRiskAria')}
           className='grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch'
         >
           {seriesId && (

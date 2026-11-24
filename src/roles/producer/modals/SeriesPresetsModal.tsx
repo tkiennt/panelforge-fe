@@ -28,6 +28,7 @@ import {
 } from '@/services/series.service';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 interface SeriesPresetsModalProps {
   isOpen: boolean;
@@ -59,6 +60,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
   onClose,
   onShowToast,
 }) => {
+  const { t } = useTranslation('production');
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'typography' | 'consistency'>('typography');
 
@@ -106,11 +108,11 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
       const data = await seriesService.getTypographyPresets(seriesId);
       setPresets(data || []);
     } catch (err: any) {
-      setError(err.message || 'Không thể tải Typography Presets.');
+      setError(err.message || t('producer.seriesPresetsModal.loadPresetsError'));
     } finally {
       setLoadingPresets(false);
     }
-  }, [seriesId]);
+  }, [seriesId, t]);
 
   // Fetch Consistency Rules
   const fetchRules = useCallback(async () => {
@@ -121,11 +123,11 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
       const data = await seriesService.getConsistencyRules(seriesId);
       setRules(data || []);
     } catch (err: any) {
-      setError(err.message || 'Không thể tải Consistency Rules.');
+      setError(err.message || t('producer.seriesPresetsModal.loadRulesError'));
     } finally {
       setLoadingRules(false);
     }
-  }, [seriesId]);
+  }, [seriesId, t]);
 
   useEffect(() => {
     if (isOpen) {
@@ -157,10 +159,16 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
 
       if (editingPreset) {
         await seriesService.updateTypographyPreset(seriesId, editingPreset.id, payload);
-        onShowToast?.('Cập nhật Preset thành công', `Đã cập nhật preset "${payload.name}".`);
+        onShowToast?.(
+          t('producer.seriesPresetsModal.presetUpdatedTitle'),
+          t('producer.seriesPresetsModal.presetUpdatedDesc', { name: payload.name }),
+        );
       } else {
         await seriesService.createTypographyPreset(seriesId, payload);
-        onShowToast?.('Tạo Preset thành công', `Đã tạo preset typography "${payload.name}".`);
+        onShowToast?.(
+          t('producer.seriesPresetsModal.presetCreatedTitle'),
+          t('producer.seriesPresetsModal.presetCreatedDesc', { name: payload.name }),
+        );
       }
 
       setShowAddPreset(false);
@@ -168,7 +176,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
       resetPresetForm();
       await fetchPresets();
     } catch (err: any) {
-      onShowToast?.('Lỗi Preset', err.message);
+      onShowToast?.(t('producer.seriesPresetsModal.presetErrorTitle'), err.message);
     } finally {
       setActionLoading(false);
     }
@@ -192,10 +200,10 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
   const handleDeletePreset = async (p: TypographyPresetDto) => {
     if (
       !(await confirm({
-        title: `Xóa Typography Preset "${p.name}"?`,
-        description: 'Các bóng thoại đang sử dụng preset này sẽ quay về kiểu mặc định.',
-        confirmText: 'Xóa preset',
-        cancelText: 'Giữ lại',
+        title: t('producer.seriesPresetsModal.deletePresetTitle', { name: p.name }),
+        description: t('producer.seriesPresetsModal.deletePresetDesc'),
+        confirmText: t('producer.seriesPresetsModal.deletePresetConfirm'),
+        cancelText: t('producer.seriesPresetsModal.keepBtn'),
         variant: 'danger',
       }))
     )
@@ -203,10 +211,13 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
     setActionLoading(true);
     try {
       await seriesService.deleteTypographyPreset(seriesId, p.id);
-      onShowToast?.('Đã xóa', `Đã xóa typography preset "${p.name}".`);
+      onShowToast?.(
+        t('producer.seriesPresetsModal.deletedTitle'),
+        t('producer.seriesPresetsModal.deletedPresetDesc', { name: p.name }),
+      );
       await fetchPresets();
     } catch (err: any) {
-      onShowToast?.('Lỗi xóa', err.message);
+      onShowToast?.(t('producer.seriesPresetsModal.deleteErrorTitle'), err.message);
     } finally {
       setActionLoading(false);
     }
@@ -242,10 +253,16 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
 
       if (editingRule) {
         await seriesService.updateConsistencyRule(seriesId, editingRule.id, payload);
-        onShowToast?.('Cập nhật Rule thành công', `Đã cập nhật quy tắc "${payload.name}".`);
+        onShowToast?.(
+          t('producer.seriesPresetsModal.ruleUpdatedTitle'),
+          t('producer.seriesPresetsModal.ruleUpdatedDesc', { name: payload.name }),
+        );
       } else {
         await seriesService.createConsistencyRule(seriesId, payload);
-        onShowToast?.('Tạo Rule thành công', `Đã tạo quy tắc kiểm tra "${payload.name}".`);
+        onShowToast?.(
+          t('producer.seriesPresetsModal.ruleCreatedTitle'),
+          t('producer.seriesPresetsModal.ruleCreatedDesc', { name: payload.name }),
+        );
       }
 
       setShowAddRule(false);
@@ -253,7 +270,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
       resetRuleForm();
       await fetchRules();
     } catch (err: any) {
-      onShowToast?.('Lỗi Rule', err.message);
+      onShowToast?.(t('producer.seriesPresetsModal.ruleErrorTitle'), err.message);
     } finally {
       setActionLoading(false);
     }
@@ -271,7 +288,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
       });
       await fetchRules();
     } catch (err: any) {
-      onShowToast?.('Lỗi', err.message);
+      onShowToast?.(t('producer.seriesPresetsModal.genericErrorTitle'), err.message);
     }
   };
 
@@ -289,10 +306,10 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
   const handleDeleteRule = async (r: ConsistencyRuleDto) => {
     if (
       !(await confirm({
-        title: `Xóa quy tắc "${r.name}"?`,
-        description: 'Quy tắc kiểm tra tính nhất quán này sẽ bị loại bỏ khỏi dự án.',
-        confirmText: 'Xóa quy tắc',
-        cancelText: 'Giữ lại',
+        title: t('producer.seriesPresetsModal.deleteRuleTitle', { name: r.name }),
+        description: t('producer.seriesPresetsModal.deleteRuleDesc'),
+        confirmText: t('producer.seriesPresetsModal.deleteRuleConfirm'),
+        cancelText: t('producer.seriesPresetsModal.keepBtn'),
         variant: 'danger',
       }))
     )
@@ -300,10 +317,13 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
     setActionLoading(true);
     try {
       await seriesService.deleteConsistencyRule(seriesId, r.id);
-      onShowToast?.('Đã xóa', `Đã xóa quy tắc "${r.name}".`);
+      onShowToast?.(
+        t('producer.seriesPresetsModal.deletedTitle'),
+        t('producer.seriesPresetsModal.deletedRuleDesc', { name: r.name }),
+      );
       await fetchRules();
     } catch (err: any) {
-      onShowToast?.('Lỗi xóa', err.message);
+      onShowToast?.(t('producer.seriesPresetsModal.deleteErrorTitle'), err.message);
     } finally {
       setActionLoading(false);
     }
@@ -323,8 +343,8 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size='lg'
-      title={`Cấu Hình Presets & Rules: ${seriesTitle}`}
-      closeLabel='Đóng modal'
+      title={t('producer.seriesPresetsModal.modalTitle', { seriesTitle })}
+      closeLabel={t('producer.seriesPresetsModal.closeLabel')}
     >
       <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
         {/* Header */}
@@ -343,7 +363,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                 </span>
               </div>
               <h2 className='text-base font-bold text-[#171717] mt-0.5'>
-                Cấu Hình Presets &amp; Rules: {seriesTitle}
+                {t('producer.seriesPresetsModal.modalTitle', { seriesTitle })}
               </h2>
             </div>
           </div>
@@ -395,10 +415,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
           {activeTab === 'typography' && (
             <div className='space-y-4'>
               <div className='flex items-center justify-between'>
-                <p className='text-[#737373]'>
-                  Định nghĩa các mẫu kiểu chữ thoại (Font, Size, Style) để Letterer áp dụng nhanh
-                  vào các bóng thoại (UC-08).
-                </p>
+                <p className='text-[#737373]'>{t('producer.seriesPresetsModal.typographyDesc')}</p>
                 <button
                   onClick={() => {
                     resetPresetForm();
@@ -408,7 +425,11 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                   className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs cursor-pointer'
                 >
                   <Plus className='w-3.5 h-3.5' />
-                  <span>{showAddPreset ? 'Đóng' : 'Thêm Typography Preset'}</span>
+                  <span>
+                    {showAddPreset
+                      ? t('producer.seriesPresetsModal.closeBtn')
+                      : t('producer.seriesPresetsModal.addPresetBtn')}
+                  </span>
                 </button>
               </div>
 
@@ -422,20 +443,22 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                     <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
                     <span>
                       {editingPreset
-                        ? `Sửa Preset: ${editingPreset.name}`
-                        : 'Tạo Preset Typography Mới'}
+                        ? t('producer.seriesPresetsModal.editPresetHeading', {
+                            name: editingPreset.name,
+                          })
+                        : t('producer.seriesPresetsModal.createPresetHeading')}
                     </span>
                   </div>
 
                   <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Tên Preset *
+                        {t('producer.seriesPresetsModal.presetNameLabel')}
                       </label>
                       <input
                         type='text'
                         required
-                        placeholder='Ví dụ: Thoại Chuẩn, Hét Lớn'
+                        placeholder={t('producer.seriesPresetsModal.presetNamePlaceholder')}
                         value={presetName}
                         onChange={(e) => setPresetName(e.target.value)}
                         className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
@@ -459,7 +482,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
 
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Mục đích sử dụng (Usage)
+                        {t('producer.seriesPresetsModal.usageTypeLabel')}
                       </label>
                       <select
                         value={usageType}
@@ -475,7 +498,9 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                     </div>
 
                     <div>
-                      <label className='block font-semibold text-[#171717] mb-1'>Cỡ chữ (px)</label>
+                      <label className='block font-semibold text-[#171717] mb-1'>
+                        {t('producer.seriesPresetsModal.fontSizeLabel')}
+                      </label>
                       <input
                         type='number'
                         min={8}
@@ -488,7 +513,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
 
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Độ dày (Weight)
+                        {t('producer.seriesPresetsModal.fontWeightLabel')}
                       </label>
                       <select
                         value={fontWeight}
@@ -504,16 +529,16 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
 
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Căn lề (Align)
+                        {t('producer.seriesPresetsModal.textAlignLabel')}
                       </label>
                       <select
                         value={textAlign}
                         onChange={(e) => setTextAlign(e.target.value)}
                         className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                       >
-                        <option value='Center'>Center (Giữa)</option>
-                        <option value='Left'>Left (Trái)</option>
-                        <option value='Right'>Right (Phải)</option>
+                        <option value='Center'>{t('producer.seriesPresetsModal.alignCenter')}</option>
+                        <option value='Left'>{t('producer.seriesPresetsModal.alignLeft')}</option>
+                        <option value='Right'>{t('producer.seriesPresetsModal.alignRight')}</option>
                       </select>
                     </div>
                   </div>
@@ -530,13 +555,15 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                       htmlFor='isDefaultCheck'
                       className='text-xs text-[#171717] cursor-pointer'
                     >
-                      Đặt làm kiểu chữ mặc định cho Series này
+                      {t('producer.seriesPresetsModal.isDefaultLabel')}
                     </label>
                   </div>
 
                   {/* Live Preview Box */}
                   <div className='p-3 bg-white border border-[#E7E7E7] rounded-lg space-y-1 text-center'>
-                    <span className='text-[10px] text-[#888888] font-mono'>Xem trước mẫu chữ:</span>
+                    <span className='text-[10px] text-[#888888] font-mono'>
+                      {t('producer.seriesPresetsModal.previewLabel')}
+                    </span>
                     <div
                       style={{
                         fontFamily,
@@ -547,7 +574,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                       }}
                       className='text-[#171717] truncate'
                     >
-                      Tôi sẽ trở thành thợ săn mạnh nhất thế giới!
+                      {t('producer.seriesPresetsModal.previewSampleText')}
                     </div>
                   </div>
 
@@ -557,7 +584,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                       onClick={() => setShowAddPreset(false)}
                       className='px-3 py-1 rounded-lg border border-[#E7E7E7] bg-white text-[#555555]'
                     >
-                      Hủy
+                      {t('producer.seriesPresetsModal.cancelBtn')}
                     </button>
                     <button
                       type='submit'
@@ -569,7 +596,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                       ) : (
                         <Save className='w-3 h-3' />
                       )}
-                      <span>Lưu Preset</span>
+                      <span>{t('producer.seriesPresetsModal.savePresetBtn')}</span>
                     </button>
                   </div>
                 </form>
@@ -579,11 +606,11 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
               {loadingPresets ? (
                 <div className='py-8 text-center text-[#888888]'>
                   <Loader2 className='w-5 h-5 animate-spin mx-auto mb-1 text-[#F97316]' />
-                  <span>Đang tải danh sách Typography Presets...</span>
+                  <span>{t('producer.seriesPresetsModal.loadingPresets')}</span>
                 </div>
               ) : presets.length === 0 ? (
                 <div className='py-8 text-center bg-[#FAF8F5] rounded-xl border border-dashed border-[#E7E7E7] text-[#888888]'>
-                  Chưa có Typography Preset nào cho Series này.
+                  {t('producer.seriesPresetsModal.emptyPresets')}
                 </div>
               ) : (
                 <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
@@ -627,7 +654,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                             type='button'
                             onClick={() => handleStartEditPreset(p)}
                             className='p-1 hover:text-[#171717]'
-                            title='Sửa'
+                            title={t('producer.seriesPresetsModal.editTooltip')}
                           >
                             <Edit2 className='w-3 h-3' />
                           </button>
@@ -635,7 +662,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                             type='button'
                             onClick={() => handleDeletePreset(p)}
                             className='p-1 hover:text-red-600'
-                            title='Xóa'
+                            title={t('producer.seriesPresetsModal.deleteTooltip')}
                           >
                             <Trash2 className='w-3 h-3' />
                           </button>
@@ -653,8 +680,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
             <div className='space-y-4'>
               <div className='flex items-center justify-between'>
                 <p className='text-[#737373]'>
-                  Các quy tắc kiểm tra tính nhất quán cốt truyện, ngoại hình nhân vật và thuật ngữ
-                  trước khi phê duyệt (UC-10, BR-21).
+                  {t('producer.seriesPresetsModal.consistencyDesc')}
                 </p>
                 <button
                   onClick={() => {
@@ -665,7 +691,11 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                   className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs cursor-pointer'
                 >
                   <Plus className='w-3.5 h-3.5' />
-                  <span>{showAddRule ? 'Đóng' : 'Thêm Consistency Rule'}</span>
+                  <span>
+                    {showAddRule
+                      ? t('producer.seriesPresetsModal.closeBtn')
+                      : t('producer.seriesPresetsModal.addRuleBtn')}
+                  </span>
                 </button>
               </div>
 
@@ -679,20 +709,22 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                     <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
                     <span>
                       {editingRule
-                        ? `Sửa Quy Tắc: ${editingRule.name}`
-                        : 'Tạo Quy Tắc Nhất Quán Mới'}
+                        ? t('producer.seriesPresetsModal.editRuleHeading', {
+                            name: editingRule.name,
+                          })
+                        : t('producer.seriesPresetsModal.createRuleHeading')}
                     </span>
                   </div>
 
                   <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Tên Quy Tắc *
+                        {t('producer.seriesPresetsModal.ruleNameLabel')}
                       </label>
                       <input
                         type='text'
                         required
-                        placeholder='Ví dụ: Kiểm tra vết sẹo mắt phải'
+                        placeholder={t('producer.seriesPresetsModal.ruleNamePlaceholder')}
                         value={ruleName}
                         onChange={(e) => setRuleName(e.target.value)}
                         className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
@@ -701,16 +733,16 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
 
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Loại Quy Tắc (Type)
+                        {t('producer.seriesPresetsModal.ruleTypeLabel')}
                       </label>
                       <select
                         value={ruleType}
                         onChange={(e) => setRuleType(e.target.value)}
                         className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                       >
-                        {RULE_TYPES.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
+                        {RULE_TYPES.map((rt) => (
+                          <option key={rt} value={rt}>
+                            {rt}
                           </option>
                         ))}
                       </select>
@@ -718,7 +750,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
 
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Mức Độ Cảnh Báo (Severity)
+                        {t('producer.seriesPresetsModal.severityLabel')}
                       </label>
                       <select
                         value={ruleSeverity}
@@ -735,10 +767,12 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                   </div>
 
                   <div>
-                    <label className='block font-semibold text-[#171717] mb-1'>Mô Tả Quy Tắc</label>
+                    <label className='block font-semibold text-[#171717] mb-1'>
+                      {t('producer.seriesPresetsModal.ruleDescLabel')}
+                    </label>
                     <textarea
                       rows={2}
-                      placeholder='Mô tả chi tiết nội dung cần kiểm tra đối chiếu với Series Bible...'
+                      placeholder={t('producer.seriesPresetsModal.ruleDescPlaceholder')}
                       value={ruleDescription}
                       onChange={(e) => setRuleDescription(e.target.value)}
                       className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
@@ -757,7 +791,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                       htmlFor='ruleEnabledCheck'
                       className='text-xs text-[#171717] cursor-pointer'
                     >
-                      Kích hoạt kiểm tra tự động quy tắc này
+                      {t('producer.seriesPresetsModal.ruleEnabledLabel')}
                     </label>
                   </div>
 
@@ -767,7 +801,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                       onClick={() => setShowAddRule(false)}
                       className='px-3 py-1 rounded-lg border border-[#E7E7E7] bg-white text-[#555555]'
                     >
-                      Hủy
+                      {t('producer.seriesPresetsModal.cancelBtn')}
                     </button>
                     <button
                       type='submit'
@@ -779,7 +813,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                       ) : (
                         <Save className='w-3 h-3' />
                       )}
-                      <span>Lưu Quy Tắc</span>
+                      <span>{t('producer.seriesPresetsModal.saveRuleBtn')}</span>
                     </button>
                   </div>
                 </form>
@@ -789,11 +823,11 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
               {loadingRules ? (
                 <div className='py-8 text-center text-[#888888]'>
                   <Loader2 className='w-5 h-5 animate-spin mx-auto mb-1 text-[#F97316]' />
-                  <span>Đang tải danh sách Consistency Rules...</span>
+                  <span>{t('producer.seriesPresetsModal.loadingRules')}</span>
                 </div>
               ) : rules.length === 0 ? (
                 <div className='py-8 text-center bg-[#FAF8F5] rounded-xl border border-dashed border-[#E7E7E7] text-[#888888]'>
-                  Chưa có Consistency Rule nào cho Series này.
+                  {t('producer.seriesPresetsModal.emptyRules')}
                 </div>
               ) : (
                 <div className='space-y-2.5'>
@@ -821,7 +855,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                           </span>
                         </div>
                         <p className='text-[11px] text-[#555555] leading-relaxed'>
-                          {r.description || 'Không có mô tả chi tiết.'}
+                          {r.description || t('producer.seriesPresetsModal.noDescription')}
                         </p>
                       </div>
 
@@ -831,7 +865,9 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                           onClick={() => handleToggleRuleStatus(r)}
                           className='p-1 text-[#888888] hover:text-[#171717]'
                           title={
-                            r.isEnabled ? 'Đang bật - Click để tắt' : 'Đang tắt - Click để bật'
+                            r.isEnabled
+                              ? t('producer.seriesPresetsModal.toggleDisableTooltip')
+                              : t('producer.seriesPresetsModal.toggleEnableTooltip')
                           }
                         >
                           {r.isEnabled ? (
@@ -870,7 +906,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
             onClick={onClose}
             className='px-4 py-2 bg-[#171717] hover:bg-black text-white font-semibold rounded-lg text-xs'
           >
-            Đóng
+            {t('producer.seriesPresetsModal.closeBtn')}
           </button>
         </div>
       </div>

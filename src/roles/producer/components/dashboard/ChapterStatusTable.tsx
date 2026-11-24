@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertCircle, AlertTriangle, BookOpen, Calendar, Layers, UserCheck } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import type { ChapterProgressDto } from '@/services/series.service';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
 import { StageProgressTimeline } from './StageProgressTimeline';
@@ -20,11 +21,12 @@ const ChapterRow: React.FC<{
   onAssign: () => void;
   onManage?: () => void;
 }> = ({ chapter: ch, isSelected, onSelect, onAssign, onManage }) => {
-  const statusStyle = CHAPTER_STATUS_STYLE[ch.status] || {
-    label: ch.status,
-    className: NEUTRAL_BADGE,
-  };
-  const release = formatViDate(ch.targetReleaseDate);
+  const { t, lang } = useTranslation('production');
+  const statusDef = CHAPTER_STATUS_STYLE[ch.status];
+  const statusStyle = statusDef
+    ? { label: t(statusDef.labelKey), className: statusDef.className }
+    : { label: ch.status, className: NEUTRAL_BADGE };
+  const release = formatViDate(ch.targetReleaseDate, lang);
   const hasPanels = (ch.panelCount || 0) > 0;
   const barTone = isSelected
     ? 'bg-studio-accent'
@@ -58,7 +60,9 @@ const ChapterRow: React.FC<{
               isSelected ? 'bg-studio-accent' : 'bg-stone-900'
             }`}
           >
-            <span className='text-xs font-semibold opacity-80 leading-none'>TẬP</span>
+            <span className='text-xs font-semibold opacity-80 leading-none'>
+              {t('dashboard.chapters.episodeLabel')}
+            </span>
             <span className='text-base font-bold font-mono leading-none mt-0.5'>
               {String(ch.chapterNumber).padStart(2, '0')}
             </span>
@@ -71,7 +75,7 @@ const ChapterRow: React.FC<{
               </span>
               {isSelected && (
                 <span className='text-xs font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 shrink-0'>
-                  Đang chọn
+                  {t('dashboard.chapters.selected')}
                 </span>
               )}
             </div>
@@ -79,15 +83,18 @@ const ChapterRow: React.FC<{
               {hasPanels ? (
                 <span className='inline-flex items-center gap-1 font-medium'>
                   <Layers className='w-3.5 h-3.5 text-stone-500' aria-hidden='true' />
-                  {ch.pageCount} trang · {ch.panelCount} panel
+                  {t('dashboard.chapters.pagesAndPanels', {
+                    pages: ch.pageCount,
+                    panels: ch.panelCount,
+                  })}
                 </span>
               ) : (
-                <span className='text-stone-500 italic'>Chưa có nội dung</span>
+                <span className='text-stone-500 italic'>{t('dashboard.chapters.noContent')}</span>
               )}
               {release && (
                 <span className='inline-flex items-center gap-1 font-medium'>
                   <Calendar className='w-3.5 h-3.5 text-stone-500' aria-hidden='true' />
-                  Hạn: {release}
+                  {t('dashboard.chapters.due', { date: release })}
                 </span>
               )}
             </div>
@@ -102,13 +109,13 @@ const ChapterRow: React.FC<{
           {ch.overdueAssignments > 0 && (
             <span className='px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-rose-50 text-rose-800 border border-rose-200 flex items-center gap-1'>
               <AlertTriangle className='w-3.5 h-3.5' aria-hidden='true' />
-              {ch.overdueAssignments} Quá hạn
+              {t('dashboard.chapters.overdueBadge', { count: ch.overdueAssignments })}
             </span>
           )}
           {(ch.overdueChangeRequests ?? 0) > 0 && (
             <span className='px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1'>
               <AlertCircle className='w-3.5 h-3.5' aria-hidden='true' />
-              {ch.overdueChangeRequests} Sửa trễ
+              {t('dashboard.chapters.lateReworkBadge', { count: ch.overdueChangeRequests ?? 0 })}
             </span>
           )}
           <span
@@ -127,10 +134,10 @@ const ChapterRow: React.FC<{
                 onManage();
               }}
               className='focus-ring h-9 px-2.5 rounded-lg bg-white hover:bg-stone-50 text-stone-800 border border-stone-200 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer'
-              title={`Quản lý chương, đọc kịch bản và xem Art Bible Chương ${ch.chapterNumber}`}
+              title={t('dashboard.chapters.manageTooltip', { number: ch.chapterNumber })}
             >
               <BookOpen className='w-3.5 h-3.5 text-orange-600' aria-hidden='true' />
-              <span>Quản lý</span>
+              <span>{t('dashboard.chapters.manageBtn')}</span>
             </button>
           )}
           <button
@@ -140,10 +147,10 @@ const ChapterRow: React.FC<{
               onAssign();
             }}
             className='focus-ring h-9 px-2.5 rounded-lg bg-white hover:bg-orange-50 text-stone-800 hover:text-orange-800 border border-stone-200 hover:border-orange-300 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer'
-            title={`Giao việc mới cho Chương ${ch.chapterNumber}`}
+            title={t('dashboard.chapters.assignTooltip', { number: ch.chapterNumber })}
           >
             <UserCheck className='w-3.5 h-3.5' aria-hidden='true' />
-            <span>Giao việc</span>
+            <span>{t('dashboard.chapters.assignBtn')}</span>
           </button>
         </div>
       </div>
@@ -169,22 +176,23 @@ export const ChapterStatusTable: React.FC<ChapterStatusTableProps> = ({
   onAssign,
   onManageChapter,
 }) => {
+  const { t } = useTranslation('production');
   const selected = chapters.find((c) => c.chapterId === selectedChapterId);
 
   return (
     <section
-      aria-label='Tiến độ chương'
+      aria-label={t('dashboard.chapters.sectionAria')}
       className='bg-white border border-stone-200/80 rounded-xl p-5 sm:p-6 shadow-xs space-y-4'
     >
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4'>
         <div>
           <h2 className='text-lg font-bold text-stone-900'>
-            Tiến Độ Theo Từng Chương ({chapters.length})
+            {t('dashboard.chapters.title', { count: chapters.length })}
           </h2>
           <p className='text-xs text-stone-600 mt-0.5'>
             {selected
-              ? `Đang xem: Chương ${selected.chapterNumber} · Chọn chương để đối chiếu ma trận công đoạn bên dưới`
-              : 'Chọn một chương để xem chi tiết ma trận công đoạn bên dưới'}
+              ? t('dashboard.chapters.viewingSelected', { number: selected.chapterNumber })
+              : t('dashboard.chapters.viewingHint')}
           </p>
         </div>
       </div>
@@ -194,10 +202,8 @@ export const ChapterStatusTable: React.FC<ChapterStatusTableProps> = ({
           <div className='bg-orange-50 text-orange-600 p-3 rounded-xl'>
             <BookOpen className='w-6 h-6' aria-hidden='true' />
           </div>
-          <p className='font-serif font-bold text-stone-900'>Chưa có chương nào trong Series này</p>
-          <p className='text-xs text-stone-600'>
-            Tạo chương mới từ nút "Quản Lý Chương (Duyệt)" ở đầu trang.
-          </p>
+          <p className='font-serif font-bold text-stone-900'>{t('dashboard.chapters.empty')}</p>
+          <p className='text-xs text-stone-600'>{t('dashboard.chapters.emptyHintHeader')}</p>
         </div>
       ) : (
         <div className='space-y-3'>

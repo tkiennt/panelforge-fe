@@ -17,34 +17,29 @@ export interface ChapterEditionsModalProps {
 
 const STATUS_CONFIG: Record<
   EditionStatus,
-  { label: string; bg: string; text: string; border: string }
+  { bg: string; text: string; border: string }
 > = {
   Draft: {
-    label: 'Bản nháp',
     bg: 'bg-stone-100',
     text: 'text-stone-700',
     border: 'border-stone-300',
   },
   InReview: {
-    label: 'Chờ Editor duyệt',
     bg: 'bg-blue-50',
     text: 'text-blue-700',
     border: 'border-blue-200',
   },
   EditorApproved: {
-    label: 'Editor đã duyệt',
     bg: 'bg-amber-50',
     text: 'text-amber-800',
     border: 'border-amber-300',
   },
   Approved: {
-    label: 'Producer đã duyệt',
     bg: 'bg-emerald-50',
     text: 'text-emerald-800',
     border: 'border-emerald-300',
   },
   Published: {
-    label: 'Đã phát hành',
     bg: 'bg-purple-50',
     text: 'text-purple-800',
     border: 'border-purple-300',
@@ -67,7 +62,7 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
   onClose,
   onShowToast,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation('production');
   const [editions, setEditions] = useState<ChapterEditionDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -84,11 +79,11 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
       const data = await chapterEditionService.getChapterEditions(chapter.id);
       setEditions(data);
     } catch (err: any) {
-      onShowToast?.('Lỗi nạp ấn bản', err.message);
+      onShowToast?.(t('producer.chapterEditionsModal.loadError'), err.message);
     } finally {
       setLoading(false);
     }
-  }, [chapter?.id, onShowToast]);
+  }, [chapter?.id, onShowToast, t]);
 
   useEffect(() => {
     if (isOpen && chapter?.id) {
@@ -103,12 +98,12 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
     try {
       await chapterEditionService.approveEdition(chapter.id, lang);
       onShowToast?.(
-        'Đã nghiệm thu ấn bản',
-        `Ấn bản ${lang.toUpperCase()} đã chuyển sang trạng thái Approved (Chờ phát hành).`,
+        t('producer.chapterEditionsModal.approveToastTitle'),
+        t('producer.chapterEditionsModal.approveToastDesc', { lang: lang.toUpperCase() }),
       );
       await loadEditions();
     } catch (err: any) {
-      onShowToast?.('Lỗi duyệt ấn bản', err.message);
+      onShowToast?.(t('producer.chapterEditionsModal.approveError'), err.message);
     } finally {
       setActionLoading(null);
     }
@@ -119,12 +114,12 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
     try {
       await chapterEditionService.publishEdition(chapter.id, lang);
       onShowToast?.(
-        'Đã phát hành ấn bản',
-        `Ấn bản ${lang.toUpperCase()} đã phát hành cho độc giả thành công.`,
+        t('producer.chapterEditionsModal.publishToastTitle'),
+        t('producer.chapterEditionsModal.publishToastDesc', { lang: lang.toUpperCase() }),
       );
       await loadEditions();
     } catch (err: any) {
-      onShowToast?.('Lỗi phát hành ấn bản', err.message);
+      onShowToast?.(t('producer.chapterEditionsModal.publishError'), err.message);
     } finally {
       setActionLoading(null);
     }
@@ -132,19 +127,25 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
 
   const handleConfirmReopen = async () => {
     if (!reopenReason.trim()) {
-      onShowToast?.('Yêu cầu lý do', 'Vui lòng nhập lý do mở lại ấn bản.');
+      onShowToast?.(
+        t('producer.chapterEditionsModal.reopenReasonRequiredTitle'),
+        t('producer.chapterEditionsModal.reopenReasonRequiredDesc'),
+      );
       return;
     }
     const lang = reopenModal.lang;
     setActionLoading(`reopen-${lang}`);
     try {
       await chapterEditionService.reopenEdition(chapter.id, lang, { reason: reopenReason.trim() });
-      onShowToast?.('Đã mở lại ấn bản', `Ấn bản ${lang.toUpperCase()} đã được chuyển về Draft.`);
+      onShowToast?.(
+        t('producer.chapterEditionsModal.reopenToastTitle'),
+        t('producer.chapterEditionsModal.reopenToastDesc', { lang: lang.toUpperCase() }),
+      );
       setReopenModal({ lang: '', isOpen: false });
       setReopenReason('');
       await loadEditions();
     } catch (err: any) {
-      onShowToast?.('Lỗi mở lại ấn bản', err.message);
+      onShowToast?.(t('producer.chapterEditionsModal.reopenError'), err.message);
     } finally {
       setActionLoading(null);
     }
@@ -166,11 +167,12 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
             </div>
             <div>
               <h2 className='text-base font-bold font-serif text-stone-900'>
-                Ấn Bản Đa Ngôn Ngữ — Chương {chapter.chapterNumber}
+                {t('producer.chapterEditionsModal.title', { chapterNumber: chapter.chapterNumber })}
               </h2>
               <p className='text-xs text-stone-500 font-sans'>
-                {chapter.title || 'Không tiêu đề'} • Quản lý quy trình kiểm duyệt và phát hành ấn
-                bản dịch (BR-34)
+                {t('producer.chapterEditionsModal.subtitle', {
+                  title: chapter.title || t('producer.chapterEditionsModal.untitled'),
+                })}
               </p>
             </div>
           </div>
@@ -180,7 +182,7 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
               onClick={loadEditions}
               disabled={loading}
               className='p-1.5 rounded-lg hover:bg-stone-200/60 text-stone-600 transition-colors cursor-pointer'
-              title='Làm mới danh sách ấn bản'
+              title={t('producer.chapterEditionsModal.refreshTitle')}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -188,7 +190,7 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
               type='button'
               onClick={onClose}
               className='p-1.5 rounded-lg hover:bg-stone-200/60 text-stone-600 transition-colors cursor-pointer'
-              aria-label='Đóng'
+              aria-label={t('producer.chapterEditionsModal.close')}
             >
               <X className='w-4 h-4' />
             </button>
@@ -200,22 +202,34 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
           {loading && editions.length === 0 ? (
             <div className='p-8 text-center text-xs text-stone-500 flex items-center justify-center gap-2'>
               <RefreshCw className='w-4 h-4 animate-spin text-orange-600' />
-              <span>Đang tải danh sách ấn bản...</span>
+              <span>{t('producer.chapterEditionsModal.loading')}</span>
             </div>
           ) : editions.length === 0 ? (
             <div className='p-8 text-center text-xs text-stone-500'>
-              Chưa có ấn bản ngôn ngữ nào cho chương này.
+              {t('producer.chapterEditionsModal.empty')}
             </div>
           ) : (
             <table className='w-full text-left text-xs border-collapse'>
               <thead>
                 <tr className='bg-stone-50 border-b border-stone-200 text-stone-600 font-mono'>
-                  <th className='py-2.5 px-4 font-semibold'>Ngôn ngữ</th>
-                  <th className='py-2.5 px-3 font-semibold'>Trạng thái</th>
-                  <th className='py-2.5 px-3 font-semibold'>Người dịch</th>
-                  <th className='py-2.5 px-3 font-semibold'>Người duyệt</th>
-                  <th className='py-2.5 px-3 font-semibold'>Phiên bản</th>
-                  <th className='py-2.5 px-4 font-semibold text-right'>Thao tác</th>
+                  <th className='py-2.5 px-4 font-semibold'>
+                    {t('producer.chapterEditionsModal.colLanguage')}
+                  </th>
+                  <th className='py-2.5 px-3 font-semibold'>
+                    {t('producer.chapterEditionsModal.colStatus')}
+                  </th>
+                  <th className='py-2.5 px-3 font-semibold'>
+                    {t('producer.chapterEditionsModal.colTranslator')}
+                  </th>
+                  <th className='py-2.5 px-3 font-semibold'>
+                    {t('producer.chapterEditionsModal.colApprover')}
+                  </th>
+                  <th className='py-2.5 px-3 font-semibold'>
+                    {t('producer.chapterEditionsModal.colVersion')}
+                  </th>
+                  <th className='py-2.5 px-4 font-semibold text-right'>
+                    {t('producer.chapterEditionsModal.colActions')}
+                  </th>
                 </tr>
               </thead>
               <tbody className='divide-y divide-stone-100'>
@@ -249,7 +263,7 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}
                         >
-                          {cfg.label}
+                          {t(`producer.chapterEditionsModal.status.${ed.status}`)}
                         </span>
                       </td>
                       <td className='py-3 px-3 text-stone-600'>{ed.translatorName || '—'}</td>
@@ -264,10 +278,14 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
                               disabled={Boolean(actionLoading)}
                               data-testid={`approve-edition-${ed.languageCode}`}
                               className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
-                              title='Producer duyệt hoàn tất bản dịch'
+                              title={t('producer.chapterEditionsModal.approveTooltip')}
                             >
                               <CheckCircle2 className='w-3.5 h-3.5' />
-                              <span>{isApproveBusy ? 'Đang duyệt...' : 'Nghiệm thu'}</span>
+                              <span>
+                                {isApproveBusy
+                                  ? t('producer.chapterEditionsModal.approving')
+                                  : t('producer.chapterEditionsModal.approveBtn')}
+                              </span>
                             </button>
                           )}
                           {canPublish && (
@@ -277,10 +295,14 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
                               disabled={Boolean(actionLoading)}
                               data-testid={`publish-edition-${ed.languageCode}`}
                               className='px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
-                              title='Phát hành ấn bản dịch cho độc giả'
+                              title={t('producer.chapterEditionsModal.publishTooltip')}
                             >
                               <Send className='w-3.5 h-3.5' />
-                              <span>{isPublishBusy ? 'Đang phát hành...' : 'Phát hành'}</span>
+                              <span>
+                                {isPublishBusy
+                                  ? t('producer.chapterEditionsModal.publishing')
+                                  : t('producer.chapterEditionsModal.publishBtn')}
+                              </span>
                             </button>
                           )}
                           {canReopen && (
@@ -292,10 +314,10 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
                               disabled={Boolean(actionLoading)}
                               data-testid={`reopen-edition-${ed.languageCode}`}
                               className='px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50'
-                              title='Mở lại ấn bản về Draft để chỉnh sửa'
+                              title={t('producer.chapterEditionsModal.reopenTooltip')}
                             >
                               <RotateCcw className='w-3.5 h-3.5 text-amber-600' />
-                              <span>Mở lại</span>
+                              <span>{t('producer.chapterEditionsModal.reopenBtn')}</span>
                             </button>
                           )}
                         </div>
@@ -311,15 +333,16 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
         {/* Footer */}
         <div className='flex items-center justify-between pt-2 border-t border-stone-200 text-xs text-stone-500 shrink-0'>
           <p>
-            * Chỉ các ấn bản ở trạng thái <strong>Đã phát hành</strong> mới hiển thị trên Reader
-            công khai.
+            {t('producer.chapterEditionsModal.footerNotePrefix')}
+            <strong>{t('producer.chapterEditionsModal.footerNoteStrong')}</strong>
+            {t('producer.chapterEditionsModal.footerNoteSuffix')}
           </p>
           <button
             type='button'
             onClick={onClose}
             className='px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl transition-colors cursor-pointer text-xs'
           >
-            Đóng
+            {t('producer.chapterEditionsModal.close')}
           </button>
         </div>
       </div>
@@ -334,18 +357,21 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
             <div className='flex items-center gap-2 text-amber-600'>
               <AlertTriangle className='w-5 h-5 shrink-0' />
               <h3 className='font-bold text-base text-stone-900'>
-                Mở lại ấn bản {reopenModal.lang.toUpperCase()}
+                {t('producer.chapterEditionsModal.reopenModalTitle', {
+                  lang: reopenModal.lang.toUpperCase(),
+                })}
               </h3>
             </div>
             <p className='text-xs text-stone-600'>
-              Ấn bản sẽ quay về trạng thái <strong>Bản nháp (Draft)</strong> để dịch giả chỉnh sửa
-              lại. Vui lòng ghi rõ lý do mở lại:
+              {t('producer.chapterEditionsModal.reopenModalDescPrefix')}
+              <strong>{t('producer.chapterEditionsModal.reopenModalDescStrong')}</strong>
+              {t('producer.chapterEditionsModal.reopenModalDescSuffix')}
             </p>
             <textarea
               rows={3}
               value={reopenReason}
               onChange={(e) => setReopenReason(e.target.value)}
-              placeholder='Ví dụ: Cần sửa lại lời thoại trang 3 và kiểm tra tràn khung...'
+              placeholder={t('producer.chapterEditionsModal.reopenPlaceholder')}
               className='w-full p-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-500 focus:bg-white transition-all text-stone-900'
               autoFocus
             />
@@ -358,7 +384,7 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
                 }}
                 className='px-3 py-1.5 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-100 text-xs font-semibold cursor-pointer'
               >
-                Hủy
+                {t('producer.chapterEditionsModal.cancel')}
               </button>
               <button
                 type='button'
@@ -366,7 +392,7 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
                 disabled={!reopenReason.trim()}
                 className='px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50'
               >
-                Xác nhận mở lại
+                {t('producer.chapterEditionsModal.confirmReopen')}
               </button>
             </div>
           </div>

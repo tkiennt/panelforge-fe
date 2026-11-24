@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, BookOpen, Camera, Image as ImageIcon, Loader2, RefreshCw } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { IdentityBanner } from '@/shared/components/IdentityBanner';
 import { SeriesImagePickerDialog } from '@/shared/features/series-identity/SeriesImagePickerDialog';
@@ -65,6 +66,7 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
   onRefresh,
   onOpenPipeline,
 }) => {
+  const { t, lang } = useTranslation('production');
   const [imageDialogKind, setImageDialogKind] = useState<SeriesImageKind | null>(null);
   const showImageControls = canManageImages && !!seriesId;
   const format = seriesDetail?.format || activeProject?.format;
@@ -103,7 +105,7 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
 
       <IdentityBanner
         size='compact'
-        ariaLabel='Nhận diện bộ truyện và điều phối'
+        ariaLabel={t('dashboard.identity.bannerAria')}
         testId='series-banner'
         background={
           seriesDetail?.bannerUrl ? (
@@ -129,7 +131,7 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
               className='focus-ring inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-white/90 hover:bg-white border border-stone-200 px-3 text-xs font-semibold text-stone-900 shadow-xs cursor-pointer'
             >
               <ImageIcon className='w-3.5 h-3.5 text-orange-700' aria-hidden='true' />
-              Đổi banner Series
+              {t('dashboard.identity.changeBanner')}
             </button>
           ) : undefined
         }
@@ -140,7 +142,7 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
                 <AuthenticatedImage
                   key={seriesDetail.avatarUrl}
                   src={seriesDetail.avatarUrl}
-                  alt={`Avatar ${seriesTitle}`}
+                  alt={t('dashboard.identity.avatarAlt', { title: seriesTitle })}
                   data-testid='series-avatar-img'
                   className='w-full h-full rounded-[13px] object-cover'
                   fallback={<SeriesAvatarFallback title={seriesTitle} />}
@@ -153,8 +155,8 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
               <button
                 type='button'
                 onClick={() => setImageDialogKind('avatar')}
-                aria-label='Đổi avatar Series'
-                title='Đổi avatar Series'
+                aria-label={t('dashboard.identity.changeAvatar')}
+                title={t('dashboard.identity.changeAvatar')}
                 data-testid='change-series-avatar-btn'
                 className='focus-ring absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-white border-2 border-stone-200 text-stone-800 hover:border-orange-400 hover:text-orange-700 flex items-center justify-center shadow-md cursor-pointer'
               >
@@ -167,7 +169,7 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
         <div className='flex flex-wrap items-center justify-between gap-2 text-xs text-stone-600'>
           <div className='flex items-center gap-1.5 min-w-0'>
             <span className='px-1.5 py-0.5 rounded bg-orange-50 border border-orange-200 text-orange-800 font-semibold'>
-              Bản thảo Studio
+              {t('dashboard.identity.contextStudio')}
             </span>
             <span className='text-stone-400' aria-hidden='true'>
               /
@@ -177,12 +179,14 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
           {loading ? (
             <span className='inline-flex items-center gap-1.5 text-orange-700'>
               <Loader2 className='w-3.5 h-3.5 animate-spin' aria-hidden='true' />
-              Đang nạp…
+              {t('dashboard.identity.loading')}
             </span>
           ) : generatedAt ? (
             <span className='inline-flex items-center gap-1.5'>
               <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' aria-hidden='true' />
-              Đồng bộ: {new Date(generatedAt).toLocaleTimeString('vi-VN')}
+              {t('dashboard.identity.synced', {
+                time: new Date(generatedAt).toLocaleTimeString(lang === 'en' ? 'en-US' : 'vi-VN'),
+              })}
             </span>
           ) : null}
         </div>
@@ -192,7 +196,7 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
             className='pf-ink-bleed-title relative z-10 font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-tight break-words [overflow-wrap:anywhere]'
             data-testid='series-title'
           >
-            <span className='sr-only'>Tổng quan bộ truyện: </span>
+            <span className='sr-only'>{t('dashboard.identity.seriesOverviewSr')}</span>
             {seriesTitle}
           </h1>
           <svg
@@ -219,10 +223,14 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
           {genre && <span className={TAG}>{genre}</span>}
           {seriesDetail?.readingDirection && (
             <span className={TAG}>
-              {seriesDetail.readingDirection === 'Vertical' ? 'Cuộn dọc' : 'Phải sang trái'}
+              {seriesDetail.readingDirection === 'Vertical'
+                ? t('dashboard.identity.readingVertical')
+                : t('dashboard.identity.readingRtl')}
             </span>
           )}
-          <span className={TAG}>{chapterCount} Chương</span>
+          <span className={TAG}>
+            {t('dashboard.identity.chaptersCount', { count: chapterCount })}
+          </span>
         </div>
 
         {synopsis && (
@@ -238,10 +246,10 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
                 type='button'
                 onClick={onOpenChapters}
                 className={SECONDARY_BTN}
-                title='Quản lý danh sách chương, kiểm duyệt và điều phối tập truyện'
+                title={t('dashboard.identity.manageChaptersTooltip')}
               >
                 <BookOpen className='w-3.5 h-3.5 text-orange-600' aria-hidden='true' />
-                <span>Quản Lý Chương (Duyệt)</span>
+                <span>{t('dashboard.identity.manageChaptersBtn')}</span>
               </button>
             )}
             <button
@@ -249,13 +257,13 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
               onClick={onRefresh}
               disabled={loading}
               className={SECONDARY_BTN}
-              title='Làm mới dữ liệu tiến độ từ máy chủ'
+              title={t('dashboard.identity.refreshTooltip')}
             >
               <RefreshCw
                 className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`}
                 aria-hidden='true'
               />
-              <span className='sr-only sm:not-sr-only'>Làm mới</span>
+              <span className='sr-only sm:not-sr-only'>{t('dashboard.identity.refreshBtn')}</span>
             </button>
           </div>
 
@@ -265,7 +273,7 @@ export const SeriesHeaderBanner: React.FC<SeriesHeaderBannerProps> = ({
               onClick={onOpenPipeline}
               className='btn-cta-primary focus-ring h-9 px-4 text-xs font-bold flex items-center gap-1.5 cursor-pointer active:scale-[0.98]'
             >
-              <span>Mở Quy trình sản xuất</span>
+              <span>{t('dashboard.identity.openPipeline')}</span>
               <ArrowRight className='w-3.5 h-3.5' aria-hidden='true' />
             </button>
           )}

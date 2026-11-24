@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Sliders,
 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import type { ChapterProgressDto } from '@/services/series.service';
 
 type CellTone =
@@ -23,13 +24,13 @@ const CELL_STYLE: Record<CellTone, string> = {
   approved: 'bg-emerald-50 text-emerald-800 border border-emerald-200',
 };
 
-const COLUMNS: { key: CellTone; label: string; headTone: string }[] = [
-  { key: 'notStarted', label: 'Chưa làm', headTone: 'text-stone-600' },
-  { key: 'inProgress', label: 'Đang làm', headTone: 'text-blue-800' },
-  { key: 'submitted', label: 'Đã nộp', headTone: 'text-amber-800' },
-  { key: 'inReview', label: 'Đang duyệt', headTone: 'text-amber-900' },
-  { key: 'changesRequested', label: 'Yêu cầu sửa', headTone: 'text-rose-800' },
-  { key: 'approved', label: 'Đã duyệt', headTone: 'text-emerald-800' },
+const COLUMNS: { key: CellTone; labelKey: string; headTone: string }[] = [
+  { key: 'notStarted', labelKey: 'dashboard.stages.colNotStarted', headTone: 'text-stone-600' },
+  { key: 'inProgress', labelKey: 'dashboard.stages.colInProgress', headTone: 'text-blue-800' },
+  { key: 'submitted', labelKey: 'dashboard.stages.colSubmitted', headTone: 'text-amber-800' },
+  { key: 'inReview', labelKey: 'dashboard.stages.colInReview', headTone: 'text-amber-900' },
+  { key: 'changesRequested', labelKey: 'dashboard.stages.colChanges', headTone: 'text-rose-800' },
+  { key: 'approved', labelKey: 'dashboard.stages.colApproved', headTone: 'text-emerald-800' },
 ];
 
 const CellCount: React.FC<{ count: number; tone: CellTone }> = ({ count, tone }) => {
@@ -80,6 +81,7 @@ export const StageMatrixSection: React.FC<StageMatrixSectionProps> = ({
   onSelectChapter,
   onOpenPipeline,
 }) => {
+  const { t } = useTranslation('production');
   const totalPanels = chapter.panelCount || 0;
   const inProgress = sumStages(chapter, (st) => st.inProgress);
   const inReview = sumStages(chapter, (st) => st.submitted + st.inReview);
@@ -89,7 +91,7 @@ export const StageMatrixSection: React.FC<StageMatrixSectionProps> = ({
 
   return (
     <section
-      aria-label='Ma trận công đoạn'
+      aria-label={t('dashboard.stages.sectionAria')}
       className='bg-white border border-stone-200/80 rounded-xl p-5 sm:p-6 shadow-xs space-y-4'
     >
       <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-stone-100 pb-4'>
@@ -97,7 +99,7 @@ export const StageMatrixSection: React.FC<StageMatrixSectionProps> = ({
           <div className='flex items-center gap-2.5 flex-wrap'>
             <h2 className='text-lg font-bold text-stone-900 flex items-center gap-2'>
               <Sliders className='w-4 h-4 text-orange-600' aria-hidden='true' />
-              <span>Tiến độ công đoạn · Chương {chapter.chapterNumber}</span>
+              <span>{t('dashboard.stages.title', { number: chapter.chapterNumber })}</span>
             </h2>
             {chapters.length > 1 && (
               <div className='flex flex-wrap items-center gap-1 bg-stone-100 p-0.5 rounded-lg border border-stone-200'>
@@ -115,7 +117,7 @@ export const StageMatrixSection: React.FC<StageMatrixSectionProps> = ({
                           : 'text-stone-700 hover:text-stone-900 hover:bg-white'
                       }`}
                     >
-                      Chương {ch.chapterNumber}
+                      {t('dashboard.stages.chapterTab', { number: ch.chapterNumber })}
                     </button>
                   );
                 })}
@@ -124,8 +126,8 @@ export const StageMatrixSection: React.FC<StageMatrixSectionProps> = ({
           </div>
           <p className='text-xs text-stone-600'>
             {totalPanels === 0
-              ? 'Chương hiện chưa có panel phân rã · Các công đoạn sẵn sàng cho phân bổ kịch bản & vẽ'
-              : `Bảng đối chiếu trạng thái ${totalPanels} Panel theo từng công đoạn sản xuất`}
+              ? t('dashboard.stages.emptyPanels')
+              : t('dashboard.stages.panelMatrixDesc', { count: totalPanels })}
           </p>
         </div>
 
@@ -136,46 +138,46 @@ export const StageMatrixSection: React.FC<StageMatrixSectionProps> = ({
             className='btn-cta-primary focus-ring h-9 px-3.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0 self-start'
           >
             <ExternalLink className='w-3.5 h-3.5' aria-hidden='true' />
-            <span>Mở Pipeline</span>
+            <span>{t('dashboard.stages.openPipeline')}</span>
           </button>
         )}
       </div>
 
       <div className='grid grid-cols-2 sm:grid-cols-4 gap-2.5'>
         <PulseTile
-          label='Tổng Panel'
+          label={t('dashboard.stages.totalPanels')}
           value={totalPanels}
-          unit='khung'
+          unit={t('dashboard.stages.panelsUnit')}
           icon={<Hash className='w-4 h-4 text-stone-500' />}
           className='bg-stone-50 border-stone-200 text-stone-900'
         />
         <PulseTile
-          label='Đang Sản Xuất'
+          label={t('dashboard.stages.inProdTitle')}
           value={inProgress}
-          unit='panel'
+          unit={t('dashboard.stages.inProdUnit')}
           icon={<PenTool className='w-4 h-4 text-blue-700' />}
           className='bg-blue-50/60 border-blue-200 text-blue-900'
         />
         <PulseTile
-          label='Chờ Kiểm Duyệt'
+          label={t('dashboard.stages.inReviewTitle')}
           value={inReview}
-          unit='panel'
+          unit={t('dashboard.stages.inProdUnit')}
           icon={<Eye className='w-4 h-4 text-amber-700' />}
           className='bg-amber-50/60 border-amber-200 text-amber-900'
         />
         {changes > 0 ? (
           <PulseTile
-            label='Yêu Cầu Sửa Đổi'
+            label={t('dashboard.stages.changeRequestTitle')}
             value={changes}
-            unit='panel'
+            unit={t('dashboard.stages.inProdUnit')}
             icon={<RotateCcw className='w-4 h-4 text-rose-700' />}
             className='bg-rose-50/60 border-rose-200 text-rose-900'
           />
         ) : (
           <PulseTile
-            label='Đã Duyệt Đạt Chuẩn'
+            label={t('dashboard.stages.approvedTitle')}
             value={approved}
-            unit='panel'
+            unit={t('dashboard.stages.inProdUnit')}
             icon={<CheckCircle2 className='w-4 h-4 text-emerald-700' />}
             className='bg-emerald-50/60 border-emerald-200 text-emerald-900'
           />
@@ -184,17 +186,14 @@ export const StageMatrixSection: React.FC<StageMatrixSectionProps> = ({
 
       {totalPanels === 0 && (
         <div className='flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-orange-50/50 border border-orange-200 text-stone-800 text-xs'>
-          <span>
-            Chương {chapter.chapterNumber} chưa phân rã trang thành Panel. Các cột công đoạn đang ở
-            trạng thái chuẩn bị.
-          </span>
+          <span>{t('dashboard.stages.zeroPanelsNotice', { number: chapter.chapterNumber })}</span>
           {onOpenPipeline && (
             <button
               type='button'
               onClick={onOpenPipeline}
               className='focus-ring shrink-0 min-h-9 px-2 rounded-lg text-xs font-bold text-orange-700 hover:text-orange-800 hover:bg-orange-100 flex items-center gap-1 cursor-pointer'
             >
-              <span>Mở Pipeline chia khung</span>
+              <span>{t('dashboard.stages.openPipelineSplit')}</span>
               <ArrowRight className='w-3.5 h-3.5' aria-hidden='true' />
             </button>
           )}
@@ -203,23 +202,27 @@ export const StageMatrixSection: React.FC<StageMatrixSectionProps> = ({
 
       {stages.length === 0 ? (
         <div className='py-8 text-center text-xs text-stone-600 bg-stone-50 rounded-xl border border-dashed border-stone-300'>
-          Chưa có công đoạn nào được thiết lập cho Series này.
+          {t('dashboard.stages.noStages')}
         </div>
       ) : (
         <div className='overflow-x-auto rounded-lg border border-stone-200 bg-white'>
           <table className='w-full text-xs text-left border-collapse'>
             <thead>
               <tr className='border-b border-stone-200 bg-stone-50'>
-                <th className='py-3 px-3.5 font-semibold text-stone-800'>Công Đoạn</th>
+                <th className='py-3 px-3.5 font-semibold text-stone-800'>
+                  {t('dashboard.stages.colStage')}
+                </th>
                 {COLUMNS.map((col) => (
                   <th
                     key={col.key}
                     className={`py-3 px-2 text-center font-semibold ${col.headTone}`}
                   >
-                    {col.label}
+                    {t(col.labelKey)}
                   </th>
                 ))}
-                <th className='py-3 px-3.5 text-right font-semibold text-stone-800'>Tiến độ</th>
+                <th className='py-3 px-3.5 text-right font-semibold text-stone-800'>
+                  {t('dashboard.stages.colProgress')}
+                </th>
               </tr>
             </thead>
             <tbody className='divide-y divide-stone-100 font-mono tabular-nums'>

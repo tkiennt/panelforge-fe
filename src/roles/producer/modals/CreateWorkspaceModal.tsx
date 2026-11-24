@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Layers, Plus, Loader2 } from 'lucide-react';
 import { workspaceService, WorkspaceDto } from '@/services/workspace.service';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 interface CreateWorkspaceModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
   onSuccess,
   onShowToast,
 }) => {
+  const { t } = useTranslation('production');
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('🏢');
   const [role, setRole] = useState('Producer');
@@ -29,7 +31,7 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
     e.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('Vui lòng nhập tên Workspace / Studio.');
+      setError(t('producer.createWorkspaceModal.nameRequired'));
       return;
     }
 
@@ -43,14 +45,17 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
       });
 
       if (onShowToast) {
-        onShowToast('Tạo Studio thành công', `Đã tạo workspace "${created.name}"`);
+        onShowToast(
+          t('producer.createWorkspaceModal.toastSuccessTitle'),
+          t('producer.createWorkspaceModal.toastSuccessDesc', { name: created.name }),
+        );
       }
       setName('');
       onSuccess(created);
       onClose();
     } catch (err: any) {
       console.error('Lỗi khi tạo Workspace:', err);
-      setError(err.message || 'Không thể tạo Workspace. Vui lòng thử lại.');
+      setError(err.message || t('producer.createWorkspaceModal.createError'));
     } finally {
       setLoading(false);
     }
@@ -61,9 +66,9 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size='md'
-      title='Khởi tạo Không Gian Studio Mới'
-      description='Môi trường sản xuất Manga/Webtoon độc lập riêng biệt'
-      closeLabel='Đóng modal'
+      title={t('producer.createWorkspaceModal.title')}
+      description={t('producer.createWorkspaceModal.description')}
+      closeLabel={t('producer.createWorkspaceModal.closeLabel')}
     >
       <div className='relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden text-xs'>
         {/* Header */}
@@ -73,14 +78,18 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
               {icon}
             </div>
             <div>
-              <h3 className='font-bold text-stone-900 text-base'>Khởi tạo Không Gian Studio Mới</h3>
-              <p className='text-xs text-stone-500'>Môi trường sản xuất Manga/Webtoon độc lập riêng biệt</p>
+              <h3 className='font-bold text-stone-900 text-base'>
+                {t('producer.createWorkspaceModal.title')}
+              </h3>
+              <p className='text-xs text-stone-500'>
+                {t('producer.createWorkspaceModal.description')}
+              </p>
             </div>
           </div>
           <button
             type='button'
             onClick={onClose}
-            aria-label='Đóng modal'
+            aria-label={t('producer.createWorkspaceModal.closeLabel')}
             className='w-8 h-8 rounded-lg flex items-center justify-center text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer'
           >
             <X className='w-5 h-5' />
@@ -112,13 +121,13 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
             </div>
             <div className='flex-1 flex flex-col gap-1'>
               <label className='font-semibold text-stone-700'>
-                Tên Studio *
+                {t('producer.createWorkspaceModal.studioNameLabel')}
               </label>
               <input
                 type='text'
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder='VD: Nexus Ink Manga, Studio MAPPA...'
+                placeholder={t('producer.createWorkspaceModal.studioNamePlaceholder')}
                 className='w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs font-medium'
                 autoFocus
                 required
@@ -129,22 +138,24 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
 
           <div className='flex flex-col gap-1'>
             <label className='font-semibold text-stone-700'>
-              Vai trò của bạn trong Studio này *
+              {t('producer.createWorkspaceModal.roleLabel')}
             </label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
               className='w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs cursor-pointer'
             >
-              <option value='Producer'>Producer (Chủ nhiệm / Toàn quyền quản trị)</option>
-              <option value='Lead Artist'>Lead Artist (Họa sĩ chính / Duyệt nét)</option>
-              <option value='Editor'>Editor (Biên tập viên / Giám sát nội dung)</option>
+              <option value='Producer'>{t('producer.createWorkspaceModal.roleProducer')}</option>
+              <option value='Lead Artist'>
+                {t('producer.createWorkspaceModal.roleLeadArtist')}
+              </option>
+              <option value='Editor'>{t('producer.createWorkspaceModal.roleEditor')}</option>
             </select>
           </div>
 
           <div className='flex flex-col gap-1.5'>
             <label className='font-semibold text-stone-700'>
-              Gói lưu trữ phân bổ ban đầu
+              {t('producer.createWorkspaceModal.storageLabel')}
             </label>
             <div className='grid grid-cols-3 gap-2'>
               {[
@@ -183,7 +194,7 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
               disabled={loading}
               className='px-4 py-2 rounded-xl border border-stone-200 bg-white font-medium text-stone-700 hover:bg-stone-50 cursor-pointer transition-colors'
             >
-              Hủy bỏ
+              {t('producer.createWorkspaceModal.cancel')}
             </button>
             <button
               type='submit'
@@ -193,12 +204,12 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
               {loading ? (
                 <>
                   <Loader2 className='w-4 h-4 animate-spin' />
-                  <span>Đang khởi tạo...</span>
+                  <span>{t('producer.createWorkspaceModal.creating')}</span>
                 </>
               ) : (
                 <>
                   <Plus className='w-4 h-4' />
-                  <span>Tạo Không Gian Studio</span>
+                  <span>{t('producer.createWorkspaceModal.submit')}</span>
                 </>
               )}
             </button>

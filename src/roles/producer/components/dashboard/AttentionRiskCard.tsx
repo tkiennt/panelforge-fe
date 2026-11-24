@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertCircle, AlertTriangle, ArrowRight, Bell, CheckCircle2, Loader2 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import type { SeriesProgressDto } from '@/services/series.service';
 import { formatViDate } from './dashboardFormat';
 
@@ -34,35 +35,41 @@ const OverdueItem: React.FC<{
   linkLabel: string;
   testId?: string;
   onOpen?: () => void;
-}> = ({ tone, title, tag, owner, dueDate, linkLabel, testId, onOpen }) => (
-  <div
-    data-testid={testId}
-    className={`p-2.5 bg-white rounded-lg border space-y-1.5 text-xs ${TONE[tone].item}`}
-  >
-    <div className='flex items-start justify-between gap-2'>
-      <div className='font-semibold text-stone-900 line-clamp-1'>{title}</div>
-      <span
-        className={`px-1.5 py-0.5 rounded text-xs font-mono font-bold shrink-0 border ${TONE[tone].link}`}
-      >
-        {tag}
-      </span>
+}> = ({ tone, title, tag, owner, dueDate, linkLabel, testId, onOpen }) => {
+  const { t, lang } = useTranslation('production');
+
+  return (
+    <div
+      data-testid={testId}
+      className={`p-2.5 bg-white rounded-lg border space-y-1.5 text-xs ${TONE[tone].item}`}
+    >
+      <div className='flex items-start justify-between gap-2'>
+        <div className='font-semibold text-stone-900 line-clamp-1'>{title}</div>
+        <span
+          className={`px-1.5 py-0.5 rounded text-xs font-mono font-bold shrink-0 border ${TONE[tone].link}`}
+        >
+          {tag}
+        </span>
+      </div>
+      <div className='flex items-center justify-between text-stone-700'>
+        <span>{owner}</span>
+        <span className='text-rose-700 font-bold'>
+          {t('dashboard.attention.due', { date: formatViDate(dueDate, lang) ?? '–' })}
+        </span>
+      </div>
+      {onOpen && (
+        <button
+          type='button'
+          onClick={onOpen}
+          className={`focus-ring w-full min-h-9 border rounded-lg font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1 ${TONE[tone].link}`}
+        >
+          <span>{linkLabel}</span>
+          <ArrowRight className='w-3.5 h-3.5' aria-hidden='true' />
+        </button>
+      )}
     </div>
-    <div className='flex items-center justify-between text-stone-700'>
-      <span>{owner}</span>
-      <span className='text-rose-700 font-bold'>Hạn: {formatViDate(dueDate) ?? '–'}</span>
-    </div>
-    {onOpen && (
-      <button
-        type='button'
-        onClick={onOpen}
-        className={`focus-ring w-full min-h-9 border rounded-lg font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1 ${TONE[tone].link}`}
-      >
-        <span>{linkLabel}</span>
-        <ArrowRight className='w-3.5 h-3.5' aria-hidden='true' />
-      </button>
-    )}
-  </div>
-);
+  );
+};
 
 interface AttentionRiskCardProps {
   progress: SeriesProgressDto | null;
@@ -80,6 +87,7 @@ export const AttentionRiskCard: React.FC<AttentionRiskCardProps> = ({
   onSendReminders,
   openTask,
 }) => {
+  const { t } = useTranslation('production');
   const overdueCrs = progress?.overdueChangeRequests ?? [];
   const overdue = progress?.overdue ?? [];
 
@@ -87,17 +95,17 @@ export const AttentionRiskCard: React.FC<AttentionRiskCardProps> = ({
     <div className='bg-white border border-stone-200/80 rounded-xl p-5 sm:p-6 shadow-xs flex flex-col h-full gap-3.5'>
       <div className='flex items-center justify-between border-b border-stone-100 pb-3'>
         <div>
-          <h2 className='text-sm font-bold text-stone-900'>Mục Cần Chú Ý &amp; Rủi Ro</h2>
-          <p className='text-xs text-stone-600'>Cảnh báo trễ hạn và yêu cầu sửa</p>
+          <h2 className='text-sm font-bold text-stone-900'>{t('dashboard.attention.title')}</h2>
+          <p className='text-xs text-stone-600'>{t('dashboard.attention.subtitle')}</p>
         </div>
         {overdueTotal > 0 ? (
           <span className='text-xs font-semibold px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200'>
-            {overdueTotal} mục
+            {t('dashboard.attention.itemsCount', { count: overdueTotal })}
           </span>
         ) : (
           <span className='inline-flex items-center gap-1 text-xs font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200'>
             <CheckCircle2 className='w-3.5 h-3.5' aria-hidden='true' />
-            Ổn định
+            {t('dashboard.attention.stable')}
           </span>
         )}
       </div>
@@ -111,7 +119,7 @@ export const AttentionRiskCard: React.FC<AttentionRiskCardProps> = ({
             <div className='flex items-center gap-1.5'>
               <AlertCircle className={`w-4 h-4 shrink-0 ${TONE.amber.icon}`} aria-hidden='true' />
               <h3 className={`text-xs font-bold ${TONE.amber.heading}`}>
-                Danh Sách Yêu Cầu Sửa Đổi Quá Hạn ({overdueCrs.length})
+                {t('dashboard.attention.overdueCrTitle', { count: overdueCrs.length })}
               </h3>
             </div>
             <button
@@ -119,14 +127,18 @@ export const AttentionRiskCard: React.FC<AttentionRiskCardProps> = ({
               onClick={onSendReminders}
               disabled={sendingReminders}
               className='bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 rounded-full focus-ring min-h-9 px-3 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
-              title='Gửi thông báo nhắc nhở đến người phụ trách yêu cầu sửa'
+              title={t('dashboard.attention.sendRemindersTooltip')}
             >
               {sendingReminders ? (
                 <Loader2 className='w-3.5 h-3.5 animate-spin' aria-hidden='true' />
               ) : (
                 <Bell className='w-3.5 h-3.5' aria-hidden='true' />
               )}
-              <span>{sendingReminders ? 'Đang gửi...' : 'Gửi thông báo nhắc hạn'}</span>
+              <span>
+                {sendingReminders
+                  ? t('dashboard.attention.sendingReminders')
+                  : t('dashboard.attention.sendReminders')}
+              </span>
             </button>
           </div>
           <div className='space-y-2'>
@@ -136,14 +148,15 @@ export const AttentionRiskCard: React.FC<AttentionRiskCardProps> = ({
                 testId={`overdue-cr-card-${cr.changeRequestId}`}
                 tone='amber'
                 title={cr.description}
-                tag='1 yêu cầu sửa'
+                tag={t('dashboard.attention.crBadge')}
                 owner={
                   <>
-                    Người sửa: <strong>{cr.responsibleUserName}</strong>
+                    {t('dashboard.attention.responsiblePrefix')}{' '}
+                    <strong>{cr.responsibleUserName}</strong>
                   </>
                 }
                 dueDate={cr.dueDate}
-                linkLabel='Xem yêu cầu cần sửa'
+                linkLabel={t('dashboard.attention.viewCr')}
                 onOpen={openTask ? () => openTask(cr.chapterId, cr.assignmentId) : undefined}
               />
             ))}
@@ -157,11 +170,11 @@ export const AttentionRiskCard: React.FC<AttentionRiskCardProps> = ({
             <div className='flex items-center gap-1.5'>
               <AlertTriangle className={`w-4 h-4 shrink-0 ${TONE.rose.icon}`} aria-hidden='true' />
               <h3 className={`text-xs font-bold ${TONE.rose.heading}`}>
-                Danh Sách Công Việc Quá Hạn ({overdue.length})
+                {t('dashboard.attention.overdueTasksTitle', { count: overdue.length })}
               </h3>
             </div>
             <span className='text-xs font-semibold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200'>
-              Cần xử lý
+              {t('dashboard.attention.needsAction')}
             </span>
           </div>
           <div className='space-y-2'>
@@ -169,11 +182,11 @@ export const AttentionRiskCard: React.FC<AttentionRiskCardProps> = ({
               <OverdueItem
                 key={od.assignmentId}
                 tone='rose'
-                title={od.brief || 'Ô công việc trên Lưới V3'}
+                title={od.brief || t('dashboard.attention.defaultTaskBrief')}
                 tag={od.status}
                 owner={od.assigneeName}
                 dueDate={od.dueDate}
-                linkLabel='Xem việc cần xử lý'
+                linkLabel={t('dashboard.attention.viewTask')}
                 onOpen={openTask ? () => openTask(od.chapterId, od.assignmentId) : undefined}
               />
             ))}
@@ -184,9 +197,11 @@ export const AttentionRiskCard: React.FC<AttentionRiskCardProps> = ({
       {overdue.length === 0 && overdueCrs.length === 0 && (
         <div className='flex-1 flex flex-col items-center justify-center py-6 px-4 text-center gap-1.5 bg-stone-50 rounded-xl border border-dashed border-stone-300 min-h-[140px]'>
           <CheckCircle2 className='w-5 h-5 text-emerald-600' aria-hidden='true' />
-          <p className='text-xs font-bold text-stone-900'>Không có việc trễ hạn</p>
+          <p className='text-xs font-bold text-stone-900'>
+            {t('dashboard.attention.noOverdueTitle')}
+          </p>
           <p className='text-xs text-stone-600 max-w-xs leading-relaxed'>
-            Mọi nhiệm vụ và yêu cầu sửa trong Series đều còn trong hạn.
+            {t('dashboard.attention.noOverdueDesc')}
           </p>
         </div>
       )}

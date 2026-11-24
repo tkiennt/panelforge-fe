@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { TrendingUp, Info, ChevronRight, Calendar } from 'lucide-react';
 import type { BurndownPointDto } from '@/services/series.service';
+import { useTranslation } from '@/lib/i18n';
 
 export interface SeriesBurndownCardProps {
   burndown?: BurndownPointDto[] | null;
@@ -85,6 +86,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
   burndown,
   loading = false,
 }) => {
+  const { t } = useTranslation('production');
   const [timeframe, setTimeframe] = useState<'all' | '30d' | '7d'>('all');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -164,7 +166,9 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
     if (points.length === 1) {
       xLabels.push({
         x: points[0].x,
-        text: checkIsToday(points[0].date) ? 'Hôm nay' : formatShortDate(points[0].date),
+        text: checkIsToday(points[0].date)
+          ? t('producer.seriesBurndown.today')
+          : formatShortDate(points[0].date),
         isToday: checkIsToday(points[0].date),
       });
     } else {
@@ -184,7 +188,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
           const isToday = isLast && checkIsToday(pt.date);
           xLabels.push({
             x: pt.x,
-            text: isToday ? 'Hôm nay' : formatShortDate(pt.date),
+            text: isToday ? t('producer.seriesBurndown.today') : formatShortDate(pt.date),
             isToday,
           });
         });
@@ -198,7 +202,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
       ticks,
       xLabels,
     };
-  }, [filteredList, plotW, plotH, padLeft, padTop]);
+  }, [filteredList, plotW, plotH, padLeft, padTop, t]);
 
   // Loading skeleton
   if (loading) {
@@ -223,16 +227,18 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
         <div className='space-y-0.5'>
           <h2 className='text-sm font-bold text-zinc-900 flex items-center gap-2'>
             <TrendingUp className='w-4 h-4 text-[#F97316]' />
-            <span>Công việc còn lại theo thời gian</span>
-            <span className='text-xs font-normal text-zinc-500'>(Biểu Đồ Burndown)</span>
+            <span>{t('producer.seriesBurndown.title')}</span>
+            <span className='text-xs font-normal text-zinc-500'>
+              {t('producer.seriesBurndown.subtitleBadge')}
+            </span>
             <span
-              title='Định nghĩa: Số việc còn lại = Tổng nhiệm vụ trừ đi các nhiệm vụ đã được duyệt (Approved) tính đến cuối mỗi ngày (UTC).'
+              title={t('producer.seriesBurndown.definitionTooltip')}
               className='inline-flex cursor-help text-zinc-400 hover:text-[#F97316] transition-colors'
             >
               <Info className='w-3.5 h-3.5' />
             </span>
           </h2>
-          <p className='text-xs text-zinc-500'>Toàn bộ bộ truyện · Số công việc chưa hoàn tất</p>
+          <p className='text-xs text-zinc-500'>{t('producer.seriesBurndown.description')}</p>
         </div>
 
         <div className='flex items-center gap-2.5 flex-wrap sm:flex-nowrap'>
@@ -250,7 +256,11 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
                       : 'text-zinc-500 hover:text-zinc-900'
                   }`}
                 >
-                  {mode === 'all' ? 'Tất cả' : mode === '30d' ? '30 ngày' : '7 ngày'}
+                  {mode === 'all'
+                    ? t('producer.seriesBurndown.filterAll')
+                    : mode === '30d'
+                      ? t('producer.seriesBurndown.filter30d')
+                      : t('producer.seriesBurndown.filter7d')}
                 </button>
               ))}
             </div>
@@ -259,14 +269,20 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
           {/* Badge Số còn lại */}
           <span
             className='px-2.5 py-1 rounded-md bg-orange-50 text-[#C2410C] border border-orange-200 text-xs font-medium shrink-0 flex items-center gap-1.5'
-            title='Số lượng nhiệm vụ chưa được Approved'
+            title={t('producer.seriesBurndown.remainingBadgeTooltip')}
           >
             <span className='font-bold'>
-              Còn: {latestPoint ? `${latestPoint.remaining} việc` : '—'}
+              {t('producer.seriesBurndown.remainingLabel', {
+                value: latestPoint
+                  ? t('producer.seriesBurndown.tasksCount', { count: latestPoint.remaining })
+                  : '—',
+              })}
             </span>
             {latestPoint && !isLatestToday && (
               <span className='text-[10px] text-[#EA580C] font-normal'>
-                (Đến {formatShortDate(latestPoint.date)})
+                {t('producer.seriesBurndown.untilDate', {
+                  date: formatShortDate(latestPoint.date),
+                })}
               </span>
             )}
           </span>
@@ -278,28 +294,44 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
         <div className='grid grid-cols-3 gap-2 py-2 px-3 bg-zinc-50/70 rounded-xl border border-zinc-200 text-xs text-center'>
           <div>
             <span className='text-zinc-500 block text-[11px]'>
-              Đầu kỳ ({formatShortDate(stats.startDate)})
+              {t('producer.seriesBurndown.startPeriod', {
+                date: formatShortDate(stats.startDate),
+              })}
             </span>
-            <span className='font-bold text-zinc-900 text-xs'>{stats.startVal} việc</span>
+            <span className='font-bold text-zinc-900 text-xs'>
+              {t('producer.seriesBurndown.tasksCount', { count: stats.startVal })}
+            </span>
           </div>
           <div>
             <span className='text-zinc-500 block text-[11px]'>
-              Cuối kỳ ({formatShortDate(stats.endDate)})
+              {t('producer.seriesBurndown.endPeriod', { date: formatShortDate(stats.endDate) })}
             </span>
-            <span className='font-bold text-zinc-900 text-xs'>{stats.endVal} việc</span>
+            <span className='font-bold text-zinc-900 text-xs'>
+              {t('producer.seriesBurndown.tasksCount', { count: stats.endVal })}
+            </span>
           </div>
           <div>
-            <span className='text-zinc-500 block text-[11px]'>Thay đổi ròng</span>
+            <span className='text-zinc-500 block text-[11px]'>
+              {t('producer.seriesBurndown.netChange')}
+            </span>
             {stats.isSinglePoint ? (
-              <span className='font-medium text-zinc-500 text-xs'>Khởi tạo</span>
+              <span className='font-medium text-zinc-500 text-xs'>
+                {t('producer.seriesBurndown.initialState')}
+              </span>
             ) : stats.netChange < 0 ? (
               <span className='font-bold text-emerald-700 text-xs'>
-                Giảm {Math.abs(stats.netChange)} việc
+                {t('producer.seriesBurndown.decreasedTasks', {
+                  count: Math.abs(stats.netChange),
+                })}
               </span>
             ) : stats.netChange > 0 ? (
-              <span className='font-bold text-amber-700 text-xs'>Tăng {stats.netChange} việc</span>
+              <span className='font-bold text-amber-700 text-xs'>
+                {t('producer.seriesBurndown.increasedTasks', { count: stats.netChange })}
+              </span>
             ) : (
-              <span className='font-bold text-zinc-500 text-xs'>Không đổi</span>
+              <span className='font-bold text-zinc-500 text-xs'>
+                {t('producer.seriesBurndown.noChange')}
+              </span>
             )}
           </div>
         </div>
@@ -312,11 +344,10 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
             <Calendar className='w-4.5 h-4.5' />
           </div>
           <p className='font-semibold text-zinc-900 text-xs'>
-            Chưa có dữ liệu lịch sử trong khoảng thời gian này
+            {t('producer.seriesBurndown.emptyTitle')}
           </p>
           <p className='text-xs text-zinc-500 max-w-sm mx-auto'>
-            Khi các nhiệm vụ được tạo và duyệt hoàn tất trong Series, tiến trình sẽ được ghi nhận
-            hàng ngày.
+            {t('producer.seriesBurndown.emptyDesc')}
           </p>
         </div>
       ) : (
@@ -325,7 +356,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
             <svg
               viewBox={`0 0 ${width} ${height}`}
               className='w-full h-full text-xs'
-              aria-label='Biểu đồ công việc còn lại theo thời gian'
+              aria-label={t('producer.seriesBurndown.chartAriaLabel')}
             >
               <defs>
                 <linearGradient id='burndownGradientWarm' x1='0' y1='0' x2='0' y2='1'>
@@ -336,7 +367,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
 
               {/* Trục Y: Đơn vị nhãn */}
               <text x='10' y='14' fill='#57534E' fontSize='10' fontWeight='500'>
-                (Việc)
+                {t('producer.seriesBurndown.yAxisUnit')}
               </text>
 
               {/* Horizontal Gridlines & Y-axis Ticks */}
@@ -395,7 +426,10 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
                     className='transition-all duration-150 cursor-pointer focus:outline-none'
                     tabIndex={0}
                     role='button'
-                    aria-label={`Ngày ${formatFullDate(pt.date)}: ${pt.remaining} việc còn lại`}
+                    aria-label={t('producer.seriesBurndown.pointAriaLabel', {
+                      date: formatFullDate(pt.date),
+                      count: pt.remaining,
+                    })}
                     onMouseEnter={() => setHoveredIndex(idx)}
                     onMouseLeave={() => setHoveredIndex(null)}
                     onFocus={() => setHoveredIndex(idx)}
@@ -443,17 +477,23 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
                       <span>{formatFullDate(pt.date)}</span>
                       {checkIsToday(pt.date) && (
                         <span className='px-1 py-0.2 rounded bg-orange-500/30 text-orange-300 text-[10px]'>
-                          Hôm nay
+                          {t('producer.seriesBurndown.today')}
                         </span>
                       )}
                     </div>
                     <div className='flex items-center justify-between gap-3 pt-0.5'>
-                      <span className='text-stone-400'>Còn lại:</span>
-                      <span className='font-bold text-orange-300'>{pt.remaining} việc</span>
+                      <span className='text-stone-400'>
+                        {t('producer.seriesBurndown.tooltipRemaining')}
+                      </span>
+                      <span className='font-bold text-orange-300'>
+                        {t('producer.seriesBurndown.tasksCount', { count: pt.remaining })}
+                      </span>
                     </div>
                     {diff !== null && (
                       <div className='flex items-center justify-between gap-3 text-[11px] text-stone-300'>
-                        <span className='text-stone-400'>So mốc trước:</span>
+                        <span className='text-stone-400'>
+                          {t('producer.seriesBurndown.tooltipVsPrev')}
+                        </span>
                         <span
                           className={
                             diff < 0
@@ -464,10 +504,12 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
                           }
                         >
                           {diff < 0
-                            ? `↓ Giảm ${Math.abs(diff)}`
+                            ? t('producer.seriesBurndown.tooltipDecreased', {
+                                count: Math.abs(diff),
+                              })
                             : diff > 0
-                              ? `↑ Tăng ${diff}`
-                              : 'Không đổi'}
+                              ? t('producer.seriesBurndown.tooltipIncreased', { count: diff })
+                              : t('producer.seriesBurndown.noChange')}
                         </span>
                       </div>
                     )}
@@ -479,15 +521,16 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
           {/* Trường hợp đặc biệt: Tất cả giá trị bằng 0 */}
           {stats?.isAllZero && (
             <p className='text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 p-2 rounded-lg text-center'>
-              Tất cả các công việc trong giai đoạn này đã được hoàn tất phê duyệt (0 việc tồn đọng).
+              {t('producer.seriesBurndown.allZeroNotice')}
             </p>
           )}
 
           {/* Trường hợp đặc biệt: Chỉ có 1 mốc dữ liệu */}
           {stats?.isSinglePoint && (
             <p className='text-xs text-[#57534E] text-center italic'>
-              Chỉ có 1 mốc dữ liệu ghi nhận ({formatShortDate(stats.startDate)}). Cần thêm thời gian
-              sản xuất để hiển thị đường xu hướng hoàn chỉnh.
+              {t('producer.seriesBurndown.singlePointNotice', {
+                date: formatShortDate(stats.startDate),
+              })}
             </p>
           )}
         </div>
@@ -498,42 +541,55 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
         <details className='border-t border-[#D8D2C5] pt-2 text-xs group'>
           <summary className='cursor-pointer text-[#57534E] hover:text-[#1C1917] flex items-center gap-1.5 font-medium py-1 select-none focus:outline-none focus:ring-1 focus:ring-orange-500 rounded'>
             <ChevronRight className='w-3.5 h-3.5 transition-transform group-open:rotate-90 text-stone-400' />
-            <span>Xem dữ liệu chi tiết ({filteredList.length} mốc ghi nhận)</span>
+            <span>
+              {t('producer.seriesBurndown.detailsSummary', { count: filteredList.length })}
+            </span>
           </summary>
           <div className='mt-2 max-h-44 overflow-y-auto border border-[#D8D2C5] rounded-lg'>
             <table className='w-full text-left text-xs'>
               <thead className='bg-[#FAF8F5] text-[#57534E] border-b border-[#D8D2C5] sticky top-0'>
                 <tr>
-                  <th className='py-1.5 px-3 font-semibold'>Ngày (UTC)</th>
-                  <th className='py-1.5 px-3 font-semibold text-right'>Việc còn lại</th>
-                  <th className='py-1.5 px-3 font-semibold text-right'>Trạng thái</th>
+                  <th className='py-1.5 px-3 font-semibold'>
+                    {t('producer.seriesBurndown.colDateUtc')}
+                  </th>
+                  <th className='py-1.5 px-3 font-semibold text-right'>
+                    {t('producer.seriesBurndown.colRemaining')}
+                  </th>
+                  <th className='py-1.5 px-3 font-semibold text-right'>
+                    {t('producer.seriesBurndown.colStatus')}
+                  </th>
                 </tr>
               </thead>
               <tbody className='divide-y divide-[#EAE5DC] bg-[#FCFBF8] tabular-nums'>
                 {filteredList.map((pt, idx) => (
                   <tr key={pt.date + idx} className='hover:bg-stone-50/60'>
                     <td className='py-1.5 px-3 text-stone-700'>
-                      {formatFullDate(pt.date)} {checkIsToday(pt.date) ? '(Hôm nay)' : ''}
+                      {formatFullDate(pt.date)}{' '}
+                      {checkIsToday(pt.date) ? t('producer.seriesBurndown.todaySuffix') : ''}
                     </td>
                     <td className='py-1.5 px-3 font-bold text-stone-900 text-right'>
-                      {pt.remaining} việc
+                      {t('producer.seriesBurndown.tasksCount', { count: pt.remaining })}
                     </td>
                     <td className='py-1.5 px-3 text-right'>
                       {idx === 0 ? (
-                        <span className='text-stone-400 text-[11px]'>Đầu kỳ</span>
+                        <span className='text-stone-400 text-[11px]'>
+                          {t('producer.seriesBurndown.tableStartPeriod')}
+                        </span>
                       ) : (
                         (() => {
                           const diff = pt.remaining - filteredList[idx - 1].remaining;
                           if (diff < 0)
                             return (
                               <span className='text-emerald-600 font-medium text-[11px]'>
-                                Giảm {Math.abs(diff)}
+                                {t('producer.seriesBurndown.tableDecreased', {
+                                  count: Math.abs(diff),
+                                })}
                               </span>
                             );
                           if (diff > 0)
                             return (
                               <span className='text-amber-600 font-medium text-[11px]'>
-                                Tăng {diff}
+                                {t('producer.seriesBurndown.tableIncreased', { count: diff })}
                               </span>
                             );
                           return <span className='text-stone-400 text-[11px]'>—</span>;
