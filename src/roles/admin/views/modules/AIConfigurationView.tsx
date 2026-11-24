@@ -39,7 +39,14 @@ const STATUS_OPTIONS: { value: string; label: string; tone: AdminTone }[] = [
 ];
 
 const AI_PROVIDER = 'Google Gemini';
-const KNOWN_MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-image'];
+// Cùng thứ tự với WorkspaceAiConfig.DefaultAllowedModels (BE): key của project Google mới không gọi được dòng 2.5.
+const KNOWN_MODELS = [
+  'gemini-3.8-flash',
+  'gemini-3.1-pro-preview',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-2.5-flash-image',
+];
 
 const fmt = (n?: number | null) => (n ?? 0).toLocaleString('vi-VN');
 
