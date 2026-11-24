@@ -77,9 +77,12 @@ export const userService = {
    */
   updateReadingLanguage: async (languageCode: string | null): Promise<string | null> => {
     try {
-      const response = await axiosClient.put<{ preferredReadingLanguage: string | null }>('/Users/me/reading-language', {
-        languageCode,
-      });
+      const response = await axiosClient.put<{ preferredReadingLanguage: string | null }>(
+        '/Users/me/reading-language',
+        {
+          languageCode,
+        },
+      );
       return response.data?.preferredReadingLanguage ?? null;
     } catch (error) {
       throw new Error(

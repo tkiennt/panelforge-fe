@@ -97,7 +97,9 @@ export const catalogService = {
       const response = await axiosClient.get('/catalog/series', { params });
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, translate('errors.services.catalog.getPublicSeriesFailed')));
+      throw new Error(
+        extractError(error, translate('errors.services.catalog.getPublicSeriesFailed')),
+      );
     }
   },
 

@@ -237,7 +237,9 @@ describe('Chapter Publishing & Review Services', () => {
 
       // BR-34: chọn ngôn ngữ ấn bản → gửi ?lang=
       await catalogService.getPublicChapter('chap-100', 'en');
-      expect(get).toHaveBeenLastCalledWith('/catalog/chapters/chap-100', { params: { lang: 'en' } });
+      expect(get).toHaveBeenLastCalledWith('/catalog/chapters/chap-100', {
+        params: { lang: 'en' },
+      });
       expect(res.pages.length).toBe(2);
     });
 
