@@ -35,7 +35,9 @@ describe('SeriesImagePickerDialog', () => {
   });
 
   it('allows picking a preset and applying it', async () => {
-    vi.mocked(seriesService.setSeriesImagePreset).mockResolvedValue('https://example.com/new-avatar.png');
+    vi.mocked(seriesService.setSeriesImagePreset).mockResolvedValue(
+      'https://example.com/new-avatar.png',
+    );
 
     render(<SeriesImagePickerDialog {...defaultProps} />);
 
@@ -47,7 +49,11 @@ describe('SeriesImagePickerDialog', () => {
     fireEvent.click(applyBtn);
 
     await waitFor(() => {
-      expect(seriesService.setSeriesImagePreset).toHaveBeenCalledWith('series-123', 'avatar', 'series-avatar-a1');
+      expect(seriesService.setSeriesImagePreset).toHaveBeenCalledWith(
+        'series-123',
+        'avatar',
+        'series-avatar-a1',
+      );
       expect(defaultProps.onApplied).toHaveBeenCalledWith('https://example.com/new-avatar.png');
       expect(defaultProps.onClose).toHaveBeenCalled();
     });

@@ -18,20 +18,11 @@ export interface WorkspaceViewProps {
   isReaderMode?: boolean;
 }
 
-const CHAPTER_STATUS_META: Record<string, { label: string; cls: string }> = {
-  PreProduction: {
-    label: 'Tiền kỳ (viết kịch bản)',
-    cls: 'text-stone-800 bg-stone-50 border-stone-300',
-  },
-  InProduction: { label: 'Đang sản xuất', cls: 'text-amber-900 bg-amber-50 border-amber-300' },
-  ChapterApproved: {
-    label: 'Đã nghiệm thu (Gate 3)',
-    cls: 'text-emerald-900 bg-emerald-50 border-emerald-300',
-  },
-  HandedOffAndPublished: {
-    label: 'Đã bàn giao & phát hành',
-    cls: 'text-violet-900 bg-violet-50 border-violet-300',
-  },
+const CHAPTER_STATUS_CLS: Record<string, string> = {
+  PreProduction: 'text-stone-800 bg-stone-50 border-stone-300',
+  InProduction: 'text-amber-900 bg-amber-50 border-amber-300',
+  ChapterApproved: 'text-emerald-900 bg-emerald-50 border-emerald-300',
+  HandedOffAndPublished: 'text-violet-900 bg-violet-50 border-violet-300',
 };
 
 const focusRing =
@@ -46,6 +37,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   isReaderMode = false,
 }) => {
   const { t } = useTranslation('pipeline');
+  const { t: tf } = useTranslation('features');
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -126,11 +118,14 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
       }
     } catch (err: any) {
       console.error('Không thể nạp danh sách chương cho WorkspaceView:', err);
-      onShowToast('Lỗi tải danh mục', 'Không thể nạp danh sách chương của bộ truyện.');
+      onShowToast(
+        tf('productionWorkspace.workspace.loadChaptersErrorTitle'),
+        tf('productionWorkspace.workspace.loadChaptersErrorDesc'),
+      );
     } finally {
       setLoadingChapters(false);
     }
-  }, [seriesId, chapterIdFromUrl, setSearchParams, onShowToast]);
+  }, [seriesId, chapterIdFromUrl, setSearchParams, onShowToast, tf]);
 
   useEffect(() => {
     loadChapters();
@@ -152,9 +147,12 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   }, [chapters, currentChapterId]);
 
   const currentChapterFormattedTitle = useMemo(() => {
-    if (!currentChapter) return 'Đang nạp chương...';
-    return formatChapterLabel(currentChapter.chapterNumber, currentChapter.title || 'Bản thảo');
-  }, [currentChapter]);
+    if (!currentChapter) return tf('productionWorkspace.workspace.loadingChapter');
+    return formatChapterLabel(
+      currentChapter.chapterNumber,
+      currentChapter.title || tf('productionWorkspace.workspace.draftFallback'),
+    );
+  }, [currentChapter, tf]);
 
   // Chặn độc giả không phận sự
   if (isReaderMode || isReaderOnly) {
@@ -164,27 +162,30 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           <ShieldAlert className='w-8 h-8' />
         </div>
         <h2 className='text-xl font-serif font-semibold text-zinc-900 mb-2'>
-          Khu vực giới hạn
+          {tf('productionWorkspace.workspace.restrictedTitle')}
         </h2>
         <p className='text-sm text-zinc-500 max-w-md mb-4'>
-          Không có quyền truy cập sản xuất. Quay lại danh mục truyện để đọc bản phát hành.
+          {tf('productionWorkspace.workspace.restrictedDesc')}
         </p>
         <button
           type='button'
           onClick={() => navigate('/catalog')}
           className='px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors'
         >
-          Đến Public Catalog
+          {tf('productionWorkspace.workspace.goToCatalog')}
         </button>
       </div>
     );
   }
 
+  const statusKey = currentChapter ? String(currentChapter.status) : '';
   const statusMeta = currentChapter
-    ? (CHAPTER_STATUS_META[String(currentChapter.status)] ?? {
-        label: String(currentChapter.status),
-        cls: 'text-stone-800 bg-stone-100 border-stone-300',
-      })
+    ? {
+        label: CHAPTER_STATUS_CLS[statusKey]
+          ? tf(`productionWorkspace.chapterStatus.${statusKey}`)
+          : statusKey,
+        cls: CHAPTER_STATUS_CLS[statusKey] ?? 'text-stone-800 bg-stone-100 border-stone-300',
+      }
     : null;
 
   return (
@@ -195,7 +196,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           <div className='min-w-0'>
             {/* Breadcrumb Studio / Series / Chương */}
             <nav
-              aria-label='Đường dẫn ngữ cảnh'
+              aria-label={tf('productionWorkspace.workspace.breadcrumbAria')}
               className='flex items-center gap-1.5 text-xs text-landing-ink-muted mb-2 flex-wrap'
             >
               <Link
@@ -218,13 +219,19 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 className='font-semibold text-landing-ink max-w-[200px] truncate'
                 title={currentChapterFormattedTitle}
               >
-                {currentChapter ? `Chương ${currentChapter.chapterNumber}` : 'Chương'}
+                {currentChapter
+                  ? tf('productionWorkspace.workspace.chapterNumber', {
+                      number: currentChapter.chapterNumber,
+                    })
+                  : tf('productionWorkspace.workspace.chapterFallback')}
               </span>
             </nav>
 
             {/* Nhãn chức năng phụ + Tên chương nổi bật */}
             <div className='flex items-center gap-2 mb-1.5'>
-              <h1 className='text-sm font-semibold text-landing-ink-muted'>Quy trình sản xuất</h1>
+              <h1 className='text-sm font-semibold text-landing-ink-muted'>
+                {tf('productionWorkspace.workspace.workflowTitle')}
+              </h1>
               {statusMeta && (
                 <span
                   className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${statusMeta.cls}`}
@@ -239,7 +246,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   <span className='inline-flex items-center gap-1 text-xs text-landing-ink-muted'>
                     <Lock className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
                     <span className='hidden sm:inline'>
-                      Bị khoá: nội dung chương chỉ còn xem, không sửa được
+                      {tf('productionWorkspace.workspace.chapterLockedNote')}
                     </span>
                   </span>
                 )}
@@ -250,8 +257,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               {currentChapter
                 ? currentChapter.title
                   ? currentChapter.title.replace(/^\s*chương\s*\d+\s*[:.\-–—]?\s*/i, '').trim()
-                  : `Bản thảo Chương ${currentChapter.chapterNumber}`
-                : 'Đang nạp chương...'}
+                  : tf('productionWorkspace.workspace.draftChapterTitle', {
+                      number: currentChapter.chapterNumber,
+                    })
+                : tf('productionWorkspace.workspace.loadingChapter')}
             </h2>
 
             {/* Bộ chọn chương */}
@@ -262,22 +271,25 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   htmlFor='pipeline-chapter-select'
                   className='text-xs font-semibold text-landing-ink-muted'
                 >
-                  Chương:
+                  {tf('productionWorkspace.workspace.chapterSelectLabel')}
                 </label>
                 <select
                   id='pipeline-chapter-select'
-                  aria-label='Chương:'
+                  aria-label={tf('productionWorkspace.workspace.chapterSelectLabel')}
                   value={currentChapterId}
                   onChange={handleChapterChange}
                   disabled={loadingChapters || chapters.length === 0}
                   className={`min-h-9 max-w-[60vw] min-w-0 truncate rounded bg-transparent pr-2 text-sm font-semibold text-landing-ink cursor-pointer sm:max-w-md ${focusRing}`}
                 >
                   {chapters.length === 0 ? (
-                    <option value=''>Đang nạp danh sách chương...</option>
+                    <option value=''>{tf('productionWorkspace.workspace.loadingChapters')}</option>
                   ) : (
                     chapters.map((chap) => (
                       <option key={chap.id} value={chap.id}>
-                        {formatChapterLabel(chap.chapterNumber, chap.title || 'Bản thảo')}
+                        {formatChapterLabel(
+                          chap.chapterNumber,
+                          chap.title || tf('productionWorkspace.workspace.draftFallback'),
+                        )}
                       </option>
                     ))
                   )}
@@ -294,12 +306,12 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 loadChapters();
                 setRefreshKey((k) => k + 1);
               }}
-              aria-label='Làm mới dữ liệu'
-              title='Làm mới dữ liệu'
+              aria-label={tf('productionWorkspace.workspace.refreshAria')}
+              title={tf('productionWorkspace.workspace.refreshAria')}
               className={`inline-flex min-h-10 items-center gap-2 rounded-lg border border-landing-border bg-[#FCFBF8] px-3.5 text-sm font-semibold text-landing-ink hover:bg-white shadow-2xs transition-colors cursor-pointer ${focusRing}`}
             >
               <RefreshCw className='h-4 w-4 text-landing-ink-muted' aria-hidden='true' />
-              <span className='max-sm:sr-only'>Làm mới</span>
+              <span className='max-sm:sr-only'>{tf('productionWorkspace.workspace.refresh')}</span>
             </button>
 
             {workspaceId && seriesId && (
@@ -314,7 +326,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 }
                 className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#1C1917] px-4 text-sm font-semibold text-white shadow-xs hover:bg-stone-800 transition-colors cursor-pointer ${focusRing}`}
               >
-                <span>Công việc &amp; Xét duyệt</span>
+                <span>{tf('productionWorkspace.workspace.myWorkBtn')}</span>
                 <ArrowUpRight className='h-4 w-4' aria-hidden='true' />
               </button>
             )}
@@ -344,13 +356,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         ) : (
           <div className='rounded-xl border border-dashed border-landing-border bg-[#FCFBF8] p-10 text-center'>
             <div className='font-semibold text-landing-ink'>
-              {t('taskGridV3.noChapterSelectedTitle', 'Chưa chọn chương')}
+              {t('taskGridV3.noChapterSelectedTitle')}
             </div>
             <p className='mt-1 text-sm text-landing-ink-muted'>
-              {t(
-                'taskGridV3.noChapterSelectedDesc',
-                'Chọn một chương ở phía trên để xem Lưới Giao Việc.',
-              )}
+              {t('taskGridV3.noChapterSelectedDesc')}
             </p>
           </div>
         )}

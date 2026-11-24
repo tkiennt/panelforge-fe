@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { AlertTriangle, Brain, CheckCircle2, Code2, Quote } from 'lucide-react';
 import {
   AiStepDto,
@@ -29,6 +30,7 @@ interface Props {
 }
 
 const ScriptView: React.FC<Props> = ({ step, allSteps, nameById }) => {
+  const { t } = useTranslation('features');
   const draft = step.output as ScriptDraft;
   const prev = previousWriterStep(allSteps, step)?.output as ScriptDraft | undefined;
   const prevByOrder = new Map((prev?.lines ?? []).map((l) => [l.order, l]));
@@ -39,7 +41,7 @@ const ScriptView: React.FC<Props> = ({ step, allSteps, nameById }) => {
     <div className='space-y-2'>
       {draft.revisionNotes && (
         <div className='rounded-lg border border-[#FDBA74] bg-[#FFF7ED] p-2 text-xs text-[#9A3412]'>
-          <b>Ghi chú sửa:</b> {draft.revisionNotes}
+          <b>{t('aiAgents.stepOutput.revisionNotes')}</b> {draft.revisionNotes}
         </div>
       )}
       <ol className='space-y-1'>
@@ -60,7 +62,7 @@ const ScriptView: React.FC<Props> = ({ step, allSteps, nameById }) => {
                 <div className='min-w-0 flex-1'>
                   {l.speakerId && (
                     <span className='mr-1 rounded bg-[#F5F3FF] px-1.5 py-0.5 text-[10px] font-bold text-[#6D28D9]'>
-                      {nameById[l.speakerId] ?? 'nhân vật'}
+                      {nameById[l.speakerId] ?? t('aiAgents.stepOutput.characterFallback')}
                     </span>
                   )}
                   {l.dialogue && <span className='font-medium'>“{l.dialogue}”</span>}
@@ -70,7 +72,7 @@ const ScriptView: React.FC<Props> = ({ step, allSteps, nameById }) => {
                   {changed && (
                     <div className='mt-1 rounded bg-white/70 p-1 text-[11px] text-[#92400E]'>
                       <span className='mr-1 rounded bg-[#F59E0B] px-1 text-[10px] font-bold text-white'>
-                        đã sửa
+                        {t('aiAgents.stepOutput.editedBadge')}
                       </span>
                       <span className='line-through opacity-70'>
                         {old?.dialogue ? `“${old.dialogue}” ` : ''}
@@ -89,6 +91,7 @@ const ScriptView: React.FC<Props> = ({ step, allSteps, nameById }) => {
 };
 
 const ContinuityView: React.FC<Props> = ({ step, nameById, lines }) => {
+  const { t } = useTranslation('features');
   const report = step.output as ContinuityReport;
   return (
     <div className='space-y-2'>
@@ -100,7 +103,10 @@ const ContinuityView: React.FC<Props> = ({ step, nameById, lines }) => {
         }`}
       >
         {report.findings.length === 0 ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-        {report.summary || (report.findings.length === 0 ? 'Không có mâu thuẫn.' : 'Có mâu thuẫn.')}
+        {report.summary ||
+          (report.findings.length === 0
+            ? t('aiAgents.stepOutput.noConflicts')
+            : t('aiAgents.stepOutput.hasConflicts'))}
       </div>
       {report.findings.map((f) => (
         <div
@@ -121,17 +127,17 @@ const ContinuityView: React.FC<Props> = ({ step, nameById, lines }) => {
           <p className='mt-1 font-semibold'>{f.description}</p>
 
           <div className='mt-2 text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
-            Dòng script liên quan
+            {t('aiAgents.stepOutput.relatedScriptLines')}
           </div>
           {f.scriptLineIds.map((id) => (
             <div key={id} className='mt-1 rounded border border-[#FDBA74] bg-[#FFF7ED] p-1.5'>
-              <b>Dòng {lines[id]?.order ?? '?'}</b>
+              <b>{t('aiAgents.stepOutput.lineOrder', { order: lines[id]?.order ?? '?' })}</b>
               {lines[id]?.speaker ? ` · ${lines[id]?.speaker}` : ''}: {lines[id]?.text}
             </div>
           ))}
 
           <div className='mt-2 text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
-            Bằng chứng từ Series Bible
+            {t('aiAgents.stepOutput.bibleEvidence')}
           </div>
           {f.evidence.map((e) => (
             <div
@@ -150,7 +156,7 @@ const ContinuityView: React.FC<Props> = ({ step, nameById, lines }) => {
           ))}
           {f.suggestedFix && (
             <p className='mt-2 text-[#065F46]'>
-              <b>Gợi ý sửa:</b> {f.suggestedFix}
+              <b>{t('aiAgents.stepOutput.suggestedFix')}</b> {f.suggestedFix}
             </p>
           )}
         </div>
@@ -160,30 +166,31 @@ const ContinuityView: React.FC<Props> = ({ step, nameById, lines }) => {
 };
 
 const SupervisorView: React.FC<Props> = ({ step }) => {
+  const { t } = useTranslation('features');
   const d = step.output as SupervisorDecision;
   return (
     <div className='space-y-2 text-xs'>
       <div className='flex flex-wrap items-center gap-2 rounded-lg bg-[#171717] p-2 text-white'>
         <Brain size={14} />
-        <span>Supervisor chọn</span>
+        <span>{t('aiAgents.stepOutput.supervisorChose')}</span>
         <span className='rounded bg-[#F97316] px-2 py-0.5 text-[11px] font-bold'>→ {d.action}</span>
         {d.guardrailOverridden && (
           <span className='rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-[#171717]'>
-            guardrail đã ghi đè lựa chọn của Supervisor
+            {t('aiAgents.stepOutput.guardrailOverridden')}
           </span>
         )}
       </div>
       <p>
-        <b>Lý do:</b> {d.reason}
+        <b>{t('aiAgents.stepOutput.reasonLabel')}</b> {d.reason}
       </p>
       {d.instruction && (
         <div className='rounded border border-[#FDBA74] bg-[#FFF7ED] p-2 text-[#9A3412]'>
-          <b>Chỉ đạo gửi agent kế tiếp:</b> {d.instruction}
+          <b>{t('aiAgents.stepOutput.nextAgentInstruction')}</b> {d.instruction}
         </div>
       )}
       <div className='flex flex-wrap items-center gap-1'>
         <span className='text-[10px] font-bold uppercase tracking-wide text-[#737373]'>
-          Hàng rào (code tính) cho phép:
+          {t('aiAgents.stepOutput.allowedActionsLabel')}
         </span>
         {d.allowedActions.map((a) => (
           <span
@@ -204,6 +211,7 @@ const SupervisorView: React.FC<Props> = ({ step }) => {
 
 /** Hiển thị output có cấu trúc của một step, theo từng agent; có nút xem JSON gốc (provenance). */
 export const StepOutputView: React.FC<Props> = (props) => {
+  const { t } = useTranslation('features');
   const { step } = props;
   const [raw, setRaw] = useState(false);
 
@@ -245,7 +253,8 @@ export const StepOutputView: React.FC<Props> = (props) => {
         onClick={() => setRaw((v) => !v)}
         className='mt-2 flex items-center gap-1 text-[11px] font-semibold text-[#525252] hover:text-[#171717]'
       >
-        <Code2 size={12} /> {raw ? 'Ẩn' : 'Xem'} JSON gốc (output + input của step)
+        <Code2 size={12} />{' '}
+        {raw ? t('aiAgents.stepOutput.hideRawJson') : t('aiAgents.stepOutput.showRawJson')}
       </button>
       {raw && (
         <pre className='mt-1 max-h-72 overflow-auto rounded bg-[#171717] p-2 text-[10px] text-[#E5E5E5]'>

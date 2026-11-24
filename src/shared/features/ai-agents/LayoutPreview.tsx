@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { StoryboardLayout } from '@/services/aiAgents.service';
 import { LineInfo } from './aiViewUtils';
 
@@ -13,6 +14,7 @@ export const LayoutPreview: React.FC<{
   lines: Record<string, LineInfo>;
   nameById: Record<string, string>;
 }> = ({ layout, lines, nameById }) => {
+  const { t } = useTranslation('features');
   const [pageIdx, setPageIdx] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
   const page = layout.pages[pageIdx] ?? layout.pages[0];
@@ -22,10 +24,10 @@ export const LayoutPreview: React.FC<{
   const viewW = vertical ? WEBTOON_W : PAGE_W;
   const viewH = vertical ? WEBTOON_H : PAGE_H;
   const directionLabel = vertical
-    ? 'trên → dưới (Vertical)'
+    ? t('aiAgents.layoutPreview.directionVertical')
     : rtl
-      ? 'phải → trái (RTL)'
-      : 'trái → phải (LTR)';
+      ? t('aiAgents.layoutPreview.directionRtl')
+      : t('aiAgents.layoutPreview.directionLtr');
 
   return (
     <div className='flex flex-col gap-3 md:flex-row'>
@@ -41,7 +43,7 @@ export const LayoutPreview: React.FC<{
                   i === pageIdx ? 'bg-[#171717] text-white' : 'bg-white'
                 }`}
               >
-                Trang {p.pageNumber}
+                {t('aiAgents.layoutPreview.pageLabel', { page: p.pageNumber })}
               </button>
             ))}
           </div>
@@ -50,7 +52,7 @@ export const LayoutPreview: React.FC<{
           viewBox={`0 0 ${viewW} ${viewH}`}
           className='w-[240px] rounded border-[1.5px] border-[#171717] bg-[#FFFDF8]'
           role='img'
-          aria-label={`Bố cục trang ${page.pageNumber}`}
+          aria-label={t('aiAgents.layoutPreview.pageLayoutAria', { page: page.pageNumber })}
         >
           {page.panels.map((p) => {
             const x = p.bbox.x * viewW + 3;
@@ -97,7 +99,7 @@ export const LayoutPreview: React.FC<{
           })}
         </svg>
         <div className='mt-1 text-center text-[11px] font-semibold text-[#525252]'>
-          Hướng đọc: {directionLabel} · số = thứ tự đọc
+          {t('aiAgents.layoutPreview.readingDirectionLabel', { direction: directionLabel })}
         </div>
       </div>
 
@@ -136,7 +138,7 @@ export const LayoutPreview: React.FC<{
                     title={lines[id]?.text}
                     className='rounded border border-[#FDBA74] bg-[#FFF7ED] px-1 text-[10px] text-[#C2410C]'
                   >
-                    dòng {lines[id]?.order ?? '?'}
+                    {t('aiAgents.layoutPreview.lineOrder', { order: lines[id]?.order ?? '?' })}
                   </span>
                 ))}
                 {(p.characterIds || []).map((id) => (
@@ -144,7 +146,7 @@ export const LayoutPreview: React.FC<{
                     key={id}
                     className='rounded border border-[#DDD6FE] bg-[#F5F3FF] px-1 text-[10px] text-[#6D28D9]'
                   >
-                    {nameById[id] ?? 'nhân vật'}
+                    {nameById[id] ?? t('aiAgents.layoutPreview.characterFallback')}
                   </span>
                 ))}
               </div>

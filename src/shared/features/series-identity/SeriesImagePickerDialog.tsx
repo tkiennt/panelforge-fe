@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { translate, useTranslation } from '@/lib/i18n';
 import {
   AlertCircle,
   Check,
@@ -32,10 +33,7 @@ interface Props {
 }
 
 type Choice =
-  | { type: 'preset'; id: string }
-  | { type: 'upload'; file: File }
-  | { type: 'remove' }
-  | null;
+  { type: 'preset'; id: string } | { type: 'upload'; file: File } | { type: 'remove' } | null;
 
 type FitMode = 'contain' | 'cover';
 
@@ -66,7 +64,7 @@ async function processImageForSeries(
 
   await new Promise<void>((resolve, reject) => {
     img.onload = () => resolve();
-    img.onerror = () => reject(new Error('Không thể đọc file ảnh để xử lý.'));
+    img.onerror = () => reject(new Error(translate('features.seriesIdentity.readImageError')));
     img.src = filePreviewUrl;
   });
 
@@ -180,6 +178,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
   onClose,
   onApplied,
 }) => {
+  const { t } = useTranslation('features');
   const isAvatar = kind === 'avatar';
   const presets = isAvatar ? SERIES_AVATAR_PRESETS : SERIES_BANNER_PRESETS;
   const [choice, setChoice] = useState<Choice>(null);
@@ -198,14 +197,19 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
 
   // Kéo chuột để di chuyển ảnh trong chế độ 'cover'
   const isDraggingRef = useRef(false);
-  const dragStartRef = useRef<{ startX: number; startY: number; initPanX: number; initPanY: number }>({
+  const dragStartRef = useRef<{
+    startX: number;
+    startY: number;
+    initPanX: number;
+    initPanY: number;
+  }>({
     startX: 0,
     startY: 0,
     initPanX: 0,
     initPanY: 0,
   });
 
-  const title = isAvatar ? 'Đổi avatar Series' : 'Đổi banner Series';
+  const title = isAvatar ? t('seriesIdentity.titleAvatar') : t('seriesIdentity.titleBanner');
   const ratioClass = isAvatar ? 'aspect-square' : 'aspect-[3/1]';
 
   useEffect(
@@ -220,11 +224,13 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
     setSaveError(null);
     if (!file) return;
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      setFileError('Chỉ nhận ảnh PNG, JPEG hoặc WebP.');
+      setFileError(t('seriesIdentity.invalidFileType'));
       return;
     }
     if (file.size > SERIES_IMAGE_RULES.maxBytes) {
-      setFileError(`Ảnh ${(file.size / 1024 / 1024).toFixed(1)} MB vượt giới hạn 5 MB.`);
+      setFileError(
+        t('seriesIdentity.fileTooLarge', { size: (file.size / 1024 / 1024).toFixed(1) }),
+      );
       return;
     }
     setFilePreview(URL.createObjectURL(file));
@@ -337,7 +343,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
       onApplied(url);
       onClose();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Không thể lưu ảnh.');
+      setSaveError(err instanceof Error ? err.message : t('seriesIdentity.saveErrorFallback'));
     } finally {
       setSaving(false);
     }
@@ -352,7 +358,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
   const preview =
     choice?.type === 'remove' ? (
       <div className='w-full h-full flex items-center justify-center text-xs text-[#57534E] bg-[#F3F0E9]'>
-        Sẽ dùng ảnh mặc định
+        {t('seriesIdentity.willUseDefault')}
       </div>
     ) : selectedPreset ? (
       <img
@@ -388,7 +394,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
           className='relative w-full h-full overflow-hidden flex items-center justify-center bg-stone-900 cursor-grab active:cursor-grabbing select-none'
-          title='Nhấn giữ chuột và kéo để di chuyển vị trí ảnh'
+          title={t('seriesIdentity.dragToMoveTitle')}
         >
           <img
             src={filePreview}
@@ -401,7 +407,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
             }}
           />
           <div className='absolute bottom-1.5 left-1/2 -translate-x-1/2 pointer-events-none bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-xs whitespace-nowrap shadow-xs'>
-            Kéo để căn chỉnh tâm điểm
+            {t('seriesIdentity.dragToCenterHint')}
           </div>
         </div>
       )
@@ -414,7 +420,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
       />
     ) : (
       <div className='w-full h-full flex items-center justify-center text-xs text-[#57534E] bg-[#F3F0E9]'>
-        Chưa có ảnh
+        {t('seriesIdentity.noImage')}
       </div>
     );
 
@@ -422,7 +428,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
     <Modal
       isOpen
       onClose={close}
-      closeLabel='Đóng, không lưu'
+      closeLabel={t('seriesIdentity.closeNoSave')}
       size='lg'
       title={title}
       dismissible={!saving}
@@ -437,15 +443,15 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
               {title}
             </h2>
             <p className='text-xs text-[#57534E] mt-0.5'>
-              {isAvatar ? 'Ảnh vuông 1:1' : 'Ảnh ngang khoảng 3:1, chủ thể nên ở bên trái'} ·{' '}
-              {SERIES_IMAGE_RULES.label}. Bấm “Áp dụng” mới lưu.
+              {isAvatar ? t('seriesIdentity.avatarRuleHint') : t('seriesIdentity.bannerRuleHint')} ·{' '}
+              {SERIES_IMAGE_RULES.label}. {t('seriesIdentity.applyHint')}
             </p>
           </div>
           <button
             type='button'
             onClick={close}
             disabled={saving}
-            aria-label='Đóng, không lưu'
+            aria-label={t('seriesIdentity.closeNoSave')}
             className={`p-1.5 rounded-lg text-[#57534E] hover:bg-[#F3F0E9] cursor-pointer ${ring}`}
           >
             <X className='w-4 h-4' />
@@ -465,7 +471,9 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
             {/* Bảng điều khiển khi đang chọn ảnh tải lên */}
             {choice?.type === 'upload' && (
               <div className='flex-1 space-y-2.5 min-w-0'>
-                <div className='text-xs font-semibold text-[#44403C]'>Chế độ hiển thị:</div>
+                <div className='text-xs font-semibold text-[#44403C]'>
+                  {t('seriesIdentity.displayModeLabel')}
+                </div>
                 <div className='flex items-center gap-1.5 p-1 bg-[#F3F0E9] rounded-lg border border-[#D8D2C5] w-fit'>
                   <button
                     type='button'
@@ -477,7 +485,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
                     } ${ring}`}
                   >
                     <Maximize2 className='w-3.5 h-3.5' />
-                    Vừa khung (Trọn vẹn ảnh)
+                    {t('seriesIdentity.fitContain')}
                   </button>
                   <button
                     type='button'
@@ -489,23 +497,25 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
                     } ${ring}`}
                   >
                     <Crop className='w-3.5 h-3.5' />
-                    Lấp đầy (Cắt tuỳ chỉnh)
+                    {t('seriesIdentity.fitCover')}
                   </button>
                 </div>
 
                 {fitMode === 'contain' ? (
                   <p className='text-[11px] text-[#78716C] leading-relaxed'>
-                    Giữ trọn vẹn 100% hình ảnh không bị cắt mép hay mất góc. Phần viền thừa được bổ sung nền mờ đồng màu tinh tế.
+                    {t('seriesIdentity.fitContainDesc')}
                   </p>
                 ) : (
                   <div className='space-y-2 pt-1'>
                     <div className='flex items-center gap-2 text-xs text-[#57534E]'>
-                      <span className='font-medium text-[#44403C]'>Thu phóng:</span>
+                      <span className='font-medium text-[#44403C]'>
+                        {t('seriesIdentity.zoomLabel')}
+                      </span>
                       <button
                         type='button'
                         onClick={() => setZoom((z) => Math.max(1, Number((z - 0.1).toFixed(2))))}
                         disabled={zoom <= 1}
-                        aria-label='Thu nhỏ'
+                        aria-label={t('seriesIdentity.zoomOutAria')}
                         className={`p-1 rounded border border-[#D8D2C5] bg-white hover:bg-[#F3F0E9] disabled:opacity-40 cursor-pointer ${ring}`}
                       >
                         <ZoomOut className='w-3.5 h-3.5' />
@@ -517,14 +527,14 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
                         step='0.05'
                         value={zoom}
                         onChange={(e) => setZoom(parseFloat(e.target.value))}
-                        aria-label='Thanh trượt thu phóng'
+                        aria-label={t('seriesIdentity.zoomSliderAria')}
                         className='w-28 accent-[#EA580C] cursor-pointer'
                       />
                       <button
                         type='button'
                         onClick={() => setZoom((z) => Math.min(3, Number((z + 0.1).toFixed(2))))}
                         disabled={zoom >= 3}
-                        aria-label='Phóng to'
+                        aria-label={t('seriesIdentity.zoomInAria')}
                         className={`p-1 rounded border border-[#D8D2C5] bg-white hover:bg-[#F3F0E9] disabled:opacity-40 cursor-pointer ${ring}`}
                       >
                         <ZoomIn className='w-3.5 h-3.5' />
@@ -536,7 +546,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
 
                     <div className='flex items-center gap-2'>
                       <span className='text-[11px] text-[#78716C]'>
-                        Di chuyển con trỏ trên khung ảnh để kéo chỉnh vị trí.
+                        {t('seriesIdentity.dragPanHint')}
                       </span>
                       {(zoom > 1 || pan.x !== 0 || pan.y !== 0) && (
                         <button
@@ -548,7 +558,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
                           className={`text-xs text-[#C2410C] hover:underline font-semibold inline-flex items-center gap-1 cursor-pointer ml-auto ${ring}`}
                         >
                           <RotateCcw className='w-3 h-3' />
-                          Đặt lại
+                          {t('seriesIdentity.resetBtn')}
                         </button>
                       )}
                     </div>
@@ -560,7 +570,9 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
         </div>
 
         <div>
-          <div className='text-xs font-semibold text-[#44403C] mb-2'>Ảnh mẫu</div>
+          <div className='text-xs font-semibold text-[#44403C] mb-2'>
+            {t('seriesIdentity.presetsTitle')}
+          </div>
           <div
             className={`grid gap-2 ${isAvatar ? 'grid-cols-3 sm:grid-cols-6' : 'grid-cols-1 sm:grid-cols-3'}`}
           >
@@ -571,7 +583,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
                   key={p.id}
                   type='button'
                   aria-pressed={on}
-                  aria-label={`Chọn mẫu ${p.name}`}
+                  aria-label={t('seriesIdentity.selectPresetAria', { name: p.name })}
                   data-testid={`series-preset-${p.id}`}
                   disabled={saving}
                   onClick={() => {
@@ -616,7 +628,9 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
             className={`min-h-9 px-3 rounded-lg border border-[#D8D2C5] bg-white text-sm font-semibold text-[#44403C] hover:bg-[#F3F0E9] inline-flex items-center gap-1.5 cursor-pointer ${ring}`}
           >
             <Upload className='w-4 h-4' aria-hidden='true' />
-            {choice?.type === 'upload' ? `Đã chọn: ${choice.file.name}` : 'Tải ảnh riêng…'}
+            {choice?.type === 'upload'
+              ? t('seriesIdentity.selectedFile', { name: choice.file.name })
+              : t('seriesIdentity.uploadOwn')}
           </button>
           {currentUrl && (
             <button
@@ -626,7 +640,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
               disabled={saving}
               className={`min-h-9 px-3 rounded-lg text-sm font-semibold cursor-pointer ${choice?.type === 'remove' ? 'bg-[#FFF2E6] text-[#C2410C]' : 'text-[#57534E] hover:bg-[#F3F0E9]'} ${ring}`}
             >
-              Về mặc định
+              {t('seriesIdentity.resetToDefault')}
             </button>
           )}
         </div>
@@ -635,7 +649,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
           <Alert tone='danger' data-testid='series-image-error' className='text-xs'>
             <span>
               {fileError || saveError}
-              {saveError && ' Ảnh đang dùng không bị thay đổi. Bấm “Áp dụng” để thử lại.'}
+              {saveError && t('seriesIdentity.saveErrorRetryHint')}
             </span>
           </Alert>
         )}
@@ -647,7 +661,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
             disabled={saving}
             className={`min-h-9 px-4 rounded-lg border border-[#D8D2C5] bg-white text-sm font-semibold text-[#44403C] hover:bg-[#F3F0E9] cursor-pointer disabled:opacity-50 ${ring}`}
           >
-            Hủy
+            {t('seriesIdentity.cancel')}
           </button>
           <button
             type='button'
@@ -657,7 +671,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
             className={`min-h-9 px-4 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-sm font-semibold text-white inline-flex items-center gap-1.5 cursor-pointer disabled:bg-stone-200 disabled:text-stone-500 disabled:cursor-not-allowed ${ring}`}
           >
             {saving && <Loader2 className='w-4 h-4 animate-spin' aria-hidden='true' />}
-            {saving ? 'Đang lưu…' : 'Áp dụng'}
+            {saving ? t('seriesIdentity.saving') : t('seriesIdentity.apply')}
           </button>
         </div>
       </div>

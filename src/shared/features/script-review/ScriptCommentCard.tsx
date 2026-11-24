@@ -1,5 +1,6 @@
 // src/shared/features/script-review/ScriptCommentCard.tsx
 import React, { useEffect, useRef, useState } from 'react';
+import { translate, useTranslation } from '@/lib/i18n';
 import { Check, CheckCircle2, MessageSquare, X } from 'lucide-react';
 import type { ScriptCommentDto } from '@/services/chapter.service';
 
@@ -23,7 +24,7 @@ export function getCurrentUserName(): string {
   } catch {
     // fallback
   }
-  return 'Trung Kiên';
+  return translate('features.scriptReview.comment.editorFallback');
 }
 
 /** Render văn bản có highlight đoạn trích màu vàng giống Google Docs / mẫu thiết kế */
@@ -77,6 +78,7 @@ export const ScriptCommentComposer: React.FC<ScriptCommentComposerProps> = ({
   onCancel,
   className = '',
 }) => {
+  const { t } = useTranslation('features');
   const [text, setText] = useState(initialText);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -121,7 +123,7 @@ export const ScriptCommentComposer: React.FC<ScriptCommentComposerProps> = ({
           type='text'
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder='Nhập nhận xét...'
+          placeholder={t('scriptReview.comment.inputPlaceholder')}
           className='w-full rounded-2xl border-2 border-[#1976D2] bg-white px-3.5 py-2 text-sm text-stone-800 outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-stone-400 select-text'
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -141,7 +143,7 @@ export const ScriptCommentComposer: React.FC<ScriptCommentComposerProps> = ({
           onClick={onCancel}
           className='text-sm font-medium text-blue-600 hover:text-blue-800 px-2 py-1 cursor-pointer transition-colors'
         >
-          Hủy
+          {t('scriptReview.comment.cancel')}
         </button>
         <button
           type='button'
@@ -150,7 +152,7 @@ export const ScriptCommentComposer: React.FC<ScriptCommentComposerProps> = ({
           disabled={!text.trim()}
           className='rounded-full bg-[#0066FF] hover:bg-blue-700 text-white font-medium text-xs px-5 py-2 shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all'
         >
-          Nhận xét
+          {t('scriptReview.comment.submit')}
         </button>
       </div>
     </div>
@@ -177,7 +179,8 @@ export const ScriptCommentItemCard: React.FC<ScriptCommentItemCardProps> = ({
   isSelected = false,
   className = '',
 }) => {
-  const authorName = comment.authorName || 'Biên tập viên';
+  const { t } = useTranslation('features');
+  const authorName = comment.authorName || t('scriptReview.comment.editorFallback');
   const initial = getAuthorInitial(authorName);
   const isResolved = Boolean(comment.resolvedAt);
 
@@ -210,7 +213,7 @@ export const ScriptCommentItemCard: React.FC<ScriptCommentItemCardProps> = ({
         {isResolved && (
           <span className='inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0'>
             <CheckCircle2 className='w-3 h-3' />
-            Đã giải quyết
+            {t('scriptReview.comment.resolved')}
           </span>
         )}
       </div>
@@ -238,7 +241,7 @@ export const ScriptCommentItemCard: React.FC<ScriptCommentItemCardProps> = ({
             className='inline-flex items-center gap-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs px-3.5 py-1 shadow-xs cursor-pointer transition-colors'
           >
             <Check className='w-3.5 h-3.5' />
-            Giải quyết
+            {t('scriptReview.comment.resolve')}
           </button>
         </div>
       )}

@@ -5,6 +5,7 @@ import type {
   ProvenanceReportResponse,
 } from '@/services/aiAgents.service';
 import { normalizeRole } from '@/shared/features/collaboration/collaborationRules';
+import { translate } from '@/lib/i18n';
 
 /**
  * Hàm thuần cho màn Lịch sử & Provenance (CF4). Chỉ là UX: Backend vẫn kiểm quyền thật
@@ -24,18 +25,42 @@ export const canRestorePage = (role?: string | null): boolean => {
 };
 
 export const EVENT_LABEL: Record<ProvenanceEventType, string> = {
-  RunStarted: 'AI bắt đầu chạy',
-  RunCompleted: 'AI chạy xong',
-  RunFailed: 'AI chạy lỗi',
-  StepCompleted: 'Agent hoàn thành bước',
-  SuggestionCreated: 'AI đề xuất',
-  DecisionMade: 'Người quyết định',
-  RevisionCreated: 'Tạo phiên bản nội dung',
-  SnapshotCreated: 'Producer duyệt chương',
-  ArtworkUploaded: 'Họa sĩ tải artwork',
-  LetteringChanged: 'Letterer chỉnh sửa chữ',
-  WorkSubmitted: 'Nộp công đoạn',
-  ReviewDecided: 'Biên tập viên thẩm định',
+  get RunStarted() {
+    return translate('features.provenance.events.RunStarted');
+  },
+  get RunCompleted() {
+    return translate('features.provenance.events.RunCompleted');
+  },
+  get RunFailed() {
+    return translate('features.provenance.events.RunFailed');
+  },
+  get StepCompleted() {
+    return translate('features.provenance.events.StepCompleted');
+  },
+  get SuggestionCreated() {
+    return translate('features.provenance.events.SuggestionCreated');
+  },
+  get DecisionMade() {
+    return translate('features.provenance.events.DecisionMade');
+  },
+  get RevisionCreated() {
+    return translate('features.provenance.events.RevisionCreated');
+  },
+  get SnapshotCreated() {
+    return translate('features.provenance.events.SnapshotCreated');
+  },
+  get ArtworkUploaded() {
+    return translate('features.provenance.events.ArtworkUploaded');
+  },
+  get LetteringChanged() {
+    return translate('features.provenance.events.LetteringChanged');
+  },
+  get WorkSubmitted() {
+    return translate('features.provenance.events.WorkSubmitted');
+  },
+  get ReviewDecided() {
+    return translate('features.provenance.events.ReviewDecided');
+  },
 };
 
 /** Nhóm màu: AI (tím), người (xanh lá), lỗi (đỏ), duyệt (cam). */

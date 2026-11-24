@@ -1,0 +1,565 @@
+{
+  "aiAgents": {
+    "workflowMeta": {
+      "FullScene": {
+        "title": "Full scene (script → storyboard → review)",
+        "short": "Full scene"
+      },
+      "Script": {
+        "title": "Write script",
+        "short": "Script"
+      },
+      "Storyboard": {
+        "title": "Storyboard from existing script",
+        "short": "Storyboard"
+      },
+      "Artist": {
+        "title": "Image prompts for panels",
+        "short": "Image prompts"
+      },
+      "Letterer": {
+        "title": "Shorten dialogue for bubbles",
+        "short": "Dialogue"
+      },
+      "Editor": {
+        "title": "Editorial review",
+        "short": "Review"
+      },
+      "Producer": {
+        "title": "Production progress report",
+        "short": "Progress"
+      },
+      "Copilot": {
+        "title": "AI Copilot (sync)",
+        "short": "Copilot"
+      },
+      "Thumbnail": {
+        "title": "Generate AI Thumbnail",
+        "short": "Thumbnail"
+      }
+    },
+    "kindMeta": {
+      "Script": {
+        "title": "Script",
+        "applyLabel": "Accept (apply script)",
+        "applyNote": "Replaces the scene's script lines with the AI version; previous lines remain in revision/baseline."
+      },
+      "Layout": {
+        "title": "Layout (Page/Panel)",
+        "applyLabel": "Accept (create Page/Panel)",
+        "applyNote": "Creates new Pages and Panels for a scene without existing pages; does not overwrite existing data."
+      },
+      "ImagePrompt": {
+        "title": "Image Prompt",
+        "applyLabel": "Accept (save image prompt revision)",
+        "applyNote": "Records an append-only image prompt revision; does not generate images or alter Bible/layout."
+      },
+      "Lettering": {
+        "title": "Dialogue Shortening",
+        "applyLabel": "Accept (apply shortened dialogue)",
+        "applyNote": "Creates a new script revision with shortened dialogue; original lines remain in the previous revision. Canvas bubbles are unchanged."
+      },
+      "LineRewrite": {
+        "title": "Rewrite / Shorten Dialogue",
+        "applyLabel": "Accept (update dialogue line)",
+        "applyNote": "Creates a new append-only Script revision and updates the selected dialogue line."
+      },
+      "SeriesMetadata": {
+        "title": "Publishing Metadata",
+        "applyLabel": "Accept (update Series)",
+        "applyNote": "Updates the Series synopsis and genre for the Public Catalog."
+      },
+      "Thumbnail": {
+        "title": "AI Thumbnail",
+        "applyLabel": "Accept (create new Artwork)",
+        "applyNote": "Creates a new AssetReference artwork version for the panel; existing images remain intact."
+      },
+      "BibleStub": {
+        "title": "Draft Bible Entry",
+        "applyLabel": "Use as draft",
+        "applyNote": "Populates description and subtitle into the form for manual editing before saving; not yet saved to Series Bible."
+      },
+      "ImpactRipple": {
+        "title": "Impact Handling",
+        "applyLabel": "Accept (apply handling)",
+        "applyNote": "Executes Impact Review with the suggested decision; Reject leaves the cell status unchanged."
+      }
+    },
+    "runStatus": {
+      "Queued": "Queued",
+      "Running": "Running",
+      "WaitingForHuman": "Paused — awaiting human decision",
+      "Completed": "Completed",
+      "Failed": "Failed",
+      "Interrupted": "Interrupted (AI service stopped)"
+    },
+    "assist": {
+      "errors": {
+        "forbidden": "You do not have permission to perform this action.",
+        "aiUnavailable": "AI Assistant is temporarily unavailable. You can still edit manually.",
+        "aiDisabled": "AI Assistant is currently disabled. You can still edit manually.",
+        "quotaExceeded": "AI Assistant quota exceeded. Please try again later.",
+        "checkAvailFailed": "Unable to check AI Assistant eligibility.",
+        "pollFailed": "Unable to fetch run status.",
+        "runFailed": "Unable to run AI Assistant.",
+        "decideFailed": "Unable to record decision."
+      },
+      "status": {
+        "queued": "Queued…",
+        "running": "AI Assistant is writing…",
+        "waitingForHuman": "AI stopped: consistency issues require your review",
+        "completed": "Completed",
+        "interrupted": "Run was interrupted. Please try again.",
+        "failed": "Run failed."
+      },
+      "closeAria": "Close AI Assistant",
+      "cannotRunTitle": "Cannot run AI Assistant yet",
+      "storyboardHasPanelsTitle": "This scene already has panels",
+      "storyboardHasPanelsDescPrefix": "Storyboard only applies to scenes without panels. To redistribute dialogue across existing panels, open",
+      "artistDesk": "Artist Desk",
+      "andUse": "and use",
+      "autoAllocateScript": "Auto-allocate Script",
+      "pendingBanner": "Pending suggestions awaiting review",
+      "rerunChanges": "Re-run with feedback",
+      "draftSection": "Script draft",
+      "continuitySection": "Series Bible consistency check",
+      "storyboardSection": "Storyboard Layout (Paneling)",
+      "suggestionsSection": "Suggestions",
+      "techDetails": "Technical details",
+      "coordinatorAgent": "Coordinator",
+      "errorCode": "error {code}"
+    },
+    "output": {
+      "artistPromptsCount": "{count} image prompts",
+      "artistPromptsOnlyDraft": "prompts drafted only,",
+      "artistPromptsNoImage": "no images generated yet",
+      "artistPromptsRefNote": "References are strictly sourced from the chapter's effective Series Bible (code-verified).",
+      "styleSummary": "Style: {style}",
+      "pagePanel": "Page {page} · Panel {panel}",
+      "referenceBible": "Reference Bible:",
+      "none": "(none)",
+      "consistencyNotes": "Consistency notes:",
+      "limitSource": {
+        "element-estimate": "based on bubble size",
+        "panel-estimate": "based on panel area (no bubble yet)"
+      },
+      "letteringCount": "{count} dialogue shortening suggestions.",
+      "letteringNotePrefix": "Character limits are system",
+      "letteringNoteEstimate": "estimates",
+      "letteringNoteSuffix": ", not final render results — Letterer should still verify during placement.",
+      "noLetteringSuggestions": "No dialogue lines need shortening.",
+      "linePrefix": "line {id}",
+      "bubblePrefix": "bubble {id}",
+      "noBubble": "no bubble linked",
+      "estimatedLimitTitle": "System-estimated maximum character count",
+      "estimatedLimit": "est. ≤ {maxChars} chars · {source}",
+      "originalChars": "Original · {count} chars",
+      "suggestedChars": "Suggested · {count} chars",
+      "withinLimit": "within estimated limit",
+      "overLimit": "exceeds estimated limit",
+      "reasonLabel": "Reason:",
+      "productionDisclaimer": "Reference report: does not auto-assign tasks, change deadlines, transition stages, or approve. Metrics are computed by the system, not the LLM.",
+      "dataGapsTitle": "Missing data — unable to evaluate:",
+      "risksTitle": "Risks ({count})",
+      "noRisks": "No substantiated risks found in current metrics.",
+      "recommendationsTitle": "Recommended actions ({count})",
+      "factsTitle": "System-computed facts ({count})",
+      "reviewVerdict": "Recommendation: {verdict}",
+      "reviewVerdictDisclaimer": "suggestion only; you make the final decision.",
+      "computedByCode": "{detail} · code-computed",
+      "draftRejectComment": "Draft reject comment:"
+    },
+    "layoutPreview": {
+      "directionVertical": "top → bottom (Vertical)",
+      "directionRtl": "right → left (RTL)",
+      "directionLtr": "left → right (LTR)",
+      "pageLabel": "Page {page}",
+      "pageLayoutAria": "Layout for page {page}",
+      "readingDirectionLabel": "Reading direction: {direction} · number = reading order",
+      "lineOrder": "line {order}",
+      "characterFallback": "character"
+    },
+    "stepOutput": {
+      "revisionNotes": "Revision notes:",
+      "characterFallback": "character",
+      "editedBadge": "edited",
+      "noConflicts": "No conflicts found.",
+      "hasConflicts": "Conflicts detected.",
+      "relatedScriptLines": "Related script lines",
+      "lineOrder": "Line {order}",
+      "bibleEvidence": "Series Bible evidence",
+      "suggestedFix": "Suggested fix:",
+      "supervisorChose": "Supervisor selected",
+      "guardrailOverridden": "guardrail overrode Supervisor's choice",
+      "reasonLabel": "Reason:",
+      "nextAgentInstruction": "Instruction for next agent:",
+      "allowedActionsLabel": "Guardrail-allowed actions (code-computed):",
+      "hideRawJson": "Hide raw JSON (step output + input)",
+      "showRawJson": "Show raw JSON (step output + input)"
+    },
+    "suggestionCard": {
+      "status": {
+        "Pending": "Pending decision",
+        "Accepted": "Accepted",
+        "Rejected": "Rejected",
+        "ChangesRequested": "Changes requested"
+      },
+      "impactDecision": {
+        "keep": "Keep",
+        "rework": "Rework"
+      },
+      "detail": {
+        "scriptLines": "{count} script lines",
+        "layoutSummary": "{pages} pages · {panels} panels",
+        "lineRewriteShortenMax": "Shorten dialogue (max {maxChars} chars)",
+        "lineRewriteShortenFrame": "Shorten dialogue (fit frame)",
+        "lineRewriteVoice": "Rewrite dialogue in character voice",
+        "seriesMetadataGenre": "Genre: {genre} · Update synopsis & genre",
+        "seriesMetadataFallback": "Suggested Series publishing info",
+        "thumbnailModel": "Model: {model} ({provider})",
+        "thumbnailFallback": "AI thumbnail image for panel",
+        "imagePromptCount": "{count} image prompts for panels",
+        "bibleStubCitations": "{count} citations from script",
+        "impactRippleChanges": "{decision} · {count} script changes",
+        "letteringBubbleMax": "Max {maxChars} chars · Update speech bubble text",
+        "letteringBubbleDefault": "Shorten speech bubble text",
+        "letteringSuggestionsCount": "{count} dialogue lines suggested for shortening"
+      },
+      "bubbleShortenApplyNote": "Updates speech bubble text only; script lines remain unchanged.",
+      "disabledReason": {
+        "alreadyDecided": "Suggestion has already been decided",
+        "blockingFindings": "Blocking Continuity findings remain — only Reject or Request Changes allowed",
+        "needsParentScript": "Accept the Script suggestion first",
+        "hasPanels": "Scene already has panels; AI layout cannot be applied. Use Auto-allocate on Artist Desk."
+      },
+      "titlePrefix": "{title} Suggestion",
+      "hideContent": "Hide suggestion content",
+      "showContent": "Preview suggestion content before deciding",
+      "synopsisLabel": "Synopsis: ",
+      "genreLabel": "Genre:",
+      "referenceOnlyNote": "Reference only — not saved on Accept",
+      "ageRatingLabel": "Age rating: ",
+      "reasonLabel": "Reason:",
+      "originalLabel": "Original: ",
+      "shortenedLabel": "Shortened: ",
+      "decisionLabel": "Decision:",
+      "blockingFindingsWarning": "Blocking consistency issues remain after 2 revisions. Please Reject or Request Changes and re-run.",
+      "decidedAt": "at {time}",
+      "createdRevision": "→ created content revision {id} (chapter v{from} → v{to})",
+      "noDecisionRights": "You do not have permission to decide on {title} suggestions{roles}. A member with the appropriate role will Accept or Reject.",
+      "requiredRoles": " (requires role: {roles})",
+      "reasonRequiredPlaceholder": "Reason for requesting changes (required)",
+      "reasonOptionalPlaceholder": "Reason (optional)",
+      "confirmReject": "Confirm Reject",
+      "confirmRequestChanges": "Confirm Request Changes",
+      "cancel": "Cancel",
+      "requestChanges": "Request Changes"
+    }
+  },
+  "provenance": {
+    "events": {
+      "RunStarted": "AI run started",
+      "RunCompleted": "AI run completed",
+      "RunFailed": "AI run failed",
+      "StepCompleted": "Agent step completed",
+      "SuggestionCreated": "AI suggestion created",
+      "DecisionMade": "Human decision made",
+      "RevisionCreated": "Content revision created",
+      "SnapshotCreated": "Producer approved chapter",
+      "ArtworkUploaded": "Artist uploaded artwork",
+      "LetteringChanged": "Letterer updated lettering",
+      "WorkSubmitted": "Stage work submitted",
+      "ReviewDecided": "Editor reviewed submission"
+    },
+    "kinds": {
+      "Script": {
+        "label": "Script & Dialogue",
+        "filterLabel": "Script & Dialogue (Writer)"
+      },
+      "Layout": {
+        "label": "Panel Layout",
+        "filterLabel": "Page Panels (Artist)"
+      },
+      "ImagePrompt": {
+        "label": "Character Image Prompt",
+        "filterLabel": "Art Prompt (Artist)"
+      },
+      "Artwork": {
+        "label": "Artwork Version",
+        "filterLabel": "Artwork (Artist)"
+      },
+      "Lettering": {
+        "label": "Lettering & Bubbles",
+        "filterLabel": "Lettering (Letterer)"
+      },
+      "Review": {
+        "label": "Submit / Approve / Return",
+        "filterLabel": "Submit & Review (Editor)"
+      }
+    },
+    "filterAll": "All",
+    "userFallback": "User ({id}…)",
+    "modalTitle": "Content History & Provenance",
+    "closeLabel": "Close",
+    "currentChapter": "Current chapter",
+    "chapterHeader": "Chapter {number}: {title}",
+    "untitledChapter": "Untitled",
+    "tabs": {
+      "snapshots": "Snapshots",
+      "provenance": "Provenance",
+      "runs": "AI History",
+      "pages": "Page History"
+    },
+    "snapshots": {
+      "loading": "Loading snapshots...",
+      "empty": "This chapter has not been approved yet. Snapshots are automatically created when the Producer approves the chapter.",
+      "itemTitle": "Snapshot #{number}",
+      "latestBadge": "Current",
+      "loadingManifest": "Loading snapshot manifest...",
+      "hashVerified": "Manifest intact: hash matches the exact approval record.",
+      "hashMismatch": "Warning: manifest hash mismatch — snapshot may have been altered outside the platform.",
+      "versionLabel": "Version",
+      "hashManifestLabel": "Manifest Hash",
+      "scriptRevisionsLabel": "Script Revisions",
+      "sceneVersionsCount": "{count} scene versions",
+      "effectiveBibleLabel": "Effective Bible",
+      "lockedItemsCount": "{count} locked entries",
+      "colPage": "Page",
+      "colArtwork": "Artwork (SHA-256)",
+      "colCanvasVersion": "Canvas Version",
+      "pageNumber": "Page {number}",
+      "noFullPageArt": "No full-page artwork"
+    },
+    "report": {
+      "scopeLabel": "Scope:",
+      "wholeChapter": "Whole chapter",
+      "sceneOption": "Scene {number}",
+      "filterByRole": "Filter by role:",
+      "stageBannerTitle": "Current chapter production stage:",
+      "stageBannerPart1": "This chapter currently only has script revisions (role",
+      "stageBannerPart2": "). When an",
+      "stageBannerPart3": "uploads artwork,",
+      "stageBannerPart4": "adds lettering, or",
+      "stageBannerPart5": "approves / returns work, those revisions will appear here automatically (when viewing the whole chapter without scene filter).",
+      "loading": "Building Provenance Report...",
+      "kpi": {
+        "aiWorkflowRun": "AI Workflow Runs",
+        "acceptedSuggestions": "Accepted AI Suggestions",
+        "modifiedByHuman": "Human-Modified Suggestions",
+        "contentRevisions": "Content Revisions",
+        "contentRevisionsValue": "{ai} AI · {manual} human",
+        "rejectedSuggestions": "Rejected Suggestions",
+        "pendingSuggestions": "Pending Suggestions",
+        "approvedSnapshots": "Approved Snapshots",
+        "aiTokensUsed": "AI Tokens Used"
+      },
+      "traceTitle": "Content lineage trace",
+      "selectRevisionAria": "Select revision to trace",
+      "noMatchingRevisions": "No matching revisions",
+      "noRevisionsInScope": "No content revisions in this scope and filter.",
+      "originAi": "From AI suggestion",
+      "originHuman": "Written/edited by human",
+      "aiGenesisTitle": "AI Genesis",
+      "workflowLabel": "Workflow:",
+      "aiModelLabel": "AI Model:",
+      "requestedByLabel": "Requested by:",
+      "agentPromptLabel": "Agent / Prompt:",
+      "manualRevisionNote": "This revision was created manually by a project member without an automated suggestion pipeline.",
+      "reviewRightsTitle": "Review & Ownership",
+      "decidedByLabel": "Reviewed by:",
+      "decisionLabel": "Decision:",
+      "modificationLevelLabel": "Modification level:",
+      "createdByLabel": "Created by:",
+      "roleLabel": "Role:",
+      "packagedInLabel": "Packaged in:",
+      "notInSnapshot": "Not included in any snapshot yet",
+      "previousVersionLabel": "Previous version:",
+      "executionDetailsTitle": "Execution Details",
+      "stageLabel": "Stage:",
+      "locationLabel": "Location:",
+      "pageLabel": "Page {number}",
+      "panelSuffix": " · Panel",
+      "imageFileLabel": "Image file:",
+      "actionLabel": "Action:",
+      "timesCount": " ({count} times)",
+      "reviewStatusLabel": "Review status:",
+      "commentLabel": "Comment:",
+      "timelineTitle": "Event timeline",
+      "eventsRecorded": "{count} events recorded",
+      "noEvents": "No events recorded yet.",
+      "collapse": "Collapse",
+      "viewDetails": "View details"
+    },
+    "runs": {
+      "loading": "Loading AI run history...",
+      "empty": "No AI runs for this chapter yet.",
+      "listHeader": "List of {total} AI workflow runs in this chapter (newest first):",
+      "noBrief": "No brief provided.",
+      "collapse": "Collapse",
+      "viewFullContent": "View full content ({count} chars)",
+      "stepsCount": "{count} steps",
+      "suggestionsCount": "{count} suggestions",
+      "acceptedCount": "{count} accepted",
+      "rejectedCount": "{count} rejected",
+      "errorCode": "Error code: {code}"
+    },
+    "pageHistory": {
+      "change": {
+        "Added": "Added",
+        "Removed": "Removed",
+        "Modified": "Modified"
+      },
+      "confirmRestoreTitle": "Restore version v{version}?",
+      "confirmRestoreDesc": "Previous history will be preserved.",
+      "restoreBtn": "Restore",
+      "cancelBtn": "Cancel",
+      "restoreNoChanges": "Page already matches v{version}; no changes made.",
+      "restoreSuccess": "Restored to v{version} ({changes} changes, new version v{newVersion}).",
+      "restoreConflict": "Page was modified by another user. History reloaded — please review and try again.",
+      "noPages": "This chapter has no pages yet.",
+      "pageLabel": "Page",
+      "pageOption": "Page {number}",
+      "currentVersion": "Current version: v{version}",
+      "compareTitle": "Compare v{left} → v{right}: +{added} / −{removed} / ~{modified}",
+      "canvasChanged": " · canvas size changed",
+      "noElementDiff": "No element differences.",
+      "systemActor": "System",
+      "compareWithCurrent": "Compare with current"
+    }
+  },
+  "productionWorkspace": {
+    "chapterStatus": {
+      "PreProduction": "Pre-production (scripting)",
+      "InProduction": "In production",
+      "ChapterApproved": "Approved (Gate 3)",
+      "HandedOffAndPublished": "Handed off & published"
+    },
+    "workspace": {
+      "loadChaptersErrorTitle": "Failed to load chapters",
+      "loadChaptersErrorDesc": "Unable to load the chapter list for this series.",
+      "loadingChapter": "Loading chapter...",
+      "draftFallback": "Draft",
+      "restrictedTitle": "Restricted area",
+      "restrictedDesc": "No production access. Return to the series catalog to read published releases.",
+      "goToCatalog": "Go to Public Catalog",
+      "breadcrumbAria": "Breadcrumb navigation",
+      "chapterFallback": "Chapter",
+      "chapterNumber": "Chapter {number}",
+      "workflowTitle": "Production pipeline",
+      "chapterLockedNote": "Locked: chapter content is read-only and cannot be edited",
+      "draftChapterTitle": "Chapter {number} Draft",
+      "chapterSelectLabel": "Chapter:",
+      "loadingChapters": "Loading chapters...",
+      "refreshAria": "Refresh data",
+      "refresh": "Refresh",
+      "myWorkBtn": "My Work & Reviews"
+    },
+    "taskEditor": {
+      "taskNumberTitle": "Task #{id}",
+      "memberFallback": "Member",
+      "loadingLiveApi": "Loading task data from Live API...",
+      "notFound": "Task data not found.",
+      "scriptInEditorNote": "Scripting tasks are completed in the Script Editor.",
+      "openScriptEditor": "Open Script Editor",
+      "letteringInDeskNote": "Lettering tasks are completed in Artist Desk (Lettering).",
+      "openArtistDeskLettering": "Open Artist Desk (Lettering)",
+      "taskInStatusNote": "Task is currently in {stage} status.",
+      "goToReview": "Go to Review screen",
+      "startWorkToastTitle": "Work started",
+      "startWorkToastDesc": "Task status updated to InProgress.",
+      "startWorkErrorTitle": "Unable to start",
+      "startWorkErrorDesc": "Failed to start task.",
+      "submitBr19Title": "Workflow warning (BR-19)",
+      "submitBr19Desc": "You must click \"Start Work\" (InProgress) before submitting to avoid a 409 Conflict!",
+      "submittedToastTitle": "Submitted",
+      "submittedToastDesc": "Task has been sent to the Editor for review.",
+      "submitErrorTitle": "Unable to submit",
+      "submitErrorDesc": "Failed to submit task.",
+      "assigneeLabel": "Assignee: {name}",
+      "dueLabel": "Due: {date}",
+      "historyProvenance": "History & Provenance",
+      "startWorkTooltip": "Start work (InProgress) before submitting",
+      "startReworkBtn": "Start rework",
+      "startWorkBtn": "Start work",
+      "saveDraftToastTitle": "Draft saved",
+      "saveDraftToastDesc": "Changes have been saved.",
+      "saveDraftBtn": "Save draft",
+      "submitDisabledTooltip": "Start work before submitting",
+      "submitTooltip": "Submit work for Editorial Review",
+      "submitBtn": "Submit for Review",
+      "editorFeedbackLabel": "Editor revision request:"
+    }
+  },
+  "scriptReview": {
+    "generalComment": "General comment",
+    "pagePanel": "Page {page} · Panel {panel}",
+    "pageOnly": "Page {page}",
+    "tabs": {
+      "comments": "Comments ({count})",
+      "changes": "Changes",
+      "checks": "Checks"
+    },
+    "closePanelTitle": "Close review panel",
+    "noComments": "No comments from the Editor for this chapter yet.",
+    "lineRemoved": "Line removed",
+    "contentChanged": "Content changed",
+    "compareWithPrevious": "Comparing with previous submitted version",
+    "firstSubmittedVersion": "First submitted version of this chapter",
+    "noSubmittedVersion": "No submitted version available to compare changes.",
+    "consistencyTitle": "Consistency check",
+    "consistencyDesc": "Rules verifying dialogue and Series Bible entity consistency.",
+    "recheckBtn": "Re-check",
+    "noFindings": "No consistency issues found.",
+    "issueFallback": "Issue",
+    "comment": {
+      "inputPlaceholder": "Write a comment...",
+      "cancel": "Cancel",
+      "submit": "Comment",
+      "editorFallback": "Editor",
+      "resolved": "Resolved",
+      "resolve": "Resolve"
+    }
+  },
+  "scriptVersions": {
+    "rowPage": "PAGE {n}",
+    "rowPanel": "PANEL {n}",
+    "rowCaption": "NARRATION:",
+    "rowSfx": "SFX:",
+    "rowThought": "(thought)"
+  },
+  "seriesIdentity": {
+    "readImageError": "Unable to read image file for processing.",
+    "titleAvatar": "Change Series Avatar",
+    "titleBanner": "Change Series Banner",
+    "invalidFileType": "Only PNG, JPEG, or WebP images are accepted.",
+    "fileTooLarge": "Image ({size} MB) exceeds the 5 MB limit.",
+    "saveErrorFallback": "Unable to save image.",
+    "willUseDefault": "Will use default image",
+    "dragToMoveTitle": "Click and drag to reposition image",
+    "dragToCenterHint": "Drag to adjust focal point",
+    "noImage": "No image",
+    "closeNoSave": "Close without saving",
+    "avatarRuleHint": "1:1 square image",
+    "bannerRuleHint": "Wide ~3:1 image; keep main subject on the left",
+    "applyHint": "Click “Apply” to save.",
+    "displayModeLabel": "Display mode:",
+    "fitContain": "Fit frame (Full image)",
+    "fitCover": "Fill frame (Custom crop)",
+    "fitContainDesc": "Preserves 100% of the image without cropping edges or corners. Extra margins are filled with a subtle color-matched blur.",
+    "zoomLabel": "Zoom:",
+    "zoomOutAria": "Zoom out",
+    "zoomSliderAria": "Zoom slider",
+    "zoomInAria": "Zoom in",
+    "dragPanHint": "Drag across the image frame to reposition.",
+    "resetBtn": "Reset",
+    "presetsTitle": "Preset images",
+    "selectPresetAria": "Select preset {name}",
+    "selectedFile": "Selected: {name}",
+    "uploadOwn": "Upload custom image…",
+    "resetToDefault": "Reset to default",
+    "saveErrorRetryHint": " Current image was not changed. Click “Apply” to retry.",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "apply": "Apply"
+  }
+}

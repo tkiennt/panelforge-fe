@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { GitCompare, History, Loader2, RotateCcw } from 'lucide-react';
 import {
   pageService,
@@ -21,13 +22,12 @@ const CHANGE_STYLE: Record<string, string> = {
   Modified: 'text-amber-700 bg-amber-50 border-amber-200',
 };
 
-const CHANGE_LABEL: Record<string, string> = { Added: 'Thêm', Removed: 'Xoá', Modified: 'Sửa' };
-
 /**
  * CF4 4.3 (UC-18, US-12): lịch sử canvas từng trang. Xem các event (mới nhất trước), so sánh một version với hiện tại theo
  * elementId, và khôi phục (Producer/Artist) bằng event mới — không xoá lịch sử. Gửi expectedPageVersion; 409 thì nạp lại.
  */
 export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, viewerRole }) => {
+  const { t } = useTranslation('features');
   const confirm = useConfirm();
   const canRestore = canRestorePage(viewerRole);
   const [pages, setPages] = useState<PageDto[] | null>(null);
@@ -83,10 +83,10 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
     if (!history) return;
     if (
       !(await confirm({
-        title: `Khôi phục phiên bản v${version}?`,
-        description: 'Lịch sử cũ vẫn được giữ.',
-        confirmLabel: 'Khôi phục',
-        cancelLabel: 'Hủy',
+        title: t('provenance.pageHistory.confirmRestoreTitle', { version }),
+        description: t('provenance.pageHistory.confirmRestoreDesc'),
+        confirmLabel: t('provenance.pageHistory.restoreBtn'),
+        cancelLabel: t('provenance.pageHistory.cancelBtn'),
       }))
     )
       return;
@@ -97,18 +97,18 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
       const r = await pageService.restorePageVersion(pageId, version, history.currentVersion);
       setNotice(
         r.changes === 0
-          ? `Trang đã giống bản v${version}, không có gì thay đổi.`
-          : `Đã khôi phục về v${version} (${r.changes} thay đổi, phiên bản mới v${r.newVersion}).`,
+          ? t('provenance.pageHistory.restoreNoChanges', { version })
+          : t('provenance.pageHistory.restoreSuccess', {
+              version,
+              changes: r.changes,
+              newVersion: r.newVersion,
+            }),
       );
       await loadHistory(pageId);
     } catch (e: any) {
       // Nạp lại trước (loadHistory xoá lỗi cũ) rồi mới báo; không tự gửi lại
       if (e.code === 'CONFLICT') await loadHistory(pageId);
-      setError(
-        e.code === 'CONFLICT'
-          ? 'Trang vừa được người khác sửa. Đã nạp lại lịch sử, hãy kiểm tra rồi thử lại.'
-          : e.message,
-      );
+      setError(e.code === 'CONFLICT' ? t('provenance.pageHistory.restoreConflict') : e.message);
     } finally {
       setBusy(false);
     }
@@ -123,7 +123,9 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
   }
   if (pages.length === 0) {
     return (
-      <div className='py-12 text-center text-xs text-[#888888]'>Chương chưa có trang nào.</div>
+      <div className='py-12 text-center text-xs text-[#888888]'>
+        {t('provenance.pageHistory.noPages')}
+      </div>
     );
   }
 
@@ -132,7 +134,7 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
       <div className='flex items-center gap-2 text-xs'>
         <History className='w-4 h-4 text-orange-500' />
         <label htmlFor='page-history-select' className='font-semibold text-[#171717]'>
-          Trang
+          {t('provenance.pageHistory.pageLabel')}
         </label>
         <select
           id='page-history-select'
@@ -142,12 +144,14 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
         >
           {pages.map((p) => (
             <option key={p.id} value={p.id}>
-              Trang {p.pageNumber}
+              {t('provenance.pageHistory.pageOption', { number: p.pageNumber })}
             </option>
           ))}
         </select>
         {history && (
-          <span className='text-[#737373]'>Phiên bản hiện tại: v{history.currentVersion}</span>
+          <span className='text-[#737373]'>
+            {t('provenance.pageHistory.currentVersion', { version: history.currentVersion })}
+          </span>
         )}
       </div>
 
@@ -168,12 +172,17 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
           data-testid='page-compare'
         >
           <div className='font-semibold text-[#171717]'>
-            So sánh v{compare.left} → v{compare.right}: +{compare.added} / −{compare.removed} / ~
-            {compare.modified}
-            {compare.canvasChanged && ' · khổ canvas đổi'}
+            {t('provenance.pageHistory.compareTitle', {
+              left: compare.left,
+              right: compare.right,
+              added: compare.added,
+              removed: compare.removed,
+              modified: compare.modified,
+            })}
+            {compare.canvasChanged && t('provenance.pageHistory.canvasChanged')}
           </div>
           {compare.elements.length === 0 ? (
-            <div className='text-[#737373]'>Không có khác biệt element.</div>
+            <div className='text-[#737373]'>{t('provenance.pageHistory.noElementDiff')}</div>
           ) : (
             <ul className='space-y-1'>
               {compare.elements.map((d) => (
@@ -181,7 +190,7 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
                   <span
                     className={`px-1.5 py-0.5 rounded-full border text-[10px] font-semibold ${CHANGE_STYLE[d.change]}`}
                   >
-                    {CHANGE_LABEL[d.change]}
+                    {t(`provenance.pageHistory.change.${d.change}`)}
                   </span>
                   <span className='font-mono text-[11px]'>{d.elementType}</span>
                   <span className='text-[#737373]'>{d.elementId.slice(0, 8)}</span>
@@ -213,7 +222,8 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
               <div className='flex-1 min-w-0'>
                 <div className='text-[#171717] truncate'>{h.summary}</div>
                 <div className='text-[11px] text-[#737373]'>
-                  {h.actorName || 'Hệ thống'} · {formatDateTime(h.occurredAtUtc)}
+                  {h.actorName || t('provenance.pageHistory.systemActor')} ·{' '}
+                  {formatDateTime(h.occurredAtUtc)}
                 </div>
               </div>
               {h.version < history.currentVersion && (
@@ -224,7 +234,8 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
                     onClick={() => handleCompare(h.version)}
                     className='px-2 py-1 rounded border border-[#E7E7E7] text-[#555555] font-semibold inline-flex items-center gap-1 cursor-pointer disabled:opacity-50'
                   >
-                    <GitCompare className='w-3.5 h-3.5' /> So với hiện tại
+                    <GitCompare className='w-3.5 h-3.5' />{' '}
+                    {t('provenance.pageHistory.compareWithCurrent')}
                   </button>
                   {canRestore && (
                     <button
@@ -233,7 +244,7 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
                       onClick={() => handleRestore(h.version)}
                       className='px-2 py-1 rounded border border-orange-300 text-orange-700 font-semibold inline-flex items-center gap-1 cursor-pointer disabled:opacity-50'
                     >
-                      <RotateCcw className='w-3.5 h-3.5' /> Khôi phục
+                      <RotateCcw className='w-3.5 h-3.5' /> {t('provenance.pageHistory.restoreBtn')}
                     </button>
                   )}
                 </div>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { X, RotateCcw, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import type {
   ChapterDto,
@@ -44,6 +45,7 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
   className = '',
   initialTab = 'comments',
 }) => {
+  const { t } = useTranslation('features');
   const [tab, setTab] = useState<'comments' | 'changes' | 'checks'>(initialTab);
 
   const openCommentsCount = useMemo(() => comments.filter((c) => !c.resolvedAt).length, [comments]);
@@ -60,10 +62,12 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
   }, [pushedVersion?.rows, liveRows]);
 
   const getLocationLabel = (c: ScriptCommentDto): string => {
-    if (!c.scriptLineId) return 'Góp ý chung';
+    if (!c.scriptLineId) return t('scriptReview.generalComment');
     const row = lineIndex.get(c.scriptLineId);
-    if (!row) return 'Góp ý chung';
-    return row.panel > 0 ? `Trang ${row.page} · Panel ${row.panel}` : `Trang ${row.page}`;
+    if (!row) return t('scriptReview.generalComment');
+    return row.panel > 0
+      ? t('scriptReview.pagePanel', { page: row.page, panel: row.panel })
+      : t('scriptReview.pageOnly', { page: row.page });
   };
 
   const getStaleness = (c: ScriptCommentDto): 'removed' | 'changed' | null => {
@@ -93,7 +97,7 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
                 : 'border-transparent text-stone-600 hover:text-stone-900'
             }`}
           >
-            Góp ý ({openCommentsCount})
+            {t('scriptReview.tabs.comments', { count: openCommentsCount })}
           </button>
           <button
             type='button'
@@ -106,7 +110,7 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
                 : 'border-transparent text-stone-600 hover:text-stone-900'
             }`}
           >
-            Thay đổi
+            {t('scriptReview.tabs.changes')}
           </button>
           <button
             type='button'
@@ -119,7 +123,7 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
                 : 'border-transparent text-stone-600 hover:text-stone-900'
             }`}
           >
-            Kiểm tra
+            {t('scriptReview.tabs.checks')}
           </button>
         </div>
 
@@ -127,7 +131,7 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
           <button
             type='button'
             onClick={onClose}
-            title='Đóng bảng nhận xét'
+            title={t('scriptReview.closePanelTitle')}
             className='p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg cursor-pointer transition-colors mr-1'
           >
             <X className='w-4 h-4' />
@@ -140,7 +144,7 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
         {tab === 'comments' ? (
           comments.length === 0 ? (
             <div className='p-8 text-center text-xs text-stone-500'>
-              Chưa có góp ý nào từ Biên tập viên cho chương này.
+              {t('scriptReview.noComments')}
             </div>
           ) : (
             <div className='p-3 space-y-3.5 overflow-y-auto flex-1 min-h-0 custom-scrollbar'>
@@ -154,7 +158,9 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
                       <span className='font-semibold text-stone-700'>{location}</span>
                       {stale && (
                         <span className='rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800'>
-                          {stale === 'removed' ? 'Dòng đã bị xoá' : 'Nội dung đã đổi'}
+                          {stale === 'removed'
+                            ? t('scriptReview.lineRemoved')
+                            : t('scriptReview.contentChanged')}
                         </span>
                       )}
                     </div>
@@ -175,8 +181,8 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
             <>
               <p className='border-b border-stone-200 px-3 py-2 text-xs text-stone-500'>
                 {chapter.previousSubmittedVersionId
-                  ? 'So sánh với bản gửi duyệt trước đó'
-                  : 'Bản gửi duyệt đầu tiên của chương'}
+                  ? t('scriptReview.compareWithPrevious')
+                  : t('scriptReview.firstSubmittedVersion')}
               </p>
               <ScriptVersionDiff
                 key={`${chapter.previousSubmittedVersionId ?? EMPTY_BASE}>${pushedVersion.version.id}`}
@@ -187,17 +193,17 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
             </>
           ) : (
             <div className='p-8 text-center text-xs text-stone-500'>
-              Chưa có bản gửi duyệt nào để đối chiếu thay đổi.
+              {t('scriptReview.noSubmittedVersion')}
             </div>
           )
         ) : (
           <div className='p-4 space-y-4'>
             <div className='flex items-center justify-between'>
               <div>
-                <h3 className='text-sm font-semibold text-stone-800'>Kiểm tra nhất quán</h3>
-                <p className='text-xs text-stone-500 mt-0.5'>
-                  Luật kiểm tra tính nhất quán dòng thoại và thực thể Bible.
-                </p>
+                <h3 className='text-sm font-semibold text-stone-800'>
+                  {t('scriptReview.consistencyTitle')}
+                </h3>
+                <p className='text-xs text-stone-500 mt-0.5'>{t('scriptReview.consistencyDesc')}</p>
               </div>
               {onRunCheck && (
                 <button
@@ -209,7 +215,7 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
                   <RotateCcw
                     className={`h-3.5 w-3.5 ${loadingCheck ? 'animate-spin text-orange-600' : ''}`}
                   />
-                  <span>Kiểm tra lại</span>
+                  <span>{t('scriptReview.recheckBtn')}</span>
                 </button>
               )}
             </div>
@@ -217,7 +223,7 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
             {findings.length === 0 ? (
               <div className='p-6 text-center text-xs text-stone-500 rounded-xl bg-stone-50 border border-stone-200/60'>
                 <CheckCircle2 className='w-5 h-5 text-emerald-600 mx-auto mb-1.5' />
-                Không phát hiện vấn đề nhất quán nào.
+                {t('scriptReview.noFindings')}
               </div>
             ) : (
               <ul className='space-y-2'>
@@ -236,7 +242,7 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
                     <div className='flex items-center justify-between text-stone-700 font-semibold mb-1'>
                       <span className='inline-flex items-center gap-1.5 text-amber-700'>
                         <ShieldCheck className='w-3.5 h-3.5' />
-                        {f.ruleCode || 'Vấn đề'}
+                        {f.ruleCode || t('scriptReview.issueFallback')}
                       </span>
                       <span className='text-[11px] text-stone-400'>{f.status}</span>
                     </div>

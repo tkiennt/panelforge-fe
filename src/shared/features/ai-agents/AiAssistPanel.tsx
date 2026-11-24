@@ -30,7 +30,7 @@ import {
 } from '@/services/aiAgents.service';
 import { SCRIPT_WORKING_COPY_CHANGED_EVENT } from '@/services/scriptLine.service';
 import type { AiWorkflowType } from '@/services/aiAgents.service';
-import { useTranslation } from '@/lib/i18n';
+import { translate, useTranslation } from '@/lib/i18n';
 import { StepOutputView } from './StepOutputView';
 import { SuggestionCard } from './SuggestionCard';
 import { collectLines, formatMs, toAiReadingDirection } from './aiViewUtils';
@@ -213,29 +213,32 @@ function toUiError(e: unknown, fallback: string): UiError {
   const msg =
     serverMsg ||
     (status === 403 || code === 'FORBIDDEN'
-      ? 'Bạn không có quyền thực hiện thao tác này.'
+      ? translate('features.aiAgents.assist.errors.forbidden')
       : fallback);
   switch (code) {
     case 'AI_UNAVAILABLE':
       return {
-        message: 'Trợ lý AI tạm thời không khả dụng. Bạn vẫn có thể soạn tay bình thường.',
+        message: translate('features.aiAgents.assist.errors.aiUnavailable'),
         lockAi: true,
       };
     case 'AI_DISABLED':
       return {
-        message: 'Trợ lý AI đang bị tắt. Bạn vẫn có thể soạn tay bình thường.',
+        message: translate('features.aiAgents.assist.errors.aiDisabled'),
         lockAi: true,
       };
     case 'FORBIDDEN':
       return { message: msg, lockAi: false };
     case 'AI_QUOTA_EXCEEDED':
-      return { message: 'Đã hết hạn mức dùng Trợ lý AI. Hãy thử lại sau.', lockAi: false };
+      return {
+        message: translate('features.aiAgents.assist.errors.quotaExceeded'),
+        lockAi: false,
+      };
     case 'CONFLICT':
       return { message: msg, lockAi: false };
     default:
       if (status === 503) {
         return {
-          message: 'Trợ lý AI tạm thời không khả dụng. Bạn vẫn có thể soạn tay bình thường.',
+          message: translate('features.aiAgents.assist.errors.aiUnavailable'),
           lockAi: true,
         };
       }
@@ -249,17 +252,23 @@ function toUiError(e: unknown, fallback: string): UiError {
 function statusText(run: AiRunDto): { text: string; tone: 'info' | 'warn' | 'ok' | 'error' } {
   switch (run.status) {
     case 'Queued':
-      return { text: 'Đang xếp hàng…', tone: 'info' };
+      return { text: translate('features.aiAgents.assist.status.queued'), tone: 'info' };
     case 'Running':
-      return { text: 'Trợ lý AI đang viết…', tone: 'info' };
+      return { text: translate('features.aiAgents.assist.status.running'), tone: 'info' };
     case 'WaitingForHuman':
-      return { text: 'AI đã dừng: còn lỗi nhất quán cần bạn xử lý', tone: 'warn' };
+      return {
+        text: translate('features.aiAgents.assist.status.waitingForHuman'),
+        tone: 'warn',
+      };
     case 'Completed':
-      return { text: 'Hoàn tất', tone: 'ok' };
+      return { text: translate('features.aiAgents.assist.status.completed'), tone: 'ok' };
     case 'Interrupted':
-      return { text: 'Lượt chạy bị gián đoạn. Hãy chạy lại.', tone: 'error' };
+      return { text: translate('features.aiAgents.assist.status.interrupted'), tone: 'error' };
     default:
-      return { text: run.errorMessage || 'Lượt chạy thất bại.', tone: 'error' };
+      return {
+        text: run.errorMessage || translate('features.aiAgents.assist.status.failed'),
+        tone: 'error',
+      };
   }
 }
 
@@ -322,6 +331,7 @@ export const AiAssistPanel: React.FC<Props> = ({
   onScriptPreview,
 }) => {
   const { t } = useTranslation('production');
+  const { t: tf } = useTranslation('features');
   const isScriptWorkflow = workflowType === 'Script';
 
   const [availability, setAvailability] = useState<AiWorkflowAvailability | null>(null);
@@ -404,7 +414,7 @@ export const AiAssistPanel: React.FC<Props> = ({
       })
       .catch((e) => {
         if (!alive) return;
-        const ui = toUiError(e, 'Không thể kiểm tra điều kiện chạy Trợ lý AI.');
+        const ui = toUiError(e, tf('aiAgents.assist.errors.checkAvailFailed'));
         setError(ui);
         if (ui.lockAi) setAiLocked(true);
       })
@@ -414,7 +424,7 @@ export const AiAssistPanel: React.FC<Props> = ({
     return () => {
       alive = false;
     };
-  }, [seriesId, chapterId, sceneId, workflowType]);
+  }, [seriesId, chapterId, sceneId, workflowType, tf]);
 
   const activeRunId = run && isActiveRun(run.status) ? run.id : null;
 
@@ -461,11 +471,11 @@ export const AiAssistPanel: React.FC<Props> = ({
         setRun(await aiAgentsService.getRun(seriesId, run.id));
       } catch (e) {
         setPollFailed(true);
-        setError(toUiError(e, 'Không thể tải trạng thái lượt chạy.'));
+        setError(toUiError(e, tf('aiAgents.assist.errors.pollFailed')));
       }
     }, POLL_INTERVAL_MS);
     return () => clearTimeout(timer);
-  }, [run, pollFailed, seriesId]);
+  }, [run, pollFailed, seriesId, tf]);
 
   const running = !!run && isActiveRun(run.status) && !pollFailed;
   const runHasPending =
@@ -580,7 +590,7 @@ export const AiAssistPanel: React.FC<Props> = ({
       storeRunId(storageKey, started.runId);
       setRun(await aiAgentsService.getRun(seriesId, started.runId));
     } catch (e) {
-      const ui = toUiError(e, 'Không thể chạy Trợ lý AI.');
+      const ui = toUiError(e, tf('aiAgents.assist.errors.runFailed'));
       setError(ui);
       if (ui.lockAi) setAiLocked(true);
       // 409: tải lại dữ liệu mới nhất, KHÔNG tự gửi lại
@@ -706,7 +716,7 @@ export const AiAssistPanel: React.FC<Props> = ({
       }
     } catch (e) {
       // 403 (ngoài phạm vi được giao dù canDecide theo role = true): hiện đúng message Backend, giữ đề xuất Pending, không tự gửi lại
-      setError(toUiError(e, 'Không thể ghi quyết định.'));
+      setError(toUiError(e, tf('aiAgents.assist.errors.decideFailed')));
       const status =
         (e as AiApiError)?.status ?? (e as { response?: { status?: number } })?.response?.status;
       if ((e as AiApiError)?.code === 'CONFLICT' || status === 409) {
@@ -813,7 +823,7 @@ export const AiAssistPanel: React.FC<Props> = ({
         <button
           type='button'
           onClick={onClose}
-          aria-label='Đóng Trợ lý AI'
+          aria-label={tf('aiAgents.assist.closeAria')}
           className='rounded p-1 text-zinc-400 hover:text-zinc-700'
         >
           <X className='h-4 w-4' />
@@ -993,7 +1003,7 @@ export const AiAssistPanel: React.FC<Props> = ({
             className='rounded-lg border border-[#E7E7E7] bg-[#FAF8F5] p-2.5 text-xs text-[#525252]'
           >
             <div className='mb-1 flex items-center gap-1.5 font-semibold'>
-              <Lock className='h-3.5 w-3.5' /> Chưa thể chạy Trợ lý AI
+              <Lock className='h-3.5 w-3.5' /> {tf('aiAgents.assist.cannotRunTitle')}
             </div>
             <ul className='list-disc space-y-0.5 pl-4'>
               {availability.missing.map((m) => (
@@ -1035,11 +1045,11 @@ export const AiAssistPanel: React.FC<Props> = ({
           >
             <AlertTriangle className='mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600' />
             <div>
-              <p className='font-semibold'>Phân cảnh này đã có khung tranh</p>
+              <p className='font-semibold'>{tf('aiAgents.assist.storyboardHasPanelsTitle')}</p>
               <p className='mt-0.5 text-[11px] text-amber-800 leading-relaxed'>
-                Storyboard chỉ áp dụng cho phân cảnh chưa có khung. Để chia lại thoại cho khung có
-                sẵn, mở <strong>Bàn vẽ Artist</strong> và dùng{' '}
-                <strong>Tự động phân bổ kịch bản</strong>.
+                {tf('aiAgents.assist.storyboardHasPanelsDescPrefix')}{' '}
+                <strong>{tf('aiAgents.assist.artistDesk')}</strong> {tf('aiAgents.assist.andUse')}{' '}
+                <strong>{tf('aiAgents.assist.autoAllocateScript')}</strong>.
               </p>
             </div>
           </div>
@@ -1051,7 +1061,7 @@ export const AiAssistPanel: React.FC<Props> = ({
             className='flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs font-semibold text-amber-800'
           >
             <AlertTriangle className='mt-0.5 h-3.5 w-3.5 shrink-0' />
-            <span>Có đề xuất chưa duyệt</span>
+            <span>{tf('aiAgents.assist.pendingBanner')}</span>
           </div>
         )}
 
@@ -1366,7 +1376,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                   ) : (
                     <Sparkles className='h-3.5 w-3.5' />
                   )}
-                  Chạy lại theo góp ý
+                  {tf('aiAgents.assist.rerunChanges')}
                 </button>
               )}
               <button
@@ -1486,7 +1496,7 @@ export const AiAssistPanel: React.FC<Props> = ({
         {draftStep && (
           <section data-testid='ai-draft'>
             <h3 className='mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
-              Bản nháp script
+              {tf('aiAgents.assist.draftSection')}
             </h3>
             <StepOutputView step={draftStep} allSteps={steps} nameById={nameById} lines={lines} />
           </section>
@@ -1495,7 +1505,7 @@ export const AiAssistPanel: React.FC<Props> = ({
         {continuityStep && (
           <section data-testid='ai-continuity'>
             <h3 className='mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
-              Đối chiếu với Series Bible
+              {tf('aiAgents.assist.continuitySection')}
             </h3>
             <StepOutputView
               step={continuityStep}
@@ -1509,7 +1519,7 @@ export const AiAssistPanel: React.FC<Props> = ({
         {storyboardStep && (
           <section data-testid='ai-storyboard'>
             <h3 className='mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
-              Bố cục Storyboard (Phân khung)
+              {tf('aiAgents.assist.storyboardSection')}
             </h3>
             <StepOutputView
               step={storyboardStep}
@@ -1523,7 +1533,7 @@ export const AiAssistPanel: React.FC<Props> = ({
         {suggestions.length > 0 && (
           <section data-testid='ai-suggestions' className='space-y-2'>
             <h3 className='text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
-              Đề xuất
+              {tf('aiAgents.assist.suggestionsSection')}
             </h3>
             {suggestions.map((s) => (
               <SuggestionCard
@@ -1552,7 +1562,7 @@ export const AiAssistPanel: React.FC<Props> = ({
               className='flex items-center gap-1 text-[11px] font-semibold text-[#525252] hover:text-[#171717]'
             >
               {showTech ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              Chi tiết kỹ thuật
+              {tf('aiAgents.assist.techDetails')}
             </button>
             {showTech && (
               <ul
@@ -1561,12 +1571,15 @@ export const AiAssistPanel: React.FC<Props> = ({
               >
                 {steps.map((s) => (
                   <li key={s.id}>
-                    #{s.stepIndex} {s.agent === 'Supervisor' ? 'Điều phối' : s.agent} · {s.provider}
-                    /{s.model} · {s.promptVersion} · {formatMs(s.durationMs)}
+                    #{s.stepIndex}{' '}
+                    {s.agent === 'Supervisor' ? tf('aiAgents.assist.coordinatorAgent') : s.agent} ·{' '}
+                    {s.provider}/{s.model} · {s.promptVersion} · {formatMs(s.durationMs)}
                     {s.promptTokens != null || s.completionTokens != null
                       ? ` · token ${s.promptTokens ?? 0}/${s.completionTokens ?? 0}`
                       : ''}
-                    {s.status === 'Failed' ? ` · lỗi ${s.errorCode ?? ''}` : ''}
+                    {s.status === 'Failed'
+                      ? ` · ${tf('aiAgents.assist.errorCode', { code: s.errorCode ?? '' })}`
+                      : ''}
                   </li>
                 ))}
               </ul>

@@ -8,13 +8,7 @@ describe('ScriptCommentComposer - IME-safe Enter submit', () => {
     const onSave = vi.fn();
     const onCancel = vi.fn();
 
-    render(
-      <ScriptCommentComposer
-        initialText='Đang soạn'
-        onSave={onSave}
-        onCancel={onCancel}
-      />,
-    );
+    render(<ScriptCommentComposer initialText='Đang soạn' onSave={onSave} onCancel={onCancel} />);
 
     const input = screen.getByPlaceholderText('Nhập nhận xét...');
 
@@ -41,13 +35,7 @@ describe('ScriptCommentComposer - IME-safe Enter submit', () => {
     const onSave = vi.fn();
     const onCancel = vi.fn();
 
-    render(
-      <ScriptCommentComposer
-        initialText='Đang soạn'
-        onSave={onSave}
-        onCancel={onCancel}
-      />,
-    );
+    render(<ScriptCommentComposer initialText='Đang soạn' onSave={onSave} onCancel={onCancel} />);
 
     const input = screen.getByPlaceholderText('Nhập nhận xét...');
 

@@ -1,0 +1,565 @@
+{
+  "aiAgents": {
+    "workflowMeta": {
+      "FullScene": {
+        "title": "Scene đầy đủ (script → storyboard → review)",
+        "short": "Scene đầy đủ"
+      },
+      "Script": {
+        "title": "Viết script",
+        "short": "Script"
+      },
+      "Storyboard": {
+        "title": "Storyboard từ script có sẵn",
+        "short": "Storyboard"
+      },
+      "Artist": {
+        "title": "Prompt ảnh cho panel",
+        "short": "Prompt ảnh"
+      },
+      "Letterer": {
+        "title": "Rút gọn thoại cho bubble",
+        "short": "Thoại"
+      },
+      "Editor": {
+        "title": "Review biên tập",
+        "short": "Review"
+      },
+      "Producer": {
+        "title": "Báo cáo tiến độ",
+        "short": "Tiến độ"
+      },
+      "Copilot": {
+        "title": "AI Copilot (sync)",
+        "short": "Copilot"
+      },
+      "Thumbnail": {
+        "title": "Sinh ảnh Thumbnail AI",
+        "short": "Thumbnail"
+      }
+    },
+    "kindMeta": {
+      "Script": {
+        "title": "Script",
+        "applyLabel": "Accept (áp dụng script)",
+        "applyNote": "Thay các dòng script của Scene bằng bản AI; dòng cũ còn trong revision/baseline."
+      },
+      "Layout": {
+        "title": "Layout (Page/Panel)",
+        "applyLabel": "Accept (tạo Page/Panel)",
+        "applyNote": "Tạo Page và Panel mới cho Scene chưa có Page; không ghi đè dữ liệu có sẵn."
+      },
+      "ImagePrompt": {
+        "title": "Prompt ảnh",
+        "applyLabel": "Accept (ghi revision prompt ảnh)",
+        "applyNote": "Ghi một revision prompt ảnh append-only; không sinh ảnh, không sửa Bible/layout."
+      },
+      "Lettering": {
+        "title": "Rút gọn thoại",
+        "applyLabel": "Accept (áp dụng rút gọn thoại)",
+        "applyNote": "Tạo revision script mới với thoại rút gọn; thoại gốc còn trong revision cũ. Bubble trên canvas không bị đổi."
+      },
+      "LineRewrite": {
+        "title": "Viết lại / Rút gọn thoại",
+        "applyLabel": "Accept (cập nhật dòng thoại)",
+        "applyNote": "Tạo revision Script mới (append-only) và cập nhật dòng thoại đã chọn."
+      },
+      "SeriesMetadata": {
+        "title": "Metadata phát hành",
+        "applyLabel": "Accept (cập nhật Series)",
+        "applyNote": "Cập nhật tóm tắt (synopsis) và thể loại (genre) của Series cho Public Catalog."
+      },
+      "Thumbnail": {
+        "title": "Thumbnail AI",
+        "applyLabel": "Accept (tạo Artwork mới)",
+        "applyNote": "Tạo bản vẽ AssetReference phiên bản mới cho panel; ảnh cũ giữ nguyên."
+      },
+      "BibleStub": {
+        "title": "Hồ sơ Bible nháp",
+        "applyLabel": "Dùng làm nháp",
+        "applyNote": "Đổ mô tả và tiêu đề phụ vào form để tự sửa rồi lưu; chưa ghi vào Series Bible."
+      },
+      "ImpactRipple": {
+        "title": "Xử lý ảnh hưởng",
+        "applyLabel": "Accept (áp dụng xử lý)",
+        "applyNote": "Thực hiện Impact Review theo quyết định gợi ý; Reject không đổi trạng thái ô."
+      }
+    },
+    "runStatus": {
+      "Queued": "Đang xếp hàng",
+      "Running": "Đang chạy",
+      "WaitingForHuman": "Dừng — chờ con người quyết định",
+      "Completed": "Hoàn tất",
+      "Failed": "Thất bại",
+      "Interrupted": "Bị gián đoạn (AI service dừng)"
+    },
+    "assist": {
+      "errors": {
+        "forbidden": "Bạn không có quyền thực hiện thao tác này.",
+        "aiUnavailable": "Trợ lý AI tạm thời không khả dụng. Bạn vẫn có thể soạn tay bình thường.",
+        "aiDisabled": "Trợ lý AI đang bị tắt. Bạn vẫn có thể soạn tay bình thường.",
+        "quotaExceeded": "Đã hết hạn mức dùng Trợ lý AI. Hãy thử lại sau.",
+        "checkAvailFailed": "Không thể kiểm tra điều kiện chạy Trợ lý AI.",
+        "pollFailed": "Không thể tải trạng thái lượt chạy.",
+        "runFailed": "Không thể chạy Trợ lý AI.",
+        "decideFailed": "Không thể ghi quyết định."
+      },
+      "status": {
+        "queued": "Đang xếp hàng…",
+        "running": "Trợ lý AI đang viết…",
+        "waitingForHuman": "AI đã dừng: còn lỗi nhất quán cần bạn xử lý",
+        "completed": "Hoàn tất",
+        "interrupted": "Lượt chạy bị gián đoạn. Hãy chạy lại.",
+        "failed": "Lượt chạy thất bại."
+      },
+      "closeAria": "Đóng Trợ lý AI",
+      "cannotRunTitle": "Chưa thể chạy Trợ lý AI",
+      "storyboardHasPanelsTitle": "Phân cảnh này đã có khung tranh",
+      "storyboardHasPanelsDescPrefix": "Storyboard chỉ áp dụng cho phân cảnh chưa có khung. Để chia lại thoại cho khung có sẵn, mở",
+      "artistDesk": "Bàn vẽ Artist",
+      "andUse": "và dùng",
+      "autoAllocateScript": "Tự động phân bổ kịch bản",
+      "pendingBanner": "Có đề xuất chưa duyệt",
+      "rerunChanges": "Chạy lại theo góp ý",
+      "draftSection": "Bản nháp script",
+      "continuitySection": "Đối chiếu với Series Bible",
+      "storyboardSection": "Bố cục Storyboard (Phân khung)",
+      "suggestionsSection": "Đề xuất",
+      "techDetails": "Chi tiết kỹ thuật",
+      "coordinatorAgent": "Điều phối",
+      "errorCode": "lỗi {code}"
+    },
+    "output": {
+      "artistPromptsCount": "{count} prompt ảnh",
+      "artistPromptsOnlyDraft": "chỉ soạn prompt,",
+      "artistPromptsNoImage": "chưa sinh ảnh",
+      "artistPromptsRefNote": "Reference chỉ lấy từ Series Bible hiệu lực tại chương (code kiểm).",
+      "styleSummary": "Phong cách: {style}",
+      "pagePanel": "Trang {page} · Panel {panel}",
+      "referenceBible": "Reference Bible:",
+      "none": "(không có)",
+      "consistencyNotes": "Lưu ý nhất quán:",
+      "limitSource": {
+        "element-estimate": "theo kích thước bubble",
+        "panel-estimate": "theo diện tích panel (chưa có bubble)"
+      },
+      "letteringCount": "{count} đề xuất rút gọn thoại.",
+      "letteringNotePrefix": "Giới hạn ký tự là",
+      "letteringNoteEstimate": "ước lượng",
+      "letteringNoteSuffix": "của hệ thống, không phải kết quả render — Letterer vẫn kiểm tra khi đặt chữ.",
+      "noLetteringSuggestions": "Không dòng thoại nào cần rút gọn.",
+      "linePrefix": "dòng {id}",
+      "bubblePrefix": "bubble {id}",
+      "noBubble": "chưa gắn bubble",
+      "estimatedLimitTitle": "Số ký tự tối đa ước lượng bởi hệ thống",
+      "estimatedLimit": "ước lượng ≤ {maxChars} ký tự · {source}",
+      "originalChars": "Gốc · {count} ký tự",
+      "suggestedChars": "Đề xuất · {count} ký tự",
+      "withinLimit": "trong giới hạn ước lượng",
+      "overLimit": "vượt giới hạn ước lượng",
+      "reasonLabel": "Lý do:",
+      "productionDisclaimer": "Báo cáo tham khảo: không tự giao việc, đổi deadline, chuyển stage hay Approve. Số liệu do hệ thống tính, không do LLM.",
+      "dataGapsTitle": "Thiếu dữ liệu — chưa đánh giá được:",
+      "risksTitle": "Rủi ro ({count})",
+      "noRisks": "Không có rủi ro nào có căn cứ trong số liệu hiện có.",
+      "recommendationsTitle": "Đề xuất xử lý ({count})",
+      "factsTitle": "Số liệu do hệ thống tính ({count})",
+      "reviewVerdict": "Khuyến nghị: {verdict}",
+      "reviewVerdictDisclaimer": "chỉ là đề xuất, bạn mới là người quyết định.",
+      "computedByCode": "{detail} · do code tính",
+      "draftRejectComment": "Nháp comment nếu Reject:"
+    },
+    "layoutPreview": {
+      "directionVertical": "trên → dưới (Vertical)",
+      "directionRtl": "phải → trái (RTL)",
+      "directionLtr": "trái → phải (LTR)",
+      "pageLabel": "Trang {page}",
+      "pageLayoutAria": "Bố cục trang {page}",
+      "readingDirectionLabel": "Hướng đọc: {direction} · số = thứ tự đọc",
+      "lineOrder": "dòng {order}",
+      "characterFallback": "nhân vật"
+    },
+    "stepOutput": {
+      "revisionNotes": "Ghi chú sửa:",
+      "characterFallback": "nhân vật",
+      "editedBadge": "đã sửa",
+      "noConflicts": "Không có mâu thuẫn.",
+      "hasConflicts": "Có mâu thuẫn.",
+      "relatedScriptLines": "Dòng script liên quan",
+      "lineOrder": "Dòng {order}",
+      "bibleEvidence": "Bằng chứng từ Series Bible",
+      "suggestedFix": "Gợi ý sửa:",
+      "supervisorChose": "Supervisor chọn",
+      "guardrailOverridden": "guardrail đã ghi đè lựa chọn của Supervisor",
+      "reasonLabel": "Lý do:",
+      "nextAgentInstruction": "Chỉ đạo gửi agent kế tiếp:",
+      "allowedActionsLabel": "Hàng rào (code tính) cho phép:",
+      "hideRawJson": "Ẩn JSON gốc (output + input của step)",
+      "showRawJson": "Xem JSON gốc (output + input của step)"
+    },
+    "suggestionCard": {
+      "status": {
+        "Pending": "Chờ quyết định",
+        "Accepted": "Đã Accept",
+        "Rejected": "Đã Reject",
+        "ChangesRequested": "Yêu cầu sửa"
+      },
+      "impactDecision": {
+        "keep": "Giữ nguyên",
+        "rework": "Làm lại"
+      },
+      "detail": {
+        "scriptLines": "{count} dòng script",
+        "layoutSummary": "{pages} trang · {panels} panel",
+        "lineRewriteShortenMax": "Rút gọn thoại (tối đa {maxChars} ký tự)",
+        "lineRewriteShortenFrame": "Rút gọn thoại (theo khung)",
+        "lineRewriteVoice": "Viết lại thoại theo giọng nhân vật",
+        "seriesMetadataGenre": "Thể loại: {genre} · Cập nhật tóm tắt & thể loại",
+        "seriesMetadataFallback": "Gợi ý thông tin phát hành Series",
+        "thumbnailModel": "Model: {model} ({provider})",
+        "thumbnailFallback": "Ảnh thumbnail AI cho panel",
+        "imagePromptCount": "{count} prompt ảnh cho panel",
+        "bibleStubCitations": "{count} trích dẫn từ kịch bản",
+        "impactRippleChanges": "{decision} · {count} thay đổi kịch bản",
+        "letteringBubbleMax": "Tối đa {maxChars} ký tự · Đổi chữ trên bóng thoại",
+        "letteringBubbleDefault": "Rút gọn chữ trên bóng thoại",
+        "letteringSuggestionsCount": "{count} dòng thoại được đề xuất rút gọn"
+      },
+      "bubbleShortenApplyNote": "Đổi chữ trên bóng thoại, không đổi dòng kịch bản.",
+      "disabledReason": {
+        "alreadyDecided": "Đề xuất đã được quyết định",
+        "blockingFindings": "Còn finding chặn từ Continuity — chỉ được Reject hoặc Yêu cầu sửa",
+        "needsParentScript": "Cần Accept đề xuất Script trước",
+        "hasPanels": "Scene đã có Panel; không thể áp dụng layout AI. Hãy dùng Tự động phân bổ trên Bàn vẽ."
+      },
+      "titlePrefix": "Đề xuất {title}",
+      "hideContent": "Ẩn nội dung đề xuất",
+      "showContent": "Xem nội dung đề xuất trước khi quyết định",
+      "synopsisLabel": "Tóm tắt: ",
+      "genreLabel": "Thể loại:",
+      "referenceOnlyNote": "Chỉ tham khảo, không được lưu khi Accept",
+      "ageRatingLabel": "Độ tuổi: ",
+      "reasonLabel": "Lý do:",
+      "originalLabel": "Bản gốc: ",
+      "shortenedLabel": "Bản rút gọn: ",
+      "decisionLabel": "Quyết định:",
+      "blockingFindingsWarning": "Còn lỗi nhất quán chặn sau 2 lượt sửa. Hãy Reject hoặc Yêu cầu sửa rồi chạy lại.",
+      "decidedAt": "lúc {time}",
+      "createdRevision": "→ tạo content revision {id} (chapter v{from} → v{to})",
+      "noDecisionRights": "Bạn không có quyền quyết định đề xuất {title}{roles}. Người đúng vai trò sẽ Accept hoặc Reject.",
+      "requiredRoles": " (cần vai trò: {roles})",
+      "reasonRequiredPlaceholder": "Lý do yêu cầu sửa (bắt buộc)",
+      "reasonOptionalPlaceholder": "Lý do (không bắt buộc)",
+      "confirmReject": "Xác nhận Reject",
+      "confirmRequestChanges": "Xác nhận Yêu cầu sửa",
+      "cancel": "Huỷ",
+      "requestChanges": "Yêu cầu sửa"
+    }
+  },
+  "provenance": {
+    "events": {
+      "RunStarted": "AI bắt đầu chạy",
+      "RunCompleted": "AI chạy xong",
+      "RunFailed": "AI chạy lỗi",
+      "StepCompleted": "Agent hoàn thành bước",
+      "SuggestionCreated": "AI đề xuất",
+      "DecisionMade": "Người quyết định",
+      "RevisionCreated": "Tạo phiên bản nội dung",
+      "SnapshotCreated": "Producer duyệt chương",
+      "ArtworkUploaded": "Họa sĩ tải artwork",
+      "LetteringChanged": "Letterer chỉnh sửa chữ",
+      "WorkSubmitted": "Nộp công đoạn",
+      "ReviewDecided": "Biên tập viên thẩm định"
+    },
+    "kinds": {
+      "Script": {
+        "label": "Kịch bản & Thoại",
+        "filterLabel": "Kịch bản & Thoại (Writer)"
+      },
+      "Layout": {
+        "label": "Bố cục khung (Panels)",
+        "filterLabel": "Khung trang (Artist)"
+      },
+      "ImagePrompt": {
+        "label": "Prompt ảnh nhân vật",
+        "filterLabel": "Prompt vẽ (Artist)"
+      },
+      "Artwork": {
+        "label": "Phiên bản artwork",
+        "filterLabel": "Artwork (Artist)"
+      },
+      "Lettering": {
+        "label": "Chèn chữ & bóng thoại",
+        "filterLabel": "Chèn chữ (Letterer)"
+      },
+      "Review": {
+        "label": "Nộp / duyệt / trả về",
+        "filterLabel": "Nộp & duyệt (Editor)"
+      }
+    },
+    "filterAll": "Tất cả",
+    "userFallback": "Người dùng ({id}…)",
+    "modalTitle": "Lịch Sử & Nguồn Gốc Nội Dung",
+    "closeLabel": "Đóng",
+    "currentChapter": "Chương hiện tại",
+    "chapterHeader": "Chương {number}: {title}",
+    "untitledChapter": "Không tiêu đề",
+    "tabs": {
+      "snapshots": "Bản duyệt",
+      "provenance": "Provenance",
+      "runs": "Lịch sử AI",
+      "pages": "Lịch sử trang"
+    },
+    "snapshots": {
+      "loading": "Đang tải các bản duyệt...",
+      "empty": "Chương chưa được duyệt lần nào. Bản duyệt được tạo tự động khi Producer duyệt chương.",
+      "itemTitle": "Bản duyệt #{number}",
+      "latestBadge": "Hiện hành",
+      "loadingManifest": "Đang tải manifest bản duyệt...",
+      "hashVerified": "Manifest còn nguyên vẹn: hash khớp chính xác với lúc duyệt.",
+      "hashMismatch": "Cảnh báo: hash manifest không khớp, bản duyệt có thể đã bị can thiệp ngoài nền tảng.",
+      "versionLabel": "Version",
+      "hashManifestLabel": "Hash Manifest",
+      "scriptRevisionsLabel": "Script Revisions",
+      "sceneVersionsCount": "{count} bản cảnh",
+      "effectiveBibleLabel": "Bible Hiệu lực",
+      "lockedItemsCount": "{count} mục khoá",
+      "colPage": "Trang",
+      "colArtwork": "Artwork (SHA-256)",
+      "colCanvasVersion": "Version Canvas",
+      "pageNumber": "Trang {number}",
+      "noFullPageArt": "Chưa có ảnh cả trang"
+    },
+    "report": {
+      "scopeLabel": "Phạm vi:",
+      "wholeChapter": "Cả chương",
+      "sceneOption": "Cảnh {number}",
+      "filterByRole": "Lọc theo vai trò:",
+      "stageBannerTitle": "Giai đoạn sản xuất hiện tại của chương:",
+      "stageBannerPart1": "Chương này mới có phiên bản kịch bản (vai trò",
+      "stageBannerPart2": "). Khi",
+      "stageBannerPart3": "tải artwork,",
+      "stageBannerPart4": "chèn chữ hoặc",
+      "stageBannerPart5": "duyệt / trả về, các phiên bản đó sẽ tự xuất hiện tại đây (khi xem cả chương, không lọc theo phân cảnh).",
+      "loading": "Đang dựng báo cáo phả hệ (Provenance Report)...",
+      "kpi": {
+        "aiWorkflowRun": "AI Workflow Run",
+        "acceptedSuggestions": "Đề xuất AI chấp nhận",
+        "modifiedByHuman": "Người sửa đề xuất",
+        "contentRevisions": "Phiên bản nội dung",
+        "contentRevisionsValue": "{ai} AI · {manual} người",
+        "rejectedSuggestions": "Đề xuất bị từ chối",
+        "pendingSuggestions": "Đề xuất chờ duyệt",
+        "approvedSnapshots": "Bản duyệt đã chốt",
+        "aiTokensUsed": "Token AI tiêu thụ"
+      },
+      "traceTitle": "Truy vết phả hệ nội dung",
+      "selectRevisionAria": "Chọn revision để truy vết",
+      "noMatchingRevisions": "Không có phiên bản nào phù hợp",
+      "noRevisionsInScope": "Chưa có phiên bản nội dung nào trong phạm vi và bộ lọc này.",
+      "originAi": "Từ đề xuất AI",
+      "originHuman": "Do người viết/sửa",
+      "aiGenesisTitle": "Nguồn gốc sinh AI",
+      "workflowLabel": "Workflow:",
+      "aiModelLabel": "Mô hình AI:",
+      "requestedByLabel": "Người chạy:",
+      "agentPromptLabel": "Agent / Prompt:",
+      "manualRevisionNote": "Phiên bản này được thực hiện thủ công bởi thành viên dự án, không qua chuỗi đề xuất tự động.",
+      "reviewRightsTitle": "Thẩm định & Bản quyền",
+      "decidedByLabel": "Người duyệt:",
+      "decisionLabel": "Quyết định:",
+      "modificationLevelLabel": "Mức độ sửa:",
+      "createdByLabel": "Tạo bởi:",
+      "roleLabel": "Vai trò:",
+      "packagedInLabel": "Đóng gói trong:",
+      "notInSnapshot": "Chưa thuộc bản duyệt nào",
+      "previousVersionLabel": "Bản liền trước:",
+      "executionDetailsTitle": "Chi tiết thực hiện",
+      "stageLabel": "Công đoạn:",
+      "locationLabel": "Vị trí:",
+      "pageLabel": "Trang {number}",
+      "panelSuffix": " · Khung",
+      "imageFileLabel": "Tệp ảnh:",
+      "actionLabel": "Thao tác:",
+      "timesCount": " ({count} lần)",
+      "reviewStatusLabel": "Trạng thái duyệt:",
+      "commentLabel": "Nhận xét:",
+      "timelineTitle": "Dòng thời gian sự kiện",
+      "eventsRecorded": "{count} sự kiện được ghi nhận",
+      "noEvents": "Chưa có sự kiện nào được ghi nhận.",
+      "collapse": "Thu gọn",
+      "viewDetails": "Xem chi tiết"
+    },
+    "runs": {
+      "loading": "Đang tải lịch sử các lượt chạy AI...",
+      "empty": "Chương chưa có lượt chạy AI nào.",
+      "listHeader": "Danh sách {total} lần chạy workflow AI trong chương (mới nhất xếp trước):",
+      "noBrief": "Không có mô tả yêu cầu.",
+      "collapse": "Thu gọn",
+      "viewFullContent": "Xem toàn bộ nội dung ({count} ký tự)",
+      "stepsCount": "{count} bước",
+      "suggestionsCount": "{count} đề xuất",
+      "acceptedCount": "{count} nhận",
+      "rejectedCount": "{count} từ chối",
+      "errorCode": "Mã lỗi: {code}"
+    },
+    "pageHistory": {
+      "change": {
+        "Added": "Thêm",
+        "Removed": "Xoá",
+        "Modified": "Sửa"
+      },
+      "confirmRestoreTitle": "Khôi phục phiên bản v{version}?",
+      "confirmRestoreDesc": "Lịch sử cũ vẫn được giữ.",
+      "restoreBtn": "Khôi phục",
+      "cancelBtn": "Hủy",
+      "restoreNoChanges": "Trang đã giống bản v{version}, không có gì thay đổi.",
+      "restoreSuccess": "Đã khôi phục về v{version} ({changes} thay đổi, phiên bản mới v{newVersion}).",
+      "restoreConflict": "Trang vừa được người khác sửa. Đã nạp lại lịch sử, hãy kiểm tra rồi thử lại.",
+      "noPages": "Chương chưa có trang nào.",
+      "pageLabel": "Trang",
+      "pageOption": "Trang {number}",
+      "currentVersion": "Phiên bản hiện tại: v{version}",
+      "compareTitle": "So sánh v{left} → v{right}: +{added} / −{removed} / ~{modified}",
+      "canvasChanged": " · khổ canvas đổi",
+      "noElementDiff": "Không có khác biệt element.",
+      "systemActor": "Hệ thống",
+      "compareWithCurrent": "So với hiện tại"
+    }
+  },
+  "productionWorkspace": {
+    "chapterStatus": {
+      "PreProduction": "Tiền kỳ (viết kịch bản)",
+      "InProduction": "Đang sản xuất",
+      "ChapterApproved": "Đã nghiệm thu (Gate 3)",
+      "HandedOffAndPublished": "Đã bàn giao & phát hành"
+    },
+    "workspace": {
+      "loadChaptersErrorTitle": "Lỗi tải danh mục",
+      "loadChaptersErrorDesc": "Không thể nạp danh sách chương của bộ truyện.",
+      "loadingChapter": "Đang nạp chương...",
+      "draftFallback": "Bản thảo",
+      "restrictedTitle": "Khu vực giới hạn",
+      "restrictedDesc": "Không có quyền truy cập sản xuất. Quay lại danh mục truyện để đọc bản phát hành.",
+      "goToCatalog": "Đến Public Catalog",
+      "breadcrumbAria": "Đường dẫn ngữ cảnh",
+      "chapterFallback": "Chương",
+      "chapterNumber": "Chương {number}",
+      "workflowTitle": "Quy trình sản xuất",
+      "chapterLockedNote": "Bị khoá: nội dung chương chỉ còn xem, không sửa được",
+      "draftChapterTitle": "Bản thảo Chương {number}",
+      "chapterSelectLabel": "Chương:",
+      "loadingChapters": "Đang nạp danh sách chương...",
+      "refreshAria": "Làm mới dữ liệu",
+      "refresh": "Làm mới",
+      "myWorkBtn": "Công việc & Xét duyệt"
+    },
+    "taskEditor": {
+      "taskNumberTitle": "Nhiệm vụ #{id}",
+      "memberFallback": "Thành viên",
+      "loadingLiveApi": "Đang tải dữ liệu Task từ Live API...",
+      "notFound": "Không tìm thấy dữ liệu Task.",
+      "scriptInEditorNote": "Tác vụ kịch bản được thực hiện trong Script Editor.",
+      "openScriptEditor": "Mở Script Editor",
+      "letteringInDeskNote": "Tác vụ chèn chữ được thực hiện trong Artist Desk (Lettering).",
+      "openArtistDeskLettering": "Mở Artist Desk (Lettering)",
+      "taskInStatusNote": "Task đang ở trạng thái {stage}.",
+      "goToReview": "Chuyển tới màn hình Review",
+      "startWorkToastTitle": "Bắt đầu làm việc",
+      "startWorkToastDesc": "Nhiệm vụ đã chuyển sang trạng thái InProgress.",
+      "startWorkErrorTitle": "Không thể bắt đầu",
+      "startWorkErrorDesc": "Lỗi bắt đầu công việc.",
+      "submitBr19Title": "Cảnh báo quy trình (BR-19)",
+      "submitBr19Desc": "Phải bấm \"Bắt đầu làm\" (InProgress) trước khi nộp để tránh lỗi 409 Conflict!",
+      "submittedToastTitle": "Đã nộp bài",
+      "submittedToastDesc": "Nhiệm vụ đã được gửi tới Editor để xét duyệt.",
+      "submitErrorTitle": "Không thể nộp bài",
+      "submitErrorDesc": "Lỗi nộp bài.",
+      "assigneeLabel": "Người làm: {name}",
+      "dueLabel": "Hạn: {date}",
+      "historyProvenance": "Lịch sử & nguồn gốc",
+      "startWorkTooltip": "Bắt đầu làm việc (InProgress) trước khi nộp bài",
+      "startReworkBtn": "Bắt đầu sửa lại",
+      "startWorkBtn": "Bắt đầu làm",
+      "saveDraftToastTitle": "Lưu bản nháp",
+      "saveDraftToastDesc": "Đã lưu thay đổi.",
+      "saveDraftBtn": "Lưu nháp",
+      "submitDisabledTooltip": "Cần bắt đầu làm trước khi nộp bài",
+      "submitTooltip": "Nộp bài để chuyển sang xét duyệt Review",
+      "submitBtn": "Nộp duyệt (Submit for Review)",
+      "editorFeedbackLabel": "Yêu cầu sửa từ Editor:"
+    }
+  },
+  "scriptReview": {
+    "generalComment": "Góp ý chung",
+    "pagePanel": "Trang {page} · Panel {panel}",
+    "pageOnly": "Trang {page}",
+    "tabs": {
+      "comments": "Góp ý ({count})",
+      "changes": "Thay đổi",
+      "checks": "Kiểm tra"
+    },
+    "closePanelTitle": "Đóng bảng nhận xét",
+    "noComments": "Chưa có góp ý nào từ Biên tập viên cho chương này.",
+    "lineRemoved": "Dòng đã bị xoá",
+    "contentChanged": "Nội dung đã đổi",
+    "compareWithPrevious": "So sánh với bản gửi duyệt trước đó",
+    "firstSubmittedVersion": "Bản gửi duyệt đầu tiên của chương",
+    "noSubmittedVersion": "Chưa có bản gửi duyệt nào để đối chiếu thay đổi.",
+    "consistencyTitle": "Kiểm tra nhất quán",
+    "consistencyDesc": "Luật kiểm tra tính nhất quán dòng thoại và thực thể Bible.",
+    "recheckBtn": "Kiểm tra lại",
+    "noFindings": "Không phát hiện vấn đề nhất quán nào.",
+    "issueFallback": "Vấn đề",
+    "comment": {
+      "inputPlaceholder": "Nhập nhận xét...",
+      "cancel": "Hủy",
+      "submit": "Nhận xét",
+      "editorFallback": "Biên tập viên",
+      "resolved": "Đã giải quyết",
+      "resolve": "Giải quyết"
+    }
+  },
+  "scriptVersions": {
+    "rowPage": "TRANG {n}",
+    "rowPanel": "PANEL {n}",
+    "rowCaption": "DẪN TRUYỆN:",
+    "rowSfx": "SFX:",
+    "rowThought": "(nghĩ)"
+  },
+  "seriesIdentity": {
+    "readImageError": "Không thể đọc file ảnh để xử lý.",
+    "titleAvatar": "Đổi avatar Series",
+    "titleBanner": "Đổi banner Series",
+    "invalidFileType": "Chỉ nhận ảnh PNG, JPEG hoặc WebP.",
+    "fileTooLarge": "Ảnh {size} MB vượt giới hạn 5 MB.",
+    "saveErrorFallback": "Không thể lưu ảnh.",
+    "willUseDefault": "Sẽ dùng ảnh mặc định",
+    "dragToMoveTitle": "Nhấn giữ chuột và kéo để di chuyển vị trí ảnh",
+    "dragToCenterHint": "Kéo để căn chỉnh tâm điểm",
+    "noImage": "Chưa có ảnh",
+    "closeNoSave": "Đóng, không lưu",
+    "avatarRuleHint": "Ảnh vuông 1:1",
+    "bannerRuleHint": "Ảnh ngang khoảng 3:1, chủ thể nên ở bên trái",
+    "applyHint": "Bấm “Áp dụng” mới lưu.",
+    "displayModeLabel": "Chế độ hiển thị:",
+    "fitContain": "Vừa khung (Trọn vẹn ảnh)",
+    "fitCover": "Lấp đầy (Cắt tuỳ chỉnh)",
+    "fitContainDesc": "Giữ trọn vẹn 100% hình ảnh không bị cắt mép hay mất góc. Phần viền thừa được bổ sung nền mờ đồng màu tinh tế.",
+    "zoomLabel": "Thu phóng:",
+    "zoomOutAria": "Thu nhỏ",
+    "zoomSliderAria": "Thanh trượt thu phóng",
+    "zoomInAria": "Phóng to",
+    "dragPanHint": "Di chuyển con trỏ trên khung ảnh để kéo chỉnh vị trí.",
+    "resetBtn": "Đặt lại",
+    "presetsTitle": "Ảnh mẫu",
+    "selectPresetAria": "Chọn mẫu {name}",
+    "selectedFile": "Đã chọn: {name}",
+    "uploadOwn": "Tải ảnh riêng…",
+    "resetToDefault": "Về mặc định",
+    "saveErrorRetryHint": " Ảnh đang dùng không bị thay đổi. Bấm “Áp dụng” để thử lại.",
+    "cancel": "Hủy",
+    "saving": "Đang lưu…",
+    "apply": "Áp dụng"
+  }
+}

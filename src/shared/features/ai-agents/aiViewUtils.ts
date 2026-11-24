@@ -8,6 +8,7 @@ import {
   ScriptDraft,
   WorkerAgentName,
 } from '@/services/aiAgents.service';
+import { translate } from '@/lib/i18n';
 
 /** Chuẩn hoá hướng đọc của Series (chuỗi hoặc enum số RightToLeft=0, LeftToRight=1, Vertical=2) sang giá trị hợp đồng AI workflow. */
 export function toAiReadingDirection(
@@ -42,23 +43,32 @@ export const WORKFLOW_AGENTS: Record<BatchWorkflowType, WorkerAgentName[]> = {
   Producer: ['Producer'],
 };
 
+const workflowMetaEntry = (
+  key: AiWorkflowType,
+  result: 'suggestion' | 'report',
+): { title: string; short: string; result: 'suggestion' | 'report' } => ({
+  get title() {
+    return translate(`features.aiAgents.workflowMeta.${key}.title`);
+  },
+  get short() {
+    return translate(`features.aiAgents.workflowMeta.${key}.short`);
+  },
+  result,
+});
+
 export const WORKFLOW_META: Record<
   AiWorkflowType,
   { title: string; short: string; result: 'suggestion' | 'report' }
 > = {
-  FullScene: {
-    title: 'Scene đầy đủ (script → storyboard → review)',
-    short: 'Scene đầy đủ',
-    result: 'suggestion',
-  },
-  Script: { title: 'Viết script', short: 'Script', result: 'suggestion' },
-  Storyboard: { title: 'Storyboard từ script có sẵn', short: 'Storyboard', result: 'suggestion' },
-  Artist: { title: 'Prompt ảnh cho panel', short: 'Prompt ảnh', result: 'suggestion' },
-  Letterer: { title: 'Rút gọn thoại cho bubble', short: 'Thoại', result: 'suggestion' },
-  Editor: { title: 'Review biên tập', short: 'Review', result: 'report' },
-  Producer: { title: 'Báo cáo tiến độ', short: 'Tiến độ', result: 'report' },
-  Copilot: { title: 'AI Copilot (sync)', short: 'Copilot', result: 'suggestion' },
-  Thumbnail: { title: 'Sinh ảnh Thumbnail AI', short: 'Thumbnail', result: 'suggestion' },
+  FullScene: workflowMetaEntry('FullScene', 'suggestion'),
+  Script: workflowMetaEntry('Script', 'suggestion'),
+  Storyboard: workflowMetaEntry('Storyboard', 'suggestion'),
+  Artist: workflowMetaEntry('Artist', 'suggestion'),
+  Letterer: workflowMetaEntry('Letterer', 'suggestion'),
+  Editor: workflowMetaEntry('Editor', 'report'),
+  Producer: workflowMetaEntry('Producer', 'report'),
+  Copilot: workflowMetaEntry('Copilot', 'suggestion'),
+  Thumbnail: workflowMetaEntry('Thumbnail', 'suggestion'),
 };
 
 /** Thứ tự hiển thị trong form chọn nhiệm vụ (khớp GET availability mặc định: Script, Storyboard, Artist, Editor). */
@@ -67,65 +77,54 @@ export const WORKFLOW_ORDER: AiWorkflowType[] = ['Script', 'Storyboard', 'Artist
 /** Nhiệm vụ có Writer trong chuỗi: chỉ ở đây "ép Writer không sửa lỗi / Supervisor leo thang" (Mock) mới có nghĩa. */
 export const hasWriterLoop = (t: AiWorkflowType) => t === 'FullScene' || t === 'Script';
 
+const kindMetaEntry = (
+  key: AiSuggestionKind,
+): { title: string; applyLabel: string; applyNote: string } => ({
+  get title() {
+    return translate(`features.aiAgents.kindMeta.${key}.title`);
+  },
+  get applyLabel() {
+    return translate(`features.aiAgents.kindMeta.${key}.applyLabel`);
+  },
+  get applyNote() {
+    return translate(`features.aiAgents.kindMeta.${key}.applyNote`);
+  },
+});
+
 export const KIND_META: Record<
   AiSuggestionKind,
   { title: string; applyLabel: string; applyNote: string }
 > = {
-  Script: {
-    title: 'Script',
-    applyLabel: 'Accept (áp dụng script)',
-    applyNote: 'Thay các dòng script của Scene bằng bản AI; dòng cũ còn trong revision/baseline.',
-  },
-  Layout: {
-    title: 'Layout (Page/Panel)',
-    applyLabel: 'Accept (tạo Page/Panel)',
-    applyNote: 'Tạo Page và Panel mới cho Scene chưa có Page; không ghi đè dữ liệu có sẵn.',
-  },
-  ImagePrompt: {
-    title: 'Prompt ảnh',
-    applyLabel: 'Accept (ghi revision prompt ảnh)',
-    applyNote: 'Ghi một revision prompt ảnh append-only; không sinh ảnh, không sửa Bible/layout.',
-  },
-  Lettering: {
-    title: 'Rút gọn thoại',
-    applyLabel: 'Accept (áp dụng rút gọn thoại)',
-    applyNote:
-      'Tạo revision script mới với thoại rút gọn; thoại gốc còn trong revision cũ. Bubble trên canvas không bị đổi.',
-  },
-  LineRewrite: {
-    title: 'Viết lại / Rút gọn thoại',
-    applyLabel: 'Accept (cập nhật dòng thoại)',
-    applyNote: 'Tạo revision Script mới (append-only) và cập nhật dòng thoại đã chọn.',
-  },
-  SeriesMetadata: {
-    title: 'Metadata phát hành',
-    applyLabel: 'Accept (cập nhật Series)',
-    applyNote: 'Cập nhật tóm tắt (synopsis) và thể loại (genre) của Series cho Public Catalog.',
-  },
-  Thumbnail: {
-    title: 'Thumbnail AI',
-    applyLabel: 'Accept (tạo Artwork mới)',
-    applyNote: 'Tạo bản vẽ AssetReference phiên bản mới cho panel; ảnh cũ giữ nguyên.',
-  },
-  BibleStub: {
-    title: 'Hồ sơ Bible nháp',
-    applyLabel: 'Dùng làm nháp',
-    applyNote: 'Đổ mô tả và tiêu đề phụ vào form để tự sửa rồi lưu; chưa ghi vào Series Bible.',
-  },
-  ImpactRipple: {
-    title: 'Xử lý ảnh hưởng',
-    applyLabel: 'Accept (áp dụng xử lý)',
-    applyNote: 'Thực hiện Impact Review theo quyết định gợi ý; Reject không đổi trạng thái ô.',
-  },
+  Script: kindMetaEntry('Script'),
+  Layout: kindMetaEntry('Layout'),
+  ImagePrompt: kindMetaEntry('ImagePrompt'),
+  Lettering: kindMetaEntry('Lettering'),
+  LineRewrite: kindMetaEntry('LineRewrite'),
+  SeriesMetadata: kindMetaEntry('SeriesMetadata'),
+  Thumbnail: kindMetaEntry('Thumbnail'),
+  BibleStub: kindMetaEntry('BibleStub'),
+  ImpactRipple: kindMetaEntry('ImpactRipple'),
 };
 
 export const RUN_STATUS_LABEL: Record<AiRunStatus, string> = {
-  Queued: 'Đang xếp hàng',
-  Running: 'Đang chạy',
-  WaitingForHuman: 'Dừng — chờ con người quyết định',
-  Completed: 'Hoàn tất',
-  Failed: 'Thất bại',
-  Interrupted: 'Bị gián đoạn (AI service dừng)',
+  get Queued() {
+    return translate('features.aiAgents.runStatus.Queued');
+  },
+  get Running() {
+    return translate('features.aiAgents.runStatus.Running');
+  },
+  get WaitingForHuman() {
+    return translate('features.aiAgents.runStatus.WaitingForHuman');
+  },
+  get Completed() {
+    return translate('features.aiAgents.runStatus.Completed');
+  },
+  get Failed() {
+    return translate('features.aiAgents.runStatus.Failed');
+  },
+  get Interrupted() {
+    return translate('features.aiAgents.runStatus.Interrupted');
+  },
 };
 
 export interface LineInfo {

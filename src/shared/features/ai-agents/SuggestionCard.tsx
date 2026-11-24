@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   Check,
   Eye,
@@ -41,12 +42,6 @@ const STATUS_STYLE: Record<AiSuggestionStatus, string> = {
   Accepted: 'border-emerald-300 bg-emerald-50 text-emerald-700',
   Rejected: 'border-red-300 bg-red-50 text-red-700',
   ChangesRequested: 'border-sky-300 bg-sky-50 text-sky-700',
-};
-const STATUS_LABEL: Record<AiSuggestionStatus, string> = {
-  Pending: 'Chờ quyết định',
-  Accepted: 'Đã Accept',
-  Rejected: 'Đã Reject',
-  ChangesRequested: 'Yêu cầu sửa',
 };
 const KIND_ICON: Record<AiSuggestionKind, React.ElementType> = {
   Script: FileText,
@@ -93,45 +88,79 @@ interface Props {
 }
 
 /** Số liệu tóm tắt của payload theo loại đề xuất. */
-function detailOf(s: AiSuggestionDto): string {
+function detailOf(
+  s: AiSuggestionDto,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
   switch (s.kind) {
     case 'Script':
-      return `${(s.payload as ScriptDraft | undefined)?.lines?.length ?? 0} dòng script`;
+      return t('aiAgents.suggestionCard.detail.scriptLines', {
+        count: (s.payload as ScriptDraft | undefined)?.lines?.length ?? 0,
+      });
     case 'Layout': {
       const l = s.payload as StoryboardLayout | undefined;
-      return `${l?.pages?.length ?? 0} trang · ${l?.pages?.reduce((n, p) => n + p.panels.length, 0) ?? 0} panel`;
+      return t('aiAgents.suggestionCard.detail.layoutSummary', {
+        pages: l?.pages?.length ?? 0,
+        panels: l?.pages?.reduce((n, p) => n + p.panels.length, 0) ?? 0,
+      });
     }
     case 'LineRewrite': {
       const lr = s.payload as LineRewriteSuggestion | undefined;
-      return lr?.task === 'letterer.shorten'
-        ? `Rút gọn thoại (${lr.maxChars ? `tối đa ${lr.maxChars} ký tự` : 'theo khung'})`
-        : 'Viết lại thoại theo giọng nhân vật';
+      if (lr?.task === 'letterer.shorten') {
+        return lr.maxChars
+          ? t('aiAgents.suggestionCard.detail.lineRewriteShortenMax', { maxChars: lr.maxChars })
+          : t('aiAgents.suggestionCard.detail.lineRewriteShortenFrame');
+      }
+      return t('aiAgents.suggestionCard.detail.lineRewriteVoice');
     }
     case 'SeriesMetadata': {
       const sm = s.payload as SeriesMetadataSuggestion | undefined;
       return sm?.metadata?.genre
-        ? `Thể loại: ${sm.metadata.genre} · Cập nhật tóm tắt & thể loại`
-        : 'Gợi ý thông tin phát hành Series';
+        ? t('aiAgents.suggestionCard.detail.seriesMetadataGenre', { genre: sm.metadata.genre })
+        : t('aiAgents.suggestionCard.detail.seriesMetadataFallback');
     }
     case 'Thumbnail': {
       const tn = s.payload as ThumbnailSuggestion | undefined;
-      return tn?.provider ? `Model: ${tn.model} (${tn.provider})` : 'Ảnh thumbnail AI cho panel';
+      return tn?.provider
+        ? t('aiAgents.suggestionCard.detail.thumbnailModel', {
+            model: tn.model,
+            provider: tn.provider,
+          })
+        : t('aiAgents.suggestionCard.detail.thumbnailFallback');
     }
     case 'ImagePrompt':
-      return `${(s.payload as ArtistPromptSet | undefined)?.panels?.length ?? 0} prompt ảnh cho panel`;
+      return t('aiAgents.suggestionCard.detail.imagePromptCount', {
+        count: (s.payload as ArtistPromptSet | undefined)?.panels?.length ?? 0,
+      });
     case 'BibleStub':
-      return `${getBibleCitations(s.payload as BibleStubSuggestion | undefined).length} trích dẫn từ kịch bản`;
+      return t('aiAgents.suggestionCard.detail.bibleStubCitations', {
+        count: getBibleCitations(s.payload as BibleStubSuggestion | undefined).length,
+      });
     case 'ImpactRipple': {
       const ir = s.payload as ImpactRippleSuggestion | undefined;
-      return `${formatImpactDecision(ir?.decision)} · ${ir?.changes?.length ?? 0} thay đổi kịch bản`;
+      const decisionNorm = ir?.decision?.trim().toLowerCase();
+      const decisionLabel =
+        decisionNorm === 'keep' || decisionNorm === 'giữ nguyên'
+          ? t('aiAgents.suggestionCard.impactDecision.keep')
+          : decisionNorm === 'rework' || decisionNorm === 'làm lại'
+            ? t('aiAgents.suggestionCard.impactDecision.rework')
+            : formatImpactDecision(ir?.decision);
+      return t('aiAgents.suggestionCard.detail.impactRippleChanges', {
+        decision: decisionLabel,
+        count: ir?.changes?.length ?? 0,
+      });
     }
     case 'Lettering': {
       if (isBubbleShortenPayload(s.payload)) {
         return s.payload.maxChars
-          ? `Tối đa ${s.payload.maxChars} ký tự · Đổi chữ trên bóng thoại`
-          : 'Rút gọn chữ trên bóng thoại';
+          ? t('aiAgents.suggestionCard.detail.letteringBubbleMax', {
+              maxChars: s.payload.maxChars,
+            })
+          : t('aiAgents.suggestionCard.detail.letteringBubbleDefault');
       }
-      return `${(s.payload as LetteringSuggestionSet | undefined)?.suggestions?.length ?? 0} dòng thoại được đề xuất rút gọn`;
+      return t('aiAgents.suggestionCard.detail.letteringSuggestionsCount', {
+        count: (s.payload as LetteringSuggestionSet | undefined)?.suggestions?.length ?? 0,
+      });
     }
     default:
       return '';
@@ -151,6 +180,7 @@ export const SuggestionCard: React.FC<Props> = ({
   hasPanels,
   onDecide,
 }) => {
+  const { t, lang } = useTranslation('features');
   const [form, setForm] = useState<'reject' | 'request-changes' | null>(null);
   const [reason, setReason] = useState('');
   const inlineOpenByDefault =
@@ -165,7 +195,7 @@ export const SuggestionCard: React.FC<Props> = ({
     s.kind === 'Lettering' && isBubbleShortenPayload(s.payload)
       ? {
           ...baseMeta,
-          applyNote: 'Đổi chữ trên bóng thoại, không đổi dòng kịch bản.',
+          applyNote: t('aiAgents.suggestionCard.bubbleShortenApplyNote'),
         }
       : baseMeta;
   const Icon = KIND_ICON[s.kind];
@@ -176,13 +206,13 @@ export const SuggestionCard: React.FC<Props> = ({
   const needsParent = !!s.parentSuggestionId;
   const blockedByScript = needsParent && parentStatus !== 'Accepted';
   const acceptDisabledReason = !pending
-    ? 'Đề xuất đã được quyết định'
+    ? t('aiAgents.suggestionCard.disabledReason.alreadyDecided')
     : s.hasBlockingFindings
-      ? 'Còn finding chặn từ Continuity — chỉ được Reject hoặc Yêu cầu sửa'
+      ? t('aiAgents.suggestionCard.disabledReason.blockingFindings')
       : blockedByScript
-        ? 'Cần Accept đề xuất Script trước'
+        ? t('aiAgents.suggestionCard.disabledReason.needsParentScript')
         : hasPanels && s.kind === 'Layout'
-          ? 'Scene đã có Panel; không thể áp dụng layout AI. Hãy dùng Tự động phân bổ trên Bàn vẽ.'
+          ? t('aiAgents.suggestionCard.disabledReason.hasPanels')
           : '';
   const canPreview =
     s.kind === 'ImagePrompt' ||
@@ -202,22 +232,34 @@ export const SuggestionCard: React.FC<Props> = ({
     setReason('');
   };
 
+  const impactDecisionRaw = (s.payload as ImpactRippleSuggestion | undefined)?.decision;
+  const impactNorm = impactDecisionRaw?.trim().toLowerCase();
+  const impactIsRework = impactNorm === 'rework' || impactNorm === 'làm lại';
+  const impactDecisionLabel =
+    impactNorm === 'keep' || impactNorm === 'giữ nguyên'
+      ? t('aiAgents.suggestionCard.impactDecision.keep')
+      : impactIsRework
+        ? t('aiAgents.suggestionCard.impactDecision.rework')
+        : formatImpactDecision(impactDecisionRaw);
+
   return (
     <div className='rounded-xl border-[1.5px] border-[#171717] bg-white p-4' data-kind={s.kind}>
       <div className='flex flex-wrap items-center gap-2'>
         <Icon size={16} />
-        <h4 className='text-sm font-bold'>Đề xuất {meta.title}</h4>
+        <h4 className='text-sm font-bold'>
+          {t('aiAgents.suggestionCard.titlePrefix', { title: meta.title })}
+        </h4>
         <span
           className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${STATUS_STYLE[s.status]}`}
         >
-          {STATUS_LABEL[s.status]}
+          {t(`aiAgents.suggestionCard.status.${s.status}`)}
         </span>
         <span className='ml-auto font-mono text-[10px] text-[#737373]'>
           hash {s.payloadHash.slice(0, 10)} · base v{s.baseChapterVersion}
         </span>
       </div>
       <p className='mt-1 text-xs text-[#404040]'>{s.summary}</p>
-      <p className='mt-0.5 text-[11px] text-[#737373]'>{detailOf(s)}</p>
+      <p className='mt-0.5 text-[11px] text-[#737373]'>{detailOf(s, t)}</p>
 
       {canPreview && s.payload != null && (
         <div className='mt-2'>
@@ -227,7 +269,9 @@ export const SuggestionCard: React.FC<Props> = ({
             className='flex items-center gap-1 text-[11px] font-semibold text-[#525252] hover:text-[#171717]'
           >
             {showContent ? <EyeOff size={12} /> : <Eye size={12} />}
-            {showContent ? 'Ẩn nội dung đề xuất' : 'Xem nội dung đề xuất trước khi quyết định'}
+            {showContent
+              ? t('aiAgents.suggestionCard.hideContent')
+              : t('aiAgents.suggestionCard.showContent')}
           </button>
           {showContent && (
             <div className='mt-2'>
@@ -243,11 +287,13 @@ export const SuggestionCard: React.FC<Props> = ({
                     <div className='space-y-2 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
                       <div className='space-y-1'>
                         <div>
-                          <span className='font-bold text-[#171717]'>Tóm tắt: </span>
+                          <span className='font-bold text-[#171717]'>
+                            {t('aiAgents.suggestionCard.synopsisLabel')}
+                          </span>
                           <span className='text-[#404040]'>{md?.synopsis}</span>
                         </div>
                         <div className='text-[11px] text-[#525252]'>
-                          Thể loại: <b>{md?.genre}</b>
+                          {t('aiAgents.suggestionCard.genreLabel')} <b>{md?.genre}</b>
                         </div>
                       </div>
                       {hasRefFields && (
@@ -256,7 +302,7 @@ export const SuggestionCard: React.FC<Props> = ({
                           data-testid='series-metadata-reference-only'
                         >
                           <div className='font-semibold text-[#737373]'>
-                            Chỉ tham khảo, không được lưu khi Accept
+                            {t('aiAgents.suggestionCard.referenceOnlyNote')}
                           </div>
                           {logline && (
                             <div>
@@ -272,14 +318,18 @@ export const SuggestionCard: React.FC<Props> = ({
                           )}
                           {ageRating && (
                             <div>
-                              <span className='font-semibold text-[#525252]'>Độ tuổi: </span>
+                              <span className='font-semibold text-[#525252]'>
+                                {t('aiAgents.suggestionCard.ageRatingLabel')}
+                              </span>
                               <b>{ageRating}</b>
                             </div>
                           )}
                         </div>
                       )}
                       {sm?.reason && (
-                        <div className='text-[11px] italic text-[#737373]'>Lý do: {sm.reason}</div>
+                        <div className='text-[11px] italic text-[#737373]'>
+                          {t('aiAgents.suggestionCard.reasonLabel')} {sm.reason}
+                        </div>
                       )}
                     </div>
                   );
@@ -318,7 +368,8 @@ export const SuggestionCard: React.FC<Props> = ({
                   </div>
                   {(s.payload as LineRewriteSuggestion)?.reason && (
                     <div className='mt-2 text-[11px] italic text-[#525252]'>
-                      Lý do: {(s.payload as LineRewriteSuggestion)?.reason}
+                      {t('aiAgents.suggestionCard.reasonLabel')}{' '}
+                      {(s.payload as LineRewriteSuggestion)?.reason}
                     </div>
                   )}
                 </div>
@@ -332,14 +383,16 @@ export const SuggestionCard: React.FC<Props> = ({
                 isBubbleShortenPayload(s.payload) ? (
                   <div className='space-y-1.5 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
                     <div>
-                      <span className='text-[11px] font-semibold text-[#737373]'>Bản gốc: </span>
+                      <span className='text-[11px] font-semibold text-[#737373]'>
+                        {t('aiAgents.suggestionCard.originalLabel')}
+                      </span>
                       <span className='text-[11px] text-[#737373] line-through'>
                         {s.payload.originalText}
                       </span>
                     </div>
                     <div>
                       <span className='text-[11px] font-semibold text-emerald-800'>
-                        Bản rút gọn:{' '}
+                        {t('aiAgents.suggestionCard.shortenedLabel')}
                       </span>
                       <span className='font-medium text-emerald-800'>
                         {s.payload.suggestedText}
@@ -347,7 +400,7 @@ export const SuggestionCard: React.FC<Props> = ({
                     </div>
                     {s.payload.reason && (
                       <div className='text-[11px] italic text-[#525252]'>
-                        Lý do: {s.payload.reason}
+                        {t('aiAgents.suggestionCard.reasonLabel')} {s.payload.reason}
                       </div>
                     )}
                   </div>
@@ -366,7 +419,8 @@ export const SuggestionCard: React.FC<Props> = ({
                   </div>
                   {(s.payload as BibleStubSuggestion)?.reason && (
                     <div className='text-[11px] italic text-[#525252]'>
-                      Lý do: {(s.payload as BibleStubSuggestion).reason}
+                      {t('aiAgents.suggestionCard.reasonLabel')}{' '}
+                      {(s.payload as BibleStubSuggestion).reason}
                     </div>
                   )}
                   {getBibleCitations(s.payload as BibleStubSuggestion).length > 0 && (
@@ -388,16 +442,17 @@ export const SuggestionCard: React.FC<Props> = ({
               ) : s.kind === 'ImpactRipple' ? (
                 <div className='space-y-2 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
                   <div className='flex items-center gap-2'>
-                    <span className='font-bold text-[#171717]'>Quyết định:</span>
+                    <span className='font-bold text-[#171717]'>
+                      {t('aiAgents.suggestionCard.decisionLabel')}
+                    </span>
                     <span
                       className={`rounded border px-1.5 py-0.5 text-[11px] font-bold ${
-                        formatImpactDecision((s.payload as ImpactRippleSuggestion)?.decision) ===
-                        'Làm lại'
+                        impactIsRework
                           ? 'border-amber-300 bg-amber-50 text-amber-800'
                           : 'border-emerald-300 bg-emerald-50 text-emerald-800'
                       }`}
                     >
-                      {formatImpactDecision((s.payload as ImpactRippleSuggestion)?.decision)}
+                      {impactDecisionLabel}
                     </span>
                   </div>
                   {(s.payload as ImpactRippleSuggestion)?.reason && (
@@ -441,18 +496,24 @@ export const SuggestionCard: React.FC<Props> = ({
       {s.hasBlockingFindings && (
         <div className='mt-2 flex items-start gap-1.5 rounded border border-red-300 bg-red-50 p-2 text-[11px] text-red-700'>
           <MessageSquareWarning size={13} className='mt-0.5 shrink-0' />
-          Còn lỗi nhất quán chặn sau 2 lượt sửa. Hãy Reject hoặc Yêu cầu sửa rồi chạy lại.
+          {t('aiAgents.suggestionCard.blockingFindingsWarning')}
         </div>
       )}
 
       {s.decisions.map((d) => (
         <div key={d.id} className='mt-2 rounded bg-[#FAF8F5] p-2 text-[11px] text-[#525252]'>
-          <b>{STATUS_LABEL[d.decision]}</b> lúc {new Date(d.decidedAtUtc).toLocaleString('vi-VN')}
+          <b>{t(`aiAgents.suggestionCard.status.${d.decision}`)}</b>{' '}
+          {t('aiAgents.suggestionCard.decidedAt', {
+            time: new Date(d.decidedAtUtc).toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN'),
+          })}
           {d.reason ? ` — “${d.reason}”` : ''}
           {d.resultRevisionId && (
             <div className='font-mono text-[10px]'>
-              → tạo content revision {d.resultRevisionId.slice(0, 8)} (chapter v
-              {d.chapterVersionAtDecision} → v{d.chapterVersionAtDecision + 1})
+              {t('aiAgents.suggestionCard.createdRevision', {
+                id: d.resultRevisionId.slice(0, 8),
+                from: d.chapterVersionAtDecision,
+                to: d.chapterVersionAtDecision + 1,
+              })}
             </div>
           )}
         </div>
@@ -465,9 +526,14 @@ export const SuggestionCard: React.FC<Props> = ({
         >
           <Lock size={12} className='mt-0.5 shrink-0' />
           <span>
-            Bạn không có quyền quyết định đề xuất {meta.title}
-            {s.decisionRoles?.length ? ` (cần vai trò: ${s.decisionRoles.join(', ')})` : ''}. Người
-            đúng vai trò sẽ Accept hoặc Reject.
+            {t('aiAgents.suggestionCard.noDecisionRights', {
+              title: meta.title,
+              roles: s.decisionRoles?.length
+                ? t('aiAgents.suggestionCard.requiredRoles', {
+                    roles: s.decisionRoles.join(', '),
+                  })
+                : '',
+            })}
           </span>
         </div>
       )}
@@ -482,8 +548,8 @@ export const SuggestionCard: React.FC<Props> = ({
                 rows={2}
                 placeholder={
                   form === 'request-changes'
-                    ? 'Lý do yêu cầu sửa (bắt buộc)'
-                    : 'Lý do (không bắt buộc)'
+                    ? t('aiAgents.suggestionCard.reasonRequiredPlaceholder')
+                    : t('aiAgents.suggestionCard.reasonOptionalPlaceholder')
                 }
                 className='w-full rounded border-[1.5px] border-[#171717] p-2 text-xs outline-none focus:border-[#F97316]'
               />
@@ -494,14 +560,16 @@ export const SuggestionCard: React.FC<Props> = ({
                   onClick={submit}
                   className='rounded border-[1.5px] border-[#171717] bg-[#171717] px-3 py-1 text-xs font-semibold text-white disabled:opacity-50'
                 >
-                  Xác nhận {form === 'reject' ? 'Reject' : 'Yêu cầu sửa'}
+                  {form === 'reject'
+                    ? t('aiAgents.suggestionCard.confirmReject')
+                    : t('aiAgents.suggestionCard.confirmRequestChanges')}
                 </button>
                 <button
                   type='button'
                   onClick={() => setForm(null)}
                   className='rounded border-[1.5px] border-[#171717] px-3 py-1 text-xs font-semibold'
                 >
-                  Huỷ
+                  {t('aiAgents.suggestionCard.cancel')}
                 </button>
               </div>
             </div>
@@ -524,7 +592,7 @@ export const SuggestionCard: React.FC<Props> = ({
                 onClick={() => setForm('request-changes')}
                 className='rounded border-[1.5px] border-[#171717] px-3 py-1 text-xs font-semibold hover:bg-[#FAF8F5] disabled:opacity-50'
               >
-                Yêu cầu sửa
+                {t('aiAgents.suggestionCard.requestChanges')}
               </button>
               <button
                 type='button'
