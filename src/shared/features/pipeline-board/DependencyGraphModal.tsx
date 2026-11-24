@@ -11,6 +11,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 export interface GraphNodeItem {
   id: string;
@@ -41,6 +42,7 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
   targetTask,
   dependencies,
 }) => {
+  const { t } = useTranslation('pipeline');
   const modalRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
@@ -54,9 +56,9 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      closeLabel='Đóng sơ đồ phụ thuộc'
+      closeLabel={t('dependencyGraph.closeLabel')}
       size='lg'
-      title='Sơ Đồ Quan Hệ Phụ Thuộc'
+      title={t('dependencyGraph.title')}
     >
       <div
         ref={modalRef}
@@ -74,7 +76,7 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                   DAG VISUALIZER
                 </span>
                 <span className='text-[10px] text-stone-500 font-mono'>
-                  Đồ thị phụ thuộc công việc
+                  {t('dependencyGraph.subtitle')}
                 </span>
               </div>
             </div>
@@ -84,29 +86,42 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
         {/* Legend & Stats Banner */}
         <div className='px-6 py-3 bg-[#FAF8F5] border-b border-[#E7E5E4] flex flex-wrap items-center justify-between gap-3 text-xs'>
           <div className='flex items-center gap-4 flex-wrap'>
-            <span className='font-semibold text-stone-700'>Chú thích:</span>
+            <span className='font-semibold text-stone-700'>{t('dependencyGraph.legend')}</span>
             <div className='flex items-center gap-1.5 text-emerald-800'>
               <span className='w-2.5 h-2.5 rounded-full bg-emerald-500'></span>
-              <span>Đã duyệt (Đáp ứng)</span>
+              <span>{t('dependencyGraph.legendApproved')}</span>
             </div>
             <div className='flex items-center gap-1.5 text-amber-800'>
               <span className='w-2.5 h-2.5 rounded-full bg-amber-500'></span>
-              <span>Chưa duyệt (Phải chờ)</span>
+              <span>{t('dependencyGraph.legendPending')}</span>
             </div>
             <div className='flex items-center gap-1.5 text-orange-800'>
               <span className='w-2.5 h-2.5 rounded-full bg-[#F97316] ring-2 ring-orange-200'></span>
-              <span>Công việc đích ({targetTask.isCreating ? 'Đang tạo' : 'Hiện tại'})</span>
+              <span>
+                {t('dependencyGraph.legendTarget', {
+                  state: targetTask.isCreating
+                    ? t('dependencyGraph.stateCreating')
+                    : t('dependencyGraph.stateCurrent'),
+                })}
+              </span>
             </div>
           </div>
 
           <div className='text-[11px] font-mono text-stone-600'>
             {dependencies.length === 0 ? (
-              <span className='text-stone-400 italic'>Chưa chọn tiền đề</span>
+              <span className='text-stone-400 italic'>
+                {t('dependencyGraph.noPredecessorsSelected')}
+              </span>
             ) : (
               <span>
-                {dependencies.length} tiền đề ·{' '}
-                <strong className='text-emerald-700'>{approvedCount} đã duyệt</strong> ·{' '}
-                <strong className='text-amber-700'>{pendingCount} chưa duyệt</strong>
+                {t('dependencyGraph.predecessorsCount', { count: dependencies.length })} ·{' '}
+                <strong className='text-emerald-700'>
+                  {t('dependencyGraph.approvedCount', { count: approvedCount })}
+                </strong>{' '}
+                ·{' '}
+                <strong className='text-amber-700'>
+                  {t('dependencyGraph.pendingCount', { count: pendingCount })}
+                </strong>
               </span>
             )}
           </div>
@@ -118,11 +133,10 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
             <div className='py-12 text-center text-stone-500 bg-white rounded-xl border border-dashed border-stone-300 p-6 space-y-2'>
               <Info className='w-8 h-8 text-stone-400 mx-auto' />
               <p className='text-sm font-medium text-stone-700'>
-                Chưa có công việc tiền đề nào được chọn.
+                {t('dependencyGraph.emptyTitle')}
               </p>
               <p className='text-xs text-stone-500 max-w-md mx-auto'>
-                Khi bạn tick chọn các công việc trong danh sách checkbox, sơ đồ này sẽ trực quan hóa
-                dòng phụ thuộc từ các công việc tiền đề đến công việc đích.
+                {t('dependencyGraph.emptyDesc')}
               </p>
             </div>
           ) : (
@@ -130,8 +144,12 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
               {/* Left Column: Predecessors */}
               <div className='w-full md:w-5/12 space-y-3'>
                 <div className='text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center justify-between'>
-                  <span>Công việc tiền đề ({dependencies.length})</span>
-                  <span className='text-[10px] text-stone-400 font-normal'>Phải xong trước</span>
+                  <span>
+                    {t('dependencyGraph.predecessorsHeading', { count: dependencies.length })}
+                  </span>
+                  <span className='text-[10px] text-stone-400 font-normal'>
+                    {t('dependencyGraph.mustFinishFirst')}
+                  </span>
                 </div>
 
                 <div className='space-y-2.5 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar'>
@@ -159,18 +177,19 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                           >
                             {approved ? (
                               <>
-                                <CheckCircle2 className='w-3 h-3' /> Đã duyệt
+                                <CheckCircle2 className='w-3 h-3' />{' '}
+                                {t('dependencyGraph.approvedBadge')}
                               </>
                             ) : (
                               <>
-                                <Clock className='w-3 h-3' /> Chưa duyệt
+                                <Clock className='w-3 h-3' /> {t('dependencyGraph.pendingBadge')}
                               </>
                             )}
                           </span>
                         </div>
 
                         <div className='mt-2 pt-2 border-t border-black/5 flex flex-wrap items-center justify-between gap-1 text-[11px] text-stone-600'>
-                          <span>{node.contextText || 'Chương'}</span>
+                          <span>{node.contextText || t('dependencyGraph.chapterFallback')}</span>
                           {node.assigneeName && (
                             <span className='font-medium text-stone-700'>
                               👤 {node.assigneeName}
@@ -196,7 +215,7 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                   <div className='w-0.5 h-8 bg-stone-300 rounded'></div>
                 </div>
                 <span className='text-[10px] font-mono uppercase tracking-widest text-stone-500 font-semibold px-2 py-1 bg-stone-100 rounded border border-stone-200'>
-                  Yêu cầu duyệt
+                  {t('dependencyGraph.approvalRequired')}
                 </span>
                 <div className='md:hidden flex items-center gap-1.5'>
                   <div className='w-8 h-0.5 bg-stone-300 rounded'></div>
@@ -209,14 +228,22 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                 <div className='text-xs font-bold uppercase tracking-wider text-[#F97316] flex items-center justify-between'>
                   <span className='flex items-center gap-1.5'>
                     <Sparkles className='w-3.5 h-3.5' />
-                    <span>{targetTask.isCreating ? 'Công việc đang tạo' : 'Công việc đích'}</span>
+                    <span>
+                      {targetTask.isCreating
+                        ? t('dependencyGraph.creatingTaskHeading')
+                        : t('dependencyGraph.targetTaskHeading')}
+                    </span>
                   </span>
-                  <span className='text-[10px] text-stone-400 font-normal'>Bắt đầu sau</span>
+                  <span className='text-[10px] text-stone-400 font-normal'>
+                    {t('dependencyGraph.startsAfter')}
+                  </span>
                 </div>
 
                 <div className='p-4 rounded-xl border-2 border-[#F97316] bg-white text-xs space-y-3 shadow-md relative overflow-hidden'>
                   <div className='absolute top-0 right-0 bg-[#F97316] text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded-bl-lg'>
-                    {targetTask.isCreating ? 'ĐANG TẠO' : 'MỤC TIÊU'}
+                    {targetTask.isCreating
+                      ? t('dependencyGraph.creatingBadge')
+                      : t('dependencyGraph.targetBadge')}
                   </div>
 
                   <div>
@@ -224,20 +251,20 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                       {targetTask.stageName || 'Pipeline Stage'}
                     </span>
                     <h4 className='text-sm font-bold text-[#1C1917] leading-snug'>
-                      {targetTask.title || '[Chưa nhập tiêu đề brief]'}
+                      {targetTask.title || t('dependencyGraph.untitledBrief')}
                     </h4>
                   </div>
 
                   <div className='pt-2 border-t border-stone-100 text-[11px] text-stone-600 space-y-1'>
                     <div className='flex items-center justify-between'>
-                      <span>Ngữ cảnh:</span>
+                      <span>{t('dependencyGraph.contextLabel')}</span>
                       <strong className='text-stone-800'>
-                        {targetTask.contextText || 'Chương'}
+                        {targetTask.contextText || t('dependencyGraph.chapterFallback')}
                       </strong>
                     </div>
                     {targetTask.assigneeName && (
                       <div className='flex items-center justify-between'>
-                        <span>Người nhận:</span>
+                        <span>{t('dependencyGraph.assigneeLabel')}</span>
                         <strong className='text-stone-800'>{targetTask.assigneeName}</strong>
                       </div>
                     )}
@@ -255,16 +282,16 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                       <>
                         <ShieldCheck className='w-4 h-4 text-emerald-600 shrink-0 mt-0.5' />
                         <div>
-                          <strong>Điều kiện phụ thuộc đã đáp ứng:</strong> Tất cả{' '}
-                          {dependencies.length} công việc tiền đề đã được duyệt.
+                          <strong>{t('dependencyGraph.readyTitle')}</strong>{' '}
+                          {t('dependencyGraph.readyDesc', { count: dependencies.length })}
                         </div>
                       </>
                     ) : (
                       <>
                         <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
                         <div>
-                          <strong>Chưa thể bắt đầu:</strong> Phải chờ {pendingCount} công việc tiền
-                          đề được phê duyệt (Approved) trước.
+                          <strong>{t('dependencyGraph.blockedTitle')}</strong>{' '}
+                          {t('dependencyGraph.blockedDesc', { count: pendingCount })}
                         </div>
                       </>
                     )}
@@ -278,18 +305,19 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
           <div className='p-3.5 bg-[#FAF8F5] rounded-xl border border-[#D8D2C5] text-xs text-stone-600 space-y-1.5'>
             <div className='font-semibold text-stone-800 flex items-center gap-1.5'>
               <Info className='w-3.5 h-3.5 text-[#F97316]' />
-              <span>Nguyên tắc xử lý phụ thuộc (BR-19 &amp; DAG):</span>
+              <span>{t('dependencyGraph.rulesTitle')}</span>
             </div>
             <ul className='list-disc list-inside space-y-0.5 text-[11px] text-stone-600 pl-1'>
               <li>
-                Bạn vẫn có thể <strong>Tạo &amp; Giao Việc</strong> ngay cả khi tiền đề chưa duyệt,
-                công việc sẽ ở trạng thái chờ và không thể chuyển sang <em>InProgress</em>.
+                {t('dependencyGraph.rule1Prefix')}{' '}
+                <strong>{t('dependencyGraph.rule1Action')}</strong>{' '}
+                {t('dependencyGraph.rule1Middle')} <em>InProgress</em>.
               </li>
               <li>
-                Mỗi công việc tiền đề chỉ được coi là hoàn tất khi đạt trạng thái{' '}
-                <strong className='text-emerald-700'>Đã duyệt (Approved)</strong>.
+                {t('dependencyGraph.rule2Prefix')}{' '}
+                <strong className='text-emerald-700'>{t('dependencyGraph.rule2Status')}</strong>.
               </li>
-              <li>Không thể thiết lập phụ thuộc tạo vòng lặp khép kín giữa các công việc.</li>
+              <li>{t('dependencyGraph.rule3')}</li>
             </ul>
           </div>
         </div>
@@ -301,7 +329,7 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
             onClick={onClose}
             className='px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-900 text-white font-medium text-xs shadow-xs cursor-pointer transition-colors'
           >
-            Đóng sơ đồ
+            {t('dependencyGraph.closeBtn')}
           </button>
         </div>
       </div>

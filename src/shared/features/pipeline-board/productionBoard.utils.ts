@@ -10,6 +10,7 @@ import type { PipelineStageDto } from '@/services/pipeline.service';
 import type { PageDto } from '@/services/page.service';
 import type { WorkspaceMemberDto } from '@/services/workspace.service';
 import { isReviewerRole } from '@/shared/features/collaboration/collaborationRules';
+import { getInitialLanguage, translate } from '@/lib/i18n';
 import type { BoardCard, BoardLotCellItem } from './pipelineBoard.types';
 
 /**
@@ -45,13 +46,27 @@ export const QUICK_FILTERS: QuickFilter[] = [
 export const VIEW_MODES: ViewMode[] = ['matrix', 'grid', 'list', 'kanban'];
 
 export const QUICK_FILTER_LABELS: Record<QuickFilter, string> = {
-  'needs-me': 'Cần tôi xử lý',
-  all: 'Tất cả',
-  'in-progress': 'Đang làm',
-  review: 'Chờ xét duyệt',
-  rework: 'Cần sửa',
-  blocked: 'Bị chặn',
-  done: 'Hoàn tất',
+  get 'needs-me'() {
+    return translate('pipeline.productionBoard.quickFilters.needs-me');
+  },
+  get all() {
+    return translate('pipeline.productionBoard.quickFilters.all');
+  },
+  get 'in-progress'() {
+    return translate('pipeline.productionBoard.quickFilters.in-progress');
+  },
+  get review() {
+    return translate('pipeline.productionBoard.quickFilters.review');
+  },
+  get rework() {
+    return translate('pipeline.productionBoard.quickFilters.rework');
+  },
+  get blocked() {
+    return translate('pipeline.productionBoard.quickFilters.blocked');
+  },
+  get done() {
+    return translate('pipeline.productionBoard.quickFilters.done');
+  },
 };
 
 export type StageKind = 'script' | 'ink' | 'pencil' | 'color' | 'letter' | 'other';
@@ -68,13 +83,15 @@ export const stageKindOf = (stageName: string): StageKind => {
   return 'other';
 };
 
-const dateFmt = new Intl.DateTimeFormat('vi-VN', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-});
-export const formatDate = (iso?: string | null): string =>
-  iso ? dateFmt.format(new Date(iso)) : '';
+export const formatDate = (iso?: string | null): string => {
+  if (!iso) return '';
+  const lang = getInitialLanguage();
+  return new Intl.DateTimeFormat(lang === 'en' ? 'en-US' : 'vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(iso));
+};
 
 /** Thứ tự hiển thị: việc cần hành động trước, việc đã xong cuối cùng. */
 export const STATUS_ORDER: StatusKey[] = [
@@ -88,13 +105,27 @@ export const STATUS_ORDER: StatusKey[] = [
 ];
 
 export const STATUS_LABELS: Record<StatusKey, string> = {
-  Assigned: 'Chưa bắt đầu',
-  InProgress: 'Đang làm',
-  Submitted: 'Đã nộp',
-  UnderReview: 'Đang duyệt',
-  ReworkRequired: 'Cần sửa',
-  Approved: 'Hoàn tất',
-  Blocked: 'Bị chặn',
+  get Assigned() {
+    return translate('pipeline.productionBoard.statusLabels.Assigned');
+  },
+  get InProgress() {
+    return translate('pipeline.productionBoard.statusLabels.InProgress');
+  },
+  get Submitted() {
+    return translate('pipeline.productionBoard.statusLabels.Submitted');
+  },
+  get UnderReview() {
+    return translate('pipeline.productionBoard.statusLabels.UnderReview');
+  },
+  get ReworkRequired() {
+    return translate('pipeline.productionBoard.statusLabels.ReworkRequired');
+  },
+  get Approved() {
+    return translate('pipeline.productionBoard.statusLabels.Approved');
+  },
+  get Blocked() {
+    return translate('pipeline.productionBoard.statusLabels.Blocked');
+  },
 };
 
 const STATUS_BY_LOWER: Record<string, StatusKey> = Object.fromEntries(
@@ -220,9 +251,13 @@ export const buildScopeOptions = (cards: BoardCard[]): ScopeOption[] => {
     .sort((a, b) => a[1].n - b[1].n || a[1].label.localeCompare(b[1].label, 'vi'))
     .map(([key, v]) => ({ key, label: v.label }));
   return [
-    ...(hasChapter ? [{ key: 'chapter', label: 'Toàn chương' }] : []),
+    ...(hasChapter
+      ? [{ key: 'chapter', label: translate('pipeline.productionBoard.scope.wholeChapter') }]
+      : []),
     ...pageOptions,
-    ...(hasPanel ? [{ key: 'panel', label: 'Khung tranh' }] : []),
+    ...(hasPanel
+      ? [{ key: 'panel', label: translate('pipeline.productionBoard.scope.panel') }]
+      : []),
   ];
 };
 
@@ -368,13 +403,24 @@ export const groupCards = (cards: BoardCard[], groupBy: GroupBy): CardGroup[] =>
       );
     } else if (groupBy === 'page') {
       const key = scopeKeyOf(card);
-      if (key === 'chapter') push(key, 'Toàn chương', -1, card);
+      if (key === 'chapter')
+        push(key, translate('pipeline.productionBoard.scope.wholeChapter'), -1, card);
       else if (key === 'panel')
-        push(key, 'Khung tranh (chưa xác định trang)', Number.MAX_SAFE_INTEGER, card);
+        push(
+          key,
+          translate('pipeline.productionBoard.scope.panelUnassignedPage'),
+          Number.MAX_SAFE_INTEGER,
+          card,
+        );
       else push(key, card.targetLabel, card.pageNumber ?? Number.MAX_SAFE_INTEGER - 1, card);
     } else {
       const key = card.assigneeUserId || 'unassigned';
-      push(key, card.assigneeName || 'Chưa gán', normalizeText(card.assigneeName || '~'), card);
+      push(
+        key,
+        card.assigneeName || translate('pipeline.productionBoard.unassigned'),
+        normalizeText(card.assigneeName || '~'),
+        card,
+      );
     }
   });
 
@@ -394,17 +440,29 @@ export const blockedReason = (card: BoardCard, all: BoardCard[]): string | null 
   const deps = (card.dependsOnAssignmentIds ?? [])
     .map((id) => all.find((c) => c.id === id))
     .filter((c): c is BoardCard => !!c && statusKey(c.status) !== 'Approved');
-  if (deps.length === 0) return 'Chờ công đoạn trước hoàn tất';
+  if (deps.length === 0) return translate('pipeline.productionBoard.blockedWaitingPrevStage');
   const first = deps[0];
-  const more = deps.length > 1 ? ` và ${deps.length - 1} việc khác` : '';
-  return `Chờ ${first.stageName} · ${first.targetLabel}${more}`;
+  const more =
+    deps.length > 1
+      ? translate('pipeline.productionBoard.blockedMoreTasks', { count: deps.length - 1 })
+      : '';
+  return translate('pipeline.productionBoard.blockedWaitingDetail', {
+    stage: first.stageName,
+    target: first.targetLabel,
+    more,
+  });
 };
 
 // ── Nhãn chương: tránh "Chương 1: Chương 1: …" khi title đã chứa tiền tố ──
 
 export const formatChapterLabel = (chapterNumber: number, title?: string | null): string => {
-  const clean = (title ?? '').replace(/^\s*chương\s*\d+\s*[:.\-–—]?\s*/i, '').trim();
-  return clean ? `Chương ${chapterNumber}: ${clean}` : `Chương ${chapterNumber}`;
+  const clean = (title ?? '').replace(/^\s*(?:chương|chapter)\s*\d+\s*[:.\-–—]?\s*/i, '').trim();
+  return clean
+    ? translate('pipeline.productionBoard.chapterLabelWithTitle', {
+        number: chapterNumber,
+        title: clean,
+      })
+    : translate('pipeline.productionBoard.chapterLabel', { number: chapterNumber });
 };
 
 // ── Chuyển AssignmentDto → BoardCard (giữ nguyên mapping của Kanban cũ) ──
@@ -423,17 +481,20 @@ export const mapAssignmentsToCards = (
     const stage = stagesMap.get(a.pipelineStageId);
     const member = membersMap.get(a.assigneeUserId);
 
-    let targetLabel = 'Toàn chương';
+    let targetLabel = translate('pipeline.productionBoard.scope.wholeChapter');
     let pageNumber: number | null = null;
     if (String(a.entityType) === 'Page') {
       const page = pagesMap.get(a.targetEntityId);
-      targetLabel = page ? `Trang ${page.pageNumber}` : 'Trang bản thảo';
+      targetLabel = page
+        ? translate('pipeline.productionBoard.scope.pageNumber', { number: page.pageNumber })
+        : translate('pipeline.productionBoard.scope.draftPage');
       pageNumber = page?.pageNumber ?? null;
     } else if (String(a.entityType) === 'Panel') {
-      targetLabel = 'Khung tranh';
+      targetLabel = translate('pipeline.productionBoard.scope.panel');
     }
 
-    const memberName = member?.fullName || member?.email || 'Chưa gán';
+    const memberName =
+      member?.fullName || member?.email || translate('pipeline.productionBoard.unassigned');
     const initials =
       memberName
         .split(' ')
@@ -452,7 +513,7 @@ export const mapAssignmentsToCards = (
       targetLabel,
       pageNumber,
       pipelineStageId: a.pipelineStageId,
-      stageName: stage?.name || a.stageName || 'Công đoạn',
+      stageName: stage?.name || a.stageName || translate('pipeline.productionBoard.stageFallback'),
       stageOrder: stage?.stageOrder ?? a.stageOrder ?? 99,
       stageColor: stage?.colorCode || null,
       isStageEnabled: stage ? stage.isEnabled !== false : true,
@@ -461,7 +522,7 @@ export const mapAssignmentsToCards = (
       assigneeEmail: member?.email,
       assigneeAvatarInitials: initials,
       assignedRole: a.assignedRole,
-      brief: a.brief || 'Không có tiêu đề',
+      brief: a.brief || translate('pipeline.productionBoard.untitledBrief'),
       referenceNotes: a.referenceNotes,
       dueDate: a.dueDate,
       priority: a.priority,
@@ -484,8 +545,9 @@ export const mapAssignmentsToCards = (
 
 export const formatPageRangeLabel = (pageNumbers: number[]): string => {
   const nums = [...new Set(pageNumbers.filter((n) => Number.isFinite(n)))].sort((a, b) => a - b);
-  if (nums.length === 0) return 'Trang bản thảo';
-  if (nums.length === 1) return `Trang ${nums[0]}`;
+  if (nums.length === 0) return translate('pipeline.productionBoard.scope.draftPage');
+  if (nums.length === 1)
+    return translate('pipeline.productionBoard.scope.pageNumber', { number: nums[0] });
 
   const ranges: string[] = [];
   let start = nums[0];
@@ -501,7 +563,7 @@ export const formatPageRangeLabel = (pageNumbers: number[]): string => {
     }
   }
   ranges.push(start === prev ? `${start}` : `${start}–${prev}`);
-  return `Trang ${ranges.join(', ')}`;
+  return translate('pipeline.productionBoard.scope.pageRange', { ranges: ranges.join(', ') });
 };
 
 const aggregateLotStatus = (cells: BoardLotCellItem[]): AssignmentStatus => {
@@ -563,9 +625,9 @@ export const mapTaskGridToCards = (
     const pageNumber = resolvePageNumber(t.pageId);
     const targetLabel = t.pageId
       ? pageNumber != null
-        ? `Trang ${pageNumber}`
-        : 'Trang bản thảo'
-      : 'Toàn chương';
+        ? translate('pipeline.productionBoard.scope.pageNumber', { number: pageNumber })
+        : translate('pipeline.productionBoard.scope.draftPage')
+      : translate('pipeline.productionBoard.scope.wholeChapter');
     return {
       id: t.id,
       pageId: t.pageId,
@@ -586,7 +648,9 @@ export const mapTaskGridToCards = (
   const buildMemberInfo = (userId: string) => {
     const member = userId ? membersMap.get(userId) : undefined;
     const memberName =
-      member?.fullName || (member?.email ? member.email.split('@')[0] : '') || 'Chưa gán';
+      member?.fullName ||
+      (member?.email ? member.email.split('@')[0] : '') ||
+      translate('pipeline.productionBoard.unassigned');
     const initials =
       memberName
         .split(' ')
@@ -609,7 +673,8 @@ export const mapTaskGridToCards = (
     const assigneeUserId = t.assigneeUserId || lot?.assigneeUserId || '';
     const { member, memberName, initials } = buildMemberInfo(assigneeUserId);
 
-    const stageName = gridStage?.name || pipelineStage?.name || 'Công đoạn';
+    const stageName =
+      gridStage?.name || pipelineStage?.name || translate('pipeline.productionBoard.stageFallback');
     const stageOrder = gridStage?.stageOrder ?? pipelineStage?.stageOrder ?? 99;
     const isStageEnabled = gridStage
       ? gridStage.isEnabled !== false
@@ -624,6 +689,7 @@ export const mapTaskGridToCards = (
     const visualStatus: AssignmentStatus =
       t.status === 'Assigned' && !t.isStartable ? 'Blocked' : (t.status as AssignmentStatus);
     const cellItem = toCellItem(t, assigneeUserId);
+    const wholeChapterLabel = translate('pipeline.productionBoard.scope.wholeChapter');
 
     cards.push({
       id: t.id,
@@ -631,7 +697,7 @@ export const mapTaskGridToCards = (
       chapterId: grid.chapterId,
       entityType: 'Chapter',
       targetEntityId: grid.chapterId,
-      targetLabel: 'Toàn chương',
+      targetLabel: wholeChapterLabel,
       pageNumber: null,
       pipelineStageId: t.pipelineStageId,
       stageName,
@@ -643,7 +709,7 @@ export const mapTaskGridToCards = (
       assigneeEmail: member?.email,
       assigneeAvatarInitials: initials,
       assignedRole,
-      brief: `${stageName} – ${memberName} – Toàn chương`,
+      brief: `${stageName} – ${memberName} – ${wholeChapterLabel}`,
       referenceNotes: lot?.brief?.trim() || null,
       dueDate: lot?.dueDate ?? null,
       priority: 'Medium',
@@ -655,7 +721,7 @@ export const mapTaskGridToCards = (
       lastFeedbackComment:
         t.status === 'ReworkRequired' ? (cellItem.lastDecisionComment ?? null) : null,
       impactReviewReason: t.isInputOutdated
-        ? t.outdatedReason || 'Đầu vào từ công đoạn trước đã thay đổi'
+        ? t.outdatedReason || translate('pipeline.productionBoard.inputOutdatedDefault')
         : null,
       isGridTask: true,
       isGridLot: false,
@@ -685,7 +751,8 @@ export const mapTaskGridToCards = (
     const assigneeUserId = fallbackAssigneeId || rawCells[0]?.assigneeUserId || '';
     const { member, memberName, initials } = buildMemberInfo(assigneeUserId);
 
-    const stageName = gridStage?.name || pipelineStage?.name || 'Công đoạn';
+    const stageName =
+      gridStage?.name || pipelineStage?.name || translate('pipeline.productionBoard.stageFallback');
     const stageOrder = gridStage?.stageOrder ?? pipelineStage?.stageOrder ?? 99;
     const isStageEnabled = gridStage
       ? gridStage.isEnabled !== false
@@ -747,7 +814,7 @@ export const mapTaskGridToCards = (
       completedAt: null,
       lastFeedbackComment: reworkCell?.lastDecisionComment ?? null,
       impactReviewReason: outdatedCell
-        ? outdatedCell.outdatedReason || 'Đầu vào từ công đoạn trước đã thay đổi'
+        ? outdatedCell.outdatedReason || translate('pipeline.productionBoard.inputOutdatedDefault')
         : null,
       isGridTask: true,
       isGridLot: true,
@@ -808,43 +875,46 @@ export const mapTaskGridToCards = (
 // ── Hành động chính trên thẻ: chỉ điều hướng/mở chi tiết, không đổi trạng thái ──
 
 export type PrimaryAction =
-  | { kind: 'work'; label: 'Tiếp tục' | 'Mở công việc' | 'Xem yêu cầu sửa' }
-  | { kind: 'review'; label: 'Xét duyệt' }
-  | { kind: 'details'; label: 'Xem chi tiết' };
+  | { kind: 'work'; label: string }
+  | { kind: 'review'; label: string }
+  | { kind: 'details'; label: string };
 
 export const primaryActionFor = (card: BoardCard, ctx: UserContext): PrimaryAction => {
   const isAssignee = !!ctx.userId && card.assigneeUserId === ctx.userId;
   if (card.lotTasks && card.lotTasks.length > 0) {
     if (isAssignee) {
       if (card.lotTasks.some((t) => t.status === 'ReworkRequired'))
-        return { kind: 'work', label: 'Xem yêu cầu sửa' };
+        return { kind: 'work', label: translate('pipeline.productionBoard.actions.viewRework') };
       if (card.lotTasks.some((t) => t.status === 'InProgress'))
-        return { kind: 'work', label: 'Tiếp tục' };
+        return { kind: 'work', label: translate('pipeline.productionBoard.actions.continue') };
       if (card.lotTasks.some((t) => t.status === 'Assigned'))
-        return { kind: 'work', label: 'Mở công việc' };
+        return { kind: 'work', label: translate('pipeline.productionBoard.actions.openTask') };
     } else if (
       !!ctx.userId &&
       isReviewerRole(ctx.workspaceRole) &&
       card.lotTasks.some((t) => t.status === 'Submitted' || t.status === 'UnderReview')
     ) {
-      return { kind: 'review', label: 'Xét duyệt' };
+      return { kind: 'review', label: translate('pipeline.productionBoard.actions.review') };
     }
-    return { kind: 'details', label: 'Xem chi tiết' };
+    return { kind: 'details', label: translate('pipeline.productionBoard.actions.viewDetails') };
   }
 
   const st = statusKey(card.status);
   if (isAssignee) {
-    if (st === 'InProgress') return { kind: 'work', label: 'Tiếp tục' };
-    if (st === 'Assigned') return { kind: 'work', label: 'Mở công việc' };
-    if (st === 'ReworkRequired') return { kind: 'work', label: 'Xem yêu cầu sửa' };
+    if (st === 'InProgress')
+      return { kind: 'work', label: translate('pipeline.productionBoard.actions.continue') };
+    if (st === 'Assigned')
+      return { kind: 'work', label: translate('pipeline.productionBoard.actions.openTask') };
+    if (st === 'ReworkRequired')
+      return { kind: 'work', label: translate('pipeline.productionBoard.actions.viewRework') };
   } else if (
     !!ctx.userId &&
     isReviewerRole(ctx.workspaceRole) &&
     (st === 'Submitted' || st === 'UnderReview')
   ) {
-    return { kind: 'review', label: 'Xét duyệt' };
+    return { kind: 'review', label: translate('pipeline.productionBoard.actions.review') };
   }
-  return { kind: 'details', label: 'Xem chi tiết' };
+  return { kind: 'details', label: translate('pipeline.productionBoard.actions.viewDetails') };
 };
 
 const actionBase =

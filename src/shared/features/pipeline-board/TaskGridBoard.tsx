@@ -80,37 +80,37 @@ export interface TaskGridBoardProps {
   isChapterLocked?: boolean;
 }
 
-const STATUS_STYLE: Record<StageTaskStatus, { label: string; cls: string }> = {
+const STATUS_STYLE: Record<StageTaskStatus, { labelKey: string; cls: string }> = {
   Unassigned: {
-    label: 'Chưa giao',
+    labelKey: 'taskGridV3.status.Unassigned',
     cls: 'bg-stone-100 text-stone-600 border-stone-300',
   },
   Assigned: {
-    label: 'Đã giao',
+    labelKey: 'taskGridV3.status.Assigned',
     cls: 'bg-blue-50 text-blue-700 border-blue-200',
   },
   InProgress: {
-    label: 'Đang làm',
+    labelKey: 'taskGridV3.status.InProgress',
     cls: 'bg-amber-50 text-amber-800 border-amber-300',
   },
   Submitted: {
-    label: 'Chờ duyệt',
+    labelKey: 'taskGridV3.status.Submitted',
     cls: 'bg-purple-50 text-purple-700 border-purple-200',
   },
   UnderReview: {
-    label: 'Đang duyệt',
+    labelKey: 'taskGridV3.status.UnderReview',
     cls: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   },
   Approved: {
-    label: 'Đã duyệt',
+    labelKey: 'taskGridV3.status.Approved',
     cls: 'bg-emerald-50 text-emerald-800 border-emerald-300',
   },
   ReworkRequired: {
-    label: 'Cần sửa',
+    labelKey: 'taskGridV3.status.ReworkRequired',
     cls: 'bg-rose-50 text-rose-700 border-rose-300',
   },
   Cancelled: {
-    label: 'Đã huỷ',
+    labelKey: 'taskGridV3.status.Cancelled',
     cls: 'bg-zinc-100 text-zinc-400 border-zinc-200 line-through',
   },
 };
@@ -127,7 +127,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   onShowToast,
   isChapterLocked = false,
 }) => {
-  const { t } = useTranslation('pipeline');
+  const { t, lang } = useTranslation('pipeline');
   const confirm = useConfirm();
   const [grid, setGrid] = useState<TaskGridDto | null>(null);
   const [reworkCommentsByTask, setReworkCommentsByTask] = useState<Record<string, string>>({});
@@ -281,12 +281,12 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         );
         setReworkCommentsByTask(comments);
       } catch (err: any) {
-        setError(err.message || 'Không thể tải lưới giao việc V3.');
+        setError(err.message || t('taskGridV3.loadGridError'));
       } finally {
         setLoading(false);
       }
     },
-    [chapterId, workspaceId],
+    [chapterId, workspaceId, t],
   );
 
   useEffect(() => {
@@ -537,13 +537,20 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     try {
       const res = await assignmentService.generateTaskGrid(chapterId);
       onShowToast?.(
-        'Đã đồng bộ lưới ô việc',
-        `Đã tạo ${res.created} ô, huỷ ${res.cancelled} ô (Tổng: ${res.total} ô).`,
+        t('taskGridV3.generateSuccessTitle'),
+        t('taskGridV3.generateSuccessDesc', {
+          created: res.created,
+          cancelled: res.cancelled,
+          total: res.total,
+        }),
       );
       await loadGrid();
     } catch (err: any) {
-      setError(err.message || 'Không thể sinh ô công việc.');
-      onShowToast?.('Lỗi sinh lưới việc', err.message || 'Không thể sinh ô công việc.');
+      setError(err.message || t('taskGridV3.generateErrorFallback'));
+      onShowToast?.(
+        t('taskGridV3.generateErrorTitle'),
+        err.message || t('taskGridV3.generateErrorFallback'),
+      );
     } finally {
       setActionLoading(null);
     }
@@ -552,7 +559,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   const handleAssignLots = async (dryRun: boolean) => {
     const lots = buildLotRequests();
     if (lots.length === 0) {
-      setError('Chọn ít nhất 1 ô Chưa giao và 1 thành viên.');
+      setError(t('taskGridV3.assignSelectRequired'));
       return;
     }
     setActionLoading(dryRun ? 'dryRun' : 'assignLots');
@@ -565,8 +572,11 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       if (dryRun) {
         setDryRunPreview({ taskCount: res.taskCount, lotCount: lots.length });
         onShowToast?.(
-          'Kiểm tra hợp lệ (Dry Run)',
-          `Sẵn sàng giao ${res.taskCount} ô thành ${lots.length} lô công việc.`,
+          t('taskGridV3.dryRunSuccessTitle'),
+          t('taskGridV3.dryRunSuccessDesc', {
+            taskCount: res.taskCount,
+            lotCount: lots.length,
+          }),
         );
       } else {
         setDryRunPreview(null);
@@ -574,14 +584,20 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         setLotBrief('');
         setLotDueDate('');
         onShowToast?.(
-          'Giao lô thành công',
-          `Đã giao ${res.taskCount} ô vào ${res.lots.length} lô công việc.`,
+          t('taskGridV3.assignLotsSuccessTitle'),
+          t('taskGridV3.assignLotsSuccessDesc', {
+            taskCount: res.taskCount,
+            lotCount: res.lots.length,
+          }),
         );
         await loadGrid();
       }
     } catch (err: any) {
-      setError(err.message || 'Không thể giao lô công việc.');
-      onShowToast?.('Lỗi giao lô', err.message || 'Không thể giao lô công việc.');
+      setError(err.message || t('taskGridV3.assignLotsErrorFallback'));
+      onShowToast?.(
+        t('taskGridV3.assignLotsErrorTitle'),
+        err.message || t('taskGridV3.assignLotsErrorFallback'),
+      );
       if (err?.status === 409) {
         loadGrid();
       }
@@ -602,10 +618,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       setAutoAssignPlan(plan);
     } catch (err: any) {
       if (autoAssignLoadSeqRef.current !== seq) return;
-      setAutoAssignError(
-        err?.message ||
-          t('taskGridV3.autoAssign.loadErrorFallback', 'Không thể tải kế hoạch giao tự động.'),
-      );
+      setAutoAssignError(err?.message || t('taskGridV3.autoAssign.loadErrorFallback'));
       setAutoAssignConflict(err?.status === 409 || err?.code === 'CONFLICT');
     } finally {
       if (autoAssignLoadSeqRef.current === seq) {
@@ -648,21 +661,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       const taskCount = res?.taskCount ?? lots.reduce((sum, l) => sum + l.taskIds.length, 0);
       const lotCount = res?.lots?.length ?? lots.length;
       onShowToast?.(
-        t('taskGridV3.autoAssign.successTitle', 'Giao tự động thành công'),
-        t(
-          'taskGridV3.autoAssign.successDesc',
-          { taskCount, lotCount },
-          'Đã giao {taskCount} ô vào {lotCount} lô công việc.',
-        ),
+        t('taskGridV3.autoAssign.successTitle'),
+        t('taskGridV3.autoAssign.successDesc', { taskCount, lotCount }),
       );
       setAutoAssignOpen(false);
       setAutoAssignPlan(null);
       await loadGrid();
     } catch (err: any) {
-      setAutoAssignError(
-        err?.message ||
-          t('taskGridV3.autoAssign.saveErrorFallback', 'Không thể lưu kế hoạch giao tự động.'),
-      );
+      setAutoAssignError(err?.message || t('taskGridV3.autoAssign.saveErrorFallback'));
       setAutoAssignConflict(err?.status === 409 || err?.code === 'CONFLICT');
     } finally {
       autoAssignSubmittingRef.current = false;
@@ -746,10 +752,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           status: updated?.status ?? 'InProgress',
         },
       ]);
-      onShowToast?.('Đã bắt đầu ô việc', 'Trạng thái đã chuyển sang Đang làm (InProgress).');
+      onShowToast?.(t('taskGridV3.startSuccessTitle'), t('taskGridV3.startSuccessDesc'));
     } catch (err: any) {
-      setError(err.message || 'Không thể bắt đầu ô công việc.');
-      onShowToast?.('Không thể bắt đầu', err.message || 'Không thể bắt đầu ô công việc.');
+      setError(err.message || t('taskGridV3.startErrorFallback'));
+      onShowToast?.(
+        t('taskGridV3.startErrorTitle'),
+        err.message || t('taskGridV3.startErrorFallback'),
+      );
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -769,10 +778,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       });
       const autoApproved = updated.length > 0 && updated.every((t) => t.status === 'Approved');
       onShowToast?.(
-        'Đã nộp ô công việc',
+        t('taskGridV3.submitSuccessTitle'),
         autoApproved
-          ? `Đã nộp ${updated.length} ô (tự động Duyệt do công đoạn không qua cổng duyệt).`
-          : `Đã nộp ${updated.length || taskIds.length} ô chờ Editor/Producer duyệt.`,
+          ? t('taskGridV3.submitAutoApprovedDesc', { count: updated.length })
+          : t('taskGridV3.submitPendingReviewDesc', { count: updated.length || taskIds.length }),
       );
       if (updated.length > 0 && !updated.some((t) => t.status === 'Approved')) {
         applyUpdatedTasks(
@@ -787,8 +796,11 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         await loadGrid();
       }
     } catch (err: any) {
-      setError(err.message || 'Không thể nộp ô công việc.');
-      onShowToast?.('Lỗi nộp bài', err.message || 'Không thể nộp ô công việc.');
+      setError(err.message || t('taskGridV3.submitErrorFallback'));
+      onShowToast?.(
+        t('taskGridV3.submitErrorTitle'),
+        err.message || t('taskGridV3.submitErrorFallback'),
+      );
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -800,14 +812,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     setError(null);
     try {
       await assignmentService.approveStageTask(chapterId, task.id);
-      onShowToast?.(
-        'Đã duyệt ô việc',
-        'Ô công việc đã chuyển sang trạng thái Đã duyệt (Approved).',
-      );
+      onShowToast?.(t('taskGridV3.approveSuccessTitle'), t('taskGridV3.approveSuccessDesc'));
       await loadGrid();
     } catch (err: any) {
-      setError(err.message || 'Không thể duyệt ô công việc.');
-      onShowToast?.('Lỗi duyệt ô việc', err.message || 'Không thể duyệt ô công việc.');
+      setError(err.message || t('taskGridV3.approveErrorFallback'));
+      onShowToast?.(
+        t('taskGridV3.approveErrorTitle'),
+        err.message || t('taskGridV3.approveErrorFallback'),
+      );
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -826,14 +838,11 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           status: updated?.status ?? 'InProgress',
         },
       ]);
-      onShowToast?.(
-        t('taskGridV3.withdrawSuccessTitle', 'Đã rút bài'),
-        'Ô công việc đã chuyển về trạng thái Đang làm (InProgress).',
-      );
+      onShowToast?.(t('taskGridV3.withdrawSuccessTitle'), t('taskGridV3.withdrawSuccessDesc'));
     } catch (err: any) {
-      const msg = err?.message || 'Không thể rút bài đã nộp.';
+      const msg = err?.message || t('taskGridV3.withdrawErrorFallback');
       setError(msg);
-      onShowToast?.(t('taskGridV3.withdrawErrorTitle', 'Không thể rút bài'), msg);
+      onShowToast?.(t('taskGridV3.withdrawErrorTitle'), msg);
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -854,13 +863,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         },
       ]);
       onShowToast?.(
-        t('taskGridV3.releaseReviewSuccessTitle', 'Đã nhả khoá duyệt'),
-        'Ô công việc đã trở về trạng thái Chờ duyệt (Submitted).',
+        t('taskGridV3.releaseReviewSuccessTitle'),
+        t('taskGridV3.releaseReviewSuccessDesc'),
       );
     } catch (err: any) {
-      const msg = err?.message || 'Không thể nhả khoá duyệt ô công việc.';
+      const msg = err?.message || t('taskGridV3.releaseReviewErrorFallback');
       setError(msg);
-      onShowToast?.('Lỗi nhả khoá duyệt', msg);
+      onShowToast?.(t('taskGridV3.releaseReviewErrorTitle'), msg);
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -883,27 +892,24 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
   const handleReassignTask = async (task: StageTaskDto, stage: TaskGridStageDto) => {
     if (!reassignUserId) {
-      setError(t('taskGridV3.reassignSelectRequired', 'Chọn thành viên nhận việc mới.'));
+      setError(t('taskGridV3.reassignSelectRequired'));
       setErrorIsConflict(false);
       return;
     }
 
     const isStartedWork = task.status === 'InProgress' || task.status === 'ReworkRequired';
     if (isStartedWork) {
-      const statusLabel = STATUS_STYLE[task.status]?.label ?? task.status;
+      const statusMeta = STATUS_STYLE[task.status];
+      const statusLabel = statusMeta ? t(statusMeta.labelKey) : task.status;
       const confirmed = await confirm({
-        title: t('taskGridV3.reassignStartedTitle', 'Xác nhận đổi người ô đang thực hiện'),
-        description: t(
-          'taskGridV3.reassignStartedDesc',
-          {
-            status: statusLabel,
-            currentAssignee: getMemberName(task.assigneeUserId),
-            nextAssignee: getMemberName(reassignUserId),
-          },
-          'Ô này đang ở trạng thái {status}. {currentAssignee} sẽ bị gỡ khỏi ô và phần việc sẽ chuyển sang {nextAssignee}. Bạn có chắc muốn tiếp tục?',
-        ),
-        confirmLabel: t('taskGridV3.reassignStartedConfirmBtn', 'Gỡ người cũ & Đổi người'),
-        cancelLabel: t('taskGridV3.reassignCancelBtn', 'Huỷ'),
+        title: t('taskGridV3.reassignStartedTitle'),
+        description: t('taskGridV3.reassignStartedDesc', {
+          status: statusLabel,
+          currentAssignee: getMemberName(task.assigneeUserId),
+          nextAssignee: getMemberName(reassignUserId),
+        }),
+        confirmLabel: t('taskGridV3.reassignStartedConfirmBtn'),
+        cancelLabel: t('taskGridV3.reassignCancelBtn'),
         variant: 'danger',
       });
       if (!confirmed) return;
@@ -936,18 +942,16 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       await assignmentService.assignTaskGridLots(chapterId, request);
       setReassigningTaskId(null);
       onShowToast?.(
-        t('taskGridV3.reassignSuccessTitle', 'Đã đổi người nhận'),
-        `Đã chuyển ô sang ${getMemberName(reassignUserId)}.`,
+        t('taskGridV3.reassignSuccessTitle'),
+        t('taskGridV3.reassignSuccessDesc', { name: getMemberName(reassignUserId) }),
       );
       await loadGrid();
     } catch (err: any) {
-      const msg =
-        err?.message ||
-        t('taskGridV3.reassignErrorFallback', 'Không thể đổi người nhận ô công việc.');
+      const msg = err?.message || t('taskGridV3.reassignErrorFallback');
       const isConflict = err?.status === 409 || err?.code === 'CONFLICT';
       setError(msg);
       setErrorIsConflict(isConflict);
-      onShowToast?.(t('taskGridV3.reassignErrorTitle', 'Lỗi đổi người nhận'), msg);
+      onShowToast?.(t('taskGridV3.reassignErrorTitle'), msg);
     } finally {
       setActionLoading(null);
     }
@@ -985,15 +989,12 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         expectedRowVersion: lot.rowVersion,
       });
       setEditingLotId(null);
-      onShowToast?.(
-        t('taskGridV3.updateLotSuccessTitle', 'Đã cập nhật lô công việc'),
-        `Đã lưu thông tin lô công việc.`,
-      );
+      onShowToast?.(t('taskGridV3.updateLotSuccessTitle'), t('taskGridV3.updateLotSuccessDesc'));
       await loadGrid();
     } catch (err: any) {
-      const msg = err?.message || 'Không thể cập nhật lô công việc.';
+      const msg = err?.message || t('taskGridV3.updateLotErrorFallback');
       setError(msg);
-      onShowToast?.('Lỗi cập nhật lô', msg);
+      onShowToast?.(t('taskGridV3.updateLotErrorTitle'), msg);
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -1003,7 +1004,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   const handleRequestChanges = async (task: StageTaskDto) => {
     const trimmed = requestChangesComment.trim();
     if (!trimmed) {
-      setError('Nhập nhận xét yêu cầu sửa đổi.');
+      setError(t('taskGridV3.requestChangesRequired'));
       return;
     }
     setActionLoading(`requestChanges:${task.id}`);
@@ -1022,12 +1023,15 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         },
       ]);
       onShowToast?.(
-        'Đã yêu cầu sửa',
-        'Ô công việc đã chuyển sang trạng thái Cần sửa (ReworkRequired).',
+        t('taskGridV3.requestChangesSuccessTitle'),
+        t('taskGridV3.requestChangesSuccessDesc'),
       );
     } catch (err: any) {
-      setError(err.message || 'Không thể yêu cầu sửa ô công việc.');
-      onShowToast?.('Lỗi yêu cầu sửa', err.message || 'Không thể yêu cầu sửa ô công việc.');
+      setError(err.message || t('taskGridV3.requestChangesErrorFallback'));
+      onShowToast?.(
+        t('taskGridV3.requestChangesErrorTitle'),
+        err.message || t('taskGridV3.requestChangesErrorFallback'),
+      );
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -1063,7 +1067,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         setScriptVersionMap(map);
       }
     } catch (err: any) {
-      setError(err.message || 'Không thể tải lịch sử nộp của ô công việc.');
+      setError(err.message || t('taskGridV3.loadHistoryError'));
     } finally {
       setLoadingHistoryTaskId(null);
     }
@@ -1097,7 +1101,12 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       const slides: ImageViewerSlide[] = [];
       for (const pid of targetPageIds) {
         const pageNum = sortedPages.find((p) => p.id === pid)?.pageNumber;
-        const title = `Lần nộp #${sub.attemptNumber}${pageNum ? ` · Trang ${pageNum}` : ''}`;
+        const title = pageNum
+          ? t('taskGridV3.replaySlideTitleWithPage', {
+              attempt: sub.attemptNumber,
+              page: pageNum,
+            })
+          : t('taskGridV3.replaySlideTitle', { attempt: sub.attemptNumber });
         const arts = await artworkService
           .getArtworks(chapterId, pid, task.pipelineStageId)
           .catch(() => []);
@@ -1159,13 +1168,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         setReplaySlides(slides);
         setReplayOpen(true);
       } else {
-        onShowToast?.(
-          'Chưa có bản xem lại',
-          'Lần nộp này chưa có ảnh hoặc dữ liệu canvas để dựng lại.',
-        );
+        onShowToast?.(t('taskGridV3.replayEmptyTitle'), t('taskGridV3.replayEmptyDesc'));
       }
     } catch (err: any) {
-      onShowToast?.('Lỗi xem lại lần nộp', err?.message || 'Không thể dựng lại bản nộp.');
+      onShowToast?.(
+        t('taskGridV3.replayErrorTitle'),
+        err?.message || t('taskGridV3.replayErrorFallback'),
+      );
     } finally {
       setReplayingSubmissionId(null);
     }
@@ -1174,7 +1183,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   const handleReopenTask = async (task: StageTaskDto) => {
     const trimmed = reopenReason.trim();
     if (!trimmed) {
-      setError('Nhập lý do mở lại công việc.');
+      setError(t('taskGridV3.reopenReasonRequired'));
       return;
     }
     setActionLoading(`reopen:${task.id}`);
@@ -1185,15 +1194,18 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       setReopenReason('');
       const outdatedCount = res.outdatedTaskIds?.length ?? 0;
       onShowToast?.(
-        'Đã mở lại ô công việc',
+        t('taskGridV3.reopenSuccessTitle'),
         outdatedCount > 0
-          ? `Ô chuyển về Cần sửa; ${outdatedCount} ô hạ nguồn đã gắn cờ đầu vào lỗi thời.`
-          : 'Ô công việc đã chuyển về trạng thái Cần sửa (ReworkRequired).',
+          ? t('taskGridV3.reopenSuccessOutdatedDesc', { count: outdatedCount })
+          : t('taskGridV3.reopenSuccessDesc'),
       );
       await loadGrid();
     } catch (err: any) {
-      setError(err.message || 'Không thể mở lại ô công việc.');
-      onShowToast?.('Lỗi mở lại ô việc', err.message || 'Không thể mở lại ô công việc.');
+      setError(err.message || t('taskGridV3.reopenErrorFallback'));
+      onShowToast?.(
+        t('taskGridV3.reopenErrorTitle'),
+        err.message || t('taskGridV3.reopenErrorFallback'),
+      );
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -1206,10 +1218,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     try {
       const updated = await assignmentService.resolveStageTaskImpact(chapterId, task.id, keep);
       onShowToast?.(
-        'Đã xử lý Impact Review',
-        keep
-          ? 'Đã giữ kết quả hiện tại và gỡ cờ đầu vào lỗi thời.'
-          : 'Đã chuyển ô về Cần sửa (ReworkRequired) và gỡ cờ lỗi thời.',
+        t('taskGridV3.impactSuccessTitle'),
+        keep ? t('taskGridV3.impactKeepDesc') : t('taskGridV3.impactReworkDesc'),
       );
       if (keep && task.status !== 'Approved') {
         applyUpdatedTasks([
@@ -1224,8 +1234,11 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         await loadGrid();
       }
     } catch (err: any) {
-      setError(err.message || 'Không thể xử lý Impact Review cho ô công việc.');
-      onShowToast?.('Lỗi Impact Review', err.message || 'Không thể xử lý Impact Review.');
+      setError(err.message || t('taskGridV3.impactErrorFallback'));
+      onShowToast?.(
+        t('taskGridV3.impactErrorTitle'),
+        err.message || t('taskGridV3.impactErrorToastFallback'),
+      );
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -1244,10 +1257,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       const suggestion = await aiAgentsService.runImpactSuggestion(chapterId, task.id);
       setImpactSuggestionsByTask((prev) => ({ ...prev, [task.id]: suggestion }));
     } catch (err: any) {
-      const msg = err?.message || 'Không thể lấy gợi ý xử lý ảnh hưởng.';
+      const msg = err?.message || t('taskGridV3.impactAiErrorFallback');
       setImpactErrorsByTask((prev) => ({ ...prev, [task.id]: msg }));
       setError(msg);
-      onShowToast?.('Lỗi gợi ý xử lý', msg);
+      onShowToast?.(t('taskGridV3.impactAiErrorTitle'), msg);
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -1300,10 +1313,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         }));
       }
     } catch (err: any) {
-      const msg = err?.message || 'Không thể ghi quyết định.';
+      const msg = err?.message || t('taskGridV3.impactAiDecideErrorFallback');
       setImpactErrorsByTask((prev) => ({ ...prev, [task.id]: msg }));
       setError(msg);
-      onShowToast?.('Lỗi quyết định gợi ý', msg);
+      onShowToast?.(t('taskGridV3.impactAiDecideErrorTitle'), msg);
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -1322,13 +1335,16 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         return next;
       });
       onShowToast?.(
-        'Đã bỏ gán ô công việc',
-        `Đã đưa ${res.length || taskIds.length} ô về trạng thái Chưa giao (Unassigned).`,
+        t('taskGridV3.unassignSuccessTitle'),
+        t('taskGridV3.unassignSuccessDesc', { count: res.length || taskIds.length }),
       );
       await loadGrid();
     } catch (err: any) {
-      setError(err.message || 'Không thể bỏ gán ô công việc.');
-      onShowToast?.('Lỗi bỏ gán', err.message || 'Không thể bỏ gán ô công việc.');
+      setError(err.message || t('taskGridV3.unassignErrorFallback'));
+      onShowToast?.(
+        t('taskGridV3.unassignErrorTitle'),
+        err.message || t('taskGridV3.unassignErrorFallback'),
+      );
       if (err?.status === 409) void loadGrid(true);
     } finally {
       setActionLoading(null);
@@ -1346,21 +1362,24 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             data-testid={`cancelled-task-cell-${cancelled.id}`}
             className='w-full min-w-0 box-border p-2 rounded-lg border border-dashed border-stone-200 bg-stone-50/80 text-center text-[11px] text-stone-400 opacity-55 line-through'
           >
-            {t('taskGridV3.cancelledCell', 'Đã huỷ')}
+            {t('taskGridV3.cancelledCell')}
           </div>
         );
       }
       return (
         <div className='p-2 text-center text-[11px] text-stone-400 italic'>
-          {t('taskGridV3.unassignedCell', 'Chưa sinh ô')}
+          {t('taskGridV3.unassignedCell')}
         </div>
       );
     }
 
-    const meta = STATUS_STYLE[task.status] ?? {
-      label: task.status,
-      cls: 'bg-stone-100 text-stone-700 border-stone-300',
-    };
+    const statusStyle = STATUS_STYLE[task.status];
+    const meta = statusStyle
+      ? { label: t(statusStyle.labelKey), cls: statusStyle.cls }
+      : {
+          label: task.status,
+          cls: 'bg-stone-100 text-stone-700 border-stone-300',
+        };
     const isStageEnabled = stage.isEnabled !== false && enabledStageIds.has(stage.id);
     const isMine = Boolean(currentUserId && task.assigneeUserId === currentUserId);
     const canSelectForLot = isStageEnabled && canCoordinateAssign && task.status === 'Unassigned';
@@ -1424,8 +1443,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     );
     const reworkTooltip = reworkDisplay
       ? reworkDisplay.kind === 'reopen'
-        ? `${t('taskGridV3.reopenReasonPrefix', 'Producer mở lại:')} ${reworkDisplay.text}`
-        : `${t('taskGridV3.lastDecisionLabel', 'Nhận xét lần duyệt gần nhất')}: ${reworkDisplay.text}`
+        ? `${t('taskGridV3.reopenReasonPrefix')} ${reworkDisplay.text}`
+        : `${t('taskGridV3.lastDecisionLabel')}: ${reworkDisplay.text}`
       : undefined;
 
     return (
@@ -1450,10 +1469,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 data-testid={`task-attempt-count-${task.id}`}
                 className='px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-[10px] font-mono font-semibold text-stone-700'
               >
-                {t('taskGridV3.attemptBadge', {
-                  count: attemptCount,
-                  defaultValue: `Lần nộp #${attemptCount}`,
-                })}
+                {t('taskGridV3.attemptBadge', { count: attemptCount })}
               </span>
             )}
           </div>
@@ -1462,7 +1478,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             {canSelectForLot && (
               <input
                 type='checkbox'
-                aria-label={`Chọn ô ${stage.name}`}
+                aria-label={t('taskGridV3.selectCellAria', { stage: stage.name })}
                 checked={isSelectedForLot}
                 onChange={() => toggleSelectUnassigned(task.id)}
                 className='h-3.5 w-3.5 accent-[#F97316] cursor-pointer'
@@ -1472,7 +1488,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             {canUnassign && (
               <input
                 type='checkbox'
-                aria-label={`Chọn bỏ gán ô ${stage.name}`}
+                aria-label={t('taskGridV3.selectUnassignCellAria', { stage: stage.name })}
                 checked={isSelectedForUnassign}
                 onChange={() => toggleSelectUnassign(task.id)}
                 className='h-3.5 w-3.5 accent-rose-600 cursor-pointer'
@@ -1482,7 +1498,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             {canSubmit && !task.isInputOutdated && (
               <input
                 type='checkbox'
-                aria-label={`Chọn nộp ô ${stage.name}`}
+                aria-label={t('taskGridV3.selectSubmitCellAria', { stage: stage.name })}
                 checked={isSelectedForSubmit}
                 onChange={() => toggleSelectSubmit(task.id)}
                 className='h-3.5 w-3.5 accent-emerald-600 cursor-pointer'
@@ -1507,10 +1523,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           >
             <Lock className='h-2.5 w-2.5 shrink-0 text-indigo-600' />
             <span className='truncate'>
-              {t('taskGridV3.underReviewBy', {
-                name: getMemberName(task.reviewerUserId),
-                defaultValue: `Đang được duyệt bởi ${getMemberName(task.reviewerUserId)}`,
-              })}
+              {t('taskGridV3.underReviewBy', { name: getMemberName(task.reviewerUserId) })}
             </span>
           </div>
         )}
@@ -1527,18 +1540,12 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           >
             {reworkDisplay.kind === 'reopen' ? (
               <>
-                🔄{' '}
-                <span className='font-semibold'>
-                  {t('taskGridV3.reopenReasonPrefix', 'Producer mở lại:')}
-                </span>{' '}
+                🔄 <span className='font-semibold'>{t('taskGridV3.reopenReasonPrefix')}</span>{' '}
                 {reworkDisplay.text}
               </>
             ) : (
               <>
-                💬{' '}
-                <span className='font-semibold'>
-                  {t('taskGridV3.lastDecisionPrefix', 'Nhận xét gần nhất:')}
-                </span>{' '}
+                💬 <span className='font-semibold'>{t('taskGridV3.lastDecisionPrefix')}</span>{' '}
                 {reworkDisplay.text}
               </>
             )}
@@ -1549,10 +1556,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           <div className='space-y-1'>
             <div
               className='inline-flex items-center gap-1 rounded bg-amber-100 border border-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900'
-              title={task.outdatedReason || 'Công đoạn trước có thay đổi'}
+              title={task.outdatedReason || t('taskGridV3.prevStageChanged')}
             >
               <AlertTriangle className='h-3 w-3 shrink-0 text-amber-700' />
-              <span>Đầu vào lỗi thời</span>
+              <span>{t('taskGridV3.inputOutdatedTitle')}</span>
             </div>
             {task.outdatedReason && (
               <div className='text-[10px] text-amber-800 leading-tight'>{task.outdatedReason}</div>
@@ -1569,8 +1576,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               onClick={() => handleStartTask(task)}
               title={
                 task.isStartable
-                  ? 'Bắt đầu làm ô này'
-                  : 'Chờ các công đoạn tiền đề cùng trang được duyệt (Approved)'
+                  ? t('taskGridV3.startCellTooltip')
+                  : t('taskGridV3.waitPrereqsTooltip')
               }
               className='inline-flex items-center gap-1 rounded bg-[#171717] hover:bg-black text-white px-2 py-1 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
             >
@@ -1579,7 +1586,9 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               ) : (
                 <Play className='h-2.5 w-2.5 text-[#F97316]' />
               )}
-              <span>{task.isStartable ? 'Bắt đầu' : 'Chờ tiền đề'}</span>
+              <span>
+                {task.isStartable ? t('taskGridV3.startBtn') : t('taskGridV3.waitPrereqsBtn')}
+              </span>
             </button>
           )}
 
@@ -1590,8 +1599,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               onClick={() => handleSubmitTasks([task.id])}
               title={
                 task.isInputOutdated
-                  ? 'Đầu vào lỗi thời — cần Producer xử lý Impact Review trước khi nộp'
-                  : 'Nộp ô công việc này'
+                  ? t('taskGridV3.submitOutdatedTooltip')
+                  : t('taskGridV3.submitCellTooltip')
               }
               className='inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
             >
@@ -1600,7 +1609,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               ) : (
                 <Send className='h-2.5 w-2.5' />
               )}
-              <span>Nộp</span>
+              <span>{t('taskGridV3.submitBtn')}</span>
             </button>
           )}
 
@@ -1610,7 +1619,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               data-testid={`withdraw-task-btn-${task.id}`}
               disabled={actionLoading === `withdraw:${task.id}`}
               onClick={() => void handleWithdrawTask(task)}
-              title='Rút bài đã nộp khi Editor chưa mở duyệt'
+              title={t('taskGridV3.withdrawTooltip')}
               className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
             >
               {actionLoading === `withdraw:${task.id}` ? (
@@ -1618,7 +1627,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               ) : (
                 <Undo2 className='h-2.5 w-2.5' />
               )}
-              <span>{t('taskGridV3.withdrawBtn', 'Rút bài')}</span>
+              <span>{t('taskGridV3.withdrawBtn')}</span>
             </button>
           )}
 
@@ -1634,10 +1643,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 onClick={() => handleApproveTask(task)}
                 title={
                   isLockedByOtherReviewer
-                    ? `Đang được duyệt bởi ${getMemberName(task.reviewerUserId)}`
+                    ? t('taskGridV3.underReviewBy', { name: getMemberName(task.reviewerUserId) })
                     : task.isInputOutdated
-                      ? 'Đầu vào lỗi thời — cần xử lý Impact Review trước khi duyệt'
-                      : 'Duyệt ô công việc này'
+                      ? t('taskGridV3.approveOutdatedTooltip')
+                      : t('taskGridV3.approveCellTooltip')
                 }
                 className='inline-flex items-center gap-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
               >
@@ -1646,7 +1655,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 ) : (
                   <CheckCircle2 className='h-2.5 w-2.5' />
                 )}
-                <span>Duyệt</span>
+                <span>{t('taskGridV3.approveBtn')}</span>
               </button>
 
               {requestingChangesTaskId !== task.id && (
@@ -1661,13 +1670,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   }}
                   title={
                     isLockedByOtherReviewer
-                      ? `Đang được duyệt bởi ${getMemberName(task.reviewerUserId)}`
-                      : 'Yêu cầu sửa kèm nhận xét bắt buộc (BR-06)'
+                      ? t('taskGridV3.underReviewBy', { name: getMemberName(task.reviewerUserId) })
+                      : t('taskGridV3.requestChangesTooltip')
                   }
                   className='inline-flex items-center gap-1 rounded border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                 >
                   <XCircle className='h-2.5 w-2.5' />
-                  <span>Yêu cầu sửa</span>
+                  <span>{t('taskGridV3.requestChangesBtn')}</span>
                 </button>
               )}
             </>
@@ -1679,7 +1688,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               data-testid={`release-review-btn-${task.id}`}
               disabled={actionLoading === `releaseReview:${task.id}`}
               onClick={() => void handleReleaseReview(task)}
-              title='Nhả khoá duyệt để trả ô về hàng đợi Chờ duyệt'
+              title={t('taskGridV3.releaseReviewTooltip')}
               className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
             >
               {actionLoading === `releaseReview:${task.id}` ? (
@@ -1687,7 +1696,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               ) : (
                 <Unlock className='h-2.5 w-2.5' />
               )}
-              <span>{t('taskGridV3.releaseReviewBtn', 'Nhả khoá duyệt')}</span>
+              <span>{t('taskGridV3.releaseReviewBtn')}</span>
             </button>
           )}
 
@@ -1697,7 +1706,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               data-testid={`force-release-review-btn-${task.id}`}
               disabled={actionLoading === `releaseReview:${task.id}`}
               onClick={() => void handleReleaseReview(task)}
-              title='Producer gỡ khoá duyệt đang giữ bởi Editor khác'
+              title={t('taskGridV3.forceReleaseReviewTooltip')}
               className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-white hover:bg-indigo-50 text-indigo-900 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
             >
               {actionLoading === `releaseReview:${task.id}` ? (
@@ -1705,7 +1714,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               ) : (
                 <Unlock className='h-2.5 w-2.5' />
               )}
-              <span>{t('taskGridV3.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}</span>
+              <span>{t('taskGridV3.forceReleaseReviewBtn')}</span>
             </button>
           )}
 
@@ -1716,11 +1725,11 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 setReopeningTaskId(task.id);
                 setReopenReason('');
               }}
-              title='Mở lại ô đã duyệt (Producer)'
+              title={t('taskGridV3.reopenTooltip')}
               className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-1 text-[10px] font-semibold cursor-pointer'
             >
               <RotateCcw className='h-2.5 w-2.5' />
-              <span>Mở lại</span>
+              <span>{t('taskGridV3.reopenBtn')}</span>
             </button>
           )}
 
@@ -1732,13 +1741,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               onClick={() => openReassignForm(task, stage)}
               title={
                 task.isInputOutdated
-                  ? 'Đầu vào lỗi thời — cần xử lý Impact Review trước khi đổi người'
-                  : 'Đổi người nhận cho ô chưa nộp (reassign: true)'
+                  ? t('taskGridV3.reassignOutdatedTooltip')
+                  : t('taskGridV3.reassignTooltip')
               }
               className='inline-flex items-center gap-1 rounded border border-orange-300 bg-orange-50 hover:bg-orange-100 text-[#C2410C] px-2 py-1 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
             >
               <UserCheck className='h-2.5 w-2.5' />
-              <span>{t('taskGridV3.reassignBtn', 'Đổi người')}</span>
+              <span>{t('taskGridV3.reassignBtn')}</span>
             </button>
           )}
 
@@ -1747,7 +1756,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               type='button'
               disabled={actionLoading === `unassign:${task.id}`}
               onClick={() => handleUnassignTasks([task.id])}
-              title='Bỏ gán người nhận khỏi ô này (đưa về Chưa giao)'
+              title={t('taskGridV3.unassignTooltip')}
               className='inline-flex items-center gap-1 rounded border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-700 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
             >
               {actionLoading === `unassign:${task.id}` ? (
@@ -1755,7 +1764,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               ) : (
                 <UserMinus className='h-2.5 w-2.5' />
               )}
-              <span>Bỏ gán</span>
+              <span>{t('taskGridV3.unassignBtn')}</span>
             </button>
           )}
 
@@ -1763,7 +1772,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             <button
               type='button'
               onClick={() => void handleToggleSubmissions(task)}
-              title='Xem lịch sử các lần nộp của ô này'
+              title={t('taskGridV3.historyTooltip')}
               className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-semibold cursor-pointer ${
                 historyTaskId === task.id
                   ? 'border-stone-800 bg-stone-800 text-white'
@@ -1771,7 +1780,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               }`}
             >
               <History className='h-2.5 w-2.5' />
-              <span>Lịch sử nộp</span>
+              <span>{t('taskGridV3.historyBtn')}</span>
             </button>
           ) : null}
         </div>
@@ -1786,8 +1795,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               rows={2}
               value={requestChangesComment}
               onChange={(e) => setRequestChangesComment(e.target.value)}
-              placeholder='Nhập nhận xét yêu cầu sửa (bắt buộc)...'
-              aria-label='Nhận xét yêu cầu sửa'
+              placeholder={t('taskGridV3.requestChangesPlaceholder')}
+              aria-label={t('taskGridV3.requestChangesAria')}
               className='block w-full min-w-0 box-border resize-y rounded border border-rose-300 bg-white px-2 py-1.5 text-[11px] leading-snug text-stone-900'
             />
             <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
@@ -1799,7 +1808,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 }}
                 className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-[10px] font-medium text-stone-700 cursor-pointer'
               >
-                Huỷ
+                {t('taskGridV3.cancelBtn')}
               </button>
               <button
                 type='button'
@@ -1807,7 +1816,9 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 onClick={() => void handleRequestChanges(task)}
                 className='shrink-0 whitespace-nowrap rounded bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
               >
-                {actionLoading === `requestChanges:${task.id}` ? 'Đang gửi...' : 'Xác nhận trả về'}
+                {actionLoading === `requestChanges:${task.id}`
+                  ? t('taskGridV3.sendingBtn')
+                  : t('taskGridV3.confirmReturnBtn')}
               </button>
             </div>
           </div>
@@ -1819,14 +1830,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             data-testid={`task-submissions-${task.id}`}
             className='mt-1 rounded border border-stone-200 bg-stone-50 p-2 space-y-1.5 text-[10px]'
           >
-            <div className='font-bold text-stone-800'>Lịch sử nộp bài</div>
+            <div className='font-bold text-stone-800'>{t('taskGridV3.historyTitle')}</div>
             {loadingHistoryTaskId === task.id ? (
               <div className='flex items-center gap-1 text-stone-500'>
                 <Loader2 className='h-3 w-3 animate-spin' />
-                <span>Đang tải lịch sử...</span>
+                <span>{t('taskGridV3.historyLoading')}</span>
               </div>
             ) : (submissionsByTaskId[task.id] || []).length === 0 ? (
-              <div className='text-stone-500 italic'>Chưa có bản nộp nào.</div>
+              <div className='text-stone-500 italic'>{t('taskGridV3.historyEmpty')}</div>
             ) : (
               <div className='space-y-1'>
                 {(submissionsByTaskId[task.id] || []).map((sub) => {
@@ -1848,7 +1859,9 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       className='rounded border border-stone-200 bg-white p-1.5 space-y-0.5'
                     >
                       <div className='flex items-center justify-between gap-1'>
-                        <span className='font-bold text-stone-800'>Lần #{sub.attemptNumber}</span>
+                        <span className='font-bold text-stone-800'>
+                          {t('taskGridV3.attemptShort', { count: sub.attemptNumber })}
+                        </span>
                         <span
                           className={`px-1.5 py-0.2 rounded font-semibold ${
                             sub.status === 'Approved'
@@ -1861,29 +1874,31 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                           }`}
                         >
                           {sub.status === 'Approved'
-                            ? 'Đã duyệt'
+                            ? t('taskGridV3.subStatus.approved')
                             : sub.status === 'Rejected'
-                              ? 'Từ chối'
+                              ? t('taskGridV3.subStatus.rejected')
                               : sub.status === 'Pending'
-                                ? 'Chờ duyệt'
-                                : 'Bản cũ'}
+                                ? t('taskGridV3.subStatus.pending')
+                                : t('taskGridV3.subStatus.superseded')}
                         </span>
                       </div>
                       <div className='text-stone-500'>
-                        Người nộp: {getMemberName(sub.submittedByUserId)} •{' '}
-                        {sub.artworkReferenceIds?.length ?? 0} ảnh
+                        {t('taskGridV3.submittedByWithImages', {
+                          name: getMemberName(sub.submittedByUserId),
+                          count: sub.artworkReferenceIds?.length ?? 0,
+                        })}
                       </div>
                       <div className='flex flex-wrap items-center justify-between gap-1 text-stone-600'>
                         <span>
                           {scriptVersionNum !== undefined && (
                             <>
                               <span className='font-semibold text-indigo-700'>
-                                Kịch bản: v{scriptVersionNum}
+                                {t('taskGridV3.scriptVersionLabel', { version: scriptVersionNum })}
                               </span>
                               {' • '}
                             </>
                           )}
-                          <span>Số panel lúc nộp: {panelCount}</span>
+                          <span>{t('taskGridV3.panelCountAtSubmit', { count: panelCount })}</span>
                         </span>
                         {canReplay && (
                           <button
@@ -1892,14 +1907,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                             disabled={replayingSubmissionId === sub.id}
                             onClick={() => void handleReplaySubmission(task, sub)}
                             className='inline-flex items-center gap-0.5 rounded border border-stone-200 bg-stone-50 hover:bg-stone-100 px-1.5 py-0.5 text-[9px] font-semibold text-stone-700 disabled:opacity-50 cursor-pointer'
-                            title='Xem lại trang theo bố cục panel và phiên bản canvas lúc nộp'
+                            title={t('taskGridV3.replayTooltip')}
                           >
                             {replayingSubmissionId === sub.id ? (
                               <Loader2 className='h-2.5 w-2.5 animate-spin' />
                             ) : (
                               <Eye className='h-2.5 w-2.5' />
                             )}
-                            <span>Xem lại</span>
+                            <span>{t('taskGridV3.replayBtn')}</span>
                           </button>
                         )}
                       </div>
@@ -1920,7 +1935,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         {canResolveImpact && (
           <div className='mt-1 rounded border border-amber-200 bg-amber-50/70 p-1.5 space-y-1'>
             <div className='text-[10px] font-semibold text-amber-900'>
-              Impact Review {prereqReadyForImpact ? '' : '(chờ tiền đề duyệt lại)'}
+              Impact Review {prereqReadyForImpact ? '' : t('taskGridV3.impactWaitingPrereq')}
             </div>
             <div className='flex flex-wrap items-center gap-1'>
               <button
@@ -1931,13 +1946,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 onClick={() => handleResolveImpact(task, true)}
                 title={
                   prereqReadyForImpact
-                    ? 'Giữ kết quả hiện tại và xoá cờ lỗi thời'
-                    : 'Công đoạn tiền đề chưa được duyệt lại'
+                    ? t('taskGridV3.impactKeepTooltip')
+                    : t('taskGridV3.impactPrereqNotReadyTooltip')
                 }
                 className='inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-0.5 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
               >
                 <Check className='h-2.5 w-2.5' />
-                <span>Giữ kết quả</span>
+                <span>{t('taskGridV3.impactKeepBtn')}</span>
               </button>
               <button
                 type='button'
@@ -1947,13 +1962,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 onClick={() => handleResolveImpact(task, false)}
                 title={
                   prereqReadyForImpact
-                    ? 'Yêu cầu làm lại (chuyển về Cần sửa) và xoá cờ lỗi thời'
-                    : 'Công đoạn tiền đề chưa được duyệt lại'
+                    ? t('taskGridV3.impactReworkTooltip')
+                    : t('taskGridV3.impactPrereqNotReadyTooltip')
                 }
                 className='inline-flex items-center gap-1 rounded bg-rose-600 hover:bg-rose-700 text-white px-2 py-0.5 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
               >
                 <RotateCcw className='h-2.5 w-2.5' />
-                <span>Làm lại</span>
+                <span>{t('taskGridV3.impactReworkBtn')}</span>
               </button>
               {canSuggestImpactAi && (
                 <button
@@ -1964,7 +1979,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                     actionLoading === `aiImpactDecide:${task.id}`
                   }
                   onClick={() => void handleRequestImpactSuggestion(task)}
-                  title='AI gợi ý Giữ nguyên hoặc Làm lại dựa trên thay đổi kịch bản của trang'
+                  title={t('taskGridV3.impactAiTooltip')}
                   className='inline-flex items-center gap-1 rounded border border-orange-300 bg-white hover:bg-orange-50 text-[#C2410C] px-2 py-0.5 text-[10px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                 >
                   {actionLoading === `aiImpact:${task.id}` ? (
@@ -1972,7 +1987,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   ) : (
                     <Sparkles className='h-2.5 w-2.5' />
                   )}
-                  <span>Gợi ý xử lý</span>
+                  <span>{t('taskGridV3.impactAiBtn')}</span>
                 </button>
               )}
             </div>
@@ -2006,15 +2021,15 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             className='mt-1 w-full min-w-0 box-border rounded border border-orange-300 bg-orange-50/80 p-2 space-y-1.5'
           >
             <div className='text-[10px] font-bold text-stone-900'>
-              {t('taskGridV3.reassignTitle', 'Đổi người nhận ô việc')}
+              {t('taskGridV3.reassignTitle')}
             </div>
             <select
-              aria-label={t('taskGridV3.reassignSelectLabel', 'Người nhận mới')}
+              aria-label={t('taskGridV3.reassignSelectLabel')}
               value={reassignUserId}
               onChange={(e) => setReassignUserId(e.target.value)}
               className='block w-full min-w-0 rounded border border-orange-300 bg-white px-2 py-1 text-[11px] text-stone-900'
             >
-              <option value=''>-- Chọn thành viên --</option>
+              <option value=''>{t('taskGridV3.selectMemberPlaceholder')}</option>
               {activeMembers
                 .filter(
                   (m) =>
@@ -2024,21 +2039,21 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 .map((m) => (
                   <option key={m.userId} value={m.userId}>
                     {m.fullName || m.email.split('@')[0]} ({m.role})
-                    {m.userId === task.assigneeUserId ? ' – Hiện tại' : ''}
+                    {m.userId === task.assigneeUserId ? t('taskGridV3.currentAssigneeSuffix') : ''}
                   </option>
                 ))}
             </select>
             <input
               type='text'
-              aria-label='Brief lô mới'
+              aria-label={t('taskGridV3.reassignBriefAria')}
               value={reassignBrief}
               onChange={(e) => setReassignBrief(e.target.value)}
-              placeholder='Brief lô mới (tuỳ chọn)...'
+              placeholder={t('taskGridV3.reassignBriefPlaceholder')}
               className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1 text-[11px] text-stone-900'
             />
             <input
               type='date'
-              aria-label='Hạn lô mới'
+              aria-label={t('taskGridV3.reassignDueDateAria')}
               value={reassignDueDate}
               onChange={(e) => setReassignDueDate(e.target.value)}
               className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1 text-[11px] text-stone-900'
@@ -2049,7 +2064,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 onClick={() => setReassigningTaskId(null)}
                 className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-[10px] font-medium text-stone-700 cursor-pointer'
               >
-                Huỷ
+                {t('taskGridV3.cancelBtn')}
               </button>
               <button
                 type='button'
@@ -2059,8 +2074,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 className='shrink-0 whitespace-nowrap rounded bg-[#EA580C] hover:bg-[#C2410C] text-white px-2.5 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
               >
                 {actionLoading === `reassign:${task.id}`
-                  ? 'Đang đổi...'
-                  : t('taskGridV3.reassignConfirmBtn', 'Xác nhận đổi người')}
+                  ? t('taskGridV3.reassigningBtn')
+                  : t('taskGridV3.reassignConfirmBtn')}
               </button>
             </div>
           </div>
@@ -2073,8 +2088,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               rows={2}
               value={reopenReason}
               onChange={(e) => setReopenReason(e.target.value)}
-              placeholder='Nhập lý do mở lại...'
-              aria-label='Lý do mở lại'
+              placeholder={t('taskGridV3.reopenPlaceholder')}
+              aria-label={t('taskGridV3.reopenReasonAria')}
               className='block w-full min-w-0 box-border resize-y rounded border border-amber-300 bg-white px-2 py-1.5 text-[11px] leading-snug text-stone-900'
             />
             <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
@@ -2086,7 +2101,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 }}
                 className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-[10px] font-medium text-stone-700 cursor-pointer'
               >
-                Huỷ
+                {t('taskGridV3.cancelBtn')}
               </button>
               <button
                 type='button'
@@ -2094,7 +2109,9 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 onClick={() => handleReopenTask(task)}
                 className='shrink-0 whitespace-nowrap rounded bg-amber-700 hover:bg-amber-800 text-white px-2.5 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
               >
-                {actionLoading === `reopen:${task.id}` ? 'Đang mở...' : 'Xác nhận mở lại'}
+                {actionLoading === `reopen:${task.id}`
+                  ? t('taskGridV3.reopeningBtn')
+                  : t('taskGridV3.confirmReopenBtn')}
               </button>
             </div>
           </div>
@@ -2128,13 +2145,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         <div className='flex flex-wrap items-center gap-3'>
           <div className='flex items-center gap-2'>
             <Grid className='h-4 w-4 text-[#F97316]' />
-            <span className='font-bold text-sm text-stone-900'>
-              {t('taskGridV3.boardTitle', 'Lưới Giao Việc')}
-            </span>
+            <span className='font-bold text-sm text-stone-900'>{t('taskGridV3.boardTitle')}</span>
           </div>
           {grid && (
             <span className='rounded-lg bg-stone-100 border border-stone-200 px-2.5 py-1 text-xs font-mono font-semibold text-stone-700'>
-              Đã duyệt: {approvedCount}/{activeTasks.length} ô
+              {t('taskGridV3.approvedSummary', {
+                approved: approvedCount,
+                total: activeTasks.length,
+              })}
             </span>
           )}
           {outdatedCount > 0 && (
@@ -2143,16 +2161,16 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               className='rounded-lg bg-amber-50 border border-amber-300 px-2.5 py-1 text-xs font-semibold text-amber-900 inline-flex items-center gap-1'
             >
               <AlertTriangle className='h-3.5 w-3.5 text-amber-600' />
-              <span>{outdatedCount} ô đầu vào lỗi thời cần Impact Review</span>
+              <span>{t('taskGridV3.outdatedBanner', { count: outdatedCount })}</span>
             </span>
           )}
           {disabledStageTasks.length > 0 && (
             <span
               data-testid='disabled-stage-tasks-note'
-              title='Các ô thuộc công đoạn đã tắt (isEnabled = false) được ẩn khỏi lưới và không cho giao việc'
+              title={t('taskGridV3.disabledStageNoteTooltip')}
               className='rounded-lg bg-stone-100/80 border border-dashed border-stone-300 px-2.5 py-1 text-[11px] text-stone-500 opacity-75'
             >
-              Đang ẩn {disabledStageTasks.length} ô thuộc công đoạn đã tắt
+              {t('taskGridV3.disabledStageNote', { count: disabledStageTasks.length })}
             </span>
           )}
         </div>
@@ -2170,7 +2188,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               ) : (
                 <UserMinus className='h-3.5 w-3.5' />
               )}
-              <span>Bỏ gán {selectedUnassignIds.size} ô đã chọn</span>
+              <span>{t('taskGridV3.unassignBatchBtn', { count: selectedUnassignIds.size })}</span>
             </button>
           )}
 
@@ -2186,7 +2204,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               ) : (
                 <Send className='h-3.5 w-3.5' />
               )}
-              <span>Nộp {selectedSubmitIds.size} ô đã chọn</span>
+              <span>{t('taskGridV3.submitBatchBtn', { count: selectedSubmitIds.size })}</span>
             </button>
           )}
 
@@ -2203,7 +2221,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               ) : (
                 <Wand2 className='h-3.5 w-3.5' />
               )}
-              <span>{t('taskGridV3.autoAssign.btn', 'Giao tự động')}</span>
+              <span>{t('taskGridV3.autoAssign.btn')}</span>
             </button>
           )}
 
@@ -2219,7 +2237,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               ) : (
                 <Sparkles className='h-3.5 w-3.5' />
               )}
-              <span>Sinh / Đồng bộ ô việc</span>
+              <span>{t('taskGridV3.generateBtn')}</span>
             </button>
           )}
 
@@ -2230,7 +2248,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             className='inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 px-2.5 py-1.5 text-xs font-semibold cursor-pointer'
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Tải lại</span>
+            <span>{t('taskGridV3.reloadBtn')}</span>
           </button>
         </div>
       </div>
@@ -2266,7 +2284,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               className='inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-white hover:bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-900 disabled:opacity-50 cursor-pointer shrink-0'
             >
               <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-              <span>{t('taskGridV3.reloadGridBtn', 'Tải lại lưới')}</span>
+              <span>{t('taskGridV3.reloadGridBtn')}</span>
             </button>
           )}
         </div>
@@ -2279,8 +2297,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             <div className='flex items-center gap-2 text-xs font-bold text-stone-900'>
               <Users className='h-4 w-4 text-[#F97316]' />
               <span>
-                Giao lô cho {selectedUnassignedIds.size} ô đang chọn
-                {requiredRoleForSelection ? ` (Vai trò: ${requiredRoleForSelection})` : ''}
+                {t('taskGridV3.assignLotHeader', { count: selectedUnassignedIds.size })}
+                {requiredRoleForSelection
+                  ? t('taskGridV3.assignLotRoleSuffix', { role: requiredRoleForSelection })
+                  : ''}
               </span>
             </div>
             <button
@@ -2291,18 +2311,18 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               }}
               className='text-xs text-stone-500 hover:text-stone-900 underline cursor-pointer'
             >
-              Bỏ chọn tất cả ô
+              {t('taskGridV3.deselectAllCellsBtn')}
             </button>
           </div>
 
           <div className='space-y-1.5'>
             <div className='text-[11px] font-semibold text-stone-700'>
-              Chọn 1 hoặc nhiều thành viên (chọn nhiều người để tự động chia đều số ô):
+              {t('taskGridV3.selectMembersHint')}
             </div>
             <div className='flex flex-wrap gap-2'>
               {eligibleAssignees.length === 0 ? (
                 <span className='text-xs text-rose-700'>
-                  Không có thành viên Active khớp vai trò {requiredRoleForSelection || ''}.
+                  {t('taskGridV3.noEligibleMembers', { role: requiredRoleForSelection || '' })}
                 </span>
               ) : (
                 eligibleAssignees.map((m) => {
@@ -2318,7 +2338,9 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                     >
                       <input
                         type='checkbox'
-                        aria-label={`Giao cho ${m.fullName || m.email.split('@')[0]}`}
+                        aria-label={t('taskGridV3.assignToMemberAria', {
+                          name: m.fullName || m.email.split('@')[0],
+                        })}
                         checked={checked}
                         onChange={() => toggleAssignee(m.userId)}
                         className='h-3.5 w-3.5 accent-[#F97316]'
@@ -2335,19 +2357,19 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
             <div>
               <label className='block text-[11px] font-semibold text-stone-700 mb-1'>
-                Yêu cầu lô việc (Brief)
+                {t('taskGridV3.lotBriefLabel')}
               </label>
               <input
                 type='text'
                 value={lotBrief}
                 onChange={(e) => setLotBrief(e.target.value)}
-                placeholder='Ghi chú hướng dẫn cho lô công việc này...'
+                placeholder={t('taskGridV3.lotBriefPlaceholder')}
                 className='w-full rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs'
               />
             </div>
             <div>
               <label className='block text-[11px] font-semibold text-stone-700 mb-1'>
-                Hạn hoàn thành (Due Date)
+                {t('taskGridV3.lotDueDateLabel')}
               </label>
               <input
                 type='date'
@@ -2360,8 +2382,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
           {dryRunPreview && (
             <div className='rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 font-medium'>
-              ✓ Kiểm tra hợp lệ: sẵn sàng giao {dryRunPreview.taskCount} ô vào{' '}
-              {dryRunPreview.lotCount} lô.
+              {t('taskGridV3.dryRunBanner', {
+                taskCount: dryRunPreview.taskCount,
+                lotCount: dryRunPreview.lotCount,
+              })}
             </div>
           )}
 
@@ -2372,7 +2396,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               onClick={() => handleAssignLots(true)}
               className='rounded-lg border border-stone-300 bg-white hover:bg-stone-50 px-3 py-1.5 text-xs font-semibold text-stone-800 disabled:opacity-50 cursor-pointer'
             >
-              {actionLoading === 'dryRun' ? 'Đang kiểm tra...' : 'Kiểm tra thử (Dry Run)'}
+              {actionLoading === 'dryRun' ? t('taskGridV3.checkingBtn') : t('taskGridV3.dryRunBtn')}
             </button>
             <button
               type='button'
@@ -2381,10 +2405,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               className='rounded-lg bg-[#171717] hover:bg-black text-white px-3.5 py-1.5 text-xs font-semibold disabled:opacity-50 cursor-pointer'
             >
               {actionLoading === 'assignLots'
-                ? 'Đang giao...'
+                ? t('taskGridV3.assigningBtn')
                 : selectedAssigneeIds.length > 1
-                  ? `Chia đều & Giao (${selectedAssigneeIds.length} người)`
-                  : 'Giao lô công việc'}
+                  ? t('taskGridV3.splitAndAssignBtn', { count: selectedAssigneeIds.length })
+                  : t('taskGridV3.assignLotBtn')}
             </button>
           </div>
         </div>
@@ -2394,13 +2418,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       {/* Trang do Writer chia trong Kịch bản tạo ra; chưa có trang thì lưới chỉ có hàng Toàn chương */}
       {grid && grid.pages.length === 0 && (
         <div className='rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-900'>
-          <span className='font-bold'>
-            {t('taskGridV3.noPagesTitle', 'Chương chưa có trang nào.')}
-          </span>{' '}
-          {t(
-            'taskGridV3.noPagesDesc',
-            'Trang được tạo khi Writer chia trang trong Kịch bản; lưu xong lưới tự thêm ô cho từng trang (Pencil, Ink, Letter…).',
-          )}
+          <span className='font-bold'>{t('taskGridV3.noPagesTitle')}</span>{' '}
+          {t('taskGridV3.noPagesDesc')}
           {workspaceId && seriesId && (
             <>
               {' '}
@@ -2408,7 +2427,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 to={`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${encodeURIComponent(chapterId)}`}
                 className='font-semibold underline hover:text-sky-700'
               >
-                {t('taskGridV3.openScriptLink', 'Mở Kịch bản')}
+                {t('taskGridV3.openScriptLink')}
               </Link>
             </>
           )}
@@ -2421,7 +2440,6 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           <div className='text-xs font-bold text-stone-800'>
             {t('taskGridV3.assignedLotsTitle', {
               count: grid.lots.filter((l) => l.status !== 'Closed').length,
-              defaultValue: `Lô công việc đã giao (${grid.lots.filter((l) => l.status !== 'Closed').length} lô)`,
             })}
           </div>
           <div className='flex flex-wrap gap-2'>
@@ -2440,7 +2458,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   .sort((a, b) => a - b);
                 const lotScopeText =
                   lotCells.length > 0 && lotCells.every((t) => !t.pageId)
-                    ? 'Toàn chương'
+                    ? t('taskGridV3.wholeChapter')
                     : lotPageNums.length > 0
                       ? formatPageRangeLabel(lotPageNums)
                       : null;
@@ -2461,7 +2479,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                     <span className='font-bold'>{stg?.name || 'Stage'}</span>
                     {isLotStageDisabled && (
                       <span className='rounded bg-stone-200 px-1 py-0.2 text-[9px] font-mono text-stone-600'>
-                        Đã tắt
+                        {t('taskGridV3.stageDisabledBadge')}
                       </span>
                     )}
                     <span>•</span>
@@ -2473,7 +2491,9 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                     {lot.dueDate && (
                       <span className='inline-flex items-center gap-0.5 text-[10px] text-stone-500'>
                         <Clock className='h-3 w-3' />
-                        {new Date(lot.dueDate).toLocaleDateString('vi-VN')}
+                        {new Date(lot.dueDate).toLocaleDateString(
+                          lang === 'en' ? 'en-US' : 'vi-VN',
+                        )}
                       </span>
                     )}
                     {lot.brief && (
@@ -2491,11 +2511,11 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                         onClick={() =>
                           editingLotId === lot.id ? setEditingLotId(null) : openEditLotForm(lot)
                         }
-                        title='Sửa hạn hoàn thành và ghi chú (Brief) của lô'
+                        title={t('taskGridV3.editLotTooltip')}
                         className='inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold text-stone-700 cursor-pointer'
                       >
                         <Pencil className='h-2.5 w-2.5' />
-                        <span>{t('taskGridV3.editLotBtn', 'Sửa lô')}</span>
+                        <span>{t('taskGridV3.editLotBtn')}</span>
                       </button>
                     )}
                   </div>
@@ -2515,30 +2535,30 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   className='mt-2 rounded-xl border border-[#FDBA74] bg-[#FFF7ED] p-3 space-y-2.5 text-xs'
                 >
                   <div className='font-bold text-stone-900'>
-                    {t('taskGridV3.editLotTitle', 'Sửa hạn & ghi chú lô')} — {stg?.name || 'Stage'}{' '}
-                    ({getMemberName(editingLot.assigneeUserId)})
+                    {t('taskGridV3.editLotTitle')} — {stg?.name || 'Stage'} (
+                    {getMemberName(editingLot.assigneeUserId)})
                   </div>
                   <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
                     <div>
                       <label className='block text-[11px] font-semibold text-stone-700 mb-1'>
-                        Yêu cầu lô việc (Brief)
+                        {t('taskGridV3.lotBriefLabel')}
                       </label>
                       <input
                         type='text'
-                        aria-label='Brief của lô'
+                        aria-label={t('taskGridV3.editLotBriefAria')}
                         value={editLotBrief}
                         onChange={(e) => setEditLotBrief(e.target.value)}
-                        placeholder='Nhập yêu cầu / hướng dẫn cho lô...'
+                        placeholder={t('taskGridV3.editLotBriefPlaceholder')}
                         className='w-full rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs text-stone-900'
                       />
                     </div>
                     <div className='space-y-1.5'>
                       <label className='block text-[11px] font-semibold text-stone-700'>
-                        Hạn hoàn thành (Due Date)
+                        {t('taskGridV3.lotDueDateLabel')}
                       </label>
                       <input
                         type='date'
-                        aria-label='Hạn hoàn thành lô'
+                        aria-label={t('taskGridV3.editLotDueDateAria')}
                         disabled={editLotClearDueDate}
                         value={editLotDueDate}
                         onChange={(e) => setEditLotDueDate(e.target.value)}
@@ -2547,12 +2567,12 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       <label className='inline-flex items-center gap-1.5 text-[11px] text-stone-700 cursor-pointer'>
                         <input
                           type='checkbox'
-                          aria-label={t('taskGridV3.clearDueDateLabel', 'Xoá hạn hoàn thành')}
+                          aria-label={t('taskGridV3.clearDueDateLabel')}
                           checked={editLotClearDueDate}
                           onChange={(e) => setEditLotClearDueDate(e.target.checked)}
                           className='h-3.5 w-3.5 accent-[#F97316]'
                         />
-                        <span>{t('taskGridV3.clearDueDateLabel', 'Xoá hạn hoàn thành')}</span>
+                        <span>{t('taskGridV3.clearDueDateLabel')}</span>
                       </label>
                     </div>
                   </div>
@@ -2562,7 +2582,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       onClick={() => setEditingLotId(null)}
                       className='rounded-lg border border-stone-300 bg-white hover:bg-stone-50 px-3 py-1.5 text-xs font-semibold text-stone-700 cursor-pointer'
                     >
-                      Huỷ
+                      {t('taskGridV3.cancelBtn')}
                     </button>
                     <button
                       type='button'
@@ -2572,8 +2592,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       className='rounded-lg bg-[#171717] hover:bg-black text-white px-3.5 py-1.5 text-xs font-semibold disabled:opacity-50 cursor-pointer'
                     >
                       {actionLoading === `updateLot:${editingLot.id}`
-                        ? 'Đang lưu...'
-                        : t('taskGridV3.saveLotBtn', 'Lưu thay đổi lô')}
+                        ? t('taskGridV3.savingBtn')
+                        : t('taskGridV3.saveLotBtn')}
                     </button>
                   </div>
                 </div>
@@ -2586,17 +2606,15 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       {loading && !grid ? (
         <div className='py-12 text-center text-stone-500 text-xs'>
           <Loader2 className='h-6 w-6 animate-spin mx-auto mb-2 text-[#F97316]' />
-          <span>Đang tải lưới công việc...</span>
+          <span>{t('taskGridV3.loadingGrid')}</span>
         </div>
       ) : !grid || (activeTasks.length === 0 && grid.pages.length === 0) ? (
         <div className='rounded-xl border border-dashed border-stone-300 bg-[#FCFBF8] p-8 text-center space-y-2'>
-          <div className='font-bold text-sm text-stone-800'>
-            Chương này chưa có ô công việc nào trên lưới V3
-          </div>
+          <div className='font-bold text-sm text-stone-800'>{t('taskGridV3.emptyGridTitle')}</div>
           <p className='text-xs text-stone-500'>
             {isProducerOnly
-              ? 'Bấm "Sinh / Đồng bộ ô việc" ở góc trên để khởi tạo lưới Trang × Công đoạn cho chương.'
-              : 'Producer chưa khởi tạo lưới ô công việc cho chương này.'}
+              ? t('taskGridV3.emptyGridProducerHint')
+              : t('taskGridV3.emptyGridMemberHint')}
           </p>
         </div>
       ) : (
@@ -2605,7 +2623,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             <thead>
               <tr className='border-b border-stone-200 bg-[#FAF8F5]'>
                 <th className='sticky left-0 z-10 bg-[#FAF8F5] px-3 py-2.5 font-bold text-stone-700 border-r border-stone-200 min-w-[110px]'>
-                  Phạm vi / Trang
+                  {t('taskGridV3.scopeColumnHeader')}
                 </th>
                 {visibleStages.map((stage) => {
                   const unassignedCount = grid.tasks.filter(
@@ -2628,7 +2646,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                                 : 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200'
                             }`}
                           >
-                            Nhánh {stage.track}
+                            {t('taskGridV3.trackBadge', { track: stage.track })}
                           </span>
                         )}
                       </div>
@@ -2650,7 +2668,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                           onClick={() => toggleSelectStageColumn(stage.id)}
                           className='mt-1.5 text-[10px] font-semibold text-[#C2410C] hover:underline cursor-pointer'
                         >
-                          Chọn cột ({unassignedCount} ô trống)
+                          {t('taskGridV3.selectColumnBtn', { count: unassignedCount })}
                         </button>
                       )}
                     </th>
@@ -2662,7 +2680,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               {hasChapterRow && (
                 <tr className='bg-stone-50/60'>
                   <td className='sticky left-0 z-10 bg-stone-100 px-3 py-2.5 font-bold text-stone-800 border-r border-stone-200'>
-                    Toàn chương
+                    {t('taskGridV3.wholeChapter')}
                   </td>
                   {visibleStages.map((stage) => (
                     <td key={stage.id} className='p-2 border-r border-stone-200 align-top'>
@@ -2679,7 +2697,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               {sortedPages.map((page) => (
                 <tr key={page.id} className='hover:bg-stone-50/40'>
                   <td className='sticky left-0 z-10 bg-white px-3 py-2.5 font-semibold text-stone-800 border-r border-stone-200'>
-                    Trang {page.pageNumber}
+                    {t('taskGridV3.pageRowLabel', { number: page.pageNumber })}
                   </td>
                   {visibleStages.map((stage) => (
                     <td key={stage.id} className='p-2 border-r border-stone-200 align-top'>
@@ -2687,7 +2705,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                         renderCell(stage, page.id)
                       ) : (
                         <div className='p-2 text-center text-[10px] text-stone-300'>
-                          Theo chương
+                          {t('taskGridV3.chapterScopeCell')}
                         </div>
                       )}
                     </td>

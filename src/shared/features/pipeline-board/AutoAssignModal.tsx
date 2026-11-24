@@ -230,14 +230,14 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
 
   const formatScopeLabel = (pageNumbers: number[]) => {
     if (!pageNumbers || pageNumbers.length === 0) {
-      return t('taskGridV3.autoAssign.wholeChapter', 'Cả chương');
+      return t('taskGridV3.autoAssign.wholeChapter');
     }
     const compact = formatCompactPageNumbers(pageNumbers);
-    if (!compact) return t('taskGridV3.autoAssign.wholeChapter', 'Cả chương');
+    if (!compact) return t('taskGridV3.autoAssign.wholeChapter');
     if (!compact.includes('–') && !compact.includes(',')) {
-      return t('taskGridV3.autoAssign.singlePage', { page: compact }, 'Trang {page}');
+      return t('taskGridV3.autoAssign.singlePage', { page: compact });
     }
-    return t('taskGridV3.autoAssign.pageRange', { ranges: compact }, 'Trang {ranges}');
+    return t('taskGridV3.autoAssign.pageRange', { ranges: compact });
   };
 
   const handleChangeAssignee = (clientKey: string, nextUserId: string) => {
@@ -275,29 +275,22 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
       isOpen={isOpen}
       size='lg'
       dismissible={!submitting}
-      title={t('taskGridV3.autoAssign.title', 'Xem trước Giao tự động')}
-      description={t(
-        'taskGridV3.autoAssign.description',
-        'Kiểm tra đề xuất phân bổ trước khi lưu. Bạn có thể đổi người nhận hoặc bỏ bớt lô.',
-      )}
-      closeLabel={t('taskGridV3.autoAssign.closeLabel', 'Đóng hộp thoại giao tự động')}
+      title={t('taskGridV3.autoAssign.title')}
+      description={t('taskGridV3.autoAssign.description')}
+      closeLabel={t('taskGridV3.autoAssign.closeLabel')}
       onClose={onClose}
       footer={
         <div className='flex w-full flex-wrap items-center justify-between gap-2'>
           <div className='text-xs text-stone-600'>
             {mergedPayload.length > 0 && (
               <span>
-                {t(
-                  'taskGridV3.autoAssign.summary',
-                  { taskCount: totalCells, lotCount: mergedPayload.length },
-                  '{taskCount} ô sẽ được giao thành {lotCount} lô',
-                )}
+                {t('taskGridV3.autoAssign.summary', {
+                  taskCount: totalCells,
+                  lotCount: mergedPayload.length,
+                })}
                 {willMerge && (
                   <span className='ml-1 text-stone-500'>
-                    {t(
-                      'taskGridV3.autoAssign.mergedNotice',
-                      '(tự động gộp lô cùng công đoạn & người nhận)',
-                    )}
+                    {t('taskGridV3.autoAssign.mergedNotice')}
                   </span>
                 )}
               </span>
@@ -310,7 +303,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
               onClick={onClose}
               className='rounded-lg border border-stone-300 bg-white hover:bg-stone-50 px-3 py-1.5 text-xs font-semibold text-stone-700 disabled:opacity-50 cursor-pointer'
             >
-              {t('taskGridV3.autoAssign.cancelBtn', 'Huỷ')}
+              {t('taskGridV3.autoAssign.cancelBtn')}
             </button>
             <button
               type='button'
@@ -322,14 +315,10 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
               {submitting && <Loader2 className='h-3.5 w-3.5 animate-spin' />}
               <span>
                 {submitting
-                  ? t('taskGridV3.autoAssign.confirmingBtn', 'Đang giao...')
+                  ? t('taskGridV3.autoAssign.confirmingBtn')
                   : totalCells > 0
-                    ? t(
-                        'taskGridV3.autoAssign.confirmBtn',
-                        { count: totalCells },
-                        'Xác nhận giao ({count} ô)',
-                      )
-                    : t('taskGridV3.autoAssign.confirmBtnEmpty', 'Xác nhận giao')}
+                    ? t('taskGridV3.autoAssign.confirmBtn', { count: totalCells })
+                    : t('taskGridV3.autoAssign.confirmBtnEmpty')}
               </span>
             </button>
           </div>
@@ -348,12 +337,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
               <div className='space-y-1 min-w-0'>
                 <div className='font-medium whitespace-pre-line break-words'>{errorMessage}</div>
                 {isConflict && (
-                  <div className='text-rose-700'>
-                    {t(
-                      'taskGridV3.autoAssign.conflictHint',
-                      'Lưới công việc đã thay đổi trong lúc bạn xem trước. Tải lại kế hoạch để cập nhật các ô chưa giao mới nhất.',
-                    )}
-                  </div>
+                  <div className='text-rose-700'>{t('taskGridV3.autoAssign.conflictHint')}</div>
                 )}
               </div>
             </div>
@@ -367,7 +351,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                   className='inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-white hover:bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-900 disabled:opacity-50 cursor-pointer'
                 >
                   <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-                  <span>{t('taskGridV3.autoAssign.reloadPlanBtn', 'Tải lại kế hoạch')}</span>
+                  <span>{t('taskGridV3.autoAssign.reloadPlanBtn')}</span>
                 </button>
               </div>
             )}
@@ -377,9 +361,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
         {loading ? (
           <div className='py-10 text-center text-xs text-stone-500'>
             <Loader2 className='h-5 w-5 animate-spin mx-auto mb-2 text-[#F97316]' />
-            <span>
-              {t('taskGridV3.autoAssign.loading', 'Đang tính toán kế hoạch giao tự động...')}
-            </span>
+            <span>{t('taskGridV3.autoAssign.loading')}</span>
           </div>
         ) : plan ? (
           <>
@@ -390,14 +372,8 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
               >
                 <div>
                   {hadInitialLots
-                    ? t(
-                        'taskGridV3.autoAssign.emptyAllRemoved',
-                        'Bạn đã bỏ toàn bộ lô khỏi kế hoạch. Tải lại kế hoạch nếu muốn khôi phục.',
-                      )
-                    : t(
-                        'taskGridV3.autoAssign.emptyNoUnassigned',
-                        'Không có ô chưa giao nào sẵn sàng để giao tự động.',
-                      )}
+                    ? t('taskGridV3.autoAssign.emptyAllRemoved')
+                    : t('taskGridV3.autoAssign.emptyNoUnassigned')}
                 </div>
                 {hadInitialLots && (
                   <button
@@ -408,7 +384,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                     className='inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-100 px-3 py-1.5 text-xs font-semibold text-stone-800 cursor-pointer'
                   >
                     <RefreshCw className='h-3 w-3' />
-                    <span>{t('taskGridV3.autoAssign.reloadPlanBtn', 'Tải lại kế hoạch')}</span>
+                    <span>{t('taskGridV3.autoAssign.reloadPlanBtn')}</span>
                   </button>
                 )}
               </div>
@@ -430,11 +406,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                         )}
                       </div>
                       <span className='text-[11px] font-mono font-semibold text-stone-600'>
-                        {t(
-                          'taskGridV3.autoAssign.cellCount',
-                          { count: group.totalCells },
-                          '{count} ô',
-                        )}
+                        {t('taskGridV3.autoAssign.cellCount', { count: group.totalCells })}
                       </span>
                     </div>
 
@@ -475,37 +447,27 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                                 <div className='flex flex-wrap items-center gap-2'>
                                   <span className='font-semibold text-stone-900'>{scopeLabel}</span>
                                   <span className='rounded bg-stone-100 border border-stone-200 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-stone-700'>
-                                    {t(
-                                      'taskGridV3.autoAssign.cellCount',
-                                      { count: lot.taskIds.length },
-                                      '{count} ô',
-                                    )}
+                                    {t('taskGridV3.autoAssign.cellCount', {
+                                      count: lot.taskIds.length,
+                                    })}
                                   </span>
                                   {typeof lot.workUnits === 'number' && (
                                     <span className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-orange-800'>
-                                      {t(
-                                        'taskGridV3.autoAssign.workUnits',
-                                        { count: lot.workUnits },
-                                        '{count} panel',
-                                      )}
+                                      {t('taskGridV3.autoAssign.workUnits', {
+                                        count: lot.workUnits,
+                                      })}
                                     </span>
                                   )}
                                   {openLoad !== undefined && (
                                     <span className='text-[11px] text-stone-500'>
                                       {openLoad.openWorkUnits !== undefined
-                                        ? t(
-                                            'taskGridV3.autoAssign.openLoadWithUnits',
-                                            {
-                                              tasks: openLoad.openTaskCount,
-                                              units: openLoad.openWorkUnits,
-                                            },
-                                            'đang có {tasks} việc ({units} panel)',
-                                          )
-                                        : t(
-                                            'taskGridV3.autoAssign.openTaskCount',
-                                            { count: openLoad.openTaskCount },
-                                            'đang có {count} việc',
-                                          )}
+                                        ? t('taskGridV3.autoAssign.openLoadWithUnits', {
+                                            tasks: openLoad.openTaskCount,
+                                            units: openLoad.openWorkUnits,
+                                          })
+                                        : t('taskGridV3.autoAssign.openTaskCount', {
+                                            count: openLoad.openTaskCount,
+                                          })}
                                     </span>
                                   )}
                                 </div>
@@ -513,11 +475,10 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
 
                               <div className='flex items-center gap-2'>
                                 <select
-                                  aria-label={t(
-                                    'taskGridV3.autoAssign.assigneeSelectLabel',
-                                    { stage: lot.stageName, scope: scopeLabel },
-                                    'Người nhận cho {stage} ({scope})',
-                                  )}
+                                  aria-label={t('taskGridV3.autoAssign.assigneeSelectLabel', {
+                                    stage: lot.stageName,
+                                    scope: scopeLabel,
+                                  })}
                                   value={lot.assigneeUserId}
                                   disabled={submitting}
                                   onChange={(e) =>
@@ -538,16 +499,15 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                                 <button
                                   type='button'
                                   disabled={submitting}
-                                  aria-label={t(
-                                    'taskGridV3.autoAssign.removeLotLabel',
-                                    { stage: lot.stageName, scope: scopeLabel },
-                                    'Bỏ lô {stage} ({scope})',
-                                  )}
+                                  aria-label={t('taskGridV3.autoAssign.removeLotLabel', {
+                                    stage: lot.stageName,
+                                    scope: scopeLabel,
+                                  })}
                                   onClick={() => handleRemoveLot(lot.clientKey)}
                                   className='inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 px-2 py-1 text-[11px] font-medium text-stone-600 disabled:opacity-50 cursor-pointer'
                                 >
                                   <Trash2 className='h-3 w-3' />
-                                  <span>{t('taskGridV3.autoAssign.removeLotBtn', 'Bỏ lô')}</span>
+                                  <span>{t('taskGridV3.autoAssign.removeLotBtn')}</span>
                                 </button>
                               </div>
                             </div>
@@ -558,16 +518,15 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                                   htmlFor={dueInputId}
                                   className='block text-[11px] font-medium text-stone-600'
                                 >
-                                  {t('taskGridV3.autoAssign.dueDateLabel', 'Hạn hoàn thành')}
+                                  {t('taskGridV3.autoAssign.dueDateLabel')}
                                 </label>
                                 <input
                                   id={dueInputId}
                                   type='date'
-                                  aria-label={t(
-                                    'taskGridV3.autoAssign.dueDateAriaLabel',
-                                    { stage: lot.stageName, scope: scopeLabel },
-                                    'Hạn hoàn thành cho {stage} ({scope})',
-                                  )}
+                                  aria-label={t('taskGridV3.autoAssign.dueDateAriaLabel', {
+                                    stage: lot.stageName,
+                                    scope: scopeLabel,
+                                  })}
                                   value={lot.dueDateInput}
                                   disabled={submitting}
                                   onChange={(e) =>
@@ -583,12 +542,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                                     className='flex items-center gap-1 text-[11px] text-amber-700'
                                   >
                                     <AlertTriangle className='h-3 w-3 shrink-0' />
-                                    <span>
-                                      {t(
-                                        'taskGridV3.autoAssign.pastDueWarning',
-                                        'Hạn đề xuất đã qua — bạn có thể chỉnh lại ngày.',
-                                      )}
-                                    </span>
+                                    <span>{t('taskGridV3.autoAssign.pastDueWarning')}</span>
                                   </div>
                                 )}
                               </div>
@@ -598,23 +552,19 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                                   htmlFor={briefInputId}
                                   className='block text-[11px] font-medium text-stone-600'
                                 >
-                                  {t('taskGridV3.autoAssign.briefLabel', 'Ghi chú (Brief)')}
+                                  {t('taskGridV3.autoAssign.briefLabel')}
                                 </label>
                                 <input
                                   id={briefInputId}
                                   type='text'
-                                  aria-label={t(
-                                    'taskGridV3.autoAssign.briefAriaLabel',
-                                    { stage: lot.stageName, scope: scopeLabel },
-                                    'Ghi chú (Brief) cho {stage} ({scope})',
-                                  )}
+                                  aria-label={t('taskGridV3.autoAssign.briefAriaLabel', {
+                                    stage: lot.stageName,
+                                    scope: scopeLabel,
+                                  })}
                                   value={lot.briefInput}
                                   disabled={submitting}
                                   onChange={(e) => handleChangeBrief(lot.clientKey, e.target.value)}
-                                  placeholder={t(
-                                    'taskGridV3.autoAssign.briefPlaceholder',
-                                    'Hướng dẫn ngắn cho lô việc (tuỳ chọn)...',
-                                  )}
+                                  placeholder={t('taskGridV3.autoAssign.briefPlaceholder')}
                                   className='w-full rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs text-stone-900 disabled:opacity-50'
                                 />
                               </div>
@@ -636,11 +586,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                 <div className='flex items-center gap-1.5 font-bold text-amber-900'>
                   <AlertTriangle className='h-3.5 w-3.5 text-amber-600 shrink-0' />
                   <span>
-                    {t(
-                      'taskGridV3.autoAssign.skippedTitle',
-                      { count: skippedStages.length },
-                      'Công đoạn bỏ qua ({count})',
-                    )}
+                    {t('taskGridV3.autoAssign.skippedTitle', { count: skippedStages.length })}
                   </span>
                 </div>
                 <ul className='space-y-1 text-amber-900'>
@@ -652,13 +598,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                       <span className='font-semibold'>
                         {s.stageName}{' '}
                         <span className='font-mono font-normal text-amber-800'>
-                          (
-                          {t(
-                            'taskGridV3.autoAssign.cellCount',
-                            { count: s.taskCount },
-                            '{count} ô',
-                          )}
-                          )
+                          ({t('taskGridV3.autoAssign.cellCount', { count: s.taskCount })})
                         </span>
                       </span>
                       <span className='text-amber-800'>{s.reason}</span>

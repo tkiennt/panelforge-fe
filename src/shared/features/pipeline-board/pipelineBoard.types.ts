@@ -6,6 +6,7 @@ import {
   WorkflowEntityType,
   WorkspaceRole,
 } from '@/types';
+import { translate } from '@/lib/i18n';
 
 export interface BoardLotCellItem {
   id: string;
@@ -77,56 +78,84 @@ export interface BoardColumnDefinition {
 export const BOARD_COLUMNS: BoardColumnDefinition[] = [
   {
     status: 'Assigned',
-    label: 'Chờ thực hiện',
-    description: 'Nhiệm vụ đã phân công, chờ thành viên bấm Bắt đầu',
+    get label() {
+      return translate('pipeline.boardColumns.Assigned.label');
+    },
+    get description() {
+      return translate('pipeline.boardColumns.Assigned.description');
+    },
     badgeClass: 'bg-zinc-100 text-zinc-700 border-zinc-300',
     headerBgClass: 'bg-zinc-50/80',
     accentBorderClass: 'border-t-zinc-400',
   },
   {
     status: 'InProgress',
-    label: 'Đang làm',
-    description: 'Thành viên đang vẽ, viết kịch bản hoặc chèn chữ',
+    get label() {
+      return translate('pipeline.boardColumns.InProgress.label');
+    },
+    get description() {
+      return translate('pipeline.boardColumns.InProgress.description');
+    },
     badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
     headerBgClass: 'bg-amber-50/50',
     accentBorderClass: 'border-t-amber-500',
   },
   {
     status: 'Submitted',
-    label: 'Đã nộp bài',
-    description: 'Đã nộp bản thảo và artwork, chờ Editor mở xét duyệt',
+    get label() {
+      return translate('pipeline.boardColumns.Submitted.label');
+    },
+    get description() {
+      return translate('pipeline.boardColumns.Submitted.description');
+    },
     badgeClass: 'bg-blue-100 text-blue-800 border-blue-300',
     headerBgClass: 'bg-blue-50/50',
     accentBorderClass: 'border-t-blue-500',
   },
   {
     status: 'UnderReview',
-    label: 'Đang duyệt',
-    description: 'Editor hoặc Producer đang xem xét và so sánh với Bible',
+    get label() {
+      return translate('pipeline.boardColumns.UnderReview.label');
+    },
+    get description() {
+      return translate('pipeline.boardColumns.UnderReview.description');
+    },
     badgeClass: 'bg-purple-100 text-purple-800 border-purple-300',
     headerBgClass: 'bg-purple-50/50',
     accentBorderClass: 'border-t-purple-500',
   },
   {
     status: 'ReworkRequired',
-    label: 'Cần sửa đổi',
-    description: 'Bị trả về kèm yêu cầu sửa (Change Requests)',
+    get label() {
+      return translate('pipeline.boardColumns.ReworkRequired.label');
+    },
+    get description() {
+      return translate('pipeline.boardColumns.ReworkRequired.description');
+    },
     badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
     headerBgClass: 'bg-rose-50/50',
     accentBorderClass: 'border-t-rose-500',
   },
   {
     status: 'Approved',
-    label: 'Đã hoàn tất',
-    description: 'Công việc đã được nghiệm thu đạt chuẩn',
+    get label() {
+      return translate('pipeline.boardColumns.Approved.label');
+    },
+    get description() {
+      return translate('pipeline.boardColumns.Approved.description');
+    },
     badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     headerBgClass: 'bg-emerald-50/50',
     accentBorderClass: 'border-t-emerald-500',
   },
   {
     status: 'Blocked',
-    label: 'Bị chặn',
-    description: 'Chưa thể thực hiện do công đoạn trước chưa hoàn thành',
+    get label() {
+      return translate('pipeline.boardColumns.Blocked.label');
+    },
+    get description() {
+      return translate('pipeline.boardColumns.Blocked.description');
+    },
     badgeClass: 'bg-stone-200 text-stone-800 border-stone-300',
     headerBgClass: 'bg-stone-100/70',
     accentBorderClass: 'border-t-stone-600',
