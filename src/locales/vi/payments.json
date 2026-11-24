@@ -137,7 +137,8 @@
     "unpublished": "Chưa phát hành",
     "empty": "Studio chưa có bộ truyện nào.",
     "loadError": "Không tải được thống kê lượt đọc.",
-    "chapterLabel": "Chương {number}"
+    "chapterLabel": "Chương {number}",
+    "noWorkspace": "Chưa chọn Studio Workspace."
   },
   "revenue": {
     "title": "Doanh thu theo bộ truyện",

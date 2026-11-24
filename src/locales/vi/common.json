@@ -605,5 +605,12 @@
       "rotate": "Xoay +15°",
       "deleteLayer": "Xoá layer"
     }
-  }
+  },
+  "close": "Đóng",
+  "cancel": "Hủy",
+  "apply": "Áp dụng",
+  "success": "Thành công",
+  "errorOccurred": "Đã xảy ra lỗi",
+  "noOpenSlotForPage": "Chưa có công việc đang mở cho trang này.",
+  "noOpenSlotForPageStage": "Chưa có công việc đang mở cho công đoạn này trên trang."
 }

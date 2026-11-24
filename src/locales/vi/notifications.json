@@ -23,8 +23,8 @@
     "AssignmentUnassigned": "Thu hồi việc",
     "AssignmentUpdated": "Cập nhật việc",
     "AssignmentSubmitted": "Chờ xét duyệt",
-    "AssignmentApproved": "Đã phê duyệt",
-    "AssignmentChangesRequested": "Yêu cầu sửa đổi",
+    "AssignmentApproved": "Đã duyệt",
+    "AssignmentChangesRequested": "Trả về sửa",
     "ChangeRequestResolved": "Đã giải quyết yêu cầu",
     "ChangeRequestReopened": "Mở lại yêu cầu sửa",
     "ChapterReadyForPublication": "Sẵn sàng xuất bản",
@@ -34,5 +34,12 @@
     "AssignmentOverdue": "Đã quá hạn",
     "ChangeRequestDueSoon": "Hạn sửa sắp đến",
     "ChangeRequestOverdue": "Hạn sửa đã quá hạn"
-  }
+  },
+  "bellAriaUnread": "Thông báo, {count} chưa đọc",
+  "bellAria": "Thông báo",
+  "tabAll": "Tất cả",
+  "tabUnread": "Chưa đọc ({count})",
+  "markAllRead": "Đánh dấu đã đọc tất cả",
+  "empty": "Chưa có thông báo nào.",
+  "defaultLabel": "Thông báo"
 }

@@ -71,7 +71,8 @@
     "quickSearch": "Quick search or open command palette (⌘K / Ctrl+K)",
     "publisherPortal": "PanelForge // Publishing Portal",
     "scriptManagement": "Script Management",
-    "lettererDesk": "Lettering & Dialogue Desk"
+    "lettererDesk": "Lettering & Dialogue Desk",
+    "switchStudio": "Switch Studio Workspace"
   },
   "breadcrumbs": {
     "studios": "Studio",

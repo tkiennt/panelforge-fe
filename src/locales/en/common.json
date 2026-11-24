@@ -605,5 +605,12 @@
       "rotate": "Rotate +15°",
       "deleteLayer": "Delete layer"
     }
-  }
+  },
+  "close": "Close",
+  "cancel": "Cancel",
+  "apply": "Apply",
+  "success": "Success",
+  "errorOccurred": "An error occurred",
+  "noOpenSlotForPage": "No open task slot for this page.",
+  "noOpenSlotForPageStage": "No open task slot for this stage on the page."
 }

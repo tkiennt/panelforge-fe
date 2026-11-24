@@ -34,5 +34,12 @@
     "AssignmentOverdue": "Overdue",
     "ChangeRequestDueSoon": "Revision Due Soon",
     "ChangeRequestOverdue": "Revision Overdue"
-  }
+  },
+  "bellAriaUnread": "Notifications, {count} unread",
+  "bellAria": "Notifications",
+  "tabAll": "All",
+  "tabUnread": "Unread ({count})",
+  "markAllRead": "Mark all as read",
+  "empty": "No notifications yet.",
+  "defaultLabel": "Notification"
 }

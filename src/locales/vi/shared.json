@@ -157,5 +157,12 @@
   "systemImages": {
     "coverName": "Bìa {index}",
     "loadFailed": "Không tải được ảnh có sẵn của hệ thống."
-  }
+  },
+  "api": {
+    "sessionEnded": "Phiên đăng nhập đã kết thúc."
+  },
+  "serverConnectionError": "Không thể kết nối đến máy chủ.",
+  "refresh": "Làm mới",
+  "clearFilter": "Xóa bộ lọc",
+  "errorTitle": "Đã xảy ra lỗi"
 }

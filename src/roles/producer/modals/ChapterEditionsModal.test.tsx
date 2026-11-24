@@ -4,12 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ChapterEditionsModal } from './ChapterEditionsModal';
 import { chapterEditionService } from '@/services/chapter-edition.service';
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({
-    t: (_key: string, defaultValue?: string) => defaultValue || _key,
-  }),
-}));
-
 vi.mock('@/services/chapter-edition.service', () => ({
   chapterEditionService: {
     getChapterEditions: vi.fn(),

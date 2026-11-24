@@ -157,5 +157,12 @@
   "systemImages": {
     "coverName": "Cover {index}",
     "loadFailed": "Failed to load built-in system images."
-  }
+  },
+  "api": {
+    "sessionEnded": "Your session has ended."
+  },
+  "serverConnectionError": "Unable to connect to the server.",
+  "refresh": "Refresh",
+  "clearFilter": "Clear filter",
+  "errorTitle": "Error"
 }

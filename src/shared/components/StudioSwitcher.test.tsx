@@ -11,12 +11,6 @@ vi.mock('@/services/workspace.service', () => ({
   },
 }));
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({
-    t: (_key: string, fallback: string) => fallback,
-  }),
-}));
-
 const mockWorkspaces: WorkspaceDto[] = [
   {
     id: 'ws-1',

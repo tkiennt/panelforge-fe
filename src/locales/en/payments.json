@@ -137,7 +137,8 @@
     "unpublished": "Unpublished",
     "empty": "This Studio has no series yet.",
     "loadError": "Could not load reader stats.",
-    "chapterLabel": "Chapter {number}"
+    "chapterLabel": "Chapter {number}",
+    "noWorkspace": "No Studio Workspace selected."
   },
   "revenue": {
     "title": "Revenue by series",

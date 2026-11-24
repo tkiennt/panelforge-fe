@@ -98,10 +98,10 @@ describe('FE i18n VI <-> EN Language Switching Verification', () => {
       expect(screen.getAllByRole('button', { name: /Sign Up/i })[0]).toBeInTheDocument();
 
       // Hero headline & badges
-      expect(screen.getByText(/FROM SCRIPT TO/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/FROM SCRIPT TO/i)[0]).toBeInTheDocument();
       expect(screen.getByText(/EVERY PANEL\./i)).toBeInTheDocument();
       expect(screen.getByText(/Structured Scripts/i)).toBeInTheDocument();
-      expect(screen.getByText(/Version Provenance/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Version Provenance/i)[0]).toBeInTheDocument();
 
       // CTA Buttons
       expect(screen.getByRole('button', { name: /Create Free Account/i })).toBeInTheDocument();
@@ -110,9 +110,9 @@ describe('FE i18n VI <-> EN Language Switching Verification', () => {
       ).toBeInTheDocument();
 
       // Feature pillars
-      expect(screen.getByText(/Structured Content/i)).toBeInTheDocument();
-      expect(screen.getByText(/Version History/i)).toBeInTheDocument();
-      expect(screen.getByText(/Series Bible/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Structured Content/i)[0]).toBeInTheDocument();
+      expect(screen.getAllByText(/Version History/i)[0]).toBeInTheDocument();
+      expect(screen.getAllByText(/Series Bible/i)[0]).toBeInTheDocument();
     });
 
     it('verifies that no Vietnamese diacritics appear in the main hero and header in EN mode', () => {
