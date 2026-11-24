@@ -9,6 +9,7 @@ import type { Node as PMNode } from '@tiptap/pm/model';
 import { EditorState, Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import type { BibleCategory } from '@/services/bible.service';
+import { translate } from '@/lib/i18n';
 import {
   GN_ELEMENTS,
   GnElement,
@@ -489,7 +490,7 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
         caption: 'CAPTION:',
         sfx: 'SFX:',
         acceptHint: '(Enter)',
-        willCreateDraft: '(Sẽ tạo bản nháp)',
+        willCreateDraft: translate('writer.flowEditor.willCreateDraftParens'),
       },
       bibleSpeakers: [],
     };
@@ -635,7 +636,7 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
                   const names = castRevs
                     .map(
                       (r) =>
-                        `${r.entryName || 'Thực thể'} · ${r.variantLabel || `v${r.versionNumber || 1}`}`,
+                        `${r.entryName || translate('writer.flowEditor.defaultEntity')} · ${r.variantLabel || `v${r.versionNumber || 1}`}`,
                     )
                     .join(', ');
                   panelLabel = `${panelLabel} [${names}]`;
@@ -702,7 +703,8 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
                 chip.className =
                   'gn-draft-chip ml-2 inline-flex items-center text-[10px] font-sans font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 pointer-events-none select-none';
                 chip.setAttribute('contenteditable', 'false');
-                chip.textContent = labels.willCreateDraft || 'Sẽ tạo bản nháp';
+                chip.textContent =
+                  labels.willCreateDraft || translate('writer.flowEditor.willCreateDraft');
                 widgets.push(Decoration.widget(endPos, chip, { side: 1 }));
               }
             }

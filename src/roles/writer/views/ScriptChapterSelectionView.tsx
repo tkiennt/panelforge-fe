@@ -6,6 +6,7 @@ import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { ChapterSelectionView } from '../components/script/chapter-selection';
 import { ScriptReviewView } from '@/roles/editor/views/ScriptReviewView';
 import { normalizeWorkspaceRole } from '@/types/auth';
+import { useTranslation } from '@/lib/i18n';
 
 interface ScriptChapterSelectionViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -16,6 +17,7 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
   onShowToast,
   workspaceRole,
 }) => {
+  const { t } = useTranslation('writer');
   const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -58,11 +60,14 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
       }
       setChapters(chaptersRes.items || []);
     } catch (err: any) {
-      notify('Lỗi tải dữ liệu', err.message || 'Không thể tải danh sách chương');
+      notify(
+        t('chapterSelectionView.loadErrorTitle'),
+        err.message || t('chapterSelectionView.loadErrorDesc'),
+      );
     } finally {
       setLoading(false);
     }
-  }, [seriesId, notify]);
+  }, [seriesId, notify, t]);
 
   useEffect(() => {
     loadData();

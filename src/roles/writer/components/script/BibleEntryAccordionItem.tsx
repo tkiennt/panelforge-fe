@@ -400,10 +400,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                   type='text'
                   value={editSubtitle}
                   onChange={(e) => setEditSubtitle(e.target.value)}
-                  placeholder={t(
-                    'production.cast.subtitlePlaceholder',
-                    'Ví dụ: Kiếm sĩ lang thang',
-                  )}
+                  placeholder={t('writer.cast.subtitlePlaceholder')}
                   className='w-full p-2 bg-white border border-stone-200 rounded-lg text-xs outline-none focus:border-orange-500 font-medium text-stone-900'
                 />
               </div>
@@ -417,10 +414,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                   rows={3}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder={t(
-                    'production.cast.visualDescriptionPlaceholder',
-                    'Ngoại hình, trang phục, vũ khí hoặc đặc điểm nhận diện chính...',
-                  )}
+                  placeholder={t('writer.cast.visualDescriptionPlaceholder')}
                   className='w-full p-2 bg-white border border-stone-200 rounded-lg text-xs outline-none focus:border-orange-500 font-normal custom-scrollbar text-stone-900'
                   required
                 />
@@ -484,7 +478,8 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
               {/* Spec completeness badge & quick specs view */}
               <div className='flex items-center justify-between text-xs text-stone-500 pt-1'>
                 <span className='font-medium'>
-                  {t('production.cast.specFilledCount', 'Đặc tả:')} {specStats.filled}/{specStats.total}
+                  {t('production.cast.specFilledCount', 'Đặc tả:')} {specStats.filled}/
+                  {specStats.total}
                 </span>
 
                 {canEditScript && onSaveDraft && !entity.isStub && (
@@ -520,11 +515,9 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                   {entity.chosenByWriter
                     ? t('production.cast.chosenByWriter', 'Writer chọn')
                     : entity.inheritedFromChapterNumber
-                      ? t(
-                          'production.cast.inheritedFromChapter',
-                          { number: entity.inheritedFromChapterNumber },
-                          `Kế thừa từ Ch. ${entity.inheritedFromChapterNumber}`,
-                        )
+                      ? t('writer.cast.inheritedFromChapter', {
+                          number: entity.inheritedFromChapterNumber,
+                        })
                       : t('production.cast.defaultVariant', 'Mặc định')}
                 </span>
               </div>
@@ -560,17 +553,17 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                   </label>
                   <select
                     disabled={isActing}
-                    value={entity.chosenByWriter && boundRev ? boundRev.revisionId : '__INHERITED__'}
+                    value={
+                      entity.chosenByWriter && boundRev ? boundRev.revisionId : '__INHERITED__'
+                    }
                     onChange={(e) => onChangeRevision(entity.id, e.target.value)}
                     className='w-full p-1.5 text-xs bg-white border border-stone-200 rounded-lg outline-none focus:border-orange-500 text-stone-800 font-medium disabled:opacity-60 cursor-pointer'
                   >
                     <option value='__INHERITED__'>
                       {entity.inheritedFromChapterNumber
-                        ? t(
-                            'production.cast.autoInheritFrom',
-                            { number: entity.inheritedFromChapterNumber },
-                            `Kế thừa tự động (từ Ch. ${entity.inheritedFromChapterNumber})`,
-                          )
+                        ? t('writer.cast.autoInheritFrom', {
+                            number: entity.inheritedFromChapterNumber,
+                          })
                         : t('production.cast.autoInheritDefault', 'Kế thừa tự động (bản mặc định)')}
                     </option>
                     {availableRevs.map((rev) => (
@@ -655,11 +648,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
           {entity.mentions && entity.mentions.length > 0 && (
             <div className='text-xs space-y-1 pt-1 border-t border-stone-100'>
               <span className='text-stone-400 font-medium block'>
-                {t(
-                  'production.cast.appearances',
-                  { count: entity.mentions.length },
-                  `Xuất hiện (${entity.mentions.length}):`,
-                )}
+                {t('writer.cast.appearances', { count: entity.mentions.length })}
               </span>
               <div className='flex flex-wrap gap-1'>
                 {entity.mentions.slice(0, 5).map((m) => (
@@ -677,11 +666,7 @@ export const BibleEntryAccordionItem: React.FC<BibleEntryAccordionItemProps> = (
                     <span>
                       {m.pageNumber && m.panelNumber
                         ? `P${m.pageNumber}.${m.panelNumber}`
-                        : t(
-                            'production.cast.lineFormat',
-                            { order: m.lineOrder },
-                            `Dòng ${m.lineOrder}`,
-                          )}
+                        : t('writer.cast.lineFormat', { order: m.lineOrder })}
                     </span>
                     <ChevronRight className='w-3 h-3 opacity-60' />
                   </button>

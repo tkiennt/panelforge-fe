@@ -1,5 +1,6 @@
 // src/roles/writer/components/script/flow/comic-editor/nodes/PanelBlockNode.ts
 import { Node, mergeAttributes } from '@tiptap/core';
+import { translate } from '@/lib/i18n';
 
 export const PanelBlockNode = Node.create({
   name: 'panelBlock',
@@ -17,8 +18,10 @@ export const PanelBlockNode = Node.create({
         }),
       },
       cameraAngle: {
-        default: 'Toàn cảnh',
-        parseHTML: (element) => element.getAttribute('data-camera-angle') || 'Toàn cảnh',
+        default: translate('writer.comicEditor.nodes.defaultCameraAngle'),
+        parseHTML: (element) =>
+          element.getAttribute('data-camera-angle') ||
+          translate('writer.comicEditor.nodes.defaultCameraAngle'),
         renderHTML: (attributes) => ({
           'data-camera-angle': attributes.cameraAngle,
         }),
@@ -36,7 +39,9 @@ export const PanelBlockNode = Node.create({
 
   renderHTML({ HTMLAttributes }) {
     const panelNum = HTMLAttributes['data-panel-number'] || '1.1';
-    const cameraAngle = HTMLAttributes['data-camera-angle'] || 'Toàn cảnh';
+    const cameraAngle =
+      HTMLAttributes['data-camera-angle'] ||
+      translate('writer.comicEditor.nodes.defaultCameraAngle');
 
     return [
       'div',

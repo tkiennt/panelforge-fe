@@ -606,7 +606,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             ) : (
               <Sparkles className='w-3.5 h-3.5' />
             )}
-            Viết lại bằng AI
+            {t('writer.flowEditor.aiRewrite')}
           </button>
         )}
 
@@ -619,10 +619,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                 ? 'bg-[#EA580C] text-white shadow-xs'
                 : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
             }`}
-            title='Xem nhận xét của Editor'
+            title={t('writer.flowEditor.viewEditorComments')}
           >
             <MessageSquare className='w-3.5 h-3.5' />
-            Nhận xét ({comments.filter((c) => !c.resolvedAt).length})
+            {t('writer.flowEditor.commentsCount', {
+              count: comments.filter((c) => !c.resolvedAt).length,
+            })}
           </button>
         )}
 

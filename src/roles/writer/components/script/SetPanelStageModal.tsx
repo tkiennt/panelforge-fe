@@ -76,10 +76,7 @@ export const SetPanelStageModal: React.FC<SetPanelStageModalProps> = ({
       size='sm'
       closeLabel={t('common.close', 'Đóng')}
       title={t('production.cast.panelStageTitle', 'Đặt giai đoạn riêng cho Panel')}
-      description={t(
-        'production.cast.panelStageDesc',
-        'Dùng tạo hình khác (hồi tưởng, biến thân) riêng cho Panel này',
-      )}
+      description={t('writer.cast.panelStageDesc')}
       footer={
         <div className='flex w-full items-center justify-between gap-2'>
           <button

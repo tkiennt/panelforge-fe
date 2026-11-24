@@ -54,17 +54,17 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
     switch (sev) {
       case 'Blocking':
         return {
-          label: 'Lỗi chặn',
+          label: t('writer.consistencyDrawer.severityBlocking'),
           badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 font-bold',
         };
       case 'Warning':
         return {
-          label: 'Cảnh báo',
+          label: t('writer.consistencyDrawer.severityWarning'),
           badgeClass: 'bg-amber-100 text-amber-800 border-amber-300 font-bold',
         };
       default:
         return {
-          label: 'Thông tin',
+          label: t('writer.consistencyDrawer.severityInfo'),
           badgeClass: 'bg-blue-100 text-blue-800 border-blue-300 font-bold',
         };
     }
@@ -73,15 +73,15 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'Open':
-        return 'Đang mở';
+        return t('writer.consistencyDrawer.statusOpen');
       case 'NeedsClarification':
-        return 'Cần làm rõ';
+        return t('writer.consistencyDrawer.statusNeedsClarification');
       case 'Stale':
-        return 'Đã cũ (Stale)';
+        return t('writer.consistencyDrawer.statusStale');
       case 'Resolved':
-        return 'Đã giải quyết';
+        return t('writer.consistencyDrawer.statusResolved');
       case 'Ignored':
-        return 'Đã bỏ qua';
+        return t('writer.consistencyDrawer.statusIgnored');
       default:
         return status;
     }
@@ -101,16 +101,19 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
           <div className='min-w-0'>
             <div className='flex items-center gap-2 flex-wrap'>
               <h3 className='text-sm font-bold text-[#1C1917] truncate font-serif'>
-                Vấn đề nhất quán ({findings.length})
+                {t('writer.consistencyDrawer.title', { count: findings.length })}
               </h3>
               {blockingCount > 0 && (
                 <span className='px-2.5 py-0.5 rounded-full bg-rose-600 text-white font-mono text-xs font-bold animate-pulse'>
-                  {blockingCount} lỗi chặn
+                  {t('writer.consistencyDrawer.blockingCount', { count: blockingCount })}
                 </span>
               )}
             </div>
             <p className='text-xs text-[#57534E] truncate'>
-              {openFindings.length} cần xử lý · {staleFindings.length} đã cũ
+              {t('writer.consistencyDrawer.summaryCounts', {
+                open: openFindings.length,
+                stale: staleFindings.length,
+              })}
             </p>
           </div>
         </div>
@@ -156,7 +159,7 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
                 : 'text-[#57534E] hover:text-[#1C1917]'
             }`}
           >
-            Tất cả ({findings.length})
+            {t('writer.consistencyDrawer.tabAll', { count: findings.length })}
           </button>
           <button
             type='button'
@@ -167,7 +170,7 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
                 : 'text-[#57534E] hover:text-[#1C1917]'
             }`}
           >
-            <span>Cần xử lý ({openFindings.length})</span>
+            <span>{t('writer.consistencyDrawer.tabOpen', { count: openFindings.length })}</span>
           </button>
           <button
             type='button'
@@ -178,12 +181,12 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
                 : 'text-[#57534E] hover:text-[#1C1917]'
             }`}
           >
-            Đã cũ ({staleFindings.length})
+            {t('writer.consistencyDrawer.tabStale', { count: staleFindings.length })}
           </button>
         </div>
 
         <span className='text-xs text-[#57534E] hidden sm:inline'>
-          Bấm &ldquo;Xem dòng&rdquo; để cuộn tới vị trí
+          {t('writer.consistencyDrawer.scrollHint')}
         </span>
       </div>
 
@@ -194,11 +197,11 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
             <CheckCircle2 className='w-8 h-8 text-emerald-500 mx-auto mb-2' />
             <p className='text-xs font-semibold text-[#1C1917]'>
               {filterTab === 'open'
-                ? 'Không có vấn đề nào cần xử lý!'
-                : 'Chưa phát hiện vấn đề nhất quán nào.'}
+                ? t('writer.consistencyDrawer.emptyOpen')
+                : t('writer.consistencyDrawer.emptyAll')}
             </p>
             <p className='text-xs text-[#57534E] mt-1'>
-              Kịch bản đồng bộ hoàn toàn với dữ liệu Series Bible.
+              {t('writer.consistencyDrawer.emptySyncedDesc')}
             </p>
           </div>
         ) : (
@@ -231,7 +234,8 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
                   </div>
 
                   <span className='text-xs text-[#57534E] font-medium'>
-                    Trạng thái: <strong>{getStatusLabel(f.status)}</strong>
+                    {t('writer.consistencyDrawer.statusLabel')}{' '}
+                    <strong>{getStatusLabel(f.status)}</strong>
                   </span>
                 </div>
 
@@ -243,14 +247,16 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
                 {/* Evidence */}
                 {f.evidence && (
                   <p className='font-mono text-xs bg-[#FCFBF8] p-2.5 rounded-xl border border-[#D8D2C5] text-[#57534E] leading-relaxed break-words'>
-                    Bằng chứng: &ldquo;{f.evidence}&rdquo;
+                    {t('writer.consistencyDrawer.evidenceLabel')} &ldquo;{f.evidence}&rdquo;
                   </p>
                 )}
 
                 {/* Action footer */}
                 <div className='flex items-center justify-between pt-1'>
                   <span className='text-xs text-[#57534E] font-mono'>
-                    {f.scriptLineId ? `Dòng #${f.scriptLineId.slice(0, 8)}` : 'Cấp chương'}
+                    {f.scriptLineId
+                      ? t('writer.consistencyDrawer.lineRef', { id: f.scriptLineId.slice(0, 8) })
+                      : t('writer.consistencyDrawer.chapterLevel')}
                   </span>
                   {f.scriptLineId && (
                     <button
@@ -261,7 +267,7 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
                       }}
                       className='inline-flex items-center gap-1 px-3 py-1 text-xs font-bold text-[#C2410C] bg-[#FFF2E6] hover:bg-[#FDE8D3] border border-[#F97316]/30 rounded-lg transition-colors cursor-pointer'
                     >
-                      <span>Xem dòng</span>
+                      <span>{t('writer.consistencyDrawer.viewLine')}</span>
                       <ArrowRight className='w-3 h-3' />
                     </button>
                   )}

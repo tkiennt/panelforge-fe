@@ -1,5 +1,6 @@
 // src/roles/writer/components/script/flow/comic-editor/versioning/scriptDiffEngine.ts
 import { DiffLine, ScriptDiffSummary } from './types';
+import { translate } from '@/lib/i18n';
 
 /**
  * Phân tích category và chi tiết của một dòng kịch bản Comic
@@ -21,7 +22,7 @@ export function analyzeScriptLineCategory(lineText: string): {
     const shot = panelMatch[1]?.trim();
     return {
       category: shot ? 'camera' : 'panel',
-      detail: shot ? `Góc máy: ${shot}` : undefined,
+      detail: shot ? translate('writer.comicEditor.diff.cameraAngle', { shot }) : undefined,
     };
   }
 
@@ -119,6 +120,7 @@ export function computeScriptDiff(oldRawText: string, newRawText: string): Scrip
 
   // Nhận diện khối thay thế (Modified): Ghép cặp các dòng removed và added có cùng category (camera/dialogue)
   const finalUnified: DiffLine[] = [];
+  const modifiedOldTextMap = new Map<DiffLine, string>();
   let k = 0;
   while (k < unifiedLines.length) {
     if (unifiedLines[k].type === 'removed' || unifiedLines[k].type === 'added') {
@@ -154,14 +156,19 @@ export function computeScriptDiff(oldRawText: string, newRawText: string): Scrip
           if (isBothCamera || isBothDialogue) {
             pairedRemoved.add(rIdx);
             pairedAdded.add(aIdx);
-            finalUnified.push({
+            const modLine: DiffLine = {
               type: 'modified',
               text: a.text,
               oldLineNumber: r.oldLineNumber,
               newLineNumber: a.newLineNumber,
               changeCategory: isBothCamera ? 'camera' : 'dialogue',
-              changeDetail: `Sửa từ: "${r.text}" → "${a.text}"`,
-            });
+              changeDetail: translate('writer.comicEditor.diff.modifiedFrom', {
+                oldText: r.text,
+                newText: a.text,
+              }),
+            };
+            modifiedOldTextMap.set(modLine, r.text);
+            finalUnified.push(modLine);
             break;
           }
         }
@@ -204,7 +211,7 @@ export function computeScriptDiff(oldRawText: string, newRawText: string): Scrip
       leftSide.push({
         ...line,
         type: 'removed',
-        text: line.changeDetail?.match(/^Sửa từ: "([^"]+)"/)?.[1] || line.text,
+        text: modifiedOldTextMap.get(line) || line.text,
       });
       rightSide.push(line);
     }

@@ -3,6 +3,7 @@ import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { ConsistencyFindingDto } from '@/types/pipeline';
+import { translate } from '@/lib/i18n';
 
 export const consistencyLinterPluginKey = new PluginKey('consistencyLinter');
 
@@ -43,7 +44,9 @@ export function createConsistencyLinterPlugin(getFindings: () => ConsistencyFind
                     ? 'border-l-4 border-red-500 bg-red-50/40 rounded-r-md transition-all duration-200 animate-pulse'
                     : 'border-l-4 border-amber-500 bg-amber-50/40 rounded-r-md transition-all duration-200',
                   'data-finding-msg': finding.message || finding.ruleCode,
-                  title: `[Cảnh báo Nhất quán] ${finding.message || finding.ruleCode}`,
+                  title: translate('writer.consistencyLinter.warningTitle', {
+                    message: finding.message || finding.ruleCode,
+                  }),
                 }),
               );
             }

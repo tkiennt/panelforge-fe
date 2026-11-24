@@ -4,6 +4,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { TextSelection } from '@tiptap/pm/state';
 import { BibleEntryDto } from '@/services/bible.service';
+import { translate } from '@/lib/i18n';
 
 /**
  * 10 Loại dòng chuẩn WriteSolo (Screenplay + Graphic Novel)
@@ -277,7 +278,7 @@ export const WriteSoloBlockNode = Node.create({
               class:
                 'text-[10px] font-sans px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/60 lowercase tracking-normal',
             },
-            node.attrs.shotType || 'khung tranh',
+            node.attrs.shotType || translate('writer.writeSolo.defaultShotType'),
           ],
         ];
       }
@@ -625,7 +626,7 @@ export const WriteSoloExtension = Extension.create<WriteSoloExtensionOptions>({
             blockType: 'panel_heading',
             pageNumber: pageNum,
             panelNumber: 1,
-            shotType: '[Toàn cảnh]',
+            shotType: translate('writer.writeSolo.wideShot'),
           });
           const tr = state.tr.insert(afterPos, panelNode);
           tr.setSelection(TextSelection.create(tr.doc, afterPos + 1));
@@ -675,7 +676,7 @@ export const WriteSoloExtension = Extension.create<WriteSoloExtensionOptions>({
           blockType: 'panel_heading',
           pageNumber: pageNum,
           panelNumber: nextPanelNum,
-          shotType: '[Trung cảnh]',
+          shotType: translate('writer.writeSolo.mediumShot'),
         });
 
         const actionNode = state.schema.nodes.writeSoloBlock.create({
@@ -708,7 +709,7 @@ export const WriteSoloExtension = Extension.create<WriteSoloExtensionOptions>({
           blockType: 'panel_heading',
           pageNumber: nextPageNum,
           panelNumber: 1,
-          shotType: '[Toàn cảnh]',
+          shotType: translate('writer.writeSolo.wideShot'),
         });
 
         const actionNode = state.schema.nodes.writeSoloBlock.create({
@@ -851,7 +852,7 @@ function scanEntitiesAndBuildDecorations(
               Decoration.inline(from, to, {
                 class:
                   'writesolo-entity-unregistered border-b-2 border-dashed border-[#D97706] text-[#B45309] px-0.5 cursor-pointer',
-                title: `${rawName}: Tên mới chưa có trong Series Bible`,
+                title: translate('writer.writeSolo.unregisteredEntityTitle', { name: rawName }),
               }),
             );
 

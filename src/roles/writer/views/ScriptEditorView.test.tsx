@@ -332,7 +332,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     expect(await screen.findByText('Thêm Dòng Kịch Bản Mới (UC-06)')).toBeInTheDocument();
 
-    const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật|Chúng ta phải đi ngay/i);
+    const dialogueInput = screen.getByPlaceholderText(
+      /Nhập lời thoại của nhân vật|Chúng ta phải đi ngay/i,
+    );
     await user.type(dialogueInput, 'Tôi đã sẵn sàng.');
 
     const submitBtn = await screen.findByTestId('submit-line-btn');
@@ -362,7 +364,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     const addBtn = await screen.findByTestId('open-add-line-btn');
     await user.click(addBtn);
 
-    const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật|Chúng ta phải đi ngay/i);
+    const dialogueInput = screen.getByPlaceholderText(
+      /Nhập lời thoại của nhân vật|Chúng ta phải đi ngay/i,
+    );
     await user.type(dialogueInput, 'Dòng gây xung đột');
 
     const submitBtn = await screen.findByTestId('submit-line-btn');
@@ -545,7 +549,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
         'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
     });
 
-    const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật|Chúng ta phải đi ngay/i);
+    const dialogueInput = screen.getByPlaceholderText(
+      /Nhập lời thoại của nhân vật|Chúng ta phải đi ngay/i,
+    );
     await user.type(dialogueInput, 'Dòng thoại test 403');
 
     const submitBtn = await screen.findByTestId('submit-line-btn');

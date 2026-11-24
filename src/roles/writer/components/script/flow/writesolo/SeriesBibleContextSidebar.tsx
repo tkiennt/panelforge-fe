@@ -17,6 +17,7 @@ import {
 import { BibleEntryDto } from '@/services/bible.service';
 import { DetectedEntityInfo } from './writeSoloExtensions';
 import { CollapsibleSidebar, SidebarSection } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 interface SeriesBibleContextSidebarProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
   onCreateStub,
   onOpenInBible,
 }) => {
+  const { t } = useTranslation('writer');
   const [scope, setScope] = useState<'current' | 'all'>('current');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -72,13 +74,13 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
                 {registeredEntities.length}
               </span>
             </h3>
-            <p className='text-[11px] text-[#737373]'>Nhận diện thực thể tự động</p>
+            <p className='text-[11px] text-[#737373]'>{t('writeSolo.sidebar.subtitle')}</p>
           </div>
         </div>
         <button
           onClick={onClose}
           className='p-1 text-[#737373] hover:text-[#171717] hover:bg-stone-200/50 rounded-md transition-colors cursor-pointer'
-          title='Đóng thanh tra cứu'
+          title={t('writeSolo.sidebar.closeTooltip')}
         >
           <X className='w-4 h-4' />
         </button>
@@ -95,7 +97,10 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
           }`}
         >
           <Layers className='w-3.5 h-3.5' />
-          Khung {currentPageNumber}.{currentPanelNumber}
+          {t('writeSolo.sidebar.currentFrame', {
+            page: currentPageNumber,
+            panel: currentPanelNumber,
+          })}
         </button>
         <button
           onClick={() => setScope('all')}
@@ -105,7 +110,7 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
               : 'text-[#737373] hover:bg-stone-100'
           }`}
         >
-          Toàn chương ({detectedEntities.length})
+          {t('writeSolo.sidebar.wholeChapter', { count: detectedEntities.length })}
         </button>
       </div>
 
@@ -117,7 +122,7 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
             type='text'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder='Tìm trong các thực thể phát hiện...'
+            placeholder={t('writeSolo.sidebar.searchPlaceholder')}
             className='w-full pl-8 pr-3 py-1 bg-white border border-[#E7E7E7] rounded-md text-xs text-[#171717] outline-none focus:border-[#C2410C]'
           />
         </div>
@@ -131,7 +136,7 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
             <div className='flex items-center justify-between text-xs font-bold text-amber-800 uppercase tracking-wider px-1'>
               <span className='flex items-center gap-1.5'>
                 <Sparkles className='w-3.5 h-3.5 text-amber-600' />
-                Nhân vật mới phát hiện ({unregisteredEntities.length})
+                {t('writeSolo.sidebar.unregisteredHeading', { count: unregisteredEntities.length })}
               </span>
             </div>
 
@@ -145,7 +150,9 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
                     <div className='font-mono font-bold text-xs text-amber-950 truncate'>
                       {ent.name}
                     </div>
-                    <div className='text-[10px] text-amber-700/80'>Chưa có trong Series Bible</div>
+                    <div className='text-[10px] text-amber-700/80'>
+                      {t('writeSolo.sidebar.notInBible')}
+                    </div>
                   </div>
 
                   <button
@@ -156,7 +163,7 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
                     className='shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold rounded-lg shadow-2xs transition-colors cursor-pointer'
                   >
                     <Plus className='w-3 h-3' />
-                    Tạo Stub
+                    {t('writeSolo.sidebar.createStub')}
                   </button>
                 </div>
               ))}
@@ -167,18 +174,21 @@ export const SeriesBibleContextSidebar: React.FC<SeriesBibleContextSidebarProps>
         {/* Section 4B: Thực thể đã đăng ký Canon */}
         <SidebarSection className='space-y-2'>
           <div className='flex items-center justify-between text-xs font-bold text-stone-500 uppercase tracking-wider px-1'>
-            <span>Thực thể Canon đã khớp ({registeredEntities.length})</span>
+            <span>
+              {t('writeSolo.sidebar.registeredHeading', { count: registeredEntities.length })}
+            </span>
           </div>
 
           {registeredEntities.length === 0 ? (
             <div className='p-6 text-center border border-dashed border-[#E7E7E7] rounded-xl bg-white text-[#737373] text-xs'>
-              Chưa phát hiện nhân vật hoặc địa danh nào trong ngữ cảnh hiện tại.
+              {t('writeSolo.sidebar.emptyRegistered')}
             </div>
           ) : (
             registeredEntities.map((ent) => {
               const bible = ent.bibleEntry;
               const isLocation = ent.category === 'Location';
-              const variantBadge = bible?.effectiveRevision?.variantLabel || 'Mặc định';
+              const variantBadge =
+                bible?.effectiveRevision?.variantLabel || t('writeSolo.sidebar.defaultVariant');
 
               return (
                 <div

@@ -1,5 +1,6 @@
 // src/roles/writer/components/script/flow/comic-editor/versioning/scriptVersionActions.ts
 import { ScriptVersion } from './types';
+import { translate } from '@/lib/i18n';
 
 /**
  * Tạo định danh phiên bản chuỗi từ major và minor: "1.0", "1.1", "2.0"
@@ -81,7 +82,9 @@ export function autosaveDraftAction(
 ): { versions: ScriptVersion[]; updatedVersion: ScriptVersion } {
   const index = versions.findIndex((v) => v.id === currentVersionId);
   if (index === -1) {
-    throw new Error(`Không tìm thấy phiên bản với ID ${currentVersionId}`);
+    throw new Error(
+      translate('writer.comicEditor.versioning.versionNotFound', { id: currentVersionId }),
+    );
   }
 
   const current = versions[index];
@@ -115,13 +118,15 @@ export function submitScriptAction(
 ): { versions: ScriptVersion[]; updatedVersion: ScriptVersion } {
   const index = versions.findIndex((v) => v.id === currentVersionId);
   if (index === -1) {
-    throw new Error(`Không tìm thấy phiên bản với ID ${currentVersionId}`);
+    throw new Error(
+      translate('writer.comicEditor.versioning.versionNotFound', { id: currentVersionId }),
+    );
   }
 
   const current = versions[index];
   if (current.status !== 'DRAFT') {
     throw new Error(
-      `Chỉ có thể gửi duyệt bản nháp (DRAFT). Trạng thái hiện tại: ${current.status}`,
+      translate('writer.comicEditor.versioning.onlyDraftSubmit', { status: current.status }),
     );
   }
 
@@ -150,12 +155,14 @@ export function requestChangesAction(
 ): { versions: ScriptVersion[]; newDraftVersion: ScriptVersion } {
   const index = versions.findIndex((v) => v.id === currentVersionId);
   if (index === -1) {
-    throw new Error(`Không tìm thấy phiên bản với ID ${currentVersionId}`);
+    throw new Error(
+      translate('writer.comicEditor.versioning.versionNotFound', { id: currentVersionId }),
+    );
   }
 
   const reviewedVersion = versions[index];
   if (reviewedVersion.status !== 'IN_REVIEW') {
-    throw new Error(`Chỉ có thể yêu cầu sửa đổi khi kịch bản đang chờ duyệt (IN_REVIEW).`);
+    throw new Error(translate('writer.comicEditor.versioning.onlyInReviewRequestChanges'));
   }
 
   // Đánh dấu bản trước đó
@@ -201,12 +208,16 @@ export function approveScriptAction(
 ): { versions: ScriptVersion[]; approvedVersion: ScriptVersion } {
   const index = versions.findIndex((v) => v.id === currentVersionId);
   if (index === -1) {
-    throw new Error(`Không tìm thấy phiên bản với ID ${currentVersionId}`);
+    throw new Error(
+      translate('writer.comicEditor.versioning.versionNotFound', { id: currentVersionId }),
+    );
   }
 
   const current = versions[index];
   if (current.status !== 'IN_REVIEW' && current.status !== 'DRAFT') {
-    throw new Error(`Không thể duyệt kịch bản ở trạng thái ${current.status}`);
+    throw new Error(
+      translate('writer.comicEditor.versioning.cannotApproveStatus', { status: current.status }),
+    );
   }
 
   const approvedVersion: ScriptVersion = {
@@ -235,12 +246,14 @@ export function unlockScriptAction(
 ): { versions: ScriptVersion[]; newMajorDraftVersion: ScriptVersion } {
   const index = versions.findIndex((v) => v.id === currentVersionId);
   if (index === -1) {
-    throw new Error(`Không tìm thấy phiên bản với ID ${currentVersionId}`);
+    throw new Error(
+      translate('writer.comicEditor.versioning.versionNotFound', { id: currentVersionId }),
+    );
   }
 
   const approvedVersion = versions[index];
   if (approvedVersion.status !== 'APPROVED' && !approvedVersion.isLocked) {
-    throw new Error(`Chỉ có thể mở khóa kịch bản đã duyệt (APPROVED).`);
+    throw new Error(translate('writer.comicEditor.versioning.onlyApprovedUnlock'));
   }
 
   // Tăng lên Major tiếp theo: v1.x -> v2.0
@@ -255,7 +268,9 @@ export function unlockScriptAction(
     rawText: approvedVersion.rawText,
     snapshotAST: approvedVersion.snapshotAST,
     status: 'DRAFT',
-    changeLog: `Mở khóa sửa đổi sau duyệt từ bản v${approvedVersion.versionNumber}`,
+    changeLog: translate('writer.comicEditor.versioning.unlockedChangeLog', {
+      version: approvedVersion.versionNumber,
+    }),
     isLocked: false,
     createdBy: producerId,
     createdAt: new Date().toISOString(),
@@ -277,12 +292,16 @@ export function restoreVersionAction(
 ): { versions: ScriptVersion[]; updatedVersion: ScriptVersion } {
   const target = versions.find((v) => v.id === targetVersionId);
   if (!target) {
-    throw new Error(`Không tìm thấy phiên bản nguồn với ID ${targetVersionId}`);
+    throw new Error(
+      translate('writer.comicEditor.versioning.sourceVersionNotFound', { id: targetVersionId }),
+    );
   }
 
   const curIndex = versions.findIndex((v) => v.id === currentVersionId);
   if (curIndex === -1) {
-    throw new Error(`Không tìm thấy phiên bản hiện tại với ID ${currentVersionId}`);
+    throw new Error(
+      translate('writer.comicEditor.versioning.currentVersionNotFound', { id: currentVersionId }),
+    );
   }
 
   const current = versions[curIndex];
@@ -293,7 +312,9 @@ export function restoreVersionAction(
       ...current,
       rawText: target.rawText,
       snapshotAST: target.snapshotAST,
-      changeLog: `Đã khôi phục nội dung từ v${target.versionNumber}`,
+      changeLog: translate('writer.comicEditor.versioning.restoredChangeLog', {
+        version: target.versionNumber,
+      }),
     };
     const newVersions = [...versions];
     newVersions[curIndex] = updatedVersion;
@@ -301,5 +322,5 @@ export function restoreVersionAction(
   }
 
   // Nếu bản hiện tại đã khóa/in review, không thể đè trực tiếp
-  throw new Error(`Không thể khôi phục đè lên phiên bản đang khóa hoặc chờ duyệt.`);
+  throw new Error(translate('writer.comicEditor.versioning.cannotRestoreLocked'));
 }

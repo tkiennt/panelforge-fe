@@ -1,14 +1,7 @@
 // src/roles/writer/components/script/BibleCharactersDrawer.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-  Layers,
-  Loader2,
-  Search,
-  User,
-  Users,
-  X,
-} from 'lucide-react';
+import { Layers, Loader2, Search, User, Users, X } from 'lucide-react';
 import { BibleEntryDto } from '@/services/bible.service';
 import {
   ChapterCastDto,
@@ -143,11 +136,9 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
       const messages: string[] = [];
       if (res.affectedChapterNumbers && res.affectedChapterNumbers.length > 0) {
         messages.push(
-          t(
-            'production.cast.affectedChaptersInherit',
-            { chapters: res.affectedChapterNumbers.join(', ') },
-            `Các chương phía sau sẽ kế thừa: Ch. ${res.affectedChapterNumbers.join(', ')}`,
-          ),
+          t('writer.cast.affectedChaptersInherit', {
+            chapters: res.affectedChapterNumbers.join(', '),
+          }),
         );
       }
       if (onShowToast) {
@@ -183,17 +174,15 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
           !entry.isCrowd
             ? t('production.cast.crowdSetSuccess', 'Đã gắn cờ Quần chúng')
             : t('production.cast.crowdRemovedSuccess', 'Đã bỏ cờ Quần chúng'),
-          !entry.isCrowd
-            ? t(
-                'production.cast.crowdUnblockNotice',
-                'Thực thể này không còn chặn Gửi duyệt hay Bắt đầu sản xuất.',
-              )
-            : undefined,
+          !entry.isCrowd ? t('writer.cast.crowdUnblockNotice') : undefined,
         );
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast(t('production.cast.crowdUpdateFailed', 'Cập nhật cờ Quần chúng thất bại'), err?.message);
+        onShowToast(
+          t('production.cast.crowdUpdateFailed', 'Cập nhật cờ Quần chúng thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setActingEntryId(null);
@@ -205,11 +194,8 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
     if (!seriesId) return;
     if (
       !(await confirm({
-        title: t('production.cast.cancelReplacementConfirmTitle', 'Huỷ bản thay thế'),
-        description: t(
-          'production.cast.cancelReplacementConfirmBody',
-          'Bạn có chắc muốn huỷ bản thay thế này không?',
-        ),
+        title: t('writer.cast.cancelReplacementConfirmTitle'),
+        description: t('writer.cast.cancelReplacementConfirmBody'),
         confirmLabel: t('common.actions.confirm', 'Xác nhận'),
         cancelLabel: t('common.cancel', 'Huỷ'),
       }))
@@ -224,12 +210,18 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
       if (onShowToast) {
         onShowToast(
           t('production.cast.cancelReplacementSuccess', 'Đã huỷ bản thay thế'),
-          t('production.cast.cancelReplacementSuccessDesc', 'Binding của chương đã quay về bản kế thừa.'),
+          t(
+            'production.cast.cancelReplacementSuccessDesc',
+            'Binding của chương đã quay về bản kế thừa.',
+          ),
         );
       }
     } catch (err: any) {
       if (onShowToast) {
-        onShowToast(t('production.cast.cancelReplacementFailed', 'Huỷ bản thay thế thất bại'), err?.message);
+        onShowToast(
+          t('production.cast.cancelReplacementFailed', 'Huỷ bản thay thế thất bại'),
+          err?.message,
+        );
       }
     } finally {
       setActingEntryId(null);
@@ -253,7 +245,8 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
               {`${t('production.cast.charactersDrawerTitle', 'Nhân vật Series Bible')} (${allCharacters.length})`}
             </h3>
             <p className='text-xs text-stone-500 truncate'>
-              {castEntities.length} {t('production.cast.inChapter', 'Trong chương').toLowerCase()} · {allCharacters.length} {t('production.cast.total', 'tổng số')}
+              {castEntities.length} {t('production.cast.inChapter', 'Trong chương').toLowerCase()} ·{' '}
+              {allCharacters.length} {t('production.cast.total', 'tổng số')}
             </p>
           </div>
         </div>
@@ -351,14 +344,8 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
             <User className='w-8 h-8 text-stone-300 mx-auto mb-2' />
             <p className='text-xs font-semibold text-stone-800'>
               {searchQuery
-                ? t(
-                    'production.cast.noMatchingCharacterFound',
-                    'Không tìm thấy nhân vật nào phù hợp.',
-                  )
-                : t(
-                    'production.cast.noCharactersInBible',
-                    'Chưa có nhân vật nào trong Series Bible.',
-                  )}
+                ? t('writer.cast.noMatchingCharacterFound')
+                : t('writer.cast.noCharactersInBible')}
             </p>
           </div>
         ) : (
@@ -379,8 +366,13 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
               detailsJson: char.detailsJson,
               isStub,
               isCrowd: char.isCrowd || castEntity?.isCrowd,
-              isCanonLocked: castEntity?.boundRevision?.isCanonLocked ?? char.effectiveRevision?.isLocked ?? false,
-              bibleStatus: castEntity?.bibleStatus || (char.effectiveRevision?.isLocked ? 'CanonLocked' : 'Draft'),
+              isCanonLocked:
+                castEntity?.boundRevision?.isCanonLocked ??
+                char.effectiveRevision?.isLocked ??
+                false,
+              bibleStatus:
+                castEntity?.bibleStatus ||
+                (char.effectiveRevision?.isLocked ? 'CanonLocked' : 'Draft'),
               source: castEntity?.source,
               boundRevision: castEntity?.boundRevision,
               chosenByWriter: castEntity?.chosenByWriter,
@@ -396,9 +388,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
                 entity={accordionEntity}
                 isInChapter={filterTab === 'all' ? inCast : undefined}
                 isOpen={expandedEntryId === char.id}
-                onToggle={() =>
-                  setExpandedEntryId((prev) => (prev === char.id ? null : char.id))
-                }
+                onToggle={() => setExpandedEntryId((prev) => (prev === char.id ? null : char.id))}
                 canEditScript={canEditScript}
                 workspaceId={effectiveWorkspaceId}
                 seriesId={effectiveSeriesId}

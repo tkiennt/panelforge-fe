@@ -77,10 +77,10 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
           </div>
           <div className='min-w-0'>
             <h3 className='text-sm font-bold text-[#1C1917] truncate font-serif'>
-              Định hướng cốt truyện & đề cương
+              {t('writer.narrativeDrawer.title')}
             </h3>
             <p className='text-xs text-[#57534E] truncate'>
-              Ngữ cảnh sáng tác cho Writer và AI Agent
+              {t('writer.narrativeDrawer.subtitle')}
             </p>
           </div>
         </div>
@@ -91,7 +91,11 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
             type='button'
             onClick={() => setIsExpandedHeight((prev) => !prev)}
             className='p-1.5 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer transition-colors'
-            title={isExpandedHeight ? 'Thu nhỏ khung' : 'Phóng to khung'}
+            title={
+              isExpandedHeight
+                ? t('writer.narrativeDrawer.collapseHeight')
+                : t('writer.narrativeDrawer.expandHeight')
+            }
           >
             {isExpandedHeight ? (
               <Minimize2 className='w-4 h-4' />
@@ -104,7 +108,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
             type='button'
             onClick={onClose}
             className='p-1.5 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer transition-colors'
-            title='Đóng bảng đề cương'
+            title={t('writer.narrativeDrawer.closeTooltip')}
           >
             <X className='w-4 h-4' />
           </button>
@@ -127,7 +131,6 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
             <span>
               {t('scriptStudio.narrative.outlineWithChapter', {
                 n: currentChapter?.chapterNumber ?? '',
-                defaultValue: `Đề cương Ch.${currentChapter?.chapterNumber ?? ''}`,
               })}
             </span>
             {isOutlineDirty && <span className='w-1.5 h-1.5 rounded-full bg-amber-500' />}
@@ -166,7 +169,6 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                   <h4 className='text-xs font-bold text-[#1C1917]'>
                     {t('scriptStudio.narrative.chapterOutline', {
                       n: currentChapter?.chapterNumber ?? '',
-                      defaultValue: `Đề cương Chương ${currentChapter?.chapterNumber ?? ''} (Outline)`,
                     })}
                   </h4>
                   <p className='text-xs text-[#57534E]'>
@@ -198,10 +200,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
               value={outlineInput}
               onChange={(e) => setOutlineInput(e.target.value)}
               disabled={!canEditScript || isChapterLocked}
-              placeholder={t(
-                'scriptStudio.narrative.outlinePlaceholder',
-                'vd: Cảnh 1 mở đầu đêm tuyết, cảnh 2 chạm trán...',
-              )}
+              placeholder={t('scriptStudio.narrative.outlinePlaceholder')}
               data-testid='chapter-outline-textarea'
               className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] disabled:bg-[#F3F0E9] disabled:cursor-not-allowed resize-y transition-all text-[#1C1917]'
             />
@@ -255,18 +254,15 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
               value={storyArcInput}
               onChange={(e) => setStoryArcInput(e.target.value)}
               disabled={!canEditScript}
-              placeholder={t(
-                'scriptStudio.narrative.storyArcPlaceholder',
-                'vd: Hành trình khám phá bí mật cổ xưa...',
-              )}
+              placeholder={t('scriptStudio.narrative.storyArcPlaceholder')}
               data-testid='story-arc-textarea'
               className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] disabled:bg-[#F3F0E9] disabled:cursor-not-allowed resize-y transition-all text-[#1C1917]'
             />
 
             <div className='flex items-center justify-between text-xs text-[#57534E]'>
               <span>
-                {storyArcWordCount} {t('scriptStudio.narrative.words', 'từ')} · {storyArcInput.length}{' '}
-                {t('scriptStudio.narrative.chars', 'ký tự')}
+                {storyArcWordCount} {t('scriptStudio.narrative.words', 'từ')} ·{' '}
+                {storyArcInput.length} {t('scriptStudio.narrative.chars', 'ký tự')}
               </span>
               <span>{t('scriptStudio.narrative.storyArcAiHint', 'Bối cảnh cho Writer AI')}</span>
             </div>

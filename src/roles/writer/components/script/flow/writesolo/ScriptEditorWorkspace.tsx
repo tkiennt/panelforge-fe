@@ -40,18 +40,59 @@ import {
 import { SeriesBibleContextSidebar } from './SeriesBibleContextSidebar';
 import { WriteSoloElementMenu } from './WriteSoloElementMenu';
 import { INITIAL_WRITESOLO_DOC, SAMPLE_BIBLE_ENTRIES } from './sampleScript';
+import { translate, useTranslation } from '@/lib/i18n';
 
 export const WRITESOLO_SCREENPLAY_MENU = [
-  { key: 'S', type: 'scene_heading' as WriteSoloBlockType, label: 'Scene Heading (Slugline)' },
-  { key: 'A', type: 'action' as WriteSoloBlockType, label: 'Action (Mô tả hành động)' },
-  { key: 'C', type: 'character' as WriteSoloBlockType, label: 'Character (Tên nhân vật)' },
-  { key: 'P', type: 'parenthetical' as WriteSoloBlockType, label: 'Parenthetical (Sắc thái)' },
-  { key: 'D', type: 'dialogue' as WriteSoloBlockType, label: 'Dialogue (Lời thoại)' },
-  { key: 'T', type: 'transition' as WriteSoloBlockType, label: 'Transition (Chuyển cảnh)' },
-  { key: 'Pg', type: 'page_heading' as WriteSoloBlockType, label: 'Page (Trang truyện)' },
-  { key: 'Pn', type: 'panel_heading' as WriteSoloBlockType, label: 'Panel (Khung tranh)' },
-  { key: 'Cp', type: 'caption' as WriteSoloBlockType, label: 'Caption (Dẫn truyện)' },
-  { key: 'Fx', type: 'sfx' as WriteSoloBlockType, label: 'SFX (Âm thanh)' },
+  {
+    key: 'S',
+    type: 'scene_heading' as WriteSoloBlockType,
+    label: translate('writer.writeSolo.menu.sceneHeading'),
+  },
+  {
+    key: 'A',
+    type: 'action' as WriteSoloBlockType,
+    label: translate('writer.writeSolo.menu.action'),
+  },
+  {
+    key: 'C',
+    type: 'character' as WriteSoloBlockType,
+    label: translate('writer.writeSolo.menu.character'),
+  },
+  {
+    key: 'P',
+    type: 'parenthetical' as WriteSoloBlockType,
+    label: translate('writer.writeSolo.menu.parenthetical'),
+  },
+  {
+    key: 'D',
+    type: 'dialogue' as WriteSoloBlockType,
+    label: translate('writer.writeSolo.menu.dialogue'),
+  },
+  {
+    key: 'T',
+    type: 'transition' as WriteSoloBlockType,
+    label: translate('writer.writeSolo.menu.transition'),
+  },
+  {
+    key: 'Pg',
+    type: 'page_heading' as WriteSoloBlockType,
+    label: translate('writer.writeSolo.menu.pageHeading'),
+  },
+  {
+    key: 'Pn',
+    type: 'panel_heading' as WriteSoloBlockType,
+    label: translate('writer.writeSolo.menu.panelHeading'),
+  },
+  {
+    key: 'Cp',
+    type: 'caption' as WriteSoloBlockType,
+    label: translate('writer.writeSolo.menu.caption'),
+  },
+  {
+    key: 'Fx',
+    type: 'sfx' as WriteSoloBlockType,
+    label: translate('writer.writeSolo.menu.sfx'),
+  },
 ];
 
 export interface ScriptEditorWorkspaceProps {
@@ -71,6 +112,7 @@ export const ScriptEditorWorkspace: React.FC<ScriptEditorWorkspaceProps> = ({
   onOpenInBible,
   className = '',
 }) => {
+  const { t } = useTranslation('writer');
   const [activeTab, setActiveTab] = useState<'document' | 'pad'>('document');
   const [isBibleSidebarOpen, setIsBibleSidebarOpen] = useState(true);
   const [isZenMode, setIsZenMode] = useState(false);
@@ -241,7 +283,7 @@ export const ScriptEditorWorkspace: React.FC<ScriptEditorWorkspaceProps> = ({
               className={`flex flex-col items-center gap-0.5 px-2.5 py-1 rounded hover:bg-stone-700/70 transition-colors cursor-pointer ${
                 activeBlockType === 'action' ? 'bg-stone-700 text-white font-bold' : ''
               }`}
-              title='Action (Thì hiện tại đơn)'
+              title={t('writeSolo.toolbar.actionTooltip')}
             >
               <Film className='w-4 h-4 text-emerald-400' />
               <span className='text-[10px]'>Action</span>
@@ -253,7 +295,7 @@ export const ScriptEditorWorkspace: React.FC<ScriptEditorWorkspaceProps> = ({
               className={`flex flex-col items-center gap-0.5 px-2.5 py-1 rounded hover:bg-stone-700/70 transition-colors cursor-pointer ${
                 activeBlockType === 'character' ? 'bg-stone-700 text-rose-400 font-bold' : ''
               }`}
-              title='Character (Tab để sang)'
+              title={t('writeSolo.toolbar.characterTooltip')}
             >
               <Type className='w-4 h-4 text-rose-400' />
               <span className='text-[10px]'>Character</span>
@@ -265,7 +307,7 @@ export const ScriptEditorWorkspace: React.FC<ScriptEditorWorkspaceProps> = ({
               className={`flex flex-col items-center gap-0.5 px-2.5 py-1 rounded hover:bg-stone-700/70 transition-colors cursor-pointer ${
                 activeBlockType === 'parenthetical' ? 'bg-stone-700 text-purple-400 font-bold' : ''
               }`}
-              title='Parenthetical (Ghi chú cảm xúc / ngữ điệu)'
+              title={t('writeSolo.toolbar.parentheticalTooltip')}
             >
               <Smile className='w-4 h-4 text-purple-400' />
               <span className='text-[10px]'>Parens</span>
@@ -277,7 +319,7 @@ export const ScriptEditorWorkspace: React.FC<ScriptEditorWorkspaceProps> = ({
               className={`flex flex-col items-center gap-0.5 px-2.5 py-1 rounded hover:bg-stone-700/70 transition-colors cursor-pointer ${
                 activeBlockType === 'dialogue' ? 'bg-stone-700 text-sky-400 font-bold' : ''
               }`}
-              title='Dialogue (Enter từ Character)'
+              title={t('writeSolo.toolbar.dialogueTooltip')}
             >
               <MessageSquare className='w-4 h-4 text-sky-400' />
               <span className='text-[10px]'>Dialogue</span>
@@ -327,11 +369,11 @@ export const ScriptEditorWorkspace: React.FC<ScriptEditorWorkspaceProps> = ({
           {/* Right Toolbar Controls */}
           <div className='flex items-center gap-2'>
             <div className='hidden md:flex items-center gap-2 text-[11px] font-mono text-stone-400 border-r border-stone-600 pr-3'>
-              <span>Cảnh: {stats.scenes}</span>
+              <span>{t('writeSolo.toolbar.scenesCount', { count: stats.scenes })}</span>
               <span>•</span>
-              <span>Nhân vật: {stats.characters}</span>
+              <span>{t('writeSolo.toolbar.charactersCount', { count: stats.characters })}</span>
               <span>•</span>
-              <span>{stats.words} từ</span>
+              <span>{t('writeSolo.toolbar.wordsCount', { count: stats.words })}</span>
             </div>
 
             <button
@@ -390,7 +432,7 @@ export const ScriptEditorWorkspace: React.FC<ScriptEditorWorkspaceProps> = ({
               onClick={() => setShowFloatingPicker((prev) => !prev)}
               className='text-stone-300 hover:text-white flex items-center gap-1 cursor-pointer'
             >
-              <span>Menu phần tử</span>
+              <span>{t('writeSolo.toolbar.elementMenu')}</span>
               <kbd className='px-1 py-0.2 rounded bg-stone-700 text-[10px] font-mono'>Tab</kbd>
             </button>
           </div>
@@ -434,7 +476,7 @@ export const ScriptEditorWorkspace: React.FC<ScriptEditorWorkspaceProps> = ({
           <button
             onClick={() => setIsZenMode(false)}
             className='fixed top-4 right-4 z-50 p-2 bg-stone-900/80 hover:bg-stone-900 text-white rounded-full shadow-lg transition-all cursor-pointer backdrop-blur-md'
-            title='Thoát Zen Mode (Ctrl+\)'
+            title={t('writeSolo.toolbar.exitZenMode')}
           >
             <Minimize2 className='w-4 h-4' />
           </button>
@@ -453,11 +495,11 @@ export const ScriptEditorWorkspace: React.FC<ScriptEditorWorkspaceProps> = ({
           </div>
 
           <div className='hidden sm:flex items-center gap-3 text-[10px] font-mono text-stone-400'>
-            <span>[Tab] Chuyển Character / Đổi vai</span>
+            <span>{t('writeSolo.footer.tabShortcut')}</span>
             <span>•</span>
-            <span>[Enter] Xuống dòng kịch bản</span>
+            <span>{t('writeSolo.footer.enterShortcut')}</span>
             <span>•</span>
-            <span>[Backspace] Hoàn nguyên Action</span>
+            <span>{t('writeSolo.footer.backspaceShortcut')}</span>
           </div>
         </footer>
       )}

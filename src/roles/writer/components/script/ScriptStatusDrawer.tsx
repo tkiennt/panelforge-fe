@@ -104,14 +104,14 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
 
   const hasAnyNotice = Boolean(
     concurrencyError ||
-      loadError ||
-      isScriptFrozen ||
-      isScriptInReview ||
-      isSubmitBlocked ||
-      isStartBlocked ||
-      (isChapterContentLocked && !isScriptFrozen) ||
-      (!canEditScript && !isChapterLocked) ||
-      hasRestorable,
+    loadError ||
+    isScriptFrozen ||
+    isScriptInReview ||
+    isSubmitBlocked ||
+    isStartBlocked ||
+    (isChapterContentLocked && !isScriptFrozen) ||
+    (!canEditScript && !isChapterLocked) ||
+    hasRestorable,
   );
 
   return (
@@ -130,12 +130,7 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
             <h3 className='text-sm font-bold text-stone-900 truncate font-serif'>
               {t('scriptStudio.statusDrawer.title', 'Thông báo & Trạng thái')}
             </h3>
-            <p className='text-xs text-stone-500 truncate'>
-              {t(
-                'scriptStudio.statusDrawer.desc',
-                'Cảnh báo, trạng thái kịch bản và các cổng duyệt',
-              )}
-            </p>
+            <p className='text-xs text-stone-500 truncate'>{t('scriptStudio.statusDrawer.desc')}</p>
           </div>
         </div>
 
@@ -164,7 +159,6 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
               ? t('scriptStudio.narrative.storyArc', 'Story Arc')
               : t('scriptStudio.narrative.outlineWithChapter', {
                   n: currentChapter?.chapterNumber ?? '',
-                  defaultValue: `Đề cương Chương ${currentChapter?.chapterNumber ?? ''}`,
                 });
           const formattedTime = formatDateTime(draft.savedAt);
           return (
@@ -180,7 +174,6 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
                   {t('scriptStudio.statusDrawer.draftNotice', {
                     label,
                     time: formattedTime,
-                    defaultValue: `Có bản nháp ${label} chưa lưu lúc ${formattedTime}.`,
                   })}
                 </span>
               </div>
@@ -213,7 +206,9 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
             <div className='flex items-start gap-2 min-w-0'>
               <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0 mt-0.5' />
               <div className='space-y-1.5 min-w-0'>
-                <span className='text-xs font-medium leading-relaxed block'>{concurrencyError}</span>
+                <span className='text-xs font-medium leading-relaxed block'>
+                  {concurrencyError}
+                </span>
                 {onReloadWorkingCopy && (
                   <button
                     type='button'
@@ -252,7 +247,7 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
                 onClick={onRetryLoadScenes}
                 className='text-xs font-bold text-rose-700 underline cursor-pointer'
               >
-                Thử lại
+                {t('writer.statusDrawer.retry')}
               </button>
             )}
           </div>
@@ -271,7 +266,7 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
               <div className='min-w-0'>
                 <div className='flex items-center gap-2 flex-wrap'>
                   <span className='font-bold text-xs uppercase tracking-wider bg-stone-200 text-stone-800 px-2 py-0.5 rounded inline-flex items-center gap-1.5'>
-                    <span>🔒 Kịch bản đã chốt (chỉ đọc)</span>
+                    <span>{t('writer.statusDrawer.frozenTitle')}</span>
                     {currentChapter?.scriptContentHash && (
                       <span
                         className='font-mono font-semibold text-xs text-stone-800 bg-stone-50 px-1.5 py-0.5 rounded border border-stone-300'
@@ -284,10 +279,10 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
                   </span>
                 </div>
                 <p className='text-xs text-stone-700 font-medium mt-1.5'>
-                  Đã chuyển giao cho Artist phác thảo (Pencil) &amp; bố cục khung.
+                  {t('writer.statusDrawer.frozenHandedOff')}
                 </p>
                 <p className='text-xs text-stone-500 mt-0.5 leading-relaxed'>
-                  Writer không thể sửa trực tiếp kịch bản để tránh xung đột khung tranh của hoạ sĩ. Thẻ xem nhanh vẫn dùng được qua hover hoặc Ctrl+.
+                  {t('writer.statusDrawer.frozenHint')}
                 </p>
               </div>
             </div>
@@ -301,15 +296,23 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
                 >
                   <RefreshCw className='w-3.5 h-3.5' />
                   <span>
-                    {tReview ? tReview('scriptReview.checks.unfreeze') : 'Mở khoá kịch bản'}
+                    {tReview
+                      ? tReview('scriptReview.checks.unfreeze')
+                      : t('writer.statusDrawer.unfreezeBtn')}
                   </span>
                 </button>
                 {unfreezeReasonOpen && handleUnfreezeScript && (
                   <ReasonForm
                     label={
-                      tReview ? tReview('scriptReview.checks.unfreezeReason') : 'Lý do mở khoá'
+                      tReview
+                        ? tReview('scriptReview.checks.unfreezeReason')
+                        : t('writer.statusDrawer.unfreezeReason')
                     }
-                    confirmLabel={tReview ? tReview('scriptReview.checks.unfreeze') : 'Mở khoá'}
+                    confirmLabel={
+                      tReview
+                        ? tReview('scriptReview.checks.unfreeze')
+                        : t('writer.statusDrawer.unfreezeConfirm')
+                    }
                     busy={freezingScript}
                     onConfirm={(reason) => void handleUnfreezeScript(reason)}
                     onCancel={() => setUnfreezeReasonOpen?.(false)}
@@ -335,10 +338,7 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
                 <p className='text-xs text-amber-900/80 mt-0.5 leading-relaxed'>
                   {hasUnpushedChanges
                     ? t('scriptStudio.lifecycle.inReviewDirty', 'Có thay đổi chưa gửi duyệt lại')
-                    : t(
-                        'scriptStudio.lifecycle.inReviewBody',
-                        'Editor đang xem xét kịch bản của chương này',
-                      )}
+                    : t('scriptStudio.lifecycle.inReviewBody')}
                 </p>
               </div>
             </div>
@@ -366,7 +366,9 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
               <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
               <span className='text-xs font-medium leading-relaxed'>
                 <strong>{t('scriptStudio.cast.submitBlockedBanner', 'Chưa thể gửi duyệt')}:</strong>{' '}
-                Còn {chapterCast.submitGate.blockers.length} mục nháp Bible chưa được định nghĩa.
+                {t('writer.statusDrawer.submitBlockedCount', {
+                  count: chapterCast.submitGate.blockers.length,
+                })}
               </span>
             </div>
             <button
@@ -391,7 +393,9 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
                 <strong>
                   {t('scriptStudio.cast.startBlockedBanner', 'Chưa thể bắt đầu sản xuất')}:
                 </strong>{' '}
-                Còn {chapterCast.gate.blockers.length} biến thể chưa khoá Canon.
+                {t('writer.statusDrawer.startBlockedCount', {
+                  count: chapterCast.gate.blockers.length,
+                })}
               </span>
             </div>
             <div className='flex items-center justify-between gap-2 pt-1 border-t border-rose-200/60'>
@@ -403,7 +407,7 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
                 }
                 className='text-xs font-semibold text-rose-700 hover:text-rose-900 underline'
               >
-                Mở Series Bible để duyệt Canon
+                {t('writer.statusDrawer.openBibleToApprove')}
               </Link>
               <button
                 type='button'
@@ -425,13 +429,13 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
             <div className='flex items-start gap-2'>
               <ShieldAlert className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
               <span className='text-xs font-medium leading-relaxed'>
-                Chương này đã ở trạng thái <strong>{currentChapter?.status}</strong> — Kịch bản ở
-                chế độ chỉ đọc để bảo vệ tính toàn vẹn sản xuất. Thẻ xem nhanh vẫn dùng được qua
-                hover hoặc Ctrl+.
+                {t('writer.statusDrawer.chapterLockedBody', {
+                  status: currentChapter?.status ?? '',
+                }).replace(/<\/?status>/g, '')}
               </span>
             </div>
             <span className='text-xs font-bold uppercase tracking-wider bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded-full shrink-0'>
-              Chỉ đọc
+              {t('writer.statusDrawer.readOnlyBadge')}
             </span>
           </div>
         )}
@@ -445,13 +449,11 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
             <div className='flex items-start gap-2'>
               <Info className='w-4 h-4 text-blue-600 shrink-0 mt-0.5' />
               <span className='text-xs font-medium leading-relaxed'>
-                Chế độ xem: Bạn đang xem kịch bản với quyền tham khảo. Chỉ vai trò{' '}
-                <strong>Producer</strong> hoặc <strong>Writer</strong> được phân công mới có quyền
-                tạo và chỉnh sửa kịch bản.
+                {t('writer.statusDrawer.viewOnlyBody').replace(/<\/?(?:producer|writer)>/g, '')}
               </span>
             </div>
             <span className='text-xs font-bold uppercase tracking-wider bg-blue-200/90 text-blue-900 px-2 py-0.5 rounded-full shrink-0'>
-              Tham khảo
+              {t('writer.statusDrawer.referenceBadge')}
             </span>
           </div>
         ) : null}
@@ -462,12 +464,11 @@ export const ScriptStatusDrawer: React.FC<ScriptStatusDrawerProps> = ({
             <div className='w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-3'>
               <CheckCircle2 className='w-5 h-5' />
             </div>
-            <h4 className='text-xs font-semibold text-stone-800 mb-1'>Hệ thống bình thường</h4>
+            <h4 className='text-xs font-semibold text-stone-800 mb-1'>
+              {t('writer.statusDrawer.systemNormalTitle')}
+            </h4>
             <p className='text-xs text-stone-500 max-w-xs'>
-              {t(
-                'scriptStudio.statusDrawer.empty',
-                'Tất cả trạng thái bình thường. Không có thông báo cần xử lý.',
-              )}
+              {t('scriptStudio.statusDrawer.empty')}
             </p>
           </div>
         )}

@@ -87,8 +87,12 @@ describe('BibleCharactersDrawer Component', () => {
     expect(allTab).toBeInTheDocument();
 
     // Verify ordering in DOM: Trong chương comes before Ngoài chương, which comes before Tất cả
-    expect(castTab.compareDocumentPosition(nonCastTab) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(nonCastTab.compareDocumentPosition(allTab) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      castTab.compareDocumentPosition(nonCastTab) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      nonCastTab.compareDocumentPosition(allTab) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     // Default tab is "Trong chương" (cast)
     expect(castTab.className).toContain('bg-orange-100');

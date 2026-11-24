@@ -1,5 +1,6 @@
 // src/roles/writer/components/script/flow/comic-editor/nodes/CaptionBlockNode.ts
 import { Node, mergeAttributes } from '@tiptap/core';
+import { translate } from '@/lib/i18n';
 
 export const CaptionBlockNode = Node.create({
   name: 'captionBlock',
@@ -31,7 +32,7 @@ export const CaptionBlockNode = Node.create({
           contenteditable: 'false',
         },
         ['span', {}, '📜'],
-        ['span', {}, 'Lời dẫn truyện (Caption):'],
+        ['span', {}, translate('writer.comicEditor.nodes.captionLabel')],
       ],
       [
         'div',

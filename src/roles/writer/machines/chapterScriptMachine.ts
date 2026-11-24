@@ -1,5 +1,6 @@
 // src/roles/writer/machines/chapterScriptMachine.ts
 import { setup, assign } from 'xstate';
+import { translate } from '@/lib/i18n';
 
 export interface ChapterScriptContext {
   chapterId: string;
@@ -36,7 +37,7 @@ export const chapterScriptMachine = setup({
   },
   actions: {
     recordError: assign({
-      lastError: () => 'Rào chắn Series Bible chưa đạt: còn nhân vật/bối cảnh chưa CanonLocked.',
+      lastError: () => translate('writer.chapterScriptMachine.bibleGateFailed'),
     }),
     clearError: assign({
       lastError: () => null,

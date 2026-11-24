@@ -24,6 +24,7 @@ import { ChapterDto, CreateChapterRequest } from '@/services/chapter.service';
 import { SeriesDetailDto } from '@/services/series.service';
 import { formatChapterOption } from '@/roles/writer/utils/chapterFormat';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 interface ChapterSelectionViewProps {
   chapters: ChapterDto[];
@@ -48,6 +49,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
   onCreateChapter,
   onShowToast,
 }) => {
+  const { t, lang } = useTranslation('writer');
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [chapterNumber, setChapterNumber] = useState<number>(() => {
@@ -89,7 +91,8 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
       const q = searchQuery.toLowerCase().trim();
       list = list.filter((chap) => {
         const matchNum =
-          String(chap.chapterNumber).includes(q) || `chương ${chap.chapterNumber}`.includes(q);
+          String(chap.chapterNumber).includes(q) ||
+          t('chapterFormat.number', { number: chap.chapterNumber }).toLowerCase().includes(q);
         const matchTitle = (chap.title || '').toLowerCase().includes(q);
         const matchOutline = (chap.outline || '').toLowerCase().includes(q);
         return matchNum || matchTitle || matchOutline;
@@ -138,7 +141,10 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
 
   const handleOpenCreateModal = () => {
     if (!canCreateChapter) {
-      onShowToast?.('Không có quyền hạn', 'Chỉ có Producer mới được quyền khởi tạo chương mới.');
+      onShowToast?.(
+        t('chapterSelectionView.noPermissionTitle'),
+        t('chapterSelectionView.onlyProducerCanCreate'),
+      );
       return;
     }
     const nextNum =
@@ -155,11 +161,17 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
   const handleSubmitCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canCreateChapter || !onCreateChapter) {
-      onShowToast?.('Không có quyền hạn', 'Chỉ có Producer mới được quyền khởi tạo chương mới.');
+      onShowToast?.(
+        t('chapterSelectionView.noPermissionTitle'),
+        t('chapterSelectionView.onlyProducerCanCreate'),
+      );
       return;
     }
     if (chapterNumber < 1) {
-      onShowToast?.('Lỗi nhập liệu', 'Số thứ tự chương phải lớn hơn hoặc bằng 1.');
+      onShowToast?.(
+        t('chapterSelectionView.inputErrorTitle'),
+        t('chapterSelectionView.chapterNumberMinError'),
+      );
       return;
     }
 
@@ -172,9 +184,15 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
         targetReleaseDate: targetReleaseDate || null,
       });
       setModalOpen(false);
-      onShowToast?.('Tạo chương thành công', `Đã tạo Chương ${chapterNumber} cho series.`);
+      onShowToast?.(
+        t('chapterSelectionView.createSuccessTitle'),
+        t('chapterSelectionView.createSuccessDesc', { number: chapterNumber }),
+      );
     } catch (err: any) {
-      onShowToast?.('Lỗi tạo chương', err.message || 'Không thể tạo chương mới.');
+      onShowToast?.(
+        t('chapterSelectionView.createErrorTitle'),
+        err.message || t('chapterSelectionView.createErrorFallback'),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -185,7 +203,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
       return (
         <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0'>
           <Lock className='w-3 h-3' />
-          <span>Kịch bản đã khóa (Frozen)</span>
+          <span>{t('chapterSelectionView.statusFrozen')}</span>
           {chapter.scriptContentHash && (
             <span
               className='font-mono text-[10px] font-semibold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded border border-indigo-200'
@@ -204,34 +222,34 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-50 text-stone-700 border border-stone-200 shrink-0'>
             <Clock className='w-3 h-3 text-stone-500' />
-            <span>Tiền kỳ (viết kịch bản)</span>
+            <span>{t('chapterSelectionView.statusPreProduction')}</span>
           </span>
         );
       case 'ChapterApproved':
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
             <CheckCircle2 className='w-3 h-3' />
-            <span>Nghiệm thu hoàn tất (Gate 3)</span>
+            <span>{t('chapterSelectionView.statusApproved')}</span>
           </span>
         );
       case 'HandedOffAndPublished':
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
             <Sparkles className='w-3 h-3' />
-            <span>Đã phát hành</span>
+            <span>{t('chapterSelectionView.statusPublished')}</span>
           </span>
         );
       default:
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0'>
             <Clock className='w-3 h-3' />
-            <span>Đang sản xuất (In Progress)</span>
+            <span>{t('chapterSelectionView.statusInProgress')}</span>
           </span>
         );
     }
   };
 
-  const seriesTitle = seriesDetail?.title || 'Đốm Lửa Trường Sinh';
+  const seriesTitle = seriesDetail?.title || t('chapterSelectionView.defaultSeriesTitle');
 
   return (
     <PageContainer
@@ -249,15 +267,14 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                 <span>SCRIPT MANAGEMENT HUB</span>
               </span>
               <h1 className='text-xl sm:text-2xl font-bold font-serif text-[#1C1917] tracking-tight'>
-                Quản lý Kịch bản — {seriesTitle}
+                {t('chapterSelectionView.pageTitle', { title: seriesTitle })}
               </h1>
             </div>
             <p className='text-xs text-[#57534E] leading-relaxed max-w-3xl'>
               <strong className='text-[#1C1917] font-semibold'>
-                Chọn Chương Để Thực Hiện Kịch Bản
+                {t('chapterSelectionView.subtitleLead')}
               </strong>{' '}
-              — Writer lựa chọn một chương được phân công để mở trang giấy kịch bản, quản lý phân
-              cảnh, hội thoại và phân rã khung hình Thumbnail trong không gian làm việc chuyên dụng.
+              {t('chapterSelectionView.subtitleBody')}
             </p>
           </div>
         </div>
@@ -271,7 +288,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             </div>
             <div>
               <div className='text-[10px] font-semibold uppercase text-[#78716C] tracking-wide'>
-                Tổng số chương
+                {t('chapterSelectionView.statTotal')}
               </div>
               <div className='text-sm font-bold font-mono text-[#1C1917]'>{stats.total}</div>
             </div>
@@ -284,7 +301,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             </div>
             <div>
               <div className='text-[10px] font-semibold uppercase text-amber-800 tracking-wide'>
-                Đang viết
+                {t('chapterSelectionView.statInProgress')}
               </div>
               <div className='text-sm font-bold font-mono text-amber-900'>{stats.inProgress}</div>
             </div>
@@ -297,7 +314,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             </div>
             <div>
               <div className='text-[10px] font-semibold uppercase text-indigo-800 tracking-wide'>
-                Đã khóa
+                {t('chapterSelectionView.statFrozen')}
               </div>
               <div className='text-sm font-bold font-mono text-indigo-900'>{stats.frozen}</div>
             </div>
@@ -310,7 +327,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             </div>
             <div>
               <div className='text-[10px] font-semibold uppercase text-emerald-800 tracking-wide'>
-                Đã duyệt
+                {t('chapterSelectionView.statApproved')}
               </div>
               <div className='text-sm font-bold font-mono text-emerald-900'>{stats.approved}</div>
             </div>
@@ -328,7 +345,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               type='text'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder='Tìm số hoặc tên chương...'
+              placeholder={t('chapterSelectionView.searchPlaceholder')}
               className='w-full pl-9 pr-8 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C] focus:ring-1 focus:ring-[#C2410C] transition-all placeholder:text-[#A8A29E]'
             />
             {searchQuery && (
@@ -352,10 +369,10 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                 onChange={(e) => setSortBy(e.target.value as SortByType)}
                 className='bg-transparent text-xs text-[#1C1917] font-medium outline-none cursor-pointer pr-1'
               >
-                <option value='chapter_asc'>Số chương: Tăng dần</option>
-                <option value='chapter_desc'>Số chương: Giảm dần</option>
-                <option value='newest'>Mới cập nhật</option>
-                <option value='oldest'>Cũ nhất</option>
+                <option value='chapter_asc'>{t('chapterSelectionView.sortAsc')}</option>
+                <option value='chapter_desc'>{t('chapterSelectionView.sortDesc')}</option>
+                <option value='newest'>{t('chapterSelectionView.sortNewest')}</option>
+                <option value='oldest'>{t('chapterSelectionView.sortOldest')}</option>
               </select>
             </div>
 
@@ -364,7 +381,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               <button
                 type='button'
                 onClick={() => setViewMode('grid')}
-                title='Dạng thẻ (Grid View)'
+                title={t('chapterSelectionView.gridViewTitle')}
                 className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                   viewMode === 'grid'
                     ? 'bg-white text-[#C2410C] shadow-2xs font-semibold'
@@ -376,7 +393,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               <button
                 type='button'
                 onClick={() => setViewMode('table')}
-                title='Dạng bảng (Table/List View)'
+                title={t('chapterSelectionView.tableViewTitle')}
                 className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                   viewMode === 'table'
                     ? 'bg-white text-[#C2410C] shadow-2xs font-semibold'
@@ -396,7 +413,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                 className='inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#C2410C] hover:bg-[#9A3412] active:scale-95 rounded-xl shadow-xs transition-all duration-200 cursor-pointer shrink-0'
               >
                 <Plus className='w-4 h-4' />
-                <span>Tạo chương mới</span>
+                <span>{t('chapterSelectionView.createChapterBtn')}</span>
               </button>
             )}
           </div>
@@ -406,7 +423,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
         <div className='flex items-center gap-1.5 overflow-x-auto custom-scrollbar pt-1 border-t border-[#EBE7DF]'>
           <span className='text-[11px] font-semibold text-[#78716C] uppercase tracking-wider mr-1.5 shrink-0 flex items-center gap-1'>
             <SlidersHorizontal className='w-3 h-3 text-[#A8A29E]' />
-            Lọc:
+            {t('chapterSelectionView.filterLabel')}
           </span>
 
           {/* Tất cả */}
@@ -419,7 +436,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                 : 'bg-white text-[#57534E] hover:bg-[#FAF8F5] border border-[#E5E0D8]'
             }`}
           >
-            <span>Tất cả</span>
+            <span>{t('chapterSelectionView.filterAll')}</span>
             <span
               className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                 statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-[#F3F0E9] text-[#78716C]'
@@ -440,7 +457,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             }`}
           >
             <Clock className='w-3 h-3' />
-            <span>Đang sản xuất</span>
+            <span>{t('chapterSelectionView.filterInProgress')}</span>
             <span
               className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                 statusFilter === 'in_progress'
@@ -463,7 +480,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             }`}
           >
             <Lock className='w-3 h-3' />
-            <span>Đã khóa (Frozen)</span>
+            <span>{t('chapterSelectionView.filterFrozen')}</span>
             <span
               className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                 statusFilter === 'frozen'
@@ -486,7 +503,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             }`}
           >
             <CheckCircle2 className='w-3 h-3' />
-            <span>Đã duyệt kịch bản</span>
+            <span>{t('chapterSelectionView.filterApproved')}</span>
             <span
               className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                 statusFilter === 'approved'
@@ -504,7 +521,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
       {loadingChapters ? (
         <div className='text-center py-24 text-xs text-[#57534E] bg-white border border-[#D8D2C5] rounded-2xl'>
           <div className='inline-block animate-spin rounded-full h-7 w-7 border-2 border-[#C2410C] border-t-transparent mb-3' />
-          <p>Đang tải danh sách chương...</p>
+          <p>{t('chapterSelectionView.loadingChapters')}</p>
         </div>
       ) : chapters.length === 0 ? (
         /* Empty State hoàn toàn chưa có chương nào */
@@ -513,12 +530,12 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             <BookOpen className='w-6 h-6' />
           </div>
           <h3 className='text-base font-bold font-serif text-[#1C1917]'>
-            Chưa có chương
+            {t('chapterSelectionView.emptyTitle')}
           </h3>
           <p className='text-xs text-[#57534E] max-w-md mx-auto'>
             {canCreateChapter
-              ? 'Khởi tạo Chương 1 để bắt đầu viết kịch bản.'
-              : 'Liên hệ Producer để tạo chương trước khi viết kịch bản.'}
+              ? t('chapterSelectionView.emptyProducerHint')
+              : t('chapterSelectionView.emptyWriterHint')}
           </p>
           {canCreateChapter && (
             <button
@@ -527,7 +544,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#C2410C] hover:bg-[#9A3412] rounded-xl shadow-xs transition-all cursor-pointer mt-2'
             >
               <Plus className='w-3.5 h-3.5' />
-              <span>Tạo Chương 1</span>
+              <span>{t('chapterSelectionView.createChapter1Btn')}</span>
             </button>
           )}
         </div>
@@ -538,11 +555,10 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             <Search className='w-6 h-6' />
           </div>
           <h3 className='text-base font-bold font-serif text-[#1C1917]'>
-            Không tìm thấy chương nào phù hợp
+            {t('chapterSelectionView.noMatchTitle')}
           </h3>
           <p className='text-xs text-[#57534E] max-w-md mx-auto'>
-            Không có chương nào khớp với từ khóa &ldquo;{searchQuery}&rdquo; hoặc bộ lọc trạng thái
-            hiện tại.
+            {t('chapterSelectionView.noMatchDesc', { query: searchQuery })}
           </p>
           <button
             type='button'
@@ -553,7 +569,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-[#1C1917] bg-white hover:bg-[#FAF8F5] border border-[#D8D2C5] rounded-xl shadow-2xs transition-all cursor-pointer mt-2'
           >
             <RotateCcw className='w-3.5 h-3.5 text-[#78716C]' />
-            <span>Đặt lại bộ lọc</span>
+            <span>{t('chapterSelectionView.resetFiltersBtn')}</span>
           </button>
         </div>
       ) : viewMode === 'grid' ? (
@@ -570,7 +586,9 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                 {/* Header card: Số thứ tự chương, phiên bản & trạng thái */}
                 <div className='flex items-center justify-between gap-2'>
                   <span className='font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-[#1C1917] group-hover:border-[#F97316]/40 transition-colors'>
-                    CHƯƠNG {chapter.chapterNumber}
+                    {t('chapterSelectionView.chapterBadgeUpper', {
+                      number: chapter.chapterNumber,
+                    })}
                   </span>
                   <span className='font-mono text-[11px] text-[#78716C] bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-[#E5E0D8]'>
                     v{chapter.versionVector || 1}
@@ -589,19 +607,23 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
 
                 {/* Body card: Đoạn tóm tắt/ghi chú có line-clamp-3 để đều chiều cao */}
                 <div className='text-xs text-[#57534E] line-clamp-3 leading-relaxed italic bg-[#FAF8F5] p-3 rounded-xl border border-[#EBE7DF] min-h-[4.75rem]'>
-                  {chapter.outline ? `“${chapter.outline}”` : 'Chưa có đề cương kịch bản tóm tắt.'}
+                  {chapter.outline ? `“${chapter.outline}”` : t('chapterSelectionView.noOutline')}
                 </div>
 
                 {/* Thống kê quy mô phân cảnh & trang */}
                 <div className='flex items-center gap-3 text-[11px] text-[#78716C] pt-1'>
                   <span className='inline-flex items-center gap-1'>
                     <Film className='w-3.5 h-3.5 text-[#A8A29E]' />
-                    <span>{chapter.scenesCount ?? 0} phân cảnh</span>
+                    <span>
+                      {t('chapterSelectionView.scenesCount', { count: chapter.scenesCount ?? 0 })}
+                    </span>
                   </span>
                   <span>•</span>
                   <span className='inline-flex items-center gap-1'>
                     <Layers className='w-3.5 h-3.5 text-[#A8A29E]' />
-                    <span>{chapter.pagesCount ?? 0} trang</span>
+                    <span>
+                      {t('chapterSelectionView.pagesCount', { count: chapter.pagesCount ?? 0 })}
+                    </span>
                   </span>
                 </div>
               </div>
@@ -613,8 +635,10 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                   <span>
                     {chapter.targetReleaseDate ||
                       (chapter.updatedAt
-                        ? new Date(chapter.updatedAt).toLocaleDateString('vi-VN')
-                        : 'Chưa ấn định')}
+                        ? new Date(chapter.updatedAt).toLocaleDateString(
+                            lang === 'en' ? 'en-US' : 'vi-VN',
+                          )
+                        : t('chapterSelectionView.unscheduled'))}
                   </span>
                 </div>
 
@@ -622,7 +646,11 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                   type='button'
                   className='inline-flex items-center gap-1 text-xs font-bold text-[#C2410C] group-hover:translate-x-1 transition-transform'
                 >
-                  <span>{chapter.isScriptFrozen ? 'Xem kịch bản' : 'Viết kịch bản'}</span>
+                  <span>
+                    {chapter.isScriptFrozen
+                      ? t('chapterSelectionView.viewScript')
+                      : t('chapterSelectionView.writeScript')}
+                  </span>
                   <ChevronRight className='w-4 h-4' />
                 </button>
               </div>
@@ -636,14 +664,24 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             <table className='w-full text-left border-collapse text-xs'>
               <thead>
                 <tr className='bg-[#FAF8F5] border-b border-[#EBE7DF] text-[#78716C] font-semibold text-[11px] uppercase tracking-wider'>
-                  <th className='py-3.5 px-4 w-28'>Chương</th>
-                  <th className='py-3.5 px-4 min-w-[200px]'>Tiêu đề chương</th>
-                  <th className='py-3.5 px-4 min-w-[280px]'>Đề cương tóm tắt</th>
-                  <th className='py-3.5 px-4 min-w-[200px]'>Trạng thái</th>
-                  <th className='py-3.5 px-4 w-32'>Quy mô</th>
-                  <th className='py-3.5 px-4 w-24'>Phiên bản</th>
-                  <th className='py-3.5 px-4 min-w-[140px]'>Hạn chót</th>
-                  <th className='py-3.5 px-4 w-32 text-right'>Thao tác</th>
+                  <th className='py-3.5 px-4 w-28'>{t('chapterSelectionView.colChapter')}</th>
+                  <th className='py-3.5 px-4 min-w-[200px]'>
+                    {t('chapterSelectionView.colTitle')}
+                  </th>
+                  <th className='py-3.5 px-4 min-w-[280px]'>
+                    {t('chapterSelectionView.colOutline')}
+                  </th>
+                  <th className='py-3.5 px-4 min-w-[200px]'>
+                    {t('chapterSelectionView.colStatus')}
+                  </th>
+                  <th className='py-3.5 px-4 w-32'>{t('chapterSelectionView.colScale')}</th>
+                  <th className='py-3.5 px-4 w-24'>{t('chapterSelectionView.colVersion')}</th>
+                  <th className='py-3.5 px-4 min-w-[140px]'>
+                    {t('chapterSelectionView.colDeadline')}
+                  </th>
+                  <th className='py-3.5 px-4 w-32 text-right'>
+                    {t('chapterSelectionView.colAction')}
+                  </th>
                 </tr>
               </thead>
               <tbody className='divide-y divide-[#EBE7DF]'>
@@ -656,7 +694,9 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                   >
                     <td className='py-3.5 px-4'>
                       <span className='font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-[#1C1917] group-hover:border-[#F97316]/50'>
-                        Chương {chapter.chapterNumber}
+                        {t('chapterSelectionView.chapterBadge', {
+                          number: chapter.chapterNumber,
+                        })}
                       </span>
                     </td>
                     <td className='py-3.5 px-4 font-bold font-serif text-[#1C1917] group-hover:text-[#C2410C]'>
@@ -667,7 +707,10 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                     </td>
                     <td className='py-3.5 px-4'>{getStatusBadge(chapter)}</td>
                     <td className='py-3.5 px-4 text-[#78716C] font-mono text-[11px]'>
-                      {chapter.scenesCount ?? 0} cảnh / {chapter.pagesCount ?? 0} trang
+                      {t('chapterSelectionView.scaleFormat', {
+                        scenes: chapter.scenesCount ?? 0,
+                        pages: chapter.pagesCount ?? 0,
+                      })}
                     </td>
                     <td className='py-3.5 px-4 font-mono text-[#78716C]'>
                       v{chapter.versionVector || 1}
@@ -680,7 +723,11 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                         type='button'
                         className='inline-flex items-center gap-1 text-xs font-bold text-[#C2410C] group-hover:translate-x-1 transition-transform'
                       >
-                        <span>{chapter.isScriptFrozen ? 'Xem kịch bản' : 'Viết kịch bản'}</span>
+                        <span>
+                          {chapter.isScriptFrozen
+                            ? t('chapterSelectionView.viewScript')
+                            : t('chapterSelectionView.writeScript')}
+                        </span>
                         <ChevronRight className='w-4 h-4' />
                       </button>
                     </td>
@@ -698,13 +745,14 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
           size='md'
-          closeLabel='Đóng'
-          title='Khởi Tạo Chương Mới (Producer)'
+          closeLabel={t('chapterSelectionView.close')}
+          title={t('chapterSelectionView.createModalTitle')}
         >
           <form onSubmit={handleSubmitCreate} className='space-y-4'>
             <div>
               <label className='block text-xs font-bold text-[#1C1917] mb-1'>
-                Số thứ tự chương <span className='text-rose-500'>*</span>
+                {t('chapterSelectionView.chapterNumberLabel')}{' '}
+                <span className='text-rose-500'>*</span>
               </label>
               <input
                 type='number'
@@ -717,10 +765,12 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
             </div>
 
             <div>
-              <label className='block text-xs font-bold text-[#1C1917] mb-1'>Tiêu đề chương</label>
+              <label className='block text-xs font-bold text-[#1C1917] mb-1'>
+                {t('chapterSelectionView.chapterTitleLabel')}
+              </label>
               <input
                 type='text'
-                placeholder='vd: Khởi đầu mới, Đêm tuyết Shibuya'
+                placeholder={t('chapterSelectionView.chapterTitlePlaceholder')}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C]'
@@ -729,11 +779,11 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
 
             <div>
               <label className='block text-xs font-bold text-[#1C1917] mb-1'>
-                Đề cương chương
+                {t('chapterSelectionView.chapterOutlineLabel')}
               </label>
               <textarea
                 rows={3}
-                placeholder='vd: Cuộc chạm trán tại cổng thành'
+                placeholder={t('chapterSelectionView.chapterOutlinePlaceholder')}
                 value={outline}
                 onChange={(e) => setOutline(e.target.value)}
                 className='w-full px-3 py-2 text-xs bg-white border border-[#D8D2C5] rounded-xl outline-none focus:border-[#C2410C] resize-none'
@@ -742,7 +792,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
 
             <div>
               <label className='block text-xs font-bold text-[#1C1917] mb-1'>
-                Ngày phát hành mục tiêu (Target Date)
+                {t('chapterSelectionView.targetDateLabel')}
               </label>
               <input
                 type='date'
@@ -758,14 +808,16 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                 onClick={() => setModalOpen(false)}
                 className='px-4 py-2 text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#EBE7DF] rounded-xl transition-colors cursor-pointer'
               >
-                Hủy
+                {t('chapterSelectionView.cancel')}
               </button>
               <button
                 type='submit'
                 disabled={submitting}
                 className='px-4 py-2 text-xs font-bold text-white bg-[#C2410C] hover:bg-[#9A3412] rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50'
               >
-                {submitting ? 'Đang tạo...' : 'Khởi tạo chương'}
+                {submitting
+                  ? t('chapterSelectionView.creating')
+                  : t('chapterSelectionView.createSubmitBtn')}
               </button>
             </div>
           </form>

@@ -590,9 +590,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       const detail = e.detail;
       if (detail) {
         setConflictEntityId(detail.item?.clientRefId);
-        setConflictErrorMsg(
-          detail.message || 'Xung đột phiên bản kịch bản khi đồng bộ ngoại tuyến (409 Conflict).',
-        );
+        setConflictErrorMsg(detail.message || t('writer.scriptEditor.offlineConflictFallback'));
         setConflictModalOpen(true);
       }
     };
@@ -808,7 +806,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       })
       .catch((err) => {
         console.error('Lỗi nạp thông tin chương và Bible:', err);
-        if (isMounted) setLoadError(err.message || 'Không thể nạp thông tin chương.');
+        if (isMounted)
+          setLoadError(err.message || t('writer.scriptEditor.loadChapterErrorFallback'));
       })
       .finally(() => {
         if (isMounted) setLoadingChapters(false);
@@ -888,7 +887,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         });
       } catch (err: any) {
         console.error('Lỗi nạp chi tiết phân cảnh:', err);
-        notify('Lỗi nạp phân cảnh', err.message || 'Không thể nạp chi tiết phân cảnh');
+        notify(
+          t('writer.scriptEditor.loadSceneErrorTitle'),
+          err.message || t('writer.scriptEditor.loadSceneErrorFallback'),
+        );
       } finally {
         setLoadingDetail(false);
       }
@@ -1058,10 +1060,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           err?.message?.includes('409') ||
           err?.message?.includes('phiên bản khác')
         ) {
-          const conflictMsg = t(
-            'scriptStudio.save.conflict',
-            'Kịch bản vừa được thay đổi (khôi phục / AI / người khác). Tải lại để xem bản mới nhất.',
-          );
+          const conflictMsg = t('scriptStudio.save.conflict');
           setConcurrencyError(conflictMsg);
           notify(conflictMsg, '');
           return false;
@@ -1108,8 +1107,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       userDeletedSceneRef.current = true;
       await scriptLineService.deleteScene(sceneToDelete.id);
       notify(
-        'Đã xoá phân cảnh',
-        `Cảnh ${sceneToDelete.sceneNumber} đã được xoá an toàn. Kịch bản và các panel vẫn được giữ nguyên.`,
+        t('writer.scriptEditor.sceneDeletedTitle'),
+        t('writer.scriptEditor.sceneDeletedDesc', { number: sceneToDelete.sceneNumber }),
       );
       if (selectedScene?.id === sceneToDelete.id) {
         setSelectedScene(null);
@@ -1117,7 +1116,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       setSceneToDelete(null);
       await loadScenes();
     } catch (err: any) {
-      notify('Không thể xoá phân cảnh', err?.message || 'Lỗi hệ thống');
+      notify(
+        t('writer.scriptEditor.sceneDeleteErrorTitle'),
+        err?.message || t('writer.scriptEditor.systemErrorFallback'),
+      );
     } finally {
       setIsDeletingScene(false);
     }
@@ -1130,8 +1132,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     try {
       await chapterService.deleteChapter(chapterToDelete.id);
       notify(
-        'Đã xoá chương',
-        `Chương ${chapterToDelete.chapterNumber} đã được xoá an toàn khỏi chuỗi sản xuất.`,
+        t('writer.scriptEditor.chapterDeletedTitle'),
+        t('writer.scriptEditor.chapterDeletedDesc', { number: chapterToDelete.chapterNumber }),
       );
       setChapterToDelete(null);
       if (seriesId) {
@@ -1147,7 +1149,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }
       }
     } catch (err: any) {
-      notify('Không thể xoá chương', err.message || 'Lỗi hệ thống');
+      notify(
+        t('writer.scriptEditor.chapterDeleteErrorTitle'),
+        err.message || t('writer.scriptEditor.systemErrorFallback'),
+      );
     } finally {
       setIsDeletingChapter(false);
     }
@@ -1161,21 +1166,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           name,
           code: name.toUpperCase().replace(/\s+/g, '_').slice(0, 15),
           category: 'Character',
-          description: `Tạo tự động từ kịch bản (Chờ cập nhật mô tả)`,
+          description: t('writer.scriptEditor.stubAutoDesc'),
           priority: 'Standard',
-          variantLabel: 'Mặc định',
+          variantLabel: t('writer.scriptEditor.defaultVariantLabel'),
         });
         setAllBibleEntries((prev) => [...prev, created]);
         setCharacters((prev) => [...prev, created]);
         notify(
-          'Đã tạo thực thể tạm',
-          `Đã lưu tạm "${name}" vào Series Bible để biên kịch tiếp tục.`,
+          t('writer.scriptEditor.stubCreatedTitle'),
+          t('writer.scriptEditor.stubCreatedDesc', { name }),
         );
       } catch (err: any) {
         console.error('Lỗi tự sinh Stub Entity:', err);
       }
     },
-    [seriesId, notify],
+    [seriesId, notify, t],
   );
 
   const handleOpenInBible = useCallback(
@@ -1245,7 +1250,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         try {
           const defaultScene = await scriptLineService.createScene(currentChapter.id, {
             sceneNumber: 1,
-            heading: 'CẢNH 1: MỞ ĐẦU',
+            heading: t('writer.scriptEditor.defaultSceneHeading'),
             summary: null,
             defaultNarrationMode: 'Present',
           });
@@ -1266,7 +1271,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       }
     } catch (err: any) {
       console.error('Lỗi tải danh sách phân cảnh:', err);
-      notify('Lỗi tải kịch bản', err.message || 'Không thể tải danh sách phân cảnh');
+      notify(
+        t('writer.scriptEditor.loadScriptErrorTitle'),
+        err.message || t('writer.scriptEditor.loadScenesErrorFallback'),
+      );
     } finally {
       setLoadingScenes(false);
     }
@@ -1322,10 +1330,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       setTimeout(() => setBarWarn(false), 800);
       const confirmSwitch = await confirm({
         title: t('scriptStudio.narrative.discardTitle', 'Bỏ qua thay đổi chưa lưu?'),
-        description: t(
-          'scriptStudio.narrative.discardSwitchDesc',
-          'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để chuyển chương không?',
-        ),
+        description: t('scriptStudio.narrative.discardSwitchDesc'),
         confirmLabel: t('scriptStudio.narrative.discardAndSwitch', 'Bỏ qua và chuyển chương'),
         cancelLabel: t('scriptStudio.narrative.stay', 'Ở lại'),
       });
@@ -1357,10 +1362,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       setTimeout(() => setBarWarn(false), 800);
       const confirmSwitch = await confirm({
         title: t('scriptStudio.narrative.discardTitle', 'Bỏ qua thay đổi chưa lưu?'),
-        description: t(
-          'scriptStudio.narrative.discardBackDesc',
-          'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để quay lại danh sách chọn chương không?',
-        ),
+        description: t('scriptStudio.narrative.discardBackDesc'),
         confirmLabel: t('scriptStudio.narrative.discardAndBack', 'Bỏ qua và quay lại'),
         cancelLabel: t('scriptStudio.narrative.stay', 'Ở lại'),
       });
@@ -1390,8 +1392,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (!seriesId) return;
     if (!canCreateChapter) {
       notify(
-        'Quyền hạn bị từ chối',
-        'Chỉ có Producer mới có quyền khởi tạo chương mới cho series.',
+        t('writer.scriptEditor.permissionDeniedTitle'),
+        t('writer.scriptEditor.onlyProducerCanCreateChapter'),
       );
       return;
     }
@@ -1446,9 +1448,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       setOutlineInput(res.value || '');
       clearDraft(`outline.${currentChapter.id}`);
       setCurrentChapter((prev) => (prev ? { ...prev, outline: res.value } : null));
-      notify('Thành công', `Đã cập nhật đề cương Chương ${currentChapter.chapterNumber}.`);
+      notify(
+        t('writer.scriptEditor.successTitle'),
+        t('writer.scriptEditor.outlineUpdatedDesc', { number: currentChapter.chapterNumber }),
+      );
     } catch (err: any) {
-      notify('Lỗi cập nhật đề cương', err.message);
+      notify(t('writer.scriptEditor.outlineUpdateErrorTitle'), err.message);
       if (
         err.message?.includes('409') ||
         err.message?.includes('khoá') ||
@@ -1471,11 +1476,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       setFindings(res.findings || []);
       setActiveRightDrawer('consistency');
       notify(
-        'Kiểm tra nhất quán hoàn tất',
-        `Phát hiện ${res.openCount} vấn đề (${res.blockingOpenCount} lỗi chặn).`,
+        t('writer.scriptEditor.consistencyDoneTitle'),
+        t('writer.scriptEditor.consistencyDoneDesc', {
+          openCount: res.openCount,
+          blockingOpenCount: res.blockingOpenCount,
+        }),
       );
     } catch (err: any) {
-      notify('Lỗi kiểm tra nhất quán', err.message);
+      notify(t('writer.scriptEditor.consistencyErrorTitle'), err.message);
     } finally {
       setLoadingConsistency(false);
     }
@@ -1484,7 +1492,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Nút "Xem dòng" an toàn, không làm mất dữ liệu nhập và báo rõ nếu dòng không tồn tại
   const handleScrollToLine = async (scriptLineId?: string | null) => {
     if (!scriptLineId) {
-      notify('Thông báo', 'Vấn đề này không gắn với dòng kịch bản cụ thể nào.');
+      notify(t('writer.scriptEditor.noticeTitle'), t('writer.scriptEditor.issueNoLineAttached'));
       return;
     }
 
@@ -1522,8 +1530,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
       if (!targetSceneFound) {
         notify(
-          'Không tìm thấy dòng',
-          'Dòng kịch bản này không còn tồn tại hoặc đã bị xóa trong kịch bản hiện tại.',
+          t('writer.scriptEditor.lineNotFoundTitle'),
+          t('writer.scriptEditor.lineNotFoundDesc'),
         );
         return;
       }
@@ -1531,10 +1539,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setHighlightedLineId(scriptLineId);
     } else {
-      notify(
-        'Không tìm thấy dòng',
-        'Dòng kịch bản này không còn tồn tại hoặc đã bị xóa trong kịch bản hiện tại.',
-      );
+      notify(t('writer.scriptEditor.lineNotFoundTitle'), t('writer.scriptEditor.lineNotFoundDesc'));
       return;
     }
 
@@ -1588,7 +1593,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           expectedVersion: selectedScene.version,
         };
         const updated = await scriptLineService.updateScene(selectedScene.id, req);
-        notify('Thành công', `Đã cập nhật Phân cảnh ${updated.sceneNumber}`);
+        notify(
+          t('writer.scriptEditor.successTitle'),
+          t('writer.scriptEditor.sceneUpdatedDesc', { number: updated.sceneNumber }),
+        );
         setScenes((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
         setSelectedScene((prev) => (prev ? { ...prev, ...updated } : null));
         setChapterScenesDetail((prev) =>
@@ -1611,7 +1619,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           defaultNarrationMode: sceneDefaultNarrationMode,
         };
         const created = await scriptLineService.createScene(currentChapter.id, req);
-        notify('Thành công', `Đã tạo Phân cảnh ${created.sceneNumber}`);
+        notify(
+          t('writer.scriptEditor.successTitle'),
+          t('writer.scriptEditor.sceneCreatedDesc', { number: created.sceneNumber }),
+        );
         setScenes((prev) => [...prev, created]);
         handleSelectScene(created);
       }
@@ -1621,17 +1632,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         // BR-11: người khác vừa sửa phân cảnh → nạp lại bản mới (kèm version mới), giữ form mở; KHÔNG tự gửi lại.
         // Người dùng xem bản mới rồi quyết định lưu lại nội dung của mình hay không.
         setConflictEntityId(selectedScene.id);
-        setConflictErrorMsg(err.message || 'Phân cảnh vừa được người khác chỉnh sửa trên máy chủ.');
+        setConflictErrorMsg(err.message || t('writer.scriptEditor.sceneConflictFallback'));
         setConflictModalOpen(true);
         notify(
-          'Phân cảnh vừa được người khác sửa',
-          `${err.message} Đã nạp bản mới nhất, kiểm tra lại rồi lưu.`,
+          t('writer.scriptEditor.sceneConflictTitle'),
+          t('writer.scriptEditor.sceneConflictDesc', { message: err.message }),
         );
         await loadSceneDetail(selectedScene.id);
       } else if (err?.status === 403) {
-        notify('Không có quyền thao tác (403)', err.message);
+        notify(t('writer.scriptEditor.noPermission403Title'), err.message);
       } else {
-        notify('Lỗi thao tác phân cảnh', err.message);
+        notify(t('writer.scriptEditor.sceneActionErrorTitle'), err.message);
       }
     } finally {
       setSubmitting(false);
@@ -1668,7 +1679,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (!currentChapter?.id || !selectedScene?.id) return;
 
     if (!lineDialogue.trim() && !lineStageDirection.trim()) {
-      notify('Thiếu nội dung', 'Nhập lời thoại hoặc chỉ dẫn cảnh.');
+      notify(
+        t('writer.scriptEditor.missingContentTitle'),
+        t('writer.scriptEditor.missingContentDesc'),
+      );
       return;
     }
 
@@ -1711,8 +1725,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             };
           });
           notify(
-            'Đã lưu ngoại tuyến (NFR-09)',
-            `Thay đổi dòng kịch bản #${editingLine.lineOrder} đã được lưu vào hàng đợi và sẽ tự đồng bộ khi có mạng.`,
+            t('writer.scriptEditor.savedOfflineTitle'),
+            t('writer.scriptEditor.lineEditOfflineDesc', { order: editingLine.lineOrder }),
           );
           setLineModalOpen(false);
           return;
@@ -1723,7 +1737,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           editingLine.id,
           req,
         );
-        notify('Cập nhật thành công', `Đã lưu dòng kịch bản #${res.lineOrder}`);
+        notify(
+          t('writer.scriptEditor.updateSuccessTitle'),
+          t('writer.scriptEditor.lineSavedDesc', { order: res.lineOrder }),
+        );
         setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
         await loadSceneDetail(selectedScene.id);
         setLineModalOpen(false);
@@ -1771,8 +1788,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             ),
           );
           notify(
-            'Đã lưu ngoại tuyến (NFR-09)',
-            `Dòng kịch bản mới #${lineOrderInput} đã được lưu vào hàng đợi trên thiết bị và sẽ tự đồng bộ khi có kết nối mạng.`,
+            t('writer.scriptEditor.savedOfflineTitle'),
+            t('writer.scriptEditor.lineCreateOfflineDesc', { order: lineOrderInput }),
           );
           setLineModalOpen(false);
           return;
@@ -1784,10 +1801,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           req,
         );
         notify(
-          'Thêm thành công',
+          t('writer.scriptEditor.addSuccessTitle'),
           res.replayed
-            ? `Dòng kịch bản #${res.lineOrder} đã được nạp an toàn (Idempotent)`
-            : `Đã tạo dòng kịch bản #${res.lineOrder}`,
+            ? t('writer.scriptEditor.lineReplayedDesc', { order: res.lineOrder })
+            : t('writer.scriptEditor.lineCreatedDesc', { order: res.lineOrder }),
         );
         setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
         await loadSceneDetail(selectedScene.id);
@@ -1795,24 +1812,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       }
     } catch (err: any) {
       if (err.code === 'CONFLICT' || err.status === 409) {
-        const msg =
-          err.message ||
-          'Xung đột phiên bản: Kịch bản đã được chỉnh sửa ở tab/thiết bị khác. Đang nạp lại dữ liệu mới nhất...';
+        const msg = err.message || t('writer.scriptEditor.versionConflictFallback');
         setConcurrencyError(msg);
         setConflictEntityId(editingLine?.id || selectedScene.id);
         setConflictErrorMsg(msg);
         setConflictModalOpen(true);
-        notify('Xung đột phiên bản (409 CONFLICT)', msg);
+        notify(t('writer.scriptEditor.versionConflict409Title'), msg);
         await refreshChapterDetail(currentChapter.id);
         await loadSceneDetail(selectedScene.id);
       } else if (err.status === 403 || err.code === 'FORBIDDEN') {
         notify(
-          'Không có quyền sửa kịch bản (403)',
-          err.message ||
-            'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+          t('writer.scriptEditor.noEditPermission403Title'),
+          err.message || t('writer.scriptEditor.assignedWriterOnlyDesc'),
         );
       } else {
-        notify('Lỗi ghi kịch bản', err.message);
+        notify(t('writer.scriptEditor.writeScriptErrorTitle'), err.message);
       }
     } finally {
       setSubmitting(false);
@@ -1823,10 +1837,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (!currentChapter?.id || !selectedScene?.id) return;
     if (
       !(await confirm({
-        title: `Xoá dòng kịch bản #${line.lineOrder}?`,
+        title: t('writer.scriptEditor.deleteLineConfirmTitle', { order: line.lineOrder }),
         description: line.dialogueText ? `"${line.dialogueText}"` : undefined,
-        confirmText: 'Xoá dòng',
-        cancelText: 'Giữ lại',
+        confirmText: t('writer.scriptEditor.deleteLineConfirmBtn'),
+        cancelText: t('writer.scriptEditor.keepLineBtn'),
         variant: 'danger',
       }))
     )
@@ -1857,8 +1871,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         ),
       );
       notify(
-        'Đã xoá ngoại tuyến (NFR-09)',
-        `Dòng #${line.lineOrder} đã được đánh dấu xoá và sẽ đồng bộ khi có kết nối mạng.`,
+        t('writer.scriptEditor.deletedOfflineTitle'),
+        t('writer.scriptEditor.lineDeleteOfflineDesc', { order: line.lineOrder }),
       );
       return;
     }
@@ -1869,27 +1883,29 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         line.id,
         currentChapter.versionVector,
       );
-      notify('Đã xoá dòng kịch bản', `Dòng #${line.lineOrder} đã được xoá.`);
+      notify(
+        t('writer.scriptEditor.lineDeletedTitle'),
+        t('writer.scriptEditor.lineDeletedDesc', { order: line.lineOrder }),
+      );
       setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
       await loadSceneDetail(selectedScene.id);
     } catch (err: any) {
       if (err.code === 'CONFLICT' || err.status === 409) {
-        const msg = err.message || 'Xung đột phiên bản khi xoá dòng kịch bản.';
+        const msg = err.message || t('writer.scriptEditor.deleteConflictFallback');
         setConcurrencyError(msg);
         setConflictEntityId(line.id);
         setConflictErrorMsg(msg);
         setConflictModalOpen(true);
-        notify('Xung đột phiên bản', msg);
+        notify(t('writer.scriptEditor.versionConflictTitle'), msg);
         await refreshChapterDetail(currentChapter.id);
         await loadSceneDetail(selectedScene.id);
       } else if (err.status === 403 || err.code === 'FORBIDDEN') {
         notify(
-          'Không có quyền xoá dòng (403)',
-          err.message ||
-            'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+          t('writer.scriptEditor.noDeletePermission403Title'),
+          err.message || t('writer.scriptEditor.assignedWriterOnlyDesc'),
         );
       } else {
-        notify('Lỗi xoá dòng', err.message);
+        notify(t('writer.scriptEditor.deleteLineErrorTitle'), err.message);
       }
     }
   };
@@ -1914,18 +1930,23 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         payload,
         currentChapter.versionVector,
       );
-      notify('Đã cập nhật thứ tự', 'Thứ tự các dòng kịch bản đã được lưu thành công.');
+      notify(
+        t('writer.scriptEditor.reorderSuccessTitle'),
+        t('writer.scriptEditor.reorderSuccessDesc'),
+      );
       await refreshChapterDetail(currentChapter.id);
     } catch (err: any) {
       setSelectedScene((prev) => (prev ? { ...prev, scriptLines: previousLines } : null));
       if (err.status === 403 || err.code === 'FORBIDDEN') {
         notify(
-          'Không có quyền sắp xếp dòng (403)',
-          err.message ||
-            'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+          t('writer.scriptEditor.noReorderPermission403Title'),
+          err.message || t('writer.scriptEditor.assignedWriterOnlyDesc'),
         );
       } else {
-        notify('Lỗi sắp xếp dòng', err.message || 'Không thể cập nhật thứ tự dòng kịch bản.');
+        notify(
+          t('writer.scriptEditor.reorderErrorTitle'),
+          err.message || t('writer.scriptEditor.reorderErrorFallback'),
+        );
       }
       await loadSceneDetail(selectedScene.id);
     } finally {
@@ -2000,12 +2021,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     try {
       const updated = await chapterService.unfreezeScript(currentChapter.id, reason);
       notify(
-        'Đã mở lại kịch bản',
-        `Kịch bản Chương ${currentChapter.chapterNumber} đã được mở lại cho Writer chỉnh sửa.`,
+        t('writer.scriptEditor.unfreezeSuccessTitle'),
+        t('writer.scriptEditor.unfreezeSuccessDesc', { number: currentChapter.chapterNumber }),
       );
       await applyChapterUpdate(updated);
     } catch (err: any) {
-      notify('Không thể mở lại kịch bản', err.message);
+      notify(t('writer.scriptEditor.unfreezeErrorTitle'), err.message);
     } finally {
       setFreezingScript(false);
     }
@@ -2088,10 +2109,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         err?.message?.includes('409') ||
         err?.message?.includes('phiên bản khác')
       ) {
-        const conflictMsg = t(
-          'scriptStudio.save.conflict',
-          'Kịch bản vừa được thay đổi (khôi phục / AI / người khác). Tải lại để xem bản mới nhất.',
-        );
+        const conflictMsg = t('scriptStudio.save.conflict');
         setConcurrencyError(conflictMsg);
         notify(conflictMsg, '');
         return;
@@ -2109,12 +2127,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     const confirmed = await confirm({
       title: t('scriptStudio.lifecycle.recallConfirmTitle', {
         n: currentChapter.chapterNumber,
-        defaultValue: `Rút kịch bản Chương ${currentChapter.chapterNumber} về sửa?`,
       }),
-      description: t(
-        'scriptStudio.lifecycle.recallConfirmBody',
-        'Kịch bản sẽ chuyển về trạng thái Bản thảo (Draft). Các góp ý và ghi chú đánh giá của Editor vẫn được lưu giữ.',
-      ),
+      description: t('scriptStudio.lifecycle.recallConfirmBody'),
       confirmText: t('scriptStudio.submit.recall', 'Rút về sửa'),
       cancelText: t('scriptStudio.lifecycle.cancel', 'Hủy'),
       variant: 'warning',
@@ -2285,12 +2299,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       const dirty = flowDirtyRef.current;
       // Báo trước khi tải: dù tải lại lỗi, người dùng vẫn biết bản trên server đã đổi
       if (dirty) {
-        setConcurrencyError(
-          t(
-            'scriptStudio.save.conflict',
-            'Kịch bản vừa được thay đổi (khôi phục / AI / người khác). Tải lại để xem bản mới nhất.',
-          ),
-        );
+        setConcurrencyError(t('scriptStudio.save.conflict'));
       }
       await reloadScriptWorkingCopy(chapId, { forceEditorSync: !dirty, targetSceneId });
     },
@@ -2390,9 +2399,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       });
       setLineCopilotSuggestions((prev) => ({ ...prev, [lineId]: sug }));
     } catch (err: any) {
-      const msg = err?.message || 'Không thể chạy AI Copilot.';
+      const msg = err?.message || t('writer.scriptEditor.aiCopilotFallback');
       setLineCopilotErrors((prev) => ({ ...prev, [lineId]: msg }));
-      notify('Lỗi AI Copilot', msg);
+      notify(t('writer.scriptEditor.aiCopilotErrorTitle'), msg);
       if (err?.status === 409) {
         setConcurrencyError(msg);
         await handleAiReload();
@@ -2441,9 +2450,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }));
       }
     } catch (err: any) {
-      const msg = err?.message || 'Không thể ghi quyết định.';
+      const msg = err?.message || t('writer.scriptEditor.aiDecisionFallback');
       setLineCopilotErrors((prev) => ({ ...prev, [lineId]: msg }));
-      notify('Lỗi quyết định đề xuất AI', msg);
+      notify(t('writer.scriptEditor.aiDecisionErrorTitle'), msg);
       if (err?.status === 409) {
         setConcurrencyError(msg);
         await handleAiReload();
@@ -2567,8 +2576,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Gửi lại chỉ khi đã lưu thay đổi sau lần gửi duyệt gần nhất
   const canSubmitScript =
-    scriptAction !== null &&
-    (scriptAction !== 'resubmit' || hasUnpushedChanges);
+    scriptAction !== null && (scriptAction !== 'resubmit' || hasUnpushedChanges);
   const scriptStageIndex = isScriptFrozen ? 2 : isScriptInReview ? 1 : 0;
 
   const submitScriptRef = React.useRef<() => void>(() => {});
@@ -2750,10 +2758,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       tooltip: !canEditScript
         ? t('scriptStudio.railTooltip.importDisabledRole', 'Chỉ xem - không có quyền nhập kịch bản')
         : isChapterLocked
-          ? t(
-              'scriptStudio.railTooltip.importDisabledLocked',
-              'Chương đã đóng băng - không thể nhập kịch bản',
-            )
+          ? t('scriptStudio.railTooltip.importDisabledLocked')
           : t('scriptStudio.railTooltip.import', 'Nhập kịch bản từ tệp bên ngoài'),
       icon: FileInput,
       disabled: !canEditScript || isChapterLocked,
@@ -2769,10 +2774,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       tooltip: !canEditScript
         ? t('scriptStudio.railTooltip.aiDisabledRole', 'Chỉ xem - không có quyền dùng Trợ lý AI')
         : isChapterLocked
-          ? t(
-              'scriptStudio.railTooltip.aiDisabledLocked',
-              'Chương đã đóng băng - không thể dùng Trợ lý AI',
-            )
+          ? t('scriptStudio.railTooltip.aiDisabledLocked')
           : t('scriptStudio.railTooltip.ai', 'Trợ lý AI viết nháp và phân khung'),
       icon: Sparkles,
       active: activeRightDrawer === 'ai-draft' || activeRightDrawer === 'ai-storyboard',
@@ -2854,7 +2856,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         onOpenCharactersDrawer={() => setActiveRightDrawer('characters')}
       />
 
-      <h1 className='sr-only'>Biên Soạn Kịch Bản Phân Cảnh (Script Editor)</h1>
+      <h1 className='sr-only'>{t('writer.scriptEditor.srHeading')}</h1>
 
       {/* 3. Bàn viết: thanh biểu tượng (trái) | ngăn kéo phân cảnh | trang giấy (giữa) | drawers (phải) */}
       <div className='flex-1 flex overflow-hidden relative'>
@@ -2912,7 +2914,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           !selectedScene ? (
             <div className='flex-1 flex flex-col items-center justify-center text-center p-12 text-stone-500'>
               <RefreshCw className='w-6 h-6 animate-spin text-[#C2410C] mb-3' />
-              <p className='font-serif text-base text-stone-800'>Đang nạp kịch bản…</p>
+              <p className='font-serif text-base text-stone-800'>
+                {t('writer.scriptEditor.loadingScript')}
+              </p>
             </div>
           ) : editorMode === 'flow' ? (
             <ScreenplayFlowEditor
@@ -3012,12 +3016,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   <div className='flex flex-col items-center justify-center py-20 text-center text-stone-500'>
                     <p className='text-sm font-medium text-stone-700'>
                       {scenes.length === 0
-                        ? 'Chương này chưa có phân cảnh kịch bản nào.'
+                        ? t('writer.scriptEditor.noScenesInChapter')
                         : t('scriptStudio.ai.needScene')}
                     </p>
                     {scenes.length === 0 && !canEditScript && (
                       <p className='text-xs text-stone-400 mt-1 max-w-sm'>
-                        Biên kịch chưa tạo phân cảnh hoặc kịch bản đang được chuẩn bị.
+                        {t('writer.scriptEditor.writerPreparingScenes')}
                       </p>
                     )}
                   </div>
@@ -3041,18 +3045,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                           className='btn-cta-primary shrink-0'
                         >
                           <Plus className='w-4 h-4' />
-                          <span>Thêm dòng</span>
+                          <span>{t('writer.scriptEditor.addLineBtn')}</span>
                         </button>
                       )}
                     </div>
                     {loadingDetail ? (
                       <div className='flex items-center justify-center py-16 text-stone-500 text-sm'>
                         <RefreshCw className='w-4 h-4 animate-spin mr-2 text-[#C2410C]' />
-                        Đang nạp chi tiết phân cảnh…
+                        {t('writer.scriptEditor.loadingSceneDetail')}
                       </div>
                     ) : !selectedScene.scriptLines || selectedScene.scriptLines.length === 0 ? (
                       <p className='text-center py-16 text-sm text-stone-500'>
-                        Phân cảnh này chưa có dòng kịch bản nào.
+                        {t('writer.scriptEditor.noLinesInScene')}
                       </p>
                     ) : (
                       selectedScene.scriptLines.map((line, index) => {
@@ -3296,10 +3300,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           sceneId={selectedScene.id}
           workflowType='Script'
           suggestionKind='Script'
-          title='Trợ lý AI · Viết nháp script'
-          briefLabel='Brief cho bản nháp (tối đa 4000 ký tự)'
-          briefPlaceholder='Mô tả diễn biến, giọng điệu, nhân vật cần xuất hiện trong cảnh này...'
-          runLabel='Viết nháp'
+          title={t('writer.scriptEditor.aiDraftTitle')}
+          briefLabel={t('writer.scriptEditor.aiDraftBriefLabel')}
+          briefPlaceholder={t('writer.scriptEditor.aiDraftBriefPlaceholder')}
+          runLabel={t('writer.scriptEditor.aiDraftRunLabel')}
           readingDirection={aiReadingDirection}
           chapterVersion={currentChapter.versionVector}
           nameById={aiNameById}
@@ -3322,10 +3326,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             sceneId={selectedScene.id}
             workflowType='Storyboard'
             suggestionKind='Layout'
-            title='Trợ lý AI · Phân khung Storyboard'
-            briefLabel='Brief / Định hướng phân khung (tối đa 4000 ký tự)'
-            briefPlaceholder='Mô tả định hướng phân khung: số khung mong muốn, nhịp điệu (nhanh/chậm), khung cao trào...'
-            runLabel='Phân khung'
+            title={t('writer.scriptEditor.aiStoryboardTitle')}
+            briefLabel={t('writer.scriptEditor.aiStoryboardBriefLabel')}
+            briefPlaceholder={t('writer.scriptEditor.aiStoryboardBriefPlaceholder')}
+            runLabel={t('writer.scriptEditor.aiStoryboardRunLabel')}
             readingDirection={aiReadingDirection}
             chapterVersion={currentChapter.versionVector}
             nameById={aiNameById}
@@ -3340,21 +3344,25 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         isOpen={sceneModalOpen}
         onClose={() => setSceneModalOpen(false)}
         size='sm'
-        closeLabel='Đóng'
-        title={isEditingScene ? 'Sửa Phân Cảnh (Ghi chú)' : 'Tạo Phân Cảnh Mới (Ghi chú)'}
+        closeLabel={t('writer.scriptEditor.close')}
+        title={
+          isEditingScene
+            ? t('writer.scriptEditor.editSceneModalTitle')
+            : t('writer.scriptEditor.createSceneModalTitle')
+        }
       >
         <form onSubmit={handleSubmitScene} className='space-y-4'>
           <div className='p-2.5 bg-orange-50/80 border border-orange-200/70 rounded-xl text-xs text-orange-950'>
-            💡 Cảnh là phần ghi chú phân đoạn, cho phép định nghĩa tên cảnh và phạm vi từ panel đến panel, không ảnh hưởng đến logic và luồng kịch bản.
+            {t('writer.scriptEditor.sceneNoteHint')}
           </div>
 
           <div>
             <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-              Tên cảnh / Tiêu đề phân cảnh *
+              {t('writer.scriptEditor.sceneHeadingLabel')}
             </label>
             <input
               type='text'
-              placeholder='vd: Cảnh 1: Neo Tokyo - Đêm tuyết rơi'
+              placeholder={t('writer.scriptEditor.sceneHeadingPlaceholder')}
               value={sceneHeadingInput}
               onChange={(e) => setSceneHeadingInput(e.target.value)}
               className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
@@ -3366,7 +3374,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           <div className='grid grid-cols-2 gap-3'>
             <div>
               <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-                Từ panel
+                {t('writer.scriptEditor.fromPanelLabel')}
               </label>
               <input
                 type='number'
@@ -3385,13 +3393,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
             <div>
               <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-                Đến panel
+                {t('writer.scriptEditor.toPanelLabel')}
               </label>
               <input
                 type='number'
                 min={fromPanelInput || 1}
                 value={toPanelInput}
-                onChange={(e) => setToPanelInput(parseInt(e.target.value, 10) || fromPanelInput || 1)}
+                onChange={(e) =>
+                  setToPanelInput(parseInt(e.target.value, 10) || fromPanelInput || 1)
+                }
                 className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
                 required
               />
@@ -3400,11 +3410,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
           <div>
             <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-              Ghi chú cảnh (Note)
+              {t('writer.scriptEditor.sceneNoteLabel')}
             </label>
             <textarea
               rows={3}
-              placeholder='Ghi chú bối cảnh, lưu ý góc máy, tâm lý nhân vật (tùy chọn)...'
+              placeholder={t('writer.scriptEditor.sceneNotePlaceholder')}
               value={sceneSummaryInput}
               onChange={(e) => setSceneSummaryInput(e.target.value)}
               className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] resize-none'
@@ -3414,7 +3424,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           <div>
             <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
               <Compass className='w-3.5 h-3.5 text-[#C2410C]' />
-              <span>Chế độ kể chuyện mặc định (Default Narration Mode)</span>
+              <span>{t('writer.scriptEditor.defaultNarrationModeLabel')}</span>
             </label>
             <select
               data-testid='scene-default-narration-mode-select'
@@ -3422,14 +3432,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               onChange={(e) => setSceneDefaultNarrationMode(e.target.value as NarrationMode)}
               className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
             >
-              <option value='Present'>Hiện tại / Mặc định (Present)</option>
-              <option value='Flashback'>Hồi tưởng (Flashback)</option>
-              <option value='Dream'>Giấc mơ (Dream)</option>
-              <option value='Imagination'>Tưởng tượng (Imagination)</option>
-              <option value='Lie'>Lời nói dối (Lie)</option>
-              <option value='Rumor'>Tin đồn (Rumor)</option>
+              <option value='Present'>{t('writer.scriptEditor.narrationPresent')}</option>
+              <option value='Flashback'>{t('writer.scriptEditor.narrationFlashback')}</option>
+              <option value='Dream'>{t('writer.scriptEditor.narrationDream')}</option>
+              <option value='Imagination'>{t('writer.scriptEditor.narrationImagination')}</option>
+              <option value='Lie'>{t('writer.scriptEditor.narrationLie')}</option>
+              <option value='Rumor'>{t('writer.scriptEditor.narrationRumor')}</option>
               <option value='UnreliableNarrator'>
-                Người kể không đáng tin (Unreliable Narrator)
+                {t('writer.scriptEditor.narrationUnreliable')}
               </option>
             </select>
           </div>
@@ -3440,14 +3450,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               onClick={() => setSceneModalOpen(false)}
               className='px-4 py-2 text-xs font-semibold text-[#57534E] hover:bg-[#F3F0E9] rounded-xl cursor-pointer'
             >
-              Huỷ
+              {t('writer.scriptEditor.cancel')}
             </button>
             <button
               type='submit'
               disabled={submitting}
               className='px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer'
             >
-              {submitting ? 'Đang lưu...' : isEditingScene ? 'Cập Nhật Cảnh' : 'Tạo Cảnh'}
+              {submitting
+                ? t('writer.scriptEditor.saving')
+                : isEditingScene
+                  ? t('writer.scriptEditor.updateSceneBtn')
+                  : t('writer.scriptEditor.createSceneBtn')}
             </button>
           </div>
         </form>
@@ -3458,16 +3472,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         isOpen={lineModalOpen}
         onClose={() => setLineModalOpen(false)}
         size='lg'
-        closeLabel='Đóng'
+        closeLabel={t('writer.scriptEditor.close')}
         data-testid='line-modal'
         title={
           editingLine
-            ? `Sửa Dòng Kịch Bản #${editingLine.lineOrder}`
-            : 'Thêm Dòng Kịch Bản Mới (UC-06)'
+            ? t('writer.scriptEditor.editLineModalTitle', { order: editingLine.lineOrder })
+            : t('writer.scriptEditor.addLineModalTitle')
         }
         description={
           <>
-            Mốc kịch bản hiện tại: <strong>v{currentChapter?.versionVector}</strong>
+            {t('writer.scriptEditor.currentVersionPrefix')}{' '}
+            <strong>v{currentChapter?.versionVector}</strong>
           </>
         }
       >
@@ -3478,14 +3493,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               <div>
                 <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
                   <User className='w-3.5 h-3.5 text-[#C2410C]' />
-                  <span>Nhân vật nói (Speaker Character)</span>
+                  <span>{t('writer.scriptEditor.speakerLabel')}</span>
                 </label>
                 <select
                   value={lineSpeakerId}
                   onChange={(e) => setLineSpeakerId(e.target.value)}
                   className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
                 >
-                  <option value=''>-- Không có người nói (Lời dẫn ngoài / Hành động) --</option>
+                  <option value=''>{t('writer.scriptEditor.noSpeakerOption')}</option>
                   {characters.map((char) => (
                     <option key={char.id} value={char.id}>
                       {getBibleEntryNameWithStage(char)}
@@ -3493,7 +3508,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   ))}
                 </select>
                 <p className='text-xs text-stone-500 mt-1'>
-                  Lấy từ Series Bible, giúp Letterer đặt đúng bóng thoại.
+                  {t('writer.scriptEditor.speakerHint')}
                 </p>
               </div>
 
@@ -3501,7 +3516,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               <div>
                 <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
                   <Compass className='w-3.5 h-3.5 text-purple-600' />
-                  <span>Ngoại lệ trần thuật (Narration Mode)</span>
+                  <span>{t('writer.scriptEditor.narrationModeLabel')}</span>
                 </label>
                 <select
                   data-testid='line-narration-mode-select'
@@ -3509,28 +3524,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   onChange={(e) => setLineNarrationMode(e.target.value as NarrationMode)}
                   className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-purple-500 bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
                 >
-                  <option value='Present'>Hiện tại / Mặc định (Present - Kiểm tra toàn bộ)</option>
+                  <option value='Present'>{t('writer.scriptEditor.lineNarrationPresent')}</option>
                   <option value='Flashback'>
-                    Hồi tưởng (Flashback - Cho phép nhân vật đã mất phát biểu)
+                    {t('writer.scriptEditor.lineNarrationFlashback')}
                   </option>
-                  <option value='Dream'>
-                    Giấc mơ (Dream - Cho phép phi thực tế, bỏ qua đạo cụ/bí mật)
-                  </option>
+                  <option value='Dream'>{t('writer.scriptEditor.lineNarrationDream')}</option>
                   <option value='Imagination'>
-                    Tưởng tượng (Imagination - Bỏ qua ràng buộc canon)
+                    {t('writer.scriptEditor.lineNarrationImagination')}
                   </option>
-                  <option value='Lie'>
-                    Lời nói dối (Lie - Cho phép nói sai lệch bí mật chưa tiết lộ)
-                  </option>
-                  <option value='Rumor'>
-                    Tin đồn (Rumor - Cho phép thông tin truyền miệng chưa xác nhận)
-                  </option>
+                  <option value='Lie'>{t('writer.scriptEditor.lineNarrationLie')}</option>
+                  <option value='Rumor'>{t('writer.scriptEditor.lineNarrationRumor')}</option>
                   <option value='UnreliableNarrator'>
-                    Người kể không đáng tin (Hạ cảnh báo xuống Warning)
+                    {t('writer.scriptEditor.lineNarrationUnreliable')}
                   </option>
                 </select>
                 <p className='text-xs text-stone-500 mt-1'>
-                  Ngoại lệ có chủ ý để Kiểm tra nhất quán không báo lỗi sai.
+                  {t('writer.scriptEditor.narrationModeHint')}
                 </p>
               </div>
             </div>
@@ -3539,11 +3548,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <div>
               <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
                 <MessageSquare className='w-3.5 h-3.5 text-[#C2410C]' />
-                <span>Lời thoại (Dialogue Text)</span>
+                <span>{t('writer.scriptEditor.dialogueLabel')}</span>
               </label>
               <textarea
                 rows={3}
-                placeholder='vd: Chúng ta phải đi ngay!'
+                placeholder={t('writer.scriptEditor.dialoguePlaceholder')}
                 value={lineDialogue}
                 onChange={(e) => setLineDialogue(e.target.value)}
                 maxLength={4000}
@@ -3555,11 +3564,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <div>
               <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
                 <Clapperboard className='w-3.5 h-3.5 text-[#57534E]' />
-                <span>Chỉ dẫn cảnh / Hành động</span>
+                <span>{t('writer.scriptEditor.stageDirectionLabel')}</span>
               </label>
               <textarea
                 rows={2}
-                placeholder='vd: Akira quay đầu nhìn, tay rút kiếm...'
+                placeholder={t('writer.scriptEditor.stageDirectionPlaceholder')}
                 value={lineStageDirection}
                 onChange={(e) => setLineStageDirection(e.target.value)}
                 maxLength={4000}
@@ -3571,7 +3580,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             {!editingLine && (
               <div>
                 <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
-                  Thứ tự dòng (Line Order)
+                  {t('writer.scriptEditor.lineOrderLabel')}
                 </label>
                 <input
                   type='number'
@@ -3581,7 +3590,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   className='w-32 px-3 py-1.5 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
                 />
                 <span className='text-xs text-[#57534E] ml-2'>
-                  Trùng số sẽ tự động chèn và dịch các dòng sau xuống.
+                  {t('writer.scriptEditor.lineOrderHint')}
                 </span>
               </div>
             )}
@@ -3594,7 +3603,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               onClick={() => setLineModalOpen(false)}
               className='px-4 py-2 text-xs font-semibold text-[#57534E] hover:bg-[#F3F0E9] rounded-xl cursor-pointer'
             >
-              Huỷ
+              {t('writer.scriptEditor.cancel')}
             </button>
             <button
               data-testid='submit-line-btn'
@@ -3602,7 +3611,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               disabled={submitting}
               className='px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer'
             >
-              {submitting ? 'Đang lưu...' : editingLine ? 'Lưu Thay Đổi' : 'Thêm Dòng Kịch Bản'}
+              {submitting
+                ? t('writer.scriptEditor.saving')
+                : editingLine
+                  ? t('writer.scriptEditor.saveChangesBtn')
+                  : t('writer.scriptEditor.addLineSubmitBtn')}
             </button>
           </div>
         </form>
@@ -3611,9 +3624,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       {/* Concurrency Conflict Modal (BR-11 / NFR-09) */}
       <ElementConflictModal
         isOpen={conflictModalOpen}
-        title='Xung Đột Phiên Bản Kịch Bản (BR-11)'
+        title={t('writer.scriptEditor.conflictModalTitle')}
         subtitle='Optimistic Concurrency Control — SCRIPT_VERSION_CONFLICT'
-        entityType='Dòng kịch bản / Phân cảnh'
+        entityType={t('writer.scriptEditor.conflictEntityType')}
         elementId={conflictEntityId}
         errorMessage={conflictErrorMsg}
         onReload={async () => {
@@ -3628,11 +3641,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       {chapterToDelete && (
         <TypeToConfirmModal
           isOpen={Boolean(chapterToDelete)}
-          targetName={`Chương ${chapterToDelete.chapterNumber}`}
-          title={`Xoá Chương ${chapterToDelete.chapterNumber}`}
-          description={`Toàn bộ phân cảnh và kịch bản Chương ${chapterToDelete.chapterNumber} sẽ bị xoá. Nhập để xác nhận:`}
-          confirmButtonText={isDeletingChapter ? 'Đang xoá...' : 'Xoá chương'}
-          cancelButtonText='Huỷ'
+          targetName={t('writer.scriptEditor.deleteChapterTarget', {
+            number: chapterToDelete.chapterNumber,
+          })}
+          title={t('writer.scriptEditor.deleteChapterTitle', {
+            number: chapterToDelete.chapterNumber,
+          })}
+          description={t('writer.scriptEditor.deleteChapterDesc', {
+            number: chapterToDelete.chapterNumber,
+          })}
+          confirmButtonText={
+            isDeletingChapter
+              ? t('writer.scriptEditor.deleting')
+              : t('writer.scriptEditor.deleteChapterBtn')
+          }
+          cancelButtonText={t('writer.scriptEditor.cancel')}
           isDeleting={isDeletingChapter}
           onConfirm={handleConfirmDeleteChapter}
           onCancel={() => setChapterToDelete(null)}
@@ -3644,16 +3667,23 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         <Modal
           isOpen={Boolean(sceneToDelete)}
           onClose={() => setSceneToDelete(null)}
-          title={`Xoá Cảnh ${sceneToDelete.sceneNumber}`}
+          title={t('writer.scriptEditor.deleteSceneTitle', { number: sceneToDelete.sceneNumber })}
           size='sm'
-          closeLabel='Đóng'
+          closeLabel={t('writer.scriptEditor.close')}
         >
           <div className='space-y-3 text-xs text-stone-700'>
             <p>
-              Bạn có chắc muốn xoá <strong>{sceneToDelete.heading || `Cảnh ${sceneToDelete.sceneNumber}`}</strong>?
+              {t('writer.scriptEditor.deleteSceneConfirmPrefix')}{' '}
+              <strong>
+                {sceneToDelete.heading ||
+                  t('writer.scriptEditor.deleteSceneFallback', {
+                    number: sceneToDelete.sceneNumber,
+                  })}
+              </strong>
+              ?
             </p>
             <p className='text-stone-500 bg-stone-50 p-2.5 rounded-xl border border-stone-200/80'>
-              💡 Cảnh chỉ là phần ghi chú phân đoạn. Việc xoá cảnh diễn ra an toàn và không làm thay đổi hay mất nội dung kịch bản và các panel.
+              {t('writer.scriptEditor.deleteSceneNote')}
             </p>
             <div className='flex justify-end gap-2 pt-2 border-t border-stone-200'>
               <button
@@ -3661,7 +3691,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 onClick={() => setSceneToDelete(null)}
                 className='px-3.5 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl cursor-pointer'
               >
-                Huỷ
+                {t('writer.scriptEditor.cancel')}
               </button>
               <button
                 type='button'
@@ -3670,7 +3700,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 onClick={handleConfirmDeleteScene}
                 className='px-3.5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-2xs disabled:opacity-50 cursor-pointer'
               >
-                {isDeletingScene ? 'Đang xoá...' : 'Xoá cảnh'}
+                {isDeletingScene
+                  ? t('writer.scriptEditor.deleting')
+                  : t('writer.scriptEditor.deleteSceneBtn')}
               </button>
             </div>
           </div>

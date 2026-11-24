@@ -19,6 +19,7 @@ import { BibleEntryDto } from '@/services/bible.service';
 import { ConsistencyFindingDto } from '@/services/assignment.service';
 import type { AiSuggestionDto } from '@/services/aiAgents.service';
 import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
+import { useTranslation } from '@/lib/i18n';
 
 interface ScriptLineItemProps {
   line: SceneScriptLineSummaryDto;
@@ -83,19 +84,20 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
   aiNameById,
   onDecideCopilot,
 }) => {
+  const { t } = useTranslation('writer');
   const getBibleEntry = (id?: string | null) => {
     if (!id) return null;
     return allBibleEntries.find((e) => e.id === id);
   };
 
   const narrationModeLabel: Record<NarrationMode, { label: string; icon: string }> = {
-    Present: { label: 'Hiện tại', icon: '⏱️' },
-    Flashback: { label: 'Hồi tưởng', icon: '⏪' },
-    Dream: { label: 'Giấc mơ', icon: '💭' },
-    Imagination: { label: 'Tưởng tượng', icon: '✨' },
-    Lie: { label: 'Nói dối', icon: '🤥' },
-    Rumor: { label: 'Tin đồn', icon: '🗣️' },
-    UnreliableNarrator: { label: 'Không đáng tin', icon: '🎭' },
+    Present: { label: t('scriptLineItem.narration.Present'), icon: '⏱️' },
+    Flashback: { label: t('scriptLineItem.narration.Flashback'), icon: '⏪' },
+    Dream: { label: t('scriptLineItem.narration.Dream'), icon: '💭' },
+    Imagination: { label: t('scriptLineItem.narration.Imagination'), icon: '✨' },
+    Lie: { label: t('scriptLineItem.narration.Lie'), icon: '🤥' },
+    Rumor: { label: t('scriptLineItem.narration.Rumor'), icon: '🗣️' },
+    UnreliableNarrator: { label: t('scriptLineItem.narration.UnreliableNarrator'), icon: '🎭' },
   };
 
   return (
@@ -123,7 +125,7 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
           {canEditScript && !isChapterLocked && (
             <div
               className='cursor-grab active:cursor-grabbing text-[#57534E] hover:text-[#C2410C] p-1 rounded-md hover:bg-[#F3F0E9] transition-colors'
-              title='Kéo thả để đổi thứ tự dòng'
+              title={t('scriptLineItem.dragTooltip')}
             >
               <GripVertical className='w-4 h-4' />
             </div>
@@ -142,7 +144,7 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
           ) : (
             <span className='inline-flex items-center gap-1.5 text-xs font-medium text-[#57534E] bg-[#F3F0E9] border border-[#D8D2C5] px-2.5 py-0.5 rounded-full'>
               <Clapperboard className='w-3 h-3 text-[#57534E]' />
-              <span>Lời dẫn / Hành động</span>
+              <span>{t('scriptLineItem.narrationActionPill')}</span>
             </span>
           )}
 
@@ -159,7 +161,7 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
             <span
               data-testid={`narration-mode-badge-${line.id}`}
               className='text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full flex items-center gap-1'
-              title={`Ngoại lệ trần thuật: ${line.narrationMode}`}
+              title={t('scriptLineItem.narrationExceptionTooltip', { mode: line.narrationMode })}
             >
               <span>{narrationModeLabel[line.narrationMode]?.icon || '✨'}</span>
               <span>{narrationModeLabel[line.narrationMode]?.label || line.narrationMode}</span>
@@ -169,7 +171,7 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
           {/* Highlight indicator badge */}
           {isHighlighted && (
             <span className='text-xs font-bold text-orange-700 bg-orange-100 border border-orange-300 px-2.5 py-0.5 rounded-full animate-pulse'>
-              Đang xem dòng này
+              {t('scriptLineItem.viewingThisLine')}
             </span>
           )}
         </div>
@@ -184,14 +186,14 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
                 onClick={() => onRewriteLine(line)}
                 disabled={isRewriting || copilotBusy}
                 className='mr-1 inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-1 text-xs font-semibold text-[#C2410C] hover:bg-orange-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
-                title='Viết lại dòng thoại này bằng AI theo giọng nhân vật'
+                title={t('scriptLineItem.aiRewriteTooltip')}
               >
                 {isRewriting ? (
                   <Loader2 className='w-3.5 h-3.5 animate-spin' />
                 ) : (
                   <Sparkles className='w-3.5 h-3.5' />
                 )}
-                <span>Viết lại bằng AI</span>
+                <span>{t('scriptLineItem.aiRewriteBtn')}</span>
               </button>
             )}
             <button
@@ -199,7 +201,7 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
               onClick={() => onMoveLine(index, 'up')}
               disabled={isFirst || isReorderingLines}
               className='p-1.5 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
-              title='Di chuyển lên trên'
+              title={t('scriptLineItem.moveUpTooltip')}
             >
               <ChevronUp className='w-3.5 h-3.5' />
             </button>
@@ -208,7 +210,7 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
               onClick={() => onMoveLine(index, 'down')}
               disabled={isLast || isReorderingLines}
               className='p-1.5 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
-              title='Di chuyển xuống dưới'
+              title={t('scriptLineItem.moveDownTooltip')}
             >
               <ChevronDown className='w-3.5 h-3.5' />
             </button>
@@ -216,7 +218,7 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
               type='button'
               onClick={() => onEditLine(line)}
               className='p-1.5 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg cursor-pointer transition-colors'
-              title='Sửa dòng kịch bản'
+              title={t('scriptLineItem.editLineTooltip')}
             >
               <Edit2 className='w-3.5 h-3.5' />
             </button>
@@ -224,7 +226,7 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
               type='button'
               onClick={() => onDeleteLine(line)}
               className='p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors'
-              title='Xoá dòng'
+              title={t('scriptLineItem.deleteLineTooltip')}
             >
               <Trash2 className='w-3.5 h-3.5' />
             </button>
@@ -235,7 +237,9 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
       {/* Stage Direction (Chỉ dẫn hành động/bối cảnh) */}
       {line.stageDirection && (
         <div className='mt-2.5 text-xs md:text-sm italic text-[#57534E] bg-[#F8F6F0] p-2.5 rounded-xl border-l-3 border-[#C2410C] font-sans leading-relaxed break-words whitespace-pre-wrap border border-[#D8D2C5]/50'>
-          <span className='font-semibold not-italic text-[#C2410C] mr-1.5'>[Chỉ dẫn]:</span>
+          <span className='font-semibold not-italic text-[#C2410C] mr-1.5'>
+            {t('scriptLineItem.stageDirectionPrefix')}
+          </span>
           {line.stageDirection}
         </div>
       )}
@@ -273,10 +277,10 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
               <span>
                 [
                 {lineFinding.severity === 'Blocking'
-                  ? 'Lỗi chặn'
+                  ? t('consistencyDrawer.severityBlocking')
                   : lineFinding.severity === 'Warning'
-                    ? 'Cảnh báo'
-                    : 'Thông tin'}
+                    ? t('consistencyDrawer.severityWarning')
+                    : t('consistencyDrawer.severityInfo')}
                 ]
               </span>
               <span className='font-mono text-xs opacity-75'>{lineFinding.ruleCode}</span>
@@ -284,7 +288,7 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
             <p className='mt-0.5 break-words'>{lineFinding.message}</p>
             {lineFinding.evidence && (
               <p className='mt-1 font-mono text-xs opacity-90 break-words bg-white/80 p-1.5 rounded'>
-                Bằng chứng: &ldquo;{lineFinding.evidence}&rdquo;
+                {t('consistencyDrawer.evidenceLabel')} &ldquo;{lineFinding.evidence}&rdquo;
               </p>
             )}
           </div>

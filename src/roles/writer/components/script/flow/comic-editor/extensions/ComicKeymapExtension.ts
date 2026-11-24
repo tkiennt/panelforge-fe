@@ -1,6 +1,7 @@
 // src/roles/writer/components/script/flow/comic-editor/extensions/ComicKeymapExtension.ts
 import { Extension } from '@tiptap/core';
 import { Selection, TextSelection } from '@tiptap/pm/state';
+import { translate } from '@/lib/i18n';
 import {
   getNextPageNumber,
   getNextPanelNumber,
@@ -49,7 +50,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
           const explicitNum = extractPageNumber(textBefore) ?? undefined;
           const nextPage = getNextPageNumber(state.doc, from, explicitNum);
           const pageNum = String(nextPage).padStart(2, '0');
-          const defaultLabel = `Trang ${pageNum}`;
+          const defaultLabel = translate('writer.comicEditor.keymap.pageLabel', { pageNum });
 
           const pageNode = state.schema.nodes.pageBlock.create(
             { pageNumber: pageNum, label: defaultLabel },
@@ -78,7 +79,10 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
           const defaultText = `" Panel ${pageNum}.${panelNum}: `;
 
           const panelNode = state.schema.nodes.panelBlock.create(
-            { panelNumber: `${pageNum}.${panelNum}`, cameraAngle: 'Toàn cảnh' },
+            {
+              panelNumber: `${pageNum}.${panelNum}`,
+              cameraAngle: translate('writer.comicEditor.nodes.defaultCameraAngle'),
+            },
             state.schema.text(defaultText),
           );
 
@@ -121,7 +125,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
           const explicitNum = extractPageNumber(fullLineText || textBefore) ?? undefined;
           const nextPage = getNextPageNumber(state.doc, from, explicitNum);
           const pageNum = String(nextPage).padStart(2, '0');
-          const defaultLabel = `Trang ${pageNum}`;
+          const defaultLabel = translate('writer.comicEditor.keymap.pageLabel', { pageNum });
 
           const pageNode = state.schema.nodes.pageBlock.create(
             { pageNumber: pageNum, label: defaultLabel },
@@ -154,7 +158,10 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
           const defaultText = `" Panel ${pageNum}.${panelNum}: `;
 
           const panelNode = state.schema.nodes.panelBlock.create(
-            { panelNumber: `${pageNum}.${panelNum}`, cameraAngle: 'Toàn cảnh' },
+            {
+              panelNumber: `${pageNum}.${panelNum}`,
+              cameraAngle: translate('writer.comicEditor.nodes.defaultCameraAngle'),
+            },
             state.schema.text(defaultText),
           );
 
@@ -210,7 +217,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
           const sfxMatch = lineText.match(/^(?:SFX:|\*)\s*(.*)/i);
           if (sfxMatch) {
             const rawSfx = sfxMatch[1].replace(/\*$/, '').trim();
-            const sfxText = rawSfx || 'TIẾNG ĐỘNG';
+            const sfxText = rawSfx || translate('writer.comicEditor.keymap.defaultSfx');
 
             const sfxNode = state.schema.nodes.sfxBlock.create(
               {},

@@ -283,13 +283,13 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
           type='button'
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => setMenuOpen(true)}
-          title='Mở Series Bible (Ctrl/Cmd + Alt + B)'
+          title={i18nT('writer.bibleRefMenu.openTooltip')}
           style={{ position: 'fixed', top: anchor.top, left: anchor.left }}
           className='z-40 -translate-x-1/2 -translate-y-full inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-white px-2.5 py-1 text-xs font-semibold text-orange-700 shadow-md hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500'
         >
           <Tag className='h-3 w-3' aria-hidden='true' />
           {anchor.recognizedEntry
-            ? `Gắn ${anchor.recognizedEntry.name}`
+            ? i18nT('writer.bibleRefMenu.attachNamed', { name: anchor.recognizedEntry.name })
             : t('production.cast.attachBible', 'Gắn Series Bible')}
         </button>
       )}

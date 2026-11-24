@@ -12,6 +12,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import axiosClient from '@/api/axiosClient';
+import { useTranslation } from '@/lib/i18n';
 
 // Bộ nhớ đệm ảnh trong phiên làm việc (Session In-Memory Image Cache)
 const sessionImageCache = new Map<string, string>();
@@ -56,6 +57,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
   className = '',
   isInlinePreview = false,
 }) => {
+  const { t } = useTranslation('writer');
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [loadingImage, setLoadingImage] = useState(false);
 
@@ -157,7 +159,9 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
               data.category,
             )}`}
           >
-            {data.type === 'panel' ? 'Khung tranh' : data.category || 'Mục'}
+            {data.type === 'panel'
+              ? t('quickView.panelCategory')
+              : data.category || t('quickView.defaultCategory')}
           </span>
           <span className='font-mono font-bold text-xs text-zinc-800 truncate' title={data.code}>
             {data.code}
@@ -167,15 +171,15 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
         {data.type === 'bible' && data.isLocked && (
           <span
             className='inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'
-            title='Đã khóa chuẩn (Canon Locked)'
+            title={t('quickView.canonLockedTooltip')}
           >
-            <Lock className='w-2.5 h-2.5 text-purple-600' /> 🔒 Đã khóa chuẩn
+            <Lock className='w-2.5 h-2.5 text-purple-600' /> {t('quickView.canonLockedBadge')}
           </span>
         )}
 
         {data.type === 'stub' && (
           <span className='px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-dashed border-amber-300 shrink-0'>
-            Mã tạm
+            {t('quickView.stubBadge')}
           </span>
         )}
       </div>
@@ -221,7 +225,10 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
             <div className='flex items-center gap-1.5 text-zinc-800 font-bold text-xs'>
               <LayoutGrid className='w-3.5 h-3.5 text-purple-700' />
               <span>
-                Trang {data.pageNumber || 1} · Khung #{data.panelNumber || 1}
+                {t('quickView.pagePanelTitle', {
+                  page: data.pageNumber || 1,
+                  panel: data.panelNumber || 1,
+                })}
               </span>
             </div>
 
@@ -230,7 +237,10 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
             ) : imageSrc ? (
               <img
                 src={imageSrc}
-                alt={`Trang ${data.pageNumber || 1} Khung ${data.panelNumber || 1}`}
+                alt={t('quickView.pagePanelAlt', {
+                  page: data.pageNumber || 1,
+                  panel: data.panelNumber || 1,
+                })}
                 className='h-28 w-full rounded-lg object-contain bg-zinc-900 border border-zinc-300'
               />
             ) : (
@@ -240,7 +250,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
                 className='h-24 w-full rounded-lg bg-zinc-100 border border-dashed border-zinc-300 flex flex-col items-center justify-center text-zinc-400 gap-1'
               >
                 <ImageOff className='w-5 h-5 text-zinc-400' />
-                <span className='text-[11px] font-medium'>Chưa có phác thảo</span>
+                <span className='text-[11px] font-medium'>{t('quickView.noSketch')}</span>
               </div>
             )}
           </div>
@@ -254,8 +264,9 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
               <span className='truncate'>{data.name}</span>
             </div>
             <p className='text-[11px] text-amber-800/90 leading-tight'>
-              Mã tạm <code className='font-mono font-bold text-amber-950'>@{data.code}</code> chưa
-              có hồ sơ chính thức trong Series Bible.
+              {t('quickView.stubPrefix')}{' '}
+              <code className='font-mono font-bold text-amber-950'>@{data.code}</code>{' '}
+              {t('quickView.stubSuffix')}
             </p>
           </div>
         )}
@@ -270,7 +281,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
             className='w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#C2410C] hover:bg-[#9A3412] shadow-2xs transition-all cursor-pointer'
           >
             <BookOpen className='w-3.5 h-3.5' />
-            <span>Mở trong Bible</span>
+            <span>{t('quickView.openInBible')}</span>
           </button>
         )}
 
@@ -281,7 +292,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
             className='w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 shadow-2xs transition-all cursor-pointer'
           >
             <Palette className='w-3.5 h-3.5' />
-            <span>Mở trên Bàn vẽ</span>
+            <span>{t('quickView.openInArtistDesk')}</span>
           </button>
         )}
 
@@ -292,7 +303,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
             className='w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-amber-700 hover:bg-amber-800 shadow-2xs transition-all cursor-pointer'
           >
             <Plus className='w-3.5 h-3.5' />
-            <span>Tạo trong Bible</span>
+            <span>{t('quickView.createInBible')}</span>
           </button>
         )}
       </div>

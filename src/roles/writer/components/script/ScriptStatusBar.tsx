@@ -33,12 +33,12 @@ export const ScriptStatusBar: React.FC<ScriptStatusBarProps> = ({
 
   const hasAnyBanner = Boolean(
     concurrencyError ||
-      isScriptFrozen ||
-      isScriptInReview ||
-      isChapterLocked ||
-      !canEditScript ||
-      isSubmitBlocked ||
-      isStartBlocked,
+    isScriptFrozen ||
+    isScriptInReview ||
+    isChapterLocked ||
+    !canEditScript ||
+    isSubmitBlocked ||
+    isStartBlocked,
   );
 
   if (!hasAnyBanner) return null;
@@ -84,7 +84,9 @@ export const ScriptStatusBar: React.FC<ScriptStatusBarProps> = ({
             className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300'
           >
             <Clock className='w-3.5 h-3.5 text-amber-600' />
-            <span>{t('scriptStudio.statusDrawer.inReview', 'Kịch bản đang được Editor thẩm định')}</span>
+            <span>
+              {t('scriptStudio.statusDrawer.inReview', 'Kịch bản đang được Editor thẩm định')}
+            </span>
           </div>
         ) : isChapterLocked ? (
           <div
@@ -92,7 +94,9 @@ export const ScriptStatusBar: React.FC<ScriptStatusBarProps> = ({
             className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-stone-100 text-stone-600 border border-stone-200'
           >
             <Lock className='w-3.5 h-3.5 text-stone-400' />
-            <span>{t('scriptStudio.statusDrawer.locked', 'Chương đang sản xuất (khóa chỉnh sửa)')}</span>
+            <span>
+              {t('scriptStudio.statusDrawer.locked', 'Chương đang sản xuất (khóa chỉnh sửa)')}
+            </span>
           </div>
         ) : !canEditScript ? (
           <div
@@ -113,12 +117,7 @@ export const ScriptStatusBar: React.FC<ScriptStatusBarProps> = ({
             className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-300'
           >
             <AlertTriangle className='w-3.5 h-3.5 text-rose-600 shrink-0' />
-            <span>
-              {t(
-                'scriptStudio.statusDrawer.submitBlocked',
-                'Chặn gửi duyệt: nhân vật nháp chưa liên kết',
-              )}
-            </span>
+            <span>{t('scriptStudio.statusDrawer.submitBlocked')}</span>
             {onOpenCharactersDrawer && (
               <button
                 type='button'

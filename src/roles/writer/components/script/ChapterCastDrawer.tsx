@@ -94,21 +94,13 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
       const messages: string[] = [];
       if (res.affectedChapterNumbers && res.affectedChapterNumbers.length > 0) {
         messages.push(
-          t(
-            'production.cast.affectedChaptersInherit',
-            { chapters: res.affectedChapterNumbers.join(', ') },
-            `Các chương phía sau sẽ kế thừa: Ch. ${res.affectedChapterNumbers.join(', ')}`,
-          ),
+          t('writer.cast.affectedChaptersInherit', {
+            chapters: res.affectedChapterNumbers.join(', '),
+          }),
         );
       }
       if (res.warnings && res.warnings.length > 0) {
-        messages.push(
-          t(
-            'production.cast.warningPrefix',
-            { warnings: res.warnings.join('; ') },
-            `Cảnh báo: ${res.warnings.join('; ')}`,
-          ),
-        );
+        messages.push(t('writer.cast.warningPrefix', { warnings: res.warnings.join('; ') }));
       }
 
       if (onShowToast) {
@@ -143,12 +135,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
           !entry.isCrowd
             ? t('production.cast.crowdSetSuccess', 'Đã gắn cờ Quần chúng')
             : t('production.cast.crowdRemovedSuccess', 'Đã bỏ cờ Quần chúng'),
-          !entry.isCrowd
-            ? t(
-                'production.cast.crowdUnblockNotice',
-                'Thực thể này không còn chặn Gửi duyệt hay Bắt đầu sản xuất.',
-              )
-            : undefined,
+          !entry.isCrowd ? t('writer.cast.crowdUnblockNotice') : undefined,
         );
       }
     } catch (err: any) {
@@ -190,7 +177,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
           description: payload.description,
           subtitle: payload.subtitle,
           detailsJson: payload.detailsJson,
-          variantLabel: 'Mặc định',
+          variantLabel: t('production.cast.defaultVariant', 'Mặc định'),
         });
       }
 
@@ -200,10 +187,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
       if (onShowToast) {
         onShowToast(
           t('production.cast.saveDraftSuccess', 'Đã lưu bản nháp Series Bible'),
-          t(
-            'production.cast.saveDraftSuccessDesc',
-            'Đặc tả đã được cập nhật thành phiên bản nháp mới.',
-          ),
+          t('writer.cast.saveDraftSuccessDesc'),
         );
       }
     } catch (err: any) {
@@ -221,10 +205,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
     if (
       !(await confirm({
         title: t('common.confirm.title', 'Xác nhận'),
-        description: t(
-          'production.cast.cancelReplacementConfirm',
-          'Bạn có chắc muốn huỷ bản thay thế này không?',
-        ),
+        description: t('writer.cast.cancelReplacementConfirm'),
         confirmLabel: t('common.actions.confirm', 'Xác nhận'),
         cancelLabel: t('common.cancel', 'Huỷ'),
       }))
@@ -238,10 +219,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
       if (onShowToast) {
         onShowToast(
           t('production.cast.cancelReplacementSuccess', 'Đã huỷ bản thay thế'),
-          t(
-            'production.cast.cancelReplacementSuccessDesc',
-            'Binding của chương đã quay về bản kế thừa.',
-          ),
+          t('writer.cast.cancelReplacementSuccessDesc'),
         );
       }
     } catch (err: any) {
@@ -275,13 +253,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
               {t('production.cast.drawerTitle', 'Thực thể chương')} ({entities.length})
             </h3>
             <p className='text-xs text-stone-500 truncate'>
-              {chapterNumber
-                ? t(
-                    'production.cast.chapterPrefix',
-                    { number: chapterNumber },
-                    `Chương ${chapterNumber}`,
-                  )
-                : ''}
+              {chapterNumber ? t('writer.cast.chapterPrefix', { number: chapterNumber }) : ''}
               {chapterTitle ? ` · ${chapterTitle}` : ''}
             </p>
           </div>
@@ -345,12 +317,7 @@ export const ChapterCastDrawer: React.FC<ChapterCastDrawerProps> = ({
                 ? t('production.cast.noMatchingEntityFound', 'Không tìm thấy thực thể nào phù hợp.')
                 : t('production.cast.noEntitiesInChapter', 'Chưa có thực thể nào trong chương.')}
             </p>
-            <p className='text-xs text-stone-400 mt-1'>
-              {t(
-                'production.cast.entityHint',
-                'Dùng tên trong dòng Thoại hoặc bôi đen văn bản để gắn tham chiếu Series Bible.',
-              )}
-            </p>
+            <p className='text-xs text-stone-400 mt-1'>{t('writer.cast.entityHint')}</p>
           </div>
         )}
 

@@ -43,8 +43,10 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
     >
       <div className='flex items-center justify-between gap-2 px-4 py-3 border-b border-stone-200/80'>
         <div>
-          <h2 className='font-serif text-base text-stone-900'>{t('scriptStudio.scenes.title', 'Phân cảnh')}</h2>
-          <p className='text-[11px] text-stone-500'>Ghi chú phân đoạn · Không ảnh hưởng logic</p>
+          <h2 className='font-serif text-base text-stone-900'>
+            {t('scriptStudio.scenes.title', 'Phân cảnh')}
+          </h2>
+          <p className='text-[11px] text-stone-500'>{t('writer.scenesDrawer.subtitle')}</p>
         </div>
         <div className='flex items-center gap-1'>
           {canEdit && (
@@ -133,7 +135,10 @@ export const ScriptScenesDrawer: React.FC<ScriptScenesDrawerProps> = ({
                       <span className='inline-flex items-center text-[11px] px-1.5 py-0.5 rounded font-medium bg-orange-100 text-orange-800 border border-orange-200/70 mt-1'>
                         {rangeInfo.fromPanel === rangeInfo.toPanel
                           ? `Panel ${rangeInfo.fromPanel}`
-                          : `Từ Panel ${rangeInfo.fromPanel} đến Panel ${rangeInfo.toPanel}`}
+                          : t('writer.scenesDrawer.panelRange', {
+                              from: rangeInfo.fromPanel,
+                              to: rangeInfo.toPanel,
+                            })}
                       </span>
                     )}
                     {rangeInfo.cleanSummary && (

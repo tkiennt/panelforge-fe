@@ -14,6 +14,7 @@ import {
 import { ScriptVersion } from './types';
 import { computeScriptDiff } from './scriptDiffEngine';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 interface ScriptDiffViewerProps {
   baseVersion: ScriptVersion;
@@ -32,6 +33,7 @@ export const ScriptDiffViewer: React.FC<ScriptDiffViewerProps> = ({
   onSelectCompareVersion,
   onClose,
 }) => {
+  const { t } = useTranslation('writer');
   const [viewMode, setViewMode] = useState<'unified' | 'split'>('unified');
 
   const diffResult = useMemo(() => {
@@ -43,21 +45,23 @@ export const ScriptDiffViewer: React.FC<ScriptDiffViewerProps> = ({
       isOpen
       onClose={onClose}
       size='xl'
-      closeLabel='Đóng so sánh'
-      title='So sánh khác biệt (Script Diff)'
-      description='Đối chiếu chi tiết thay đổi góc máy, phân cảnh, thoại và hiệu ứng âm thanh'
+      closeLabel={t('comicEditor.diff.closeLabel')}
+      title={t('comicEditor.diff.title')}
+      description={t('comicEditor.diff.description')}
       footer={
         <div className='flex w-full items-center justify-between text-xs text-slate-500'>
           <div className='flex items-center gap-4'>
             <span className='flex items-center gap-1.5'>
-              <span className='w-2.5 h-2.5 rounded-full bg-red-400' /> Đỏ gạch: Xóa
+              <span className='w-2.5 h-2.5 rounded-full bg-red-400' />{' '}
+              {t('comicEditor.diff.legendRemoved')}
             </span>
             <span className='flex items-center gap-1.5'>
-              <span className='w-2.5 h-2.5 rounded-full bg-emerald-500' /> Xanh lá: Thêm mới
+              <span className='w-2.5 h-2.5 rounded-full bg-emerald-500' />{' '}
+              {t('comicEditor.diff.legendAdded')}
             </span>
             <span className='flex items-center gap-1.5'>
-              <span className='w-2.5 h-2.5 rounded-full bg-amber-400' /> Vàng: Chỉnh sửa góc
-              máy/thoại
+              <span className='w-2.5 h-2.5 rounded-full bg-amber-400' />{' '}
+              {t('comicEditor.diff.legendModified')}
             </span>
           </div>
           <button
@@ -65,7 +69,7 @@ export const ScriptDiffViewer: React.FC<ScriptDiffViewerProps> = ({
             onClick={onClose}
             className='px-4 py-1.5 rounded-lg bg-slate-900 text-white font-bold hover:bg-slate-800 cursor-pointer shadow-xs'
           >
-            Đóng so sánh
+            {t('comicEditor.diff.closeLabel')}
           </button>
         </div>
       }
@@ -89,7 +93,7 @@ export const ScriptDiffViewer: React.FC<ScriptDiffViewerProps> = ({
               }`}
             >
               <ListFilter className='w-3.5 h-3.5' />
-              <span>Thống nhất</span>
+              <span>{t('comicEditor.diff.unifiedView')}</span>
             </button>
             <button
               type='button'
@@ -101,7 +105,7 @@ export const ScriptDiffViewer: React.FC<ScriptDiffViewerProps> = ({
               }`}
             >
               <Columns className='w-3.5 h-3.5' />
-              <span>Song song</span>
+              <span>{t('comicEditor.diff.splitView')}</span>
             </button>
           </div>
         </div>
@@ -111,7 +115,9 @@ export const ScriptDiffViewer: React.FC<ScriptDiffViewerProps> = ({
       <div className='px-6 py-2.5 bg-[#FAF8F5] border-b border-[#EBE7DF] flex flex-wrap items-center justify-between gap-4 text-xs shrink-0'>
         {/* Dropdowns chọn phiên bản so sánh */}
         <div className='flex items-center gap-2 flex-wrap'>
-          <span className='text-slate-500 font-medium'>Bản gốc:</span>
+          <span className='text-slate-500 font-medium'>
+            {t('comicEditor.diff.baseVersionLabel')}
+          </span>
           <select
             value={baseVersion.id}
             onChange={(e) => onSelectBaseVersion?.(e.target.value)}
@@ -126,7 +132,9 @@ export const ScriptDiffViewer: React.FC<ScriptDiffViewerProps> = ({
 
           <ArrowRight className='w-4 h-4 text-slate-400' />
 
-          <span className='text-slate-500 font-medium'>Bản so sánh:</span>
+          <span className='text-slate-500 font-medium'>
+            {t('comicEditor.diff.compareVersionLabel')}
+          </span>
           <select
             value={compareVersion.id}
             onChange={(e) => onSelectCompareVersion?.(e.target.value)}
@@ -143,14 +151,17 @@ export const ScriptDiffViewer: React.FC<ScriptDiffViewerProps> = ({
         {/* Metrics summary */}
         <div className='flex items-center gap-3'>
           <span className='inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full'>
-            <PlusCircle className='w-3.5 h-3.5' />+{diffResult.addedCount} thêm mới
+            <PlusCircle className='w-3.5 h-3.5' />
+            {t('comicEditor.diff.addedCount', { count: diffResult.addedCount })}
           </span>
           <span className='inline-flex items-center gap-1 font-bold text-rose-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full'>
-            <MinusCircle className='w-3.5 h-3.5' />-{diffResult.removedCount} đã xóa
+            <MinusCircle className='w-3.5 h-3.5' />
+            {t('comicEditor.diff.removedCount', { count: diffResult.removedCount })}
           </span>
           {diffResult.modifiedCount > 0 && (
             <span className='inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full'>
-              <Sparkles className='w-3.5 h-3.5' />~{diffResult.modifiedCount} góc máy/thoại sửa đổi
+              <Sparkles className='w-3.5 h-3.5' />
+              {t('comicEditor.diff.modifiedCount', { count: diffResult.modifiedCount })}
             </span>
           )}
         </div>
@@ -212,7 +223,9 @@ export const ScriptDiffViewer: React.FC<ScriptDiffViewerProps> = ({
                         ) : (
                           <MessageSquare className='w-3 h-3 text-amber-700' />
                         )}
-                        <span>{line.changeDetail || 'Đã chỉnh sửa nội dung/góc máy'}</span>
+                        <span>
+                          {line.changeDetail || t('comicEditor.diff.defaultModifiedDetail')}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -240,7 +253,9 @@ export const ScriptDiffViewer: React.FC<ScriptDiffViewerProps> = ({
             {/* Cột trái: Base Version */}
             <div className='bg-white rounded-xl border border-[#D8D2C5] shadow-sm overflow-hidden flex flex-col'>
               <div className='px-4 py-2 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between'>
-                <span>Bản gốc: v{baseVersion.versionNumber}</span>
+                <span>
+                  {t('comicEditor.diff.baseColumnHeader', { version: baseVersion.versionNumber })}
+                </span>
                 <span className='text-[11px] font-normal text-slate-500'>{baseVersion.status}</span>
               </div>
               <div className='divide-y divide-slate-100 flex-1 overflow-y-auto'>
@@ -274,7 +289,11 @@ export const ScriptDiffViewer: React.FC<ScriptDiffViewerProps> = ({
             {/* Cột phải: Compare Version */}
             <div className='bg-white rounded-xl border border-[#D8D2C5] shadow-sm overflow-hidden flex flex-col'>
               <div className='px-4 py-2 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between'>
-                <span>Bản so sánh: v{compareVersion.versionNumber}</span>
+                <span>
+                  {t('comicEditor.diff.compareColumnHeader', {
+                    version: compareVersion.versionNumber,
+                  })}
+                </span>
                 <span className='text-[11px] font-normal text-slate-500'>
                   {compareVersion.status}
                 </span>

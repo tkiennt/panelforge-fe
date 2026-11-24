@@ -1,5 +1,6 @@
 // src/roles/writer/components/script/flow/writesolo/sampleScript.ts
 import { BibleEntryDto } from '@/services/bible.service';
+import { translate } from '@/lib/i18n';
 
 /**
  * Kịch bản mẫu chuẩn WriteSolo Screenplay & Graphic Novel
@@ -164,7 +165,7 @@ export const INITIAL_WRITESOLO_DOC = {
         blockType: 'panel_heading',
         pageNumber: 1,
         panelNumber: 1,
-        shotType: '[Toàn cảnh]',
+        shotType: translate('writer.writeSolo.wideShot'),
       },
     },
     {
@@ -177,7 +178,7 @@ export const INITIAL_WRITESOLO_DOC = {
       content: [
         {
           type: 'text',
-          text: 'Akira đứng nhìn qua cửa sổ tầng 4 của khu phố Neo-Shinjuku trong mưa.',
+          text: translate('writer.writeSolo.sample.akiraAction'),
         },
       ],
     },
@@ -193,12 +194,12 @@ export const SAMPLE_BIBLE_ENTRIES: BibleEntryDto[] = [
     name: 'Nancy',
     code: 'CHR_NANCY',
     category: 'Character',
-    subtitle: 'Nữ chính trong kịch bản',
-    description: 'Thường ấm áp nhưng vụng về khi nói dối.',
+    subtitle: translate('writer.writeSolo.sample.nancySubtitle'),
+    description: translate('writer.writeSolo.sample.nancyDesc'),
     effectiveRevision: {
       stageName: 'Canon V1',
       reviewStatus: 'CanonLocked',
-      summary: 'Trang phục mùa đông',
+      summary: translate('writer.writeSolo.sample.nancySummary'),
     } as any,
   },
   {
@@ -206,12 +207,12 @@ export const SAMPLE_BIBLE_ENTRIES: BibleEntryDto[] = [
     name: 'Fred',
     code: 'CHR_FRED',
     category: 'Character',
-    subtitle: 'Người bạn đồng hành',
-    description: 'Nhiệt tình, đôi mắt cún con.',
+    subtitle: translate('writer.writeSolo.sample.fredSubtitle'),
+    description: translate('writer.writeSolo.sample.fredDesc'),
     effectiveRevision: {
       stageName: 'Canon V1',
       reviewStatus: 'CanonLocked',
-      summary: 'Áo khoác ướt sũng',
+      summary: translate('writer.writeSolo.sample.fredSummary'),
     } as any,
   },
   {
@@ -219,12 +220,12 @@ export const SAMPLE_BIBLE_ENTRIES: BibleEntryDto[] = [
     name: 'Akira',
     code: 'CHR_AKIRA',
     category: 'Character',
-    subtitle: 'Chiến binh kháng chiến Neo-Shinjuku',
-    description: 'Nhân vật chính, thành thạo công nghệ và kiếm thuật.',
+    subtitle: translate('writer.writeSolo.sample.akiraSubtitle'),
+    description: translate('writer.writeSolo.sample.akiraDesc'),
     effectiveRevision: {
-      stageName: 'GĐ 1: Khởi nguồn • Ch. 1–14',
+      stageName: translate('writer.writeSolo.sample.akiraStage'),
       reviewStatus: 'CanonLocked',
-      summary: 'Phiên bản áo khoác xanh cổ cao',
+      summary: translate('writer.writeSolo.sample.akiraSummary'),
     } as any,
   },
   {
@@ -232,12 +233,12 @@ export const SAMPLE_BIBLE_ENTRIES: BibleEntryDto[] = [
     name: 'Neo-Shinjuku',
     code: 'LOC_NEO_SHINJUKU',
     category: 'Location',
-    subtitle: 'Đô thị cyberpunk tầng thấp',
-    description: 'Thành phố ngập trong ánh đèn neon và mưa axít.',
+    subtitle: translate('writer.writeSolo.sample.shinjukuSubtitle'),
+    description: translate('writer.writeSolo.sample.shinjukuDesc'),
     effectiveRevision: {
-      stageName: 'Canon Toàn cảnh',
+      stageName: translate('writer.writeSolo.sample.shinjukuStage'),
       reviewStatus: 'CanonLocked',
-      summary: 'Khu vực quận 4',
+      summary: translate('writer.writeSolo.sample.shinjukuSummary'),
     } as any,
   },
 ] as unknown as BibleEntryDto[];

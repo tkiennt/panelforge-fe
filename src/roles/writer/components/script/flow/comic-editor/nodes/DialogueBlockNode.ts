@@ -1,5 +1,6 @@
 // src/roles/writer/components/script/flow/comic-editor/nodes/DialogueBlockNode.ts
 import { Node, mergeAttributes } from '@tiptap/core';
+import { translate } from '@/lib/i18n';
 
 export const DialogueBlockNode = Node.create({
   name: 'dialogueBlock',
@@ -10,8 +11,10 @@ export const DialogueBlockNode = Node.create({
   addAttributes() {
     return {
       character: {
-        default: 'Nhân vật',
-        parseHTML: (element) => element.getAttribute('data-character') || 'Nhân vật',
+        default: translate('writer.comicEditor.nodes.defaultCharacter'),
+        parseHTML: (element) =>
+          element.getAttribute('data-character') ||
+          translate('writer.comicEditor.nodes.defaultCharacter'),
         renderHTML: (attributes) => ({
           'data-character': attributes.character,
         }),
@@ -28,7 +31,8 @@ export const DialogueBlockNode = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const character = HTMLAttributes['data-character'] || 'Nhân vật';
+    const character =
+      HTMLAttributes['data-character'] || translate('writer.comicEditor.nodes.defaultCharacter');
 
     return [
       'div',

@@ -48,12 +48,7 @@ describe('ScriptStatusBar', () => {
 
   it('hiển thị cảnh báo chặn gửi duyệt kèm nút mở cast', () => {
     const onOpenCast = vi.fn();
-    render(
-      <ScriptStatusBar
-        isSubmitBlocked={true}
-        onOpenCharactersDrawer={onOpenCast}
-      />,
-    );
+    render(<ScriptStatusBar isSubmitBlocked={true} onOpenCharactersDrawer={onOpenCast} />);
 
     const submitBlocked = screen.getByTestId('submit-blocked-chip');
     expect(submitBlocked).toBeInTheDocument();
@@ -65,12 +60,7 @@ describe('ScriptStatusBar', () => {
 
   it('cho phép mở ngăn kéo trạng thái chi tiết', () => {
     const onOpenStatus = vi.fn();
-    render(
-      <ScriptStatusBar
-        isScriptFrozen={true}
-        onOpenStatusDrawer={onOpenStatus}
-      />,
-    );
+    render(<ScriptStatusBar isScriptFrozen={true} onOpenStatusDrawer={onOpenStatus} />);
 
     const viewDetailsBtn = screen.getByText('Xem chi tiết');
     fireEvent.click(viewDetailsBtn);

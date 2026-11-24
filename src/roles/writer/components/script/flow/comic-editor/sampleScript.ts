@@ -1,19 +1,24 @@
 // src/roles/writer/components/script/flow/comic-editor/sampleScript.ts
+import { translate } from '@/lib/i18n';
+
 export const INITIAL_COMIC_SCRIPT_DOC = {
   type: 'doc',
   content: [
     {
       type: 'pageBlock',
-      attrs: { pageNumber: '01', label: 'Trang 01' },
-      content: [{ type: 'text', text: 'Trang 01 - Khởi đầu trong màn đêm' }],
+      attrs: { pageNumber: '01', label: translate('writer.comicEditor.sample.page1Label') },
+      content: [{ type: 'text', text: translate('writer.comicEditor.sample.page1Text') }],
     },
     {
       type: 'panelBlock',
-      attrs: { panelNumber: '1.1', cameraAngle: 'Toàn cảnh góc cao' },
+      attrs: {
+        panelNumber: '1.1',
+        cameraAngle: translate('writer.comicEditor.sample.panel1Angle'),
+      },
       content: [
         {
           type: 'text',
-          text: 'Toàn cảnh ngã tư Shibuya lúc nửa đêm. Mưa phùn giăng kín ánh đèn neon.',
+          text: translate('writer.comicEditor.sample.panel1Text'),
         },
       ],
     },
@@ -22,7 +27,7 @@ export const INITIAL_COMIC_SCRIPT_DOC = {
       content: [
         {
           type: 'text',
-          text: 'Tokyo lúc nửa đêm, cơn mưa rào bất chợt đổ xuống những con hẻm chật hẹp, xóa nhòa đi mọi dấu vết...',
+          text: translate('writer.comicEditor.sample.caption1Text'),
         },
       ],
     },
@@ -32,7 +37,7 @@ export const INITIAL_COMIC_SCRIPT_DOC = {
       content: [
         {
           type: 'text',
-          text: 'Chúng ta không còn nhiều thời gian nữa rồi... Cần phải rời khỏi đây ngay!',
+          text: translate('writer.comicEditor.sample.dialogue1Text'),
         },
       ],
     },
@@ -41,7 +46,7 @@ export const INITIAL_COMIC_SCRIPT_DOC = {
       content: [
         {
           type: 'text',
-          text: 'RẦM RỘ! (Tiếng sấm chớp rạch ngang bầu trời)',
+          text: translate('writer.comicEditor.sample.sfx1Text'),
         },
       ],
     },
@@ -51,27 +56,30 @@ export const INITIAL_COMIC_SCRIPT_DOC = {
       content: [
         {
           type: 'text',
-          text: 'Cậu cứ bình tĩnh, tớ đã tìm thấy lối thoát hiểm phía sau tòa nhà.',
+          text: translate('writer.comicEditor.sample.dialogue2Text'),
         },
       ],
     },
     {
       type: 'panelBlock',
-      attrs: { panelNumber: '1.2', cameraAngle: 'Cận cảnh' },
+      attrs: {
+        panelNumber: '1.2',
+        cameraAngle: translate('writer.comicEditor.sample.panel2Angle'),
+      },
       content: [
         {
           type: 'text',
-          text: 'Cận cảnh đôi mắt của người lạ mặt đứng dưới ánh đèn đường nhấp nháy.',
+          text: translate('writer.comicEditor.sample.panel2Text'),
         },
       ],
     },
     {
       type: 'dialogueBlock',
-      attrs: { character: 'Người lạ mặt' },
+      attrs: { character: translate('writer.comicEditor.sample.strangerName') },
       content: [
         {
           type: 'text',
-          text: 'Hai người nghĩ mình có thể dễ dàng chạy thoát sao?',
+          text: translate('writer.comicEditor.sample.dialogue3Text'),
         },
       ],
     },
@@ -80,7 +88,7 @@ export const INITIAL_COMIC_SCRIPT_DOC = {
       content: [
         {
           type: 'text',
-          text: 'Xoẹt...! (Lưỡi kiếm rút khỏi vỏ)',
+          text: translate('writer.comicEditor.sample.sfx2Text'),
         },
       ],
     },
