@@ -1,4 +1,5 @@
 import type { TextStyleDto } from '@/services/element.service';
+import { translate } from '@/lib/i18n';
 import { createShoutBalloonPath, LETTERING_PADDING_PX } from './letteringPrimitives';
 import { createSpeechBalloonPath, createThoughtBalloonPath } from '@/shared/utils/balloonPaths';
 import { canvasFont, clampFontSize, MAX_TEXT_FONT_PX } from './textStyle';
@@ -12,11 +13,36 @@ import { canvasFont, clampFontSize, MAX_TEXT_FONT_PX } from './textStyle';
 export type BalloonShape = 'none' | 'oval' | 'cloud' | 'spiky' | 'box';
 
 export const BALLOON_SHAPES: { value: BalloonShape; label: string }[] = [
-  { value: 'none', label: 'Chỉ chữ (không bóng)' },
-  { value: 'oval', label: 'Oval có đuôi' },
-  { value: 'cloud', label: 'Mây (suy nghĩ)' },
-  { value: 'spiky', label: 'Răng cưa (hét)' },
-  { value: 'box', label: 'Hộp chữ nhật' },
+  {
+    value: 'none',
+    get label() {
+      return translate('shared.lettering.balloonShapes.none');
+    },
+  },
+  {
+    value: 'oval',
+    get label() {
+      return translate('shared.lettering.balloonShapes.oval');
+    },
+  },
+  {
+    value: 'cloud',
+    get label() {
+      return translate('shared.lettering.balloonShapes.cloud');
+    },
+  },
+  {
+    value: 'spiky',
+    get label() {
+      return translate('shared.lettering.balloonShapes.spiky');
+    },
+  },
+  {
+    value: 'box',
+    get label() {
+      return translate('shared.lettering.balloonShapes.box');
+    },
+  },
 ];
 
 export interface BalloonAppearance {

@@ -1,6 +1,7 @@
 // src/shared/utils/panelLayout.ts
 // Logic thuần (không phụ thuộc React) cho việc chỉnh bố cục khung panel: kéo/đổi cỡ có "hít" (snap),
 // chia lưới đều, căn chỉnh, phân bố đều và phát hiện lệch. Mọi toạ độ là phần trăm trang (0–100).
+import { translate } from '@/lib/i18n';
 
 export interface Rect {
   x: number;
@@ -375,10 +376,10 @@ export function detectLayoutIssues(rects: Rect[]): LayoutIssue[] {
   const near = (a: number, b: number) => Math.abs(a - b) > 0.1 && Math.abs(a - b) <= 1.5;
 
   const edgeDefs: Array<{ label: string; get: (r: Rect) => number }> = [
-    { label: 'cạnh trái', get: (r) => r.x },
-    { label: 'cạnh phải', get: (r) => right(r) },
-    { label: 'cạnh trên', get: (r) => r.y },
-    { label: 'cạnh dưới', get: (r) => bottom(r) },
+    { label: translate('shared.panelLayout.edges.left'), get: (r) => r.x },
+    { label: translate('shared.panelLayout.edges.right'), get: (r) => right(r) },
+    { label: translate('shared.panelLayout.edges.top'), get: (r) => r.y },
+    { label: translate('shared.panelLayout.edges.bottom'), get: (r) => bottom(r) },
   ];
   for (const def of edgeDefs) {
     const flagged = new Set<number>();
@@ -393,7 +394,10 @@ export function detectLayoutIssues(rects: Rect[]): LayoutIssue[] {
     if (flagged.size > 0) {
       issues.push({
         indexes: [...flagged],
-        message: `${flagged.size} khung lệch nhẹ ${def.label} (nên thẳng hàng).`,
+        message: translate('shared.panelLayout.issues.edgeMisaligned', {
+          count: flagged.size,
+          edge: def.label,
+        }),
       });
     }
   }
@@ -420,11 +424,16 @@ export function detectLayoutIssues(rects: Rect[]): LayoutIssue[] {
       }
     }
     if (gaps.length >= 2 && Math.max(...gaps) - Math.min(...gaps) > 0.5) {
+      const axisLabel = translate(
+        axis === 'y' ? 'shared.panelLayout.axes.vertical' : 'shared.panelLayout.axes.horizontal',
+      );
       issues.push({
         indexes: [...involved],
-        message: `Khoảng cách ${axis === 'y' ? 'dọc' : 'ngang'} giữa các khung không đều (${round1(
-          Math.min(...gaps),
-        )}%–${round1(Math.max(...gaps))}%).`,
+        message: translate('shared.panelLayout.issues.unevenGap', {
+          axis: axisLabel,
+          min: round1(Math.min(...gaps)),
+          max: round1(Math.max(...gaps)),
+        }),
       });
     }
   }
@@ -441,7 +450,10 @@ export function detectLayoutIssues(rects: Rect[]): LayoutIssue[] {
     }
   }
   if (overlaps.size > 0) {
-    issues.push({ indexes: [...overlaps], message: `${overlaps.size} khung đang chồng lên nhau.` });
+    issues.push({
+      indexes: [...overlaps],
+      message: translate('shared.panelLayout.issues.overlapping', { count: overlaps.size }),
+    });
   }
   return issues;
 }
@@ -508,15 +520,14 @@ export function splitPanelRect(rect: Rect, axis: SplitAxis): SplitResult {
   if (axis === 'vertical') {
     const w = (rect.w - SPLIT_GAP) / 2;
     if (w < MIN_SPLIT_SIZE)
-      return { error: 'Khung quá hẹp để chia dọc (mỗi nửa tối thiểu 8% trang).' };
+      return { error: translate('shared.panelLayout.errors.tooNarrowToSplit') };
     return {
       first: { x: rect.x, y: rect.y, w: round2(w), h: rect.h },
       second: { x: round2(rect.x + w + SPLIT_GAP), y: rect.y, w: round2(w), h: rect.h },
     };
   }
   const h = (rect.h - SPLIT_GAP) / 2;
-  if (h < MIN_SPLIT_SIZE)
-    return { error: 'Khung quá thấp để chia ngang (mỗi nửa tối thiểu 8% trang).' };
+  if (h < MIN_SPLIT_SIZE) return { error: translate('shared.panelLayout.errors.tooShortToSplit') };
   return {
     first: { x: rect.x, y: rect.y, w: rect.w, h: round2(h) },
     second: { x: rect.x, y: round2(rect.y + h + SPLIT_GAP), w: rect.w, h: round2(h) },

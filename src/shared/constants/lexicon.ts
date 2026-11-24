@@ -6,64 +6,122 @@
  * 2. Governance / Provenance Viewport (Editor, Producer, Admin): Preserves W3C PROV, CAS SHA-256 chips, and Canon Lock invariants.
  */
 
+import { translate } from '@/lib/i18n';
+
 export type UILanguageContext = 'creative' | 'governance';
 
 export const DOMAIN_LEXICON = {
   creative: {
     // Integrity & Storage
-    contentHash: 'Mã toàn vẹn',
-    originalImage: 'Ảnh gốc',
-    storageCode: 'Mã lưu trữ',
+    get contentHash() {
+      return translate('shared.lexicon.creative.contentHash');
+    },
+    get originalImage() {
+      return translate('shared.lexicon.creative.originalImage');
+    },
+    get storageCode() {
+      return translate('shared.lexicon.creative.storageCode');
+    },
 
     // Canon & Locking (BR-01, BR-07)
-    canonLocked: '🔒 Đã khóa chuẩn',
-    supersedeRevision: 'Tạo bản chuẩn mới',
-    supersedeExplanation: 'Tạo phiên bản kế thừa tiếp theo mà không ghi đè bản gốc đã khóa chuẩn.',
+    get canonLocked() {
+      return translate('shared.lexicon.creative.canonLocked');
+    },
+    get supersedeRevision() {
+      return translate('shared.lexicon.creative.supersedeRevision');
+    },
+    get supersedeExplanation() {
+      return translate('shared.lexicon.creative.supersedeExplanation');
+    },
 
     // Versioning & Sync
-    versionVector: 'Mốc đồng bộ',
+    get versionVector() {
+      return translate('shared.lexicon.creative.versionVector');
+    },
 
     // Workflow & Assignments
-    carveOutAssignment: 'Tách giao việc riêng',
-    changeRequest: 'Yêu cầu chỉnh sửa',
+    get carveOutAssignment() {
+      return translate('shared.lexicon.creative.carveOutAssignment');
+    },
+    get changeRequest() {
+      return translate('shared.lexicon.creative.changeRequest');
+    },
 
     // Editorial & Consistency
-    consistencyFinding: 'Lỗi rà soát',
-    staleDialogue: 'Lời thoại đã đổi',
-    staleAction: 'Cập nhật theo kịch bản',
+    get consistencyFinding() {
+      return translate('shared.lexicon.creative.consistencyFinding');
+    },
+    get staleDialogue() {
+      return translate('shared.lexicon.creative.staleDialogue');
+    },
+    get staleAction() {
+      return translate('shared.lexicon.creative.staleAction');
+    },
 
     // Canvas & Layout
-    frameTemplate: 'Mẫu khung trang',
-    compositePage: 'Trang dựng hoàn chỉnh',
+    get frameTemplate() {
+      return translate('shared.lexicon.creative.frameTemplate');
+    },
+    get compositePage() {
+      return translate('shared.lexicon.creative.compositePage');
+    },
   },
   governance: {
     // Integrity & Storage (CAS W3C PROV)
-    contentHash: 'Mã băm SHA-256 (CAS)',
-    originalImage: 'Bản vẽ chính thức',
-    storageCode: 'Định danh đối tượng (ID)',
+    get contentHash() {
+      return translate('shared.lexicon.governance.contentHash');
+    },
+    get originalImage() {
+      return translate('shared.lexicon.governance.originalImage');
+    },
+    get storageCode() {
+      return translate('shared.lexicon.governance.storageCode');
+    },
 
     // Canon & Locking (BR-01, BR-07)
-    canonLocked: '🔒 Canon Locked (Bất biến)',
-    supersedeRevision: 'Thay thế bản khóa (Supersede)',
-    supersedeExplanation: 'Kích hoạt phiên bản sửa đổi v(N+1) bảo toàn chuỗi lịch sử nguồn gốc.',
+    get canonLocked() {
+      return translate('shared.lexicon.governance.canonLocked');
+    },
+    get supersedeRevision() {
+      return translate('shared.lexicon.governance.supersedeRevision');
+    },
+    get supersedeExplanation() {
+      return translate('shared.lexicon.governance.supersedeExplanation');
+    },
 
     // Versioning & Sync
-    versionVector: 'Phiên bản đồng thời (Version Vector)',
+    get versionVector() {
+      return translate('shared.lexicon.governance.versionVector');
+    },
 
     // Workflow & Assignments
-    carveOutAssignment: 'Ủy thác khung độc lập (Carve-out)',
-    changeRequest: 'Yêu cầu sửa đổi (Change Request)',
+    get carveOutAssignment() {
+      return translate('shared.lexicon.governance.carveOutAssignment');
+    },
+    get changeRequest() {
+      return translate('shared.lexicon.governance.changeRequest');
+    },
 
     // Editorial & Consistency
-    consistencyFinding: 'Lỗi bất nhất (Consistency Finding)',
-    staleDialogue: 'Sai lệch văn bản (Stale Dialogue)',
-    staleAction: 'Đồng bộ lại lời thoại kịch bản',
+    get consistencyFinding() {
+      return translate('shared.lexicon.governance.consistencyFinding');
+    },
+    get staleDialogue() {
+      return translate('shared.lexicon.governance.staleDialogue');
+    },
+    get staleAction() {
+      return translate('shared.lexicon.governance.staleAction');
+    },
 
     // Canvas & Layout
-    frameTemplate: 'Khung lưới toạ độ (Frame Layout)',
-    compositePage: 'Bản ghép Composite 1200×1800',
+    get frameTemplate() {
+      return translate('shared.lexicon.governance.frameTemplate');
+    },
+    get compositePage() {
+      return translate('shared.lexicon.governance.compositePage');
+    },
   },
-} as const;
+};
 
 /**
  * System Error Code UX Copy Mapping.
@@ -73,29 +131,44 @@ export const DOMAIN_LEXICON = {
 export const SYSTEM_ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
   // 409 Race Condition & Version Conflicts
   ELEMENT_VERSION_CONFLICT: {
-    title: 'Xung đột phiên bản đồng thời',
-    description:
-      'Dữ liệu máy chủ mới hơn. Tải lại trang để tiếp tục.',
+    get title() {
+      return translate('shared.lexicon.systemErrors.ELEMENT_VERSION_CONFLICT.title');
+    },
+    get description() {
+      return translate('shared.lexicon.systemErrors.ELEMENT_VERSION_CONFLICT.description');
+    },
   },
   BLOCKING_FINDINGS_EXIST: {
-    title: 'Chưa thể phê duyệt chương',
-    description:
-      'Còn lỗi bất nhất mức Chặn. Rà soát lại kịch bản hoặc bản vẽ.',
+    get title() {
+      return translate('shared.lexicon.systemErrors.BLOCKING_FINDINGS_EXIST.title');
+    },
+    get description() {
+      return translate('shared.lexicon.systemErrors.BLOCKING_FINDINGS_EXIST.description');
+    },
   },
   CHARACTER_NOT_LOCKED: {
-    title: 'Thiết lập chưa khóa chuẩn',
-    description:
-      'Nhân vật chưa có bản thiết kế Canon được khóa duyệt. Hãy hoàn thiện trước khi đưa vào sản xuất.',
+    get title() {
+      return translate('shared.lexicon.systemErrors.CHARACTER_NOT_LOCKED.title');
+    },
+    get description() {
+      return translate('shared.lexicon.systemErrors.CHARACTER_NOT_LOCKED.description');
+    },
   },
   SCRIPT_FROZEN: {
-    title: 'Kịch bản đã đóng băng',
-    description:
-      'Chương truyện này đã chuyển sang giai đoạn vẽ, kịch bản được niêm phong để tránh sai lệch.',
+    get title() {
+      return translate('shared.lexicon.systemErrors.SCRIPT_FROZEN.title');
+    },
+    get description() {
+      return translate('shared.lexicon.systemErrors.SCRIPT_FROZEN.description');
+    },
   },
   CANON_LOCKED_CANNOT_MODIFY: {
-    title: 'Thiết kế đã khóa chuẩn (Canon)',
-    description:
-      'Không thể sửa thiết kế đã khóa chuẩn. Dùng lệnh "Thay thế bản khóa (Supersede)".',
+    get title() {
+      return translate('shared.lexicon.systemErrors.CANON_LOCKED_CANNOT_MODIFY.title');
+    },
+    get description() {
+      return translate('shared.lexicon.systemErrors.CANON_LOCKED_CANNOT_MODIFY.description');
+    },
   },
 };
 

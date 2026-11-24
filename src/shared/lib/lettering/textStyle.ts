@@ -1,6 +1,7 @@
 // Kiểu chữ của element chữ (thanh định dạng Letterer). Khớp TextStyle.cs ở Backend: cùng danh sách font và giới hạn.
 import type { CSSProperties } from 'react';
 import type { TextStyleDto } from '@/services/element.service';
+import { translate } from '@/lib/i18n';
 import {
   LETTERING_FONT_PX,
   LETTERING_LINE_HEIGHT_EM,
@@ -8,23 +9,43 @@ import {
 } from './letteringPrimitives';
 
 export const TEXT_FONTS = [
-  { family: 'Mali', label: 'Mali (thoại)' },
-  { family: 'Patrick Hand', label: 'Patrick Hand (viết tay)' },
-  { family: 'Be Vietnam Pro', label: 'Be Vietnam Pro (dẫn truyện)' },
-  { family: 'Bangers', label: 'Bangers (hét / SFX)' },
-] as const;
+  {
+    family: 'Mali' as const,
+    get label() {
+      return translate('shared.lettering.fonts.mali');
+    },
+  },
+  {
+    family: 'Patrick Hand' as const,
+    get label() {
+      return translate('shared.lettering.fonts.patrickHand');
+    },
+  },
+  {
+    family: 'Be Vietnam Pro' as const,
+    get label() {
+      return translate('shared.lettering.fonts.beVietnamPro');
+    },
+  },
+  {
+    family: 'Bangers' as const,
+    get label() {
+      return translate('shared.lettering.fonts.bangers');
+    },
+  },
+];
 
 export const MAX_TEXT_FONT_PX = 160;
 export const LINE_HEIGHTS = [1.0, 1.15, 1.3] as const;
 
 /** Kiểu có sẵn (như "Kiểu" của Word): Letterer chọn kiểu thay vì chỉnh từng thông số, cả chương đồng nhất. */
-const PRESET_STYLES: { name: string; style: TextStyleDto }[] = [
+const PRESET_DEFS: { key: string; style: TextStyleDto }[] = [
   {
-    name: 'Thoại thường',
+    key: 'normalSpeech',
     style: { fontFamily: 'Mali', fontSize: 26, align: 'center', color: '#171717', lineHeight: 1.3 },
   },
   {
-    name: 'Hét',
+    key: 'shout',
     style: {
       fontFamily: 'Bangers',
       fontSize: 40,
@@ -35,7 +56,7 @@ const PRESET_STYLES: { name: string; style: TextStyleDto }[] = [
     },
   },
   {
-    name: 'Thì thầm',
+    key: 'whisper',
     style: {
       fontFamily: 'Patrick Hand',
       fontSize: 22,
@@ -46,7 +67,7 @@ const PRESET_STYLES: { name: string; style: TextStyleDto }[] = [
     },
   },
   {
-    name: 'Suy nghĩ',
+    key: 'thought',
     style: {
       fontFamily: 'Patrick Hand',
       fontSize: 24,
@@ -57,7 +78,7 @@ const PRESET_STYLES: { name: string; style: TextStyleDto }[] = [
     },
   },
   {
-    name: 'Dẫn truyện',
+    key: 'narration',
     style: {
       fontFamily: 'Be Vietnam Pro',
       fontSize: 22,
@@ -68,7 +89,7 @@ const PRESET_STYLES: { name: string; style: TextStyleDto }[] = [
     },
   },
   {
-    name: 'Hồi tưởng',
+    key: 'flashback',
     style: {
       fontFamily: 'Be Vietnam Pro',
       fontSize: 22,
@@ -79,7 +100,7 @@ const PRESET_STYLES: { name: string; style: TextStyleDto }[] = [
     },
   },
   {
-    name: 'SFX',
+    key: 'sfx',
     style: {
       fontFamily: 'Bangers',
       fontSize: 56,
@@ -92,15 +113,20 @@ const PRESET_STYLES: { name: string; style: TextStyleDto }[] = [
     },
   },
 ];
-export const TEXT_PRESETS = PRESET_STYLES.map((p) => ({
-  ...p,
-  style: { ...p.style, preset: p.name },
+
+export const TEXT_PRESETS: { name: string; style: TextStyleDto }[] = PRESET_DEFS.map((p) => ({
+  get name() {
+    return translate(`shared.lettering.presets.${p.key}`);
+  },
+  get style(): TextStyleDto {
+    return { ...p.style, preset: translate(`shared.lettering.presets.${p.key}`) };
+  },
 }));
 
-const DEFAULT_PRESET_BY_TYPE: Record<string, string> = {
-  NARRATION_BOX: 'Dẫn truyện',
-  THOUGHT_BALLOON: 'Suy nghĩ',
-  SOUND_EFFECT: 'SFX',
+const DEFAULT_PRESET_KEY_BY_TYPE: Record<string, string> = {
+  NARRATION_BOX: 'narration',
+  THOUGHT_BALLOON: 'thought',
+  SOUND_EFFECT: 'sfx',
 };
 
 /** Kiểu đang áp dụng: kiểu Letterer đã lưu, không có thì kiểu mặc định theo loại element. */
@@ -109,8 +135,9 @@ export function resolveTextStyle(el: {
   style?: TextStyleDto | null;
 }): TextStyleDto {
   if (el.style) return el.style;
-  const name = DEFAULT_PRESET_BY_TYPE[el.elementType] ?? 'Thoại thường';
-  return TEXT_PRESETS.find((p) => p.name === name)!.style;
+  const key = DEFAULT_PRESET_KEY_BY_TYPE[el.elementType] ?? 'normalSpeech';
+  const def = PRESET_DEFS.find((p) => p.key === key)!;
+  return { ...def.style, preset: translate(`shared.lettering.presets.${def.key}`) };
 }
 
 export const clampFontSize = (px: number): number =>
@@ -184,7 +211,7 @@ export function classifyScriptLine(
       kind: 'SFX',
       isLetterable: true,
       suggestedElementType: 'SOUND_EFFECT',
-      label: 'SFX',
+      label: translate('shared.lettering.scriptKinds.sfx'),
       cleanText: cleanText || rawDialogue,
     };
   }
@@ -195,7 +222,7 @@ export function classifyScriptLine(
       kind: 'DIRECTION',
       isLetterable: false,
       suggestedElementType: '',
-      label: 'Chỉ dẫn',
+      label: translate('shared.lettering.scriptKinds.direction'),
       cleanText: '',
     };
   }
@@ -207,7 +234,7 @@ export function classifyScriptLine(
       kind: 'SPEECH',
       isLetterable: true,
       suggestedElementType: isThought ? 'THOUGHT_BALLOON' : 'SPEECH_BALLOON',
-      label: 'Thoại',
+      label: translate('shared.lettering.scriptKinds.speech'),
       cleanText: rawDialogue,
     };
   }
@@ -217,7 +244,7 @@ export function classifyScriptLine(
     kind: 'NARRATION',
     isLetterable: true,
     suggestedElementType: 'NARRATION_BOX',
-    label: 'Dẫn truyện',
+    label: translate('shared.lettering.scriptKinds.narration'),
     cleanText: rawDialogue,
   };
 }

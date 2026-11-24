@@ -1,3 +1,5 @@
+import { translate } from '@/lib/i18n';
+
 /**
  * Bộ ảnh có sẵn của hệ thống (public/presets) để người dùng chọn thay vì tải ảnh từ máy.
  * Đường dẫn tương đối theo origin của Frontend nên dùng được ở mọi môi trường.
@@ -18,7 +20,9 @@ export const SYSTEM_AVATARS: SystemImage[] = numbers(6).map((n) => ({
 
 export const SYSTEM_COVERS: SystemImage[] = numbers(4).map((n) => ({
   id: `cover-B${n}`,
-  name: `Bìa ${n}`,
+  get name() {
+    return translate('shared.systemImages.coverName', { number: n });
+  },
   url: `/presets/covers/cover-B${n}.png`,
 }));
 
@@ -27,7 +31,7 @@ export const isSystemAvatarUrl = (url: string) => SYSTEM_AVATARS.some((a) => a.u
 /** Tải ảnh hệ thống về thành File để gửi qua API upload sẵn có (giữ nguyên kiểm tra phía Backend). */
 export const systemImageToFile = async (img: SystemImage): Promise<File> => {
   const res = await fetch(img.url);
-  if (!res.ok) throw new Error('Không tải được ảnh có sẵn của hệ thống.');
+  if (!res.ok) throw new Error(translate('shared.systemImages.loadFailed'));
   const blob = await res.blob();
   return new File([blob], `${img.id}.png`, { type: blob.type || 'image/png' });
 };

@@ -34,6 +34,14 @@ import viErrors from '@/locales/vi/errors.json';
 import enErrors from '@/locales/en/errors.json';
 import viPayments from '@/locales/vi/payments.json';
 import enPayments from '@/locales/en/payments.json';
+import viWriter from '@/locales/vi/writer.json';
+import enWriter from '@/locales/en/writer.json';
+import viArtist from '@/locales/vi/artist.json';
+import enArtist from '@/locales/en/artist.json';
+import viFeatures from '@/locales/vi/features.json';
+import enFeatures from '@/locales/en/features.json';
+import viShared from '@/locales/vi/shared.json';
+import enShared from '@/locales/en/shared.json';
 
 export type SupportedLanguage = 'vi' | 'en';
 
@@ -55,6 +63,10 @@ export const DICTIONARIES = {
     members: viMembers,
     errors: viErrors,
     payments: viPayments,
+    writer: viWriter,
+    artist: viArtist,
+    features: viFeatures,
+    shared: viShared,
   },
   en: {
     common: enCommon,
@@ -73,6 +85,10 @@ export const DICTIONARIES = {
     members: enMembers,
     errors: enErrors,
     payments: enPayments,
+    writer: enWriter,
+    artist: enArtist,
+    features: enFeatures,
+    shared: enShared,
   },
 } as const;
 

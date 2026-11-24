@@ -1,0 +1,161 @@
+{
+  "lexicon": {
+    "creative": {
+      "contentHash": "Mã toàn vẹn",
+      "originalImage": "Ảnh gốc",
+      "storageCode": "Mã lưu trữ",
+      "canonLocked": "🔒 Đã khóa chuẩn",
+      "supersedeRevision": "Tạo bản chuẩn mới",
+      "supersedeExplanation": "Tạo phiên bản kế thừa tiếp theo mà không ghi đè bản gốc đã khóa chuẩn.",
+      "versionVector": "Mốc đồng bộ",
+      "carveOutAssignment": "Tách giao việc riêng",
+      "changeRequest": "Yêu cầu chỉnh sửa",
+      "consistencyFinding": "Lỗi rà soát",
+      "staleDialogue": "Lời thoại đã đổi",
+      "staleAction": "Cập nhật theo kịch bản",
+      "frameTemplate": "Mẫu khung trang",
+      "compositePage": "Trang dựng hoàn chỉnh"
+    },
+    "governance": {
+      "contentHash": "Mã băm SHA-256 (CAS)",
+      "originalImage": "Bản vẽ chính thức",
+      "storageCode": "Định danh đối tượng (ID)",
+      "canonLocked": "🔒 Canon Locked (Bất biến)",
+      "supersedeRevision": "Thay thế bản khóa (Supersede)",
+      "supersedeExplanation": "Kích hoạt phiên bản sửa đổi v(N+1) bảo toàn chuỗi lịch sử nguồn gốc.",
+      "versionVector": "Phiên bản đồng thời (Version Vector)",
+      "carveOutAssignment": "Ủy thác khung độc lập (Carve-out)",
+      "changeRequest": "Yêu cầu sửa đổi (Change Request)",
+      "consistencyFinding": "Lỗi bất nhất (Consistency Finding)",
+      "staleDialogue": "Sai lệch văn bản (Stale Dialogue)",
+      "staleAction": "Đồng bộ lại lời thoại kịch bản",
+      "frameTemplate": "Khung lưới toạ độ (Frame Layout)",
+      "compositePage": "Bản ghép Composite 1200×1800"
+    },
+    "systemErrors": {
+      "ELEMENT_VERSION_CONFLICT": {
+        "title": "Xung đột phiên bản đồng thời",
+        "description": "Dữ liệu máy chủ mới hơn. Tải lại trang để tiếp tục."
+      },
+      "BLOCKING_FINDINGS_EXIST": {
+        "title": "Chưa thể phê duyệt chương",
+        "description": "Còn lỗi bất nhất mức Chặn. Rà soát lại kịch bản hoặc bản vẽ."
+      },
+      "CHARACTER_NOT_LOCKED": {
+        "title": "Thiết lập chưa khóa chuẩn",
+        "description": "Nhân vật chưa có bản thiết kế Canon được khóa duyệt. Hãy hoàn thiện trước khi đưa vào sản xuất."
+      },
+      "SCRIPT_FROZEN": {
+        "title": "Kịch bản đã đóng băng",
+        "description": "Chương truyện này đã chuyển sang giai đoạn vẽ, kịch bản được niêm phong để tránh sai lệch."
+      },
+      "CANON_LOCKED_CANNOT_MODIFY": {
+        "title": "Thiết kế đã khóa chuẩn (Canon)",
+        "description": "Không thể sửa thiết kế đã khóa chuẩn. Dùng lệnh \"Thay thế bản khóa (Supersede)\"."
+      }
+    }
+  },
+  "lettering": {
+    "balloonShapes": {
+      "none": "Chỉ chữ (không bóng)",
+      "oval": "Oval có đuôi",
+      "cloud": "Mây (suy nghĩ)",
+      "spiky": "Răng cưa (hét)",
+      "box": "Hộp chữ nhật"
+    },
+    "fonts": {
+      "mali": "Mali (thoại)",
+      "patrickHand": "Patrick Hand (viết tay)",
+      "beVietnamPro": "Be Vietnam Pro (dẫn truyện)",
+      "bangers": "Bangers (hét / SFX)"
+    },
+    "presets": {
+      "normalSpeech": "Thoại thường",
+      "shout": "Hét",
+      "whisper": "Thì thầm",
+      "thought": "Suy nghĩ",
+      "narration": "Dẫn truyện",
+      "flashback": "Hồi tưởng",
+      "sfx": "SFX"
+    },
+    "scriptKinds": {
+      "sfx": "SFX",
+      "direction": "Chỉ dẫn",
+      "speech": "Thoại",
+      "narration": "Dẫn truyện"
+    }
+  },
+  "auditLog": {
+    "actions": {
+      "login": "Đăng nhập",
+      "logout": "Đăng xuất",
+      "sessionsRevoked": "Thu hồi phiên hàng loạt",
+      "revokeSession": "Thu hồi phiên",
+      "createRefreshToken": "Cấp mã phiên (cũ)",
+      "updateRefreshToken": "Gia hạn phiên (cũ)",
+      "assignProducer": "Cấp quyền tạo Studio",
+      "assignRole": "Phân quyền",
+      "create": "Tạo mới",
+      "update": "Chỉnh sửa",
+      "delete": "Xóa",
+      "submit": "Nộp bài",
+      "approve": "Phê duyệt",
+      "reject": "Từ chối",
+      "resolve": "Xử lý",
+      "publish": "Xuất bản",
+      "export": "Xuất dữ liệu",
+      "createEntity": "Tạo {entity}",
+      "updateEntity": "Sửa {entity}",
+      "deleteEntity": "Xóa {entity}"
+    },
+    "entities": {
+      "session": "Phiên đăng nhập",
+      "user": "Người dùng",
+      "series": "Bộ truyện",
+      "pipelineStage": "Công đoạn sản xuất",
+      "chapter": "Chương",
+      "page": "Trang",
+      "panel": "Khung tranh",
+      "refreshToken": "Mã phiên (cũ)",
+      "assetAccessLog": "Truy cập tài nguyên",
+      "notification": "Thông báo",
+      "workspaceAiConfig": "Cấu hình AI Studio"
+    }
+  },
+  "panelLayout": {
+    "edges": {
+      "left": "cạnh trái",
+      "right": "cạnh phải",
+      "top": "cạnh trên",
+      "bottom": "cạnh dưới"
+    },
+    "axes": {
+      "vertical": "dọc",
+      "horizontal": "ngang"
+    },
+    "issues": {
+      "edgeMisaligned": "{count} khung lệch nhẹ {edge} (nên thẳng hàng).",
+      "unevenGap": "Khoảng cách {axis} giữa các khung không đều ({min}%–{max}%).",
+      "overlapping": "{count} khung đang chồng lên nhau."
+    },
+    "errors": {
+      "tooNarrowToSplit": "Khung quá hẹp để chia dọc (mỗi nửa tối thiểu 8% trang).",
+      "tooShortToSplit": "Khung quá thấp để chia ngang (mỗi nửa tối thiểu 8% trang)."
+    }
+  },
+  "profileCovers": {
+    "mangaStudio": "Xưởng manga tím",
+    "greenWorkspace": "Góc vẽ xanh",
+    "robotStudio": "Studio robot",
+    "sunnyLoft": "Góc vẽ nắng vàng",
+    "sketchDesk": "Bàn phác thảo xanh",
+    "cozyOrange": "Studio cam ấm"
+  },
+  "seriesImagePresets": {
+    "rulesLabel": "PNG, JPEG hoặc WebP · tối đa 5 MB"
+  },
+  "systemImages": {
+    "coverName": "Bìa {index}",
+    "loadFailed": "Không tải được ảnh có sẵn của hệ thống."
+  }
+}

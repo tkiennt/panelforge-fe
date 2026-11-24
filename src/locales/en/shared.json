@@ -1,0 +1,161 @@
+{
+  "lexicon": {
+    "creative": {
+      "contentHash": "Integrity Code",
+      "originalImage": "Original Art",
+      "storageCode": "Storage Code",
+      "canonLocked": "🔒 Canon Locked",
+      "supersedeRevision": "Create New Standard",
+      "supersedeExplanation": "Create the next inherited revision without overwriting the locked canon version.",
+      "versionVector": "Sync Milestone",
+      "carveOutAssignment": "Split Assignment",
+      "changeRequest": "Change Request",
+      "consistencyFinding": "Review Finding",
+      "staleDialogue": "Dialogue Changed",
+      "staleAction": "Sync with Script",
+      "frameTemplate": "Frame Template",
+      "compositePage": "Composite Page"
+    },
+    "governance": {
+      "contentHash": "SHA-256 Hash (CAS)",
+      "originalImage": "Official Artwork",
+      "storageCode": "Object ID",
+      "canonLocked": "🔒 Canon Locked (Immutable)",
+      "supersedeRevision": "Supersede Locked Revision",
+      "supersedeExplanation": "Activate revision v(N+1) while preserving the provenance chain.",
+      "versionVector": "Concurrency Version (Version Vector)",
+      "carveOutAssignment": "Independent Panel Carve-out",
+      "changeRequest": "Change Request",
+      "consistencyFinding": "Consistency Finding",
+      "staleDialogue": "Stale Dialogue",
+      "staleAction": "Sync script dialogue",
+      "frameTemplate": "Coordinate Grid (Frame Layout)",
+      "compositePage": "Composite 1200×1800"
+    },
+    "systemErrors": {
+      "ELEMENT_VERSION_CONFLICT": {
+        "title": "Concurrent Version Conflict",
+        "description": "Server data is newer. Reload the page to continue."
+      },
+      "BLOCKING_FINDINGS_EXIST": {
+        "title": "Cannot Approve Chapter Yet",
+        "description": "Blocking consistency findings remain. Review the script or artwork."
+      },
+      "CHARACTER_NOT_LOCKED": {
+        "title": "Design Not Canon Locked",
+        "description": "Character does not have a locked Canon design yet. Finalize it before production."
+      },
+      "SCRIPT_FROZEN": {
+        "title": "Script Frozen",
+        "description": "This chapter has moved to drawing; the script is sealed to prevent drift."
+      },
+      "CANON_LOCKED_CANNOT_MODIFY": {
+        "title": "Design is Canon Locked",
+        "description": "Cannot edit a Canon-locked design. Use \"Supersede\" instead."
+      }
+    }
+  },
+  "lettering": {
+    "balloonShapes": {
+      "none": "Text only (no balloon)",
+      "oval": "Oval with tail",
+      "cloud": "Cloud (thought)",
+      "spiky": "Spiky (shout)",
+      "box": "Rectangle box"
+    },
+    "fonts": {
+      "mali": "Mali (dialogue)",
+      "patrickHand": "Patrick Hand (handwritten)",
+      "beVietnamPro": "Be Vietnam Pro (narration)",
+      "bangers": "Bangers (shout / SFX)"
+    },
+    "presets": {
+      "normalSpeech": "Normal Speech",
+      "shout": "Shout",
+      "whisper": "Whisper",
+      "thought": "Thought",
+      "narration": "Narration",
+      "flashback": "Flashback",
+      "sfx": "SFX"
+    },
+    "scriptKinds": {
+      "sfx": "SFX",
+      "direction": "Direction",
+      "speech": "Speech",
+      "narration": "Narration"
+    }
+  },
+  "auditLog": {
+    "actions": {
+      "login": "Sign In",
+      "logout": "Sign Out",
+      "sessionsRevoked": "Bulk Revoke Sessions",
+      "revokeSession": "Revoke Session",
+      "createRefreshToken": "Issue Session Token (legacy)",
+      "updateRefreshToken": "Renew Session (legacy)",
+      "assignProducer": "Grant Studio Creation",
+      "assignRole": "Assign Role",
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete",
+      "submit": "Submit",
+      "approve": "Approve",
+      "reject": "Reject",
+      "resolve": "Resolve",
+      "publish": "Publish",
+      "export": "Export Data",
+      "createEntity": "Create {entity}",
+      "updateEntity": "Update {entity}",
+      "deleteEntity": "Delete {entity}"
+    },
+    "entities": {
+      "session": "Session",
+      "user": "User",
+      "series": "Series",
+      "pipelineStage": "Production Stage",
+      "chapter": "Chapter",
+      "page": "Page",
+      "panel": "Panel",
+      "refreshToken": "Session Token (legacy)",
+      "assetAccessLog": "Asset Access",
+      "notification": "Notification",
+      "workspaceAiConfig": "Studio AI Config"
+    }
+  },
+  "panelLayout": {
+    "edges": {
+      "left": "left edge",
+      "right": "right edge",
+      "top": "top edge",
+      "bottom": "bottom edge"
+    },
+    "axes": {
+      "vertical": "vertical",
+      "horizontal": "horizontal"
+    },
+    "issues": {
+      "edgeMisaligned": "{count} panels slightly misaligned on {edge} (should align).",
+      "unevenGap": "Uneven {axis} spacing between panels ({min}%–{max}%).",
+      "overlapping": "{count} panels are overlapping."
+    },
+    "errors": {
+      "tooNarrowToSplit": "Panel too narrow to split vertically (each half must be at least 8% of page).",
+      "tooShortToSplit": "Panel too short to split horizontally (each half must be at least 8% of page)."
+    }
+  },
+  "profileCovers": {
+    "mangaStudio": "Purple Manga Studio",
+    "greenWorkspace": "Green Drawing Corner",
+    "robotStudio": "Robot Studio",
+    "sunnyLoft": "Sunny Drawing Loft",
+    "sketchDesk": "Blue Sketch Desk",
+    "cozyOrange": "Warm Orange Studio"
+  },
+  "seriesImagePresets": {
+    "rulesLabel": "PNG, JPEG or WebP · max 5 MB"
+  },
+  "systemImages": {
+    "coverName": "Cover {index}",
+    "loadFailed": "Failed to load built-in system images."
+  }
+}
