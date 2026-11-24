@@ -64,7 +64,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
   workspaceRole,
   onShowToast,
 }) => {
-  const { t } = useTranslation('review');
+  const { t, lang } = useTranslation('review');
   const navigate = useNavigate();
   const isProducer = normalizeWorkspaceRole(workspaceRole) === 'PRODUCER';
   const {
@@ -151,13 +151,16 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
           status: g.status === 'UnderReview' ? 'UnderReview' : 'Submitted',
           entityType: g.pageId ? 'Page' : 'Chapter',
           targetEntityId: g.pageId ?? g.chapterId,
-          scopeLabel: g.pageNumber != null ? `Trang ${g.pageNumber}` : 'Toàn chương',
+          scopeLabel:
+            g.pageNumber != null
+              ? t('artworkReview.header.page', { number: g.pageNumber })
+              : t('chapterReview.wholeChapter'),
           assigneeUserId: g.assigneeUserId ?? '',
           assigneeName: m
             ? m.fullName || m.email.split('@')[0]
             : g.assigneeUserId
               ? g.assigneeUserId.slice(0, 8)
-              : 'Chưa rõ nghệ sĩ',
+              : t('desk.unknownArtist'),
           assigneeAvatarUrl: m?.avatarUrl ?? null,
           latestSubmissionId: null,
           submissionAttempt: g.attemptNumber ?? 1,
@@ -195,12 +198,12 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
       );
       if (series) setSeriesInfo(series);
     } catch (err: any) {
-      console.error('Lỗi tải hàng đợi thẩm định Editor:', err);
-      setError(err.message || 'Không thể tải hàng đợi thẩm định.');
+      console.error('Failed to load Editor review queue:', err);
+      setError(err.message || t('desk.errors.loadQueue'));
     } finally {
       setLoading(false);
     }
-  }, [seriesId, workspaceId, activeGate, statusFilter, currentUserId]);
+  }, [seriesId, workspaceId, activeGate, statusFilter, currentUserId, t]);
 
   useEffect(() => {
     loadData();
@@ -217,10 +220,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
   const handleOpenReview = async (item: EditorReviewQueueItemDto) => {
     if (!workspaceId || !seriesId) return;
     if (item.isSelfSubmission) {
-      onShowToast?.(
-        'Quy tắc 4 mắt (BR-26)',
-        'Bạn không thể tự duyệt bài do chính mình nộp. Vui lòng chuyển giao cho Biên tập viên khác.',
-      );
+      onShowToast?.(t('desk.toast.fourEyesTitle'), t('desk.toast.fourEyesDesc'));
       return;
     }
 
@@ -228,12 +228,15 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
       setOpeningReviewId(item.assignmentId);
       if (item.status === 'Submitted') {
         await assignmentService.openReview(item.chapterId, item.assignmentId);
-        onShowToast?.('Bắt đầu thẩm định', `Đã mở phiên duyệt cho ${item.scopeLabel}`);
+        onShowToast?.(
+          t('desk.toast.startReviewTitle'),
+          t('desk.toast.startReviewDesc', { scope: item.scopeLabel }),
+        );
       }
       navigate(getReviewUrl(item));
     } catch (err: any) {
-      console.error('Không thể mở phiên duyệt:', err);
-      onShowToast?.('Lỗi mở duyệt', err.message || 'Không thể mở phiên thẩm định bài nộp.');
+      console.error('Failed to open review session:', err);
+      onShowToast?.(t('desk.toast.openErrorTitle'), err.message || t('desk.toast.openErrorDesc'));
     } finally {
       setOpeningReviewId(null);
     }
@@ -257,7 +260,10 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
       }
       navigate(getReviewUrl(item));
     } catch (err: any) {
-      onShowToast?.('Lỗi mở duyệt', err?.message || 'Không thể mở phiên duyệt ô công việc.');
+      onShowToast?.(
+        t('desk.toast.openErrorTitle'),
+        err?.message || t('desk.toast.openGridErrorDesc'),
+      );
       if (err?.status === 409) await loadData();
     } finally {
       setGridBusyTaskId(null);
@@ -270,8 +276,12 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     try {
       const released = await assignmentService.releaseStageTaskReview(item.chapterId, taskId);
       onShowToast?.(
-        t('chapterReview.releaseReviewToast', 'Đã nhả khoá duyệt'),
-        `Chương ${item.chapterNumber} · ${item.stageName} (${item.scopeLabel})`,
+        t('chapterReview.releaseReviewToast'),
+        t('desk.gridItemSummary', {
+          chapter: item.chapterNumber,
+          stage: item.stageName,
+          scope: item.scopeLabel,
+        }),
       );
       setQueueItems((prev) =>
         prev
@@ -290,7 +300,10 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
           .filter((q) => statusFilter === 'all' || q.status === statusFilter),
       );
     } catch (err: any) {
-      onShowToast?.('Lỗi nhả khoá duyệt', err?.message || 'Không thể nhả khoá duyệt.');
+      onShowToast?.(
+        t('desk.toast.releaseErrorTitle'),
+        err?.message || t('desk.toast.releaseErrorDesc'),
+      );
       if (err?.status === 409) await loadData();
     } finally {
       setGridBusyTaskId(null);
@@ -304,12 +317,19 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     try {
       await assignmentService.approveStageTask(item.chapterId, taskId);
       onShowToast?.(
-        'Đã duyệt ô công việc',
-        `Chương ${item.chapterNumber} · ${item.stageName} (${item.scopeLabel})`,
+        t('desk.toast.gridApprovedTitle'),
+        t('desk.gridItemSummary', {
+          chapter: item.chapterNumber,
+          stage: item.stageName,
+          scope: item.scopeLabel,
+        }),
       );
       await loadData();
     } catch (err: any) {
-      onShowToast?.('Lỗi duyệt ô việc', err?.message || 'Không thể duyệt ô công việc này.');
+      onShowToast?.(
+        t('desk.toast.gridApproveErrorTitle'),
+        err?.message || t('desk.toast.gridApproveErrorDesc'),
+      );
       if (err?.status === 409) await loadData();
     } finally {
       setGridBusyTaskId(null);
@@ -326,12 +346,19 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
       setRejectingGridTaskId(null);
       setRejectComment('');
       onShowToast?.(
-        'Đã yêu cầu sửa lại',
-        `Chương ${item.chapterNumber} · ${item.stageName} (${item.scopeLabel})`,
+        t('desk.toast.gridRejectedTitle'),
+        t('desk.gridItemSummary', {
+          chapter: item.chapterNumber,
+          stage: item.stageName,
+          scope: item.scopeLabel,
+        }),
       );
       await loadData();
     } catch (err: any) {
-      onShowToast?.('Lỗi yêu cầu sửa', err?.message || 'Không thể gửi yêu cầu sửa lại.');
+      onShowToast?.(
+        t('desk.toast.gridRejectErrorTitle'),
+        err?.message || t('desk.toast.gridRejectErrorDesc'),
+      );
       if (err?.status === 409) await loadData();
     } finally {
       setGridBusyTaskId(null);
@@ -382,10 +409,10 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
   // Date formatter
   const formatDate = (isoString?: string | null) => {
-    if (!isoString) return 'Vừa xong';
+    if (!isoString) return t('desk.justNow');
     try {
       const d = new Date(isoString);
-      return d.toLocaleDateString('vi-VN', {
+      return d.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-GB', {
         month: 'numeric',
         day: 'numeric',
         hour: '2-digit',
@@ -407,19 +434,19 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                 {t('desk.title', 'Bàn Thẩm Định Biên Tập (Editor Desk)')}
               </h1>
               <span className='text-xs text-[#57534E] font-medium'>
-                · {seriesInfo?.title || 'Bộ truyện'}
+                · {seriesInfo?.title || t('desk.defaultSeriesTitle')}
               </span>
             </div>
-            <p className='text-xs text-[#78716C] mt-0.5'>
-              {t('desk.subtitle', 'Hàng đợi kiểm soát chất lượng theo 2 cổng Gate 1 & Gate 2')}
-            </p>
+            <p className='text-xs text-[#78716C] mt-0.5'>{t('desk.subtitle')}</p>
           </div>
 
           {/* Quick Refresh */}
           <div className='flex items-center gap-2 self-start md:self-auto'>
             <button
               type='button'
-              onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible?tab=review`)}
+              onClick={() =>
+                navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible?tab=review`)
+              }
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer'
             >
               <Palette className='w-3.5 h-3.5 text-[#C2410C]' />
@@ -430,12 +457,12 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
               onClick={loadData}
               disabled={loading}
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
-              title='Làm mới hàng đợi'
+              title={t('desk.refreshQueueTitle')}
             >
               <RotateCcw
                 className={`w-3.5 h-3.5 text-[#C2410C] ${loading ? 'animate-spin' : ''}`}
               />
-              <span>Làm mới</span>
+              <span>{t('desk.refresh')}</span>
             </button>
           </div>
         </div>
@@ -445,12 +472,12 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
           <div className='flex items-center gap-4 sm:gap-6 flex-wrap'>
             <div className='flex items-center gap-1.5'>
               <span className='w-2 h-2 rounded-full bg-amber-500' />
-              <span className='text-[#57534E] font-medium'>Chờ mở duyệt:</span>
+              <span className='text-[#57534E] font-medium'>{t('desk.kpiPending')}</span>
               <span className='font-bold text-[#1C1917]'>{metrics.submittedCount}</span>
             </div>
             <div className='flex items-center gap-1.5'>
               <span className='w-2 h-2 rounded-full bg-sky-500' />
-              <span className='text-[#57534E] font-medium'>Đang thẩm định:</span>
+              <span className='text-[#57534E] font-medium'>{t('desk.kpiUnderReview')}</span>
               <span className='font-bold text-[#1C1917]'>{metrics.underReviewCount}</span>
             </div>
             <div className='flex items-center gap-1.5'>
@@ -464,13 +491,15 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
             {metrics.selfSubmissionCount > 0 && (
               <div className='flex items-center gap-1.5 text-rose-700 bg-rose-50/80 px-2 py-0.5 rounded-md border border-rose-200/60'>
                 <ShieldAlert className='w-3 h-3 text-rose-600' />
-                <span className='font-medium'>Khóa 4 mắt (BR-26):</span>
+                <span className='font-medium'>{t('desk.kpiFourEyes')}</span>
                 <span className='font-bold'>{metrics.selfSubmissionCount}</span>
               </div>
             )}
           </div>
 
-          <div className='text-xs text-[#78716C] font-mono'>Tổng: {metrics.total} bài nộp</div>
+          <div className='text-xs text-[#78716C] font-mono'>
+            {t('desk.totalSubmissions', { count: metrics.total })}
+          </div>
         </div>
       </div>
 
@@ -521,12 +550,12 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              aria-label='Lọc theo trạng thái'
+              aria-label={t('desk.filterStatusAria')}
               className='px-3 py-1.5 bg-[#F3F0E9] border border-[#E5E0D8] rounded-lg text-xs font-medium text-[#1C1917] focus:outline-none focus:border-[#C2410C] cursor-pointer'
             >
-              <option value='all'>Tất cả trạng thái</option>
-              <option value='Submitted'>Chờ mở duyệt (Submitted)</option>
-              <option value='UnderReview'>Đang thẩm định (UnderReview)</option>
+              <option value='all'>{t('desk.filterStatusAll')}</option>
+              <option value='Submitted'>{t('desk.filterStatusSubmitted')}</option>
+              <option value='UnderReview'>{t('desk.filterStatusUnderReview')}</option>
             </select>
 
             {/* Search Input */}
@@ -536,7 +565,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                 type='text'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder='Tìm chương, họa sĩ, trang...'
+                placeholder={t('desk.searchPlaceholder')}
                 className='w-full pl-9 pr-3 py-1.5 bg-[#F3F0E9] border border-[#E5E0D8] rounded-lg text-xs text-[#1C1917] placeholder-[#78716C] focus:outline-none focus:border-[#C2410C]'
               />
             </div>
@@ -555,7 +584,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
               onClick={loadData}
               className='px-2.5 py-1 bg-white border border-red-300 rounded font-semibold text-red-700 hover:bg-red-50 transition-colors cursor-pointer'
             >
-              Thử lại
+              {t('desk.retry')}
             </button>
           </div>
         )}
@@ -564,9 +593,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
         {loading && (
           <div className='p-12 text-center bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xs'>
             <RotateCcw className='w-7 h-7 text-[#C2410C] animate-spin mx-auto mb-2.5' />
-            <p className='text-xs font-semibold text-[#57534E]'>
-              Đang nạp hàng đợi duyệt bài của Editor...
-            </p>
+            <p className='text-xs font-semibold text-[#57534E]'>{t('desk.loadingQueue')}</p>
           </div>
         )}
 
@@ -614,12 +641,9 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
             <div className='w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 mx-auto'>
               <CheckCircle2 className='w-5 h-5' />
             </div>
-            <h2 className='text-sm font-serif font-bold text-[#1C1917]'>
-              Hàng Đợi Thẩm Định Đang Sạch (Inbox Zero)
-            </h2>
+            <h2 className='text-sm font-serif font-bold text-[#1C1917]'>{t('desk.emptyTitle')}</h2>
             <p className='text-xs text-[#78716C] max-w-md mx-auto leading-relaxed'>
-              Không có bài nộp nào đang chờ duyệt trong cổng này. Mọi tác phẩm đều đã được xử lý
-              hoặc nghệ sĩ đang tiếp tục hoàn thiện.
+              {t('desk.emptyDesc')}
             </p>
           </div>
         )}
@@ -681,7 +705,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                     <div className='mb-2'>
                       <div className='flex items-center justify-between gap-2 flex-wrap'>
                         <h3 className='text-sm font-bold text-[#1C1917] leading-snug'>
-                          Chương {item.chapterNumber} ·{' '}
+                          {t('scriptReview.header.title', { number: item.chapterNumber })} ·{' '}
                           <span className='text-[#C2410C]'>{item.scopeLabel}</span>
                         </h3>
                         {item.isInputOutdated && (
@@ -690,12 +714,12 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-semibold'
                           >
                             <AlertCircle className='w-3 h-3 text-amber-700 shrink-0' />
-                            <span>{t('chapterReview.inputOutdatedBadge', 'Đầu vào đã đổi')}</span>
+                            <span>{t('chapterReview.inputOutdatedBadge')}</span>
                           </span>
                         )}
                       </div>
                       <p className='text-xs text-[#57534E] mt-0.5 truncate'>
-                        {item.chapterTitle || 'Chưa đặt tên'} ·{' '}
+                        {item.chapterTitle || t('desk.untitledChapter')} ·{' '}
                         <span className='font-medium text-[#1C1917]'>{item.stageName}</span>
                       </p>
                     </div>
@@ -715,24 +739,30 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                               {item.assigneeName ? item.assigneeName.charAt(0).toUpperCase() : 'A'}
                             </span>
                           )}
-                          <span className='truncate'>{item.assigneeName || 'Chưa rõ nghệ sĩ'}</span>
+                          <span className='truncate'>
+                            {item.assigneeName || t('desk.unknownArtist')}
+                          </span>
                         </div>
                         <span className='text-[#78716C] font-mono'>
-                          Lần #{item.submissionAttempt}
+                          {t('desk.attemptLabel', { attempt: item.submissionAttempt })}
                         </span>
                       </div>
 
                       <div className='flex items-center justify-between text-[#78716C]'>
-                        <span>Nộp: {formatDate(item.submittedAt)}</span>
+                        <span>{t('desk.submittedAt', { date: formatDate(item.submittedAt) })}</span>
                         {item.priority === 'Urgent' || item.priority === 4 ? (
-                          <span className='text-rose-700 font-semibold'>Khẩn cấp</span>
+                          <span className='text-rose-700 font-semibold'>
+                            {t('desk.priorityUrgent')}
+                          </span>
                         ) : null}
                       </div>
 
                       {item.openChangeRequestsCount > 0 && (
                         <div className='pt-1 text-amber-800 flex items-center gap-1 font-medium'>
                           <span className='w-1.5 h-1.5 rounded-full bg-amber-500' />
-                          <span>{item.openChangeRequestsCount} yêu cầu sửa cần xác nhận</span>
+                          <span>
+                            {t('desk.openChangeRequests', { count: item.openChangeRequestsCount })}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -742,8 +772,8 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                       <div className='mt-1 mb-2 p-2 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs flex items-start gap-1.5 leading-relaxed'>
                         <ShieldAlert className='w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5' />
                         <div>
-                          <span className='font-bold'>Quy tắc 4 mắt (BR-26):</span> Bạn là người đã
-                          nộp bài này. Vui lòng chuyển bài cho Biên tập viên khác.
+                          <span className='font-bold'>{t('desk.toast.fourEyesTitle')}:</span>{' '}
+                          {t('desk.selfSubmissionNotice')}
                         </div>
                       </div>
                     )}
@@ -756,8 +786,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                         <Lock className='w-3.5 h-3.5 text-amber-600 shrink-0' />
                         <span>
                           {t('chapterReview.underReviewBy', {
-                            name: item.reviewerName || item.reviewerUserId,
-                            defaultValue: `Đang được duyệt bởi ${item.reviewerName || item.reviewerUserId}`,
+                            name: item.reviewerName || item.reviewerUserId || '',
                           })}
                         </span>
                       </div>
@@ -766,9 +795,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                     {isLockedBySelf && (
                       <div className='mt-1 mb-2 p-2 rounded-lg bg-sky-50 border border-sky-200 text-sky-900 text-xs flex items-center gap-1.5 font-medium'>
                         <Eye className='w-3.5 h-3.5 text-sky-600 shrink-0' />
-                        <span>
-                          {t('chapterReview.underReviewByYou', 'Bạn đang giữ khoá duyệt')}
-                        </span>
+                        <span>{t('chapterReview.underReviewByYou')}</span>
                       </div>
                     )}
                   </div>
@@ -781,10 +808,10 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                           type='button'
                           disabled
                           className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#A8A29E] bg-[#F3F0E9] border border-[#E5E0D8] cursor-not-allowed'
-                          title='Bạn không thể tự duyệt bài do chính mình nộp'
+                          title={t('desk.lockedSelfTitle')}
                         >
                           <Lock className='w-3 h-3' />
-                          <span>{t('desk.lockedSelfAction', 'Khóa: Cần Editor khác duyệt')}</span>
+                          <span>{t('desk.lockedSelfAction')}</span>
                         </button>
                       ) : item.isGridItem ? (
                         <>
@@ -824,8 +851,8 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             <Eye className='w-3.5 h-3.5 text-[#F97316]' />
                             <span>
                               {gridBusyTaskId === `open:${item.assignmentId}`
-                                ? 'Đang mở...'
-                                : t('chapterReview.openDetailReview', 'Mở màn duyệt')}
+                                ? t('desk.opening')
+                                : t('chapterReview.openDetailReview')}
                             </span>
                           </button>
                           <button
@@ -838,7 +865,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#1C1917] bg-[#F3F0E9] hover:bg-[#E5E0D8] border border-[#D8D2C5] transition-colors cursor-pointer'
                           >
                             <Eye className='w-3.5 h-3.5 text-[#C2410C]' />
-                            <span>Mở Lưới V3</span>
+                            <span>{t('desk.openGridV3')}</span>
                           </button>
                           <button
                             type='button'
@@ -853,7 +880,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                           >
                             <RotateCcw className='w-3.5 h-3.5' />
-                            <span>Yêu cầu sửa</span>
+                            <span>{t('chapterReview.gate2GridRequestChanges')}</span>
                           </button>
                           <button
                             type='button'
@@ -869,8 +896,8 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             <CheckCircle2 className='w-3.5 h-3.5' />
                             <span>
                               {gridBusyTaskId === `approve:${item.assignmentId}`
-                                ? 'Đang duyệt...'
-                                : 'Duyệt'}
+                                ? t('desk.approving')
+                                : t('desk.approveShort')}
                             </span>
                           </button>
                         </>
@@ -881,7 +908,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                           className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] active:bg-[#0C0A09] shadow-soft-sm transition-colors cursor-pointer'
                         >
                           <Eye className='w-3.5 h-3.5' />
-                          <span>{t('desk.continueReviewAction', 'Tiếp tục thẩm định')}</span>
+                          <span>{t('desk.continueReviewAction')}</span>
                         </button>
                       ) : (
                         <button
@@ -891,9 +918,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                           className='inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] active:bg-[#C2410C] shadow-soft-sm transition-colors cursor-pointer disabled:opacity-50'
                         >
                           <Eye className={`w-3.5 h-3.5 ${isOpening ? 'animate-spin' : ''}`} />
-                          <span>
-                            {isOpening ? 'Đang mở...' : t('desk.openReviewAction', 'Mở Thẩm Định')}
-                          </span>
+                          <span>{isOpening ? t('desk.opening') : t('desk.openReviewAction')}</span>
                         </button>
                       )}
                     </div>
@@ -906,8 +931,8 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             rows={2}
                             value={rejectComment}
                             onChange={(e) => setRejectComment(e.target.value)}
-                            placeholder='Nhập nhận xét yêu cầu sửa bắt buộc (BR-06)...'
-                            aria-label='Nhận xét yêu cầu sửa'
+                            placeholder={t('chapterReview.gate2GridCommentPlaceholder')}
+                            aria-label={t('desk.rejectCommentAria')}
                             className='w-full rounded border border-rose-300 bg-white px-2.5 py-1.5 text-xs text-[#1C1917]'
                           />
                           <div className='flex items-center justify-end gap-1.5'>
@@ -919,7 +944,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                               }}
                               className='px-2.5 py-1 rounded border border-stone-300 bg-white text-xs font-semibold text-stone-700 cursor-pointer'
                             >
-                              Huỷ
+                              {t('desk.cancel')}
                             </button>
                             <button
                               type='button'
@@ -929,8 +954,8 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                               className='px-3 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50'
                             >
                               {gridBusyTaskId === `reject:${item.assignmentId}`
-                                ? 'Đang gửi...'
-                                : 'Gửi yêu cầu sửa'}
+                                ? t('desk.sending')
+                                : t('chapterReview.gate2GridConfirmReturn')}
                             </button>
                           </div>
                         </div>

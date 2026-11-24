@@ -105,7 +105,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         chapterService.getScriptComments(chapterId).catch(() => []),
       ]);
       let pushedVersion = chapterData.lastSubmittedVersionId
-        ? await chapterService.getScriptVersion(chapterId, chapterData.lastSubmittedVersionId).catch(() => null)
+        ? await chapterService
+            .getScriptVersion(chapterId, chapterData.lastSubmittedVersionId)
+            .catch(() => null)
         : null;
 
       // Fallback: nếu chưa có bản nộp chính thức hoặc không tìm thấy version, thử tải working copy để Editor vẫn đọc được kịch bản
@@ -117,7 +119,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               version: {
                 id: 'working-copy',
                 versionNumber: 0,
-                message: t('scriptReview.pushed.workingCopyDraft', 'Bản thảo đang viết'),
+                message: t('scriptReview.pushed.workingCopyDraft'),
                 authorUserId: '',
                 authorName: '',
                 createdAt: new Date().toISOString(),
@@ -372,10 +374,10 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               type='button'
               onClick={onBackToChapters}
               className='inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition-colors shadow-2xs cursor-pointer'
-              title='Quay lại danh sách chương'
+              title={t('scriptReview.header.backToChaptersTitle')}
             >
               <ArrowLeft className='h-3.5 w-3.5' />
-              <span>Danh sách chương</span>
+              <span>{t('scriptReview.header.chapterList')}</span>
             </button>
           )}
           <div className='min-w-0'>
@@ -388,12 +390,12 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 <select
                   value={chapterId}
                   onChange={(e) => onSelectChapter(e.target.value)}
-                  aria-label='Chọn chương để xem'
+                  aria-label={t('scriptReview.header.selectChapter')}
                   className='rounded-md border border-stone-300 bg-stone-50 px-2 py-1 text-xs font-medium text-stone-700 cursor-pointer focus:outline-none focus:border-[#EA580C]'
                 >
                   {chaptersList.map((c) => (
                     <option key={c.id} value={c.id}>
-                      Chương {c.chapterNumber}
+                      {t('scriptReview.header.title', { number: c.chapterNumber })}
                       {c.title ? `: ${c.title}` : ''}
                     </option>
                   ))}

@@ -2,6 +2,7 @@ import type { AssignmentDto, PanelDto, ReturnWorkFromReviewRequest } from '@/typ
 import type { ElementSnapshotDto } from '@/services/element.service';
 import type { PipelineStageDto } from '@/services/pipeline.service';
 import { parseBoundingBox } from '@/shared/utils/panelBoundingBox';
+import { translate } from '@/lib/i18n';
 
 export interface Box {
   x: number;
@@ -11,11 +12,41 @@ export interface Box {
 }
 
 export const CHECKLIST_ITEMS = [
-  { id: 'script', label: 'Thoại đúng kịch bản phân cảnh' },
-  { id: 'bible', label: 'Nhất quán nhân vật & Series Bible' },
-  { id: 'readingOrder', label: 'Thứ tự đọc manga (phải qua trái) chính xác' },
-  { id: 'artQuality', label: 'Chất lượng nét vẽ & ảnh hoàn thiện' },
-  { id: 'spelling', label: 'Chính tả & bố cục bóng thoại không che mặt' },
+  {
+    id: 'script',
+    labelKey: 'chapterReview.checklistItems.script',
+    get label() {
+      return translate('review.chapterReview.checklistItems.script');
+    },
+  },
+  {
+    id: 'bible',
+    labelKey: 'chapterReview.checklistItems.bible',
+    get label() {
+      return translate('review.chapterReview.checklistItems.bible');
+    },
+  },
+  {
+    id: 'readingOrder',
+    labelKey: 'chapterReview.checklistItems.readingOrder',
+    get label() {
+      return translate('review.chapterReview.checklistItems.readingOrder');
+    },
+  },
+  {
+    id: 'artQuality',
+    labelKey: 'chapterReview.checklistItems.artQuality',
+    get label() {
+      return translate('review.chapterReview.checklistItems.artQuality');
+    },
+  },
+  {
+    id: 'spelling',
+    labelKey: 'chapterReview.checklistItems.spelling',
+    get label() {
+      return translate('review.chapterReview.checklistItems.spelling');
+    },
+  },
 ] as const;
 
 export type ChecklistId = (typeof CHECKLIST_ITEMS)[number]['id'];
@@ -272,7 +303,7 @@ export function parse409AwaitingReview(
 
   return {
     isAwaitingReview,
-    message: rawMsg || 'Xung đột khi trả việc (409 Conflict).',
+    message: rawMsg || translate('review.chapterReview.errors.returnWorkConflict'),
     targetAssignmentId,
   };
 }

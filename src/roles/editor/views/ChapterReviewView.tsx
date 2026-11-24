@@ -108,16 +108,6 @@ const SEVERITY_STYLE: Record<string, string> = {
   Info: 'bg-zinc-100 text-zinc-600 border-zinc-200',
 };
 
-const FINDING_LABEL: Record<string, string> = {
-  Open: 'Chưa xử lý',
-  Confirmed: 'Đã xác nhận',
-  Rejected: 'Bác bỏ',
-  Ignored: 'Bỏ qua',
-  NeedsClarification: 'Cần làm rõ',
-  Resolved: 'Đã sửa',
-  Stale: 'Lỗi thời',
-};
-
 const OPEN_FINDING = ['Open', 'Confirmed', 'NeedsClarification'];
 
 export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
@@ -441,7 +431,9 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         .getChapterById(chapterId)
         .then((ch) => {
           if (ch) {
-            setChapterTitle(ch.title || `Chương ${ch.chapterNumber}`);
+            setChapterTitle(
+              ch.title || t('scriptReview.header.title', { number: ch.chapterNumber }),
+            );
             setChapterNumber(ch.chapterNumber);
           }
         })
@@ -449,11 +441,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
           /* ignore */
         });
     } catch (err: any) {
-      toast('Lỗi nạp dữ liệu', extractError(err, 'Không thể tải dữ liệu duyệt chương'));
+      toast(
+        t('chapterReview.toast.loadErrorTitle'),
+        extractError(err, t('chapterReview.toast.loadErrorDesc')),
+      );
     } finally {
       setLoading(false);
     }
-  }, [chapterId, seriesId, assignment.id, effectiveWsId, visualThreshold, toast]);
+  }, [chapterId, seriesId, assignment.id, effectiveWsId, visualThreshold, toast, t]);
 
   useEffect(() => {
     // Clear in-memory composite cache on initial review mount to ensure fresh render
@@ -582,7 +577,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         }
         setActiveComposite(compositeData);
       } catch (err) {
-        console.warn('Không thể dựng composite trang:', err);
+        console.warn('Could not build page composite:', err);
         setActiveComposite({
           dataUrl: '',
           hasArtwork: false,
@@ -740,7 +735,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
         const { box } = active;
         if (box.w < 0.01 || box.h < 0.01) {
-          setDrawingHint('Kéo chuột để khoanh vùng');
+          setDrawingHint(t('chapterReview.drawingHint'));
           if (drawingHintTimerRef.current) clearTimeout(drawingHintTimerRef.current);
           drawingHintTimerRef.current = setTimeout(() => setDrawingHint(null), 3000);
           return;
@@ -771,7 +766,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [activePanels, activeElements, currentPageAssignments, stages, currentPage]);
+  }, [activePanels, activeElements, currentPageAssignments, stages, currentPage, t]);
 
   const isGridMode = Boolean(
     taskGrid && taskGrid.tasks.some((item) => item.status !== 'Cancelled'),
@@ -851,14 +846,17 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       await assignmentService.approveStageTask(chapterId, cell.id);
       const st = stageMap.get(cell.pipelineStageId);
       toast(
-        'Đã duyệt ô Lưới V3',
-        `${st?.name || 'Stage'} · Trang ${currentPage?.pageNumber ?? ''}`,
+        t('chapterReview.toast.cellApprovedTitle'),
+        t('chapterReview.toast.cellPageSummary', {
+          stage: st?.name || 'Stage',
+          page: currentPage?.pageNumber ?? '',
+        }),
       );
       await loadChapterData();
     } catch (err: any) {
-      const msg = extractError(err, 'Không thể duyệt ô công việc.');
+      const msg = extractError(err, t('chapterReview.toast.cellApproveErrorDesc'));
       setBackendBlockError(msg);
-      toast('Không thể duyệt ô', msg);
+      toast(t('chapterReview.toast.cellApproveErrorTitle'), msg);
       if (err?.status === 409) await loadChapterData();
     } finally {
       setGridCellBusyId(null);
@@ -882,13 +880,16 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       });
       const st = stageMap.get(cell.pipelineStageId);
       toast(
-        'Đã yêu cầu sửa lại',
-        `${st?.name || 'Stage'} · Trang ${currentPage?.pageNumber ?? ''}`,
+        t('chapterReview.toast.cellChangesRequestedTitle'),
+        t('chapterReview.toast.cellPageSummary', {
+          stage: st?.name || 'Stage',
+          page: currentPage?.pageNumber ?? '',
+        }),
       );
     } catch (err: any) {
-      const msg = extractError(err, 'Không thể gửi yêu cầu sửa ô công việc.');
+      const msg = extractError(err, t('chapterReview.toast.cellRejectErrorDesc'));
       setBackendBlockError(msg);
-      toast('Không thể yêu cầu sửa', msg);
+      toast(t('chapterReview.toast.cellRejectErrorTitle'), msg);
       if (err?.status === 409) await loadChapterData();
     } finally {
       setGridCellBusyId(null);
@@ -907,13 +908,18 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       });
       const st = stageMap.get(cell.pipelineStageId);
       toast(
-        t('chapterReview.releaseReviewToast', 'Đã nhả khoá duyệt'),
-        `${st?.name || 'Stage'}${currentPage ? ` · Trang ${currentPage.pageNumber}` : ''}`,
+        t('chapterReview.releaseReviewToast'),
+        currentPage
+          ? t('chapterReview.toast.cellPageSummary', {
+              stage: st?.name || 'Stage',
+              page: currentPage.pageNumber,
+            })
+          : st?.name || 'Stage',
       );
     } catch (err: any) {
-      const msg = extractError(err, 'Không thể gỡ khoá duyệt ô công việc.');
+      const msg = extractError(err, t('chapterReview.toast.cellReleaseErrorDesc'));
       setBackendBlockError(msg);
-      toast('Không thể gỡ khoá duyệt', msg);
+      toast(t('chapterReview.toast.cellReleaseErrorTitle'), msg);
       if (err?.status === 409) await loadChapterData();
     } finally {
       setGridCellBusyId(null);
@@ -924,7 +930,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   const handleSubmitReturnWork = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetAssignmentId || !returnDescription.trim()) {
-      setFormError('Vui lòng chọn công đoạn và nhập mô tả lỗi.');
+      setFormError(t('chapterReview.form.missingFields'));
       return;
     }
 
@@ -941,7 +947,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
           typeof assignmentService.reopenStageTask === 'function';
         if (reopened) {
           await assignmentService.reopenStageTask(chapterId, targetAssignmentId, trimmed);
-          toast('Đã mở lại ô công việc', 'Đã chuyển ô đã duyệt về trạng thái Cần sửa.');
+          toast(
+            t('chapterReview.toast.cellReopenedTitle'),
+            t('chapterReview.toast.cellReopenedDesc'),
+          );
         } else {
           const updated = await assignmentService.requestStageTaskChanges(
             chapterId,
@@ -954,7 +963,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             lastDecisionComment: updated?.lastDecisionComment ?? trimmed,
             reviewerUserId: updated?.reviewerUserId ?? null,
           });
-          toast('Đã trả việc thành công', 'Đã chuyển yêu cầu sửa cho ô trên Lưới V3.');
+          toast(
+            t('chapterReview.toast.returnSuccessTitle'),
+            t('chapterReview.toast.returnGridSuccessDesc'),
+          );
         }
         setReturnDescription('');
         setReturnDueDate('');
@@ -963,9 +975,9 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
           await loadChapterData();
         }
       } catch (err: any) {
-        const msg = extractError(err, 'Không thể gửi yêu cầu sửa.');
+        const msg = extractError(err, t('chapterReview.toast.returnErrorDesc'));
         setFormError(msg);
-        toast('Không thể gửi yêu cầu', msg);
+        toast(t('chapterReview.toast.returnErrorTitle'), msg);
         if (err?.status === 409) await loadChapterData();
       } finally {
         setSubmittingReturn(false);
@@ -989,7 +1001,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
     try {
       await assignmentService.returnWorkFromReview(chapterId, assignment.id, payload);
-      toast('Đã trả việc thành công', `Đã chuyển yêu cầu sửa cho công đoạn.`);
+      toast(
+        t('chapterReview.toast.returnSuccessTitle'),
+        t('chapterReview.toast.returnStageSuccessDesc'),
+      );
       setReturnDescription('');
       setReturnDueDate('');
       setDraftRegion(null);
@@ -1010,9 +1025,9 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
           targetAssignmentId,
         });
       } else {
-        const msg = extractError(err, 'Không thể gửi yêu cầu sửa.');
+        const msg = extractError(err, t('chapterReview.toast.returnErrorDesc'));
         setFormError(msg);
-        toast('Không thể gửi yêu cầu', msg);
+        toast(t('chapterReview.toast.returnErrorTitle'), msg);
       }
     } finally {
       setSubmittingReturn(false);
@@ -1025,27 +1040,33 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       await assignmentService.verifyChangeRequest(
         chapterId,
         crId,
-        'Xác minh đạt từ màn duyệt chương',
+        t('chapterReview.toast.verifyDefaultNote'),
       );
-      toast('Đã xác minh', 'Yêu cầu sửa đã được đánh dấu hoàn thành.');
+      toast(t('chapterReview.toast.verifiedTitle'), t('chapterReview.toast.verifiedDesc'));
       const crs = await assignmentService.getChangeRequests(chapterId);
       setChangeRequests(crs);
     } catch (err: any) {
-      toast('Lỗi', extractError(err, 'Không thể xác minh yêu cầu.'));
+      toast(
+        t('chapterReview.toast.errorTitle'),
+        extractError(err, t('chapterReview.toast.verifyErrorDesc')),
+      );
     }
   };
 
   // Handle Reopen Change Request
   const handleReopenChangeRequest = async (crId: string) => {
-    const reason = window.prompt('Nhập lý do mở lại yêu cầu sửa:');
+    const reason = window.prompt(t('chapterReview.prompts.reopenReason'));
     if (!reason || !reason.trim()) return;
     try {
       await assignmentService.reopenChangeRequest(chapterId, crId, reason.trim());
-      toast('Đã mở lại yêu cầu', 'Công đoạn cần tiếp tục chỉnh sửa.');
+      toast(t('chapterReview.toast.reopenedCrTitle'), t('chapterReview.toast.reopenedCrDesc'));
       const crs = await assignmentService.getChangeRequests(chapterId);
       setChangeRequests(crs);
     } catch (err: any) {
-      toast('Lỗi', extractError(err, 'Không thể mở lại yêu cầu.'));
+      toast(
+        t('chapterReview.toast.errorTitle'),
+        extractError(err, t('chapterReview.toast.reopenErrorDesc')),
+      );
     }
   };
 
@@ -1064,11 +1085,11 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         await assignmentService.startAssignment(chapterId, assignment.id);
         await loadChapterData();
       }
-      toast('Đã bắt đầu', 'Bắt đầu kiểm duyệt Gate 2.');
+      toast(t('chapterReview.toast.startedTitle'), t('chapterReview.toast.startedDesc'));
     } catch (err: any) {
-      const msg = extractError(err, 'Không thể bắt đầu kiểm duyệt Gate 2.');
+      const msg = extractError(err, t('chapterReview.toast.startErrorDesc'));
       setBackendBlockError(msg);
-      toast('Bị chặn', msg);
+      toast(t('chapterReview.toast.blockedTitle'), msg);
     } finally {
       setActionBusy(false);
     }
@@ -1080,7 +1101,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     setBackendBlockError(null);
     try {
       const updatedList = await assignmentService.submitStageTasks(chapterId, [gridReviewTask.id]);
-      toast('Đã nộp Gate 2', 'Đã nộp kết quả thẩm định Gate 2 lên Lưới V3.');
+      toast(
+        t('chapterReview.toast.submittedGate2Title'),
+        t('chapterReview.toast.submittedGate2Desc'),
+      );
       if (
         Array.isArray(updatedList) &&
         updatedList.length > 0 &&
@@ -1091,9 +1115,9 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         await loadChapterData();
       }
     } catch (err: any) {
-      const msg = extractError(err, 'Không thể nộp kết quả Gate 2.');
+      const msg = extractError(err, t('chapterReview.toast.submitGate2ErrorDesc'));
       setBackendBlockError(msg);
-      toast('Bị chặn', msg);
+      toast(t('chapterReview.toast.blockedTitle'), msg);
     } finally {
       setActionBusy(false);
     }
@@ -1109,12 +1133,15 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       } else {
         await assignmentService.approveAssignment(chapterId, assignment.id);
       }
-      toast('Đã duyệt Gate 2', 'Công đoạn kiểm duyệt Gate 2 đã hoàn tất.');
+      toast(
+        t('chapterReview.toast.approvedGate2Title'),
+        t('chapterReview.toast.approvedGate2Desc'),
+      );
       await loadChapterData();
     } catch (err: any) {
-      const msg = extractError(err, 'Không thể duyệt công đoạn Review.');
+      const msg = extractError(err, t('chapterReview.toast.approveErrorDesc'));
       setBackendBlockError(msg);
-      toast('Duyệt bị chặn (409 Conflict)', msg);
+      toast(t('chapterReview.toast.approveBlockedTitle'), msg);
     } finally {
       setActionBusy(false);
     }
@@ -1127,16 +1154,19 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   ) => {
     let note: string | undefined = undefined;
     if (decision === 'Ignored' || decision === 'NeedsClarification') {
-      note = window.prompt(`Nhập lý do cho quyết định "${decision}":`) || undefined;
+      note = window.prompt(t('chapterReview.prompts.triageReason', { decision })) || undefined;
       if (!note) return;
     }
     try {
       await assignmentService.triageConsistencyFinding(chapterId, f.id, decision, note);
-      toast('Đã phân loại', `Finding ${f.ruleCode} -> ${decision}`);
+      toast(t('chapterReview.toast.triagedTitle'), `Finding ${f.ruleCode} -> ${decision}`);
       const updated = await assignmentService.getConsistencyFindings(chapterId);
       setFindings(updated);
     } catch (err: any) {
-      toast('Lỗi', extractError(err, 'Không thể phân loại lỗi'));
+      toast(
+        t('chapterReview.toast.errorTitle'),
+        extractError(err, t('chapterReview.toast.triageErrorDesc')),
+      );
     }
   };
 
@@ -1145,11 +1175,20 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     setActionBusy(true);
     try {
       const res = await assignmentService.runConsistencyCheck(chapterId);
-      toast('Kiểm tra hoàn tất', `${res.newCount} lỗi mới · ${res.openCount} đang mở`);
+      toast(
+        t('chapterReview.toast.consistencyDoneTitle'),
+        t('chapterReview.toast.consistencyDoneDesc', {
+          newCount: res.newCount,
+          openCount: res.openCount,
+        }),
+      );
       const updated = await assignmentService.getConsistencyFindings(chapterId);
       setFindings(updated);
     } catch (err: any) {
-      toast('Lỗi', extractError(err, 'Không thể chạy kiểm tra nhất quán'));
+      toast(
+        t('chapterReview.toast.errorTitle'),
+        extractError(err, t('chapterReview.toast.consistencyErrorDesc')),
+      );
     } finally {
       setActionBusy(false);
     }
@@ -1161,9 +1200,15 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     try {
       const res = await assignmentService.runVisualConsistencyCheck(chapterId, visualThreshold);
       setVisualReport(res);
-      toast('Kiểm tra hình ảnh hoàn tất', `Ngưỡng: ${Math.round(res.threshold * 100)}%`);
+      toast(
+        t('chapterReview.toast.visualDoneTitle'),
+        t('chapterReview.toast.visualDoneDesc', { threshold: Math.round(res.threshold * 100) }),
+      );
     } catch (err: any) {
-      toast('Lỗi', extractError(err, 'Không thể kiểm tra hình ảnh'));
+      toast(
+        t('chapterReview.toast.errorTitle'),
+        extractError(err, t('chapterReview.toast.visualErrorDesc')),
+      );
     } finally {
       setActionBusy(false);
     }
@@ -1221,14 +1266,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       const st = stageMap.get(as.pipelineStageId);
       const member = memberMap.get(as.assigneeUserId);
       const stName = st?.name || as.assignedRole || 'Stage';
-      const assigneeName = member?.fullName || member?.email || 'Chưa giao';
+      const assigneeName = member?.fullName || member?.email || t('chapterReview.unassigned');
       const stOrder = st?.stageOrder || '';
       return {
         id: as.id,
         label: `${stOrder ? stOrder + '. ' : ''}${stName} · ${assigneeName} · ${as.status}`,
       };
     });
-  }, [currentPageAssignments, stageMap, memberMap]);
+  }, [currentPageAssignments, stageMap, memberMap, t]);
 
   useEffect(() => {
     if (targetOptions.length > 0) {
@@ -1245,7 +1290,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       <div className='w-full h-full flex flex-col items-center justify-center bg-[#FAF8F4] gap-3'>
         <Loader2 className='w-8 h-8 animate-spin text-[#171717]' />
         <span className='text-xs font-semibold text-zinc-600'>
-          Đang nạp màn hình kiểm duyệt Gate 2...
+          {t('chapterReview.loadingGate2')}
         </span>
       </div>
     );
@@ -1296,7 +1341,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 navigate(-1);
               }
             }}
-            aria-label='Quay lại Bàn Thẩm Định'
+            aria-label={t('chapterReview.backToDeskAria')}
             className='w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors shadow-2xs border border-[#D8D2C5]'
           >
             <ArrowLeft className='w-4 h-4' />
@@ -1328,14 +1373,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   className='inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-xs font-semibold text-amber-900'
                 >
                   <AlertTriangle className='w-3 h-3 text-amber-700 shrink-0' />
-                  <span>{t('chapterReview.inputOutdatedBadge', 'Đầu vào đã đổi')}</span>
+                  <span>{t('chapterReview.inputOutdatedBadge')}</span>
                 </span>
               )}
             </div>
             <p className='text-[11px] text-[#57534E] font-medium'>
-              Vai trò:{' '}
+              {t('chapterReview.roleLabel')}:{' '}
               <span className='font-semibold text-[#1C1917]'>{effectiveRole || 'Editor'}</span> ·{' '}
-              {pages.length} trang thành phẩm
+              {t('chapterReview.finishedPagesCount', { count: pages.length })}
             </p>
           </div>
         </div>
@@ -1344,17 +1389,17 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         <div className='hidden lg:flex items-center gap-1.5 px-3 py-1 bg-[#F8F6F0] border border-[#D8D2C5] rounded-full text-xs font-semibold'>
           <span className='px-2 py-0.5 rounded-full bg-indigo-600 text-white flex items-center gap-1 shadow-xs'>
             <span>1</span>
-            <span>{t('chapterReview.stepper.editor', 'Editor duyệt')}</span>
+            <span>{t('chapterReview.stepper.editor')}</span>
           </span>
           <span className='text-zinc-400'>→</span>
           <span className='px-2 py-0.5 rounded-full text-zinc-500 flex items-center gap-1'>
             <span>2</span>
-            <span>{t('chapterReview.stepper.producer', 'Producer duyệt')}</span>
+            <span>{t('chapterReview.stepper.producer')}</span>
           </span>
           <span className='text-zinc-400'>→</span>
           <span className='px-2 py-0.5 rounded-full text-zinc-500 flex items-center gap-1'>
             <span>3</span>
-            <span>{t('chapterReview.stepper.publisher', 'Publisher phát hành')}</span>
+            <span>{t('chapterReview.stepper.publisher')}</span>
           </span>
         </div>
 
@@ -1364,22 +1409,22 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             type='button'
             onClick={() => setIsProvenanceOpen(true)}
             className='px-3 py-1.5 flex items-center gap-1.5 border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
-            title='Xem lịch sử và nguồn gốc chương (CF4)'
+            title={t('chapterReview.provenanceTitle')}
             data-testid='btn-provenance-modal'
           >
             <History className='w-3.5 h-3.5 text-[#78716C]' />
-            <span>{t('chapterReview.provenance', 'Nguồn gốc')}</span>
+            <span>{t('chapterReview.provenance')}</span>
           </button>
 
           <button
             type='button'
             onClick={() => setIsSubmissionsOpen(true)}
             className='px-3 py-1.5 flex items-center gap-1.5 border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
-            title='Xem lịch sử nộp bài của Review'
+            title={t('chapterReview.submissionsTitle')}
             data-testid='btn-submissions-history'
           >
             <Clock className='w-3.5 h-3.5 text-[#78716C]' />
-            <span>Lịch sử ({submissions.length})</span>
+            <span>{t('chapterReview.historyCount', { count: submissions.length })}</span>
           </button>
 
           {(String(effectiveReviewStatus) === 'Assigned' ||
@@ -1391,7 +1436,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               className='px-4 py-1.5 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full disabled:opacity-50 cursor-pointer shadow-xs transition-colors'
             >
               <Eye className='w-3.5 h-3.5' />
-              <span>Bắt đầu duyệt</span>
+              <span>{t('chapterReview.startReviewBtn')}</span>
             </button>
           )}
 
@@ -1404,7 +1449,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               className='px-4 py-1.5 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-colors'
             >
               <Send className='w-3.5 h-3.5' />
-              <span>{t('chapterReview.gate2GridSubmitChapterReview', 'Nộp kết quả Gate 2')}</span>
+              <span>{t('chapterReview.gate2GridSubmitChapterReview')}</span>
             </button>
           )}
 
@@ -1415,21 +1460,21 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               onClick={() => void handleApproveChapter()}
               title={
                 unfinishedWarning
-                  ? 'Còn trang chưa xong công đoạn, chưa thể hoàn tất Gate 2.'
-                  : 'Duyệt công đoạn kiểm duyệt (Gate 2)'
+                  ? t('chapterReview.approveBlockedTitle')
+                  : t('chapterReview.approveTooltip')
               }
               className='px-5 py-2 flex items-center gap-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-all active:scale-98'
               data-testid='btn-approve-chapter-review'
             >
               <CheckCircle2 className='w-4 h-4' />
-              <span>Duyệt Gate 2</span>
+              <span>{t('chapterReview.approveGate2Btn')}</span>
             </button>
           )}
 
           {isApproved && (
             <div className='px-4 py-2 flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-full shadow-xs'>
               <CheckCircle2 className='w-4 h-4 text-emerald-600' />
-              <span>Đã duyệt hoàn tất chương</span>
+              <span>{t('chapterReview.approvedChapterBadge')}</span>
             </div>
           )}
         </div>
@@ -1443,7 +1488,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         >
           <AlertOctagon className='w-4 h-4 text-red-600 shrink-0' />
           <div>
-            <span>Chưa thể hoàn tất Review cho cả chương vì còn trang chưa xong: </span>
+            <span>{t('chapterReview.unfinishedBannerPrefix')} </span>
             <span className='font-bold text-red-900'>
               {unfinishedWarning.map(formatUnfinishedWarningText).join(' · ')}
             </span>
@@ -1477,10 +1522,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
           <div className='p-3 border-b border-[#D8D2C5] bg-[#F8F6F0] flex items-center justify-between'>
             <span className='text-xs font-bold text-[#1C1917] flex items-center gap-1.5'>
               <Layers className='w-3.5 h-3.5 text-[#F97316]' />
-              Danh sách trang ({pages.length})
+              {t('chapterReview.pageListTitle', { count: pages.length })}
             </span>
             <span className='text-[11px] text-[#57534E] font-medium'>
-              Đang chọn: P.{currentPage?.pageNumber || 1}
+              {t('chapterReview.selectedPageLabel', { page: currentPage?.pageNumber || 1 })}
             </span>
           </div>
 
@@ -1520,18 +1565,22 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     {cached?.dataUrl ? (
                       <img
                         src={cached.dataUrl}
-                        alt={`Trang ${page.pageNumber}`}
+                        alt={t('artworkReview.header.page', { number: page.pageNumber })}
                         className='w-full h-full object-contain'
                       />
                     ) : (
                       <span className='text-[10px] text-zinc-400 font-medium text-center px-1'>
-                        {cached ? (cached.hasArtwork ? 'Ảnh' : 'Chưa có ảnh') : 'Đang tải...'}
+                        {cached
+                          ? cached.hasArtwork
+                            ? t('chapterReview.thumbImage')
+                            : t('chapterReview.thumbNoImage')
+                          : t('chapterReview.thumbLoading')}
                       </span>
                     )}
 
                     {cached?.hasArtwork && !cached.hasText && (
                       <span className='absolute top-1 left-1 px-1 py-0.2 rounded text-[8px] font-bold bg-amber-500 text-white'>
-                        Chưa chữ
+                        {t('chapterReview.noTextShort')}
                       </span>
                     )}
                     {cached?.baseStageName && (
@@ -1546,25 +1595,31 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     <div>
                       <div className='flex items-center justify-between gap-1'>
                         <h4 className='text-xs font-bold text-zinc-900 truncate'>
-                          Trang {page.pageNumber}
+                          {t('artworkReview.header.page', { number: page.pageNumber })}
                         </h4>
                         {pageCrCount > 0 ? (
                           <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200'>
-                            {pageCrCount} lỗi
+                            {t('chapterReview.issuesCount', { count: pageCrCount })}
                           </span>
                         ) : isPageIncomplete ? (
                           <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200'>
-                            Chưa xong
+                            {t('chapterReview.pageIncomplete')}
                           </span>
                         ) : (
                           <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800'>
-                            Đạt
+                            {t('chapterReview.pagePassed')}
                           </span>
                         )}
                       </div>
                       <p className='text-[11px] text-zinc-500'>
-                        {panelCount > 0 ? `${panelCount} khung` : 'Trang đơn'} ·{' '}
-                        {summary.approvedStageCount}/{summary.totalActiveStages} công đoạn
+                        {panelCount > 0
+                          ? t('chapterReview.panelsCount', { count: panelCount })
+                          : t('chapterReview.singlePage')}{' '}
+                        ·{' '}
+                        {t('chapterReview.stagesProgress', {
+                          done: summary.approvedStageCount,
+                          total: summary.totalActiveStages,
+                        })}
                       </p>
                     </div>
 
@@ -1600,24 +1655,23 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 disabled={selectedPageIndex <= 0}
                 onClick={() => setSelectedPageId(pages[selectedPageIndex - 1].id)}
                 className='p-1 rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
-                title='Trang trước (phím ←)'
+                title={t('chapterReview.prevPageTitle')}
                 data-testid='btn-prev-page'
               >
                 <ChevronLeft className='w-4 h-4' />
               </button>
               <span className='text-xs font-semibold font-mono text-[#1C1917]'>
-                {t(
-                  'chapterReview.pageCounter',
-                  { current: currentPage?.pageNumber || 1, total: pages.length },
-                  `Trang ${currentPage?.pageNumber || 1} / ${pages.length}`,
-                )}
+                {t('chapterReview.pageCounter', {
+                  current: currentPage?.pageNumber || 1,
+                  total: pages.length,
+                })}
               </span>
               <button
                 type='button'
                 disabled={selectedPageIndex >= pages.length - 1}
                 onClick={() => setSelectedPageId(pages[selectedPageIndex + 1].id)}
                 className='p-1 rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
-                title='Trang sau (phím →)'
+                title={t('chapterReview.nextPageTitle')}
                 data-testid='btn-next-page'
               >
                 <ChevronRight className='w-4 h-4' />
@@ -1638,7 +1692,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   data-testid='btn-tool-draw'
                 >
                   <Square className='w-3.5 h-3.5 text-[#C2410C]' />
-                  <span>Khoanh vùng</span>
+                  <span>{t('chapterReview.toolDraw')}</span>
                 </button>
                 <button
                   type='button'
@@ -1651,7 +1705,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   data-testid='btn-tool-pan'
                 >
                   <Move className='w-3.5 h-3.5 text-[#C2410C]' />
-                  <span>Di chuyển</span>
+                  <span>{t('chapterReview.toolPan')}</span>
                 </button>
               </div>
 
@@ -1668,7 +1722,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 type='button'
                 onClick={() => handleZoom(0.2)}
                 className='p-1.5 rounded hover:bg-[#E7E5E4] text-zinc-600 hover:text-zinc-900 cursor-pointer'
-                title='Phóng to'
+                title={t('artworkReview.toolbar.zoomIn')}
               >
                 <ZoomIn className='w-3.5 h-3.5' />
               </button>
@@ -1679,7 +1733,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 type='button'
                 onClick={() => handleZoom(-0.2)}
                 className='p-1.5 rounded hover:bg-[#E7E5E4] text-zinc-600 hover:text-zinc-900 cursor-pointer'
-                title='Thu nhỏ'
+                title={t('artworkReview.toolbar.zoomOut')}
               >
                 <ZoomOut className='w-3.5 h-3.5' />
               </button>
@@ -1687,7 +1741,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 type='button'
                 onClick={resetZoom}
                 className='px-2 py-1 rounded border border-[#E7E7E7] hover:bg-[#E7E5E4] text-xs font-semibold text-zinc-600 hover:text-zinc-900 cursor-pointer'
-                title='Đặt lại kích thước'
+                title={t('chapterReview.resetZoomTitle')}
               >
                 Fit
               </button>
@@ -1702,15 +1756,17 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             {loadingComposite ? (
               <div className='flex flex-col items-center justify-center gap-2 text-zinc-500'>
                 <Loader2 className='w-8 h-8 animate-spin text-amber-500' />
-                <span className='text-xs font-semibold'>Đang ghép trang thành phẩm...</span>
+                <span className='text-xs font-semibold'>
+                  {t('chapterReview.buildingComposite')}
+                </span>
               </div>
             ) : !activeComposite?.dataUrl ? (
               <div className='w-96 h-[32rem] bg-white border-2 border-dashed border-[#E7E7E7] rounded-2xl flex flex-col items-center justify-center gap-3 text-zinc-500 p-6 text-center'>
                 <AlertTriangle className='w-10 h-10 text-amber-500' />
-                <p className='text-sm font-bold text-zinc-700'>Chưa có bản vẽ</p>
-                <p className='text-xs text-zinc-500'>
-                  Trang này chưa có artwork ở công đoạn nào trước Review.
+                <p className='text-sm font-bold text-zinc-700'>
+                  {t('chapterReview.noArtworkTitle')}
                 </p>
+                <p className='text-xs text-zinc-500'>{t('chapterReview.noArtworkDesc')}</p>
               </div>
             ) : (
               <div
@@ -1727,7 +1783,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               >
                 <img
                   src={activeComposite.dataUrl}
-                  alt={`Trang ${currentPage?.pageNumber} thành phẩm`}
+                  alt={t('chapterReview.finishedPageAlt', { page: currentPage?.pageNumber ?? '' })}
                   draggable={false}
                   className='max-h-[85vh] w-auto object-contain block'
                 />
@@ -1735,7 +1791,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 {/* Badge if artwork exists but no text */}
                 {!activeComposite.hasText && (
                   <span className='absolute top-3 left-3 px-2 py-1 rounded bg-amber-600/90 text-white text-xs font-bold shadow-md'>
-                    Chưa chèn chữ
+                    {t('chapterReview.noTextBadge')}
                   </span>
                 )}
 
@@ -1764,7 +1820,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     className='absolute border-2 border-amber-500 bg-amber-500/25 pointer-events-none z-30 flex items-start p-1'
                   >
                     <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-600 text-white shadow-xs'>
-                      Vùng yêu cầu sửa {draftRegion.panelId ? `(Khung)` : ''}
+                      {t('chapterReview.draftRegionBadge')}
+                      {draftRegion.panelId ? ` (${t('chapterReview.panelTag')})` : ''}
                     </span>
                   </div>
                 )}
@@ -1810,7 +1867,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       </span>
                       {cr.panelId && (
                         <span className='px-1 py-0.2 rounded text-[9px] font-bold bg-black/60 text-white'>
-                          Khung
+                          {t('chapterReview.panelTag')}
                         </span>
                       )}
                     </div>
@@ -1890,7 +1947,6 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       <span>
                         {t('chapterReview.gate2GridTitle', {
                           page: currentPage.pageNumber,
-                          defaultValue: `Duyệt ô Lưới V3 · Trang ${currentPage.pageNumber}`,
                         })}
                       </span>
                     </span>
@@ -1903,7 +1959,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                         ? memberMap.get(cell.assigneeUserId)
                         : undefined;
                       const assigneeLabel =
-                        member?.fullName || member?.email || cell.assigneeUserId || 'Chưa giao';
+                        member?.fullName ||
+                        member?.email ||
+                        cell.assigneeUserId ||
+                        t('chapterReview.unassigned');
                       const isReviewable =
                         cell.status === 'Submitted' || cell.status === 'UnderReview';
                       const isSelfCell = Boolean(
@@ -1982,11 +2041,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                 <>
                                   💬{' '}
                                   <span className='font-semibold'>
-                                    {t(
-                                      'chapterReview.gate2GridLastComment',
-                                      'Nhận xét lần duyệt gần nhất',
-                                    )}
-                                    :
+                                    {t('chapterReview.gate2GridLastComment')}:
                                   </span>{' '}
                                   {reworkDisplay.text}
                                 </>
@@ -2003,7 +2058,6 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                 <Lock className='w-3 h-3 text-amber-600 shrink-0' />
                                 {t('chapterReview.underReviewBy', {
                                   name: reviewerLabel,
-                                  defaultValue: `Đang được duyệt bởi ${reviewerLabel}`,
                                 })}
                               </span>
                               {isProducerViewer && (
@@ -2015,9 +2069,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 text-[11px] font-semibold text-amber-950 cursor-pointer disabled:opacity-50'
                                 >
                                   <RotateCcw className='w-3 h-3' />
-                                  <span>
-                                    {t('chapterReview.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}
-                                  </span>
+                                  <span>{t('chapterReview.forceReleaseReviewBtn')}</span>
                                 </button>
                               )}
                             </div>
@@ -2031,12 +2083,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-900'
                                 >
                                   <Lock className='w-3 h-3 text-amber-600' />
-                                  <span>
-                                    {t(
-                                      'chapterReview.gate2GridSelfReviewLocked',
-                                      'Không thể tự duyệt bài mình nộp (BR-06)',
-                                    )}
-                                  </span>
+                                  <span>{t('chapterReview.gate2GridSelfReviewLocked')}</span>
                                 </span>
                               ) : (
                                 <>
@@ -2056,9 +2103,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                     ) : (
                                       <CheckCircle2 className='w-3 h-3' />
                                     )}
-                                    <span>
-                                      {t('chapterReview.gate2GridApproveCell', 'Duyệt ô')}
-                                    </span>
+                                    <span>{t('chapterReview.gate2GridApproveCell')}</span>
                                   </button>
                                   <button
                                     type='button'
@@ -2073,9 +2118,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                     className='inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2.5 py-1 text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                                   >
                                     <XCircle className='w-3 h-3' />
-                                    <span>
-                                      {t('chapterReview.gate2GridRequestChanges', 'Yêu cầu sửa')}
-                                    </span>
+                                    <span>{t('chapterReview.gate2GridRequestChanges')}</span>
                                   </button>
                                 </>
                               )}
@@ -2089,14 +2132,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                 data-testid={`gate2-request-changes-input-${cell.id}`}
                                 value={rejectGridCellComment}
                                 onChange={(e) => setRejectGridCellComment(e.target.value)}
-                                placeholder={t(
-                                  'chapterReview.gate2GridCommentPlaceholder',
-                                  'Nhập nhận xét yêu cầu sửa bắt buộc (BR-06)...',
-                                )}
-                                aria-label={t(
-                                  'chapterReview.gate2GridCommentPlaceholder',
-                                  'Nhập nhận xét yêu cầu sửa bắt buộc (BR-06)...',
-                                )}
+                                placeholder={t('chapterReview.gate2GridCommentPlaceholder')}
+                                aria-label={t('chapterReview.gate2GridCommentPlaceholder')}
                                 className='w-full rounded border border-rose-300 bg-white px-2 py-1.5 text-xs text-zinc-900'
                               />
                               <div className='flex items-center justify-end gap-1.5'>
@@ -2108,7 +2145,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   }}
                                   className='px-2 py-1 rounded border border-zinc-300 bg-white text-xs font-semibold text-zinc-700 cursor-pointer'
                                 >
-                                  Huỷ
+                                  {t('desk.cancel')}
                                 </button>
                                 <button
                                   type='button'
@@ -2119,7 +2156,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   onClick={() => void handleRequestChangesGridCell(cell)}
                                   className='px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50'
                                 >
-                                  {t('chapterReview.gate2GridConfirmReturn', 'Xác nhận trả về')}
+                                  {t('chapterReview.gate2GridConfirmReturn')}
                                 </button>
                               </div>
                             </div>
@@ -2136,7 +2173,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 <div className='flex items-center justify-between'>
                   <span className='text-xs font-bold text-zinc-900 flex items-center gap-1.5'>
                     <Send className='w-3.5 h-3.5 text-amber-600' />
-                    Trả việc cho Trang {currentPage?.pageNumber}
+                    {t('chapterReview.form.title', { page: currentPage?.pageNumber ?? '' })}
                   </span>
                   {draftRegion && (
                     <button
@@ -2144,7 +2181,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       onClick={() => setDraftRegion(null)}
                       className='text-[11px] font-semibold text-zinc-500 hover:text-red-600 flex items-center gap-1 cursor-pointer'
                     >
-                      <Trash2 className='w-3 h-3' /> Xoá vùng vẽ
+                      <Trash2 className='w-3 h-3' /> {t('chapterReview.form.clearRegion')}
                     </button>
                   )}
                 </div>
@@ -2153,14 +2190,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 {draftRegion && (
                   <div className='p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-900 flex items-center justify-between'>
                     <span>
-                      Vùng: x {Math.round(draftRegion.box.x * 100)}%, y{' '}
-                      {Math.round(draftRegion.box.y * 100)}%, w{' '}
+                      {t('chapterReview.form.regionLabel')}: x {Math.round(draftRegion.box.x * 100)}
+                      %, y {Math.round(draftRegion.box.y * 100)}%, w{' '}
                       {Math.round(draftRegion.box.w * 100)}%, h{' '}
                       {Math.round(draftRegion.box.h * 100)}%
                     </span>
                     {draftRegion.panelId && (
                       <span className='px-1.5 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold'>
-                        Khung
+                        {t('chapterReview.panelTag')}
                       </span>
                     )}
                   </div>
@@ -2170,7 +2207,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 <form onSubmit={handleSubmitReturnWork} className='space-y-2.5'>
                   <div>
                     <label className='block text-[11px] font-bold text-zinc-700 mb-1'>
-                      Công đoạn cần sửa <span className='text-red-500'>*</span>
+                      {t('chapterReview.form.stageLabel')} <span className='text-red-500'>*</span>
                     </label>
                     <select
                       value={targetAssignmentId}
@@ -2181,7 +2218,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       className='w-full px-2.5 py-2 text-xs border border-zinc-300 rounded-lg bg-white text-zinc-900 font-medium focus:outline-hidden focus:ring-2 focus:ring-amber-500'
                       data-testid='select-target-assignment'
                     >
-                      <option value=''>-- Chọn công đoạn của trang này --</option>
+                      <option value=''>{t('chapterReview.form.stagePlaceholder')}</option>
                       {targetOptions.map((opt) => (
                         <option key={opt.id} value={opt.id}>
                           {opt.label}
@@ -2192,13 +2229,13 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
                   <div>
                     <label className='block text-[11px] font-bold text-zinc-700 mb-1'>
-                      Mô tả lỗi cần sửa <span className='text-red-500'>*</span>
+                      {t('chapterReview.form.descLabel')} <span className='text-red-500'>*</span>
                     </label>
                     <textarea
                       rows={3}
                       value={returnDescription}
                       onChange={(e) => setReturnDescription(e.target.value)}
-                      placeholder='Mô tả chi tiết nội dung cần sửa...'
+                      placeholder={t('chapterReview.form.descPlaceholder')}
                       className='w-full px-2.5 py-2 text-xs border border-zinc-300 rounded-lg bg-white text-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500'
                       data-testid='input-return-description'
                     />
@@ -2206,7 +2243,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
                   <div>
                     <label className='block text-[11px] font-bold text-zinc-700 mb-1'>
-                      Hạn sửa (tuỳ chọn)
+                      {t('chapterReview.form.dueDateLabel')}
                     </label>
                     <input
                       type='date'
@@ -2244,7 +2281,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                         className='w-full py-1.5 px-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors'
                       >
                         <ExternalLink className='w-3.5 h-3.5' />
-                        <span>Mở duyệt việc này</span>
+                        <span>{t('chapterReview.form.openTaskReview')}</span>
                       </button>
                     </div>
                   )}
@@ -2260,7 +2297,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     ) : (
                       <Send className='w-3.5 h-3.5' />
                     )}
-                    <span>Gửi yêu cầu sửa (Trả việc)</span>
+                    <span>{t('chapterReview.returnWork')}</span>
                   </button>
                 </form>
               </div>
@@ -2269,7 +2306,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               <div className='space-y-3 pt-2'>
                 <div className='flex items-center justify-between'>
                   <span className='text-xs font-bold text-zinc-900'>
-                    Yêu cầu sửa của chương ({changeRequests.length})
+                    {t('chapterReview.crListTitle', { count: changeRequests.length })}
                   </span>
                   <div className='flex items-center gap-1 text-[11px]'>
                     {(['All', 'Open', 'Resolved', 'Verified'] as const).map((st) => (
@@ -2283,14 +2320,16 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                             : 'text-zinc-500 hover:bg-zinc-100'
                         }`}
                       >
-                        {st === 'All' ? 'Tất cả' : st}
+                        {st === 'All' ? t('chapterReview.filterAll') : st}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {filteredChangeRequests.length === 0 ? (
-                  <p className='text-center text-xs text-zinc-400 py-6'>Chưa có yêu cầu sửa nào.</p>
+                  <p className='text-center text-xs text-zinc-400 py-6'>
+                    {t('chapterReview.crListEmpty')}
+                  </p>
                 ) : (
                   pages.map((page) => {
                     const pageCrs = changeRequestsByPage.get(page.id) || [];
@@ -2299,8 +2338,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     return (
                       <div key={page.id} className='space-y-2'>
                         <div className='text-[11px] font-bold text-zinc-500 bg-zinc-100 px-2 py-1 rounded flex items-center justify-between'>
-                          <span>Trang {page.pageNumber}</span>
-                          <span>{pageCrs.length} yêu cầu</span>
+                          <span>{t('artworkReview.header.page', { number: page.pageNumber })}</span>
+                          <span>{t('chapterReview.crPageCount', { count: pageCrs.length })}</span>
                         </div>
 
                         <div className='space-y-2'>
@@ -2335,11 +2374,13 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                       {cr.status}
                                     </span>
                                     <span className='font-bold text-zinc-800'>
-                                      {st?.name || 'Công đoạn'}
+                                      {st?.name || t('chapterReview.defaultStageName')}
                                     </span>
                                   </div>
                                   <span className='text-[10px] text-zinc-400'>
-                                    {member?.fullName || member?.email || 'Người làm'}
+                                    {member?.fullName ||
+                                      member?.email ||
+                                      t('chapterReview.defaultAssignee')}
                                   </span>
                                 </div>
 
@@ -2355,7 +2396,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                       }}
                                       className='text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer'
                                     >
-                                      <Square className='w-3 h-3' /> Xem trên ảnh
+                                      <Square className='w-3 h-3' />{' '}
+                                      {t('chapterReview.viewOnImage')}
                                     </button>
                                   </div>
                                 )}
@@ -2368,14 +2410,15 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                       onClick={() => void handleReopenChangeRequest(cr.id)}
                                       className='px-2 py-1 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] font-bold cursor-pointer'
                                     >
-                                      Mở lại
+                                      {t('chapterReview.reopenBtn')}
                                     </button>
                                     <button
                                       type='button'
                                       onClick={() => void handleVerifyChangeRequest(cr.id)}
                                       className='px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer flex items-center gap-1'
                                     >
-                                      <CheckCircle2 className='w-3 h-3' /> Xác minh đạt
+                                      <CheckCircle2 className='w-3 h-3' />{' '}
+                                      {t('chapterReview.verifyBtn')}
                                     </button>
                                   </div>
                                 )}
@@ -2397,12 +2440,9 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               <div className='p-3 rounded-xl bg-purple-50/70 border border-purple-200 space-y-1.5'>
                 <h4 className='text-xs font-bold text-purple-900 flex items-center gap-1.5'>
                   <CheckSquare className='w-4 h-4 text-purple-700' />
-                  Bảng kiểm tra chất lượng Manga
+                  {t('chapterReview.checklistTitle')}
                 </h4>
-                <p className='text-[11px] text-purple-700'>
-                  Các tiêu chí đã tick sẽ được tự động đính kèm vào ghi chú khi bạn Duyệt hoặc Nộp
-                  bài.
-                </p>
+                <p className='text-[11px] text-purple-700'>{t('chapterReview.checklistHint')}</p>
               </div>
 
               <div className='space-y-3' data-testid='checklist-container'>
@@ -2432,7 +2472,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                         <span
                           className={`text-xs font-semibold ${isChecked ? 'text-emerald-900' : 'text-zinc-800'}`}
                         >
-                          {item.label}
+                          {t(item.labelKey)}
                         </span>
                       </div>
                     </label>
@@ -2458,12 +2498,12 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   ) : (
                     <Play className='w-4 h-4' />
                   )}
-                  <span>Chạy kiểm tra nhất quán (Script ↔ Bible)</span>
+                  <span>{t('chapterReview.runScriptConsistency')}</span>
                 </button>
 
                 {findings.length === 0 ? (
                   <p className='text-center text-xs text-zinc-400 py-4'>
-                    Chưa phát hiện lỗi nhất quán kịch bản.
+                    {t('chapterReview.noScriptFindings')}
                   </p>
                 ) : (
                   <div className='space-y-2'>
@@ -2481,7 +2521,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                             {f.severity} · {f.ruleCode}
                           </span>
                           <span className='text-[10px] text-zinc-500 font-bold'>
-                            {FINDING_LABEL[String(f.status)] || f.status}
+                            {t(`chapterReview.findingStatus.${String(f.status)}`, String(f.status))}
                           </span>
                         </div>
                         <p className='text-zinc-800'>{f.message}</p>
@@ -2496,7 +2536,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                               type='button'
                               onClick={() => void handleTriageFinding(f, 'Confirmed')}
                               className='p-1 rounded text-emerald-600 hover:bg-emerald-50 cursor-pointer'
-                              title='Xác nhận là lỗi'
+                              title={t('chapterReview.triageConfirmTitle')}
                             >
                               <CheckCircle2 className='w-4 h-4' />
                             </button>
@@ -2504,7 +2544,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                               type='button'
                               onClick={() => void handleTriageFinding(f, 'Rejected')}
                               className='p-1 rounded text-red-600 hover:bg-red-50 cursor-pointer'
-                              title='Bác bỏ (không phải lỗi)'
+                              title={t('chapterReview.triageRejectTitle')}
                             >
                               <XCircle className='w-4 h-4' />
                             </button>
@@ -2512,7 +2552,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                               type='button'
                               onClick={() => void handleTriageFinding(f, 'Ignored')}
                               className='p-1 rounded text-purple-600 hover:bg-purple-50 cursor-pointer'
-                              title='Bỏ qua (nhập lý do)'
+                              title={t('chapterReview.triageIgnoreTitle')}
                             >
                               <MinusCircle className='w-4 h-4' />
                             </button>
@@ -2520,7 +2560,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                               type='button'
                               onClick={() => void handleTriageFinding(f, 'NeedsClarification')}
                               className='p-1 rounded text-amber-600 hover:bg-amber-50 cursor-pointer'
-                              title='Cần làm rõ'
+                              title={t('chapterReview.triageClarifyTitle')}
                             >
                               <HelpCircle className='w-4 h-4' />
                             </button>
@@ -2536,7 +2576,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               <div className='pt-4 border-t border-zinc-200 space-y-3'>
                 <div className='p-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl space-y-2.5'>
                   <div className='flex items-center justify-between text-xs font-bold text-purple-900'>
-                    <span>Ngưỡng nhất quán AI</span>
+                    <span>{t('chapterReview.aiThresholdLabel')}</span>
                     <span className='font-mono bg-white px-2 py-0.5 rounded border border-purple-200'>
                       {Math.round(visualThreshold * 100)}%
                     </span>
@@ -2557,7 +2597,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     className='w-full py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1.5'
                   >
                     <Sparkles className='w-3.5 h-3.5' />
-                    <span>Chạy kiểm tra nét vẽ nhân vật</span>
+                    <span>{t('chapterReview.runVisualCheckBtn')}</span>
                   </button>
                 </div>
 
@@ -2565,15 +2605,21 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   <div className='p-3 bg-white border border-zinc-200 rounded-xl space-y-2 text-xs'>
                     <div className='grid grid-cols-3 gap-2 text-center'>
                       <div className='p-2 bg-zinc-50 rounded-lg'>
-                        <span className='text-[10px] text-zinc-400'>Tổng khung</span>
+                        <span className='text-[10px] text-zinc-400'>
+                          {t('chapterReview.visualTotalPanels')}
+                        </span>
                         <p className='font-bold text-zinc-900'>{visualReport.totalEvaluated}</p>
                       </div>
                       <div className='p-2 bg-emerald-50 rounded-lg'>
-                        <span className='text-[10px] text-emerald-600'>Khớp</span>
+                        <span className='text-[10px] text-emerald-600'>
+                          {t('chapterReview.visualPassed')}
+                        </span>
                         <p className='font-bold text-emerald-800'>{visualReport.passedCount}</p>
                       </div>
                       <div className='p-2 bg-amber-50 rounded-lg'>
-                        <span className='text-[10px] text-amber-600'>Lệch</span>
+                        <span className='text-[10px] text-amber-600'>
+                          {t('chapterReview.visualDeviations')}
+                        </span>
                         <p className='font-bold text-amber-800'>{visualReport.deviationCount}</p>
                       </div>
                     </div>
@@ -2603,10 +2649,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         title={
           <span className='text-sm font-bold flex items-center gap-2'>
             <Clock className='w-4 h-4 text-zinc-600' />
-            Lịch sử các lần nộp Review
+            {t('chapterReview.submissionsModalTitle')}
           </span>
         }
-        closeLabel='Đóng'
+        closeLabel={t('chapterReview.closeBtn')}
       >
         <SubmissionHistory submissions={submissions} />
       </Modal>

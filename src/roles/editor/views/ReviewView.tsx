@@ -258,12 +258,12 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           assignedRole: (lot?.assignedRole || stg?.allowedRole || 'Artist') as any,
           brief:
             lot?.brief?.trim() ||
-            `${stg?.name ?? 'Stage'} · ${pg ? `Trang ${pg.pageNumber}` : 'Toàn chương'}`,
+            `${stg?.name ?? 'Stage'} · ${pg ? t('artworkReview.header.page', { number: pg.pageNumber }) : t('chapterReview.wholeChapter')}`,
           dueDate: lot?.dueDate ?? null,
           priority: 'Medium' as any,
           status: cell.status as any,
           impactReviewReason: cell.isInputOutdated
-            ? cell.outdatedReason || 'Đầu vào từ công đoạn trước đã thay đổi'
+            ? cell.outdatedReason || t('artworkReview.impact.inputOutdatedFallback')
             : null,
           createdAt: cell.startedAt ?? new Date().toISOString(),
         });
@@ -803,8 +803,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   );
   const lockedByOtherText = isLockedByOtherReviewer
     ? t('chapterReview.underReviewBy', {
-        name: gridReviewerName || gridReviewerUserId,
-        defaultValue: `Đang được duyệt bởi ${gridReviewerName || gridReviewerUserId}`,
+        name: gridReviewerName || gridReviewerUserId || '',
       })
     : null;
   const approveBlocker = lockedByOtherText
@@ -890,7 +889,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-900 border border-orange-300 font-bold text-xs'
                 >
                   <Globe className='w-3.5 h-3.5 text-orange-600' />
-                  Ấn bản {langParam.toUpperCase()}
+                  {t('artworkReview.header.editionBadge', { lang: langParam.toUpperCase() })}
                 </span>
               )}
             </div>
