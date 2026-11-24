@@ -536,7 +536,9 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                         onChange={(e) => setTextAlign(e.target.value)}
                         className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                       >
-                        <option value='Center'>{t('producer.seriesPresetsModal.alignCenter')}</option>
+                        <option value='Center'>
+                          {t('producer.seriesPresetsModal.alignCenter')}
+                        </option>
                         <option value='Left'>{t('producer.seriesPresetsModal.alignLeft')}</option>
                         <option value='Right'>{t('producer.seriesPresetsModal.alignRight')}</option>
                       </select>
@@ -679,9 +681,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
           {activeTab === 'consistency' && (
             <div className='space-y-4'>
               <div className='flex items-center justify-between'>
-                <p className='text-[#737373]'>
-                  {t('producer.seriesPresetsModal.consistencyDesc')}
-                </p>
+                <p className='text-[#737373]'>{t('producer.seriesPresetsModal.consistencyDesc')}</p>
                 <button
                   onClick={() => {
                     resetRuleForm();

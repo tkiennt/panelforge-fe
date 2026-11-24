@@ -15,10 +15,7 @@ export interface ChapterEditionsModalProps {
   onShowToast?: (title: string, desc: string) => void;
 }
 
-const STATUS_CONFIG: Record<
-  EditionStatus,
-  { bg: string; text: string; border: string }
-> = {
+const STATUS_CONFIG: Record<EditionStatus, { bg: string; text: string; border: string }> = {
   Draft: {
     bg: 'bg-stone-100',
     text: 'text-stone-700',

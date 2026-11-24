@@ -23,6 +23,7 @@ import {
   DependencyGraphModal,
   GraphNodeItem,
 } from '@/shared/features/pipeline-board/DependencyGraphModal';
+import { useTranslation } from '@/lib/i18n';
 
 export interface DependencySelectorProps {
   workspaceId: string;
@@ -46,44 +47,36 @@ export interface DependencySelectorProps {
 
 type FilterPill = 'all' | 'same-page' | 'same-chapter' | 'unapproved' | 'approved';
 
-const STATUS_VIETNAMESE: Record<string, { label: string; badgeCls: string; isApproved: boolean }> =
-  {
-    approved: {
-      label: 'Đã duyệt',
-      badgeCls: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-      isApproved: true,
-    },
-    inprogress: {
-      label: 'Đang thực hiện',
-      badgeCls: 'bg-blue-100 text-blue-800 border-blue-300',
-      isApproved: false,
-    },
-    assigned: {
-      label: 'Đã phân công',
-      badgeCls: 'bg-stone-100 text-stone-700 border-stone-300',
-      isApproved: false,
-    },
-    submitted: {
-      label: 'Đã nộp bài',
-      badgeCls: 'bg-amber-100 text-amber-800 border-amber-300',
-      isApproved: false,
-    },
-    underreview: {
-      label: 'Đang xét duyệt',
-      badgeCls: 'bg-amber-100 text-amber-800 border-amber-300',
-      isApproved: false,
-    },
-    reworkrequired: {
-      label: 'Yêu cầu làm lại',
-      badgeCls: 'bg-rose-100 text-rose-800 border-rose-300',
-      isApproved: false,
-    },
-    blocked: {
-      label: 'Bị chặn',
-      badgeCls: 'bg-red-100 text-red-800 border-red-300',
-      isApproved: false,
-    },
-  };
+const STATUS_META_CONFIG: Record<string, { badgeCls: string; isApproved: boolean }> = {
+  approved: {
+    badgeCls: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    isApproved: true,
+  },
+  inprogress: {
+    badgeCls: 'bg-blue-100 text-blue-800 border-blue-300',
+    isApproved: false,
+  },
+  assigned: {
+    badgeCls: 'bg-stone-100 text-stone-700 border-stone-300',
+    isApproved: false,
+  },
+  submitted: {
+    badgeCls: 'bg-amber-100 text-amber-800 border-amber-300',
+    isApproved: false,
+  },
+  underreview: {
+    badgeCls: 'bg-amber-100 text-amber-800 border-amber-300',
+    isApproved: false,
+  },
+  reworkrequired: {
+    badgeCls: 'bg-rose-100 text-rose-800 border-rose-300',
+    isApproved: false,
+  },
+  blocked: {
+    badgeCls: 'bg-red-100 text-red-800 border-red-300',
+    isApproved: false,
+  },
+};
 
 export const DependencySelector: React.FC<DependencySelectorProps> = ({
   workspaceId,
@@ -104,6 +97,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
   onChange,
   backendError,
 }) => {
+  const { t } = useTranslation('production');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterPill>('all');
   const [showDagTooltip, setShowDagTooltip] = useState(false);
@@ -129,42 +123,65 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
   const stageMap = useMemo(() => new Map(stages.map((s) => [s.id, s])), [stages]);
   const memberMap = useMemo(() => new Map(members.map((m) => [m.userId, m])), [members]);
 
-  const getStatusMeta = (status: string | number) => {
-    const key = String(status).toLowerCase();
-    return (
-      STATUS_VIETNAMESE[key] || {
+  const getStatusMeta = useCallback(
+    (status: string | number) => {
+      const key = String(status).toLowerCase();
+      const cfg = STATUS_META_CONFIG[key];
+      if (cfg) {
+        return {
+          ...cfg,
+          label: t(`producer.dependencySelector.status.${key}`),
+        };
+      }
+      return {
         label: String(status),
         badgeCls: 'bg-stone-100 text-stone-700 border-stone-300',
         isApproved: key === 'approved',
-      }
-    );
-  };
+      };
+    },
+    [t],
+  );
 
   const getAssignmentContext = useCallback(
     (a: AssignmentDto) => {
       const stage = stageMap.get(a.pipelineStageId);
       const stageName = stage?.name || a.stageName || 'Pipeline';
-      const chText = chapterNumber ? `Chương ${chapterNumber}` : 'Chương này';
+      const chText = chapterNumber
+        ? t('producer.dependencySelector.chapterN', { number: chapterNumber })
+        : t('producer.dependencySelector.thisChapter');
 
       if (a.entityType === 'Page' && a.targetEntityId) {
         const page = pageMap.get(a.targetEntityId);
-        const pageText = page ? `Trang ${page.pageNumber}` : 'Trang';
-        return `${chText} · ${pageText} · ${stageName}`;
+        const pageText = page
+          ? t('producer.dependencySelector.pageN', { number: page.pageNumber })
+          : t('producer.dependencySelector.pageLabel');
+        return t('producer.dependencySelector.pageContext', {
+          chapter: chText,
+          page: pageText,
+          stage: stageName,
+        });
       }
       if (a.entityType === 'Panel' && a.targetEntityId) {
-        return `${chText} · Khung #${a.targetEntityId.slice(0, 6)} · ${stageName}`;
+        return t('producer.dependencySelector.panelContext', {
+          chapter: chText,
+          id: a.targetEntityId.slice(0, 6),
+          stage: stageName,
+        });
       }
-      return `${chText} · Toàn chương · ${stageName}`;
+      return t('producer.dependencySelector.chapterContext', {
+        chapter: chText,
+        stage: stageName,
+      });
     },
-    [chapterNumber, pageMap, stageMap],
+    [chapterNumber, pageMap, stageMap, t],
   );
 
   const getAssigneeName = useCallback(
     (userId: string) => {
       const m = memberMap.get(userId);
-      return m ? m.fullName || m.email.split('@')[0] : 'Chưa gán';
+      return m ? m.fullName || m.email.split('@')[0] : t('producer.dependencySelector.unassigned');
     },
-    [memberMap],
+    [memberMap, t],
   );
 
   // Loại trừ chính nó nếu đang chỉnh sửa (selfId)
@@ -219,14 +236,16 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
       // Kiểm tra cùng trang/panel
       if (currentPageId && a.entityType === 'Page' && a.targetEntityId === currentPageId) {
         const page = pageMap.get(currentPageId);
-        reasons.push(`Cùng Trang ${page?.pageNumber ?? ''}`);
+        reasons.push(
+          t('producer.dependencySelector.samePageReason', { number: page?.pageNumber ?? '' }),
+        );
         isRelated = true;
       } else if (
         currentPanelId &&
         a.entityType === 'Panel' &&
         a.targetEntityId === currentPanelId
       ) {
-        reasons.push('Cùng Khung hình');
+        reasons.push(t('producer.dependencySelector.samePanelReason'));
         isRelated = true;
       }
 
@@ -239,10 +258,10 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
         typeof aStage.stageOrder === 'number'
       ) {
         if (aStage.stageOrder === currentStage.stageOrder - 1) {
-          reasons.push('Giai đoạn trước trong pipeline');
+          reasons.push(t('producer.dependencySelector.prevStageReason'));
           isRelated = true;
         } else if (aStage.stageOrder < currentStage.stageOrder) {
-          reasons.push('Công đoạn trước trong pipeline');
+          reasons.push(t('producer.dependencySelector.earlierStageReason'));
           isRelated = true;
         }
       }
@@ -262,6 +281,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
     pageMap,
     stageMap,
     cycleMap,
+    t,
   ]);
 
   // Toggle selection an toàn (không bị double toggle)
@@ -302,7 +322,9 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
         const query = searchTerm.toLowerCase().trim();
         const stageName = (stageMap.get(a.pipelineStageId)?.name || '').toLowerCase();
         const page = pageMap.get(a.targetEntityId);
-        const pageNumberStr = page ? `trang ${page.pageNumber}` : '';
+        const pageNumberStr = page
+          ? `${t('producer.dependencySelector.searchPagePrefix')}${page.pageNumber}`
+          : '';
         const assignee = getAssigneeName(a.assigneeUserId).toLowerCase();
         const brief = (a.brief || '').toLowerCase();
         const idStr = a.id.toLowerCase();
@@ -400,7 +422,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
         <div>
           <div className='flex items-center gap-1.5'>
             <label className='block font-bold text-stone-900 text-xs'>
-              Cần hoàn thành trước · Không bắt buộc
+              {t('producer.dependencySelector.headerLabel')}
             </label>
             <div className='relative'>
               <button
@@ -408,22 +430,24 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                 onClick={() => setShowDagTooltip((prev) => !prev)}
                 onBlur={() => setShowDagTooltip(false)}
                 className='text-stone-400 hover:text-stone-700 transition-colors p-0.5 rounded cursor-pointer'
-                aria-label='Tìm hiểu về quy tắc phụ thuộc công việc'
+                aria-label={t('producer.dependencySelector.dagAriaLabel')}
               >
                 <HelpCircle className='w-3.5 h-3.5' />
               </button>
               {showDagTooltip && (
                 <div className='absolute z-50 left-0 top-full mt-1.5 w-72 p-3 bg-stone-900 text-stone-100 text-[11px] rounded-xl shadow-xl border border-stone-700 leading-relaxed animate-in fade-in'>
-                  <strong className='text-orange-400 block mb-1'>Đồ thị phụ thuộc (DAG):</strong>
-                  Phân công này sẽ ở trạng thái chờ cho đến khi tất cả các công việc được chọn tại
-                  đây đạt trạng thái <strong>Đã duyệt (Approved)</strong>. Bạn có thể chọn nhiều
-                  công việc tiền đề mà không bắt buộc theo thứ tự tuyến tính.
+                  <strong className='text-orange-400 block mb-1'>
+                    {t('producer.dependencySelector.dagTooltipTitle')}
+                  </strong>
+                  {t('producer.dependencySelector.dagTooltipBodyPrefix')}
+                  <strong>{t('producer.dependencySelector.dagTooltipBodyStrong')}</strong>
+                  {t('producer.dependencySelector.dagTooltipBodySuffix')}
                 </div>
               )}
             </div>
           </div>
           <p className='text-[11px] text-stone-500 mt-0.5'>
-            Chọn những công việc phải được duyệt trước khi công việc này có thể bắt đầu.
+            {t('producer.dependencySelector.headerDesc')}
           </p>
         </div>
 
@@ -434,7 +458,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
           className='px-3 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-orange-50 text-stone-700 hover:text-[#EA580C] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shrink-0'
         >
           <Network className='w-3.5 h-3.5 text-[#F97316]' />
-          <span>Xem sơ đồ phụ thuộc</span>
+          <span>{t('producer.dependencySelector.viewGraphBtn')}</span>
         </button>
       </div>
 
@@ -443,9 +467,10 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
         <div className='p-2.5 bg-orange-50/60 border border-orange-200 rounded-xl text-[11px] text-orange-900 flex items-start gap-2'>
           <Info className='w-3.5 h-3.5 text-[#F97316] shrink-0 mt-0.5' />
           <div>
-            <strong>Quy trình Pipeline:</strong> Công đoạn này nằm sau{' '}
-            <strong>{priorPipelineStage.name}</strong>. Việc chọn thêm công việc tiền đề ở danh sách
-            dưới đây là tuỳ chọn mở rộng (không bắt buộc).
+            <strong>{t('producer.dependencySelector.pipelineNoticeTitle')}</strong>{' '}
+            {t('producer.dependencySelector.pipelineNoticeBody1')}
+            <strong>{priorPipelineStage.name}</strong>
+            {t('producer.dependencySelector.pipelineNoticeBody2')}
           </div>
         </div>
       )}
@@ -463,14 +488,18 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
         <div className='p-3 bg-[#FAF8F5] border border-[#E7E5E4] rounded-xl space-y-2'>
           <div className='flex items-center justify-between'>
             <span className='font-bold text-xs text-stone-800 flex items-center gap-1.5'>
-              <span>Đã chọn ({selectedAssignmentsList.length})</span>
+              <span>
+                {t('producer.dependencySelector.selectedCount', {
+                  count: selectedAssignmentsList.length,
+                })}
+              </span>
             </span>
             <button
               type='button'
               onClick={() => onChange([])}
               className='text-[10px] text-stone-500 hover:text-red-600 transition-colors cursor-pointer'
             >
-              Bỏ chọn tất cả
+              {t('producer.dependencySelector.clearAll')}
             </button>
           </div>
 
@@ -492,13 +521,13 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                     <Clock className='w-3 h-3 text-amber-600 shrink-0' />
                   )}
                   <span className='font-semibold truncate max-w-[180px]'>
-                    {a.brief || '[Không có tiêu đề]'}
+                    {a.brief || t('producer.dependencySelector.noTitle')}
                   </span>
                   <span className='text-[10px] font-mono text-stone-500'>({statusMeta.label})</span>
                   <button
                     type='button'
                     onClick={(e) => handleRemove(a.id, e)}
-                    aria-label={`Bỏ chọn công việc ${a.brief}`}
+                    aria-label={t('producer.dependencySelector.unselectAria', { brief: a.brief })}
                     className='ml-0.5 text-stone-400 hover:text-stone-800 p-0.5 rounded cursor-pointer transition-colors'
                   >
                     <X className='w-3 h-3' />
@@ -523,18 +552,20 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
         {selectedAssignmentsList.length === 0 ? (
           <div className='flex items-center gap-2'>
             <Info className='w-4 h-4 text-stone-400 shrink-0' />
-            <span>Chưa chọn công việc cần hoàn thành trước.</span>
+            <span>{t('producer.dependencySelector.noneSelected')}</span>
           </div>
         ) : selectedUnapprovedCount === 0 ? (
           <div className='space-y-0.5'>
             <div className='font-bold flex items-center gap-1.5 text-emerald-900'>
               <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' />
               <span>
-                Đã chọn {selectedAssignmentsList.length} công việc · Tất cả đã được duyệt.
+                {t('producer.dependencySelector.allSelectedApproved', {
+                  count: selectedAssignmentsList.length,
+                })}
               </span>
             </div>
             <p className='text-[11px] text-emerald-800 pl-5'>
-              Các công việc được chọn đều đã duyệt. Điều kiện phụ thuộc đã được đáp ứng.
+              {t('producer.dependencySelector.allSelectedApprovedDesc')}
             </p>
           </div>
         ) : (
@@ -542,20 +573,25 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
             <div className='font-bold flex items-center gap-1.5 text-amber-900'>
               <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0' />
               <span>
-                Đã chọn {selectedAssignmentsList.length} công việc · {selectedApprovedCount} đã
-                duyệt · {selectedUnapprovedCount} chưa duyệt.
+                {t('producer.dependencySelector.someSelectedUnapproved', {
+                  total: selectedAssignmentsList.length,
+                  approved: selectedApprovedCount,
+                  unapproved: selectedUnapprovedCount,
+                })}
               </span>
             </div>
             <div className='text-[11px] text-amber-900 pl-5 space-y-1'>
               <p>
-                Công việc mới phải chờ{' '}
+                {t('producer.dependencySelector.mustWaitPrefix')}
                 <strong>
                   &ldquo;{selectedUnapprovedList[0]?.brief}&rdquo;
                   {selectedUnapprovedCount > 1
-                    ? ` và ${selectedUnapprovedCount - 1} việc khác`
+                    ? t('producer.dependencySelector.andNOthers', {
+                        count: selectedUnapprovedCount - 1,
+                      })
                     : ''}
-                </strong>{' '}
-                được duyệt trước khi bắt đầu.
+                </strong>
+                {t('producer.dependencySelector.mustWaitSuffix')}
               </p>
 
               {/* Nút xem chi tiết danh sách chưa duyệt nếu có nhiều hơn 1 việc */}
@@ -568,8 +604,10 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                   >
                     <span>
                       {showAllUnapproved
-                        ? 'Thu gọn danh sách chưa duyệt'
-                        : `Xem đầy đủ ${selectedUnapprovedCount} việc chưa duyệt`}
+                        ? t('producer.dependencySelector.collapseUnapproved')
+                        : t('producer.dependencySelector.expandUnapproved', {
+                            count: selectedUnapprovedCount,
+                          })}
                     </span>
                     {showAllUnapproved ? (
                       <ChevronUp className='w-3 h-3' />
@@ -605,7 +643,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
             type='text'
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder='Tìm theo tên công việc, mã hoặc trang…'
+            placeholder={t('producer.dependencySelector.searchPlaceholder')}
             className='w-full pl-9 pr-8 py-2 bg-white border border-[#E7E7E7] rounded-xl text-xs focus:outline-none focus:border-[#F97316] placeholder:text-stone-400'
           />
           {searchTerm && (
@@ -630,7 +668,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                 : 'bg-white text-stone-600 border-[#E7E7E7] hover:bg-stone-50'
             }`}
           >
-            Tất cả ({counts.all})
+            {t('producer.dependencySelector.filterAll', { count: counts.all })}
           </button>
 
           {currentPageId && counts.samePage > 0 && (
@@ -643,7 +681,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                   : 'bg-white text-stone-600 border-[#E7E7E7] hover:bg-stone-50'
               }`}
             >
-              Cùng trang ({counts.samePage})
+              {t('producer.dependencySelector.filterSamePage', { count: counts.samePage })}
             </button>
           )}
 
@@ -657,7 +695,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                   : 'bg-white text-stone-600 border-[#E7E7E7] hover:bg-stone-50'
               }`}
             >
-              Toàn chương ({counts.sameChapter})
+              {t('producer.dependencySelector.filterSameChapter', { count: counts.sameChapter })}
             </button>
           )}
 
@@ -670,7 +708,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                 : 'bg-white text-stone-600 border-[#E7E7E7] hover:bg-stone-50'
             }`}
           >
-            Chưa duyệt ({counts.unapproved})
+            {t('producer.dependencySelector.filterUnapproved', { count: counts.unapproved })}
           </button>
 
           <button
@@ -682,7 +720,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                 : 'bg-white text-stone-600 border-[#E7E7E7] hover:bg-stone-50'
             }`}
           >
-            Đã duyệt ({counts.approved})
+            {t('producer.dependencySelector.filterApproved', { count: counts.approved })}
           </button>
         </div>
       </div>
@@ -691,11 +729,11 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
       <div className='border border-[#E7E7E7] rounded-xl p-2.5 bg-white space-y-4 max-h-72 overflow-y-auto custom-scrollbar'>
         {selectableAssignments.length === 0 ? (
           <div className='py-8 text-center text-stone-400 text-xs'>
-            Chương này chưa có công việc nào khác để chọn làm tiền đề.
+            {t('producer.dependencySelector.emptyNoOtherTasks')}
           </div>
         ) : filteredItems.length === 0 ? (
           <div className='py-8 text-center text-stone-400 text-xs'>
-            Không tìm thấy công việc nào khớp với tìm kiếm.
+            {t('producer.dependencySelector.emptyNoSearchMatch')}
           </div>
         ) : (
           <>
@@ -705,7 +743,9 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                 <div className='flex items-center gap-1.5 px-1'>
                   <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
                   <span className='font-bold text-stone-800 text-xs uppercase tracking-wider'>
-                    Gợi ý liên quan ({relatedGroup.length})
+                    {t('producer.dependencySelector.relatedGroupTitle', {
+                      count: relatedGroup.length,
+                    })}
                   </span>
                 </div>
                 <div className='space-y-1.5'>
@@ -723,7 +763,9 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                   <div className='flex items-center gap-1.5 px-1 pt-2 border-t border-stone-100'>
                     <Layers className='w-3.5 h-3.5 text-stone-400' />
                     <span className='font-bold text-stone-600 text-xs uppercase tracking-wider'>
-                      Các công việc khác ({otherGroup.length})
+                      {t('producer.dependencySelector.otherGroupTitle', {
+                        count: otherGroup.length,
+                      })}
                     </span>
                   </div>
                 )}
@@ -744,15 +786,17 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
           isOpen={isGraphModalOpen}
           onClose={() => setIsGraphModalOpen(false)}
           targetTask={{
-            title: currentBrief || '[Chưa nhập tiêu đề brief]',
+            title: currentBrief || t('producer.dependencySelector.graphNoBrief'),
             stageName: currentStage?.name || 'Pipeline Stage',
             contextText:
               currentEntityType === 'Page' && currentPageId
-                ? `Trang ${pageMap.get(currentPageId)?.pageNumber || ''}`
+                ? t('producer.dependencySelector.graphPageContext', {
+                    number: pageMap.get(currentPageId)?.pageNumber || '',
+                  })
                 : currentEntityType === 'Panel'
-                  ? 'Theo Khung hình'
-                  : 'Toàn chương',
-            assigneeName: 'Người được phân công',
+                  ? t('producer.dependencySelector.graphPanelContext')
+                  : t('producer.dependencySelector.graphChapterContext'),
+            assigneeName: t('producer.dependencySelector.graphAssignee'),
             isCreating: true,
           }}
           dependencies={graphNodes}
@@ -824,7 +868,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                 </div>
               )}
               <h4 className='font-semibold text-stone-900 text-xs leading-snug'>
-                {a.brief || '[Không có mô tả brief]'}
+                {a.brief || t('producer.dependencySelector.rowNoBrief')}
               </h4>
             </div>
 
@@ -850,12 +894,12 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                 {statusMeta.isApproved ? (
                   <span className='text-emerald-700 font-medium flex items-center gap-1'>
                     <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-                    <span>Đã đáp ứng điều kiện phụ thuộc</span>
+                    <span>{t('producer.dependencySelector.depSatisfied')}</span>
                   </span>
                 ) : (
                   <span className='text-amber-800 font-medium flex items-center gap-1'>
                     <Clock className='w-3 h-3 text-amber-600' />
-                    <span>Phải chờ việc này được duyệt</span>
+                    <span>{t('producer.dependencySelector.mustWaitForApproval')}</span>
                   </span>
                 )}
                 <span className='text-stone-300'>•</span>
@@ -867,9 +911,9 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
                 type='button'
                 onClick={handleOpenDetail}
                 className='text-[11px] font-medium text-stone-600 hover:text-[#EA580C] hover:underline flex items-center gap-1 p-1 rounded transition-colors cursor-pointer'
-                title='Xem chi tiết công việc trong tab mới'
+                title={t('producer.dependencySelector.viewDetailTooltip')}
               >
-                <span>Xem chi tiết</span>
+                <span>{t('producer.dependencySelector.viewDetailBtn')}</span>
                 <ExternalLink className='w-3 h-3' />
               </button>
             </div>
@@ -878,7 +922,7 @@ export const DependencySelector: React.FC<DependencySelectorProps> = ({
             {hasCycle && (
               <div className='p-1.5 bg-red-50 border border-red-200 text-red-800 rounded text-[10px] flex items-center gap-1'>
                 <AlertTriangle className='w-3 h-3 text-red-600 shrink-0' />
-                <span>Không thể chọn vì lựa chọn này tạo vòng lặp phụ thuộc chu trình.</span>
+                <span>{t('producer.dependencySelector.cycleError')}</span>
               </div>
             )}
           </div>

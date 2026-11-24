@@ -160,7 +160,9 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
               <Copy className='w-3.5 h-3.5 text-stone-500' />
             )}
             <span>
-              {copied ? t('producer.inviteResultModal.copied') : t('producer.inviteResultModal.copy')}
+              {copied
+                ? t('producer.inviteResultModal.copied')
+                : t('producer.inviteResultModal.copy')}
             </span>
           </button>
 

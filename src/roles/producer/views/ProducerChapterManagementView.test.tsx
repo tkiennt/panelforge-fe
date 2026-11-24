@@ -205,7 +205,12 @@ describe('ProducerChapterManagementView', () => {
     canApprove: false,
     items: [
       { code: 'SCRIPT_NOT_FROZEN', blocking: true, count: 1, message: 'Kịch bản chưa đóng băng' },
-      { code: 'ASSIGNMENTS_NOT_APPROVED', blocking: true, count: 5, message: '5 công việc chưa duyệt' },
+      {
+        code: 'ASSIGNMENTS_NOT_APPROVED',
+        blocking: true,
+        count: 5,
+        message: '5 công việc chưa duyệt',
+      },
     ],
   };
 

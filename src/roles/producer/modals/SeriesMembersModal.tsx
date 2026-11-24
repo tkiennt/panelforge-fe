@@ -821,7 +821,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                               )}
                               {m.joinedAt && (
                                 <span className='text-[10.5px] font-mono text-[#737373] hidden sm:inline'>
-                                  • {new Date(m.joinedAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'vi-VN')}
+                                  •{' '}
+                                  {new Date(m.joinedAt).toLocaleDateString(
+                                    lang === 'en' ? 'en-US' : 'vi-VN',
+                                  )}
                                 </span>
                               )}
                             </div>

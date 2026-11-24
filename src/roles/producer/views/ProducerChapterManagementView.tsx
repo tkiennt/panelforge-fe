@@ -77,7 +77,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   onShowToast,
   workspaceRole,
 }) => {
-  const { lang } = useTranslation('production');
+  const { t, lang } = useTranslation('production');
   const navigate = useNavigate();
   const { workspaceId = '', seriesId = '' } = useParams<{
     workspaceId: string;
@@ -138,7 +138,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       setError(null);
       const [seriesRes, chaptersRes, stagesRes] = await Promise.all([
         seriesService.getSeriesById(seriesId).catch(() => null),
-        chapterService.getChaptersBySeries(seriesId, 1, 100).catch(() => ({ items: [], totalCount: 0 })),
+        chapterService
+          .getChaptersBySeries(seriesId, 1, 100)
+          .catch(() => ({ items: [], totalCount: 0 })),
         pipelineService.getPipelineStages(seriesId).catch(() => []),
       ]);
 
@@ -160,79 +162,85 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         setSelectedChapterId('');
       }
     } catch (err: any) {
-      setError(err?.message || 'Không thể tải dữ liệu');
+      setError(err?.message || t('producer.chapterManagement.loadDataError'));
     } finally {
       setLoading(false);
     }
-  }, [seriesId, urlChapterId, setSearchParams]);
+  }, [seriesId, urlChapterId, setSearchParams, t]);
 
   useEffect(() => {
     loadSeriesAndChapters();
   }, [loadSeriesAndChapters]);
 
   // ── Load Chapter Detailed Context ──
-  const loadChapterDetails = useCallback(async (cId: string) => {
-    if (!cId) {
-      setChapter(null);
-      setPushedScript(null);
-      setCast(null);
-      setLockGate(null);
-      setComments([]);
-      setPages([]);
-      return;
-    }
-
-    try {
-      const [chapterData, castData, lockGateData, commentsData, pagesData] = await Promise.all([
-        chapterService.getChapterById(cId).catch(() => null),
-        chapterCastService.getChapterCast(cId).catch(() => null),
-        chapterService.getChapterLockGate(cId).catch(() => null),
-        chapterService.getScriptComments(cId).catch(() => []),
-        pageService.getPagesByChapter(cId).catch(() => []),
-      ]);
-
-      setChapter(chapterData);
-      setCast(castData);
-      setLockGate(lockGateData);
-      setComments(commentsData || []);
-      setPages(pagesData || []);
-
-      let scriptVersion: ScriptVersionDetailDto | null = null;
-      if (chapterData?.lastSubmittedVersionId) {
-        scriptVersion = await chapterService
-          .getScriptVersion(cId, chapterData.lastSubmittedVersionId)
-          .catch(() => null);
+  const loadChapterDetails = useCallback(
+    async (cId: string) => {
+      if (!cId) {
+        setChapter(null);
+        setPushedScript(null);
+        setCast(null);
+        setLockGate(null);
+        setComments([]);
+        setPages([]);
+        return;
       }
 
-      if (!scriptVersion) {
-        try {
-          const workingCopy = await chapterService.getScriptWorkingCopy(cId);
-          if (workingCopy && workingCopy.rows && workingCopy.rows.length > 0) {
-            scriptVersion = {
-              version: {
-                id: 'working-copy',
-                versionNumber: 0,
-                message: 'Bản thảo đang viết dở',
-                authorUserId: '',
-                authorName: '',
-                createdAt: new Date().toISOString(),
-                lineCount: workingCopy.lineCount || workingCopy.rows.length,
-                contentHash: workingCopy.contentHash || '',
-                submittedAt: null,
-              },
-              rows: workingCopy.rows,
-            };
-          }
-        } catch {
-          // Bỏ qua nếu không có working copy
+      try {
+        const [chapterData, castData, lockGateData, commentsData, pagesData] = await Promise.all([
+          chapterService.getChapterById(cId).catch(() => null),
+          chapterCastService.getChapterCast(cId).catch(() => null),
+          chapterService.getChapterLockGate(cId).catch(() => null),
+          chapterService.getScriptComments(cId).catch(() => []),
+          pageService.getPagesByChapter(cId).catch(() => []),
+        ]);
+
+        setChapter(chapterData);
+        setCast(castData);
+        setLockGate(lockGateData);
+        setComments(commentsData || []);
+        setPages(pagesData || []);
+
+        let scriptVersion: ScriptVersionDetailDto | null = null;
+        if (chapterData?.lastSubmittedVersionId) {
+          scriptVersion = await chapterService
+            .getScriptVersion(cId, chapterData.lastSubmittedVersionId)
+            .catch(() => null);
         }
-      }
 
-      setPushedScript(scriptVersion);
-    } catch (err: any) {
-      onShowToast?.('Lỗi nạp chương', err?.message || 'Không thể nạp dữ liệu chi tiết.');
-    }
-  }, [onShowToast]);
+        if (!scriptVersion) {
+          try {
+            const workingCopy = await chapterService.getScriptWorkingCopy(cId);
+            if (workingCopy && workingCopy.rows && workingCopy.rows.length > 0) {
+              scriptVersion = {
+                version: {
+                  id: 'working-copy',
+                  versionNumber: 0,
+                  message: t('producer.chapterManagement.workingCopyMessage'),
+                  authorUserId: '',
+                  authorName: '',
+                  createdAt: new Date().toISOString(),
+                  lineCount: workingCopy.lineCount || workingCopy.rows.length,
+                  contentHash: workingCopy.contentHash || '',
+                  submittedAt: null,
+                },
+                rows: workingCopy.rows,
+              };
+            }
+          } catch {
+            // Bỏ qua nếu không có working copy
+          }
+        }
+
+        setPushedScript(scriptVersion);
+      } catch (err: any) {
+        onShowToast?.(
+          t('producer.chapterManagement.loadChapterErrorTitle'),
+          err?.message || t('producer.chapterManagement.loadChapterErrorDesc'),
+        );
+      }
+    },
+    [onShowToast, t],
+  );
 
   useEffect(() => {
     if (selectedChapterId) {
@@ -267,13 +275,22 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         outline: formOutline.trim() || undefined,
       };
       const created = await chapterService.createChapter(seriesId, payload);
-      onShowToast?.('Đã tạo chương', `Chương ${created.chapterNumber}: "${created.title || ''}"`);
+      onShowToast?.(
+        t('producer.chapterManagement.chapterCreatedTitle'),
+        t('producer.chapterManagement.chapterCreatedDesc', {
+          number: created.chapterNumber,
+          title: created.title || '',
+        }),
+      );
       setCreateChapterOpen(false);
       await loadSeriesAndChapters();
       setSelectedChapterId(created.id);
       setSearchParams({ chapterId: created.id });
     } catch (err: any) {
-      onShowToast?.('Lỗi tạo chương', err?.message || 'Không thể tạo chương mới.');
+      onShowToast?.(
+        t('producer.chapterManagement.createChapterErrorTitle'),
+        err?.message || t('producer.chapterManagement.createChapterErrorDesc'),
+      );
     } finally {
       setActionBusy(false);
     }
@@ -282,7 +299,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   const handleOpenEditChapter = () => {
     if (!chapter) return;
     setFormTitle(chapter.title || '');
-    setFormTargetReleaseDate(chapter.targetReleaseDate ? chapter.targetReleaseDate.slice(0, 10) : '');
+    setFormTargetReleaseDate(
+      chapter.targetReleaseDate ? chapter.targetReleaseDate.slice(0, 10) : '',
+    );
     setFormOutline(chapter.outline || '');
     setEditChapterOpen(true);
   };
@@ -299,12 +318,18 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         expectedChapterVersion: chapter.versionVector,
       };
       await chapterService.updateChapter(chapter.id, payload);
-      onShowToast?.('Đã lưu thay đổi', `Chương ${chapter.chapterNumber}`);
+      onShowToast?.(
+        t('producer.chapterManagement.savedChangesTitle'),
+        t('producer.chapterManagement.chapterLabel', { number: chapter.chapterNumber }),
+      );
       setEditChapterOpen(false);
       await loadChapterDetails(chapter.id);
       await loadSeriesAndChapters();
     } catch (err: any) {
-      onShowToast?.('Lỗi lưu chương', err?.message || 'Không thể cập nhật chương.');
+      onShowToast?.(
+        t('producer.chapterManagement.saveChapterErrorTitle'),
+        err?.message || t('producer.chapterManagement.saveChapterErrorDesc'),
+      );
     } finally {
       setActionBusy(false);
     }
@@ -315,12 +340,18 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
     setUnfreezeBusy(true);
     try {
       await chapterService.unfreezeScript(chapter.id, reason);
-      onShowToast?.('Đã mở lại kịch bản', `Chương ${chapter.chapterNumber} (Draft)`);
+      onShowToast?.(
+        t('producer.chapterManagement.reopenedScriptTitle'),
+        t('producer.chapterManagement.reopenedScriptDesc', { number: chapter.chapterNumber }),
+      );
       setShowUnfreezeDialog(false);
       await loadChapterDetails(chapter.id);
       await loadSeriesAndChapters();
     } catch (err: any) {
-      onShowToast?.('Lỗi mở lại', err?.message || 'Không thể mở lại kịch bản.');
+      onShowToast?.(
+        t('producer.chapterManagement.reopenScriptErrorTitle'),
+        err?.message || t('producer.chapterManagement.reopenScriptErrorDesc'),
+      );
     } finally {
       setUnfreezeBusy(false);
     }
@@ -332,15 +363,21 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
     try {
       await chapterService.deleteChapter(deleteTargetChapter.id);
       onShowToast?.(
-        deleteTargetChapter.status === 'PreProduction' && (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
-          ? 'Đã xóa vĩnh viễn'
-          : 'Đã lưu trữ chương',
-        `Chương ${deleteTargetChapter.chapterNumber}`,
+        deleteTargetChapter.status === 'PreProduction' &&
+          (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
+          ? t('producer.chapterManagement.deletedPermanently')
+          : t('producer.chapterManagement.archivedChapter'),
+        t('producer.chapterManagement.chapterLabel', {
+          number: deleteTargetChapter.chapterNumber,
+        }),
       );
       setDeleteTargetChapter(null);
       await loadSeriesAndChapters();
     } catch (err: any) {
-      onShowToast?.('Thao tác thất bại', err?.message || 'Không thể xử lý chương.');
+      onShowToast?.(
+        t('producer.chapterManagement.actionFailedTitle'),
+        err?.message || t('producer.chapterManagement.actionFailedDesc'),
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -410,7 +447,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
     return (
       <div className='flex flex-1 items-center justify-center bg-[#FAF9F5] p-12 font-sans'>
         <RotateCcw className='h-6 w-6 animate-spin text-[#EA580C]' aria-hidden='true' />
-        <span className='ml-2.5 text-xs font-semibold text-stone-600'>Đang nạp dữ liệu chương...</span>
+        <span className='ml-2.5 text-xs font-semibold text-stone-600'>
+          {t('producer.chapterManagement.loadingChapters')}
+        </span>
       </div>
     );
   }
@@ -420,7 +459,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       <div className='flex flex-1 items-center justify-center bg-[#FAF9F5] p-6 font-sans'>
         <div className='max-w-md rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-xs'>
           <AlertCircle className='mx-auto h-8 w-8 text-rose-600' />
-          <h2 className='mt-2 font-serif text-base font-bold text-stone-900'>Lỗi nạp dữ liệu</h2>
+          <h2 className='mt-2 font-serif text-base font-bold text-stone-900'>
+            {t('producer.chapterManagement.loadErrorHeading')}
+          </h2>
           <p className='mt-1 text-xs text-stone-600'>{error}</p>
           <div className='mt-4 flex justify-center gap-2'>
             <button
@@ -428,7 +469,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               onClick={loadSeriesAndChapters}
               className='rounded-xl bg-[#EA580C] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C]'
             >
-              Thử lại
+              {t('producer.chapterManagement.retryBtn')}
             </button>
             <button
               type='button'
@@ -469,12 +510,15 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               <select
                 value={selectedChapterId}
                 onChange={(e) => handleSelectChapter(e.target.value)}
-                aria-label='Chọn chương'
+                aria-label={t('producer.chapterManagement.selectChapterAria')}
                 className='h-8 rounded-lg border border-stone-200 bg-stone-50 pl-2.5 pr-7 text-xs font-bold text-stone-900 focus:border-orange-500 focus:bg-white focus:outline-none cursor-pointer'
               >
                 {chapters.map((c) => (
                   <option key={c.id} value={c.id}>
-                    Chương {c.chapterNumber}: {c.title || 'Không tiêu đề'}
+                    {t('producer.chapterManagement.chapterOption', {
+                      number: c.chapterNumber,
+                      title: c.title || t('producer.chapterManagement.untitled'),
+                    })}
                   </option>
                 ))}
               </select>
@@ -497,12 +541,12 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 >
                   <span className='h-1.5 w-1.5 rounded-full bg-current' />
                   {chapter.status === 'InProduction'
-                    ? 'Đang sản xuất'
+                    ? t('producer.chapterManagement.statusInProduction')
                     : chapter.status === 'ChapterApproved'
-                      ? 'Đã duyệt'
+                      ? t('producer.chapterManagement.statusApproved')
                       : chapter.status === 'HandedOffAndPublished'
-                        ? 'Đã phát hành'
-                        : 'Tiền kỳ'}
+                        ? t('producer.chapterManagement.statusPublished')
+                        : t('producer.chapterManagement.statusPreProduction')}
                 </span>
 
                 <span
@@ -521,10 +565,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     <FileText className='h-2.5 w-2.5 text-stone-500' />
                   )}
                   {isScriptFrozen
-                    ? 'Đóng băng (Frozen)'
+                    ? t('producer.chapterManagement.scriptFrozen')
                     : isInReview
-                      ? 'Chờ duyệt (InReview)'
-                      : 'Bản thảo (Draft)'}
+                      ? t('producer.chapterManagement.scriptInReview')
+                      : t('producer.chapterManagement.scriptDraft')}
                 </span>
               </div>
             )}
@@ -542,13 +586,13 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     ? 'bg-[#EA580C] text-white hover:bg-[#C2410C]'
                     : 'border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
                 }`}
-                title='Duyệt kịch bản, gán họa sĩ và chuyển sang sản xuất'
+                title={t('producer.chapterManagement.gate1CtaTitle')}
               >
                 <Play className='h-3 w-3 fill-current' />
-                <span>Chốt duyệt & Bắt đầu</span>
+                <span>{t('producer.chapterManagement.gate1Cta')}</span>
                 {blockers.length > 0 && (
                   <span className='ml-1 rounded-full bg-rose-600 px-1.5 py-0.2 text-[9px] text-white font-mono'>
-                    {blockers.length} chặn
+                    {t('producer.chapterManagement.blockersCount', { count: blockers.length })}
                   </span>
                 )}
               </button>
@@ -567,17 +611,17 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   className='inline-flex h-8 items-center gap-1.5 rounded-lg bg-stone-900 px-3 text-xs font-bold text-white hover:bg-stone-800'
                 >
                   <Layers className='h-3 w-3 text-orange-400' />
-                  <span>Bảng sản xuất</span>
+                  <span>{t('producer.chapterManagement.productionBoardBtn')}</span>
                 </button>
 
                 <button
                   type='button'
                   onClick={() => setShowUnfreezeDialog(true)}
                   className='inline-flex h-8 items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2.5 text-xs font-semibold text-purple-900 hover:bg-purple-100'
-                  title='Mở lại kịch bản về Draft kèm lý do'
+                  title={t('producer.chapterManagement.reopenBtnTitle')}
                 >
                   <Unlock className='h-3 w-3 text-purple-700' />
-                  <span>Mở lại</span>
+                  <span>{t('producer.chapterManagement.reopenBtn')}</span>
                 </button>
               </>
             )}
@@ -587,10 +631,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               type='button'
               onClick={handleOpenEditChapter}
               className='inline-flex h-8 items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 text-xs font-medium text-stone-700 hover:bg-stone-50'
-              title='Sửa tiêu đề & hạn chót'
+              title={t('producer.chapterManagement.editBtnTitle')}
             >
               <Edit2 className='h-3 w-3 text-stone-500' />
-              <span>Sửa</span>
+              <span>{t('producer.chapterManagement.editBtn')}</span>
             </button>
 
             {/* Tạo chương mới */}
@@ -600,7 +644,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               className='inline-flex h-8 items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 text-xs font-semibold text-stone-700 hover:bg-stone-50'
             >
               <Plus className='h-3 w-3 text-orange-600' />
-              <span className='hidden sm:inline'>Thêm chương</span>
+              <span className='hidden sm:inline'>
+                {t('producer.chapterManagement.addChapterBtn')}
+              </span>
             </button>
 
             {/* Menu công cụ bổ sung */}
@@ -609,7 +655,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 type='button'
                 onClick={() => setToolsMenuOpen(!toolsMenuOpen)}
                 className='flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
-                title='Công cụ & Lưu trữ'
+                title={t('producer.chapterManagement.toolsMenuTitle')}
               >
                 <MoreHorizontal className='h-4 w-4' />
               </button>
@@ -628,7 +674,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-stone-100'
                   >
                     <UserCheck className='h-3.5 w-3.5 text-orange-600' />
-                    <span>Giao việc (Task Grid)</span>
+                    <span>{t('producer.chapterManagement.toolTaskGrid')}</span>
                   </button>
                   <button
                     type='button'
@@ -639,7 +685,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-stone-100'
                   >
                     <Globe className='h-3.5 w-3.5 text-purple-600' />
-                    <span>Ấn bản ngôn ngữ</span>
+                    <span>{t('producer.chapterManagement.toolEditions')}</span>
                   </button>
                   <button
                     type='button'
@@ -650,7 +696,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-stone-100'
                   >
                     <History className='h-3.5 w-3.5 text-sky-600' />
-                    <span>Bản chụp & Xuất xứ</span>
+                    <span>{t('producer.chapterManagement.toolProvenance')}</span>
                   </button>
                   <button
                     type='button'
@@ -661,7 +707,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-stone-100'
                   >
                     <Share2 className='h-3.5 w-3.5 text-emerald-600' />
-                    <span>Link xem thử</span>
+                    <span>{t('producer.chapterManagement.toolPreviewLinks')}</span>
                   </button>
                   <div className='my-1 border-t border-stone-100' />
                   <button
@@ -673,7 +719,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-rose-700 hover:bg-rose-50'
                   >
                     <Archive className='h-3.5 w-3.5' />
-                    <span>Lưu trữ / Xóa</span>
+                    <span>{t('producer.chapterManagement.toolArchiveDelete')}</span>
                   </button>
                 </div>
               )}
@@ -687,8 +733,16 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             <div className='flex items-center gap-4'>
               <span className='flex items-center gap-1 font-medium'>
                 <FileText className='h-3 w-3 text-stone-400' />
-                Kịch bản: <strong>{pushedScript ? `v${pushedScript.version.versionNumber}` : 'Bản thảo'}</strong>
-                {pushedScript && ` (${pushedScript.rows.length} dòng)`}
+                {t('producer.chapterManagement.glanceScript')}{' '}
+                <strong>
+                  {pushedScript
+                    ? `v${pushedScript.version.versionNumber}`
+                    : t('producer.chapterManagement.glanceDraft')}
+                </strong>
+                {pushedScript &&
+                  t('producer.chapterManagement.glanceRows', {
+                    count: pushedScript.rows.length,
+                  })}
               </span>
 
               <span className='flex items-center gap-1 font-medium'>
@@ -697,27 +751,37 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 <strong className={isGatePassed ? 'text-emerald-700' : 'text-rose-700'}>
                   {canonLockedEntities}/{totalEntities} locked
                 </strong>
-                {blockers.length > 0 && <span className='text-rose-600 font-bold'>({blockers.length} chặn)</span>}
+                {blockers.length > 0 && (
+                  <span className='text-rose-600 font-bold'>
+                    {t('producer.chapterManagement.glanceBlockers', { count: blockers.length })}
+                  </span>
+                )}
               </span>
 
               <span className='flex items-center gap-1 font-medium'>
                 <MessageSquare className='h-3 w-3 text-stone-400' />
-                Góp ý:{' '}
+                {t('producer.chapterManagement.glanceComments')}{' '}
                 <strong className={openCommentsCount > 0 ? 'text-amber-700' : 'text-emerald-700'}>
-                  {openCommentsCount} mở
+                  {t('producer.chapterManagement.glanceCommentsOpen', {
+                    count: openCommentsCount,
+                  })}
                 </strong>
               </span>
 
               {chapter.targetReleaseDate && (
                 <span className='flex items-center gap-1 text-stone-500'>
                   <Calendar className='h-3 w-3 text-stone-400' />
-                  Hạn: {formatDate(chapter.targetReleaseDate)}
+                  {t('producer.chapterManagement.glanceDue', {
+                    date: formatDate(chapter.targetReleaseDate),
+                  })}
                 </span>
               )}
             </div>
 
             <div className='flex items-center gap-2 font-mono text-[10px] text-stone-400 shrink-0'>
-              {pushedScript?.version.contentHash && <span>#{shortHash(pushedScript.version.contentHash)}</span>}
+              {pushedScript?.version.contentHash && (
+                <span>#{shortHash(pushedScript.version.contentHash)}</span>
+              )}
             </div>
           </div>
         )}
@@ -729,14 +793,14 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
           <div className='w-full max-w-md rounded-2xl border border-stone-200 bg-white p-5 shadow-xl'>
             <div className='flex items-center gap-2 text-purple-800 font-bold text-sm'>
               <Unlock className='h-4 w-4' />
-              <span>Mở lại kịch bản (Draft)</span>
+              <span>{t('producer.chapterManagement.unfreezeTitle')}</span>
             </div>
             <p className='mt-1 text-xs text-stone-600'>
-              Kịch bản sẽ được mở khóa để Writer sửa. Nhập lý do vào Audit Log:
+              {t('producer.chapterManagement.unfreezeDesc')}
             </p>
             <ReasonForm
               label=''
-              confirmLabel='Mở lại'
+              confirmLabel={t('producer.chapterManagement.reopenBtn')}
               busy={unfreezeBusy}
               tone='neutral'
               onConfirm={handleUnfreezeScript}
@@ -750,7 +814,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       <main className='flex-1 max-w-7xl mx-auto w-full p-3 sm:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start'>
         {/* LEFT COLUMN (COL 7/12): SCRIPT VIEWER */}
         <section
-          aria-label='Nội dung kịch bản'
+          aria-label={t('producer.chapterManagement.scriptSectionAria')}
           className='lg:col-span-7 flex flex-col rounded-2xl border border-stone-200 bg-white shadow-2xs overflow-hidden'
         >
           {/* Script Pane Header */}
@@ -758,11 +822,13 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             <div className='flex items-center gap-2'>
               <FileText className='h-4 w-4 text-orange-600' />
               <h3 className='font-serif text-xs font-bold text-stone-900'>
-                Kịch bản chương ({filteredScriptRows.length} dòng)
+                {t('producer.chapterManagement.scriptSectionTitle', {
+                  count: filteredScriptRows.length,
+                })}
               </h3>
               {selectedEntityName && (
                 <span className='inline-flex items-center gap-1 rounded-md bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-800'>
-                  Lọc: {selectedEntityName}
+                  {t('producer.chapterManagement.filterTag', { name: selectedEntityName })}
                   <button
                     type='button'
                     onClick={() => setSelectedEntityName(null)}
@@ -780,7 +846,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 type='text'
                 value={scriptSearch}
                 onChange={(e) => setScriptSearch(e.target.value)}
-                placeholder='Tìm kịch bản...'
+                placeholder={t('producer.chapterManagement.searchScriptPlaceholder')}
                 className='h-7 w-full rounded-lg border border-stone-200 bg-white pl-7 pr-2 text-xs text-stone-900 placeholder-stone-400 focus:border-orange-500 focus:outline-none'
               />
             </div>
@@ -791,7 +857,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             {filteredScriptRows.length === 0 ? (
               <div className='py-12 text-center text-stone-400 text-xs'>
                 <FileText className='mx-auto h-8 w-8 opacity-40 mb-2' />
-                <span>Không có dòng kịch bản nào.</span>
+                <span>{t('producer.chapterManagement.noScriptLines')}</span>
               </div>
             ) : (
               filteredScriptRows.map((row, idx) => {
@@ -820,25 +886,30 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 if (row.type === 'Dialogue' || row.type === 'Thought') {
                   const isThought = row.type === 'Thought';
                   const isSpeakerSelected =
-                    selectedEntityName && (row.label || '').toLowerCase().includes(selectedEntityName.toLowerCase());
+                    selectedEntityName &&
+                    (row.label || '').toLowerCase().includes(selectedEntityName.toLowerCase());
 
                   return (
                     <div
                       key={row.key || `d-${idx}`}
                       className={`pl-5 pr-2 py-0.5 flex items-start gap-1.5 rounded transition-colors ${
-                        isSpeakerSelected ? 'bg-orange-50/80 ring-1 ring-orange-200' : 'hover:bg-stone-50'
+                        isSpeakerSelected
+                          ? 'bg-orange-50/80 ring-1 ring-orange-200'
+                          : 'hover:bg-stone-50'
                       }`}
                     >
                       <button
                         type='button'
                         onClick={() => setSelectedEntityName(row.label || null)}
                         className='font-sans text-[11px] font-bold text-orange-800 shrink-0 uppercase tracking-wide hover:underline cursor-pointer'
-                        title='Nhấp để lọc theo nhân vật này'
+                        title={t('producer.chapterManagement.filterCharacterTitle')}
                       >
-                        [{row.label || 'NHÂN VẬT'}
-                        {isThought ? ' (nghĩ)' : ''}]:
+                        [{row.label || t('producer.chapterManagement.defaultCharacter')}
+                        {isThought ? t('producer.chapterManagement.thoughtSuffix') : ''}]:
                       </button>
-                      <span className={`text-stone-900 ${isThought ? 'italic text-stone-700' : ''}`}>
+                      <span
+                        className={`text-stone-900 ${isThought ? 'italic text-stone-700' : ''}`}
+                      >
                         {row.text}
                       </span>
                     </div>
@@ -851,7 +922,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                       key={row.key || `n-${idx}`}
                       className='my-1 border-l-2 border-amber-400 bg-amber-50/40 px-2.5 py-1 text-[11px] font-sans text-amber-950 italic'
                     >
-                      <span className='font-bold not-italic mr-1.5 uppercase'>[DẪN]:</span>
+                      <span className='font-bold not-italic mr-1.5 uppercase'>
+                        {t('producer.chapterManagement.narrationTag')}
+                      </span>
                       {row.text}
                     </div>
                   );
@@ -869,7 +942,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 }
 
                 return (
-                  <div key={row.key || `a-${idx}`} className='pl-3 text-[11px] font-sans text-stone-600'>
+                  <div
+                    key={row.key || `a-${idx}`}
+                    className='pl-3 text-[11px] font-sans text-stone-600'
+                  >
                     {row.text}
                   </div>
                 );
@@ -880,7 +956,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 
         {/* RIGHT COLUMN (COL 5/12): INSPECTOR & REFERENCE (ART BIBLE / CHECKLIST / COMMENTS) */}
         <section
-          aria-label='Bảng đối chiếu và kiểm soát'
+          aria-label={t('producer.chapterManagement.inspectorAria')}
           className='lg:col-span-5 flex flex-col rounded-2xl border border-stone-200 bg-white shadow-2xs overflow-hidden sticky top-28'
         >
           {/* Inspector Tabs */}
@@ -895,7 +971,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               }`}
             >
               <Palette className='h-3.5 w-3.5' />
-              <span>Art Bible ({totalEntities})</span>
+              <span>{t('producer.chapterManagement.tabBible', { count: totalEntities })}</span>
             </button>
 
             <button
@@ -908,7 +984,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               }`}
             >
               <CheckCircle2 className='h-3.5 w-3.5' />
-              <span>Chốt Cổng (Gate 1 & 3)</span>
+              <span>{t('producer.chapterManagement.tabChecklist')}</span>
             </button>
 
             <button
@@ -921,7 +997,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               }`}
             >
               <MessageSquare className='h-3.5 w-3.5' />
-              <span>Góp ý ({openCommentsCount})</span>
+              <span>
+                {t('producer.chapterManagement.tabComments', { count: openCommentsCount })}
+              </span>
             </button>
 
             <button
@@ -934,7 +1012,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               }`}
             >
               <Layers className='h-3.5 w-3.5' />
-              <span>Tiện ích</span>
+              <span>{t('producer.chapterManagement.tabTools')}</span>
             </button>
           </div>
 
@@ -946,12 +1024,15 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 <div className='rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-900 space-y-1.5'>
                   <div className='flex items-center gap-1.5 font-bold text-rose-800'>
                     <AlertTriangle className='h-4 w-4 shrink-0' />
-                    <span>{blockers.length} thực thể chưa khoá Canon (Chặn Gate 1)</span>
+                    <span>
+                      {t('producer.chapterManagement.blockersWarning', { count: blockers.length })}
+                    </span>
                   </div>
                   <ul className='space-y-1 text-[11px] pl-5 list-disc'>
                     {blockers.map((b) => (
                       <li key={b.bibleEntryId}>
-                        <strong>{b.entryName}</strong>: {b.reason || 'Chưa khoá Canon bản vẽ.'}
+                        <strong>{b.entryName}</strong>:{' '}
+                        {b.reason || t('producer.chapterManagement.blockerDefaultReason')}
                       </li>
                     ))}
                   </ul>
@@ -967,10 +1048,16 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                       type='button'
                       onClick={() => setBibleCategory(c)}
                       className={`px-2 py-1 rounded-md transition-colors cursor-pointer ${
-                        bibleCategory === c ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-100'
+                        bibleCategory === c
+                          ? 'bg-stone-900 text-white'
+                          : 'text-stone-500 hover:bg-stone-100'
                       }`}
                     >
-                      {c === 'all' ? 'Tất cả' : c === 'character' ? 'Nhân vật' : 'Bối cảnh'}
+                      {c === 'all'
+                        ? t('producer.chapterManagement.catAll')
+                        : c === 'character'
+                          ? t('producer.chapterManagement.catCharacter')
+                          : t('producer.chapterManagement.catLocation')}
                     </button>
                   ))}
                 </div>
@@ -981,7 +1068,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     type='text'
                     value={bibleSearch}
                     onChange={(e) => setBibleSearch(e.target.value)}
-                    placeholder='Tìm nhân vật...'
+                    placeholder={t('producer.chapterManagement.searchBiblePlaceholder')}
                     className='h-7 w-full rounded-lg border border-stone-200 bg-stone-50 pl-7 pr-2 text-xs focus:bg-white focus:outline-none'
                   />
                 </div>
@@ -990,7 +1077,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               {/* Entity Cards */}
               {filteredCastEntities.length === 0 ? (
                 <div className='py-8 text-center text-xs text-stone-400'>
-                  Không có thực thể Bible nào khớp bộ lọc.
+                  {t('producer.chapterManagement.noBibleMatch')}
                 </div>
               ) : (
                 <div className='space-y-2'>
@@ -1032,13 +1119,22 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                         {/* Details */}
                         <div className='min-w-0 flex-1'>
                           <div className='flex items-center justify-between gap-1'>
-                            <span className='font-bold text-xs text-stone-900 truncate'>{ent.name}</span>
+                            <span className='font-bold text-xs text-stone-900 truncate'>
+                              {ent.name}
+                            </span>
                             <span className='font-mono text-[9px] text-stone-400'>{ent.code}</span>
                           </div>
 
                           <div className='flex items-center gap-1.5 mt-0.5 text-[10px] text-stone-500'>
-                            <span>{ent.boundRevision?.variantLabel || 'Bản vẽ mẫu'}</span>
-                            <span>· {ent.mentions?.length || 0} lần</span>
+                            <span>
+                              {ent.boundRevision?.variantLabel ||
+                                t('producer.chapterManagement.defaultVariantLabel')}
+                            </span>
+                            <span>
+                              {t('producer.chapterManagement.mentionsCount', {
+                                count: ent.mentions?.length || 0,
+                              })}
+                            </span>
                           </div>
                         </div>
 
@@ -1050,11 +1146,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                             </span>
                           ) : isCrowd ? (
                             <span className='rounded-md bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-600'>
-                              Quần chúng
+                              {t('producer.chapterManagement.crowdTag')}
                             </span>
                           ) : (
                             <span className='inline-flex items-center gap-0.5 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-800 border border-rose-200'>
-                              Chưa khóa
+                              {t('producer.chapterManagement.unlockedTag')}
                             </span>
                           )}
                         </div>
@@ -1073,7 +1169,8 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               <div className='rounded-xl border border-stone-200 bg-white p-3 space-y-2.5 shadow-2xs'>
                 <div className='flex items-center justify-between'>
                   <span className='font-bold text-stone-900 flex items-center gap-1.5'>
-                    <Play className='h-3.5 w-3.5 text-orange-600' /> Gate 1: Bắt đầu sản xuất
+                    <Play className='h-3.5 w-3.5 text-orange-600' />{' '}
+                    {t('producer.chapterManagement.gate1CardTitle')}
                   </span>
                   <span
                     className={`rounded-md px-1.5 py-0.2 text-[10px] font-bold ${
@@ -1084,27 +1181,57 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                           : 'bg-rose-100 text-rose-800'
                     }`}
                   >
-                    {isScriptFrozen ? 'ĐÃ QUA CỔNG' : isGatePassed ? 'SẴN SÀNG' : 'CHƯA ĐẠT'}
+                    {isScriptFrozen
+                      ? t('producer.chapterManagement.gatePassed')
+                      : isGatePassed
+                        ? t('producer.chapterManagement.gateReady')
+                        : t('producer.chapterManagement.gateNotReady')}
                   </span>
                 </div>
 
                 <div className='space-y-1.5 text-[11px] divide-y divide-stone-100'>
                   <div className='pt-1 flex items-center justify-between'>
-                    <span>1. Writer đã nộp kịch bản</span>
-                    <span className={isInReview || isScriptFrozen ? 'text-emerald-700 font-bold' : 'text-stone-400'}>
-                      {isInReview || isScriptFrozen ? '✓ Đã nộp' : 'Chưa nộp'}
+                    <span>{t('producer.chapterManagement.gate1Step1')}</span>
+                    <span
+                      className={
+                        isInReview || isScriptFrozen
+                          ? 'text-emerald-700 font-bold'
+                          : 'text-stone-400'
+                      }
+                    >
+                      {isInReview || isScriptFrozen
+                        ? t('producer.chapterManagement.submitted')
+                        : t('producer.chapterManagement.notSubmitted')}
                     </span>
                   </div>
                   <div className='pt-1 flex items-center justify-between'>
-                    <span>2. Tất cả Bible đã khoá Canon</span>
-                    <span className={isGatePassed ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
-                      {isGatePassed ? `✓ ${totalEntities} mục đạt` : `Chặn (${blockers.length})`}
+                    <span>{t('producer.chapterManagement.gate1Step2')}</span>
+                    <span
+                      className={
+                        isGatePassed ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'
+                      }
+                    >
+                      {isGatePassed
+                        ? t('producer.chapterManagement.itemsPassed', { count: totalEntities })
+                        : t('producer.chapterManagement.blockedCount', {
+                            count: blockers.length,
+                          })}
                     </span>
                   </div>
                   <div className='pt-1 flex items-center justify-between'>
-                    <span>3. Góp ý kịch bản</span>
-                    <span className={openCommentsCount === 0 ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>
-                      {openCommentsCount === 0 ? '✓ Sạch góp ý' : `Còn ${openCommentsCount}`}
+                    <span>{t('producer.chapterManagement.gate1Step3')}</span>
+                    <span
+                      className={
+                        openCommentsCount === 0
+                          ? 'text-emerald-700 font-bold'
+                          : 'text-amber-700 font-bold'
+                      }
+                    >
+                      {openCommentsCount === 0
+                        ? t('producer.chapterManagement.cleanComments')
+                        : t('producer.chapterManagement.remainingCount', {
+                            count: openCommentsCount,
+                          })}
                     </span>
                   </div>
                 </div>
@@ -1115,7 +1242,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     onClick={() => setStartProductionOpen(true)}
                     className='w-full rounded-lg bg-[#EA580C] py-2 text-xs font-bold text-white hover:bg-[#C2410C]'
                   >
-                    Chốt duyệt & Bắt đầu sản xuất
+                    {t('producer.chapterManagement.approveAndStartBtn')}
                   </button>
                 )}
               </div>
@@ -1124,28 +1251,39 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               <div className='rounded-xl border border-stone-200 bg-white p-3 space-y-2.5 shadow-2xs'>
                 <div className='flex items-center justify-between'>
                   <span className='font-bold text-stone-900 flex items-center gap-1.5'>
-                    <Lock className='h-3.5 w-3.5 text-emerald-600' /> Gate 3: Khóa duyệt chương
+                    <Lock className='h-3.5 w-3.5 text-emerald-600' />{' '}
+                    {t('producer.chapterManagement.gate3CardTitle')}
                   </span>
                   <span
                     className={`rounded-md px-1.5 py-0.2 text-[10px] font-bold ${
-                      lockGate?.canApprove ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-600'
+                      lockGate?.canApprove
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-stone-100 text-stone-600'
                     }`}
                   >
-                    {lockGate?.canApprove ? 'ĐỦ ĐIỀU KIỆN' : 'CHƯA ĐẠT'}
+                    {lockGate?.canApprove
+                      ? t('producer.chapterManagement.gate3Eligible')
+                      : t('producer.chapterManagement.gateNotReady')}
                   </span>
                 </div>
 
                 {!lockGate ? (
-                  <p className='text-stone-400 text-center py-2'>Đang nạp Lock Gate...</p>
+                  <p className='text-stone-400 text-center py-2'>
+                    {t('producer.chapterManagement.loadingLockGate')}
+                  </p>
                 ) : (
                   <div className='space-y-1.5 text-[11px] divide-y divide-stone-100'>
                     {lockGate.items.map((it, idx) => (
                       <div key={idx} className='pt-1 flex items-center justify-between gap-2'>
                         <span className='truncate'>{it.message}</span>
                         {it.blocking ? (
-                          <span className='text-rose-700 font-bold shrink-0'>Chặn ({it.count})</span>
+                          <span className='text-rose-700 font-bold shrink-0'>
+                            {t('producer.chapterManagement.blockedCount', { count: it.count })}
+                          </span>
                         ) : (
-                          <span className='text-emerald-700 font-bold shrink-0'>✓ Đạt</span>
+                          <span className='text-emerald-700 font-bold shrink-0'>
+                            {t('producer.chapterManagement.itemPassed')}
+                          </span>
                         )}
                       </div>
                     ))}
@@ -1158,16 +1296,24 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     onClick={async () => {
                       try {
                         await chapterService.approveChapter(chapter.id);
-                        onShowToast?.('Đã duyệt Gate 3', `Chương ${chapter.chapterNumber}`);
+                        onShowToast?.(
+                          t('producer.chapterManagement.gate3ApprovedTitle'),
+                          t('producer.chapterManagement.chapterLabel', {
+                            number: chapter.chapterNumber,
+                          }),
+                        );
                         await loadChapterDetails(chapter.id);
                         await loadSeriesAndChapters();
                       } catch (err: any) {
-                        onShowToast?.('Lỗi duyệt', err?.message || 'Không thể duyệt chương.');
+                        onShowToast?.(
+                          t('producer.chapterManagement.approveErrorTitle'),
+                          err?.message || t('producer.chapterManagement.approveErrorDesc'),
+                        );
                       }
                     }}
                     className='w-full rounded-lg bg-emerald-600 py-2 text-xs font-bold text-white hover:bg-emerald-700'
                   >
-                    Duyệt Hoàn Tất Chương
+                    {t('producer.chapterManagement.approveChapterCompleteBtn')}
                   </button>
                 )}
               </div>
@@ -1179,18 +1325,22 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             <div className='p-3 space-y-2.5 max-h-[calc(100vh-170px)] overflow-y-auto text-xs'>
               {comments.length === 0 ? (
                 <div className='py-8 text-center text-stone-400 text-xs'>
-                  Chưa có góp ý nào cho kịch bản.
+                  {t('producer.chapterManagement.noComments')}
                 </div>
               ) : (
                 comments.map((c) => (
                   <div
                     key={c.id}
                     className={`rounded-xl border p-2.5 space-y-1 ${
-                      c.resolvedAt ? 'border-stone-200 bg-stone-50 opacity-70' : 'border-orange-200 bg-orange-50/30'
+                      c.resolvedAt
+                        ? 'border-stone-200 bg-stone-50 opacity-70'
+                        : 'border-orange-200 bg-orange-50/30'
                     }`}
                   >
                     <div className='flex items-center justify-between text-[10px] text-stone-500'>
-                      <span className='font-bold text-stone-700'>{c.authorName || 'Biên tập viên'}</span>
+                      <span className='font-bold text-stone-700'>
+                        {c.authorName || t('producer.chapterManagement.defaultEditorName')}
+                      </span>
                       <span>{formatDate(c.createdAt)}</span>
                     </div>
                     {c.quotedText && (
@@ -1200,8 +1350,14 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     )}
                     <p className='text-stone-800 leading-snug'>{c.body}</p>
                     <div className='flex items-center justify-between pt-1 text-[10px]'>
-                      <span className={c.resolvedAt ? 'text-emerald-700 font-bold' : 'text-orange-700 font-bold'}>
-                        {c.resolvedAt ? '✓ Đã xong' : '● Chưa xử lý'}
+                      <span
+                        className={
+                          c.resolvedAt ? 'text-emerald-700 font-bold' : 'text-orange-700 font-bold'
+                        }
+                      >
+                        {c.resolvedAt
+                          ? t('producer.chapterManagement.commentResolved')
+                          : t('producer.chapterManagement.commentPending')}
                       </span>
                       {!c.resolvedAt && (
                         <button
@@ -1210,16 +1366,26 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                             try {
                               await chapterService.resolveScriptComment(chapter?.id || '', c.id);
                               setComments((prev) =>
-                                prev.map((x) => (x.id === c.id ? { ...x, resolvedAt: new Date().toISOString() } : x)),
+                                prev.map((x) =>
+                                  x.id === c.id
+                                    ? { ...x, resolvedAt: new Date().toISOString() }
+                                    : x,
+                                ),
                               );
-                              onShowToast?.('Góp ý', 'Đã đánh dấu xong.');
+                              onShowToast?.(
+                                t('producer.chapterManagement.commentToastTitle'),
+                                t('producer.chapterManagement.commentResolvedDesc'),
+                              );
                             } catch (err: any) {
-                              onShowToast?.('Lỗi', err?.message || 'Không thể cập nhật.');
+                              onShowToast?.(
+                                t('producer.chapterManagement.genericErrorTitle'),
+                                err?.message || t('producer.chapterManagement.updateErrorDesc'),
+                              );
                             }
                           }}
                           className='font-bold text-orange-700 hover:underline'
                         >
-                          Xong
+                          {t('producer.chapterManagement.resolveBtn')}
                         </button>
                       )}
                     </div>
@@ -1239,7 +1405,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               >
                 <div className='flex items-center gap-2'>
                   <UserCheck className='h-4 w-4 text-orange-600' />
-                  <span className='font-bold text-stone-800'>Lưới Giao Việc V3</span>
+                  <span className='font-bold text-stone-800'>
+                    {t('producer.chapterManagement.toolGridV3')}
+                  </span>
                 </div>
                 <span className='text-stone-400'>↗</span>
               </button>
@@ -1251,7 +1419,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               >
                 <div className='flex items-center gap-2'>
                   <Globe className='h-4 w-4 text-purple-600' />
-                  <span className='font-bold text-stone-800'>Ấn Bản Ngôn Ngữ</span>
+                  <span className='font-bold text-stone-800'>
+                    {t('producer.chapterManagement.toolEditionsFull')}
+                  </span>
                 </div>
                 <span className='text-stone-400'>↗</span>
               </button>
@@ -1263,7 +1433,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               >
                 <div className='flex items-center gap-2'>
                   <History className='h-4 w-4 text-sky-600' />
-                  <span className='font-bold text-stone-800'>Bản Chụp & Xuất Xứ</span>
+                  <span className='font-bold text-stone-800'>
+                    {t('producer.chapterManagement.toolProvenanceFull')}
+                  </span>
                 </div>
                 <span className='text-stone-400'>↗</span>
               </button>
@@ -1275,7 +1447,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               >
                 <div className='flex items-center gap-2'>
                   <Share2 className='h-4 w-4 text-emerald-600' />
-                  <span className='font-bold text-stone-800'>Link Xem Thử</span>
+                  <span className='font-bold text-stone-800'>
+                    {t('producer.chapterManagement.toolPreviewFull')}
+                  </span>
                 </div>
                 <span className='text-stone-400'>↗</span>
               </button>
@@ -1283,11 +1457,17 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               {/* Upload cover */}
               <div className='rounded-xl border border-stone-200 bg-white p-3 space-y-2'>
                 <div className='flex items-center justify-between'>
-                  <span className='font-bold text-stone-800'>Ảnh bìa chương</span>
-                  {chapter?.coverUrl && <span className='text-[10px] text-emerald-700 font-bold'>Đã có bìa</span>}
+                  <span className='font-bold text-stone-800'>
+                    {t('producer.chapterManagement.coverTitle')}
+                  </span>
+                  {chapter?.coverUrl && (
+                    <span className='text-[10px] text-emerald-700 font-bold'>
+                      {t('producer.chapterManagement.hasCoverBadge')}
+                    </span>
+                  )}
                 </div>
                 <label className='block w-full cursor-pointer rounded-lg border border-stone-200 bg-stone-50 py-1.5 text-center text-[11px] font-bold text-stone-700 hover:bg-stone-100'>
-                  <span>Đổi ảnh bìa</span>
+                  <span>{t('producer.chapterManagement.changeCoverBtn')}</span>
                   <input
                     type='file'
                     accept='image/png,image/jpeg,image/webp'
@@ -1298,9 +1478,15 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                       try {
                         const newUrl = await chapterService.uploadChapterCover(chapter.id, file);
                         setChapter((prev) => (prev ? { ...prev, coverUrl: newUrl } : null));
-                        onShowToast?.('Thành công', 'Đã cập nhật ảnh bìa.');
+                        onShowToast?.(
+                          t('producer.chapterManagement.coverUpdatedTitle'),
+                          t('producer.chapterManagement.coverUpdatedDesc'),
+                        );
                       } catch (err: any) {
-                        onShowToast?.('Lỗi tải bìa', err?.message || 'Không thể tải ảnh bìa.');
+                        onShowToast?.(
+                          t('producer.chapterManagement.coverUploadErrorTitle'),
+                          err?.message || t('producer.chapterManagement.coverUploadErrorDesc'),
+                        );
                       }
                     }}
                   />
@@ -1315,13 +1501,15 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       {createChapterOpen && (
         <Modal
           isOpen
-          title='Tạo Chương Mới'
-          closeLabel='Đóng'
+          title={t('producer.chapterManagement.createModalTitle')}
+          closeLabel={t('producer.chapterManagement.closeBtn')}
           onClose={() => setCreateChapterOpen(false)}
         >
           <form onSubmit={handleCreateChapterSubmit} className='space-y-3 text-xs'>
             <div>
-              <label className='block font-bold text-stone-700'>Số chương *</label>
+              <label className='block font-bold text-stone-700'>
+                {t('producer.chapterManagement.chapterNumberLabel')}
+              </label>
               <input
                 type='number'
                 step='0.1'
@@ -1333,18 +1521,22 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             </div>
 
             <div>
-              <label className='block font-bold text-stone-700'>Tiêu đề (Tùy chọn)</label>
+              <label className='block font-bold text-stone-700'>
+                {t('producer.chapterManagement.titleOptionalLabel')}
+              </label>
               <input
                 type='text'
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
-                placeholder='vd: Khởi đầu mới'
+                placeholder={t('producer.chapterManagement.titlePlaceholder')}
                 className='mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-stone-900 focus:outline-none'
               />
             </div>
 
             <div>
-              <label className='block font-bold text-stone-700'>Ngày phát hành mục tiêu</label>
+              <label className='block font-bold text-stone-700'>
+                {t('producer.chapterManagement.targetDateLabel')}
+              </label>
               <input
                 type='date'
                 value={formTargetReleaseDate}
@@ -1354,12 +1546,14 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             </div>
 
             <div>
-              <label className='block font-bold text-stone-700'>Đề cương tóm tắt</label>
+              <label className='block font-bold text-stone-700'>
+                {t('producer.chapterManagement.outlineLabel')}
+              </label>
               <textarea
                 value={formOutline}
                 onChange={(e) => setFormOutline(e.target.value)}
                 rows={3}
-                placeholder='Tóm tắt ngắn gọn cốt truyện...'
+                placeholder={t('producer.chapterManagement.outlinePlaceholder')}
                 className='mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-stone-900 focus:outline-none'
               />
             </div>
@@ -1370,14 +1564,16 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 onClick={() => setCreateChapterOpen(false)}
                 className='rounded-lg border border-stone-200 px-3 py-1.5 font-bold text-stone-600 hover:bg-stone-50'
               >
-                Hủy
+                {t('producer.chapterManagement.cancelBtn')}
               </button>
               <button
                 type='submit'
                 disabled={actionBusy}
                 className='rounded-lg bg-[#EA580C] px-4 py-1.5 font-bold text-white hover:bg-[#C2410C] disabled:opacity-50'
               >
-                {actionBusy ? 'Đang tạo...' : 'Tạo Chương'}
+                {actionBusy
+                  ? t('producer.chapterManagement.creatingBtn')
+                  : t('producer.chapterManagement.createChapterBtn')}
               </button>
             </div>
           </form>
@@ -1388,13 +1584,17 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       {editChapterOpen && chapter && (
         <Modal
           isOpen
-          title={`Sửa Chương ${chapter.chapterNumber}`}
-          closeLabel='Đóng'
+          title={t('producer.chapterManagement.editModalTitle', {
+            number: chapter.chapterNumber,
+          })}
+          closeLabel={t('producer.chapterManagement.closeBtn')}
           onClose={() => setEditChapterOpen(false)}
         >
           <form onSubmit={handleEditChapterSubmit} className='space-y-3 text-xs'>
             <div>
-              <label className='block font-bold text-stone-700'>Tiêu đề</label>
+              <label className='block font-bold text-stone-700'>
+                {t('producer.chapterManagement.titleLabel')}
+              </label>
               <input
                 type='text'
                 value={formTitle}
@@ -1404,7 +1604,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             </div>
 
             <div>
-              <label className='block font-bold text-stone-700'>Ngày phát hành mục tiêu</label>
+              <label className='block font-bold text-stone-700'>
+                {t('producer.chapterManagement.targetDateLabel')}
+              </label>
               <input
                 type='date'
                 value={formTargetReleaseDate}
@@ -1414,7 +1616,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             </div>
 
             <div>
-              <label className='block font-bold text-stone-700'>Đề cương tóm tắt</label>
+              <label className='block font-bold text-stone-700'>
+                {t('producer.chapterManagement.outlineLabel')}
+              </label>
               <textarea
                 value={formOutline}
                 onChange={(e) => setFormOutline(e.target.value)}
@@ -1429,14 +1633,16 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 onClick={() => setEditChapterOpen(false)}
                 className='rounded-lg border border-stone-200 px-3 py-1.5 font-bold text-stone-600 hover:bg-stone-50'
               >
-                Hủy
+                {t('producer.chapterManagement.cancelBtn')}
               </button>
               <button
                 type='submit'
                 disabled={actionBusy}
                 className='rounded-lg bg-[#EA580C] px-4 py-1.5 font-bold text-white hover:bg-[#C2410C] disabled:opacity-50'
               >
-                {actionBusy ? 'Đang lưu...' : 'Lưu'}
+                {actionBusy
+                  ? t('producer.chapterManagement.savingBtn')
+                  : t('producer.chapterManagement.saveBtn')}
               </button>
             </div>
           </form>
@@ -1456,8 +1662,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
           onSuccess={() => {
             setStartProductionOpen(false);
             onShowToast?.(
-              'Gate 1 thành công',
-              `Chương ${chapter.chapterNumber} đã bước vào InProduction. Kịch bản đã đóng băng.`,
+              t('producer.chapterManagement.gate1SuccessTitle'),
+              t('producer.chapterManagement.gate1SuccessDesc', {
+                number: chapter.chapterNumber,
+              }),
             );
             void loadChapterDetails(chapter.id);
             void loadSeriesAndChapters();
@@ -1519,21 +1727,25 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
           title={
             deleteTargetChapter.status === 'PreProduction' &&
             (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
-              ? `Xóa Chương ${deleteTargetChapter.chapterNumber}`
-              : `Lưu Trữ Chương ${deleteTargetChapter.chapterNumber}`
+              ? t('producer.chapterManagement.deleteChapterTitle', {
+                  number: deleteTargetChapter.chapterNumber,
+                })
+              : t('producer.chapterManagement.archiveChapterTitle', {
+                  number: deleteTargetChapter.chapterNumber,
+                })
           }
           description={
             deleteTargetChapter.status === 'PreProduction' &&
             (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
-              ? `Chương rỗng. Nhập "DELETE" để xóa vĩnh viễn:`
-              : `Chương đã có dữ liệu. Nhập "DELETE" để lưu trữ (Archive):`
+              ? t('producer.chapterManagement.deleteChapterDesc')
+              : t('producer.chapterManagement.archiveChapterDesc')
           }
           targetName='DELETE'
           confirmButtonText={
             deleteTargetChapter.status === 'PreProduction' &&
             (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
-              ? 'Xóa'
-              : 'Lưu trữ'
+              ? t('producer.chapterManagement.deleteBtn')
+              : t('producer.chapterManagement.archiveBtn')
           }
           onConfirm={handleDeleteOrArchiveChapter}
           onCancel={() => setDeleteTargetChapter(null)}

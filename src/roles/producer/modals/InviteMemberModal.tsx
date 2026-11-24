@@ -55,6 +55,11 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   const [resultItems, setResultItems] = useState<InviteResultItem[]>([]);
   const [showResultModal, setShowResultModal] = useState(false);
 
+  // Single member invite state
+  const [singleEmail, setSingleEmail] = useState('');
+  const [selectedRole, setSelectedRole] = useState('Artist');
+  const [singleLoading, setSingleLoading] = useState(false);
+
   useEffect(() => {
     setInviteMode(initialMode);
   }, [initialMode]);
@@ -266,10 +271,6 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     }
   };
 
-  const [singleEmail, setSingleEmail] = useState('');
-  const [selectedRole, setSelectedRole] = useState('Artist');
-  const [singleLoading, setSingleLoading] = useState(false);
-
   const handleSingleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!singleEmail.trim()) return;
@@ -354,7 +355,10 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
 
           {/* Mode 1: Stitch Single Member Invite with Role Cards */}
           {inviteMode === 'interactive' && (
-            <form onSubmit={handleSingleSubmit} className='p-5 overflow-y-auto flex-1 custom-scrollbar flex flex-col gap-4 text-xs'>
+            <form
+              onSubmit={handleSingleSubmit}
+              className='p-5 overflow-y-auto flex-1 custom-scrollbar flex flex-col gap-4 text-xs'
+            >
               {errorMsg && (
                 <div className='p-3 bg-red-50 text-red-600 text-xs rounded-xl border border-red-200 flex items-start gap-2'>
                   <AlertTriangle className='w-4 h-4 mt-0.5 shrink-0' />

@@ -21,10 +21,7 @@ export const CHAPTER_STATUS_STYLE: Record<string, { labelKey: string; className:
 
 export const NEUTRAL_BADGE = 'bg-stone-100 text-stone-700 border-stone-200';
 
-export const formatViDate = (
-  dateStr?: string | null,
-  lang?: SupportedLanguage,
-): string | null => {
+export const formatViDate = (dateStr?: string | null, lang?: SupportedLanguage): string | null => {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;

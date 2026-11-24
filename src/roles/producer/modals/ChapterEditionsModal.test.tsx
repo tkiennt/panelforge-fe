@@ -51,13 +51,7 @@ describe('ChapterEditionsModal', () => {
       },
     ]);
 
-    render(
-      <ChapterEditionsModal
-        isOpen={true}
-        chapter={mockChapter}
-        onClose={() => {}}
-      />
-    );
+    render(<ChapterEditionsModal isOpen={true} chapter={mockChapter} onClose={() => {}} />);
 
     expect(screen.getByTestId('chapter-editions-modal')).toBeInTheDocument();
     await waitFor(() => {
@@ -82,13 +76,7 @@ describe('ChapterEditionsModal', () => {
     ]);
     (chapterEditionService.approveEdition as any).mockResolvedValue({});
 
-    render(
-      <ChapterEditionsModal
-        isOpen={true}
-        chapter={mockChapter}
-        onClose={() => {}}
-      />
-    );
+    render(<ChapterEditionsModal isOpen={true} chapter={mockChapter} onClose={() => {}} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('approve-edition-en')).toBeInTheDocument();
