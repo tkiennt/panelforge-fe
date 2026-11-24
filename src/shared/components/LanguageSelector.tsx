@@ -39,7 +39,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     const upper = code.toUpperCase();
     const isOriginal = originalLang && code.toLowerCase() === originalLang.toLowerCase();
     if (isOriginal) {
-      return `${upper} (${t('production:lettering.originalBadge', 'Gốc')})`;
+      return `${upper} (${t('production.lettering.originalBadge', 'Gốc')})`;
     }
     return upper;
   };
@@ -56,7 +56,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       <div className='flex items-center gap-1 px-1.5 text-stone-600'>
         <Globe className='w-3.5 h-3.5 text-orange-600 shrink-0' />
         <span className='text-xs font-medium font-mono text-stone-500 hidden sm:inline'>
-          {t('production:lettering.languageLabel', 'Ngôn ngữ')}:
+          {t('production.lettering.languageLabel', 'Ngôn ngữ')}:
         </span>
       </div>
 
@@ -84,7 +84,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
               {hasMissing && (
                 <span
                   title={t(
-                    'production:lettering.missingCountTooltip',
+                    'production.lettering.missingCountTooltip',
                     { count },
                     '{count} bóng thoại chưa dịch',
                   )}

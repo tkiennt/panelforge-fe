@@ -2593,35 +2593,35 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     const description =
       chapterLoadedBalloons.length === 0
         ? t(
-            'production:lettering.edition.confirmNoBalloons',
+            'production.lettering.edition.confirmNoBalloons',
             { lang: langUpper },
             `Chương chưa có bóng thoại nào để dịch. Vẫn gửi ấn bản ${langUpper} cho Editor thẩm định?`,
           )
         : missingCount > 0
           ? t(
-              'production:lettering.edition.confirmMissingWarning',
+              'production.lettering.edition.confirmMissingWarning',
               { count: missingCount, lang: langUpper },
               `Cảnh báo: Còn ${missingCount} bóng thoại chưa có bản dịch cho ngôn ngữ ${langUpper}. Bạn có chắc muốn nộp ấn bản ${langUpper} không?`,
             )
           : t(
-              'production:lettering.edition.confirmDescription',
+              'production.lettering.edition.confirmDescription',
               { lang: langUpper },
               `Tất cả bóng thoại đã có bản dịch ${langUpper}. Gửi ấn bản này cho Editor thẩm định?`,
             );
 
     const accepted = await confirm({
       title: t(
-        'production:lettering.edition.confirmTitle',
+        'production.lettering.edition.confirmTitle',
         { lang: langUpper },
         `Nộp ấn bản ${langUpper}?`,
       ),
       description,
       confirmLabel: t(
-        'production:lettering.edition.submitBtn',
+        'production.lettering.edition.submitBtn',
         { lang: langUpper },
         `Nộp ấn bản ${langUpper}`,
       ),
-      cancelLabel: t('common:actions.cancel', 'Hủy'),
+      cancelLabel: t('common.actions.cancel', 'Hủy'),
       variant: missingCount > 0 ? 'warning' : 'default',
     });
     if (!accepted) return;
@@ -2647,12 +2647,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       await loadChapterEditions(currentChapterId);
       toast.success(
         t(
-          'production:lettering.edition.submitSuccessTitle',
+          'production.lettering.edition.submitSuccessTitle',
           { lang: langUpper },
           `Đã nộp ấn bản ${langUpper}`,
         ),
         t(
-          'production:lettering.edition.submitSuccessDesc',
+          'production.lettering.edition.submitSuccessDesc',
           { lang: langUpper },
           `Ấn bản ${langUpper} đã chuyển sang trạng thái chờ Editor thẩm định.`,
         ),
@@ -2662,9 +2662,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
-        t('production:lettering.edition.submitErrorTitle', 'Không thể nộp ấn bản');
+        t('production.lettering.edition.submitErrorTitle', 'Không thể nộp ấn bản');
       toast.error(
-        t('production:lettering.edition.submitErrorTitle', 'Không thể nộp ấn bản'),
+        t('production.lettering.edition.submitErrorTitle', 'Không thể nộp ấn bản'),
         serverMsg,
       );
     } finally {
@@ -2817,7 +2817,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         >
           {canEditCurrentTranslation
             ? t(
-                'production:lettering.edition.translationModeAllowedBanner',
+                'production.lettering.edition.translationModeAllowedBanner',
                 { lang: activeLang.toUpperCase() },
                 `Chế độ dịch (${activeLang.toUpperCase()}) — Cho phép chỉnh sửa bản dịch; khung tranh và chữ gốc chỉ đọc`,
               )
@@ -2954,7 +2954,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 >
                   <div className='flex items-center gap-1.5 min-w-0'>
                     <span className='text-xs text-stone-500 font-medium'>
-                      {t('production:lettering.edition.label', 'Ấn bản')}:
+                      {t('production.lettering.edition.label', 'Ấn bản')}:
                     </span>
                     <span
                       data-testid='lettering-edition-status'
@@ -2962,7 +2962,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${editionBadgeStyle.bg} ${editionBadgeStyle.text} ${editionBadgeStyle.border}`}
                     >
                       {t(
-                        `production:lettering.edition.status.${activeEditionStatus}`,
+                        `production.lettering.edition.status.${activeEditionStatus}`,
                         editionBadgeStyle.fallbackLabel,
                       )}
                     </span>
@@ -2978,7 +2978,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                       <>
                         <Loader2 className='w-3.5 h-3.5 animate-spin' aria-hidden='true' />
                         <span>
-                          {t('production:lettering.edition.submittingBtn', 'Đang nộp...')}
+                          {t('production.lettering.edition.submittingBtn', 'Đang nộp...')}
                         </span>
                       </>
                     ) : (
@@ -2986,7 +2986,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                         <Send className='w-3.5 h-3.5' aria-hidden='true' />
                         <span>
                           {t(
-                            'production:lettering.edition.submitBtn',
+                            'production.lettering.edition.submitBtn',
                             { lang: activeLang.toUpperCase() },
                             `Nộp ấn bản ${activeLang.toUpperCase()}`,
                           )}
