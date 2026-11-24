@@ -1,5 +1,6 @@
 // src/services/chapter.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 import type { ScriptLineKind, ScriptLineRefInput } from './scriptLine.service';
 import type { AssignmentDto } from './assignment.service';
 import type { ChapterCastBlockerDto } from './chapterCast.service';
@@ -309,7 +310,7 @@ export const chapterService = {
       });
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tải danh sách chương của Series.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.getBySeriesFailed')));
     }
   },
 
@@ -321,7 +322,7 @@ export const chapterService = {
       const response = await axiosClient.post(`/series/${seriesId}/chapters`, data);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tạo chương mới.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.createFailed')));
     }
   },
 
@@ -333,7 +334,7 @@ export const chapterService = {
       const response = await axiosClient.get(`/chapters/${chapterId}`);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể lấy thông tin chi tiết chương.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.getByIdFailed')));
     }
   },
 
@@ -345,7 +346,7 @@ export const chapterService = {
       const response = await axiosClient.put(`/chapters/${chapterId}`, data);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể cập nhật chương.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.updateFailed')));
     }
   },
 
@@ -356,7 +357,7 @@ export const chapterService = {
     try {
       await axiosClient.delete(`/chapters/${chapterId}`);
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể xóa chương.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.deleteFailed')));
     }
   },
 
@@ -368,7 +369,7 @@ export const chapterService = {
       const response = await axiosClient.get(`/chapters/${chapterId}/lock-gate`);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể kiểm tra điều kiện duyệt chương.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.getLockGateFailed')));
     }
   },
 
@@ -388,7 +389,9 @@ export const chapterService = {
       const response = await axiosClient.post(url);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể nộp bản thảo chương.'));
+      throw new Error(
+        extractError(error, translate('errors.services.chapter.submitManuscriptFailed')),
+      );
     }
   },
 
@@ -397,7 +400,7 @@ export const chapterService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/approve`);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể duyệt chương.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.approveFailed')));
     }
   },
 
@@ -410,7 +413,7 @@ export const chapterService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/hand-off`);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể bàn giao chương cho Publisher.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.handOffFailed')));
     }
   },
 
@@ -423,7 +426,7 @@ export const chapterService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/reopen`, { comment });
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể mở lại chương.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.reopenFailed')));
     }
   },
 
@@ -443,7 +446,7 @@ export const chapterService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/publish`, payload);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể xuất bản chương.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.publishFailed')));
     }
   },
 
@@ -455,7 +458,7 @@ export const chapterService = {
       const response = await axiosClient.get(`/chapters/${chapterId}/reviews`);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể lấy lịch sử phê duyệt của chương.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.getReviewsFailed')));
     }
   },
 
@@ -468,7 +471,7 @@ export const chapterService = {
       const response = await axiosClient.get(`/chapters/${chapterId}/snapshots`);
       return response.data ?? [];
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tải các bản duyệt của chương.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.getSnapshotsFailed')));
     }
   },
 
@@ -478,7 +481,7 @@ export const chapterService = {
       const response = await axiosClient.get(`/chapters/${chapterId}/snapshots/${snapshotId}`);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tải chi tiết bản duyệt.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.getSnapshotFailed')));
     }
   },
 
@@ -498,7 +501,9 @@ export const chapterService = {
       });
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể cập nhật đề cương chương.'));
+      throw new Error(
+        extractError(error, translate('errors.services.chapter.updateOutlineFailed')),
+      );
     }
   },
 
@@ -519,7 +524,7 @@ export const chapterService = {
       });
       return response.data?.value ?? null;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tải ảnh bìa chương.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.uploadCoverFailed')));
     }
   },
 
@@ -535,7 +540,7 @@ export const chapterService = {
     try {
       await axiosClient.delete(`/chapters/${chapterId}/cover`);
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể xóa ảnh bìa chương.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.deleteCoverFailed')));
     }
   },
 
@@ -545,7 +550,9 @@ export const chapterService = {
       const response = await axiosClient.get(`/chapters/${chapterId}/script-comments`);
       return response.data ?? [];
     } catch (error) {
-      throw new Error(extractError(error, 'Không tải được góp ý kịch bản.'));
+      throw new Error(
+        extractError(error, translate('errors.services.chapter.getScriptCommentsFailed')),
+      );
     }
   },
 
@@ -557,7 +564,9 @@ export const chapterService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/script-comments`, data);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không gửi được góp ý.'));
+      throw new Error(
+        extractError(error, translate('errors.services.chapter.addScriptCommentFailed')),
+      );
     }
   },
 
@@ -568,7 +577,9 @@ export const chapterService = {
       );
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không đánh dấu được góp ý.'));
+      throw new Error(
+        extractError(error, translate('errors.services.chapter.resolveScriptCommentFailed')),
+      );
     }
   },
 
@@ -578,7 +589,9 @@ export const chapterService = {
       const response = await axiosClient.get(`/chapters/${chapterId}/script-versions`);
       return response.data ?? [];
     } catch (error) {
-      throw new Error(extractError(error, 'Không tải được danh sách phiên bản.'));
+      throw new Error(
+        extractError(error, translate('errors.services.chapter.getScriptVersionsFailed')),
+      );
     }
   },
 
@@ -590,7 +603,9 @@ export const chapterService = {
       const response = await axiosClient.get(`/chapters/${chapterId}/script-versions/${versionId}`);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không tải được phiên bản.'));
+      throw new Error(
+        extractError(error, translate('errors.services.chapter.getScriptVersionFailed')),
+      );
     }
   },
 
@@ -600,7 +615,9 @@ export const chapterService = {
       const response = await axiosClient.get(`/chapters/${chapterId}/script-versions/working-copy`);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không tải được kịch bản hiện tại.'));
+      throw new Error(
+        extractError(error, translate('errors.services.chapter.getScriptWorkingCopyFailed')),
+      );
     }
   },
 
@@ -618,7 +635,9 @@ export const chapterService = {
       });
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể lưu kịch bản.'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.chapter.saveScriptFailed')),
+      );
       err.status = error.response?.status;
       err.code =
         error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
@@ -641,7 +660,9 @@ export const chapterService = {
       });
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể gửi duyệt kịch bản.'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.chapter.submitScriptFailed')),
+      );
       err.status = error.response?.status;
       err.code =
         error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
@@ -656,7 +677,7 @@ export const chapterService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/recall-script`);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể rút kịch bản về sửa.'));
+      throw new Error(extractError(error, translate('errors.services.chapter.recallScriptFailed')));
     }
   },
 
@@ -675,7 +696,7 @@ export const chapterService = {
       );
       return response.data;
     } catch (error: any) {
-      const msg = extractError(error, 'Không thể bắt đầu sản xuất chương.');
+      const msg = extractError(error, translate('errors.services.chapter.startProductionFailed'));
       const err: any = new Error(msg);
       err.status = error.response?.status;
       err.code = error.response?.data?.code;
@@ -693,7 +714,9 @@ export const chapterService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/unfreeze-script`, { reason });
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể mở lại kịch bản.'));
+      throw new Error(
+        extractError(error, translate('errors.services.chapter.unfreezeScriptFailed')),
+      );
     }
   },
 };

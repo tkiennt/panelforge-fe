@@ -1,5 +1,6 @@
 // src/services/pipeline.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export type PipelineRole = 'Producer' | 'Writer' | 'Artist' | 'Letterer' | 'Editor';
 
@@ -105,7 +106,7 @@ export const pipelineService = {
       const response = await axiosClient.get(`/series/${seriesId}/pipeline`);
       return response.data;
     } catch (error) {
-      handlePipelineError(error, 'Không thể tải cấu hình Pipeline của Series.');
+      handlePipelineError(error, translate('errors.services.pipeline.getFailed'));
     }
   },
 
@@ -129,7 +130,7 @@ export const pipelineService = {
       const response = await axiosClient.post(`/series/${seriesId}/pipeline/stages`, data);
       return response.data;
     } catch (error) {
-      handlePipelineError(error, 'Không thể thêm công đoạn mới vào Pipeline.');
+      handlePipelineError(error, translate('errors.services.pipeline.addStageFailed'));
     }
   },
 
@@ -148,7 +149,7 @@ export const pipelineService = {
       );
       return response.data;
     } catch (error) {
-      handlePipelineError(error, 'Không thể cập nhật công đoạn Pipeline.');
+      handlePipelineError(error, translate('errors.services.pipeline.updateStageFailed'));
     }
   },
 
@@ -162,7 +163,7 @@ export const pipelineService = {
       });
       return response.data;
     } catch (error) {
-      handlePipelineError(error, 'Không thể sắp xếp lại thứ tự công đoạn Pipeline.');
+      handlePipelineError(error, translate('errors.services.pipeline.reorderStagesFailed'));
     }
   },
 
@@ -175,7 +176,7 @@ export const pipelineService = {
       const response = await axiosClient.delete(`/series/${seriesId}/pipeline/stages/${stageId}`);
       return response.data;
     } catch (error) {
-      handlePipelineError(error, 'Không thể xóa công đoạn Pipeline.');
+      handlePipelineError(error, translate('errors.services.pipeline.deleteStageFailed'));
     }
   },
 
@@ -187,7 +188,7 @@ export const pipelineService = {
       const response = await axiosClient.get(`/pipeline-templates`);
       return response.data;
     } catch (error) {
-      handlePipelineError(error, 'Không thể tải danh sách mẫu quy trình Pipeline.');
+      handlePipelineError(error, translate('errors.services.pipeline.getTemplatesFailed'));
     }
   },
 };

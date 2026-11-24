@@ -1,5 +1,6 @@
 // src/services/bible.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export type BibleCategory =
   'Character' | 'Location' | 'Prop' | 'Terminology' | 'StyleRule' | 'PlotFact' | number;
@@ -185,7 +186,7 @@ export const bibleService = {
       const response = await axiosClient.get(`/series/${seriesId}/bible`);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tải Series Bible.');
+      throw extractError(error, translate('errors.services.bible.getFailed'));
     }
   },
 
@@ -195,7 +196,7 @@ export const bibleService = {
         `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}`,
       );
     } catch (error) {
-      throw extractError(error, 'Không thể xóa phiên bản.');
+      throw extractError(error, translate('errors.services.bible.deleteRevisionFailed'));
     }
   },
 
@@ -212,7 +213,7 @@ export const bibleService = {
       });
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tải ảnh reference sheet lên máy chủ.');
+      throw extractError(error, translate('errors.services.bible.uploadReferenceImageFailed'));
     }
   },
 
@@ -225,7 +226,7 @@ export const bibleService = {
       const response = await axiosClient.get(`/panels/${panelId}/bible`);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tải danh sách Bible cho khung tranh.');
+      throw extractError(error, translate('errors.services.bible.getPanelBibleFailed'));
     }
   },
 
@@ -234,7 +235,7 @@ export const bibleService = {
       const response = await axiosClient.post(`/series/${seriesId}/bible/entries`, data);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tạo mục Series Bible.');
+      throw extractError(error, translate('errors.services.bible.createEntryFailed'));
     }
   },
 
@@ -250,7 +251,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tạo phiên bản mới cho mục Bible.');
+      throw extractError(error, translate('errors.services.bible.addRevisionFailed'));
     }
   },
 
@@ -260,7 +261,7 @@ export const bibleService = {
       const response = await axiosClient.get(`/series/${seriesId}/bible/entries/${entryId}/usages`);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tải danh sách chương dùng mục này.');
+      throw extractError(error, translate('errors.services.bible.getEntryUsagesFailed'));
     }
   },
 
@@ -271,7 +272,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tải lịch sử phiên bản của mục.');
+      throw extractError(error, translate('errors.services.bible.getEntryHistoryFailed'));
     }
   },
 
@@ -292,7 +293,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể thay thế bản đã khoá.');
+      throw extractError(error, translate('errors.services.bible.supersedeRevisionFailed'));
     }
   },
 
@@ -304,7 +305,7 @@ export const bibleService = {
       const response = await axiosClient.get(`/series/${seriesId}/bible/design-queue`);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tải hàng đợi thiết kế Series Bible.');
+      throw extractError(error, translate('errors.services.bible.getDesignQueueFailed'));
     }
   },
 
@@ -323,7 +324,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể nộp bản vẽ Concept Art.');
+      throw extractError(error, translate('errors.services.bible.submitConceptArtFailed'));
     }
   },
 
@@ -343,7 +344,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể xác nhận và khoá Canon.');
+      throw extractError(error, translate('errors.services.bible.confirmRevisionFailed'));
     }
   },
 
@@ -362,7 +363,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể cập nhật cờ Quần chúng.');
+      throw extractError(error, translate('errors.services.bible.setCrowdFailed'));
     }
   },
 
@@ -381,7 +382,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể định nghĩa mục Bible.');
+      throw extractError(error, translate('errors.services.bible.defineEntryFailed'));
     }
   },
 
@@ -399,7 +400,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tải góp ý concept.');
+      throw extractError(error, translate('errors.services.bible.getConceptCommentsFailed'));
     }
   },
 
@@ -419,7 +420,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể gửi góp ý concept.');
+      throw extractError(error, translate('errors.services.bible.createConceptCommentFailed'));
     }
   },
 
@@ -440,7 +441,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể gửi câu trả lời góp ý.');
+      throw extractError(error, translate('errors.services.bible.replyConceptCommentFailed'));
     }
   },
 
@@ -460,7 +461,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể cập nhật trạng thái xử lý góp ý.');
+      throw extractError(error, translate('errors.services.bible.resolveConceptCommentFailed'));
     }
   },
 
@@ -484,7 +485,7 @@ export const bibleService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể gửi yêu cầu vẽ lại thiết kế.');
+      throw extractError(error, translate('errors.services.bible.requestReworkFailed'));
     }
   },
 };

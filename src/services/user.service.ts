@@ -1,5 +1,6 @@
 // src/services/user.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export interface UserProfileDto {
   id: string;
@@ -48,7 +49,9 @@ export const userService = {
       const response = await axiosClient.get<UserProfileDto>('/Users/me');
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Không thể tải thông tin hồ sơ người dùng.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.user.getProfileFailed')),
+      );
     }
   },
 
@@ -63,7 +66,9 @@ export const userService = {
       });
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Không thể lưu ảnh bìa hồ sơ.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.user.setProfileCoverFailed')),
+      );
     }
   },
 
@@ -77,7 +82,12 @@ export const userService = {
       });
       return response.data?.preferredReadingLanguage ?? null;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Không thể cập nhật ngôn ngữ đọc ưa thích.'));
+      throw new Error(
+        await parseErrorResponse(
+          error,
+          translate('errors.services.user.updateReadingLanguageFailed'),
+        ),
+      );
     }
   },
 
@@ -89,7 +99,9 @@ export const userService = {
       const response = await axiosClient.put<UserProfileDto>(`/Users/${id}`, request);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Cập nhật hồ sơ người dùng thất bại.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.user.updateProfileFailed')),
+      );
     }
   },
 
@@ -107,7 +119,12 @@ export const userService = {
       );
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Cập nhật hồ sơ qua Firebase UID thất bại.'));
+      throw new Error(
+        await parseErrorResponse(
+          error,
+          translate('errors.services.user.updateProfileByFirebaseUidFailed'),
+        ),
+      );
     }
   },
 };

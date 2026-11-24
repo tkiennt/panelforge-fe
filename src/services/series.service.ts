@@ -1,5 +1,6 @@
 // src/services/series.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 import type { ChapterStatus } from './chapter.service';
 
 // axiosClient mặc định Content-Type JSON → axios 1.x đổi FormData thành JSON (415). Upload file phải ghi rõ multipart (axios tự thêm boundary).
@@ -279,7 +280,7 @@ export const seriesService = {
       const res = await axiosClient.get(`/series/${seriesId}`);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể lấy thông tin Series.'));
+      throw new Error(extractError(err, translate('errors.services.series.getByIdFailed')));
     }
   },
 
@@ -291,7 +292,7 @@ export const seriesService = {
       const res = await axiosClient.put(`/series/${seriesId}/cover`, form, MULTIPART);
       return res.data?.value ?? null;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể cập nhật ảnh bìa.'));
+      throw new Error(extractError(err, translate('errors.services.series.setCoverFailed')));
     }
   },
 
@@ -307,7 +308,7 @@ export const seriesService = {
       const res = await axiosClient.put(`/series/${seriesId}/${kind}`, form, MULTIPART);
       return res.data?.value ?? null;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể lưu ảnh.'));
+      throw new Error(extractError(err, translate('errors.services.series.setImageFailed')));
     }
   },
 
@@ -321,7 +322,7 @@ export const seriesService = {
       const res = await axiosClient.put(`/series/${seriesId}/${kind}/preset`, { presetId });
       return res.data?.value ?? null;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể lưu ảnh mẫu.'));
+      throw new Error(extractError(err, translate('errors.services.series.setImagePresetFailed')));
     }
   },
 
@@ -330,7 +331,7 @@ export const seriesService = {
     try {
       await axiosClient.delete(`/series/${seriesId}/${kind}`);
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể gỡ ảnh.'));
+      throw new Error(extractError(err, translate('errors.services.series.clearImageFailed')));
     }
   },
 
@@ -339,7 +340,7 @@ export const seriesService = {
     try {
       await axiosClient.delete(`/series/${seriesId}/cover`);
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể xoá ảnh bìa.'));
+      throw new Error(extractError(err, translate('errors.services.series.clearCoverFailed')));
     }
   },
 
@@ -351,7 +352,7 @@ export const seriesService = {
       const res = await axiosClient.put(`/series/${seriesId}/story-arc`, { storyArc });
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể cập nhật Story Arc của Series.'));
+      throw new Error(extractError(err, translate('errors.services.series.updateStoryArcFailed')));
     }
   },
 
@@ -360,7 +361,7 @@ export const seriesService = {
       const res = await axiosClient.get(`/series/${seriesId}/progress`);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể lấy thông tin tiến độ Series.'));
+      throw new Error(extractError(err, translate('errors.services.series.getProgressFailed')));
     }
   },
 
@@ -369,7 +370,7 @@ export const seriesService = {
       const res = await axiosClient.post(`/workspaces/${workspaceId}/series`, data);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể tạo Series mới.'));
+      throw new Error(extractError(err, translate('errors.services.series.createFailed')));
     }
   },
 
@@ -378,7 +379,7 @@ export const seriesService = {
       const res = await axiosClient.put(`/series/${seriesId}`, data);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể cập nhật Series.'));
+      throw new Error(extractError(err, translate('errors.services.series.updateFailed')));
     }
   },
 
@@ -395,7 +396,7 @@ export const seriesService = {
       });
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể cập nhật cấu hình ngôn ngữ Series.'));
+      throw new Error(extractError(err, translate('errors.services.series.updateLanguagesFailed')));
     }
   },
 
@@ -403,7 +404,7 @@ export const seriesService = {
     try {
       await axiosClient.delete(`/series/${seriesId}`);
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể xóa Series.'));
+      throw new Error(extractError(err, translate('errors.services.series.deleteFailed')));
     }
   },
 
@@ -413,7 +414,9 @@ export const seriesService = {
       const res = await axiosClient.get(`/series/${seriesId}/presets`);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể tải danh sách Typography Presets.'));
+      throw new Error(
+        extractError(err, translate('errors.services.series.getTypographyPresetsFailed')),
+      );
     }
   },
 
@@ -425,7 +428,9 @@ export const seriesService = {
       const res = await axiosClient.post(`/series/${seriesId}/presets`, data);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể tạo Typography Preset.'));
+      throw new Error(
+        extractError(err, translate('errors.services.series.createTypographyPresetFailed')),
+      );
     }
   },
 
@@ -438,7 +443,9 @@ export const seriesService = {
       const res = await axiosClient.put(`/series/${seriesId}/presets/${presetId}`, data);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể cập nhật Typography Preset.'));
+      throw new Error(
+        extractError(err, translate('errors.services.series.updateTypographyPresetFailed')),
+      );
     }
   },
 
@@ -446,7 +453,9 @@ export const seriesService = {
     try {
       await axiosClient.delete(`/series/${seriesId}/presets/${presetId}`);
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể xóa Typography Preset.'));
+      throw new Error(
+        extractError(err, translate('errors.services.series.deleteTypographyPresetFailed')),
+      );
     }
   },
 
@@ -456,7 +465,9 @@ export const seriesService = {
       const res = await axiosClient.get(`/series/${seriesId}/consistency-rules`);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể tải danh sách Consistency Rules.'));
+      throw new Error(
+        extractError(err, translate('errors.services.series.getConsistencyRulesFailed')),
+      );
     }
   },
 
@@ -468,7 +479,9 @@ export const seriesService = {
       const res = await axiosClient.post(`/series/${seriesId}/consistency-rules`, data);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể tạo Consistency Rule.'));
+      throw new Error(
+        extractError(err, translate('errors.services.series.createConsistencyRuleFailed')),
+      );
     }
   },
 
@@ -481,7 +494,9 @@ export const seriesService = {
       const res = await axiosClient.put(`/series/${seriesId}/consistency-rules/${ruleId}`, data);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể cập nhật Consistency Rule.'));
+      throw new Error(
+        extractError(err, translate('errors.services.series.updateConsistencyRuleFailed')),
+      );
     }
   },
 
@@ -489,7 +504,9 @@ export const seriesService = {
     try {
       await axiosClient.delete(`/series/${seriesId}/consistency-rules/${ruleId}`);
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể xóa Consistency Rule.'));
+      throw new Error(
+        extractError(err, translate('errors.services.series.deleteConsistencyRuleFailed')),
+      );
     }
   },
 
@@ -515,7 +532,7 @@ export const seriesService = {
       });
     } catch (err: any) {
       if (err.response?.status === 404) return [];
-      throw new Error(extractError(err, 'Không thể tải danh sách thành viên bộ truyện'));
+      throw new Error(extractError(err, translate('errors.services.series.getMembersFailed')));
     }
   },
 
@@ -542,7 +559,7 @@ export const seriesService = {
         joinedAt: item.joinedAt || item.assignedAt || new Date().toISOString(),
       };
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể thêm thành viên vào bộ truyện'));
+      throw new Error(extractError(err, translate('errors.services.series.addMemberFailed')));
     }
   },
 
@@ -569,7 +586,7 @@ export const seriesService = {
         joinedAt: item.joinedAt || item.assignedAt || new Date().toISOString(),
       };
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể cập nhật vai trò thành viên'));
+      throw new Error(extractError(err, translate('errors.services.series.updateMemberFailed')));
     }
   },
 
@@ -577,7 +594,7 @@ export const seriesService = {
     try {
       await axiosClient.delete(`/series/${seriesId}/members/${userId}`);
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể xóa thành viên khỏi bộ truyện'));
+      throw new Error(extractError(err, translate('errors.services.series.removeMemberFailed')));
     }
   },
 
@@ -588,7 +605,7 @@ export const seriesService = {
       return res.data || [];
     } catch (err: any) {
       if (err.response?.status === 404) return [];
-      throw new Error(extractError(err, 'Không thể tải danh sách ứng viên từ Workspace'));
+      throw new Error(extractError(err, translate('errors.services.series.getCandidatesFailed')));
     }
   },
 };

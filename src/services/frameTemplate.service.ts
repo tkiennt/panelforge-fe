@@ -1,5 +1,6 @@
 // src/services/frameTemplate.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 import { PageLayoutDto } from '../types/pipeline';
 
 export interface FrameSlot {
@@ -59,7 +60,7 @@ export const frameTemplateService = {
       const response = await axiosClient.get(`/workspaces/${workspaceId}/frame-templates`);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tải danh sách mẫu khung (Frame Templates).');
+      throw extractError(error, translate('errors.services.frameTemplate.getListFailed'));
     }
   },
 
@@ -75,7 +76,7 @@ export const frameTemplateService = {
       const response = await axiosClient.post(`/workspaces/${workspaceId}/frame-templates`, data);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tạo mẫu khung mới.');
+      throw extractError(error, translate('errors.services.frameTemplate.createFailed'));
     }
   },
 
@@ -90,7 +91,7 @@ export const frameTemplateService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể xoá mẫu khung.');
+      throw extractError(error, translate('errors.services.frameTemplate.deleteFailed'));
     }
   },
 
@@ -103,7 +104,7 @@ export const frameTemplateService = {
       const response = await axiosClient.post(`/pages/${pageId}/frame-template`, { templateId });
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể áp dụng mẫu khung vào trang.');
+      throw extractError(error, translate('errors.services.frameTemplate.applyFailed'));
     }
   },
 };

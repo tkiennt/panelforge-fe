@@ -1,5 +1,6 @@
 // src/services/offlineQueue.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export type OfflineActionType =
   | 'ADD_ELEMENT'
@@ -191,7 +192,7 @@ class OfflineQueueService {
           err.response?.data?.error ||
           err.response?.data?.message ||
           err.message ||
-          'Lỗi gửi yêu cầu';
+          translate('errors.services.offlineQueue.requestError');
 
         if (isNetworkError) {
           this.isOnline = false;
@@ -211,7 +212,7 @@ class OfflineQueueService {
                   message:
                     err.response?.data?.error ||
                     err.response?.data?.message ||
-                    'Phần này thuộc việc của người khác / đang chờ duyệt',
+                    translate('errors.services.offlineQueue.forbidden'),
                 },
               }),
             );

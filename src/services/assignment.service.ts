@@ -1,4 +1,5 @@
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 // Request "start" đang chạy theo chapterId:assignmentId (chống gọi trùng)
 const startInflight = new Map<string, Promise<any>>();
@@ -147,7 +148,7 @@ export function extractError(error: any, defaultMsg: string): string {
 
   if (error?.response?.status === 409 || data?.code === 'CONFLICT') {
     const detail = data?.message || data?.error || data?.detail;
-    return detail || 'Xung đột dữ liệu (409 Conflict).';
+    return detail || translate('errors.services.assignment.conflict');
   }
 
   if (typeof data === 'string' && data.trim()) return data;
@@ -289,7 +290,7 @@ export const assignmentService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/assignments`, request);
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể tạo phân công nhiệm vụ'));
+      throw new Error(extractError(error, translate('errors.services.assignment.createFailed')));
     }
   },
 
@@ -305,7 +306,9 @@ export const assignmentService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/assignments/bulk`, request);
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể giao việc hàng loạt'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.createBulkFailed')),
+      );
     }
   },
 
@@ -341,7 +344,9 @@ export const assignmentService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/assignments/plan`, request);
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể tạo kế hoạch giao việc'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.createPlanFailed')),
+      );
     }
   },
 
@@ -375,7 +380,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể chuyển giao phần việc'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.transferScopeFailed')),
+      );
     }
   },
 
@@ -395,7 +402,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể ghi quyết định kiểm tra ảnh hưởng'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.resolveImpactReviewFailed')),
+      );
     }
   },
 
@@ -414,7 +423,7 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể cập nhật phân công nhiệm vụ'));
+      throw new Error(extractError(error, translate('errors.services.assignment.updateFailed')));
     }
   },
 
@@ -431,7 +440,7 @@ export const assignmentService = {
         params: { reason },
       });
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể huỷ/xoá phân công nhiệm vụ'));
+      throw new Error(extractError(error, translate('errors.services.assignment.deleteFailed')));
     }
   },
 
@@ -453,7 +462,9 @@ export const assignmentService = {
       } catch (error: any) {
         // 409 ở đây là luật nghiệp vụ (việc phụ thuộc chưa Approved, chương không còn InProduction, BR-14...):
         // giữ nguyên câu `error` của BE và mã lỗi để giao diện giải thích đúng lý do.
-        const err: any = new Error(extractError(error, 'Không thể bắt đầu nhiệm vụ'));
+        const err: any = new Error(
+          extractError(error, translate('errors.services.assignment.startFailed')),
+        );
         err.status = error?.response?.status;
         err.code =
           error?.response?.data?.code || (error?.response?.status === 409 ? 'CONFLICT' : undefined);
@@ -477,7 +488,7 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể nộp bài phân công'));
+      throw new Error(extractError(error, translate('errors.services.assignment.submitFailed')));
     }
   },
 
@@ -507,7 +518,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể mở xét duyệt'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.openReviewFailed')),
+      );
     }
   },
 
@@ -529,7 +542,7 @@ export const assignmentService = {
         : await axiosClient.post(`/chapters/${chapterId}/assignments/${assignmentId}/approve`);
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể phê duyệt nhiệm vụ'));
+      throw new Error(extractError(error, translate('errors.services.assignment.approveFailed')));
     }
   },
 
@@ -549,7 +562,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể yêu cầu sửa đổi'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.requestChangesFailed')),
+      );
     }
   },
 
@@ -621,7 +636,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể đánh dấu đã sửa yêu cầu'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.resolveChangeRequestFailed')),
+      );
     }
   },
 
@@ -646,7 +663,9 @@ export const assignmentService = {
             );
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể xác minh yêu cầu'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.verifyChangeRequestFailed')),
+      );
     }
   },
 
@@ -665,7 +684,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể mở lại yêu cầu'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.reopenChangeRequestFailed')),
+      );
     }
   },
 
@@ -684,7 +705,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể từ chối yêu cầu'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.rejectChangeRequestFailed')),
+      );
     }
   },
 
@@ -704,7 +727,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      const err = new Error(extractError(error, 'Không thể trả việc từ bước duyệt chương'));
+      const err = new Error(
+        extractError(error, translate('errors.services.assignment.returnWorkFailed')),
+      );
       (err as any).status = error?.response?.status;
       (err as any).data = error?.response?.data;
       (err as any).rawError = error;
@@ -718,7 +743,9 @@ export const assignmentService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/consistency-check`);
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể chạy kiểm tra nhất quán'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.runConsistencyCheckFailed')),
+      );
     }
   },
 
@@ -747,7 +774,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể phân loại lỗi nhất quán'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.triageFindingFailed')),
+      );
     }
   },
 
@@ -763,7 +792,9 @@ export const assignmentService = {
       return response.data;
     } catch (error: any) {
       console.warn('Không thể nạp báo cáo nhất quán hình ảnh:', error);
-      throw new Error(extractError(error, 'Không thể nạp báo cáo nhất quán hình ảnh'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.getVisualReportFailed')),
+      );
     }
   },
 
@@ -778,7 +809,9 @@ export const assignmentService = {
       });
       return response.data;
     } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể chạy kiểm tra nhất quán hình ảnh'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.runVisualCheckFailed')),
+      );
     }
   },
 
@@ -794,7 +827,9 @@ export const assignmentService = {
       return response.data;
     } catch (error: any) {
       console.warn('Không thể nạp hàng đợi thẩm định Editor:', error);
-      throw new Error(extractError(error, 'Không thể nạp hàng đợi thẩm định Editor'));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.getEditorReviewQueueFailed')),
+      );
     }
   },
 
@@ -808,7 +843,9 @@ export const assignmentService = {
       const response = await axiosClient.get(`/chapters/${chapterId}/task-grid`);
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể tải lưới công việc của chương'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.getTaskGridFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -822,7 +859,9 @@ export const assignmentService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/task-grid/generate`);
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể sinh ô công việc cho chương'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.generateTaskGridFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -836,7 +875,9 @@ export const assignmentService = {
       const response = await axiosClient.get(`/chapters/${chapterId}/task-grid/auto-assign-plan`);
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể tải kế hoạch giao tự động'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.getAutoAssignPlanFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -864,7 +905,9 @@ export const assignmentService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/task-grid/lots`, payload);
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể giao lô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.assignLotsFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -887,7 +930,9 @@ export const assignmentService = {
       });
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể cập nhật lô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.updateLotFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -903,7 +948,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể bắt đầu ô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.startStageTaskFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -919,7 +966,9 @@ export const assignmentService = {
       });
       return response.data || [];
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể nộp ô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.submitStageTasksFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -935,7 +984,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể rút bài đã nộp'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.withdrawStageTaskFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -951,7 +1002,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể mở duyệt ô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.openStageTaskReviewFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -967,7 +1020,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể nhả khoá duyệt ô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.releaseStageTaskReviewFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -983,7 +1038,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể duyệt ô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.approveStageTaskFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -1004,7 +1061,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể yêu cầu sửa ô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.requestStageTaskChangesFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -1023,7 +1082,9 @@ export const assignmentService = {
       );
       return response.data || [];
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể tải lịch sử nộp của ô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.getStageTaskSubmissionsFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -1044,7 +1105,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể mở lại ô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.reopenStageTaskFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -1065,7 +1128,9 @@ export const assignmentService = {
       );
       return response.data;
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể xử lý ảnh hưởng ô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.resolveStageTaskImpactFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -1081,7 +1146,9 @@ export const assignmentService = {
       });
       return response.data || [];
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể bỏ gán ô công việc'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.unassignStageTasksFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -1105,7 +1172,7 @@ export const assignmentService = {
       return response.data || [];
     } catch (error: any) {
       const err: any = new Error(
-        extractError(error, 'Không thể tải danh sách lô công việc của bạn'),
+        extractError(error, translate('errors.services.assignment.getMyTaskLotsFailed')),
       );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
@@ -1125,7 +1192,9 @@ export const assignmentService = {
       });
       return response.data || [];
     } catch (error: any) {
-      const err: any = new Error(extractError(error, 'Không thể tải hàng đợi xét duyệt Lưới V3'));
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.getTaskGridReviewQueueFailed')),
+      );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
@@ -1140,7 +1209,7 @@ export const assignmentService = {
       return response.data;
     } catch (error: any) {
       const err: any = new Error(
-        extractError(error, 'Không thể chuyển phân công V2 sang Lưới giao việc V3'),
+        extractError(error, translate('errors.services.assignment.migrateAssignmentsFailed')),
       );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;

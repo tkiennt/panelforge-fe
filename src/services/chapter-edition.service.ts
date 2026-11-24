@@ -1,5 +1,6 @@
 // src/services/chapter-edition.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export type EditionStatus = 'Draft' | 'InReview' | 'EditorApproved' | 'Approved' | 'Published';
 
@@ -49,7 +50,9 @@ export const chapterEditionService = {
       const res = await axiosClient.get(`/chapters/${chapterId}/editions`);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Không thể lấy danh sách ấn bản chương.'));
+      throw new Error(
+        extractError(err, translate('errors.services.chapterEdition.getEditionsFailed')),
+      );
     }
   },
 
@@ -58,7 +61,7 @@ export const chapterEditionService = {
       const res = await axiosClient.post(`/chapters/${chapterId}/editions/${lang}/submit`);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Nộp bản dịch thất bại.'));
+      throw new Error(extractError(err, translate('errors.services.chapterEdition.submitFailed')));
     }
   },
 
@@ -75,7 +78,7 @@ export const chapterEditionService = {
       });
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Thẩm định ấn bản dịch thất bại.'));
+      throw new Error(extractError(err, translate('errors.services.chapterEdition.reviewFailed')));
     }
   },
 
@@ -84,7 +87,7 @@ export const chapterEditionService = {
       const res = await axiosClient.post(`/chapters/${chapterId}/editions/${lang}/approve`);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Nghiệm thu ấn bản dịch thất bại.'));
+      throw new Error(extractError(err, translate('errors.services.chapterEdition.approveFailed')));
     }
   },
 
@@ -93,7 +96,7 @@ export const chapterEditionService = {
       const res = await axiosClient.post(`/chapters/${chapterId}/editions/${lang}/publish`);
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Phát hành ấn bản dịch thất bại.'));
+      throw new Error(extractError(err, translate('errors.services.chapterEdition.publishFailed')));
     }
   },
 
@@ -109,7 +112,7 @@ export const chapterEditionService = {
       });
       return res.data;
     } catch (err: any) {
-      throw new Error(extractError(err, 'Mở lại ấn bản dịch thất bại.'));
+      throw new Error(extractError(err, translate('errors.services.chapterEdition.reopenFailed')));
     }
   },
 };

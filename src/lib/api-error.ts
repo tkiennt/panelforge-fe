@@ -67,6 +67,6 @@ export function getApiErrorMessage(error: unknown, fallbackKey = 'common.errors.
     'errors.unknown',
     undefined,
     undefined,
-    'Lỗi ngoài dự kiến. Thử lại sau ít phút.',
+    translate('shared.api.unknownError'),
   );
 }

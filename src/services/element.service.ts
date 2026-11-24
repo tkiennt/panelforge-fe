@@ -1,5 +1,6 @@
 // src/services/element.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export const IMAGE_LAYER_TYPES = [
   'BACKGROUND',
@@ -12,16 +13,36 @@ export const IMAGE_LAYER_TYPES = [
 export type ImageLayerType = (typeof IMAGE_LAYER_TYPES)[number];
 
 export const LAYER_LABELS: Record<string, string> = {
-  BACKGROUND: 'Bối cảnh (Background)',
-  CHARACTER_INSTANCE: 'Nhân vật (Character)',
-  PROP: 'Đạo cụ (Prop)',
-  EFFECT: 'Hiệu ứng (Effect)',
-  ARTWORK_LAYER: 'Lớp nét/màu (Artwork Layer)',
-  SPEECH_BALLOON: 'Bóng thoại (Speech)',
-  THOUGHT_BALLOON: 'Bóng suy nghĩ (Thought)',
-  NARRATION_BOX: 'Hộp dẫn chuyện (Narration)',
-  SOUND_EFFECT: 'Hiệu ứng âm thanh (SFX)',
-  KEY_ARTWORK_REGION: 'Vùng tranh chính (Key Art)',
+  get BACKGROUND() {
+    return translate('errors.services.element.layerBackground');
+  },
+  get CHARACTER_INSTANCE() {
+    return translate('errors.services.element.layerCharacter');
+  },
+  get PROP() {
+    return translate('errors.services.element.layerProp');
+  },
+  get EFFECT() {
+    return translate('errors.services.element.layerEffect');
+  },
+  get ARTWORK_LAYER() {
+    return translate('errors.services.element.layerArtwork');
+  },
+  get SPEECH_BALLOON() {
+    return translate('errors.services.element.layerSpeech');
+  },
+  get THOUGHT_BALLOON() {
+    return translate('errors.services.element.layerThought');
+  },
+  get NARRATION_BOX() {
+    return translate('errors.services.element.layerNarration');
+  },
+  get SOUND_EFFECT() {
+    return translate('errors.services.element.layerSfx');
+  },
+  get KEY_ARTWORK_REGION() {
+    return translate('errors.services.element.layerKeyArt');
+  },
 };
 
 export interface ElementWarningDto {
@@ -158,18 +179,17 @@ function extractError(error: any, defaultMsg: string): any {
   const data = error.response?.data;
   let msg = defaultMsg;
   if (data?.conflict === 'ELEMENT_VERSION_CONFLICT') {
-    msg =
-      'Xung đột phiên bản phần tử (ELEMENT_VERSION_CONFLICT). Phần tử đã được chỉnh sửa bởi thao tác khác.';
+    msg = translate('errors.services.element.versionConflict');
   } else if (data?.message) {
     msg = data.message;
   } else if (data?.error) {
     msg = data.error;
   } else if (error.response?.status === 403 || data?.code === 'FORBIDDEN') {
-    msg = 'Phần này thuộc việc của người khác / đang chờ duyệt';
+    msg = translate('errors.services.element.forbidden');
   } else if (error.response?.status === 409) {
-    msg = 'Xung đột phiên bản (409 Conflict). Vui lòng tải lại dữ liệu.';
+    msg = translate('errors.services.element.conflict');
   } else if (error.response?.status === 404) {
-    msg = 'Không tìm thấy Page hoặc Element.';
+    msg = translate('errors.services.element.notFound');
   }
   const err: any = new Error(msg);
   // BR-12: chương đã duyệt/phát hành chỉ đọc cũng là 409 nhưng không phải xung đột phiên bản
@@ -241,7 +261,7 @@ export const elementService = {
       const response = await axiosClient.post(`/pages/${validPageId}/elements`, request);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Thêm Element thất bại.');
+      throw extractError(error, translate('errors.services.element.addFailed'));
     }
   },
 
@@ -259,7 +279,7 @@ export const elementService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Di chuyển Element thất bại.');
+      throw extractError(error, translate('errors.services.element.moveFailed'));
     }
   },
 
@@ -284,7 +304,7 @@ export const elementService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Cập nhật văn bản Element thất bại.');
+      throw extractError(error, translate('errors.services.element.updateTextFailed'));
     }
   },
 
@@ -305,7 +325,7 @@ export const elementService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Cập nhật bản dịch thất bại.');
+      throw extractError(error, translate('errors.services.element.updateTranslationFailed'));
     }
   },
 
@@ -323,7 +343,7 @@ export const elementService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Cập nhật thứ tự đọc Element thất bại.');
+      throw extractError(error, translate('errors.services.element.setReadingOrderFailed'));
     }
   },
 
@@ -342,7 +362,7 @@ export const elementService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Cập nhật kiểu chữ thất bại.');
+      throw extractError(error, translate('errors.services.element.updateStyleFailed'));
     }
   },
 
@@ -360,7 +380,7 @@ export const elementService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Xác nhận tràn chữ thất bại.');
+      throw extractError(error, translate('errors.services.element.acknowledgeOverflowFailed'));
     }
   },
 
@@ -382,7 +402,7 @@ export const elementService = {
       });
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Xóa Element thất bại.');
+      throw extractError(error, translate('errors.services.element.removeFailed'));
     }
   },
 };

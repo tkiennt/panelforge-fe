@@ -2,6 +2,7 @@
 // Trợ lý AI trong màn làm việc của từng role (BE: AiAgentsController). Mỗi nhiệm vụ (workflowType) chạy một tập agent
 // riêng. AI chỉ ĐỀ XUẤT; người có quyền quyết định Accept / Reject / RequestChanges.
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export type AiRunStatus =
   'Queued' | 'Running' | 'WaitingForHuman' | 'Completed' | 'Failed' | 'Interrupted';
@@ -621,10 +622,6 @@ export class AiApiError extends Error {
   }
 }
 
-const AI_BUSY_MESSAGE =
-  'Trợ lý AI đang bận hoặc tạm thời không phản hồi. Hãy thử lại sau ít phút, bạn vẫn có thể làm thủ công.';
-const AI_INVALID_OUTPUT_MESSAGE = 'AI chưa tạo được kết quả hợp lệ. Hãy thử lại.';
-
 function toError(error: any, fallback: string): AiApiError {
   const data = error?.response?.data;
   const status = error?.response?.status;
@@ -637,12 +634,14 @@ function toError(error: any, fallback: string): AiApiError {
   const code =
     data?.code || (status === 403 ? 'FORBIDDEN' : status === 409 ? 'CONFLICT' : undefined);
   // Lỗi kỹ thuật của provider/model không có ích cho người dùng; riêng lỗi rút gọn đã có hướng dẫn cụ thể.
-  if (code === 'AI_UNAVAILABLE') return new AiApiError(AI_BUSY_MESSAGE, code, status);
+  if (code === 'AI_UNAVAILABLE') {
+    return new AiApiError(translate('errors.services.aiAgents.busy'), code, status);
+  }
   if (code === 'AI_INVALID_OUTPUT' && !serverMsg.startsWith('AI chưa rút gọn')) {
-    return new AiApiError(AI_INVALID_OUTPUT_MESSAGE, code, status);
+    return new AiApiError(translate('errors.services.aiAgents.invalidOutput'), code, status);
   }
   const message =
-    serverMsg || (status === 403 ? 'Bạn không có quyền thực hiện thao tác này.' : fallback);
+    serverMsg || (status === 403 ? translate('errors.services.aiAgents.forbidden') : fallback);
   return new AiApiError(message, code, status);
 }
 
@@ -659,7 +658,7 @@ export const aiAgentsService = {
       const res = await axiosClient.post(`/series/${seriesId}/ai/workflows/run`, body);
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể chạy workflow AI.');
+      throw toError(e, translate('errors.services.aiAgents.runWorkflowFailed'));
     }
   },
 
@@ -669,7 +668,7 @@ export const aiAgentsService = {
       const res = await axiosClient.post(`/series/${seriesId}/ai/copilot`, body);
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể chạy AI Copilot.');
+      throw toError(e, translate('errors.services.aiAgents.runCopilotFailed'));
     }
   },
 
@@ -686,7 +685,7 @@ export const aiAgentsService = {
       );
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể soạn nháp từ kịch bản.');
+      throw toError(e, translate('errors.services.aiAgents.runBibleStubDraftFailed'));
     }
   },
 
@@ -696,7 +695,7 @@ export const aiAgentsService = {
       const res = await axiosClient.post(`/chapters/${chapterId}/ai/impact/${taskId}`);
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể lấy gợi ý xử lý ảnh hưởng.');
+      throw toError(e, translate('errors.services.aiAgents.runImpactSuggestionFailed'));
     }
   },
 
@@ -709,7 +708,7 @@ export const aiAgentsService = {
       const res = await axiosClient.post(`/series/${seriesId}/ai/copilot/publisher-metadata`, body);
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể gợi ý metadata phát hành.');
+      throw toError(e, translate('errors.services.aiAgents.runPublisherMetadataFailed'));
     }
   },
 
@@ -725,7 +724,7 @@ export const aiAgentsService = {
       });
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể sinh ảnh thumbnail cho panel.');
+      throw toError(e, translate('errors.services.aiAgents.runThumbnailFailed'));
     }
   },
 
@@ -741,7 +740,7 @@ export const aiAgentsService = {
       });
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể tải danh sách nhiệm vụ AI.');
+      throw toError(e, translate('errors.services.aiAgents.getAvailabilityFailed'));
     }
   },
 
@@ -750,7 +749,7 @@ export const aiAgentsService = {
       const res = await axiosClient.get(`/series/${seriesId}/ai/runs/${runId}`);
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể tải trạng thái run.');
+      throw toError(e, translate('errors.services.aiAgents.getRunFailed'));
     }
   },
 
@@ -762,7 +761,7 @@ export const aiAgentsService = {
       const res = await axiosClient.get(`/series/${seriesId}/ai/suggestions`, { params });
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể tải danh sách đề xuất.');
+      throw toError(e, translate('errors.services.aiAgents.getSuggestionsFailed'));
     }
   },
 
@@ -771,7 +770,7 @@ export const aiAgentsService = {
       const res = await axiosClient.get(`/series/${seriesId}/ai/scenes/${sceneId}/revisions`);
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể tải lịch sử revision.');
+      throw toError(e, translate('errors.services.aiAgents.getSceneRevisionsFailed'));
     }
   },
 
@@ -784,7 +783,7 @@ export const aiAgentsService = {
       const res = await axiosClient.get(`/series/${seriesId}/ai/runs`, { params: filter });
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể tải lịch sử AI.');
+      throw toError(e, translate('errors.services.aiAgents.getRunHistoryFailed'));
     }
   },
 
@@ -804,7 +803,7 @@ export const aiAgentsService = {
       );
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể so sánh hai revision.');
+      throw toError(e, translate('errors.services.aiAgents.compareRevisionsFailed'));
     }
   },
 
@@ -820,7 +819,7 @@ export const aiAgentsService = {
       });
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể tải Provenance Report.');
+      throw toError(e, translate('errors.services.aiAgents.getProvenanceReportFailed'));
     }
   },
 
@@ -829,7 +828,7 @@ export const aiAgentsService = {
       const res = await axiosClient.get(`/chapters/${chapterId}/scenes`);
       return res.data ?? [];
     } catch (e) {
-      throw toError(e, 'Không thể tải danh sách Scene.');
+      throw toError(e, translate('errors.services.aiAgents.getScenesFailed'));
     }
   },
 
@@ -847,7 +846,7 @@ export const aiAgentsService = {
       );
       return res.data;
     } catch (e) {
-      throw toError(e, 'Không thể ghi quyết định.');
+      throw toError(e, translate('errors.services.aiAgents.reviewFailed'));
     }
   },
 };

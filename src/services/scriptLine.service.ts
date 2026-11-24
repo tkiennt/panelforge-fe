@@ -1,5 +1,6 @@
 // src/services/scriptLine.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export type NarrationMode =
   'Present' | 'Flashback' | 'Dream' | 'Imagination' | 'Lie' | 'Rumor' | 'UnreliableNarrator';
@@ -200,7 +201,7 @@ export const scriptLineService = {
       const response = await axiosClient.get(`/chapters/${chapterId}/scenes`);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tải danh sách phân cảnh.');
+      throw extractError(error, translate('errors.services.scriptLine.getScenesFailed'));
     }
   },
 
@@ -212,7 +213,7 @@ export const scriptLineService = {
       const response = await axiosClient.get(`/scenes/${sceneId}`);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tải thông tin chi tiết phân cảnh.');
+      throw extractError(error, translate('errors.services.scriptLine.getSceneByIdFailed'));
     }
   },
 
@@ -224,7 +225,7 @@ export const scriptLineService = {
       const response = await axiosClient.post(`/chapters/${chapterId}/scenes`, data);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tạo phân cảnh mới.');
+      throw extractError(error, translate('errors.services.scriptLine.createSceneFailed'));
     }
   },
 
@@ -236,7 +237,7 @@ export const scriptLineService = {
       const response = await axiosClient.put(`/scenes/${sceneId}`, data);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể cập nhật phân cảnh.');
+      throw extractError(error, translate('errors.services.scriptLine.updateSceneFailed'));
     }
   },
 
@@ -248,7 +249,7 @@ export const scriptLineService = {
       const response = await axiosClient.delete(`/scenes/${sceneId}`);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể xoá phân cảnh.');
+      throw extractError(error, translate('errors.services.scriptLine.deleteSceneFailed'));
     }
   },
 
@@ -260,7 +261,7 @@ export const scriptLineService = {
       const response = await axiosClient.put(`/chapters/${chapterId}/scenes/reorder`, { scenes });
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể sắp xếp lại phân cảnh.');
+      throw extractError(error, translate('errors.services.scriptLine.reorderScenesFailed'));
     }
   },
 
@@ -279,7 +280,7 @@ export const scriptLineService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể thêm dòng kịch bản.');
+      throw extractError(error, translate('errors.services.scriptLine.createLineFailed'));
     }
   },
 
@@ -295,7 +296,7 @@ export const scriptLineService = {
       const response = await axiosClient.put(`/chapters/${chapterId}/script-lines/${lineId}`, data);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể cập nhật dòng kịch bản.');
+      throw extractError(error, translate('errors.services.scriptLine.updateLineFailed'));
     }
   },
 
@@ -317,7 +318,7 @@ export const scriptLineService = {
       });
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể xoá dòng kịch bản.');
+      throw extractError(error, translate('errors.services.scriptLine.deleteLineFailed'));
     }
   },
 
@@ -337,7 +338,7 @@ export const scriptLineService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể sắp xếp lại dòng kịch bản.');
+      throw extractError(error, translate('errors.services.scriptLine.reorderLinesFailed'));
     }
   },
 
@@ -356,7 +357,7 @@ export const scriptLineService = {
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tải nội dung phiên bản kịch bản.');
+      throw extractError(error, translate('errors.services.scriptLine.getRevisionFailed'));
     }
   },
 
@@ -385,7 +386,7 @@ export const scriptLineService = {
       }
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể khôi phục phiên bản kịch bản.');
+      throw extractError(error, translate('errors.services.scriptLine.restoreRevisionFailed'));
     }
   },
 };

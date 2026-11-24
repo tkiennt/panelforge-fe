@@ -1,5 +1,6 @@
 // src/services/panel.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 import {
   PanelDto,
   PanelDetailDto,
@@ -12,13 +13,12 @@ import {
   PageLayoutDto,
 } from '../types/pipeline';
 
-const FALLBACK_FORBIDDEN_MSG = 'Phần này thuộc việc của người khác / đang chờ duyệt';
-
 function extractError(error: any, defaultMsg: string): any {
   const data = error.response?.data;
   const serverMsg = (data?.error || data?.message || '').trim();
   const isForbidden = error.response?.status === 403 || data?.code === 'FORBIDDEN';
-  const message = serverMsg || (isForbidden ? FALLBACK_FORBIDDEN_MSG : defaultMsg);
+  const message =
+    serverMsg || (isForbidden ? translate('errors.services.panel.forbidden') : defaultMsg);
   const err: any = new Error(message);
   err.code =
     data?.code ||
@@ -41,7 +41,7 @@ export const panelService = {
       const response = await axiosClient.post(`/pages/${pageId}/panels`, data);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể tạo panel mới trên trang.');
+      throw extractError(error, translate('errors.services.panel.createFailed'));
     }
   },
 
@@ -51,7 +51,7 @@ export const panelService = {
       const response = await axiosClient.put(`/pages/${pageId}/panels/layout`, panels);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể thay thế bố cục trang.');
+      throw extractError(error, translate('errors.services.panel.replaceLayoutFailed'));
     }
   },
 
@@ -64,7 +64,7 @@ export const panelService = {
       const response = await axiosClient.get(`/pages/${pageId}/panels`);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể nạp danh sách panel của trang.');
+      throw extractError(error, translate('errors.services.panel.getByPageFailed'));
     }
   },
 
@@ -77,7 +77,7 @@ export const panelService = {
       const response = await axiosClient.get(`/panels/${panelId}`);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể lấy thông tin chi tiết panel.');
+      throw extractError(error, translate('errors.services.panel.getByIdFailed'));
     }
   },
 
@@ -93,7 +93,7 @@ export const panelService = {
       const response = await axiosClient.put(`/panels/${panelId}/coordinates`, data);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể cập nhật tọa độ panel.');
+      throw extractError(error, translate('errors.services.panel.updateCoordinatesFailed'));
     }
   },
 
@@ -107,7 +107,7 @@ export const panelService = {
       const response = await axiosClient.put(`/panels/${panelId}/scene`, request);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể gán phân cảnh (Scene) cho panel.');
+      throw extractError(error, translate('errors.services.panel.assignSceneFailed'));
     }
   },
 
@@ -121,7 +121,7 @@ export const panelService = {
       const response = await axiosClient.put(`/panels/${panelId}/script-lines`, request);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể neo các dòng kịch bản vào panel.');
+      throw extractError(error, translate('errors.services.panel.assignScriptLinesFailed'));
     }
   },
 
@@ -134,7 +134,7 @@ export const panelService = {
       const response = await axiosClient.delete(`/panels/${panelId}`);
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể xóa panel.');
+      throw extractError(error, translate('errors.services.panel.deleteFailed'));
     }
   },
 
@@ -152,7 +152,7 @@ export const panelService = {
       });
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể kiểm tra tính nhất quán hình ảnh cho panel.');
+      throw extractError(error, translate('errors.services.panel.checkImageConsistencyFailed'));
     }
   },
 
@@ -178,14 +178,12 @@ export const panelService = {
         error.response?.data?.code === 'PANEL_SPLITTER_UNAVAILABLE' ||
         error.response?.status === 503
       ) {
-        const err: any = new Error(
-          'Dịch vụ nhận diện tạm thời chưa khả dụng. Bạn vẫn có thể tải bản vẽ và thử nhận diện lại sau.',
-        );
+        const err: any = new Error(translate('errors.services.panel.splitterUnavailable'));
         err.code = 'PANEL_SPLITTER_UNAVAILABLE';
         err.status = 503;
         throw err;
       }
-      throw extractError(error, 'Không thể tách panel và bong bóng thoại từ ảnh trang.');
+      throw extractError(error, translate('errors.services.panel.splitArtworkFailed'));
     }
   },
 };

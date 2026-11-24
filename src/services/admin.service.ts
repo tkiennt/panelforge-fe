@@ -1,5 +1,6 @@
 // src/services/admin.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export interface AdminUserItem {
   id: string;
@@ -235,10 +236,8 @@ function extractError(error: any, defaultMsg: string): string {
   const data = error.response?.data;
   if (data?.message) return data.message;
   if (data?.error) return data.error;
-  if (error.response?.status === 401)
-    return 'Phiên đăng nhập đã hết hạn hoặc bạn chưa đăng nhập (401 Unauthorized).';
-  if (error.response?.status === 403)
-    return 'Bạn không có quyền quản trị viên để thực hiện thao tác này (403 Forbidden).';
+  if (error.response?.status === 401) return translate('errors.services.admin.unauthorized');
+  if (error.response?.status === 403) return translate('errors.services.admin.forbidden');
   return defaultMsg;
 }
 
@@ -269,7 +268,7 @@ export const adminService = {
       const response = await axiosClient.post('/Admin/assign-producer', request);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể phân quyền cho người dùng.'));
+      throw new Error(extractError(error, translate('errors.services.admin.assignRoleFailed')));
     }
   },
 
@@ -278,7 +277,7 @@ export const adminService = {
       const response = await axiosClient.post('/Admin/assign-role', request);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể phân quyền cho người dùng.'));
+      throw new Error(extractError(error, translate('errors.services.admin.assignRoleFailed')));
     }
   },
 
@@ -287,7 +286,7 @@ export const adminService = {
       const response = await axiosClient.post('/Admin/users', payload);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tạo người dùng mới.'));
+      throw new Error(extractError(error, translate('errors.services.admin.createUserFailed')));
     }
   },
 
@@ -296,7 +295,7 @@ export const adminService = {
       const response = await axiosClient.put(`/Admin/users/${id}`, payload);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể cập nhật thông tin người dùng.'));
+      throw new Error(extractError(error, translate('errors.services.admin.updateUserFailed')));
     }
   },
 
@@ -355,7 +354,7 @@ export const adminService = {
       const response = await axiosClient.get('/Admin/audit-logs', { params });
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tải danh sách Audit Log.'));
+      throw new Error(extractError(error, translate('errors.services.admin.getAuditLogsFailed')));
     }
   },
 
@@ -383,7 +382,9 @@ export const adminService = {
         isTruncated: truncatedHeader === 'true',
       };
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể xuất file CSV Audit Log.'));
+      throw new Error(
+        extractError(error, translate('errors.services.admin.exportAuditLogsFailed')),
+      );
     }
   },
 
@@ -394,7 +395,7 @@ export const adminService = {
       const response = await axiosClient.get('/Admin/ai-usage', { params });
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tải thống kê AI Usage.'));
+      throw new Error(extractError(error, translate('errors.services.admin.getAiUsageFailed')));
     }
   },
 
@@ -405,7 +406,9 @@ export const adminService = {
       const response = await axiosClient.get('/Admin/ai-usage/records', { params });
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tải lịch sử gọi AI records.'));
+      throw new Error(
+        extractError(error, translate('errors.services.admin.getAiUsageRecordsFailed')),
+      );
     }
   },
 
@@ -433,7 +436,7 @@ export const adminService = {
         isTruncated: truncatedHeader === 'true',
       };
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể xuất file CSV AI Usage.'));
+      throw new Error(extractError(error, translate('errors.services.admin.exportAiUsageFailed')));
     }
   },
 
@@ -442,7 +445,9 @@ export const adminService = {
       const response = await axiosClient.get(`/Admin/workspaces/${workspaceId}/ai-config`);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tải cấu hình AI của Workspace.'));
+      throw new Error(
+        extractError(error, translate('errors.services.admin.getWorkspaceAiConfigFailed')),
+      );
     }
   },
 
@@ -454,7 +459,9 @@ export const adminService = {
       const response = await axiosClient.put(`/Admin/workspaces/${workspaceId}/ai-config`, data);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể lưu cấu hình AI của Workspace.'));
+      throw new Error(
+        extractError(error, translate('errors.services.admin.updateWorkspaceAiConfigFailed')),
+      );
     }
   },
 
@@ -464,7 +471,7 @@ export const adminService = {
       return response.data;
     } catch (error) {
       throw new Error(
-        extractError(error, 'Không thể tải chính sách phiên làm việc của Workspace.'),
+        extractError(error, translate('errors.services.admin.getSessionPolicyFailed')),
       );
     }
   },
@@ -487,7 +494,7 @@ export const adminService = {
       return response.data;
     } catch (error) {
       throw new Error(
-        extractError(error, 'Không thể cập nhật chính sách phiên làm việc của Workspace.'),
+        extractError(error, translate('errors.services.admin.updateSessionPolicyFailed')),
       );
     }
   },
@@ -497,7 +504,7 @@ export const adminService = {
       const response = await axiosClient.get('/Admin/workspaces');
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tải danh sách Studio Workspace.'));
+      throw new Error(extractError(error, translate('errors.services.admin.getWorkspacesFailed')));
     }
   },
 
@@ -512,7 +519,7 @@ export const adminService = {
       return response.data;
     } catch (error) {
       throw new Error(
-        extractError(error, 'Không thể cập nhật hạn mức lưu trữ (Quota) của Workspace.'),
+        extractError(error, translate('errors.services.admin.updateWorkspaceQuotaFailed')),
       );
     }
   },

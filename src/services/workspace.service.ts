@@ -1,5 +1,6 @@
 // src/services/workspace.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export interface CreateWorkspaceRequest {
   name: string;
@@ -123,9 +124,9 @@ async function parseErrorResponse(error: any, defaultMsg: string): Promise<strin
     if (data?.message) return data.message;
     if (data?.error) return data.error;
 
-    if (status === 401) return 'Chưa xác thực danh tính (401 Unauthorized).';
-    if (status === 403) return 'Bạn không có quyền thực hiện thao tác này (403 Forbidden).';
-    if (status === 404) return 'Không tìm thấy Workspace hoặc thành viên.';
+    if (status === 401) return translate('errors.services.workspace.unauthorized');
+    if (status === 403) return translate('errors.services.workspace.forbidden');
+    if (status === 404) return translate('errors.services.workspace.notFound');
   }
   return defaultMsg;
 }
@@ -139,7 +140,9 @@ export const workspaceService = {
       const response = await axiosClient.post('/Workspaces', request);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Tạo Workspace thất bại.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.workspace.createFailed')),
+      );
     }
   },
 
@@ -166,7 +169,9 @@ export const workspaceService = {
       const response = await axiosClient.get(`/Workspaces/${id}`);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Không thể lấy thông tin Workspace.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.workspace.getByIdFailed')),
+      );
     }
   },
 
@@ -175,7 +180,9 @@ export const workspaceService = {
       const response = await axiosClient.put(`/Workspaces/${id}`, request);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Cập nhật Workspace thất bại.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.workspace.updateFailed')),
+      );
     }
   },
 
@@ -184,7 +191,9 @@ export const workspaceService = {
       const response = await axiosClient.delete(`/Workspaces/${id}`);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Xóa Workspace thất bại.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.workspace.deleteFailed')),
+      );
     }
   },
 
@@ -206,7 +215,9 @@ export const workspaceService = {
       const response = await axiosClient.post(`/Workspaces/${id}/members`, request);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Thêm thành viên thất bại.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.workspace.addMemberFailed')),
+      );
     }
   },
 
@@ -214,7 +225,12 @@ export const workspaceService = {
     try {
       await axiosClient.post(`/Workspaces/${id}/members/${userId}/resend-invitation`);
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Gửi lại lời mời thất bại.'));
+      throw new Error(
+        await parseErrorResponse(
+          error,
+          translate('errors.services.workspace.resendInvitationFailed'),
+        ),
+      );
     }
   },
 
@@ -227,7 +243,12 @@ export const workspaceService = {
       const response = await axiosClient.put(`/Workspaces/${id}/members/${userId}`, request);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Cập nhật vai trò thành viên thất bại.'));
+      throw new Error(
+        await parseErrorResponse(
+          error,
+          translate('errors.services.workspace.updateMemberRoleFailed'),
+        ),
+      );
     }
   },
 
@@ -236,7 +257,9 @@ export const workspaceService = {
       const response = await axiosClient.delete(`/Workspaces/${id}/members/${userId}`);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Xóa thành viên khỏi Workspace thất bại.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.workspace.removeMemberFailed')),
+      );
     }
   },
 
@@ -245,7 +268,12 @@ export const workspaceService = {
       const response = await axiosClient.post(`/Workspaces/${workspaceId}/accept-invitation`);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Chấp nhận lời mời thất bại.'));
+      throw new Error(
+        await parseErrorResponse(
+          error,
+          translate('errors.services.workspace.acceptInvitationFailed'),
+        ),
+      );
     }
   },
 
@@ -253,7 +281,12 @@ export const workspaceService = {
     try {
       await axiosClient.post(`/Workspaces/${workspaceId}/reject-invitation`);
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Từ chối lời mời thất bại.'));
+      throw new Error(
+        await parseErrorResponse(
+          error,
+          translate('errors.services.workspace.rejectInvitationFailed'),
+        ),
+      );
     }
   },
 
@@ -285,7 +318,7 @@ export const workspaceService = {
       return response.data;
     } catch (error) {
       throw new Error(
-        await parseErrorResponse(error, 'Không thể tải lịch sử Audit của Workspace.'),
+        await parseErrorResponse(error, translate('errors.services.workspace.getAuditLogsFailed')),
       );
     }
   },
@@ -299,7 +332,7 @@ export const workspaceService = {
       return response.data;
     } catch (error) {
       throw new Error(
-        await parseErrorResponse(error, 'Không thể tải mức dùng tài nguyên của Workspace.'),
+        await parseErrorResponse(error, translate('errors.services.workspace.getUsageFailed')),
       );
     }
   },
@@ -313,7 +346,7 @@ export const workspaceService = {
       return response.data;
     } catch (error) {
       throw new Error(
-        await parseErrorResponse(error, 'Không thể tải danh sách phiên làm việc của Studio.'),
+        await parseErrorResponse(error, translate('errors.services.workspace.getSessionsFailed')),
       );
     }
   },
@@ -325,7 +358,9 @@ export const workspaceService = {
     try {
       await axiosClient.delete(`/workspaces/${workspaceId}/sessions/${sessionId}`);
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Không thể thu hồi phiên làm việc.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.workspace.revokeSessionFailed')),
+      );
     }
   },
 
@@ -361,7 +396,9 @@ export const workspaceService = {
       );
       return response.data?.value ?? null;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Tải ảnh bìa Studio thất bại.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.workspace.setCoverFailed')),
+      );
     }
   },
 
@@ -372,7 +409,9 @@ export const workspaceService = {
     try {
       await axiosClient.delete(`/workspaces/${id}/cover`);
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Xóa ảnh bìa Studio thất bại.'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.workspace.clearCoverFailed')),
+      );
     }
   },
 };

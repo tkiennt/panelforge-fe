@@ -1,5 +1,6 @@
 // src/services/catalog.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export interface PublicSeriesDto {
   id: string;
@@ -96,7 +97,7 @@ export const catalogService = {
       const response = await axiosClient.get('/catalog/series', { params });
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không thể tải danh mục truyện công khai.'));
+      throw new Error(extractError(error, translate('errors.services.catalog.getPublicSeriesFailed')));
     }
   },
 
@@ -110,7 +111,7 @@ export const catalogService = {
       return response.data;
     } catch (error) {
       throw new Error(
-        extractError(error, 'Không tìm thấy bộ truyện hoặc chưa có chương phát hành.'),
+        extractError(error, translate('errors.services.catalog.getPublicSeriesDetailFailed')),
       );
     }
   },
@@ -136,10 +137,7 @@ export const catalogService = {
       return response.data;
     } catch (error) {
       throw new Error(
-        extractError(
-          error,
-          'Không thể tải nội dung chương truyện. Chương có thể chưa được xuất bản hoặc chưa tới giờ phát hành.',
-        ),
+        extractError(error, translate('errors.services.catalog.getPublicChapterFailed')),
       );
     }
   },

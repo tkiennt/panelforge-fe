@@ -1,5 +1,6 @@
 // src/services/export.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 /** UC-12 / UC-14: xuất chương đã duyệt, chạy nền ở Backend. */
 export type ExportJobStatus = 'Queued' | 'Processing' | 'Completed' | 'Failed' | 'Cancelled';
@@ -38,7 +39,7 @@ export const exportService = {
       });
       return res.data;
     } catch (error) {
-      throw extractError(error, `Không thể xuất ${presetCode}.`);
+      throw extractError(error, translate('errors.services.export.createFailed', { presetCode }));
     }
   },
 
@@ -48,7 +49,7 @@ export const exportService = {
       const res = await axiosClient.get<ExportJobDto[]>(`/chapters/${chapterId}/exports`);
       return res.data || [];
     } catch (error) {
-      throw extractError(error, 'Không thể tải danh sách bản xuất.');
+      throw extractError(error, translate('errors.services.export.getListFailed'));
     }
   },
 
@@ -60,7 +61,7 @@ export const exportService = {
       );
       return res.data;
     } catch (error) {
-      throw extractError(error, 'Không thể huỷ bản xuất.');
+      throw extractError(error, translate('errors.services.export.cancelFailed'));
     }
   },
 
@@ -77,7 +78,7 @@ export const exportService = {
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      throw extractError(error, 'Không thể tải file xuất.');
+      throw extractError(error, translate('errors.services.export.downloadFailed'));
     }
   },
 };

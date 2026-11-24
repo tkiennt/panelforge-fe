@@ -1,5 +1,6 @@
 // src/services/auth.service.ts
 import axiosClient, { REFRESH_TOKEN_KEY, storeRefreshToken } from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 
 export interface VerifyTwoFactorPayload {
   code: string;
@@ -55,10 +56,10 @@ async function parseErrorResponse(error: any, defaultMessage: string): Promise<s
       return data.message;
     }
     if (status === 401) {
-      return 'Phiên đăng nhập đã hết hạn hoặc token không hợp lệ (401 Unauthorized). Vui lòng đăng nhập lại.';
+      return translate('errors.services.auth.unauthorized');
     }
     if (status === 403) {
-      return 'Bạn không có quyền thực hiện thao tác này (403 Forbidden).';
+      return translate('errors.services.auth.forbidden');
     }
   }
   return defaultMessage;
@@ -75,7 +76,7 @@ export const authService = {
       return response.data;
     } catch (error) {
       throw new Error(
-        await parseErrorResponse(error, 'Không thể lấy thông tin người dùng hiện tại'),
+        await parseErrorResponse(error, translate('errors.services.auth.getMeFailed')),
       );
     }
   },
@@ -104,7 +105,9 @@ export const authService = {
       storeRefreshToken(response.data);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Đăng nhập thất bại'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.auth.loginFailed')),
+      );
     }
   },
 
@@ -120,7 +123,9 @@ export const authService = {
       storeRefreshToken(response.data);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Đăng nhập bằng mạng xã hội thất bại'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.auth.externalLoginFailed')),
+      );
     }
   },
 
@@ -134,7 +139,9 @@ export const authService = {
       });
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Đăng ký thất bại'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.auth.registerFailed')),
+      );
     }
   },
 
@@ -144,7 +151,9 @@ export const authService = {
       storeRefreshToken(response.data);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Xác thực mã PIN thất bại'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.auth.verifyEmailFailed')),
+      );
     }
   },
 
@@ -153,7 +162,9 @@ export const authService = {
       const response = await axiosClient.post('/Auth/resend-verification', { email });
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Gửi lại mã xác thực thất bại'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.auth.resendVerificationFailed')),
+      );
     }
   },
 
@@ -173,7 +184,9 @@ export const authService = {
       );
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Không thể tạo mã kích hoạt 2FA'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.auth.enableTwoFactorFailed')),
+      );
     }
   },
 
@@ -192,7 +205,7 @@ export const authService = {
       return response.data;
     } catch (error) {
       throw new Error(
-        await parseErrorResponse(error, 'Mã xác thực 2FA không chính xác hoặc đã hết hạn'),
+        await parseErrorResponse(error, translate('errors.services.auth.verifyTwoFactorFailed')),
       );
     }
   },
@@ -214,7 +227,9 @@ export const authService = {
       });
       return response.data as { message: string };
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Không thể tắt 2FA'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.auth.disableTwoFactorFailed')),
+      );
     }
   },
 
@@ -229,7 +244,9 @@ export const authService = {
       );
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Không thể xóa thiết bị tin cậy'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.auth.forgetDeviceFailed')),
+      );
     }
   },
 
@@ -248,7 +265,12 @@ export const authService = {
       );
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Gửi mã xác thực OTP thất bại'));
+      throw new Error(
+        await parseErrorResponse(
+          error,
+          translate('errors.services.auth.sendChangePasswordOtpFailed'),
+        ),
+      );
     }
   },
 
@@ -273,7 +295,9 @@ export const authService = {
       const response = await axiosClient.post('/Auth/forgot-password', { email });
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Yêu cầu đặt lại mật khẩu thất bại'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.auth.forgotPasswordFailed')),
+      );
     }
   },
 
@@ -282,7 +306,9 @@ export const authService = {
       const response = await axiosClient.post('/Auth/reset-password', data);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Đặt lại mật khẩu thất bại'));
+      throw new Error(
+        await parseErrorResponse(error, translate('errors.services.auth.resetPasswordFailed')),
+      );
     }
   },
 
@@ -299,7 +325,7 @@ export const authService = {
       return response.data;
     } catch (error) {
       throw new Error(
-        await parseErrorResponse(error, 'Không thể lấy ngữ cảnh điều hướng landing.'),
+        await parseErrorResponse(error, translate('errors.services.auth.getLandingContextFailed')),
       );
     }
   },

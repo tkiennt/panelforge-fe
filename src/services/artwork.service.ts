@@ -1,5 +1,6 @@
 // src/services/artwork.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 import { AssetReferenceDto, ArtworkAccessLinkDto } from '@/types';
 
 export async function computeFileSha256(file: File): Promise<string> {
@@ -82,7 +83,9 @@ export const artworkService = {
     } catch (error: any) {
       const data = error?.response?.data;
       const serverMsg = (data?.error || data?.message || '').trim();
-      const err: any = new Error(serverMsg || error?.message || 'Không thể tải artwork lên.');
+      const err: any = new Error(
+        serverMsg || error?.message || translate('errors.services.artwork.uploadFailed'),
+      );
       err.status = error?.response?.status;
       err.code =
         data?.code ||

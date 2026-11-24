@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { translate } from '@/lib/i18n';
 
 export const REFRESH_TOKEN_KEY = 'refreshToken';
 
@@ -136,7 +137,7 @@ axiosClient.interceptors.request.use(
       !PUBLIC_ENDPOINTS.test(config.url ?? '') &&
       !localStorage.getItem('token')?.startsWith('mock-')
     ) {
-      return Promise.reject(new axios.CanceledError('Phiên đăng nhập đã kết thúc'));
+      return Promise.reject(new axios.CanceledError(translate('shared.api.sessionEnded')));
     }
 
     // Tránh bị duplicate /api/api khi url đầu vào đã có tiền tố /api

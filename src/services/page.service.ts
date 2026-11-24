@@ -1,5 +1,6 @@
 // src/services/page.service.ts
 import axiosClient from '../api/axiosClient';
+import { translate } from '@/lib/i18n';
 import { PageVisualContinuityDto } from '../types/pipeline';
 
 export interface CreatePageRequestBody {
@@ -73,7 +74,7 @@ async function parseErrorResponse(error: any, defaultMsg: string): Promise<strin
   const data = error.response?.data;
   if (data?.error) return data.error;
   if (data?.message) return data.message;
-  if (error.response?.status === 404) return 'Không tìm thấy trang hoặc chapter yêu cầu.';
+  if (error.response?.status === 404) return translate('errors.services.page.notFound');
   return defaultMsg;
 }
 
@@ -114,7 +115,7 @@ export const pageService = {
       const response = await axiosClient.post(`/chapters/${validChapterId}/pages`, body);
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Tạo trang mới thất bại.');
+      throw await toPageError(error, translate('errors.services.page.createFailed'));
     }
   },
 
@@ -159,7 +160,7 @@ export const pageService = {
       const response = await axiosClient.put(`/pages/${validPageId}/canvas-settings`, body);
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Cập nhật canvas thất bại.');
+      throw await toPageError(error, translate('errors.services.page.updateCanvasFailed'));
     }
   },
 
@@ -169,7 +170,7 @@ export const pageService = {
       const response = await axiosClient.delete(`/pages/${validPageId}`);
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Xóa trang thất bại.');
+      throw await toPageError(error, translate('errors.services.page.deleteFailed'));
     }
   },
 
@@ -186,7 +187,7 @@ export const pageService = {
       });
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Không tải được lịch sử trang.');
+      throw await toPageError(error, translate('errors.services.page.getHistoryFailed'));
     }
   },
 
@@ -202,7 +203,7 @@ export const pageService = {
       });
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Không so sánh được hai phiên bản.');
+      throw await toPageError(error, translate('errors.services.page.compareVersionsFailed'));
     }
   },
 
@@ -218,7 +219,7 @@ export const pageService = {
       });
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Khôi phục phiên bản trang thất bại.');
+      throw await toPageError(error, translate('errors.services.page.restoreVersionFailed'));
     }
   },
 
@@ -230,7 +231,7 @@ export const pageService = {
       );
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Không thể cập nhật trạng thái ContentReady của trang.');
+      throw await toPageError(error, translate('errors.services.page.toggleContentReadyFailed'));
     }
   },
 
@@ -249,7 +250,7 @@ export const pageService = {
       );
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Không thể tự động phân bổ kịch bản vào các khung.');
+      throw await toPageError(error, translate('errors.services.page.autoAssignScriptLinesFailed'));
     }
   },
   reorderPage: async (pageId: string, newPageNumber: number): Promise<PageDto> => {
@@ -260,7 +261,7 @@ export const pageService = {
       });
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Đổi thứ tự trang thất bại.');
+      throw await toPageError(error, translate('errors.services.page.reorderFailed'));
     }
   },
 
@@ -274,7 +275,7 @@ export const pageService = {
       const response = await axiosClient.post(`/pages/${pageId}/visual-continuity`);
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Kiểm tra nhất quán hình ảnh trang thất bại.');
+      throw await toPageError(error, translate('errors.services.page.checkVisualContinuityFailed'));
     }
   },
 };
