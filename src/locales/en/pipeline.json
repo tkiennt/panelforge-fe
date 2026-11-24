@@ -796,7 +796,11 @@
       "enterChapterBtn": "Enter Chapter Details →",
       "viewPrintBtn": "Review Print Copy",
       "viewHandoffBtn": "View Handoff Files",
-      "viewScriptBtn": "View Script Review"
+      "viewScriptBtn": "View Script Review",
+      "deadlineSample": "Friday, 17:00",
+      "fridayLabel": "Friday",
+      "outlineFallback": "Track the sketch, inking, coloring and lettering cycle.",
+      "scriptStageProgress": "{current} / {total} pages (Script {percent}%)"
     },
     "crewOverview": {
       "bannerTitle": "Crew Management & Personnel Assignment",
@@ -825,8 +829,26 @@
       "colLoad": "Workload",
       "colActions": "Actions",
       "btnAssignPages": "Assign Pages",
-      "btnPermissions": "Permissions"
-    }
+      "btnPermissions": "Permissions",
+      "emptyRoster": "No members in this list yet.",
+      "memberFallback": "Member",
+      "producerScope": "Manages the Series, approves scripts & coordinates the print schedule",
+      "memberScope": "Responsible for the {role} stage of Chapter {chapter}",
+      "defaultStageRole": "drawing",
+      "leaderStatus": "Lead",
+      "onTrackStatus": "Drawing (on schedule)"
+    },
+    "chapterStatus": {
+      "PreProduction": "Pre-production (scripting)",
+      "InProduction": "In production",
+      "ChapterApproved": "Accepted (Gate 3)",
+      "Approved": "Fully approved",
+      "HandedOffAndPublished": "Handed off & released",
+      "Published": "Published"
+    },
+    "seriesFallback": "Series",
+    "startProductionToastTitle": "Production started",
+    "startProductionToastDesc": "The chapter has moved to the sketching stage."
   },
   "revenueView": {
     "title": "Revenue & Reader Analytics",

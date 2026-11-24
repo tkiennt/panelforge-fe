@@ -71,7 +71,8 @@
     "targetDateLabel": "Target Release Date",
     "cancel": "Cancel",
     "creating": "Creating...",
-    "createSubmitBtn": "Create chapter"
+    "createSubmitBtn": "Create chapter",
+    "scriptProgress": "Script progress"
   },
   "chapterScriptMachine": {
     "bibleGateFailed": "Series Bible gate not passed: characters or locations are not yet CanonLocked."

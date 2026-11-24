@@ -71,7 +71,8 @@
     "targetDateLabel": "Ngày phát hành mục tiêu (Target Date)",
     "cancel": "Hủy",
     "creating": "Đang tạo...",
-    "createSubmitBtn": "Khởi tạo chương"
+    "createSubmitBtn": "Khởi tạo chương",
+    "scriptProgress": "Tiến độ kịch bản"
   },
   "chapterScriptMachine": {
     "bibleGateFailed": "Rào chắn Series Bible chưa đạt: còn nhân vật/bối cảnh chưa CanonLocked."

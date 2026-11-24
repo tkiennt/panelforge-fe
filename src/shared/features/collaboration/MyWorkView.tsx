@@ -732,11 +732,11 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           <div>
             <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#18181B] tracking-tight'>
               {workspaceRole?.toLowerCase() === 'writer'
-                ? `Bàn làm việc Biên kịch — ${currentMemberName}`
-                : `Công việc của tôi — ${currentMemberName}`}
+                ? `${t('writerStudio.workbenchTitle')} — ${currentMemberName}`
+                : `${t('myWork.title')} — ${currentMemberName}`}
             </h1>
             <p className='text-sm text-stone-500 mt-1'>
-              Dự án:{' '}
+              {t('myWork.projectPrefix')}{' '}
               <strong className='text-[#18181B] font-semibold'>
                 {seriesId ? 'PanelForge Production' : 'Workspace'}
               </strong>{' '}
@@ -756,7 +756,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs transition-colors shadow-xs'
                   >
                     <BookOpen className='w-4 h-4' />
-                    <span>Tiếp tục viết Ch.{activeChapter.chapterNumber}</span>
+                    <span>
+                      {t('writerStudio.continueWriting', { chapter: activeChapter.chapterNumber })}
+                    </span>
                   </Link>
                 );
               })()}
@@ -797,12 +799,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             <div>
               <div className='font-bold text-[#18181B] text-sm sm:text-base'>
                 {counts.mine > 0
-                  ? `${counts.mine} Kịch bản`
+                  ? t('writerStudio.scriptsInProgress', { count: counts.mine })
                   : chapters.length > 0
-                    ? `${chapters.length} Kịch bản`
+                    ? t('writerStudio.scriptsInProgress', { count: chapters.length })
                     : '—'}
               </div>
-              <div className='text-xs text-stone-500'>Đang triển khai chi tiết</div>
+              <div className='text-xs text-stone-500'>
+                {t('writerStudio.scriptsInProgressDesc')}
+              </div>
             </div>
           </div>
           <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
@@ -811,7 +815,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             </div>
             <div>
               <div className='font-bold text-[#18181B] text-sm sm:text-base'>—</div>
-              <div className='text-xs text-stone-500'>Mô tả nhân vật</div>
+              <div className='text-xs text-stone-500'>{t('myWork.characterProfiles')}</div>
             </div>
           </div>
           <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
@@ -833,10 +837,12 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             <div className='flex items-center gap-2'>
               <Film className='w-5 h-5 text-[#EA580C]' />
               <h2 className='text-lg font-serif font-bold text-[#18181B]'>
-                Kịch bản Chương đang thực hiện
+                {t('writerStudio.chaptersInProgressTitle')}
               </h2>
             </div>
-            <span className='text-xs text-stone-500'>{chapters.length} chương trong series</span>
+            <span className='text-xs text-stone-500'>
+              {t('myWork.chaptersInSeries', { count: chapters.length })}
+            </span>
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
@@ -863,17 +869,17 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     <div className='space-y-1.5 min-w-0'>
                       <div className='flex items-center gap-2 flex-wrap'>
                         <span className='px-2 py-0.5 rounded bg-stone-100 text-[#EA580C] text-xs font-semibold'>
-                          Manga B5
+                          {t('writerStudio.formatB5')}
                         </span>
                         <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 text-xs'>
                           {c.isScriptFrozen
-                            ? 'Kịch bản đã khóa'
-                            : `Đang viết v${c.versionVector || 1}`}
+                            ? t('myWork.scriptLocked')
+                            : t('writerStudio.writingVersion', { version: c.versionVector || 1 })}
                         </span>
                         {isActive && (
                           <span className='inline-flex items-center gap-1.5 text-xs text-amber-800 font-medium'>
                             <span className='w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping' />
-                            Đang hoạt động
+                            {t('writerStudio.activeStatus')}
                           </span>
                         )}
                       </div>
@@ -882,7 +888,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                         {c.title ? `: ${c.title}` : ''}
                       </h3>
                       <p className='text-xs text-stone-500 line-clamp-2 leading-relaxed'>
-                        {c.outline || 'Chưa có đề cương kịch bản tóm tắt cho chương này.'}
+                        {c.outline || t('myWork.noOutline')}
                       </p>
                     </div>
                     <ChevronRight className='w-5 h-5 text-stone-400 group-hover:text-[#EA580C] transition-colors shrink-0' />
@@ -890,9 +896,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
 
                   <div className='space-y-1.5 pt-1'>
                     <div className='flex justify-between text-xs'>
-                      <span className='text-stone-500'>Tiến độ phác thảo kịch bản</span>
+                      <span className='text-stone-500'>{t('writerStudio.draftProgress')}</span>
                       <span className='font-semibold font-mono text-[#18181B]'>
-                        {c.pagesCount ?? 0} trang
+                        {t('myWork.pagesCount', { count: c.pagesCount ?? 0 })}
                       </span>
                     </div>
                     <div className='w-full h-2 rounded-full bg-stone-100 overflow-hidden'>
@@ -925,7 +931,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                       onClick={(e) => e.stopPropagation()}
                       className='inline-flex items-center gap-1 font-semibold text-[#EA580C] hover:underline'
                     >
-                      <span>Mở Kịch bản Ch.{c.chapterNumber}</span>
+                      <span>
+                        {t('writerStudio.openScriptChapter', { chapter: c.chapterNumber })}
+                      </span>
                       <ChevronRight className='w-4 h-4' />
                     </Link>
                   </div>

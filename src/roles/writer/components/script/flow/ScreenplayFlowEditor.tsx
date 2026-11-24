@@ -605,7 +605,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                   type='button'
                   className='p-1 text-stone-400 hover:text-stone-700 rounded transition-colors cursor-pointer'
                   onClick={() => setShowAiPopover(false)}
-                  title='Đóng'
+                  title={t('common.actions.close')}
                 >
                   <X className='w-4 h-4' />
                 </button>
@@ -621,7 +621,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                   onClick={() => {
                     if (editor) {
                       editor.commands.insertContent(
-                        '<p class="gn-dialogue">"Cổng đã đồng bộ 90%. Cho dù ngươi có gọi cả sư đoàn tới cũng quá muộn."</p>',
+                        `<p class="gn-dialogue">"${t('collaboration.writerStudio.sampleDialogue')}"</p>`,
                       );
                       setShowAiPopover(false);
                     }
@@ -635,7 +635,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                     <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-violet-600' />
                   </div>
                   <p className='text-xs text-stone-500 line-clamp-2'>
-                    Kael: "Cổng đã đồng bộ 90%. Cho dù ngươi có gọi cả sư đoàn tới cũng quá muộn."
+                    Kael: "{t('collaboration.writerStudio.sampleDialogue')}"
                   </p>
                 </div>
 
@@ -656,7 +656,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                     <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-violet-600' />
                   </div>
                   <p className='text-xs text-stone-500 line-clamp-2'>
-                    SHAKIIIIN!! Âm thanh chấn động không gian làm vỡ vụn các mảnh kính neon.
+                    SHAKIIIIN!! {t('collaboration.writerStudio.sampleSfxDesc')}
                   </p>
                 </div>
 
@@ -665,7 +665,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                   onClick={() => {
                     if (editor) {
                       editor.commands.insertContent(
-                        '<p class="gn-action">Akira đạp mạnh lên biển hiệu vỡ, phóng vút người về phía lõi năng lượng với tốc độ mắt thường không bắt kịp.</p>',
+                        `<p class="gn-action">${t('collaboration.writerStudio.sampleAction')}</p>`,
                       );
                       setShowAiPopover(false);
                     }
@@ -679,8 +679,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                     <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-violet-600' />
                   </div>
                   <p className='text-xs text-stone-500 line-clamp-2'>
-                    Akira đạp mạnh lên biển hiệu vỡ, phóng vút người về phía lõi năng lượng với tốc
-                    độ mắt thường không bắt kịp.
+                    {t('collaboration.writerStudio.sampleAction')}
                   </p>
                 </div>
                 {(onOpenAiDraft || onOpenAiStoryboard) && (
@@ -695,7 +694,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                         }}
                         className='flex-1 text-left px-2 py-1.5 rounded text-xs font-semibold text-stone-700 hover:bg-violet-50 hover:text-violet-700 transition-colors cursor-pointer'
                       >
-                        Viết nháp kịch bản
+                        {t('collaboration.writerStudio.aiDraftBtn')}
                       </button>
                     )}
                     {onOpenAiStoryboard && (
@@ -708,7 +707,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                         }}
                         className='flex-1 text-left px-2 py-1.5 rounded text-xs font-semibold text-stone-700 hover:bg-violet-50 hover:text-violet-700 transition-colors cursor-pointer'
                       >
-                        Phân khung bằng AI
+                        {t('collaboration.writerStudio.aiStoryboardBtn')}
                       </button>
                     )}
                   </div>

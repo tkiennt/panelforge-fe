@@ -2033,7 +2033,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             id='scene-collapsed-tab'
             data-testid='scene-collapsed-tab'
             onClick={() => toggleLeftDrawer('scenes')}
-            title='Mở danh sách Phân cảnh'
+            title={t('scriptStudio.scenes.openListTitle')}
             className='w-11 bg-[#FBF9F4] border-r border-[#E8E3DA] flex flex-col items-center py-3 gap-3 shrink-0 cursor-pointer hover:bg-stone-100 transition-colors select-none'
           >
             <button

@@ -51,7 +51,13 @@
     "emptyScene": "Không có công việc nào thuộc phân cảnh này trong mục đã chọn.",
     "tasksCount": "{count} công việc",
     "expand": "Mở rộng",
-    "collapse": "Thu gọn"
+    "collapse": "Thu gọn",
+    "projectPrefix": "Dự án:",
+    "characterProfiles": "Mô tả nhân vật",
+    "chaptersInSeries": "{count} chương trong series",
+    "scriptLocked": "Kịch bản đã khóa",
+    "noOutline": "Chưa có đề cương kịch bản tóm tắt cho chương này.",
+    "pagesCount": "{count} trang"
   },
   "card": {
     "start": "Bắt đầu làm",
@@ -520,6 +526,11 @@
     "climaxSfx": "SFX cao trào cho Panel",
     "reflexAction": "Hành động phản xạ nhân vật",
     "clickToInsert": "Nhấn để chèn vào kịch bản",
-    "refresh": "Làm mới (F5)"
+    "refresh": "Làm mới (F5)",
+    "sampleDialogue": "Cổng đã đồng bộ 90%. Cho dù ngươi có gọi cả sư đoàn tới cũng quá muộn.",
+    "sampleSfxDesc": "Âm thanh chấn động không gian làm vỡ vụn các mảnh kính neon.",
+    "sampleAction": "Akira đạp mạnh lên biển hiệu vỡ, phóng vút người về phía lõi năng lượng với tốc độ mắt thường không bắt kịp.",
+    "aiDraftBtn": "Viết nháp kịch bản",
+    "aiStoryboardBtn": "Phân khung bằng AI"
   }
 }

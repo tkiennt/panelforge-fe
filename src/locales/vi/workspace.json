@@ -565,7 +565,8 @@
     "langVi": "Tiếng Việt (VI)",
     "releaseLangsLabel": "Các Ngôn Ngữ Phát Hành (Release Languages)",
     "originalTag": " (Gốc)",
-    "saveChangesBtn": "Lưu Thay Đổi"
+    "saveChangesBtn": "Lưu Thay Đổi",
+    "coverTitleFor": "Chọn ảnh bìa cho “{title}”"
   },
   "profileExtra": {
     "avatarAlt": "Ảnh đại diện của {name}",

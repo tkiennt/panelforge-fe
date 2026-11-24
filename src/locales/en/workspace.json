@@ -565,7 +565,8 @@
     "langVi": "Vietnamese (VI)",
     "releaseLangsLabel": "Release Languages",
     "originalTag": " (Original)",
-    "saveChangesBtn": "Save Changes"
+    "saveChangesBtn": "Save Changes",
+    "coverTitleFor": "Choose a cover for “{title}”"
   },
   "profileExtra": {
     "avatarAlt": "Avatar of {name}",

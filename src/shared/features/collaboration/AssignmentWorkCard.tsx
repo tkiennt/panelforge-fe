@@ -485,7 +485,12 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   className='h-9 px-3.5 py-1.5 rounded-xl border border-[#EA580C]/30 bg-[#FFF1EC] hover:bg-[#FFE6DC] text-[#EA580C] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
                   <PenTool className='w-3.5 h-3.5 text-[#EA580C]' />
-                  <span>Mở Kịch bản Ch.{assignment.chapterId?.slice(0, 4) || ''} →</span>
+                  <span>
+                    {t('writerStudio.openScriptChapter', {
+                      chapter: assignment.chapterId?.slice(0, 4) || '',
+                    })}{' '}
+                    →
+                  </span>
                 </Link>
               )}
               {String(assignment.assignedRole).toUpperCase() === 'ARTIST' && (

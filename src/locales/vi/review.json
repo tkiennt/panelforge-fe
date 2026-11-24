@@ -377,7 +377,8 @@
       "authorPrefix": "Tác giả: {author}",
       "headerSubtitle": "Kiểm tra lời thoại, bối cảnh và kiểm soát cửa chuẩn bị Series Bible trước khi vào khâu vẽ.",
       "blockWarning": "Kịch bản đang bị chặn duyệt do một số thực thể chưa hoàn thiện hồ sơ thiết kế chuẩn."
-    }
+    },
+    "defaultVariant": "Mặc định"
   },
   "artworkReview": {
     "header": {
@@ -679,7 +680,17 @@
       "visualDoneTitle": "Kiểm tra hình ảnh hoàn tất",
       "visualDoneDesc": "Ngưỡng: {threshold}%",
       "visualErrorDesc": "Không thể kiểm tra hình ảnh"
-    }
+    },
+    "redrawRequestsBtn": "Yêu cầu vẽ lại ({count})",
+    "scriptTab": "Kịch bản",
+    "scriptReferenceTitle": "Kịch bản đối chiếu",
+    "pageBadge": "Trang {page}",
+    "scriptReferenceHint": "Đồng bộ trực tiếp theo khung tranh đang soi",
+    "noPanelsOnPage": "Chưa có khung tranh nào trên trang này.",
+    "panelLabel": "Khung {page}.{panel}",
+    "panelOpenCrs": "Có {count} góp ý sửa ⚑",
+    "panelMatched": "Đã khớp ✓",
+    "panelDirectionFallback": "Nội dung khung tranh theo kịch bản phân cảnh..."
   },
   "readerView": {
     "title": "Chương {number}: {title} — Duyệt tranh",

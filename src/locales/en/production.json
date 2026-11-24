@@ -378,7 +378,8 @@
         "dialogue": "Dialogue",
         "caption": "Caption",
         "sfx": "SFX"
-      }
+      },
+      "keyboardHint": "Enter: next line · Tab: character / ( ) · Ctrl+1..8: change line type · Ctrl+S: save"
     },
     "scenes": {
       "title": "Scenes",
@@ -391,7 +392,8 @@
       "search": "Search scenes…",
       "deleteChapter": "Delete this chapter",
       "close": "Close",
-      "scene": "Scene {n}"
+      "scene": "Scene {n}",
+      "openListTitle": "Open scene list"
     },
     "save": {
       "unlistedTitle": "Some pages are no longer in the script",

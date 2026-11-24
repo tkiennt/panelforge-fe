@@ -225,7 +225,8 @@
       "getSessionsFailed": "Không thể tải danh sách phiên làm việc của Studio.",
       "revokeSessionFailed": "Không thể thu hồi phiên làm việc.",
       "setCoverFailed": "Tải ảnh bìa Studio thất bại.",
-      "clearCoverFailed": "Xóa ảnh bìa Studio thất bại."
+      "clearCoverFailed": "Xóa ảnh bìa Studio thất bại.",
+      "conflict": "Thao tác bị xung đột với trạng thái hiện tại (409 Conflict)."
     },
     "admin": {
       "unauthorized": "Phiên đăng nhập đã hết hạn hoặc bạn chưa đăng nhập (401 Unauthorized).",

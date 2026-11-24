@@ -129,7 +129,7 @@ async function parseErrorResponse(error: any, defaultMsg: string): Promise<strin
     if (status === 401) return translate('errors.services.workspace.unauthorized');
     if (status === 403) return translate('errors.services.workspace.forbidden');
     if (status === 404) return translate('errors.services.workspace.notFound');
-    if (status === 409) return 'Thao tác bị xung đột với trạng thái hiện tại (409 Conflict).';
+    if (status === 409) return translate('errors.services.workspace.conflict');
   }
   return defaultMsg;
 }

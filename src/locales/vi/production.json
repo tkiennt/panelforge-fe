@@ -378,7 +378,8 @@
         "dialogue": "Thoại",
         "caption": "Dẫn truyện",
         "sfx": "SFX"
-      }
+      },
+      "keyboardHint": "Enter: dòng kế tiếp · Tab: nhân vật / ( ) · Ctrl+1..8: đổi loại dòng · Ctrl+S: lưu"
     },
     "scenes": {
       "title": "Phân cảnh",
@@ -391,7 +392,8 @@
       "search": "Tìm phân cảnh…",
       "deleteChapter": "Xoá chương này",
       "close": "Đóng",
-      "scene": "Cảnh {n}"
+      "scene": "Cảnh {n}",
+      "openListTitle": "Mở danh sách Phân cảnh"
     },
     "save": {
       "unlistedTitle": "Có trang không còn trong kịch bản",

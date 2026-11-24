@@ -51,7 +51,13 @@
     "emptyScene": "No tasks for this scene in the selected tab.",
     "tasksCount": "{count} tasks",
     "expand": "Expand",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "projectPrefix": "Project:",
+    "characterProfiles": "Character profiles",
+    "chaptersInSeries": "{count} chapters in this series",
+    "scriptLocked": "Script locked",
+    "noOutline": "This chapter has no script outline yet.",
+    "pagesCount": "{count} pages"
   },
   "card": {
     "start": "Start Working",
@@ -520,6 +526,11 @@
     "climaxSfx": "Climax SFX for Panel",
     "reflexAction": "Character reflex action",
     "clickToInsert": "Click to insert into script",
-    "refresh": "Refresh (F5)"
+    "refresh": "Refresh (F5)",
+    "sampleDialogue": "The gate is 90% synced. Even if you call in a whole division, it is too late.",
+    "sampleSfxDesc": "A space-shaking blast shatters the neon glass.",
+    "sampleAction": "Akira kicks off the broken sign and launches toward the energy core faster than the eye can follow.",
+    "aiDraftBtn": "Draft script",
+    "aiStoryboardBtn": "Split panels with AI"
   }
 }

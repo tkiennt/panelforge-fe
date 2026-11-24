@@ -7,7 +7,8 @@
     "editor": "Editor",
     "publisher": "Publisher",
     "admin": "Admin",
-    "reader": "Reader"
+    "reader": "Reader",
+    "member": "Member"
   },
   "sections": {
     "workspace": "WORKSPACE",

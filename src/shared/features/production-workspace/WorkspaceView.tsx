@@ -46,31 +46,13 @@ export interface WorkspaceViewProps {
   isReaderMode?: boolean;
 }
 
-const CHAPTER_STATUS_META: Record<string, { label: string; cls: string }> = {
-  PreProduction: {
-    label: 'Tiền kỳ (viết kịch bản)',
-    cls: 'text-stone-800 bg-stone-100 border-stone-200',
-  },
-  InProduction: {
-    label: 'Đang sản xuất',
-    cls: 'text-amber-800 bg-amber-50 border-amber-200',
-  },
-  ChapterApproved: {
-    label: 'Đã nghiệm thu (Gate 3)',
-    cls: 'text-emerald-800 bg-emerald-50 border-emerald-200',
-  },
-  Approved: {
-    label: 'Đã duyệt hoàn tất',
-    cls: 'text-emerald-800 bg-emerald-50 border-emerald-200',
-  },
-  HandedOffAndPublished: {
-    label: 'Đã bàn giao & phát hành',
-    cls: 'text-stone-800 bg-stone-100 border-stone-200',
-  },
-  Published: {
-    label: 'Đã xuất bản',
-    cls: 'text-emerald-800 bg-emerald-50 border-emerald-200',
-  },
+const CHAPTER_STATUS_CLS: Record<string, string> = {
+  PreProduction: 'text-stone-800 bg-stone-100 border-stone-200',
+  InProduction: 'text-amber-800 bg-amber-50 border-amber-200',
+  ChapterApproved: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+  Approved: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+  HandedOffAndPublished: 'text-stone-800 bg-stone-100 border-stone-200',
+  Published: 'text-emerald-800 bg-emerald-50 border-emerald-200',
 };
 
 type SubTabKey = 'progress' | 'chapters' | 'crew';
@@ -290,10 +272,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
   const statusKey = currentChapter ? String(currentChapter.status) : '';
   const statusMeta = currentChapter
-    ? (CHAPTER_STATUS_META[String(currentChapter.status)] ?? {
-        label: String(currentChapter.status),
-        cls: 'text-stone-800 bg-stone-100 border-stone-200',
-      })
+    ? {
+        label: t(`workbench.chapterStatus.${statusKey}`, statusKey),
+        cls: CHAPTER_STATUS_CLS[statusKey] ?? 'text-stone-800 bg-stone-100 border-stone-200',
+      }
     : null;
 
   // Filtered chapters for chapter overview tab
@@ -600,8 +582,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   <div className='flex items-center gap-2.5 flex-wrap'>
                     <h3 className='text-lg font-bold text-stone-900 leading-tight'>
                       {t('workbench.chaptersOverview.bannerTitle', {
-                        seriesTitle: seriesTitle || 'Bộ truyện',
-                        defaultValue: `Tổng quan tiến độ các chương: ${seriesTitle || 'Bộ truyện'}`,
+                        seriesTitle: seriesTitle || t('workbench.seriesFallback'),
                       })}
                     </h3>
                     <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-xs font-semibold'>
@@ -692,11 +673,12 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       : '01'}
                   </span>
                   <span className='text-xs text-orange-700 font-semibold'>
-                    {currentChapter?.title || 'Thức Tỉnh'} (58%)
+                    {currentChapter?.title || tf('productionWorkspace.workspace.draftFallback')}{' '}
+                    (58%)
                   </span>
                 </div>
                 <div className='text-xs text-stone-500 pt-1 border-t border-stone-100'>
-                  {statusMeta?.label || 'Đang sản xuất'}
+                  {statusMeta?.label || t('workbench.chapterStatus.InProduction')}
                 </div>
               </div>
 
@@ -717,7 +699,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                         })
                       : '—'}
                   </span>
-                  <span className='text-xs text-stone-500'>Thứ Sáu, 17:00</span>
+                  <span className='text-xs text-stone-500'>
+                    {t('workbench.chaptersOverview.deadlineSample')}
+                  </span>
                 </div>
                 <div className='text-xs text-stone-500 pt-1 border-t border-stone-100'>
                   {t('workbench.chaptersOverview.kpiWeeklyIssue', 'Kỳ phát hành Weekly Shonen')}
@@ -825,7 +809,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                         )}
                       </h4>
                       <p className='text-xs text-stone-500 line-clamp-2'>
-                        {chap.outline || 'Theo dõi chu trình phác thảo, đi nét, lên màu và thoại.'}
+                        {chap.outline || t('workbench.chaptersOverview.outlineFallback')}
                       </p>
                     </div>
 
@@ -844,10 +828,22 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                           }`}
                         >
                           {isPublished
-                            ? `${chap.pagesCount || 18} / ${chap.pagesCount || 18} trang (100%)`
+                            ? t('collaboration.writerStudio.pageProgress', {
+                                current: chap.pagesCount || 18,
+                                total: chap.pagesCount || 18,
+                                percent: 100,
+                              })
                             : isInProd
-                              ? '10 / 18 trang (58%)'
-                              : '0 / 18 trang (Kịch bản 85%)'}
+                              ? t('collaboration.writerStudio.pageProgress', {
+                                  current: 10,
+                                  total: 18,
+                                  percent: 58,
+                                })
+                              : t('workbench.chaptersOverview.scriptStageProgress', {
+                                  current: 0,
+                                  total: 18,
+                                  percent: 85,
+                                })}
                         </span>
                       </div>
                       <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden'>
@@ -870,7 +866,11 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                               defaultValue: '2 cờ sửa',
                             })}
                           </span>
-                          <span>Hạn: Thứ Sáu</span>
+                          <span>
+                            {t('workbench.chaptersOverview.deadlineLabel', {
+                              date: t('workbench.chaptersOverview.fridayLabel'),
+                            })}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -1129,7 +1129,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                     {filteredMembers.length === 0 ? (
                       <tr>
                         <td colSpan={6} className='py-6 text-center text-stone-500'>
-                          Chưa có thành viên nào trong danh sách.
+                          {t('workbench.crewOverview.emptyRoster')}
                         </td>
                       </tr>
                     ) : (
@@ -1151,7 +1151,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                                 </div>
                                 <div>
                                   <div className='text-xs font-bold text-stone-900'>
-                                    {member.fullName || 'Thành viên'}
+                                    {member.fullName || t('workbench.crewOverview.memberFallback')}
                                   </div>
                                   <div className='text-xs text-stone-500 font-mono'>
                                     {member.userId
@@ -1174,12 +1174,19 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                             </td>
                             <td className='py-3 px-4 text-stone-600'>
                               {member.seriesRole === 'Producer'
-                                ? 'Quản lý Series, duyệt kịch bản & điều phối lịch in'
-                                : `Phụ trách công đoạn ${member.seriesRole || 'vẽ'} Chương ${currentChapter?.chapterNumber || '01'}`}
+                                ? t('workbench.crewOverview.producerScope')
+                                : t('workbench.crewOverview.memberScope', {
+                                    role:
+                                      member.seriesRole ||
+                                      t('workbench.crewOverview.defaultStageRole'),
+                                    chapter: currentChapter?.chapterNumber || '01',
+                                  })}
                             </td>
                             <td className='py-3 px-4'>
                               <span className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium'>
-                                {isLeader ? 'Chủ nhiệm' : 'Đang vẽ (Đúng lịch)'}
+                                {isLeader
+                                  ? t('workbench.crewOverview.leaderStatus')
+                                  : t('workbench.crewOverview.onTrackStatus')}
                               </span>
                             </td>
                             <td className='py-3 px-4'>
@@ -1227,7 +1234,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           workspaceId={workspaceId || ''}
           onSuccess={() => {
             loadChapters();
-            onShowToast('Sản xuất bắt đầu', 'Chương đã chuyển sang công đoạn vẽ phác thảo.');
+            onShowToast(
+              t('workbench.startProductionToastTitle'),
+              t('workbench.startProductionToastDesc'),
+            );
           }}
         />
       )}

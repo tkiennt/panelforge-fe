@@ -208,7 +208,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       )
     : currentUser.role
       ? t(`navigation.roles.${String(currentUser.role).toLowerCase()}`, String(currentUser.role))
-      : 'Thành viên';
+      : t('navigation.roles.member');
 
   const seriesLabel = `Series: ${seriesId ? activeSeries?.title || t('navigation.sidebar.activeSeriesFallback', 'Bộ truyện') : t('navigation.sidebar.chooseSeries', 'Chọn Series')}`;
   const themeLabel = t('navigation.sidebar.appearance', 'Giao diện thanh bên');
@@ -319,7 +319,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 </span>
                 {cleanChapterNum ? (
                   <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-orange-50 text-orange-600 border border-orange-200/60 shrink-0'>
-                    {`Chương ${cleanChapterNum}`}
+                    {`${t('navigation.breadcrumbs.chapters')} ${cleanChapterNum}`}
                   </span>
                 ) : (
                   <span className='flex items-center gap-1 text-xs text-emerald-700 font-semibold shrink-0'>

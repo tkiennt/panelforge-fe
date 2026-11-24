@@ -796,7 +796,11 @@
       "enterChapterBtn": "Vào chi tiết chương →",
       "viewPrintBtn": "Xem lại bản in",
       "viewHandoffBtn": "Xem file bàn giao",
-      "viewScriptBtn": "Xem duyệt kịch bản"
+      "viewScriptBtn": "Xem duyệt kịch bản",
+      "deadlineSample": "Thứ Sáu, 17:00",
+      "fridayLabel": "Thứ Sáu",
+      "outlineFallback": "Theo dõi chu trình phác thảo, đi nét, lên màu và thoại.",
+      "scriptStageProgress": "{current} / {total} trang (Kịch bản {percent}%)"
     },
     "crewOverview": {
       "bannerTitle": "Quản lý Ê-kíp & Phân công nhân sự",
@@ -825,8 +829,26 @@
       "colLoad": "Tải công việc",
       "colActions": "Thao tác",
       "btnAssignPages": "Giao trang",
-      "btnPermissions": "Phân quyền"
-    }
+      "btnPermissions": "Phân quyền",
+      "emptyRoster": "Chưa có thành viên nào trong danh sách.",
+      "memberFallback": "Thành viên",
+      "producerScope": "Quản lý Series, duyệt kịch bản & điều phối lịch in",
+      "memberScope": "Phụ trách công đoạn {role} Chương {chapter}",
+      "defaultStageRole": "vẽ",
+      "leaderStatus": "Chủ nhiệm",
+      "onTrackStatus": "Đang vẽ (Đúng lịch)"
+    },
+    "chapterStatus": {
+      "PreProduction": "Tiền kỳ (viết kịch bản)",
+      "InProduction": "Đang sản xuất",
+      "ChapterApproved": "Đã nghiệm thu (Gate 3)",
+      "Approved": "Đã duyệt hoàn tất",
+      "HandedOffAndPublished": "Đã bàn giao & phát hành",
+      "Published": "Đã xuất bản"
+    },
+    "seriesFallback": "Bộ truyện",
+    "startProductionToastTitle": "Sản xuất bắt đầu",
+    "startProductionToastDesc": "Chương đã chuyển sang công đoạn vẽ phác thảo."
   },
   "revenueView": {
     "title": "Doanh thu & Thống kê độc giả",

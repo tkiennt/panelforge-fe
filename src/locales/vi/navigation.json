@@ -7,7 +7,8 @@
     "editor": "Biên Tập",
     "publisher": "Phát Hành",
     "admin": "Quản Trị",
-    "reader": "Độc Giả"
+    "reader": "Độc Giả",
+    "member": "Thành viên"
   },
   "sections": {
     "workspace": "KHÔNG GIAN LÀM VIỆC",

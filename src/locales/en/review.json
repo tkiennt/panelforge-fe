@@ -377,7 +377,8 @@
       "authorPrefix": "Author: {author}",
       "headerSubtitle": "Verify dialogue, setting, and Bible gate before drawing.",
       "blockWarning": "Script approval blocked because some entities have not completed canon design sheets."
-    }
+    },
+    "defaultVariant": "Default"
   },
   "artworkReview": {
     "header": {
@@ -679,7 +680,17 @@
       "visualDoneTitle": "Visual check complete",
       "visualDoneDesc": "Threshold: {threshold}%",
       "visualErrorDesc": "Could not run visual check"
-    }
+    },
+    "redrawRequestsBtn": "Redraw requests ({count})",
+    "scriptTab": "Script",
+    "scriptReferenceTitle": "Reference script",
+    "pageBadge": "Page {page}",
+    "scriptReferenceHint": "Follows the panel you are reviewing",
+    "noPanelsOnPage": "This page has no panels yet.",
+    "panelLabel": "Panel {page}.{panel}",
+    "panelOpenCrs": "{count} change requests ⚑",
+    "panelMatched": "Matches ✓",
+    "panelDirectionFallback": "Panel content from the scene script..."
   },
   "readerView": {
     "title": "Chapter {number}: {title} — Artwork Review",

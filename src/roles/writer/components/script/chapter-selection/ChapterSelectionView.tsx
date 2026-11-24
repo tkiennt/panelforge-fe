@@ -626,9 +626,11 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                   {/* Tiến độ trang */}
                   <div className='space-y-1.5 pt-1'>
                     <div className='flex justify-between text-xs font-medium'>
-                      <span className='text-stone-500'>Tiến độ kịch bản</span>
+                      <span className='text-stone-500'>
+                        {t('chapterSelectionView.scriptProgress')}
+                      </span>
                       <span className='font-mono font-bold text-stone-900'>
-                        {chapter.pagesCount ?? 0} trang
+                        {t('chapterSelectionView.pagesCount', { count: chapter.pagesCount ?? 0 })}
                       </span>
                     </div>
                     <div className='w-full h-1.5 rounded-full bg-stone-100 overflow-hidden'>
@@ -675,7 +677,9 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                     <span>
                       {chapter.isScriptFrozen
                         ? t('chapterSelectionView.viewScript')
-                        : `Mở Kịch bản Ch.${chapter.chapterNumber}`}
+                        : t('collaboration.writerStudio.openScriptChapter', {
+                            chapter: chapter.chapterNumber,
+                          })}
                     </span>
                     <ChevronRight className='w-4 h-4' />
                   </button>

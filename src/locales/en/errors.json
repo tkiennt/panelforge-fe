@@ -225,7 +225,8 @@
       "getSessionsFailed": "Failed to load Studio active sessions.",
       "revokeSessionFailed": "Failed to revoke session.",
       "setCoverFailed": "Failed to upload Studio cover.",
-      "clearCoverFailed": "Failed to delete Studio cover."
+      "clearCoverFailed": "Failed to delete Studio cover.",
+      "conflict": "The action conflicts with the current state (409 Conflict)."
     },
     "admin": {
       "unauthorized": "Session expired or you are not signed in (401 Unauthorized).",

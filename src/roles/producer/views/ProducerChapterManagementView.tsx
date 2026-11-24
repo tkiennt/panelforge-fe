@@ -590,7 +590,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               }
               className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
             >
-              Ma trận trang
+              {t('pipeline.workbench.subtabs.progress')}
             </button>
             <button
               type='button'
@@ -598,7 +598,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               id='subtab-chapters'
               className='subtab-btn px-2.5 py-1 rounded-md bg-white text-stone-900 font-semibold shadow-xs text-xs cursor-pointer'
             >
-              Tổng quan chương
+              {t('pipeline.workbench.subtabs.chapters')}
             </button>
             <button
               type='button'
@@ -611,7 +611,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               }
               className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
             >
-              Quản lý Ê-kíp
+              {t('pipeline.workbench.subtabs.crew')}
             </button>
             <button
               type='button'
@@ -624,7 +624,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               }
               className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
             >
-              Kịch bản
+              {t('pipeline.workbench.subtabs.script')}
             </button>
             <button
               type='button'
@@ -637,7 +637,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               }
               className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
             >
-              Đọc thử &amp; Soát trang
+              {t('pipeline.workbench.subtabs.reader')}
             </button>
             <button
               type='button'
@@ -650,7 +650,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               }
               className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
             >
-              Bàn giao
+              {t('pipeline.workbench.subtabs.handoff')}
             </button>
           </div>
 
@@ -1208,9 +1208,13 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                           <div className='flex items-center gap-1.5 mt-0.5 text-xs text-stone-500'>
                             <span>
                               {ent.boundRevision?.variantLabel ||
-                                t('production.producer.chapterManagement.defaultVariantLabel')}
+                                t('producer.chapterManagement.defaultVariantLabel')}
                             </span>
-                            <span>· {ent.mentions?.length || 0} lần</span>
+                            <span>
+                              {t('producer.chapterManagement.mentionsCount', {
+                                count: ent.mentions?.length || 0,
+                              })}
+                            </span>
                           </div>
                         </div>
 
@@ -1432,8 +1436,8 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                         }
                       >
                         {c.resolvedAt
-                          ? t('production.producer.chapterManagement.commentResolved')
-                          : t('production.producer.chapterManagement.commentPending')}
+                          ? t('producer.chapterManagement.commentResolved')
+                          : t('producer.chapterManagement.commentPending')}
                       </span>
                       {!c.resolvedAt && (
                         <button

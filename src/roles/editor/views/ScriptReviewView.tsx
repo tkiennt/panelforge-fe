@@ -601,7 +601,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                                   {item.boundRevision?.variantLabel
                                     ? `[${item.boundRevision.variantLabel}]`
                                     : item.category === 'Character'
-                                      ? '[Mặc định]'
+                                      ? `[${t('scriptReview.defaultVariant')}]`
                                       : item.category}
                                 </span>
                               </div>

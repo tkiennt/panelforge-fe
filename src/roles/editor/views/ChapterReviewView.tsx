@@ -1433,7 +1433,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             }`}
           >
             <AlertTriangle className='w-3.5 h-3.5 text-rose-600' />
-            <span>Yêu cầu vẽ lại ({totalOpenCrs})</span>
+            <span>{t('chapterReview.redrawRequestsBtn', { count: totalOpenCrs })}</span>
           </button>
 
           <button
@@ -1573,7 +1573,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 }`}
               >
                 <BookOpen className='w-3 h-3 text-orange-600' />
-                <span>Kịch bản</span>
+                <span>{t('chapterReview.scriptTab')}</span>
               </button>
             </div>
             <span className='text-[11px] text-[#57534E] font-medium'>
@@ -1587,21 +1587,21 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 <div className='flex items-center justify-between'>
                   <span className='text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5'>
                     <BookOpen className='w-3.5 h-3.5 text-orange-600' />
-                    Kịch bản đối chiếu
+                    {t('chapterReview.scriptReferenceTitle')}
                   </span>
                   <span className='text-[10px] font-mono px-1.5 py-0.5 bg-stone-200 text-stone-700 rounded'>
-                    Trang {currentPage?.pageNumber || 1}
+                    {t('chapterReview.pageBadge', { page: currentPage?.pageNumber || 1 })}
                   </span>
                 </div>
                 <p className='text-[11px] text-stone-500 mt-0.5'>
-                  Đồng bộ trực tiếp theo khung tranh đang soi
+                  {t('chapterReview.scriptReferenceHint')}
                 </p>
               </div>
 
               <div className='space-y-2'>
                 {currentPagePanels.length === 0 ? (
                   <p className='text-xs text-stone-400 py-4 text-center'>
-                    Chưa có khung tranh nào trên trang này.
+                    {t('chapterReview.noPanelsOnPage')}
                   </p>
                 ) : (
                   currentPagePanels.map((p, idx) => {
@@ -1623,20 +1623,23 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       >
                         <div className='flex items-center justify-between'>
                           <span className='text-xs font-bold text-stone-900'>
-                            Khung {currentPage?.pageNumber || 1}.{pNum}
+                            {t('chapterReview.panelLabel', {
+                              page: currentPage?.pageNumber || 1,
+                              panel: pNum,
+                            })}
                           </span>
                           {pCrs.length > 0 ? (
                             <span className='px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold'>
-                              Có {pCrs.length} góp ý sửa ⚑
+                              {t('chapterReview.panelOpenCrs', { count: pCrs.length })}
                             </span>
                           ) : (
                             <span className='px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold'>
-                              Đã khớp ✓
+                              {t('chapterReview.panelMatched')}
                             </span>
                           )}
                         </div>
                         <p className='text-[11px] text-stone-600 italic leading-relaxed'>
-                          {p.direction || 'Nội dung khung tranh theo kịch bản phân cảnh...'}
+                          {p.direction || t('chapterReview.panelDirectionFallback')}
                         </p>
                       </div>
                     );
