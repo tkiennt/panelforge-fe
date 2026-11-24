@@ -1,6 +1,7 @@
 /* Lucian UX/UI Prompt #104 · Canvas minimap · (c) 2026 Seokwoo Lee · MIT License */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { MapPin, Eye, EyeOff, Maximize2 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/lucian/lucian-104.css';
 
 export interface MinimapPanelItem {
@@ -63,6 +64,7 @@ export const CanvasMinimap: React.FC<CanvasMinimapProps> = ({
   pageNumber,
   defaultCollapsed = false,
 }) => {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [activeCoords, setActiveCoords] = useState<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLButtonElement | null>(null);
@@ -153,7 +155,7 @@ export const CanvasMinimap: React.FC<CanvasMinimapProps> = ({
           type='button'
           onClick={() => setCollapsed(false)}
           className='px-2.5 py-1.5 bg-[#1C1917]/90 hover:bg-[#1C1917] text-[#FCFBF8] text-xs font-semibold rounded-xl shadow-soft-sm flex items-center gap-1.5 border border-[#D8D2C5]/30 cursor-pointer transition-all active:scale-95'
-          title='Mở Minimap trang truyện (#104)'
+          title={t('common.components.canvasMinimap.openTitle')}
           data-testid='open-minimap-btn'
         >
           <MapPin className='w-3.5 h-3.5 text-[#F97316]' />
@@ -167,18 +169,21 @@ export const CanvasMinimap: React.FC<CanvasMinimapProps> = ({
     <div
       className={`pf-minimap-container ${className}`}
       data-testid='canvas-minimap-root'
-      aria-label='Bản đồ thu nhỏ trang tranh'
+      aria-label={t('common.components.canvasMinimap.rootAria')}
     >
       <div className='flex items-center gap-1.5'>
         <span className='pf-minimap-label' data-testid='minimap-label'>
           <MapPin className='w-3 h-3 text-[#F97316]' />
-          {pageNumber ? `Trang ${pageNumber}` : 'Bản đồ Canvas'} · {panels.length} khung
+          {pageNumber
+            ? t('common.components.canvasMinimap.pageLabel', { number: pageNumber })
+            : t('common.components.canvasMinimap.canvasMapLabel')}{' '}
+          · {t('common.components.canvasMinimap.panelCount', { count: panels.length })}
         </span>
         <button
           type='button'
           onClick={() => setCollapsed(true)}
           className='p-1 rounded-md bg-[#1C1917]/80 hover:bg-[#1C1917] text-[#FCFBF8] transition-colors cursor-pointer'
-          title='Thu nhỏ minimap'
+          title={t('common.components.canvasMinimap.collapseTitle')}
           data-testid='collapse-minimap-btn'
         >
           <EyeOff className='w-3 h-3' />
@@ -189,7 +194,7 @@ export const CanvasMinimap: React.FC<CanvasMinimapProps> = ({
         ref={containerRef}
         type='button'
         className='pf-minimap-btn'
-        aria-label='Minimap định vị khung tranh, bấm hoặc dùng phím mũi tên để chọn khung'
+        aria-label={t('common.components.canvasMinimap.canvasAria')}
         data-testid='minimap-canvas-btn'
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -270,8 +275,10 @@ export const CanvasMinimap: React.FC<CanvasMinimapProps> = ({
 
       <output className='sr-only' aria-live='polite' data-testid='minimap-live-output'>
         {selectedPanel
-          ? `Đang chọn khung #${selectedPanel.panelNumber || selectedPanel.id}`
-          : 'Chưa chọn khung nào'}
+          ? t('common.components.canvasMinimap.selectedOutput', {
+              panel: selectedPanel.panelNumber || selectedPanel.id,
+            })
+          : t('common.components.canvasMinimap.noneSelectedOutput')}
       </output>
     </div>
   );

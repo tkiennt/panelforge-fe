@@ -21,6 +21,7 @@ import {
 import { ViewMode, KanbanCard, BibleEntity } from '@/types';
 import { seriesService, SeriesDto } from '@/services/series.service';
 import { workspaceService, WorkspaceDto } from '@/services/workspace.service';
+import { useTranslation } from '@/lib/i18n';
 import { Modal } from '@/shared/ui';
 
 export interface CommandPaletteModalProps {
@@ -57,6 +58,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   seriesId: propSeriesId,
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>([]);
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
@@ -106,7 +108,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           if (isMounted) setSeriesList(s || []);
         }
       } catch (err) {
-        console.warn('Không thể nạp dữ liệu tìm kiếm toàn cục:', err);
+        console.warn('Failed to load global search data:', err);
       } finally {
         if (isMounted) setIsSearchingApi(false);
       }
@@ -132,78 +134,78 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
     () => [
       {
         id: 'dashboard',
-        label: 'Dashboard sản xuất',
-        description: 'Tổng quan tiến độ Chapter & Burndown',
+        label: t('common.modals.commandPalette.nav.dashboardLabel'),
+        description: t('common.modals.commandPalette.nav.dashboardDesc'),
         icon: LayoutGrid,
         viewKey: 'dashboard',
         color: 'text-[#F97316]',
       },
       {
         id: 'workflow',
-        label: 'Bảng quy trình (Pipeline Board)',
-        description: 'Điều phối các công đoạn sản xuất truyện tranh',
+        label: t('common.modals.commandPalette.nav.workflowLabel'),
+        description: t('common.modals.commandPalette.nav.workflowDesc'),
         icon: Kanban,
         viewKey: 'workspace',
         color: 'text-[#0EA5E9]',
       },
       {
         id: 'my-work',
-        label: 'Công việc của tôi & Xét duyệt',
-        description: 'Nhiệm vụ được giao và yêu cầu sửa',
+        label: t('common.modals.commandPalette.nav.myWorkLabel'),
+        description: t('common.modals.commandPalette.nav.myWorkDesc'),
         icon: Layers,
         viewKey: 'my-work',
         color: 'text-[#8B5CF6]',
       },
       {
         id: 'script',
-        label: 'Kịch bản (Script Editor)',
-        description: 'Biên tập phân cảnh và thoại nhân vật',
+        label: t('common.modals.commandPalette.nav.scriptLabel'),
+        description: t('common.modals.commandPalette.nav.scriptDesc'),
         icon: FileText,
         viewKey: 'script',
         color: 'text-[#10B981]',
       },
       {
         id: 'artist',
-        label: 'Bàn vẽ & Khung trang (Artist Desk)',
-        description: 'Phác thảo, Inking, Bố cục trang B5',
+        label: t('common.modals.commandPalette.nav.artistLabel'),
+        description: t('common.modals.commandPalette.nav.artistDesc'),
         icon: LayoutTemplate,
         viewKey: 'artist',
         color: 'text-[#EC4899]',
       },
       {
         id: 'letterer',
-        label: 'Chèn chữ & Bóng thoại (Letterer Desk)',
-        description: 'Bóng thoại SFX và phông chữ Manga',
+        label: t('common.modals.commandPalette.nav.lettererLabel'),
+        description: t('common.modals.commandPalette.nav.lettererDesc'),
         icon: Type,
         viewKey: 'letterer',
         color: 'text-[#6366F1]',
       },
       {
         id: 'bible',
-        label: 'Series Bible Repository',
-        description: 'Kho tri thức bối cảnh, nhân vật & LoRA',
+        label: t('common.modals.commandPalette.nav.bibleLabel'),
+        description: t('common.modals.commandPalette.nav.bibleDesc'),
         icon: BookOpen,
         viewKey: 'bible',
         color: 'text-[#F59E0B]',
       },
       {
         id: 'publishing',
-        label: 'Xuất bản & Pre-Press (B5 Spec)',
-        description: 'Kiểm tra in ấn và đóng gói xuất bản',
+        label: t('common.modals.commandPalette.nav.publishingLabel'),
+        description: t('common.modals.commandPalette.nav.publishingDesc'),
         icon: UploadCloud,
         viewKey: 'publishing',
         color: 'text-[#14B8A6]',
       },
       {
         id: 'notifications',
-        label: 'Trung tâm thông báo (Notifications)',
-        description: 'Xem tất cả thông báo công việc',
+        label: t('common.modals.commandPalette.nav.notificationsLabel'),
+        description: t('common.modals.commandPalette.nav.notificationsDesc'),
         icon: Bell,
         path: '/notifications',
         color: 'text-[#F97316]',
       },
     ],
-    [],
+    [t],
   );
 
   const filteredNavItems = useMemo(() => {
@@ -268,14 +270,20 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeLabel='Đóng' size='lg' title='Bảng lệnh'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel={t('common.actions.close')}
+      size='lg'
+      title={t('common.modals.commandPalette.title')}
+    >
       <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col'>
         {/* Search Input Bar */}
         <div className='p-3.5 border-b border-[#D8D2C5] bg-[#F8F6F0] flex items-center gap-3'>
           <Search className='w-5 h-5 text-[#78716C] shrink-0' />
           <input
             type='text'
-            placeholder='Tìm kiếm Series, phân cảnh, trang truyện, nhân vật hoặc điều hướng...'
+            placeholder={t('common.modals.commandPalette.searchPlaceholder')}
             value={query}
             autoFocus
             onChange={(e) => setQuery(e.target.value)}
@@ -301,7 +309,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           {filteredNavItems.length > 0 && (
             <div>
               <div className='px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-[#78716C]'>
-                Điều Hướng Nhanh (Navigation)
+                {t('common.modals.commandPalette.navSection')}
               </div>
               <div className='space-y-0.5 mt-1'>
                 {filteredNavItems.map((item) => {
@@ -333,11 +341,11 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                       </div>
                       {isDisabled ? (
                         <span className='text-[10px] text-[#A8A29E] shrink-0 ml-2'>
-                          Cần chọn Series
+                          {t('common.modals.commandPalette.needSeries')}
                         </span>
                       ) : (
                         <span className='text-[10px] font-mono text-[#78716C] group-hover:text-[#F97316] shrink-0 ml-2'>
-                          Mở ↵
+                          {t('common.modals.commandPalette.openKey')}
                         </span>
                       )}
                     </button>
@@ -347,12 +355,16 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
             </div>
           )}
 
-          {/* Matching Series từ Live API */}
+          {/* Matching Series from Live API */}
           {filteredSeries.length > 0 && (
             <div>
               <div className='px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-[#78716C] flex items-center justify-between'>
-                <span>Danh Sách Series (Live API)</span>
-                {isSearchingApi && <span className='text-[10px] text-[#F97316]'>Đang nạp...</span>}
+                <span>{t('common.modals.commandPalette.seriesSection')}</span>
+                {isSearchingApi && (
+                  <span className='text-[10px] text-[#F97316]'>
+                    {t('common.modals.commandPalette.loadingApi')}
+                  </span>
+                )}
               </div>
               <div className='space-y-0.5 mt-1'>
                 {filteredSeries.map((series) => (
@@ -370,12 +382,14 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                         </span>
                         <span className='text-[11px] text-[#78716C] truncate block'>
                           {series.genre || 'Manga'} • {series.format || 'Standard B5'} •{' '}
-                          {series.chaptersCount || 0} chương
+                          {t('common.modals.commandPalette.chaptersCount', {
+                            count: series.chaptersCount || 0,
+                          })}
                         </span>
                       </div>
                     </div>
                     <span className='text-[10px] font-mono text-[#78716C] group-hover:text-[#F97316] shrink-0 ml-2'>
-                      Vào Series ↵
+                      {t('common.modals.commandPalette.enterSeries')}
                     </span>
                   </button>
                 ))}
@@ -387,7 +401,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           {filteredCards.length > 0 && (
             <div>
               <div className='px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-[#78716C]'>
-                Trang Truyện (Storyboard Pages)
+                {t('common.modals.commandPalette.pagesSection')}
               </div>
               <div className='space-y-0.5 mt-1'>
                 {filteredCards.map((card) => (
@@ -421,7 +435,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           {filteredEntities.length > 0 && (
             <div>
               <div className='px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-[#78716C]'>
-                Nhân Vật &amp; Bối Cảnh (Series Bible)
+                {t('common.modals.commandPalette.entitiesSection')}
               </div>
               <div className='space-y-0.5 mt-1'>
                 {filteredEntities.map((ent) => (
@@ -452,7 +466,11 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
         {/* Footer info */}
         <div className='p-3 bg-[#F8F6F0] border-t border-[#D8D2C5] text-[11px] text-[#78716C] font-mono flex items-center justify-between'>
           <span>
-            Dùng phím <strong>↑↓</strong> để duyệt, <strong>Enter</strong> để chọn
+            {t('common.modals.commandPalette.footerUseKeys')}
+            <strong>↑↓</strong>
+            {t('common.modals.commandPalette.footerToBrowse')}
+            <strong>Enter</strong>
+            {t('common.modals.commandPalette.footerToSelect')}
           </span>
           <span className='text-[#C2410C] font-bold'>PanelForge Studio Global</span>
         </div>

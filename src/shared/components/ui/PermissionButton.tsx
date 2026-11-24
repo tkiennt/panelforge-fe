@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, ButtonProps } from './Button';
 import { useProjectPermission, Permission } from '@/lib/permissions';
+import { useTranslation } from '@/lib/i18n';
 import { Lock } from 'lucide-react';
 
 interface PermissionButtonProps extends ButtonProps {
@@ -12,16 +13,18 @@ interface PermissionButtonProps extends ButtonProps {
 export const PermissionButton: React.FC<PermissionButtonProps> = ({
   userRoles,
   permissionKey,
-  fallbackTitle = 'Bạn không có quyền thực hiện thao tác này',
+  fallbackTitle,
   disabled,
   title,
   children,
   className = '',
   ...props
 }) => {
+  const { t } = useTranslation();
   const hasPerm = useProjectPermission(userRoles, permissionKey);
   const isDisabled = disabled || !hasPerm;
-  const tooltip = !hasPerm ? fallbackTitle : title;
+  const resolvedFallbackTitle = fallbackTitle ?? t('common.components.permission.noActionAccess');
+  const tooltip = !hasPerm ? resolvedFallbackTitle : title;
 
   return (
     <Button

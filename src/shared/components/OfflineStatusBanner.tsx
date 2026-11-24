@@ -59,8 +59,9 @@ export const OfflineStatusBanner: React.FC<{ className?: string }> = ({ classNam
               <strong>{t('common.offline.title')}</strong>{' '}
               {queueState.pendingCount > 0 ? (
                 <>
-                  Có <span className='pf-offline-badge'>{queueState.pendingCount}</span> thao tác đã
-                  lưu tạm, sẽ tự động đồng bộ khi có mạng.
+                  {t('common.components.offlineBanner.pendingPrefix')}
+                  <span className='pf-offline-badge'>{queueState.pendingCount}</span>
+                  {t('common.components.offlineBanner.pendingOfflineSuffix')}
                 </>
               ) : (
                 t('common.offline.noConnection')
@@ -72,8 +73,9 @@ export const OfflineStatusBanner: React.FC<{ className?: string }> = ({ classNam
             </>
           ) : (
             <>
-              Có <span className='pf-offline-badge'>{queueState.pendingCount}</span> thao tác đang
-              chờ đồng bộ lên máy chủ.
+              {t('common.components.offlineBanner.pendingPrefix')}
+              <span className='pf-offline-badge'>{queueState.pendingCount}</span>
+              {t('common.components.offlineBanner.pendingOnlineSuffix')}
             </>
           )}
         </div>

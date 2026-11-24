@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   Toast,
   ToastStack as SharedToastStack,
@@ -45,7 +46,8 @@ const adapt = (toast: ToastItemData): ToastData => ({
 });
 
 export function ToastItem({ toast, onClose }: ToastNotificationProps) {
-  return <Toast toast={adapt(toast)} onClose={onClose} closeLabel='Đóng thông báo' />;
+  const { t } = useTranslation();
+  return <Toast toast={adapt(toast)} onClose={onClose} closeLabel={t('common.toast.close')} />;
 }
 
 export function ToastStack({
@@ -55,12 +57,13 @@ export function ToastStack({
   toasts: ToastItemData[];
   onClose: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <SharedToastStack
       toasts={toasts.map(adapt)}
       onClose={onClose}
-      closeLabel='Đóng thông báo'
-      regionLabel='Thông báo hệ thống'
+      closeLabel={t('common.toast.close')}
+      regionLabel={t('common.toast.region')}
     />
   );
 }

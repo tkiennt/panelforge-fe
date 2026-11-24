@@ -61,13 +61,15 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
     if (!file) return;
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setFileError('Chỉ nhận ảnh PNG, JPEG hoặc WebP.');
+      setFileError(t('common.components.workspaceCoverPicker.invalidType'));
       return;
     }
 
     if (file.size > MAX_COVER_BYTES) {
       setFileError(
-        `Ảnh dung lượng ${(file.size / 1024 / 1024).toFixed(1)} MB vượt quá giới hạn 5 MB.`,
+        t('common.components.workspaceCoverPicker.fileTooLarge', {
+          size: (file.size / 1024 / 1024).toFixed(1),
+        }),
       );
       return;
     }
@@ -108,7 +110,7 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
         onClose();
       }
     } catch (err: any) {
-      setSaveError(err.message || 'Lỗi khi lưu ảnh bìa Studio.');
+      setSaveError(err.message || t('common.components.workspaceCoverPicker.saveError'));
     } finally {
       setSaving(false);
     }
@@ -191,12 +193,13 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
           <div>
             <div className='flex items-center justify-between mb-2'>
               <span className='text-xs font-semibold text-[#44403C] uppercase tracking-wider'>
-                {t('workspace.shelf.coverPreview') || 'Xem trước (Tỷ lệ 2:1)'}
+                {t('workspace.shelf.coverPreview') ||
+                  t('common.components.workspaceCoverPicker.previewFallback')}
               </span>
               {choice && (
                 <span className='inline-flex items-center gap-1 text-xs font-medium text-[#C2410C]'>
                   <Check className='w-3.5 h-3.5' aria-hidden='true' />
-                  <span>Đã có thay đổi</span>
+                  <span>{t('common.components.workspaceCoverPicker.hasChanges')}</span>
                 </span>
               )}
             </div>

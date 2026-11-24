@@ -2,6 +2,7 @@
 /* Adapted for PanelForge Editorial AI Studio Design System */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/lucian/lucian-285.css';
 
 export interface TeamMemberItem {
@@ -41,6 +42,7 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
   onRoleChange,
   className = '',
 }) => {
+  const { t } = useTranslation();
   const [emailInput, setEmailInput] = useState('');
   const [selectedRole, setSelectedRole] = useState(availableRoles[0] ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -116,7 +118,7 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
         setAnimatingId(null);
       }, 400);
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Không thể cập nhật vai trò.');
+      setErrorMessage(err?.message || t('common.components.teamInvite.roleUpdateError'));
     }
   };
 
@@ -146,7 +148,7 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
       setMembers((prev) => [newMember, ...prev]);
       setEmailInput('');
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Không thể gửi lời mời. Thử lại sau ít phút.');
+      setErrorMessage(err?.message || t('common.components.teamInvite.inviteError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -157,8 +159,13 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
       {/* Header with Live Counter Badge */}
       <div className='u285-hd'>
         <div className='u285-hd-title'>
-          <span>Thành viên</span>
-          <span className='u285-ct' aria-label={`${activeCount} thành viên`}>
+          <span>{t('common.components.teamInvite.membersTitle')}</span>
+          <span
+            className='u285-ct'
+            aria-label={t('common.components.teamInvite.membersCountAria', {
+              count: activeCount,
+            })}
+          >
             {activeCount}
           </span>
         </div>
@@ -182,10 +189,10 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
         <input
           className='u285-in'
           type='email'
-          placeholder='Nhập email...'
+          placeholder={t('common.components.teamInvite.emailPlaceholder')}
           value={emailInput}
           onChange={(e) => setEmailInput(e.target.value)}
-          aria-label='Email mời'
+          aria-label={t('common.components.teamInvite.emailAria')}
           autoComplete='off'
         />
 
@@ -193,8 +200,8 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
           <select
             value={currentRole}
             onChange={(e) => setSelectedRole(e.target.value)}
-            title='Chọn vai trò cho email được mời'
-            aria-label='Vai trò mời'
+            title={t('common.components.teamInvite.selectRoleTitle')}
+            aria-label={t('common.components.teamInvite.roleAria')}
           >
             {availableRoles.map((r) => (
               <option key={r} value={r}>
@@ -215,7 +222,9 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
         </div>
 
         <button type='submit' disabled={!isEmailValid || isSubmitting} className='u285-go'>
-          {isSubmitting ? 'Đang gửi...' : 'Mời'}
+          {isSubmitting
+            ? t('common.components.teamInvite.sendingBtn')
+            : t('common.components.teamInvite.inviteBtn')}
         </button>
       </form>
 
@@ -250,28 +259,39 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
 
                   {/* Status Indicator Badge */}
                   {isPending && (
-                    <span className='u285-st pd' title='Chưa xác nhận email'>
-                      Chờ duyệt
+                    <span
+                      className='u285-st pd'
+                      title={t('common.components.teamInvite.pendingTitle')}
+                    >
+                      {t('common.components.teamInvite.pendingBadge')}
                     </span>
                   )}
                   {m.status === 'Joined' && (
-                    <span className='u285-st ok' title='Đã tham gia'>
-                      Đã tham gia
+                    <span
+                      className='u285-st ok'
+                      title={t('common.components.teamInvite.joinedBadge')}
+                    >
+                      {t('common.components.teamInvite.joinedBadge')}
                     </span>
                   )}
 
                   {/* Vai trò: chủ phòng cố định, thành viên khác chọn từ danh sách */}
                   {m.isOwner ? (
-                    <span className='u285-rb is-owner' title='Chủ phòng'>
-                      Chủ phòng
+                    <span
+                      className='u285-rb is-owner'
+                      title={t('common.components.teamInvite.ownerBadge')}
+                    >
+                      {t('common.components.teamInvite.ownerBadge')}
                     </span>
                   ) : (
                     <select
                       value={m.role}
                       onChange={(e) => handleChangeMemberRole(m, e.target.value)}
                       className={`u285-rb ${animatingId === m.id ? 'is-fl' : ''}`}
-                      aria-label={`Vai trò của ${m.name}`}
-                      title='Chọn vai trò'
+                      aria-label={t('common.components.teamInvite.memberRoleAria', {
+                        name: m.name,
+                      })}
+                      title={t('common.components.teamInvite.chooseRoleTitle')}
                     >
                       {roleOptions(m.role).map((r) => (
                         <option key={r} value={r}>

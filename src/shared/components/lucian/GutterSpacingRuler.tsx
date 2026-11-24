@@ -1,6 +1,7 @@
 /* Lucian UX/UI Prompt #117 · Spacing ruler · (c) 2026 Seokwoo Lee · MIT License */
 import React from 'react';
 import { Ruler } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/lucian/lucian-117.css';
 
 export interface GutterSpacingRulerProps {
@@ -23,11 +24,13 @@ export const GutterSpacingRuler: React.FC<GutterSpacingRulerProps> = ({
   max = 10,
   step = 0.5,
   unit = '%',
-  label = 'Khoảng cách rãnh ô tranh (Gutter)',
+  label,
   presets = [0, 1, 2, 3, 5],
   disabled = false,
   className = '',
 }) => {
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t('common.components.gutterRuler.defaultLabel');
   // Ánh xạ % hoặc giá trị sang px để mô phỏng thị giác (0 -> 4px, 10 -> 80px)
   const visualGapPx = Math.max(4, Math.min(80, Math.round(4 + (value / (max || 10)) * 76)));
 
@@ -42,13 +45,13 @@ export const GutterSpacingRuler: React.FC<GutterSpacingRulerProps> = ({
     <div
       className={`pf-gutter-ruler ${className}`}
       data-testid='gutter-spacing-ruler-root'
-      aria-label='Thước đo khoảng cách rãnh ô tranh (#117)'
+      aria-label={t('common.components.gutterRuler.rootAria')}
     >
       {/* 1. Header & Live Value Display */}
       <div className='flex items-center justify-between'>
         <label className='flex items-center gap-1.5 text-xs font-semibold text-stone-800 select-none'>
           <Ruler className='w-3.5 h-3.5 text-[#F97316]' />
-          <span>{label}</span>
+          <span>{resolvedLabel}</span>
         </label>
         <span
           className='font-mono text-xs font-bold px-2 py-0.5 rounded bg-orange-50 text-[#C2410C] border border-[#F97316]/30'
@@ -67,8 +70,12 @@ export const GutterSpacingRuler: React.FC<GutterSpacingRulerProps> = ({
         aria-hidden='true'
       >
         <div className='flex items-center' style={{ gap: `${visualGapPx}px` }}>
-          <div className='pf-gutter-panel-mock'>Khung 1</div>
-          <div className='pf-gutter-panel-mock'>Khung 2</div>
+          <div className='pf-gutter-panel-mock'>
+            {t('common.components.gutterRuler.mockPanel1')}
+          </div>
+          <div className='pf-gutter-panel-mock'>
+            {t('common.components.gutterRuler.mockPanel2')}
+          </div>
         </div>
 
         {/* Dimension Line & Measurement Badge */}
@@ -96,7 +103,7 @@ export const GutterSpacingRuler: React.FC<GutterSpacingRulerProps> = ({
           onChange={handleSliderChange}
           className='pf-gutter-slider'
           data-testid='gutter-slider-input'
-          aria-label='Kéo thanh trượt để chỉnh rãnh ô tranh'
+          aria-label={t('common.components.gutterRuler.sliderAria')}
         />
         <span className='text-xs font-mono text-stone-400 select-none'>
           {max}
@@ -107,14 +114,17 @@ export const GutterSpacingRuler: React.FC<GutterSpacingRulerProps> = ({
       {/* 4. Quick Preset Buttons */}
       {presets.length > 0 && (
         <div className='pf-gutter-presets' data-testid='gutter-presets-container'>
-          <span className='text-xs text-stone-500 font-medium mr-1'>Mốc chuẩn:</span>
+          <span className='text-xs text-stone-500 font-medium mr-1'>
+            {t('common.components.gutterRuler.presetsLabel')}
+          </span>
           {presets.map((presetVal) => {
             const isActive = Math.abs(value - presetVal) < 0.05;
             let presetName = `${presetVal}${unit}`;
-            if (presetVal === 0) presetName = 'Dính liền (0%)';
-            else if (presetVal === 1) presetName = 'Hẹp (1%)';
-            else if (presetVal === 2) presetName = 'Vừa (2%)';
-            else if (presetVal === 4 || presetVal === 5) presetName = 'Rộng';
+            if (presetVal === 0) presetName = t('common.components.gutterRuler.presetSeamless');
+            else if (presetVal === 1) presetName = t('common.components.gutterRuler.presetTight');
+            else if (presetVal === 2) presetName = t('common.components.gutterRuler.presetMedium');
+            else if (presetVal === 4 || presetVal === 5)
+              presetName = t('common.components.gutterRuler.presetWide');
 
             return (
               <button
@@ -133,7 +143,7 @@ export const GutterSpacingRuler: React.FC<GutterSpacingRulerProps> = ({
       )}
 
       <output className='sr-only' aria-live='polite' data-testid='gutter-live-output'>
-        Khoảng cách rãnh ô tranh hiện tại là {value} {unit}
+        {t('common.components.gutterRuler.liveOutput', { value, unit })}
       </output>
     </div>
   );

@@ -2,6 +2,7 @@
 /* Adapted for PanelForge Editorial AI Studio Design System */
 
 import React, { useState, useId } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/lucian/lucian-036.css';
 
 export interface PasswordStrengthMeterProps {
@@ -23,8 +24,8 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
   value,
   onChange,
   onBlur,
-  placeholder = '•••••••• (Tối thiểu 6 ký tự)',
-  label = 'Mật khẩu',
+  placeholder,
+  label,
   showRules = true,
   error,
   id: customId,
@@ -33,6 +34,10 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
   required = false,
   className = '',
 }) => {
+  const { t } = useTranslation();
+  const resolvedPlaceholder =
+    placeholder ?? t('common.components.passwordMeter.defaultPlaceholder');
+  const resolvedLabel = label ?? t('common.components.passwordMeter.defaultLabel');
   const generatedId = useId();
   const inputId = customId || `pf-psw-${generatedId}`;
   const [showPassword, setShowPassword] = useState(false);
@@ -50,11 +55,11 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
 
   // Định nghĩa màu sắc & nhãn mức độ
   const STRENGTH_LEVELS = [
-    { label: 'Chưa nhập', color: '#a8a29e' },
-    { label: 'Rất yếu', color: '#ef4444' },
-    { label: 'Trung bình', color: '#f97316' },
-    { label: 'Khá tốt', color: '#eab308' },
-    { label: 'Rất mạnh', color: '#10b981' },
+    { label: t('common.components.passwordMeter.levelEmpty'), color: '#a8a29e' },
+    { label: t('common.components.passwordMeter.levelVeryWeak'), color: '#ef4444' },
+    { label: t('common.components.passwordMeter.levelMedium'), color: '#f97316' },
+    { label: t('common.components.passwordMeter.levelGood'), color: '#eab308' },
+    { label: t('common.components.passwordMeter.levelStrong'), color: '#10b981' },
   ];
 
   const currentLevel = STRENGTH_LEVELS[level];
@@ -64,9 +69,9 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
       className={`pf-psw-meter ${className}`}
       style={{ '--lv': currentLevel.color } as React.CSSProperties}
     >
-      {label && (
+      {resolvedLabel && (
         <label htmlFor={inputId} className='block text-xs font-semibold text-[#0c0a09] mb-1'>
-          {label}
+          {resolvedLabel}
         </label>
       )}
 
@@ -80,7 +85,7 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           required={required}
           className='pf-psw-in'
           aria-describedby={`${inputId}-rules`}
@@ -91,7 +96,11 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
           type='button'
           onClick={() => setShowPassword(!showPassword)}
           className='pf-psw-eye'
-          aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+          aria-label={
+            showPassword
+              ? t('common.components.passwordMeter.hidePassword')
+              : t('common.components.passwordMeter.showPassword')
+          }
           aria-pressed={showPassword}
           tabIndex={-1}
         >
@@ -127,7 +136,7 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
 
       {/* Strength indicator text */}
       <div className='pf-psw-label'>
-        <span>Độ mạnh mật khẩu</span>
+        <span>{t('common.components.passwordMeter.strengthLabel')}</span>
         <b aria-live='polite'>{value.length > 0 ? currentLevel.label : ''}</b>
       </div>
 
@@ -140,7 +149,7 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
                 <path d='M5.5 10.5l3 3 6-6.5' />
               </svg>
             </i>
-            <span>Tối thiểu 6 ký tự</span>
+            <span>{t('common.components.passwordMeter.ruleMinLen')}</span>
           </li>
           <li className={`pf-psw-r ${rulesMet.up ? 'ok' : ''}`}>
             <i>
@@ -148,7 +157,7 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
                 <path d='M5.5 10.5l3 3 6-6.5' />
               </svg>
             </i>
-            <span>1 chữ in hoa (A-Z)</span>
+            <span>{t('common.components.passwordMeter.ruleUpper')}</span>
           </li>
           <li className={`pf-psw-r ${rulesMet.num ? 'ok' : ''}`}>
             <i>
@@ -156,7 +165,7 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
                 <path d='M5.5 10.5l3 3 6-6.5' />
               </svg>
             </i>
-            <span>Ít nhất 1 chữ số (0-9)</span>
+            <span>{t('common.components.passwordMeter.ruleNumber')}</span>
           </li>
           <li className={`pf-psw-r ${rulesMet.sym ? 'ok' : ''}`}>
             <i>
@@ -164,7 +173,7 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
                 <path d='M5.5 10.5l3 3 6-6.5' />
               </svg>
             </i>
-            <span>1 ký tự đặc biệt (!@#$)</span>
+            <span>{t('common.components.passwordMeter.ruleSpecial')}</span>
           </li>
         </ul>
       )}

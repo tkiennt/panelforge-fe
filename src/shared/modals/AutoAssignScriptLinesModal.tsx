@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { pageService, AutoAssignScriptLinesResult } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
+import { useTranslation } from '@/lib/i18n';
 import { Alert, Modal } from '@/shared/ui';
 import { SceneScriptLineSummaryDto } from '@/services/scriptLine.service';
 
@@ -40,6 +41,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
   onSuccess,
   onShowToast,
 }) => {
+  const { t } = useTranslation();
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [applying, setApplying] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
       })
       .catch((err: any) => {
         if (!isMounted) return;
-        setErrorMsg(err?.message || 'Không thể tính toán phân bổ kịch bản xem trước.');
+        setErrorMsg(err?.message || t('common.modals.autoAssign.previewError'));
       })
       .finally(() => {
         if (isMounted) setLoadingPreview(false);
@@ -73,7 +75,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, pageId, sceneId]);
+  }, [isOpen, pageId, sceneId, t]);
 
   if (!isOpen) return null;
 
@@ -87,13 +89,15 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
     try {
       await pageService.autoAssignScriptLines(pageId, { sceneId, dryRun: false });
       onShowToast?.(
-        'Phân bổ kịch bản thành công',
-        `Đã phân bổ kịch bản vào ${previewResult?.assignments?.length || 0} khung tranh.`,
+        t('common.modals.autoAssign.toastSuccessTitle'),
+        t('common.modals.autoAssign.toastSuccessDesc', {
+          count: previewResult?.assignments?.length || 0,
+        }),
       );
       await onSuccess();
       onClose();
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Lỗi khi áp dụng phân bổ kịch bản vào các khung.');
+      setErrorMsg(err?.message || t('common.modals.autoAssign.applyError'));
     } finally {
       setApplying(false);
     }
@@ -103,17 +107,17 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
     <Modal
       isOpen
       onClose={onClose}
-      closeLabel='Đóng'
+      closeLabel={t('common.actions.close')}
       size='lg'
       title={
         <span className='flex items-center gap-2'>
-          Tự Động Phân Bổ Kịch Bản
+          {t('common.modals.autoAssign.title')}
           <span className='rounded-full border border-[#FDBA74] bg-[#FFF2E6] px-2 py-0.5 font-mono text-xs font-bold text-[#C2410C]'>
-            Trang #{pageNumber}
+            {t('common.modals.autoAssign.pageBadge', { number: pageNumber })}
           </span>
         </span>
       }
-      description='Gom dòng chỉ dẫn & thoại theo sau thành cụm, gán lần lượt vào các khung theo thứ tự đọc'
+      description={t('common.modals.autoAssign.description')}
       data-testid='auto-assign-script-lines-modal'
     >
       <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden'>
@@ -122,7 +126,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
           {sceneHeading && (
             <div className='text-xs text-[#57534E] flex items-center gap-1.5 bg-[#F8F6F0] p-2.5 rounded-xl border border-[#D8D2C5]'>
               <Film className='w-4 h-4 text-[#C2410C]' />
-              <span>Phân cảnh nguồn:</span>
+              <span>{t('common.modals.autoAssign.sourceScene')}</span>
               <strong className='text-[#1C1917]'>{sceneHeading}</strong>
             </div>
           )}
@@ -137,11 +141,9 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
             <div className='py-12 flex flex-col items-center justify-center text-center space-y-2 text-[#57534E]'>
               <Loader2 className='w-8 h-8 text-[#C2410C] animate-spin' />
               <div className='text-xs font-semibold text-[#1C1917]'>
-                Đang phân tích cấu trúc kịch bản và khung trang...
+                {t('common.modals.autoAssign.analyzingTitle')}
               </div>
-              <p className='text-[11px] max-w-sm'>
-                Hệ thống đang rà soát các dòng chỉ dẫn và thoại để gom cụm tối ưu cho trang.
-              </p>
+              <p className='text-[11px] max-w-sm'>{t('common.modals.autoAssign.analyzingDesc')}</p>
             </div>
           ) : previewResult ? (
             <div className='space-y-3.5'>
@@ -150,10 +152,13 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                 <div className='p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl'>
                   <div className='text-emerald-700 font-semibold flex items-center gap-1.5 mb-1'>
                     <CheckCircle2 className='w-4 h-4 text-emerald-600' />
-                    <span>Khung được phân bổ</span>
+                    <span>{t('common.modals.autoAssign.assignedPanelsLabel')}</span>
                   </div>
                   <div className='text-lg font-bold text-emerald-900'>
-                    {previewResult.assignments.length} / {panels.length} khung
+                    {t('common.modals.autoAssign.assignedPanelsCount', {
+                      assigned: previewResult.assignments.length,
+                      total: panels.length,
+                    })}
                   </div>
                 </div>
 
@@ -166,9 +171,13 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                 >
                   <div className='font-semibold flex items-center gap-1.5 mb-1'>
                     <Layers className='w-4 h-4 text-amber-600' />
-                    <span>Khung còn thiếu</span>
+                    <span>{t('common.modals.autoAssign.missingPanelsLabel')}</span>
                   </div>
-                  <div className='text-lg font-bold'>{previewResult.missingPanels} khung</div>
+                  <div className='text-lg font-bold'>
+                    {t('common.modals.autoAssign.missingPanelsCount', {
+                      count: previewResult.missingPanels,
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -176,9 +185,15 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                 <div className='p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 leading-relaxed flex items-start gap-2'>
                   <AlertTriangle className='w-4 h-4 shrink-0 mt-0.5 text-amber-600' />
                   <div>
-                    Thiếu {previewResult.missingPanels} khung tranh. Còn{' '}
-                    <strong>{previewResult.unassignedLineIds.length} dòng kịch bản</strong> chưa
-                    được gán.
+                    {t('common.modals.autoAssign.missingWarningPrefix', {
+                      missing: previewResult.missingPanels,
+                    })}
+                    <strong>
+                      {t('common.modals.autoAssign.missingWarningBold', {
+                        count: previewResult.unassignedLineIds.length,
+                      })}
+                    </strong>
+                    {t('common.modals.autoAssign.missingWarningSuffix')}
                   </div>
                 </div>
               )}
@@ -186,7 +201,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
               {/* Assignment Mapping */}
               <div className='space-y-2.5'>
                 <h4 className='text-xs font-bold text-[#1C1917] uppercase tracking-wider'>
-                  Chi tiết phân bổ vào từng khung:
+                  {t('common.modals.autoAssign.detailsHeading')}
                 </h4>
                 {previewResult.assignments.map((grp, idx) => {
                   const panel = panelsById.get(grp.panelId);
@@ -200,13 +215,21 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                           <span className='w-5 h-5 rounded-full bg-[#FFF2E6] text-[#C2410C] font-mono text-[11px] font-bold flex items-center justify-center'>
                             {idx + 1}
                           </span>
-                          <span>Khung #{panel?.panelNumber ?? idx + 1}</span>
+                          <span>
+                            {t('common.modals.autoAssign.panelLabel', {
+                              number: panel?.panelNumber ?? idx + 1,
+                            })}
+                          </span>
                           <span className='text-[10px] text-[#57534E] font-normal'>
-                            (Thứ tự đọc #{panel?.readingOrder ?? idx + 1})
+                            {t('common.modals.autoAssign.readingOrder', {
+                              order: panel?.readingOrder ?? idx + 1,
+                            })}
                           </span>
                         </span>
                         <span className='text-[10px] font-mono font-bold text-[#57534E] bg-[#F8F6F0] px-2 py-0.5 rounded-full border border-[#D8D2C5]'>
-                          {grp.scriptLineIds.length} dòng
+                          {t('common.modals.autoAssign.lineCount', {
+                            count: grp.scriptLineIds.length,
+                          })}
                         </span>
                       </div>
 
@@ -220,7 +243,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                           const characterName =
                             (line.speakerLabel && bibleNameById[line.speakerLabel]) ||
                             line.speakerLabel ||
-                            'Lời thoại';
+                            t('common.modals.autoAssign.dialogueFallback');
                           return (
                             <div
                               key={lid}
@@ -237,11 +260,13 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                               ) : (
                                 <span className='shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-stone-100 text-stone-700 border border-stone-200 flex items-center gap-1'>
                                   <Film className='w-2.5 h-2.5 text-stone-500' />
-                                  <span>Chỉ dẫn</span>
+                                  <span>{t('common.modals.autoAssign.directionBadge')}</span>
                                 </span>
                               )}
                               <p className='text-xs text-[#1C1917] leading-relaxed line-clamp-2'>
-                                {line.dialogueText || line.stageDirection || '(Chỉ dẫn diễn xuất)'}
+                                {line.dialogueText ||
+                                  line.stageDirection ||
+                                  t('common.modals.autoAssign.directionFallback')}
                               </p>
                             </div>
                           );
@@ -254,9 +279,11 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                 {previewResult.unassignedLineIds.length > 0 && (
                   <div className='p-3 bg-amber-50/50 rounded-xl border border-amber-200/80 space-y-2'>
                     <div className='text-xs font-bold text-amber-900 flex items-center justify-between'>
-                      <span>Dòng kịch bản chưa thể gán (vượt số lượng khung)</span>
+                      <span>{t('common.modals.autoAssign.unassignedHeading')}</span>
                       <span className='font-mono font-bold'>
-                        {previewResult.unassignedLineIds.length} dòng
+                        {t('common.modals.autoAssign.lineCount', {
+                          count: previewResult.unassignedLineIds.length,
+                        })}
                       </span>
                     </div>
                     <div className='space-y-1 pl-2'>
@@ -288,7 +315,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
             disabled={applying}
             className='px-4 py-2 border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] hover:bg-[#F3F0E9] cursor-pointer disabled:opacity-50'
           >
-            Hủy
+            {t('common.actions.cancel')}
           </button>
           <button
             type='button'
@@ -302,12 +329,12 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
             {applying ? (
               <>
                 <Loader2 className='w-4 h-4 animate-spin' />
-                <span>Đang áp dụng...</span>
+                <span>{t('common.modals.autoAssign.applying')}</span>
               </>
             ) : (
               <>
                 <Sparkles className='w-4 h-4' />
-                <span>Áp dụng phân bổ</span>
+                <span>{t('common.modals.autoAssign.applyBtn')}</span>
               </>
             )}
           </button>

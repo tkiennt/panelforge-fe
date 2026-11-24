@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { getInitialLanguage, translate } from '@/lib/i18n';
 
 interface Props {
   children: ReactNode;
@@ -40,10 +41,20 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <div>
               <h2 className='text-base font-bold text-zinc-900'>
-                {this.props.fallbackTitle || 'Đã xảy ra lỗi hiển thị giao diện'}
+                {this.props.fallbackTitle ||
+                  translate(
+                    'common.components.errorBoundary.defaultTitle',
+                    undefined,
+                    getInitialLanguage(),
+                  )}
               </h2>
               <p className='text-xs text-zinc-600 mt-1 font-mono break-words bg-zinc-50 p-2.5 rounded-lg border border-zinc-200 text-left max-h-40 overflow-y-auto'>
-                {this.state.error?.message || 'Lỗi không xác định'}
+                {this.state.error?.message ||
+                  translate(
+                    'common.components.errorBoundary.unknownError',
+                    undefined,
+                    getInitialLanguage(),
+                  )}
               </p>
             </div>
             <button
@@ -52,7 +63,13 @@ export class ErrorBoundary extends Component<Props, State> {
               className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer'
             >
               <RefreshCw className='w-3.5 h-3.5' />
-              <span>Tải lại trang</span>
+              <span>
+                {translate(
+                  'common.components.errorBoundary.reloadPage',
+                  undefined,
+                  getInitialLanguage(),
+                )}
+              </span>
             </button>
           </div>
         </div>

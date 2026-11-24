@@ -12,6 +12,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 import { ProvenanceLogItem } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
 import { adminService } from '@/services/admin.service';
@@ -53,6 +54,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
   logs: fallbackLogs = [],
   onShowToast,
 }) => {
+  const { t, lang } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [apiLogs, setApiLogs] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,8 +109,8 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
         setApiLogs([]);
       }
     } catch (err: any) {
-      console.warn('Không thể nạp nhật ký kiểm toán từ API:', err);
-      // Giữ apiLogs rỗng để fallback sang fallbackLogs
+      console.warn('Failed to load audit logs from API:', err);
+      // Keep apiLogs empty to fall back to fallbackLogs
       setApiLogs([]);
     } finally {
       setLoading(false);
@@ -121,7 +123,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
     }
   }, [isOpen, loadLogs]);
 
-  // Chuẩn hóa dữ liệu log từ API hoặc fallback
+  // Normalize log entries from API or fallback
   const normalizedLogs: NormalizedAuditLog[] = useMemo(() => {
     if (apiLogs.length > 0) {
       return apiLogs.map((item: any, idx: number) => {
@@ -131,24 +133,32 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
 
         const dateStr = item.timestampUtc || item.createdAtUtc || item.createdAt;
         const formattedDate = dateStr
-          ? new Date(dateStr).toLocaleString('vi-VN', {
+          ? new Date(dateStr).toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN', {
               month: 'short',
               day: 'numeric',
               hour: '2-digit',
               minute: '2-digit',
               second: '2-digit',
             })
-          : 'Gần đây';
+          : t('common.modals.auditLog.recent');
 
         return {
           id: item.id || `api-${idx}`,
-          actor: item.userEmail || item.userName || item.actor || 'Hệ thống',
+          actor:
+            item.userEmail ||
+            item.userName ||
+            item.actor ||
+            t('common.modals.auditLog.systemActor'),
           action: actionStr,
           entityName: item.entityName || 'Resource',
           entityId: item.entityId,
           details:
             item.details ||
-            `${actionLabel} trên ${formatEntityLabel(item.entityName)} ${item.entityId ? `#${String(item.entityId).slice(0, 8)}` : ''}`,
+            t('common.modals.auditLog.detailsFallback', {
+              action: actionLabel,
+              entity: formatEntityLabel(item.entityName),
+              id: item.entityId ? ` #${String(item.entityId).slice(0, 8)}` : '',
+            }),
           timestamp: formattedDate,
           statusTag: actionLabel,
           statusTagColor,
@@ -157,7 +167,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
       });
     }
 
-    // Fallback sang provenanceLogs nếu API chưa trả hoặc offline
+    // Fallback to provenanceLogs when API has not returned or offline
     return fallbackLogs.map((log) => ({
       id: log.id,
       actor: log.actor,
@@ -169,7 +179,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
       statusTagColor: log.statusTagColor || 'bg-stone-100 text-stone-700',
       hash: log.hash,
     }));
-  }, [apiLogs, fallbackLogs]);
+  }, [apiLogs, fallbackLogs, lang, t]);
 
   // Bộ lọc tìm kiếm và hành động
   const filteredLogs = useMemo(() => {
@@ -219,8 +229,8 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
     URL.revokeObjectURL(url);
 
     onShowToast(
-      'Đã xuất nhật ký',
-      `Đã tải về file JSON chứa ${filteredLogs.length} bản ghi kiểm toán.`,
+      t('common.modals.auditLog.exportToastTitle'),
+      t('common.modals.auditLog.exportToastDesc', { count: filteredLogs.length }),
     );
   };
 
@@ -230,9 +240,9 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      closeLabel='Đóng'
+      closeLabel={t('common.actions.close')}
       size='lg'
-      title='Nhật Ký Hoạt Động & Kiểm Toán (Audit Logs)'
+      title={t('common.modals.auditLog.title')}
     >
       <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[88vh]'>
         {/* Header */}
@@ -244,7 +254,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
             <div>
               <div className='flex items-center gap-2'>
                 <h3 className='font-serif font-bold text-base text-[#1C1917] tracking-tight'>
-                  Nhật Ký Hoạt Động &amp; Kiểm Toán (Audit Logs)
+                  {t('common.modals.auditLog.title')}
                 </h3>
                 {effectiveWorkspaceName && (
                   <span className='px-2 py-0.5 rounded-full bg-[#EAE5DC] text-[#57534E] text-[11px] font-mono font-medium'>
@@ -262,7 +272,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
           <button
             type='button'
             onClick={onClose}
-            aria-label='Đóng'
+            aria-label={t('common.actions.close')}
             className='w-8 h-8 rounded-lg hover:bg-[#EFECE6] border border-transparent hover:border-[#D8D2C5] flex items-center justify-center text-[#78716C] hover:text-[#1C1917] transition-all cursor-pointer'
           >
             <X className='w-4 h-4' />
@@ -276,7 +286,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
               <Search className='w-3.5 h-3.5 text-[#78716C] absolute left-3 top-1/2 -translate-y-1/2' />
               <input
                 type='text'
-                placeholder='Tìm theo người thực hiện, hành động, thực thể...'
+                placeholder={t('common.modals.auditLog.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className='w-full pl-8 pr-3 py-1.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg text-xs text-[#1C1917] placeholder-[#78716C] focus:outline-none focus:border-[#C2410C]'
@@ -290,16 +300,18 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
                 onChange={(e) => setFilterAction(e.target.value)}
                 className='px-2 py-1.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg text-xs text-[#57534E] focus:outline-none focus:border-[#C2410C] font-mono'
               >
-                <option value='ALL'>Tất cả hành động</option>
-                <option value='SECURITY'>Bảo mật &amp; Phiên (Session + User)</option>
-                <option value='LOGIN'>Đăng nhập (LOGIN)</option>
-                <option value='LOGOUT'>Đăng xuất (LOGOUT)</option>
-                <option value='SESSIONS_REVOKED'>Thu hồi phiên (REVOKED)</option>
-                <option value='CREATE'>Tạo mới (CREATE)</option>
-                <option value='UPDATE'>Chỉnh sửa (UPDATE)</option>
-                <option value='DELETE'>Xóa (DELETE)</option>
-                <option value='SUBMIT'>Nộp bài (SUBMIT)</option>
-                <option value='APPROVE'>Phê duyệt (APPROVE)</option>
+                <option value='ALL'>{t('common.modals.auditLog.filterAll')}</option>
+                <option value='SECURITY'>{t('common.modals.auditLog.filterSecurity')}</option>
+                <option value='LOGIN'>{t('common.modals.auditLog.filterLogin')}</option>
+                <option value='LOGOUT'>{t('common.modals.auditLog.filterLogout')}</option>
+                <option value='SESSIONS_REVOKED'>
+                  {t('common.modals.auditLog.filterRevoked')}
+                </option>
+                <option value='CREATE'>{t('common.modals.auditLog.filterCreate')}</option>
+                <option value='UPDATE'>{t('common.modals.auditLog.filterUpdate')}</option>
+                <option value='DELETE'>{t('common.modals.auditLog.filterDelete')}</option>
+                <option value='SUBMIT'>{t('common.modals.auditLog.filterSubmit')}</option>
+                <option value='APPROVE'>{t('common.modals.auditLog.filterApprove')}</option>
               </select>
             </div>
           </div>
@@ -309,11 +321,11 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
               type='button'
               onClick={() => void loadLogs()}
               disabled={loading}
-              title='Làm mới nhật ký'
+              title={t('common.modals.auditLog.refreshTitle')}
               className='px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50'
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>Làm mới</span>
+              <span>{t('common.actions.refresh')}</span>
             </button>
             <button
               type='button'
@@ -322,7 +334,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
               className='px-3 py-1.5 bg-[#1C1917] hover:bg-black text-[#FCFBF8] text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50'
             >
               <Download className='w-3.5 h-3.5' />
-              <span>Xuất JSON</span>
+              <span>{t('common.modals.auditLog.exportJson')}</span>
             </button>
           </div>
         </div>
@@ -332,28 +344,28 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
           <div className='p-3 bg-[#ECFDF5] border border-[#10B981]/30 rounded-xl text-[#059669] flex items-center justify-between text-xs'>
             <span className='flex items-center gap-2 font-semibold'>
               <CheckCircle className='w-4 h-4' />
-              Toàn bộ nhật ký hoạt động studio đã được chứng thực toàn vẹn
+              {t('common.modals.auditLog.integrityBanner')}
             </span>
             <span className='text-[10px] bg-white px-2 py-0.5 rounded border border-[#10B981]/40 font-semibold'>
-              ĐÃ XÁC THỰC
+              {t('common.modals.auditLog.verifiedBadge')}
             </span>
           </div>
 
           {loading ? (
             <div className='py-16 text-center text-[#78716C] flex flex-col items-center justify-center gap-2'>
               <RefreshCw className='w-6 h-6 animate-spin text-[#F97316]' />
-              <span className='text-xs'>Đang tải dữ liệu kiểm toán từ máy chủ...</span>
+              <span className='text-xs'>{t('common.modals.auditLog.loading')}</span>
             </div>
           ) : filteredLogs.length === 0 ? (
             <div className='py-16 text-center text-[#78716C] flex flex-col items-center justify-center gap-2'>
               <Activity className='w-8 h-8 text-[#A8A29E]' />
               <span className='text-sm font-medium text-[#57534E]'>
-                Không tìm thấy bản ghi hoạt động nào.
+                {t('common.modals.auditLog.emptyTitle')}
               </span>
               <span className='text-xs text-[#78716C]'>
                 {searchQuery
-                  ? 'Thử thay đổi từ khóa hoặc bộ lọc hành động.'
-                  : 'Chưa có hoạt động nào được ghi nhận trong phiên làm việc này.'}
+                  ? t('common.modals.auditLog.emptySearchHint')
+                  : t('common.modals.auditLog.emptyDefaultHint')}
               </span>
             </div>
           ) : (
@@ -388,11 +400,11 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
                         className='text-[#78716C] bg-[#F1EEE8] px-2 py-0.5 rounded border border-[#D8D2C5]'
                         title={log.hash}
                       >
-                        Mã bảo chứng: #{log.hash.slice(0, 8)}
+                        {t('common.modals.auditLog.hashLabel', { hash: log.hash.slice(0, 8) })}
                       </span>
                     ) : (
                       <span className='text-[#059669] text-[10px] font-medium'>
-                        ĐÃ BẢO CHỨNG TOÀN VẸN
+                        {t('common.modals.auditLog.integrityVerified')}
                       </span>
                     )}
                     {log.statusTag && (
@@ -413,14 +425,14 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
         {/* Footer */}
         <div className='p-3.5 bg-[#F8F6F0] border-t border-[#D8D2C5] flex items-center justify-between shrink-0 text-xs text-[#78716C] font-mono'>
           <span>
-            Tổng số bản ghi: <strong>{filteredLogs.length}</strong>
+            {t('common.modals.auditLog.totalRecords')} <strong>{filteredLogs.length}</strong>
           </span>
           <button
             type='button'
             onClick={onClose}
             className='px-4 py-1.5 bg-[#FCFBF8] hover:bg-[#EFECE6] border border-[#D8D2C5] text-[#57534E] text-xs font-semibold rounded-lg transition-colors cursor-pointer'
           >
-            Đóng
+            {t('common.actions.close')}
           </button>
         </div>
       </div>

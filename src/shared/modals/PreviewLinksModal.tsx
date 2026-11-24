@@ -28,6 +28,7 @@ import { pageService } from '@/services/page.service';
 import type { AssignmentDto, StageTaskDto, TaskGridDto } from '@/types/pipeline';
 import { WorkspaceRole } from '@/types';
 import { useConfirm } from '@/shared/context/ConfirmContext';
+import { useTranslation } from '@/lib/i18n';
 import { Modal } from '@/shared/ui';
 
 export interface PreviewLinksModalProps {
@@ -53,6 +54,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
   onReopenChapter,
   onShowToast,
 }) => {
+  const { t } = useTranslation();
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'links' | 'feedback'>('links');
 
@@ -165,16 +167,16 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
       setRecipientEmail('');
       setHasCopied(false);
       onShowToast?.(
-        'Đã tạo link xem thử',
-        'Sao chép link ngay. Token chỉ hiển thị một lần duy nhất.',
+        t('common.modals.previewLinks.toastCreatedTitle'),
+        t('common.modals.previewLinks.toastCreatedDesc'),
       );
       fetchLinks();
     } catch (err: any) {
       const msg =
         err?.response?.data?.error ||
         err?.response?.data?.message ||
-        'Không thể tạo link xem thử. Chỉ tạo được khi chương ở trạng thái Đã Duyệt (Approved).';
-      onShowToast?.('Lỗi tạo link', msg);
+        t('common.modals.previewLinks.createErrorFallback');
+      onShowToast?.(t('common.modals.previewLinks.toastCreateErrorTitle'), msg);
     } finally {
       setCreatingLink(false);
     }
@@ -187,17 +189,20 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
       navigator.clipboard.writeText(fullUrl);
     }
     setHasCopied(true);
-    onShowToast?.('Đã sao chép', 'Đã sao chép liên kết xem thử vào clipboard.');
+    onShowToast?.(
+      t('common.modals.previewLinks.toastCopiedTitle'),
+      t('common.modals.previewLinks.toastCopiedDesc'),
+    );
     setTimeout(() => setHasCopied(false), 3000);
   };
 
   const handleRevokeLink = async (linkId: string) => {
     if (
       !(await confirm({
-        title: 'Thu hồi liên kết xem thử ngay lập tức?',
-        description: 'Người nhận liên kết này sẽ không thể truy cập bản đọc thử nữa.',
-        confirmText: 'Thu hồi liên kết',
-        cancelText: 'Giữ lại',
+        title: t('common.modals.previewLinks.revokeConfirmTitle'),
+        description: t('common.modals.previewLinks.revokeConfirmDesc'),
+        confirmText: t('common.modals.previewLinks.revokeConfirmBtn'),
+        cancelText: t('common.modals.previewLinks.revokeCancelBtn'),
         variant: 'warning',
       }))
     )
@@ -205,10 +210,16 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
     setRevokingId(linkId);
     try {
       await previewLinkService.revokePreviewLink(chapterId, linkId);
-      onShowToast?.('Đã thu hồi', 'Liên kết xem thử đã bị vô hiệu hóa.');
+      onShowToast?.(
+        t('common.modals.previewLinks.toastRevokedTitle'),
+        t('common.modals.previewLinks.toastRevokedDesc'),
+      );
       fetchLinks();
     } catch (err: any) {
-      onShowToast?.('Lỗi thu hồi', err?.response?.data?.error || 'Không thể thu hồi link.');
+      onShowToast?.(
+        t('common.modals.previewLinks.toastRevokeErrorTitle'),
+        err?.response?.data?.error || t('common.modals.previewLinks.revokeErrorFallback'),
+      );
     } finally {
       setRevokingId(null);
     }
@@ -218,8 +229,8 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
     const note = triageNotes[feedbackId]?.trim() || '';
     if (decision === 'NeedsChange' && !note) {
       onShowToast?.(
-        'Bắt buộc ghi chú',
-        'Bạn phải nhập lý do / ghi chú khi yêu cầu sửa đổi (NeedsChange).',
+        t('common.modals.previewLinks.toastNoteRequiredTitle'),
+        t('common.modals.previewLinks.toastNoteRequiredDesc'),
       );
       return;
     }
@@ -232,13 +243,16 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
       });
       setFeedbacks((prev) => prev.map((f) => (f.id === feedbackId ? updated : f)));
       onShowToast?.(
-        'Đã xử lý phản hồi',
+        t('common.modals.previewLinks.toastTriagedTitle'),
         decision === 'NeedsChange'
-          ? 'Đã chuyển thành Cần sửa đổi. Mở lại chương để phân công.'
-          : 'Đã ghi nhận phản hồi của độc giả/đối tác.',
+          ? t('common.modals.previewLinks.toastTriagedNeedsChange')
+          : t('common.modals.previewLinks.toastTriagedNoted'),
       );
     } catch (err: any) {
-      onShowToast?.('Lỗi xử lý', err?.response?.data?.error || 'Không thể xử lý phản hồi.');
+      onShowToast?.(
+        t('common.modals.previewLinks.toastTriageErrorTitle'),
+        err?.response?.data?.error || t('common.modals.previewLinks.triageErrorFallback'),
+      );
     } finally {
       setTriagingId(null);
     }
@@ -260,18 +274,20 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
         .then((res) => setTaskGrid(res || null))
         .catch(() => {});
       onShowToast?.(
-        updated.stageTaskId ? 'Đã chuyển vào Lưới V3' : 'Đã tạo yêu cầu sửa',
         updated.stageTaskId
-          ? 'Ô công việc trên Lưới V3 đã nhận yêu cầu sửa; người làm đã được thông báo.'
-          : 'Việc được chọn đã nhận yêu cầu sửa; người làm đã được thông báo.',
+          ? t('common.modals.previewLinks.toastCrGridTitle')
+          : t('common.modals.previewLinks.toastCrTitle'),
+        updated.stageTaskId
+          ? t('common.modals.previewLinks.toastCrGridDesc')
+          : t('common.modals.previewLinks.toastCrDesc'),
       );
     } catch (err: any) {
       onShowToast?.(
-        'Không tạo được yêu cầu sửa',
+        t('common.modals.previewLinks.toastCrErrorTitle'),
         err?.response?.data?.error ||
           err?.response?.data?.message ||
           err?.message ||
-          'Thử lại sau ít phút.',
+          t('common.modals.previewLinks.tryAgainLater'),
       );
     } finally {
       setCreatingCrId(null);
@@ -311,9 +327,9 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      closeLabel='Đóng'
+      closeLabel={t('common.actions.close')}
       size='xl'
-      title='Chia sẻ bản xem trước'
+      title={t('common.modals.previewLinks.modalTitle')}
       data-testid='preview-links-modal'
     >
       <div className='bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl border border-[#E7E7E7] overflow-hidden text-xs text-[#171717]'>
@@ -329,11 +345,11 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                   CF5 // PREVIEW &amp; FEEDBACK
                 </span>
                 <span className='text-xs text-[#888888] font-mono'>
-                  Bản xem thử bảo mật &amp; Phản hồi đối tác
+                  {t('common.modals.previewLinks.headerSubtitle')}
                 </span>
               </div>
               <h2 className='text-base font-bold text-[#171717] mt-0.5'>
-                {`Chương #${chapterNumber}${chapterTitle ? `: ${chapterTitle}` : ''}`}
+                {`${t('common.modals.previewLinks.chapterHeading', { number: chapterNumber })}${chapterTitle ? `: ${chapterTitle}` : ''}`}
               </h2>
             </div>
           </div>
@@ -360,7 +376,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
             data-testid='tab-preview-links'
           >
             <Share2 className='w-4 h-4' />
-            <span>Liên Kết Xem Thử ({links.length})</span>
+            <span>{t('common.modals.previewLinks.tabLinks', { count: links.length })}</span>
           </button>
 
           <button
@@ -377,7 +393,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
             data-testid='tab-preview-feedback'
           >
             <MessageSquare className='w-4 h-4' />
-            <span>Phản Hồi Độc Giả ({feedbacks.length})</span>
+            <span>{t('common.modals.previewLinks.tabFeedback', { count: feedbacks.length })}</span>
           </button>
         </div>
 
@@ -390,9 +406,10 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                 <div className='p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-2.5'>
                   <AlertTriangle className='w-4 h-4 shrink-0 text-amber-600 mt-0.5' />
                   <div className='text-xs'>
-                    <strong>Lưu ý nghiệp vụ (BR-09):</strong> Chỉ các chương đã được Producer hoàn
-                    tất duyệt sản xuất (trạng thái <code>Approved</code>) mới đủ điều kiện tạo liên
-                    kết xem thử ra bên ngoài.
+                    <strong>{t('common.modals.previewLinks.br09NoteTitle')}</strong>{' '}
+                    {t('common.modals.previewLinks.br09NoteBefore')}
+                    <code>Approved</code>
+                    {t('common.modals.previewLinks.br09NoteAfter')}
                   </div>
                 </div>
               )}
@@ -405,13 +422,13 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                 >
                   <div className='flex items-center gap-1.5 font-bold text-[#171717]'>
                     <Sparkles className='w-4 h-4 text-[#F97316]' />
-                    <span>Tạo Liên Kết Xem Thử Mới Cho Đối Tác / Độc Giả</span>
+                    <span>{t('common.modals.previewLinks.createFormTitle')}</span>
                   </div>
 
                   <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
                     <div className='sm:col-span-2'>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Email người nhận (để đóng watermark định danh) *
+                        {t('common.modals.previewLinks.recipientEmailLabel')}
                       </label>
                       <div className='relative'>
                         <Mail className='w-3.5 h-3.5 text-[#888888] absolute left-3 top-2.5' />
@@ -420,7 +437,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                           required
                           value={recipientEmail}
                           onChange={(e) => setRecipientEmail(e.target.value)}
-                          placeholder='partner@publisher.com hoặc reader@gmail.com'
+                          placeholder={t('common.modals.previewLinks.recipientEmailPlaceholder')}
                           className='w-full pl-8 pr-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
                           data-testid='create-preview-email-input'
                         />
@@ -429,7 +446,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
 
                     <div>
                       <label className='block font-semibold text-[#171717] mb-1'>
-                        Thời hạn hiệu lực (giờ)
+                        {t('common.modals.previewLinks.expiresInHoursLabel')}
                       </label>
                       <div className='relative'>
                         <Clock className='w-3.5 h-3.5 text-[#888888] absolute left-3 top-2.5' />
@@ -458,7 +475,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                       ) : (
                         <Share2 className='w-3.5 h-3.5' />
                       )}
-                      <span>Tạo Link Xem Thử</span>
+                      <span>{t('common.modals.previewLinks.createLinkBtn')}</span>
                     </button>
                   </div>
                 </form>
@@ -473,14 +490,14 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                   <div className='flex items-center justify-between'>
                     <div className='font-bold flex items-center gap-1.5 text-orange-900'>
                       <CheckCircle2 className='w-4 h-4 text-orange-600' />
-                      <span>Link Xem Thử Đã Được Khởi Tạo Thành Công!</span>
+                      <span>{t('common.modals.previewLinks.createdBannerTitle')}</span>
                     </div>
                     <button
                       type='button'
                       onClick={() => setCreatedLink(null)}
                       className='text-orange-700 hover:text-orange-950 text-xs font-semibold underline cursor-pointer'
                     >
-                      Đóng thông báo
+                      {t('common.modals.previewLinks.dismissBanner')}
                     </button>
                   </div>
 
@@ -502,13 +519,17 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                       ) : (
                         <Copy className='w-3.5 h-3.5' />
                       )}
-                      <span>{hasCopied ? 'Đã sao chép' : 'Sao chép link'}</span>
+                      <span>
+                        {hasCopied
+                          ? t('common.modals.previewLinks.copiedLinkBtn')
+                          : t('common.modals.previewLinks.copyLinkBtn')}
+                      </span>
                     </button>
                   </div>
 
                   <div className='text-xs text-amber-800 bg-amber-100/60 p-2.5 rounded-lg border border-amber-200/80'>
-                    ⚠️ <strong>Bảo mật:</strong> Link chỉ hiển thị một lần. Sao chép và gửi cho
-                    người nhận ngay bây giờ.
+                    ⚠️ <strong>{t('common.modals.previewLinks.securityWarningLabel')}</strong>{' '}
+                    {t('common.modals.previewLinks.securityWarningText')}
                   </div>
                 </div>
               )}
@@ -517,14 +538,14 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
               <div className='border border-[#E7E7E7] rounded-xl overflow-hidden'>
                 <div className='p-3 bg-[#FAF8F5] border-b border-[#E7E7E7] flex items-center justify-between'>
                   <div className='font-bold text-xs text-[#171717] flex items-center gap-1.5'>
-                    <span>Danh Sách Link Xem Thử Đã Phát Hành</span>
+                    <span>{t('common.modals.previewLinks.linksTableTitle')}</span>
                   </div>
                   <button
                     type='button'
                     onClick={fetchLinks}
                     disabled={loadingLinks}
                     className='p-1 rounded hover:bg-white text-[#737373] hover:text-[#171717] transition-colors cursor-pointer'
-                    title='Tải lại'
+                    title={t('common.modals.previewLinks.reloadTitle')}
                   >
                     <RefreshCw
                       className={`w-3.5 h-3.5 ${loadingLinks ? 'animate-spin text-[#F97316]' : ''}`}
@@ -535,13 +556,17 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                 <table className='w-full text-left border-collapse text-xs'>
                   <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-xs text-[#737373] uppercase'>
                     <tr>
-                      <th className='py-2.5 px-3'>Email Người Nhận</th>
-                      <th className='py-2.5 px-3'>Trạng Thái</th>
-                      <th className='py-2.5 px-3'>Hạn Sử Dụng</th>
-                      <th className='py-2.5 px-3'>Truy Cập (Mở / Chặn)</th>
-                      <th className='py-2.5 px-3'>Lần Cuối Mở</th>
-                      <th className='py-2.5 px-3'>Phản Hồi</th>
-                      <th className='py-2.5 px-3 text-right'>Thao Tác</th>
+                      <th className='py-2.5 px-3'>{t('common.modals.previewLinks.colEmail')}</th>
+                      <th className='py-2.5 px-3'>{t('common.modals.previewLinks.colStatus')}</th>
+                      <th className='py-2.5 px-3'>{t('common.modals.previewLinks.colExpires')}</th>
+                      <th className='py-2.5 px-3'>{t('common.modals.previewLinks.colAccess')}</th>
+                      <th className='py-2.5 px-3'>
+                        {t('common.modals.previewLinks.colLastAccess')}
+                      </th>
+                      <th className='py-2.5 px-3'>{t('common.modals.previewLinks.colFeedback')}</th>
+                      <th className='py-2.5 px-3 text-right'>
+                        {t('common.modals.previewLinks.colActions')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className='divide-y divide-[#E7E7E7]'>
@@ -549,13 +574,13 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                       <tr>
                         <td colSpan={7} className='py-8 text-center text-[#888888]'>
                           <Loader2 className='w-5 h-5 animate-spin mx-auto mb-1 text-[#F97316]' />
-                          <span>Đang nạp danh sách liên kết...</span>
+                          <span>{t('common.modals.previewLinks.loadingLinks')}</span>
                         </td>
                       </tr>
                     ) : links.length === 0 ? (
                       <tr>
                         <td colSpan={7} className='py-8 text-center text-[#888888]'>
-                          Chưa có link xem thử nào được tạo cho chương này.
+                          {t('common.modals.previewLinks.emptyLinks')}
                         </td>
                       </tr>
                     ) : (
@@ -569,10 +594,10 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                               : 'bg-zinc-100 text-zinc-600 border-zinc-300';
                         const statusLabel =
                           item.status === 'Active' && !isExpired
-                            ? 'Hoạt động'
+                            ? t('common.modals.previewLinks.statusActive')
                             : item.status === 'Revoked'
-                              ? 'Đã thu hồi'
-                              : 'Hết hạn';
+                              ? t('common.modals.previewLinks.statusRevoked')
+                              : t('common.modals.previewLinks.statusExpired');
 
                         return (
                           <tr key={item.id} className='hover:bg-[#FAF8F5] transition-colors'>
@@ -595,7 +620,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                             <td className='py-2.5 px-3 font-mono text-xs text-[#737373]'>
                               {item.lastAccessAt
                                 ? new Date(item.lastAccessAt).toLocaleString('vi-VN')
-                                : 'Chưa xem'}
+                                : t('common.modals.previewLinks.notViewedYet')}
                             </td>
                             <td className='py-2.5 px-3 font-mono text-xs font-bold text-[#F97316]'>
                               {item.feedbackCount || 0}
@@ -609,7 +634,9 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                                   className='px-2 py-1 rounded bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50'
                                   data-testid={`revoke-link-btn-${item.id}`}
                                 >
-                                  {revokingId === item.id ? 'Đang thu hồi...' : 'Thu hồi'}
+                                  {revokingId === item.id
+                                    ? t('common.modals.previewLinks.revokingBtn')
+                                    : t('common.modals.previewLinks.revokeBtn')}
                                 </button>
                               )}
                             </td>
@@ -628,7 +655,9 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
               {/* Filter Bar */}
               <div className='flex items-center justify-between'>
                 <div className='flex items-center gap-1.5'>
-                  <span className='text-xs font-semibold text-[#737373]'>Lọc trạng thái:</span>
+                  <span className='text-xs font-semibold text-[#737373]'>
+                    {t('common.modals.previewLinks.filterStatusLabel')}
+                  </span>
                   {(['ALL', 'New', 'Noted', 'NeedsChange'] as const).map((st) => (
                     <button
                       key={st}
@@ -642,12 +671,12 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                       data-testid={`filter-feedback-${st}`}
                     >
                       {st === 'ALL'
-                        ? 'Tất cả'
+                        ? t('common.modals.previewLinks.filterAll')
                         : st === 'New'
-                          ? 'Mới (New)'
+                          ? t('common.modals.previewLinks.filterNew')
                           : st === 'Noted'
-                            ? 'Đã ghi nhận'
-                            : 'Cần sửa (NeedsChange)'}
+                            ? t('common.modals.previewLinks.filterNoted')
+                            : t('common.modals.previewLinks.filterNeedsChange')}
                     </button>
                   ))}
                 </div>
@@ -657,7 +686,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                   onClick={fetchFeedback}
                   disabled={loadingFeedback}
                   className='p-1 rounded hover:bg-[#FAF8F5] text-[#737373] hover:text-[#171717] transition-colors cursor-pointer'
-                  title='Tải lại phản hồi'
+                  title={t('common.modals.previewLinks.reloadFeedbackTitle')}
                 >
                   <RefreshCw
                     className={`w-3.5 h-3.5 ${loadingFeedback ? 'animate-spin text-[#F97316]' : ''}`}
@@ -669,14 +698,16 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
               {loadingFeedback ? (
                 <div className='py-12 text-center text-[#888888]'>
                   <Loader2 className='w-5 h-5 animate-spin mx-auto mb-1 text-[#F97316]' />
-                  <span>Đang tải danh sách phản hồi...</span>
+                  <span>{t('common.modals.previewLinks.loadingFeedback')}</span>
                 </div>
               ) : feedbacks.length === 0 ? (
                 <div className='py-12 text-center text-[#888888] border border-dashed border-[#E7E7E7] rounded-xl space-y-1'>
                   <MessageSquare className='w-6 h-6 mx-auto text-[#888888]' />
-                  <div className='font-bold text-[#171717]'>Chưa có phản hồi nào</div>
+                  <div className='font-bold text-[#171717]'>
+                    {t('common.modals.previewLinks.emptyFeedbackTitle')}
+                  </div>
                   <p className='text-xs text-[#737373]'>
-                    Các ý kiến đóng góp từ liên kết xem thử công khai sẽ xuất hiện ở đây.
+                    {t('common.modals.previewLinks.emptyFeedbackDesc')}
                   </p>
                 </div>
               ) : (
@@ -688,21 +719,23 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                       fb.pageNumber ?? (fb.pageId ? pageNumberById.get(fb.pageId) : undefined);
                     const pageText =
                       pageNum !== undefined
-                        ? `Trang ${pageNum}`
+                        ? t('common.modals.previewLinks.pageNum', { number: pageNum })
                         : fb.pageId
-                          ? `Trang #${fb.pageId.slice(0, 6)}`
+                          ? t('common.modals.previewLinks.pageId', { id: fb.pageId.slice(0, 6) })
                           : null;
                     const panelNum = fb.panelNumber ?? undefined;
                     const panelText = fb.panelId
                       ? panelNum !== undefined
-                        ? `Khung #${panelNum}`
-                        : `Khung #${fb.panelId.slice(0, 6)}`
+                        ? t('common.modals.previewLinks.panelNum', { number: panelNum })
+                        : t('common.modals.previewLinks.panelNum', {
+                            number: fb.panelId.slice(0, 6),
+                          })
                       : null;
                     const scopeLabel = panelText
                       ? pageText
                         ? `${panelText} (${pageText})`
                         : panelText
-                      : (pageText ?? 'Toàn Chương');
+                      : (pageText ?? t('common.modals.previewLinks.wholeChapter'));
                     const artworkVersion = fb.artworkVersionNumber ?? undefined;
 
                     return (
@@ -722,7 +755,9 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                             </span>
                             {artworkVersion !== undefined && (
                               <span className='text-xs font-mono text-[#888888]'>
-                                (Bản v{artworkVersion})
+                                {t('common.modals.previewLinks.artworkVersion', {
+                                  version: artworkVersion,
+                                })}
                               </span>
                             )}
                           </div>
@@ -739,10 +774,10 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                               data-testid={`feedback-status-${fb.id}`}
                             >
                               {fb.status === 'New'
-                                ? 'Chờ duyệt'
+                                ? t('common.modals.previewLinks.feedbackStatusNew')
                                 : fb.status === 'Noted'
-                                  ? 'Đã ghi nhận'
-                                  : 'Cần sửa đổi'}
+                                  ? t('common.modals.previewLinks.feedbackStatusNoted')
+                                  : t('common.modals.previewLinks.feedbackStatusNeedsChange')}
                             </span>
                             <span className='text-xs text-[#888888] font-mono'>
                               {new Date(fb.createdAt).toLocaleString('vi-VN')}
@@ -758,7 +793,9 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                         {/* Ghi chú triage đã có */}
                         {fb.triageNote && (
                           <div className='text-xs text-[#555555] bg-blue-50/60 border border-blue-200/80 p-2.5 rounded-lg'>
-                            <strong className='text-blue-900'>Ghi chú xử lý:</strong>{' '}
+                            <strong className='text-blue-900'>
+                              {t('common.modals.previewLinks.triageNoteLabel')}
+                            </strong>{' '}
                             {fb.triageNote}
                             {fb.triagedAt && (
                               <span className='text-xs text-blue-700 font-mono ml-2'>
@@ -777,8 +814,8 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                             <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
                             <span>
                               {fb.stageTaskId
-                                ? 'Đã chuyển thành yêu cầu sửa trên Lưới V3 (ô công việc đã mở lại / thông báo người làm).'
-                                : 'Đã chuyển thành yêu cầu sửa. Theo dõi tiến độ ở danh sách Yêu cầu sửa của chương.'}
+                                ? t('common.modals.previewLinks.crLinkedGrid')
+                                : t('common.modals.previewLinks.crLinkedLegacy')}
                             </span>
                           </div>
                         )}
@@ -794,8 +831,8 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                               }
                               placeholder={
                                 fb.status === 'NeedsChange'
-                                  ? 'Nhập ghi chú / lý do sửa đổi (Bắt buộc)...'
-                                  : 'Nhập ghi chú xử lý (tuỳ chọn)...'
+                                  ? t('common.modals.previewLinks.triagePlaceholderRequired')
+                                  : t('common.modals.previewLinks.triagePlaceholderOptional')
                               }
                               className='flex-1 px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
                               data-testid={`triage-note-input-${fb.id}`}
@@ -809,7 +846,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                                 className='px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50'
                                 data-testid={`triage-noted-btn-${fb.id}`}
                               >
-                                Ghi nhận (Noted)
+                                {t('common.modals.previewLinks.triageNotedBtn')}
                               </button>
 
                               <button
@@ -819,12 +856,12 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                                 className='px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 border border-orange-300 text-orange-800 font-semibold text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'
                                 title={
                                   !noteValue.trim()
-                                    ? 'NeedsChange bắt buộc phải nhập ghi chú'
-                                    : 'Đánh dấu cần sửa đổi'
+                                    ? t('common.modals.previewLinks.triageNeedsChangeTitleDisabled')
+                                    : t('common.modals.previewLinks.triageNeedsChangeTitleEnabled')
                                 }
                                 data-testid={`triage-needschange-btn-${fb.id}`}
                               >
-                                Cần sửa (NeedsChange)
+                                {t('common.modals.previewLinks.triageNeedsChangeBtn')}
                               </button>
                             </div>
                           </div>
@@ -838,7 +875,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                           onReopenChapter && (
                             <div className='p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg flex items-center justify-between gap-3 text-amber-900'>
                               <span className='text-xs'>
-                                💡 Phản hồi yêu cầu sửa đổi. Mở lại chương để tiếp tục sản xuất:
+                                💡 {t('common.modals.previewLinks.reopenHint')}
                               </span>
                               <button
                                 type='button'
@@ -849,7 +886,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                                 data-testid={`reopen-chapter-from-feedback-btn-${fb.id}`}
                               >
                                 <RotateCcw className='w-3.5 h-3.5' />
-                                <span>Mở lại chương</span>
+                                <span>{t('common.modals.previewLinks.reopenBtn')}</span>
                               </button>
                             </div>
                           )}
@@ -864,7 +901,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                                 htmlFor={`cr-assignment-${fb.id}`}
                                 className='text-xs shrink-0'
                               >
-                                Giao sửa cho việc:
+                                {t('common.modals.previewLinks.assignCrLabel')}
                               </label>
                               <select
                                 id={`cr-assignment-${fb.id}`}
@@ -875,49 +912,56 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                                 className='flex-1 min-w-0 px-2 py-1.5 bg-white border border-orange-200 rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
                                 data-testid={`cr-assignment-select-${fb.id}`}
                               >
-                                <option value=''>-- Chọn việc cần sửa --</option>
+                                <option value=''>
+                                  {t('common.modals.previewLinks.selectTaskPlaceholder')}
+                                </option>
                                 {assignmentOptions(fb).map((a) => {
                                   const waiting =
                                     a.status === 'Submitted' || a.status === 'UnderReview';
                                   return (
                                     <option key={a.id} value={a.id} disabled={waiting}>
                                       {a.assignedRole} · {a.brief.slice(0, 60)} (
-                                      {waiting ? 'đang chờ duyệt' : a.status})
+                                      {waiting
+                                        ? t('common.modals.previewLinks.waitingReview')
+                                        : a.status}
+                                      )
                                     </option>
                                   );
                                 })}
-                                {gridTaskOptions(fb).map((t) => {
+                                {gridTaskOptions(fb).map((task) => {
                                   const waiting =
-                                    t.status === 'Submitted' || t.status === 'UnderReview';
+                                    task.status === 'Submitted' || task.status === 'UnderReview';
                                   const stg = taskGrid?.stages.find(
-                                    (s) => s.id === t.pipelineStageId,
+                                    (s) => s.id === task.pipelineStageId,
                                   );
-                                  const pageNum = t.pageId
-                                    ? pageNumberById.get(t.pageId)
+                                  const pageNum = task.pageId
+                                    ? pageNumberById.get(task.pageId)
                                     : undefined;
-                                  const lot = t.lotId
-                                    ? taskGrid?.lots.find((l) => l.id === t.lotId)
+                                  const lot = task.lotId
+                                    ? taskGrid?.lots.find((l) => l.id === task.lotId)
                                     : null;
                                   const stageLabel = stg
                                     ? `${stg.stageOrder}. ${stg.name}`
-                                    : 'Công đoạn';
+                                    : t('common.modals.previewLinks.stageFallback');
                                   const pageLabel = pageNum
-                                    ? `Trang ${pageNum}`
-                                    : t.pageId
-                                      ? `Trang #${t.pageId.slice(0, 6)}`
-                                      : 'Toàn chương';
+                                    ? t('common.modals.previewLinks.pageNum', { number: pageNum })
+                                    : task.pageId
+                                      ? t('common.modals.previewLinks.pageId', {
+                                          id: task.pageId.slice(0, 6),
+                                        })
+                                      : t('common.modals.previewLinks.wholeChapterLower');
                                   const rolePrefix = lot?.assignedRole
                                     ? `${lot.assignedRole} · `
                                     : '';
                                   return (
-                                    <option key={t.id} value={t.id} disabled={waiting}>
-                                      [Lưới V3] {rolePrefix}
+                                    <option key={task.id} value={task.id} disabled={waiting}>
+                                      {t('common.modals.previewLinks.gridPrefix')} {rolePrefix}
                                       {stageLabel} · {pageLabel} (
                                       {waiting
-                                        ? 'đang chờ duyệt'
-                                        : t.status === 'Approved'
-                                          ? 'Đã duyệt → mở lại'
-                                          : t.status}
+                                        ? t('common.modals.previewLinks.waitingReview')
+                                        : task.status === 'Approved'
+                                          ? t('common.modals.previewLinks.approvedReopen')
+                                          : task.status}
                                       )
                                     </option>
                                   );
@@ -935,7 +979,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                                 {creatingCrId === fb.id && (
                                   <Loader2 className='w-3.5 h-3.5 animate-spin' />
                                 )}
-                                <span>Tạo yêu cầu sửa</span>
+                                <span>{t('common.modals.previewLinks.createCrBtn')}</span>
                               </button>
                             </div>
                           )}

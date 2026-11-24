@@ -10,6 +10,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { chapterService, ChapterReviewDto, ChapterReviewAction } from '@/services/chapter.service';
+import { useTranslation } from '@/lib/i18n';
 import { Modal } from '@/shared/ui';
 
 interface ChapterReviewsModalProps {
@@ -27,6 +28,7 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
   chapterNumber,
   chapterTitle,
 }) => {
+  const { t, lang } = useTranslation();
   const [reviews, setReviews] = useState<ChapterReviewDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
       })
       .catch((err) => {
         if (mounted) {
-          setError(err.message || 'Không thể tải lịch sử phê duyệt.');
+          setError(err.message || t('common.modals.chapterReviews.loadError'));
           setLoading(false);
         }
       });
@@ -56,7 +58,7 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
     return () => {
       mounted = false;
     };
-  }, [isOpen, chapterId]);
+  }, [isOpen, chapterId, t]);
 
   if (!isOpen) return null;
 
@@ -64,35 +66,35 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
     switch (action) {
       case 'ProducerApproved':
         return {
-          label: 'Producer Đã Phê Duyệt',
+          label: t('common.modals.chapterReviews.actions.producerApprovedLabel'),
           color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
           dotBg: 'bg-emerald-500',
           icon: <CheckCircle2 className='w-4 h-4 text-emerald-600' />,
-          desc: 'Chương hoàn tất sản xuất và chuyển sang trạng thái Approved (chờ xuất bản)',
+          desc: t('common.modals.chapterReviews.actions.producerApprovedDesc'),
         };
       case 'ProducerReopened':
         return {
-          label: 'Producer Mở Lại Sản Xuất',
+          label: t('common.modals.chapterReviews.actions.producerReopenedLabel'),
           color: 'text-amber-700 bg-amber-50 border-amber-200',
           dotBg: 'bg-amber-500',
           icon: <RotateCcw className='w-4 h-4 text-amber-600' />,
-          desc: 'Chương được chuyển lại trạng thái InProduction để tiếp tục chỉnh sửa',
+          desc: t('common.modals.chapterReviews.actions.producerReopenedDesc'),
         };
       case 'PublisherRejected':
         return {
-          label: 'Publisher Từ Chối Xuất Bản',
+          label: t('common.modals.chapterReviews.actions.publisherRejectedLabel'),
           color: 'text-rose-700 bg-rose-50 border-rose-200',
           dotBg: 'bg-rose-500',
           icon: <AlertTriangle className='w-4 h-4 text-rose-600' />,
-          desc: 'Publisher yêu cầu hoàn thiện thêm trước khi phát hành chính thức',
+          desc: t('common.modals.chapterReviews.actions.publisherRejectedDesc'),
         };
       case 'PublisherPublished':
         return {
-          label: 'Publisher Đã Xuất Bản',
+          label: t('common.modals.chapterReviews.actions.publisherPublishedLabel'),
           color: 'text-indigo-700 bg-indigo-50 border-indigo-200',
           dotBg: 'bg-indigo-500',
           icon: <Send className='w-4 h-4 text-indigo-600' />,
-          desc: 'Chương đã được phát hành hoặc lên lịch phát hành chính thức tới độc giả',
+          desc: t('common.modals.chapterReviews.actions.publisherPublishedDesc'),
         };
       default:
         return {
@@ -100,7 +102,7 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
           color: 'text-neutral-700 bg-neutral-50 border-neutral-200',
           dotBg: 'bg-neutral-500',
           icon: <Clock className='w-4 h-4 text-neutral-600' />,
-          desc: 'Thao tác xem xét',
+          desc: t('common.modals.chapterReviews.actions.defaultDesc'),
         };
     }
   };
@@ -109,7 +111,7 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
     if (!isoString) return '';
     try {
       const d = new Date(isoString);
-      return d.toLocaleString('vi-VN', {
+      return d.toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN', {
         hour: '2-digit',
         minute: '2-digit',
         day: '2-digit',
@@ -125,9 +127,9 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      closeLabel='Đóng'
+      closeLabel={t('common.actions.close')}
       size='lg'
-      title='Lịch Sử Phê Duyệt & Xuất Bản'
+      title={t('common.modals.chapterReviews.title')}
     >
       <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]'>
         {/* Header */}
@@ -137,9 +139,14 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
               <History className='w-4 h-4' />
             </div>
             <div>
-              <h3 className='font-bold text-sm text-[#171717]'>Lịch Sử Phê Duyệt & Xuất Bản</h3>
+              <h3 className='font-bold text-sm text-[#171717]'>
+                {t('common.modals.chapterReviews.title')}
+              </h3>
               <p className='text-xs text-[#737373]'>
-                Chương {chapterNumber}: {chapterTitle || 'Không tiêu đề'}
+                {t('common.modals.chapterReviews.chapterSubtitle', {
+                  number: chapterNumber,
+                  title: chapterTitle || t('common.modals.chapterReviews.untitled'),
+                })}
               </p>
             </div>
           </div>
@@ -156,7 +163,7 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
           {loading && (
             <div className='py-12 flex flex-col items-center justify-center text-xs text-[#888888] gap-2'>
               <Clock className='w-5 h-5 animate-spin text-orange-500' />
-              <span>Đang tải lịch sử phê duyệt...</span>
+              <span>{t('common.modals.chapterReviews.loading')}</span>
             </div>
           )}
 
@@ -168,7 +175,7 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
 
           {!loading && !error && reviews.length === 0 && (
             <div className='py-12 text-center text-xs text-[#888888]'>
-              Chưa có lượt phê duyệt hoặc xuất bản nào được ghi nhận cho chương này.
+              {t('common.modals.chapterReviews.empty')}
             </div>
           )}
 
@@ -206,7 +213,7 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
                       {rev.comment && (
                         <div className='p-2.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] mt-1 space-y-0.5'>
                           <div className='text-[10px] font-bold text-[#888888] uppercase tracking-wider'>
-                            Ghi chú / Lý do:
+                            {t('common.modals.chapterReviews.commentLabel')}
                           </div>
                           <p className='whitespace-pre-wrap leading-relaxed'>{rev.comment}</p>
                         </div>
@@ -216,7 +223,7 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
                         <div className='flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg p-2 font-medium'>
                           <Calendar className='w-3.5 h-3.5 shrink-0' />
                           <span>
-                            Thời gian phát hành dự kiến:{' '}
+                            {t('common.modals.chapterReviews.scheduledAt')}{' '}
                             <strong>{formatDate(rev.scheduledAt)}</strong>
                           </span>
                         </div>
@@ -235,7 +242,7 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
             onClick={onClose}
             className='px-4 py-1.5 bg-neutral-900 hover:bg-black text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer'
           >
-            Đóng
+            {t('common.actions.close')}
           </button>
         </div>
       </div>

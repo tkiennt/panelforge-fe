@@ -1,5 +1,6 @@
 // Lucian UX/UI Prompt #074 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#074
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/lucian/lucian-074.css';
 
 export interface LucianNotificationItem {
@@ -24,70 +25,81 @@ export interface NotificationBellDropdownProps {
   onMarkAllRead?: () => void;
 }
 
-const DEFAULT_ITEMS: LucianNotificationItem[] = [
-  {
-    id: 1,
-    author: 'Doyun Han',
-    action: ' mentioned you: “@Artist could you check this panel linework?”',
-    time: 'Vừa xong',
-    gradient: 'linear-gradient(140deg,#8B6CFF,#5B8CFF)',
-    icon: '💬',
-    isMention: true,
-    isRead: false,
-  },
-  {
-    id: 2,
-    author: 'Harin Yoon',
-    action: ' đã phê duyệt bản thảo “Chương 1: Khởi đầu”',
-    time: '12 phút trước',
-    gradient: 'linear-gradient(140deg,#22C3A6,#0EA5E9)',
-    icon: '✅',
-    isMention: false,
-    isRead: false,
-  },
-  {
-    id: 3,
-    author: 'Mina Jung',
-    action: ' đã giao việc mới cho bạn ở công đoạn Inking & Tone',
-    time: '1 giờ trước',
-    gradient: 'linear-gradient(140deg,#FF7A93,#B04FD0)',
-    icon: '👋',
-    isMention: false,
-    isRead: true,
-  },
-  {
-    id: 4,
-    author: 'PanelForge AI',
-    action: ' Báo cáo kiểm tra tính nhất quán Series Bible đã hoàn tất',
-    time: 'Hôm qua',
-    gradient: 'linear-gradient(140deg,#FFB547,#FF7A45)',
-    icon: '📊',
-    isMention: false,
-    isRead: true,
-  },
-];
-
 export const NotificationBellDropdown: React.FC<NotificationBellDropdownProps> = ({
-  title = 'Thông báo',
-  initialItems = DEFAULT_ITEMS,
-  allLabel = 'Tất cả',
-  mentionsLabel = 'Đề cập',
-  markAllReadLabel = 'Đọc tất cả',
+  title,
+  initialItems,
+  allLabel,
+  mentionsLabel,
+  markAllReadLabel,
   className = '',
   onNotificationClick,
   onMarkAllRead,
 }) => {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t('common.components.notificationBell.defaultTitle');
+  const resolvedAllLabel = allLabel ?? t('common.components.notificationBell.allLabel');
+  const resolvedMentionsLabel =
+    mentionsLabel ?? t('common.components.notificationBell.mentionsLabel');
+  const resolvedMarkAllReadLabel =
+    markAllReadLabel ?? t('common.components.notificationBell.markAllReadLabel');
+  const defaultItems = useMemo<LucianNotificationItem[]>(
+    () => [
+      {
+        id: 1,
+        author: 'Doyun Han',
+        action: ' mentioned you: “@Artist could you check this panel linework?”',
+        time: t('common.components.notificationBell.demoTimeJustNow'),
+        gradient: 'linear-gradient(140deg,#8B6CFF,#5B8CFF)',
+        icon: '💬',
+        isMention: true,
+        isRead: false,
+      },
+      {
+        id: 2,
+        author: 'Harin Yoon',
+        action: t('common.components.notificationBell.demoActionApproved'),
+        time: t('common.components.notificationBell.demoTime12m'),
+        gradient: 'linear-gradient(140deg,#22C3A6,#0EA5E9)',
+        icon: '✅',
+        isMention: false,
+        isRead: false,
+      },
+      {
+        id: 3,
+        author: 'Mina Jung',
+        action: t('common.components.notificationBell.demoActionAssigned'),
+        time: t('common.components.notificationBell.demoTime1h'),
+        gradient: 'linear-gradient(140deg,#FF7A93,#B04FD0)',
+        icon: '👋',
+        isMention: false,
+        isRead: true,
+      },
+      {
+        id: 4,
+        author: 'PanelForge AI',
+        action: t('common.components.notificationBell.demoActionBibleReport'),
+        time: t('common.components.notificationBell.demoTimeYesterday'),
+        gradient: 'linear-gradient(140deg,#FFB547,#FF7A45)',
+        icon: '📊',
+        isMention: false,
+        isRead: true,
+      },
+    ],
+    [t],
+  );
+  const resolvedInitialItems = initialItems ?? defaultItems;
+
   const rootRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'mentions'>('all');
-  const [items, setItems] = useState<LucianNotificationItem[]>(initialItems);
+  const [items, setItems] = useState<LucianNotificationItem[]>(resolvedInitialItems);
   const [isRinging, setIsRinging] = useState(false);
 
   // Cập nhật items nếu props initialItems thay đổi
   useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems]);
+    setItems(resolvedInitialItems);
+  }, [resolvedInitialItems]);
 
   const unreadCount = items.filter((item) => !item.isRead).length;
 
@@ -148,7 +160,7 @@ export const NotificationBellDropdown: React.FC<NotificationBellDropdownProps> =
       data-testid='lucian-074-dropdown'
     >
       <div className='u074-top'>
-        {title && <b>{title}</b>}
+        {resolvedTitle && <b>{resolvedTitle}</b>}
         <button
           ref={bellRef}
           className={`u074-bell ${isRinging ? 'ring' : ''}`}
@@ -181,7 +193,7 @@ export const NotificationBellDropdown: React.FC<NotificationBellDropdownProps> =
             onClick={() => setActiveTab('all')}
             data-testid='u074-tab-all'
           >
-            {allLabel}
+            {resolvedAllLabel}
           </button>
           <button
             className='u074-tab'
@@ -191,7 +203,7 @@ export const NotificationBellDropdown: React.FC<NotificationBellDropdownProps> =
             onClick={() => setActiveTab('mentions')}
             data-testid='u074-tab-mentions'
           >
-            {mentionsLabel}
+            {resolvedMentionsLabel}
           </button>
           <button
             className='u074-all'
@@ -200,14 +212,14 @@ export const NotificationBellDropdown: React.FC<NotificationBellDropdownProps> =
             onClick={handleMarkAllRead}
             data-testid='u074-mark-all-read'
           >
-            {markAllReadLabel}
+            {resolvedMarkAllReadLabel}
           </button>
         </div>
 
         <ul className='u074-list' aria-live='polite' data-testid='u074-list'>
           {displayedItems.length === 0 ? (
             <li className='p-6 text-center text-xs text-stone-400 font-medium'>
-              Không có thông báo nào
+              {t('common.components.notificationBell.empty')}
             </li>
           ) : (
             displayedItems.map((item) => (
@@ -217,7 +229,11 @@ export const NotificationBellDropdown: React.FC<NotificationBellDropdownProps> =
                     className={`u074-row ${item.isRead ? 'read' : ''}`}
                     type='button'
                     onClick={() => handleItemClick(item)}
-                    aria-label={`${item.author} ${item.action}, ${item.isRead ? 'đã đọc' : 'chưa đọc'}`}
+                    aria-label={`${item.author} ${item.action}, ${
+                      item.isRead
+                        ? t('common.components.notificationBell.readStatus')
+                        : t('common.components.notificationBell.unreadStatus')
+                    }`}
                   >
                     <span
                       className='u074-av'

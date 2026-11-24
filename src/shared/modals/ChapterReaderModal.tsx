@@ -22,6 +22,7 @@ import {
 import { Modal } from '@/shared/ui';
 import { LanguageSelector } from '@/shared/components/LanguageSelector';
 import { userService } from '@/services/user.service';
+import { useTranslation } from '@/lib/i18n';
 
 interface ChapterReaderModalProps {
   isOpen: boolean;
@@ -46,6 +47,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
   chapterNumber,
   chapterTitle,
 }) => {
+  const { t } = useTranslation();
   const [data, setData] = useState<PublicChapterReadDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,9 +93,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
       })
       .catch((err) => {
         if (mounted) {
-          setError(
-            err.message || 'Chương chưa sẵn sàng hoặc chưa tới thời điểm phát hành chính thức.',
-          );
+          setError(err.message || t('common.modals.chapterReader.notReadyError'));
           setLoading(false);
         }
       });
@@ -101,7 +101,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
     return () => {
       mounted = false;
     };
-  }, [isOpen, chapterId, readingLang]);
+  }, [isOpen, chapterId, readingLang, t]);
 
   const totalPages = data?.pages.length || 0;
   const isRTL = data?.readingDirection === 'RightToLeft';
@@ -153,9 +153,9 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      closeLabel='Đóng trình đọc'
+      closeLabel={t('common.modals.chapterReader.closeReader')}
       size='full'
-      title='Trình đọc chương'
+      title={t('common.modals.chapterReader.title')}
       className='bg-[#0F0F11] text-white select-none'
     >
       {/* Top Bar */}
@@ -164,8 +164,8 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
           <button
             onClick={onClose}
             className='w-8 h-8 shrink-0 rounded-lg hover:bg-[#27272A] flex items-center justify-center text-neutral-400 hover:text-white transition-colors cursor-pointer'
-            title='Thoát trình đọc (Esc)'
-            aria-label='Đóng trình đọc'
+            title={t('common.modals.chapterReader.exitReaderTitle')}
+            aria-label={t('common.modals.chapterReader.closeReader')}
           >
             <X className='w-5 h-5' />
           </button>
@@ -173,14 +173,16 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
             {data?.coverUrl && (
               <img
                 src={resolveCatalogImageUrl(data.coverUrl)}
-                alt={`Bìa ${data.title || data.chapterNumber}`}
+                alt={t('common.modals.chapterReader.coverAlt', {
+                  name: data.title || data.chapterNumber,
+                })}
                 className='w-7 h-10 object-cover rounded border border-neutral-700 shadow-2xs shrink-0'
               />
             )}
             <div className='min-w-0'>
               <div className='flex items-center gap-2'>
                 <h2 className='text-sm font-bold text-white truncate'>
-                  {data?.seriesTitle || 'Đang tải tác phẩm...'}
+                  {data?.seriesTitle || t('common.modals.chapterReader.loadingSeries')}
                 </h2>
                 <span className='shrink-0 px-1.5 py-0.5 rounded bg-orange-950/60 text-orange-400 border border-orange-800 text-[10px] font-mono'>
                   {data?.readingDirection === 'RightToLeft'
@@ -191,7 +193,9 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                 </span>
               </div>
               <p className='text-[11px] text-neutral-400 font-mono truncate'>
-                Chương {data ? data.chapterNumber : chapterNumber}
+                {t('common.modals.chapterReader.chapterLabel', {
+                  number: data ? data.chapterNumber : (chapterNumber ?? ''),
+                })}
                 {(data?.title || chapterTitle) && ` · ${data?.title || chapterTitle}`}
               </p>
             </div>
@@ -204,18 +208,19 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
               onClick={isRTL ? handleNext : handlePrev}
               disabled={isRTL ? currentPageIndex >= totalPages - 1 : currentPageIndex <= 0}
               className='p-1.5 rounded-lg border border-[#27272A] hover:bg-[#27272A] disabled:opacity-30 disabled:pointer-events-none cursor-pointer'
-              aria-label='Trang bên trái'
+              aria-label={t('common.modals.chapterReader.leftPageAria')}
             >
               <ChevronLeft className='w-4 h-4' />
             </button>
             <span className='px-2 tabular-nums'>
-              Trang <strong>{currentPageIndex + 1}</strong> / {totalPages}
+              {t('common.modals.chapterReader.pagePrefix')} <strong>{currentPageIndex + 1}</strong>{' '}
+              / {totalPages}
             </span>
             <button
               onClick={isRTL ? handlePrev : handleNext}
               disabled={isRTL ? currentPageIndex <= 0 : currentPageIndex >= totalPages - 1}
               className='p-1.5 rounded-lg border border-[#27272A] hover:bg-[#27272A] disabled:opacity-30 disabled:pointer-events-none cursor-pointer'
-              aria-label='Trang bên phải'
+              aria-label={t('common.modals.chapterReader.rightPageAria')}
             >
               <ChevronRight className='w-4 h-4' />
             </button>
@@ -238,7 +243,11 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
             <button
               onClick={() => setFitMode(fitMode === 'height' ? 'width' : 'height')}
               className={`${toolBtn} hover:bg-[#27272A] text-neutral-300`}
-              title={fitMode === 'height' ? 'Phóng theo chiều ngang' : 'Thu cả trang vừa màn hình'}
+              title={
+                fitMode === 'height'
+                  ? t('common.modals.chapterReader.fitWidthTitle')
+                  : t('common.modals.chapterReader.fitHeightTitle')
+              }
             >
               {fitMode === 'height' ? (
                 <MoveVertical className='w-4 h-4' />
@@ -246,7 +255,9 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                 <MoveHorizontal className='w-4 h-4' />
               )}
               <span className='hidden md:inline'>
-                {fitMode === 'height' ? 'Vừa màn hình' : 'Vừa chiều ngang'}
+                {fitMode === 'height'
+                  ? t('common.modals.chapterReader.fitHeightLabel')
+                  : t('common.modals.chapterReader.fitWidthLabel')}
               </span>
             </button>
           )}
@@ -257,18 +268,24 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                 ? 'bg-orange-600 text-white'
                 : 'hover:bg-[#27272A] text-neutral-300'
             }`}
-            title={viewMode === 'single' ? 'Chuyển sang cuộn dọc' : 'Chuyển sang lật trang'}
+            title={
+              viewMode === 'single'
+                ? t('common.modals.chapterReader.switchVerticalTitle')
+                : t('common.modals.chapterReader.switchSingleTitle')
+            }
           >
             {viewMode === 'single' ? <Rows className='w-4 h-4' /> : <Columns className='w-4 h-4' />}
             <span className='hidden md:inline'>
-              {viewMode === 'single' ? 'Cuộn dọc' : 'Lật trang'}
+              {viewMode === 'single'
+                ? t('common.modals.chapterReader.verticalLabel')
+                : t('common.modals.chapterReader.singleLabel')}
             </span>
           </button>
           <button
             onClick={toggleFullscreen}
             className={`${toolBtn} hover:bg-[#27272A] text-neutral-300`}
-            title='Toàn màn hình'
-            aria-label='Toàn màn hình'
+            title={t('common.modals.chapterReader.fullscreen')}
+            aria-label={t('common.modals.chapterReader.fullscreen')}
           >
             {isFullscreen ? <Minimize2 className='w-4 h-4' /> : <Maximize2 className='w-4 h-4' />}
           </button>
@@ -281,20 +298,24 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
         {loading && (
           <div className='m-auto flex flex-col items-center gap-3 text-neutral-400'>
             <Loader2 className='w-8 h-8 animate-spin text-orange-500' />
-            <span className='text-xs font-mono'>Đang nạp dữ liệu chương &amp; ảnh gốc...</span>
+            <span className='text-xs font-mono'>
+              {t('common.modals.chapterReader.loadingChapter')}
+            </span>
           </div>
         )}
 
         {error && (
           <div className='m-auto max-w-md p-6 bg-[#18181B] border border-rose-900/60 rounded-2xl text-center space-y-3 shadow-2xl'>
             <AlertCircle className='w-10 h-10 text-rose-500 mx-auto' />
-            <h3 className='font-bold text-base text-rose-400'>Chưa Thể Đọc Chương Này</h3>
+            <h3 className='font-bold text-base text-rose-400'>
+              {t('common.modals.chapterReader.errorHeading')}
+            </h3>
             <p className='text-xs text-neutral-400 leading-relaxed'>{error}</p>
             <button
               onClick={onClose}
               className='px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer'
             >
-              Quay lại
+              {t('common.actions.back')}
             </button>
           </div>
         )}
@@ -302,11 +323,11 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
         {!loading && !error && data && totalPages === 0 && (
           <div className='m-auto text-center text-neutral-400 space-y-2'>
             <BookOpen className='w-8 h-8 mx-auto opacity-40' />
-            <p className='text-xs'>Chương này chưa có trang bản vẽ nào được hoàn thiện.</p>
+            <p className='text-xs'>{t('common.modals.chapterReader.noPages')}</p>
           </div>
         )}
 
-        {/* Lật trang kèm Zoom / Pan mượt mà */}
+        {/* Page flip with smooth zoom / pan */}
         {ready && viewMode === 'single' && (
           <div className='m-auto relative p-3 sm:p-6'>
             {currentPageUrl ? (
@@ -327,7 +348,9 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                     >
                       <img
                         src={currentPageUrl}
-                        alt={`Trang ${currentPageIndex + 1}`}
+                        alt={t('common.modals.chapterReader.pageAlt', {
+                          number: currentPageIndex + 1,
+                        })}
                         className={`block shadow-2xl rounded-sm bg-white ${
                           fitMode === 'height'
                             ? 'max-h-[calc(100dvh-14rem)] w-auto max-w-[calc(100vw-1.5rem)] object-contain'
@@ -336,7 +359,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                       />
                     </TransformComponent>
 
-                    {/* Huy hiệu tỉ lệ zoom & nút Đặt lại khi đã phóng to */}
+                    {/* Zoom badge and reset button */}
                     {state.scale !== 1 && (
                       <div className='absolute bottom-3 right-3 z-30 flex items-center gap-2 bg-neutral-900/90 text-white border border-neutral-700 px-2 py-1 rounded-md text-[11px] font-mono shadow-lg backdrop-blur-xs'>
                         <span>{Math.round(state.scale * 100)}%</span>
@@ -345,23 +368,23 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                           onClick={() => resetTransform()}
                           className='underline hover:text-orange-400 cursor-pointer ml-1'
                         >
-                          Vừa khung
+                          {t('common.modals.chapterReader.resetZoom')}
                         </button>
                       </div>
                     )}
 
-                    {/* Bấm nửa trái / phải của trang để lật khi ở tỷ lệ 100% (không che pan khi zoom) */}
+                    {/* Left / right click zones to flip pages at 100% scale */}
                     {state.scale === 1 && (
                       <>
                         <button
                           onClick={isRTL ? handleNext : handlePrev}
                           className='absolute left-0 top-0 bottom-0 w-1/4 cursor-w-resize z-10'
-                          aria-label='Lật sang trái'
+                          aria-label={t('common.modals.chapterReader.flipLeftAria')}
                         />
                         <button
                           onClick={isRTL ? handlePrev : handleNext}
                           className='absolute right-0 top-0 bottom-0 w-1/4 cursor-e-resize z-10'
-                          aria-label='Lật sang phải'
+                          aria-label={t('common.modals.chapterReader.flipRightAria')}
                         />
                       </>
                     )}
@@ -372,14 +395,14 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
               <div className='w-[min(36rem,80vw)] aspect-[2/3] bg-neutral-900 border border-neutral-800 flex flex-col items-center justify-center text-neutral-500 gap-2'>
                 <BookOpen className='w-12 h-12 opacity-30' />
                 <span className='text-xs font-mono'>
-                  Trang {currentPageIndex + 1} (Chưa có artwork)
+                  {t('common.modals.chapterReader.noArtwork', { number: currentPageIndex + 1 })}
                 </span>
               </div>
             )}
           </div>
         )}
 
-        {/* Cuộn dọc (webtoon) */}
+        {/* Vertical scroll (webtoon) */}
         {ready && viewMode === 'vertical' && (
           <div className='mx-auto w-full max-w-3xl flex flex-col gap-2 py-4 px-2'>
             {data.pages.map((p) => {
@@ -388,7 +411,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                 <img
                   key={p.id}
                   src={url}
-                  alt={`Trang ${p.pageNumber}`}
+                  alt={t('common.modals.chapterReader.pageAlt', { number: p.pageNumber })}
                   loading='lazy'
                   className='block w-full h-auto shadow-lg bg-white'
                 />
@@ -397,7 +420,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                   key={p.id}
                   className='w-full aspect-[2/3] bg-neutral-900 flex items-center justify-center text-neutral-600 text-xs font-mono'
                 >
-                  Trang {p.pageNumber}
+                  {t('common.modals.chapterReader.pageAlt', { number: p.pageNumber })}
                 </div>
               );
             })}
@@ -405,7 +428,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
         )}
       </div>
 
-      {/* Dải trang thu nhỏ: nhảy nhanh tới trang bất kỳ */}
+      {/* Thumbnail strip: quick jump to any page */}
       {ready && viewMode === 'single' && (
         <footer className='h-24 bg-[#18181B] border-t border-[#27272A] px-3 flex items-center gap-3 shrink-0'>
           <div className='flex-1 min-w-0 overflow-x-auto custom-scrollbar'>
@@ -417,7 +440,9 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                   <button
                     key={p.id}
                     onClick={() => setCurrentPageIndex(i)}
-                    aria-label={`Tới trang ${p.pageNumber}`}
+                    aria-label={t('common.modals.chapterReader.goToPageAria', {
+                      number: p.pageNumber,
+                    })}
                     aria-current={active ? 'page' : undefined}
                     className={`relative h-16 w-11 rounded overflow-hidden border-2 transition-all cursor-pointer ${
                       active
@@ -444,7 +469,9 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
             </div>
           </div>
           <span className='hidden md:block shrink-0 text-[11px] text-neutral-500 font-mono w-40 text-right'>
-            {isRTL ? '← Trang kế (chuẩn Manga)' : 'Trang kế →'}
+            {isRTL
+              ? t('common.modals.chapterReader.nextPageRtl')
+              : t('common.modals.chapterReader.nextPageLtr')}
           </span>
         </footer>
       )}

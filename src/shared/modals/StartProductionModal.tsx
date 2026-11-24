@@ -157,7 +157,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
       })
       .catch((err) => {
         if (!isMounted) return;
-        setSubmitError(err?.message || 'Lỗi nạp dữ liệu kiểm tra Gate 1');
+        setSubmitError(err?.message || t('common.modals.startProduction.loadError'));
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -335,7 +335,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
         err?.data?.message ||
         err?.data?.error ||
         err?.message ||
-        'Không thể bắt đầu sản xuất chương.';
+        t('common.modals.startProduction.submitError');
       setSubmitError(msg);
       setSubmitBlockers(Array.isArray(blockers) ? blockers : []);
       if (err?.status === 409 || err?.response?.status === 409 || err?.code === 'CONFLICT') {
@@ -575,7 +575,9 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                               ),
                             );
                           }}
-                          aria-label={`Artist dải trang ${index + 1}`}
+                          aria-label={t('common.modals.startProduction.artistRangeAria', {
+                            index: index + 1,
+                          })}
                           className='flex-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-medium text-stone-800'
                         >
                           <option value=''>
@@ -600,7 +602,9 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                             min={minPage}
                             max={maxPage}
                             value={r.pageFrom}
-                            aria-label={`Từ trang dải ${index + 1}`}
+                            aria-label={t('common.modals.startProduction.fromPageRangeAria', {
+                              index: index + 1,
+                            })}
                             onChange={(e) => {
                               const val = Number(e.target.value);
                               setArtistRanges((prev) =>
@@ -619,7 +623,9 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                             min={minPage}
                             max={maxPage}
                             value={r.pageTo}
-                            aria-label={`Đến trang dải ${index + 1}`}
+                            aria-label={t('common.modals.startProduction.toPageRangeAria', {
+                              index: index + 1,
+                            })}
                             onChange={(e) => {
                               const val = Number(e.target.value);
                               setArtistRanges((prev) =>
@@ -636,7 +642,9 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                           <button
                             type='button'
                             onClick={() => handleRemoveArtistRange(r.id)}
-                            aria-label={`Xóa dải ${index + 1}`}
+                            aria-label={t('common.modals.startProduction.removeRangeAria', {
+                              index: index + 1,
+                            })}
                             className='p-1.5 text-stone-400 hover:text-rose-600 transition-colors cursor-pointer'
                           >
                             <Trash2 className='w-4 h-4' />
@@ -783,7 +791,9 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                                   ),
                                 );
                               }}
-                              aria-label={`Letterer dải trang ${index + 1}`}
+                              aria-label={t('common.modals.startProduction.lettererRangeAria', {
+                                index: index + 1,
+                              })}
                               className='flex-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-medium text-stone-800'
                             >
                               <option value=''>
@@ -808,7 +818,10 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                                 min={minPage}
                                 max={maxPage}
                                 value={r.pageFrom}
-                                aria-label={`Letterer từ trang dải ${index + 1}`}
+                                aria-label={t(
+                                  'common.modals.startProduction.lettererFromPageAria',
+                                  { index: index + 1 },
+                                )}
                                 onChange={(e) => {
                                   const val = Number(e.target.value);
                                   setLettererRanges((prev) =>
@@ -827,7 +840,9 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                                 min={minPage}
                                 max={maxPage}
                                 value={r.pageTo}
-                                aria-label={`Letterer đến trang dải ${index + 1}`}
+                                aria-label={t('common.modals.startProduction.lettererToPageAria', {
+                                  index: index + 1,
+                                })}
                                 onChange={(e) => {
                                   const val = Number(e.target.value);
                                   setLettererRanges((prev) =>
@@ -844,7 +859,10 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                               <button
                                 type='button'
                                 onClick={() => handleRemoveLettererRange(r.id)}
-                                aria-label={`Xóa dải Letterer ${index + 1}`}
+                                aria-label={t(
+                                  'common.modals.startProduction.removeLettererRangeAria',
+                                  { index: index + 1 },
+                                )}
                                 className='p-1.5 text-stone-400 hover:text-rose-600 transition-colors cursor-pointer'
                               >
                                 <Trash2 className='w-4 h-4' />

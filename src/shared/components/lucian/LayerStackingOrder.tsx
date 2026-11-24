@@ -17,6 +17,7 @@ import {
 import type { ElementSnapshotDto } from '@/services/element.service';
 import type { BibleEntryDto } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
+import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/lucian/lucian-122.css';
 
 export interface LayerStackingOrderProps {
@@ -62,6 +63,13 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
   panels = [],
   className = '',
 }) => {
+  const { t } = useTranslation();
+  const getLayerTypeLabel = (type: string) => {
+    if (type in LAYER_TYPE_LABELS) {
+      return t(`common.components.layerStacking.types.${type}`);
+    }
+    return type;
+  };
   // Sắp xếp layer theo zIndex tăng dần (ở dưới cùng đến trên cùng)
   const sortedLayers = useMemo(() => {
     return [...elements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
@@ -122,19 +130,19 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
     <div
       className={`pf-layer-stacking ${className}`}
       data-testid='layer-stacking-order-root'
-      aria-label='Quản lý thứ tự lớp layer (#122)'
+      aria-label={t('common.components.layerStacking.rootAria')}
     >
       {/* 1. Visual Stack Stage: Trực quan hoá thứ tự xếp chồng theo phong cách Lucian #122 */}
       {previewLayers.length > 0 && (
         <div
           className='pf-layer-stack-stage'
           data-testid='layer-stack-preview-stage'
-          aria-label='Khung xem trước thứ tự xếp lớp 3D'
+          aria-label={t('common.components.layerStacking.stageAria')}
         >
           {previewLayers.map((el, index) => {
             const isSelected = el.elementId === selectedElementId;
             const bible = getBibleEntry(el);
-            const title = bible ? bible.name : LAYER_TYPE_LABELS[el.elementType] || el.elementType;
+            const title = bible ? bible.name : getLayerTypeLabel(el.elementType);
             const bg = LAYER_COLORS[el.elementType] || 'linear-gradient(135deg, #78716C, #44403C)';
 
             // Tính toán vị trí so le (staggered stack)
@@ -154,7 +162,10 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
                   zIndex: index + 1,
                 }}
                 aria-pressed={isSelected}
-                aria-label={`Layer ${title}, Z-Index: ${el.zIndex}. Bấm để chọn và đưa lên đầu.`}
+                aria-label={t('common.components.layerStacking.chipAria', {
+                  title,
+                  zIndex: el.zIndex ?? 0,
+                })}
                 onClick={() => {
                   onSelectElement(el.elementId);
                   handleBringToFront(el);
@@ -171,7 +182,9 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
               >
                 <div className='pf-layer-chip-title'>
                   {renderIcon(el.elementType)}
-                  <span className='truncate'>Lớp: {title}</span>
+                  <span className='truncate'>
+                    {t('common.components.layerStacking.layerPrefix', { title })}
+                  </span>
                 </div>
                 <span className='pf-layer-chip-z'>z:{el.zIndex ?? 0}</span>
               </button>
@@ -186,7 +199,7 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
         {[...sortedLayers].reverse().map((el) => {
           const isSelected = el.elementId === selectedElementId;
           const bible = getBibleEntry(el);
-          const title = bible ? bible.name : LAYER_TYPE_LABELS[el.elementType] || el.elementType;
+          const title = bible ? bible.name : getLayerTypeLabel(el.elementType);
           const panel = panels.find((p) => p.id === el.panelId);
 
           return (
@@ -218,10 +231,14 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
                     {el.rotation ? <span className='font-mono'>• {el.rotation}°</span> : null}
                     {panel ? (
                       <span className='bg-orange-50 text-[#C2410C] font-medium px-1 rounded'>
-                        Khung #{panel.panelNumber}
+                        {t('common.components.layerStacking.panelBadge', {
+                          number: panel.panelNumber ?? '',
+                        })}
                       </span>
                     ) : (
-                      <span className='text-stone-400'>Toàn trang</span>
+                      <span className='text-stone-400'>
+                        {t('common.components.layerStacking.wholePage')}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -238,7 +255,7 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
                   type='button'
                   className='pf-layer-action-btn'
                   data-testid={`bring-to-front-${el.elementId}`}
-                  title='Đưa lên trên cùng (#122)'
+                  title={t('common.components.layerStacking.bringToFront')}
                   onClick={() => handleBringToFront(el)}
                 >
                   <ChevronsUp className='w-3.5 h-3.5 text-[#F97316]' />
@@ -249,7 +266,7 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
                   type='button'
                   className='pf-layer-action-btn'
                   data-testid={`layer-up-${el.elementId}`}
-                  title='Lên 1 lớp'
+                  title={t('common.components.layerStacking.layerUp')}
                   onClick={() => onChangeZIndex(el, 1)}
                 >
                   <ArrowUp className='w-3.5 h-3.5' />
@@ -260,7 +277,7 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
                   type='button'
                   className='pf-layer-action-btn'
                   data-testid={`layer-down-${el.elementId}`}
-                  title='Xuống 1 lớp'
+                  title={t('common.components.layerStacking.layerDown')}
                   onClick={() => onChangeZIndex(el, -1)}
                 >
                   <ArrowDown className='w-3.5 h-3.5' />
@@ -271,7 +288,7 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
                   type='button'
                   className='pf-layer-action-btn'
                   data-testid={`send-to-back-${el.elementId}`}
-                  title='Hạ xuống đáy cùng (#122)'
+                  title={t('common.components.layerStacking.sendToBack')}
                   onClick={() => handleSendToBack(el)}
                 >
                   <ChevronsDown className='w-3.5 h-3.5 text-stone-600' />
@@ -283,7 +300,7 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
                     type='button'
                     className='pf-layer-action-btn'
                     data-testid={`rotate-layer-${el.elementId}`}
-                    title='Xoay +15°'
+                    title={t('common.components.layerStacking.rotate')}
                     onClick={() => onRotateLayer(el, 15)}
                   >
                     <RotateCw className='w-3 h-3' />
@@ -296,7 +313,7 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
                     type='button'
                     className='pf-layer-action-btn delete'
                     data-testid={`delete-layer-${el.elementId}`}
-                    title='Xoá layer'
+                    title={t('common.components.layerStacking.deleteLayer')}
                     onClick={() => onDeleteLayer(el)}
                   >
                     <Trash2 className='w-3.5 h-3.5' />

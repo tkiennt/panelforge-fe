@@ -140,7 +140,7 @@ export const StudioSwitcher: React.FC<StudioSwitcherProps> = ({
         >
           {/* Header */}
           <div className='px-3.5 py-1.5 text-[11px] font-semibold text-stone-400 uppercase tracking-wider flex items-center justify-between border-b border-stone-100 pb-2 mb-1'>
-            <span>Không gian Studio của bạn</span>
+            <span>{t('common.components.studioSwitcher.headerTitle')}</span>
             <span className='text-[10px] text-stone-500 font-normal'>
               {workspaces.length} Studio
             </span>
@@ -151,16 +151,18 @@ export const StudioSwitcher: React.FC<StudioSwitcherProps> = ({
             {loading && workspaces.length === 0 ? (
               <div className='py-6 flex flex-col items-center justify-center gap-2 text-stone-500 text-xs'>
                 <Loader2 className='w-4 h-4 animate-spin text-orange-600' />
-                <span>Đang tải danh sách Studio...</span>
+                <span>{t('common.components.studioSwitcher.loading')}</span>
               </div>
             ) : workspaces.length === 0 ? (
               <div className='py-6 px-4 text-center text-xs text-stone-500'>
-                Bạn chưa tham gia Studio nào.
+                {t('common.components.studioSwitcher.empty')}
               </div>
             ) : (
               workspaces.map((ws, idx) => {
                 const isActive = ws.id === activeWorkspaceId;
-                const rawRole = normalizeWorkspaceRole(ws.currentUserRole) || (ws.isOwner ? 'PRODUCER' : 'MEMBER');
+                const rawRole =
+                  normalizeWorkspaceRole(ws.currentUserRole) ||
+                  (ws.isOwner ? 'PRODUCER' : 'MEMBER');
                 const isProd = rawRole === 'PRODUCER' || ws.isOwner;
                 const isEd = rawRole === 'EDITOR';
                 const roleBadgeText = isProd ? 'Producer' : isEd ? 'Editor' : rawRole;
@@ -192,12 +194,17 @@ export const StudioSwitcher: React.FC<StudioSwitcherProps> = ({
                       <div className='min-w-0'>
                         <div className='flex items-center gap-1.5'>
                           <span className='font-semibold text-stone-900 truncate'>{ws.name}</span>
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${roleBadgeClass}`}>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${roleBadgeClass}`}
+                          >
                             {roleBadgeText}
                           </span>
                         </div>
                         <p className='text-[11px] text-stone-500 mt-0.5 truncate'>
-                          {ws.seriesCount ?? 0} Series • {ws.memberCount ?? 1} thành viên
+                          {t('common.components.studioSwitcher.stats', {
+                            seriesCount: ws.seriesCount ?? 0,
+                            memberCount: ws.memberCount ?? 1,
+                          })}
                         </p>
                       </div>
                     </div>
@@ -220,7 +227,7 @@ export const StudioSwitcher: React.FC<StudioSwitcherProps> = ({
               className='w-full px-2.5 py-2 text-left flex items-center gap-2 text-orange-600 hover:bg-orange-50 font-medium rounded-lg cursor-pointer transition-colors'
             >
               <Plus className='w-4 h-4' />
-              <span>+ Tạo Studio mới</span>
+              <span>{t('common.components.studioSwitcher.createNew')}</span>
             </button>
             <button
               type='button'
@@ -229,7 +236,7 @@ export const StudioSwitcher: React.FC<StudioSwitcherProps> = ({
               className='w-full px-2.5 py-2 text-left flex items-center gap-2 text-stone-600 hover:bg-stone-50 hover:text-stone-900 font-medium rounded-lg cursor-pointer transition-colors'
             >
               <Grid className='w-4 h-4 text-stone-400' />
-              <span>Xem tất cả Studio (/workspaces)</span>
+              <span>{t('common.components.studioSwitcher.viewAll')}</span>
             </button>
           </div>
         </div>

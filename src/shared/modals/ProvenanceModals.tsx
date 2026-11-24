@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, History, Sparkles, User, FileDiff, Cpu, Lock } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import { Modal } from '@/shared/ui';
 
 interface ModalProps {
@@ -84,6 +85,7 @@ export const VersionHistoryModal: React.FC<ModalProps> = ({ isOpen, onClose }) =
 };
 
 export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   return (
@@ -114,15 +116,14 @@ export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => 
             <div>
               <h3 className='font-bold text-[#171717] mb-1'>Google Gemini 1.5 Pro (Vertex AI)</h3>
               <p className='text-sm text-[#555555]'>
-                Mô hình AI đã tham gia hỗ trợ phân tích và đưa ra gợi ý (Suggestions) cho tài sản
-                này.
+                {t('common.modals.provenance.aiAssistedDesc')}
               </p>
               <div className='mt-3 flex gap-2'>
                 <span className='px-2.5 py-1 bg-white border border-[#DDD6FE] text-[#8B5CF6] text-xs font-semibold rounded'>
-                  Bảo mật: Tiêu chuẩn Studio
+                  {t('common.modals.provenance.securityBadge')}
                 </span>
                 <span className='px-2.5 py-1 bg-white border border-[#DDD6FE] text-[#8B5CF6] text-xs font-semibold rounded'>
-                  Huấn luyện dữ liệu: Đã tắt
+                  {t('common.modals.provenance.trainingBadge')}
                 </span>
               </div>
             </div>
@@ -173,10 +174,7 @@ export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => 
 
           <div className='flex items-center gap-2 p-3 bg-[#F8F6F0] rounded-lg text-[#737373] text-xs'>
             <Lock className='w-4 h-4 shrink-0' />
-            <p>
-              Nhật ký hỗ trợ sáng tác này được lưu vết bảo toàn nhằm bảo vệ tính minh bạch và bản
-              quyền tác phẩm.
-            </p>
+            <p>{t('common.modals.provenance.auditFootnote')}</p>
           </div>
         </div>
       </div>
