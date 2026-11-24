@@ -450,14 +450,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   // Manage page title and description for landing page
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'PanelForge · Không gian cộng tác sản xuất manga';
+    document.title = t('pageTitle');
     const metaDesc = document.querySelector('meta[name="description"]');
     const previousDesc = metaDesc ? metaDesc.getAttribute('content') : null;
     if (metaDesc) {
-      metaDesc.setAttribute(
-        'content',
-        'PanelForge · Nền tảng cộng tác sản xuất truyện tranh có cấu trúc. Đồng bộ kịch bản, nét vẽ, xét duyệt và lịch sử phiên bản trong một không gian duy nhất.',
-      );
+      metaDesc.setAttribute('content', t('pageMetaDesc'));
     }
     return () => {
       document.title = previousTitle;
@@ -465,7 +462,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         metaDesc.setAttribute('content', previousDesc);
       }
     };
-  }, []);
+  }, [t]);
 
   // Progressive enhancement scroll reveal observer and Pushpin observer
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -1249,8 +1246,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             setIsMobileMenuOpen(false);
             document.getElementById('mobile-nav-toggle')?.focus();
           }}
-          title='Menu điều hướng trên điện thoại'
-          closeLabel='Đóng menu điều hướng'
+          title={t('nav.mobileDrawerAria')}
+          closeLabel={t('nav.closeMenu')}
           size='sm'
           className='flex flex-col justify-between'
         >
@@ -1260,7 +1257,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               onClick={(e) => handleNavScroll(e, 'block-features')}
               className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
             >
-              <span>Tính năng</span>
+              <span>{t('nav.features')}</span>
               <span className='text-stone-400'>→</span>
             </a>
             <a
@@ -1268,7 +1265,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               onClick={(e) => handleNavScroll(e, 'block-workflow')}
               className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
             >
-              <span>Quy trình sản xuất</span>
+              <span>{t('sections.workflowAria')}</span>
               <span className='text-stone-400'>→</span>
             </a>
             <a
@@ -1276,7 +1273,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               onClick={(e) => handleNavScroll(e, 'block-showcase')}
               className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
             >
-              <span>Trưng bày không gian làm việc</span>
+              <span>{t('sections.showcaseAria')}</span>
               <span className='text-stone-400'>→</span>
             </a>
             <a
@@ -1284,14 +1281,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               onClick={(e) => handleNavScroll(e, 'block-faq')}
               className='py-2.5 px-3 rounded-xl hover:bg-[#EAE5DC] transition-colors flex items-center justify-between'
             >
-              <span>Hỏi đáp thường gặp</span>
+              <span>{t('sections.faqAria')}</span>
               <span className='text-stone-400'>→</span>
             </a>
           </nav>
 
           <div className='flex flex-col gap-3 pb-8 pt-4 border-t border-[#D8D2C5]'>
             <div className='flex items-center justify-between pb-1'>
-              <span className='text-xs font-mono text-[#57534E]'>Ngôn ngữ / Language:</span>
+              <span className='text-xs font-mono text-[#57534E]'>{t('nav.languageLabel')}</span>
               <LanguageSwitcher />
             </div>
             <button
@@ -1301,7 +1298,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               }}
               className='w-full py-3 rounded-full border border-[#D8D2C5] text-[#1C1917] font-medium hover:bg-[#EAE5DC] transition-colors active:scale-[0.98] motion-reduce:transform-none'
             >
-              Đăng nhập
+              {t('nav.login')}
             </button>
             <button
               onClick={() => {
@@ -1310,7 +1307,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               }}
               className='w-full py-3 rounded-full bg-[#1C1917] text-white font-medium hover:bg-black transition-colors active:scale-[0.98] motion-reduce:transform-none'
             >
-              Tạo tài khoản
+              {t('nav.register')}
             </button>
           </div>
         </Drawer>
@@ -1556,7 +1553,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         ref={introSectionRef}
         data-reveal='ink'
         className='py-12 sm:py-16 lg:py-20 relative bg-[#F3F0E9] transition-all'
-        aria-label='Mục tiêu sản phẩm'
+        aria-label={t('sections.missionAria')}
       >
         <div className='max-w-[1780px] mx-auto px-[clamp(20px,4.2vw,72px)] w-full'>
           {/* Two Distinct Manuscript Notes: Warm Cream Sketch Sheet (Left) & Ivory Lined Note Sheet (Right) */}
@@ -1689,7 +1686,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     <div className='note-content relative z-10 w-full p-8 sm:p-10 lg:p-12 pt-12 sm:pt-14 lg:pt-16 pb-12 sm:pb-14 lg:pb-16 transition-transform'>
                       <div className='inline-flex items-center gap-2.5 text-xs font-semibold text-[#9A3412] uppercase tracking-[0.2em] font-mono mb-3.5 select-none'>
                         <span className='w-7 h-px bg-[#C2410C]' aria-hidden='true' />
-                        Dành cho đội ngũ sáng tác truyện tranh
+                        {t('intro.leftNoteTag')}
                       </div>
                       <div className='relative inline-block'>
                         <h2
@@ -1698,7 +1695,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                           }}
                           className='text-2xl sm:text-3xl lg:text-[2.5rem] xl:text-[2.75rem] text-[#1C1917] leading-[1.22] font-medium [text-wrap:balance] max-w-[14ch] sm:max-w-[15ch]'
                         >
-                          Để đội ngũ tập trung vào câu chuyện.
+                          {t('intro.leftNoteTitle')}
                         </h2>
                         {/* Spontaneous orange brush stroke under 'câu chuyện.' */}
                         <svg
@@ -1860,13 +1857,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     {/* Inner Content (Kept level and upright) */}
                     <div className='note-content relative z-10 w-full p-8 sm:p-10 lg:p-12 pt-12 sm:pt-14 lg:pt-16 pb-10 sm:pb-12 lg:pb-14 transition-transform'>
                       <p className='text-base sm:text-lg lg:text-[1.12rem] text-[#374151] leading-relaxed [text-wrap:pretty] max-w-[50ch]'>
-                        Kết nối kịch bản, bản vẽ và phản hồi trong cùng một quy trình sản xuất có
-                        cấu trúc và đáng tin cậy. Loại bỏ trao đổi rải rác và thất lạc ý tưởng qua
-                        từng chương truyện.
+                        {t('intro.rightNoteBody')}
                       </p>
                       <div className='mt-6 sm:mt-7 flex items-center gap-2.5 text-xs sm:text-[13px] font-sans font-medium text-[#57534E]'>
                         <span className='w-2.5 h-2.5 rounded-full bg-[#EA580C] shrink-0' />
-                        <span>Bản thảo đồng bộ · Không ghi đè</span>
+                        <span>{t('intro.rightNoteBadge')}</span>
                       </div>
                     </div>
                   </article>
@@ -1894,24 +1889,23 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       <section
         id='block-features'
         className='scroll-mt-20 py-16 md:py-24 relative bg-[#F3F0E9]'
-        aria-label='Tính năng nổi bật'
+        aria-label={t('sections.featuresAria')}
       >
         <div className='max-w-[1780px] mx-auto px-[clamp(20px,4.2vw,72px)] w-full'>
           {/* Section Lead */}
           <div className='text-center w-full max-w-4xl mx-auto animate-on-scroll mb-14'>
             <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
-              02 / Vì sao chọn PanelForge
+              {t('features.tag')}
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
             </div>
             <h2 className='font-serif text-3xl sm:text-4xl md:text-5xl font-medium leading-[1.08] tracking-tight text-[#1C1917] [text-wrap:balance]'>
-              Sản xuất truyện tranh là dữ liệu,
+              {t('features.titleLine1')}
               <br />
-              <em className='font-normal text-[#57534E] italic'>không phải sự hỗn loạn.</em>
+              <em className='font-normal text-[#57534E] italic'>{t('features.titleLine2')}</em>
             </h2>
             <p className='mt-5 text-base sm:text-lg text-[#57534E] leading-relaxed [text-wrap:pretty] max-w-[65ch] mx-auto'>
-              Thay thế trao đổi rải rác qua tin nhắn và email bằng một không gian lưu trữ có cấu
-              trúc cho từng quyết định sáng tạo của studio.
+              {t('features.subtitle')}
             </p>
           </div>
 
@@ -1928,14 +1922,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <FolderTree className='w-5 h-5 text-[#1C1917]' />
                 </div>
                 <div className='text-xs uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
-                  01 / Phân cấp
+                  {t('pillars.hierarchy.tag')}
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
                   {t('pillars.hierarchy.title')}
                 </h3>
                 <p className='mt-3 text-sm text-[#57534E] leading-relaxed [text-wrap:pretty]'>
-                  Tổ chức bộ truyện theo từng cấp độ rõ ràng: bộ truyện, tập, chương, phân cảnh và
-                  khung tranh.
+                  {t('pillars.hierarchy.desc')}
                 </p>
               </div>
             </div>
@@ -1951,14 +1944,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <History className='w-5 h-5 text-[#1C1917]' />
                 </div>
                 <div className='text-xs uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
-                  02 / Minh bạch
+                  {t('pillars.provenance.tag')}
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
                   {t('pillars.provenance.title')}
                 </h3>
                 <p className='mt-3 text-sm text-[#57534E] leading-relaxed [text-wrap:pretty]'>
-                  Ghi nhận mọi chỉnh sửa kèm người thực hiện và mốc thời gian, tránh ghi đè nhầm bản
-                  vẽ.
+                  {t('pillars.provenance.desc')}
                 </p>
               </div>
             </div>
@@ -1974,14 +1966,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <BookMarked className='w-5 h-5 text-[#F97316]' aria-hidden='true' />
                 </div>
                 <div className='text-xs uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
-                  03 / Nhất quán
+                  {t('pillars.bible.tag')}
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
                   {t('pillars.bible.title')}
                 </h3>
                 <p className='mt-3 text-sm text-[#57534E] leading-relaxed [text-wrap:pretty]'>
-                  Quản lý nhân vật, đạo cụ và bối cảnh tập trung; hỗ trợ rà soát tính nhất quán khi
-                  sáng tác.
+                  {t('pillars.bible.desc')}
                 </p>
               </div>
             </div>
@@ -1997,29 +1988,30 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className='animate-on-scroll'>
               <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
                 <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
-                01 / Nội dung có cấu trúc
+                {t('featureSuite.hierarchy.tag')}
               </div>
               <h3 className='font-serif text-3xl sm:text-4xl font-medium leading-[1.12] tracking-tight text-[#1C1917] [text-wrap:balance] max-w-[28ch]'>
-                Mô hình dữ liệu hiểu đúng{' '}
-                <em className='font-normal text-[#57534E] italic'>tư duy làm manga.</em>
+                {t('featureSuite.hierarchy.titleLead')}{' '}
+                <em className='font-normal text-[#57534E] italic'>
+                  {t('featureSuite.hierarchy.titleEm')}
+                </em>
               </h3>
               <p className='mt-4 text-base sm:text-lg text-[#57534E] leading-relaxed [text-wrap:pretty] max-w-[52ch]'>
-                Phân cấp từ bộ truyện, tập, chương, phân cảnh đến khung truyện, liên kết kịch bản,
-                hình ảnh tham chiếu và trạng thái xét duyệt mà không bị thất lạc trong thư mục.
+                {t('featureSuite.hierarchy.desc')}
               </p>
               <ul className='mt-6 space-y-3.5 text-sm text-[#1C1917] max-w-[55ch]'>
                 {[
                   {
-                    bold: 'Dữ liệu chi tiết từng khung truyện',
-                    rest: 'quản lý lời thoại, hiệu ứng âm thanh (SFX) và trạng thái sản xuất.',
+                    bold: t('featureSuite.hierarchy.bullet1Bold'),
+                    rest: t('featureSuite.hierarchy.bullet1Rest'),
                   },
                   {
-                    bold: 'Phân cấp trực quan',
-                    rest: 'liên kết mạch lạc giữa tập, chương, phân cảnh và khung tranh.',
+                    bold: t('featureSuite.hierarchy.bullet2Bold'),
+                    rest: t('featureSuite.hierarchy.bullet2Rest'),
                   },
                   {
-                    bold: 'Phân công trách nhiệm rõ ràng',
-                    rest: 'nắm rõ ai đang phụ trách bản vẽ và khâu nào cần xét duyệt.',
+                    bold: t('featureSuite.hierarchy.bullet3Bold'),
+                    rest: t('featureSuite.hierarchy.bullet3Rest'),
                   },
                 ].map((item, i) => (
                   <li key={i} className='flex items-start gap-3'>
@@ -2040,21 +2032,38 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className='relative bg-[#FFFEFA] rounded-2xl shadow-sm border border-[#D8D2C5] p-5 sm:p-6 overflow-hidden w-full'>
                 <div className='flex items-center justify-between pb-3 border-b border-[#E2DDD2]'>
                   <div className='text-xs uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
-                    Mô hình phân cấp truyện
+                    {t('featureSuite.hierarchy.previewTitle')}
                   </div>
                   <div className='flex items-center gap-1.5 text-xs text-[#57534E] font-mono'>
-                    <Database className='w-3 h-3 text-[#1C1917]' /> Minh họa cấu trúc
+                    <Database className='w-3 h-3 text-[#1C1917]' />{' '}
+                    {t('featureSuite.hierarchy.previewBadge')}
                   </div>
                 </div>
 
                 <div className='pt-3.5 space-y-2.5 text-xs'>
                   {[
-                    { level: 'Bộ truyện: Biên Niên Sử Aria', count: '1 bộ', indent: 0 },
-                    { level: 'Tập 3: Hoàng Hôn Thành Phố', count: 'Tập hiện tại', indent: 1 },
-                    { level: 'Chương 14: Lựa Chọn Đêm', count: 'Đang sản xuất', indent: 2 },
-                    { level: 'Phân cảnh 04: Studio về đêm', count: '6 khung', indent: 3 },
+                    {
+                      level: t('featureSuite.hierarchy.nodeSeries'),
+                      count: t('featureSuite.hierarchy.nodeSeriesCount'),
+                      indent: 0,
+                    },
+                    {
+                      level: t('featureSuite.hierarchy.nodeVolume'),
+                      count: t('featureSuite.hierarchy.nodeVolumeCount'),
+                      indent: 1,
+                    },
+                    {
+                      level: t('featureSuite.hierarchy.nodeChapter'),
+                      count: t('featureSuite.hierarchy.nodeChapterCount'),
+                      indent: 2,
+                    },
+                    {
+                      level: t('featureSuite.hierarchy.nodeScene'),
+                      count: t('featureSuite.hierarchy.nodeSceneCount'),
+                      indent: 3,
+                    },
                   ].map(({ level, count, indent }) => (
-                    <div key={level} style={{ marginLeft: `${indent * 16}px` }}>
+                    <div key={indent} style={{ marginLeft: `${indent * 16}px` }}>
                       <div
                         className={`${indent > 0 ? 'pl-3.5 border-l border-dashed border-[#D8D2C5]' : ''} flex items-center gap-2 text-stone-700 py-1`}
                       >
@@ -2075,9 +2084,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   >
                     <div className='flex items-center gap-2 text-[#C2410C] font-medium py-1'>
                       <span className='w-3 inline-block'>·</span>
-                      <span>Khung truyện #14.3.2</span>
+                      <span>{t('featureSuite.hierarchy.nodePanel')}</span>
                       <span className='ml-auto text-xs text-[#C2410C] font-mono font-semibold'>
-                        Đang đi nét
+                        {t('featureSuite.hierarchy.nodePanelStatus')}
                       </span>
                     </div>
                   </div>
@@ -2088,27 +2097,29 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <div className='grid grid-cols-3 gap-3 text-xs'>
                     <div className='bg-[#FAF8F5] rounded-lg p-3 border border-[#D8D2C5]'>
                       <div className='text-[#57534E] uppercase tracking-wider text-xs font-semibold font-mono'>
-                        Lời thoại
+                        {t('featureSuite.hierarchy.labelDialogue')}
                       </div>
                       <div className='text-[#1C1917] mt-1 font-medium leading-snug'>
-                        « Câu chuyện vẫn tiếp diễn. »
+                        {t('featureSuite.hierarchy.sampleDialogue')}
                       </div>
                     </div>
                     <div className='bg-[#FAF8F5] rounded-lg p-3 border border-[#D8D2C5]'>
                       <div className='text-[#57534E] uppercase tracking-wider text-xs font-semibold font-mono'>
-                        Âm thanh (SFX)
+                        {t('featureSuite.hierarchy.labelSfx')}
                       </div>
-                      <div className='text-[#1C1917] mt-1 font-medium leading-snug'>vút nhẹ</div>
+                      <div className='text-[#1C1917] mt-1 font-medium leading-snug'>
+                        {t('featureSuite.hierarchy.sampleSfx')}
+                      </div>
                     </div>
                     <div className='bg-[#FAF8F5] rounded-lg p-3 border border-[#D8D2C5]'>
                       <div className='text-[#57534E] uppercase tracking-wider text-xs font-semibold font-mono'>
-                        Họa sĩ
+                        {t('featureSuite.hierarchy.labelArtist')}
                       </div>
                       <div className='text-[#1C1917] mt-1 font-medium leading-snug flex items-center gap-1.5'>
                         <span className='w-4 h-4 rounded-full bg-orange-100 text-[#C2410C] text-xs font-bold flex items-center justify-center font-mono'>
                           A
                         </span>
-                        An (Họa sĩ)
+                        {t('featureSuite.hierarchy.sampleArtist')}
                       </div>
                     </div>
                   </div>
@@ -2127,29 +2138,30 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className='animate-on-scroll lg:order-2'>
               <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
                 <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
-                02 / Lịch sử phiên bản
+                {t('featureSuite.versioning.tag')}
               </div>
               <h3 className='font-serif text-3xl sm:text-4xl font-medium leading-[1.12] tracking-tight text-[#1C1917] [text-wrap:balance] max-w-[28ch]'>
-                Mọi quyết định sáng tác đều được{' '}
-                <em className='font-normal text-[#57534E] italic'>lưu dấu minh bạch.</em>
+                {t('featureSuite.versioning.titleLead')}{' '}
+                <em className='font-normal text-[#57534E] italic'>
+                  {t('featureSuite.versioning.titleEm')}
+                </em>
               </h3>
               <p className='mt-4 text-base sm:text-lg text-[#57534E] leading-relaxed [text-wrap:pretty] max-w-[52ch]'>
-                Ghi nhận mốc thời gian và thành viên thực hiện cho từng lượt cập nhật kịch bản hoặc
-                nộp bản vẽ, hỗ trợ đối chiếu dễ dàng khi duyệt trang.
+                {t('featureSuite.versioning.desc')}
               </p>
               <ul className='mt-6 space-y-3.5 text-sm text-[#1C1917] max-w-[55ch]'>
                 {[
                   {
-                    bold: 'Nhật ký thay đổi theo mốc thời gian',
-                    rest: 'nắm rõ ai đã chỉnh sửa và vào thời điểm nào.',
+                    bold: t('featureSuite.versioning.bullet1Bold'),
+                    rest: t('featureSuite.versioning.bullet1Rest'),
                   },
                   {
-                    bold: 'Đối chiếu các lượt cập nhật',
-                    rest: 'so sánh bản nháp và bản đi nét để đánh giá tiến độ.',
+                    bold: t('featureSuite.versioning.bullet2Bold'),
+                    rest: t('featureSuite.versioning.bullet2Rest'),
                   },
                   {
-                    bold: 'Giữ an toàn tài nguyên',
-                    rest: 'hạn chế thất lạc ý tưởng hoặc ghi đè nhầm bản vẽ.',
+                    bold: t('featureSuite.versioning.bullet3Bold'),
+                    rest: t('featureSuite.versioning.bullet3Rest'),
                   },
                 ].map((item, i) => (
                   <li key={i} className='flex items-start gap-3'>
@@ -2175,15 +2187,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     </div>
                     <div>
                       <div className='text-xs uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
-                        Nhật ký thay đổi
+                        {t('featureSuite.versioning.previewTitle')}
                       </div>
                       <div className='text-xs text-stone-600 font-mono'>
-                        Chương 14 / Phân cảnh 04
+                        {t('featureSuite.versioning.previewPath')}
                       </div>
                     </div>
                   </div>
                   <span className='text-xs px-2 py-0.5 rounded-full bg-[#FAF8F5] text-[#1C1917] font-semibold font-mono tracking-wider border border-[#D8D2C5]'>
-                    DỮ LIỆU MINH HỌA
+                    {t('featureSuite.versioning.previewBadge')}
                   </span>
                 </div>
 
@@ -2192,31 +2204,31 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <div className='space-y-4 text-[12px]'>
                     {[
                       {
-                        time: '14:42 · Jiro (Biên tập)',
+                        time: t('featureSuite.versioning.ev1Time'),
                         hash: 'rev-7a3f',
-                        title: 'Đã xét duyệt trang 14.1',
-                        desc: 'Đối chiếu hồ sơ bộ truyện · 4 khung truyện đạt chuẩn',
+                        title: t('featureSuite.versioning.ev1Title'),
+                        desc: t('featureSuite.versioning.ev1Desc'),
                         dot: 'bg-[#F97316]',
                       },
                       {
-                        time: '14:38 · An (Họa sĩ)',
+                        time: t('featureSuite.versioning.ev2Time'),
                         hash: 'rev-9c12',
-                        title: 'Hoàn thành bản đi nét trang 14.3',
-                        desc: 'Cập nhật 3 khung truyện · Đã gắn tài liệu tham chiếu',
+                        title: t('featureSuite.versioning.ev2Title'),
+                        desc: t('featureSuite.versioning.ev2Desc'),
                         dot: 'bg-stone-400',
                       },
                       {
-                        time: '14:21 · AI Trợ lý',
+                        time: t('featureSuite.versioning.ev3Time'),
                         hash: 'ai-chk-2f',
-                        title: 'Gợi ý kiểm tra phân cảnh 04',
-                        desc: 'Nhắc nhở đối chiếu chi tiết nhân vật theo hồ sơ đã lưu',
+                        title: t('featureSuite.versioning.ev3Title'),
+                        desc: t('featureSuite.versioning.ev3Desc'),
                         dot: 'bg-[#F97316]',
                       },
                       {
-                        time: '10:04 · Mai (Biên kịch)',
+                        time: t('featureSuite.versioning.ev4Time'),
                         hash: 'rev-5b41',
-                        title: 'Thêm phân cảnh 05 vào chương 14',
-                        desc: '6 khung truyện · Kịch bản và phân cảnh ban đầu',
+                        title: t('featureSuite.versioning.ev4Title'),
+                        desc: t('featureSuite.versioning.ev4Desc'),
                         dot: 'bg-stone-400',
                       },
                     ].map((ev, i) => (
@@ -2248,29 +2260,30 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className='animate-on-scroll'>
               <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
                 <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
-                03 / Hồ sơ bộ truyện
+                {t('featureSuite.bible.tag')}
               </div>
               <h3 className='font-serif text-3xl sm:text-4xl font-medium leading-[1.12] tracking-tight text-[#1C1917] [text-wrap:balance] max-w-[28ch]'>
-                Hồ sơ bộ truyện hỗ trợ{' '}
-                <em className='font-normal text-[#57534E] italic'>duy trì tính nhất quán.</em>
+                {t('featureSuite.bible.titleLead')}{' '}
+                <em className='font-normal text-[#57534E] italic'>
+                  {t('featureSuite.bible.titleEm')}
+                </em>
               </h3>
               <p className='mt-4 text-base sm:text-lg text-[#57534E] leading-relaxed [text-wrap:pretty] max-w-[52ch]'>
-                Lưu trữ thông tin nhân vật, đạo cụ và bối cảnh chuẩn; kết hợp AI gợi ý rà soát chi
-                tiết kịch bản theo hồ sơ đã thiết lập.
+                {t('featureSuite.bible.desc')}
               </p>
               <ul className='mt-6 space-y-3.5 text-sm text-[#1C1917] max-w-[55ch]'>
                 {[
                   {
-                    bold: 'Quản lý tư liệu tập trung',
-                    rest: 'tra cứu nhanh đặc điểm nhận diện, trang phục và bối cảnh.',
+                    bold: t('featureSuite.bible.bullet1Bold'),
+                    rest: t('featureSuite.bible.bullet1Rest'),
                   },
                   {
-                    bold: 'Gợi ý rà soát kịch bản',
-                    rest: 'AI hỗ trợ nhắc nhở các quy tắc nhân vật đã ghi trong hồ sơ.',
+                    bold: t('featureSuite.bible.bullet2Bold'),
+                    rest: t('featureSuite.bible.bullet2Rest'),
                   },
                   {
-                    bold: 'Giảm thiểu sai sót tiếp nối',
-                    rest: 'giúp thành viên mới nắm bắt nhanh thiết lập thế giới truyện.',
+                    bold: t('featureSuite.bible.bullet3Bold'),
+                    rest: t('featureSuite.bible.bullet3Rest'),
                   },
                 ].map((item, i) => (
                   <li key={i} className='flex items-start gap-3'>
@@ -2296,15 +2309,16 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     </div>
                     <div>
                       <div className='text-xs uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
-                        Hồ sơ bộ truyện
+                        {t('featureSuite.bible.previewTitle')}
                       </div>
                       <div className='text-xs text-stone-500 font-mono'>
-                        Biên Niên Sử Aria · Dữ liệu minh họa
+                        {t('featureSuite.bible.previewSubtitle')}
                       </div>
                     </div>
                   </div>
                   <div className='text-xs text-emerald-700 font-mono flex items-center gap-1.5'>
-                    <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' /> Đã liên kết
+                    <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' />{' '}
+                    {t('featureSuite.bible.linkedBadge')}
                   </div>
                 </div>
 
@@ -2318,14 +2332,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         </span>
                         <span className='text-sm font-semibold text-[#1C1917]'>Aria</span>
                         <span className='text-xs px-1.5 py-0.5 rounded bg-[#EAE5DC] text-[#1C1917] font-semibold font-mono tracking-wider'>
-                          NHÂN VẬT CHÍNH
+                          {t('featureSuite.bible.charRoleBadge')}
                         </span>
                       </div>
                       <span className='text-xs text-stone-500 font-mono'>v3.2</span>
                     </div>
                     <div className='text-xs text-stone-700 leading-relaxed'>
-                      Trầm tĩnh, kiên định · Vết sẹo mày trái giấu kín từ Tập 1 · Thoại ngắn gọn ·
-                      Luôn mang huy hiệu studio.
+                      {t('featureSuite.bible.charDesc')}
                     </div>
                   </div>
 
@@ -2336,14 +2349,16 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         <span className='w-5 h-5 rounded-full bg-[#EAE5DC] text-[#1C1917] text-xs font-bold flex items-center justify-center font-mono'>
                           ◇
                         </span>
-                        <span className='text-sm font-semibold text-[#1C1917]'>Vương Miện Cổ</span>
+                        <span className='text-sm font-semibold text-[#1C1917]'>
+                          {t('featureSuite.bible.propName')}
+                        </span>
                         <span className='text-xs px-1.5 py-0.5 rounded bg-[#EAE5DC] text-[#1C1917] font-semibold font-mono tracking-wider'>
-                          ĐẠO CỤ
+                          {t('featureSuite.bible.propRoleBadge')}
                         </span>
                       </div>
                     </div>
                     <div className='text-xs text-stone-600 leading-relaxed'>
-                      Di vật từ chương mở đầu · Nguồn cơn biến cố ở Tập 2.
+                      {t('featureSuite.bible.propDesc')}
                     </div>
                   </div>
                 </div>
@@ -2353,13 +2368,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <div className='flex items-center gap-2 mb-1'>
                     <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
                     <span className='text-xs font-bold uppercase tracking-[0.14em] text-[#1C1917] font-mono'>
-                      Gợi ý rà soát kịch bản (AI)
+                      {t('featureSuite.bible.aiCardTitle')}
                     </span>
                   </div>
                   <div className='text-xs text-stone-800 leading-relaxed'>
-                    Phân cảnh 04: Nhắc nhở quy tắc{' '}
-                    <strong className='font-semibold text-[#1C1917]'>vết sẹo giấu kín</strong> của
-                    Aria. Đảm bảo góc nghiêng phù hợp với hồ sơ nhân vật.
+                    {t('featureSuite.bible.aiCardLead')}{' '}
+                    <strong className='font-semibold text-[#1C1917]'>
+                      {t('featureSuite.bible.aiCardHighlight')}
+                    </strong>{' '}
+                    {t('featureSuite.bible.aiCardTail')}
                   </div>
                 </div>
               </div>
@@ -2376,29 +2393,30 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className='animate-on-scroll lg:order-2'>
               <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#1C1917] uppercase tracking-[0.2em] font-mono mb-4'>
                 <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
-                04 / Quy trình sản xuất
+                {t('featureSuite.kanban.tag')}
               </div>
               <h3 className='font-serif text-3xl sm:text-4xl font-medium leading-[1.12] tracking-tight text-[#1C1917] [text-wrap:balance] max-w-[28ch]'>
-                Tiến độ liền mạch theo{' '}
-                <em className='font-normal text-[#57534E] italic'>từng công đoạn.</em>
+                {t('featureSuite.kanban.titleLead')}{' '}
+                <em className='font-normal text-[#57534E] italic'>
+                  {t('featureSuite.kanban.titleEm')}
+                </em>
               </h3>
               <p className='mt-4 text-base sm:text-lg text-[#57534E] leading-relaxed [text-wrap:pretty] max-w-[52ch]'>
-                Theo dõi phân cảnh qua các bước kịch bản, đi nét, xét duyệt và hoàn tất để cả đội
-                ngũ cùng nắm rõ tiến độ mà không cần trao đổi thủ công dồn dập.
+                {t('featureSuite.kanban.desc')}
               </p>
               <ul className='mt-6 space-y-3.5 text-sm text-[#1C1917] max-w-[55ch]'>
                 {[
                   {
-                    bold: 'Bảng tiến độ trực quan',
-                    rest: 'nắm bắt số lượng phân cảnh và trang trong từng khâu sản xuất.',
+                    bold: t('featureSuite.kanban.bullet1Bold'),
+                    rest: t('featureSuite.kanban.bullet1Rest'),
                   },
                   {
-                    bold: 'Phối hợp liền mạch giữa các khâu',
-                    rest: 'chuyển giao kịch bản sang bản vẽ và xét duyệt thuận tiện.',
+                    bold: t('featureSuite.kanban.bullet2Bold'),
+                    rest: t('featureSuite.kanban.bullet2Rest'),
                   },
                   {
-                    bold: 'Giảm bớt trao đổi rời rạc',
-                    rest: 'kiểm tra trạng thái trên bảng thay vì hỏi dồn qua tin nhắn.',
+                    bold: t('featureSuite.kanban.bullet3Bold'),
+                    rest: t('featureSuite.kanban.bullet3Rest'),
                   },
                 ].map((item, i) => (
                   <li key={i} className='flex items-start gap-3'>
@@ -2419,10 +2437,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className='relative bg-[#FFFEFA] rounded-2xl shadow-sm border border-[#D8D2C5] p-5 sm:p-6 overflow-hidden w-full'>
                 <div className='flex items-center justify-between pb-3 mb-3.5 border-b border-[#D8D2C5]'>
                   <div className='text-xs uppercase tracking-[0.14em] text-[#57534E] font-semibold font-mono'>
-                    Chương 14 · Bảng tiến độ
+                    {t('featureSuite.kanban.previewTitle')}
                   </div>
                   <div className='flex items-center gap-1.5 text-xs text-[#57534E] font-mono'>
-                    <KanbanSquare className='w-3.5 h-3.5 text-[#1C1917]' /> Minh họa 4 công đoạn
+                    <KanbanSquare className='w-3.5 h-3.5 text-[#1C1917]' />{' '}
+                    {t('featureSuite.kanban.previewBadge')}
                   </div>
                 </div>
 
@@ -2432,21 +2451,27 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <div className='min-w-[190px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                     <div className='flex items-center justify-between mb-2'>
                       <span className='text-xs font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
-                        Kịch bản
+                        {t('featureSuite.kanban.colScript')}
                       </span>
                       <span className='text-xs text-[#57534E] font-mono font-bold tabular-nums'>
                         3
                       </span>
                     </div>
                     <div className='space-y-1.5'>
-                      {['Cảnh 04: Studio', 'Cảnh 05: Phố đêm', 'Cảnh 06: Bến tàu'].map((s, i) => (
+                      {[
+                        t('featureSuite.kanban.scriptScene1'),
+                        t('featureSuite.kanban.scriptScene2'),
+                        t('featureSuite.kanban.scriptScene3'),
+                      ].map((s, i) => (
                         <div
-                          key={s}
+                          key={i}
                           className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'
                         >
                           <div className='text-xs font-semibold text-[#1C1917]'>{s}</div>
                           {i === 2 && (
-                            <div className='text-xs text-[#57534E] mt-0.5 italic'>Bản nháp</div>
+                            <div className='text-xs text-[#57534E] mt-0.5 italic'>
+                              {t('featureSuite.kanban.draftBadge')}
+                            </div>
                           )}
                         </div>
                       ))}
@@ -2457,7 +2482,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <div className='min-w-[190px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                     <div className='flex items-center justify-between mb-2'>
                       <span className='text-xs font-bold text-[#F97316] uppercase tracking-wider font-mono'>
-                        Đi nét
+                        {t('featureSuite.kanban.colInk')}
                       </span>
                       <span className='text-xs text-[#F97316] font-mono font-bold tabular-nums'>
                         5
@@ -2465,19 +2490,23 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     </div>
                     <div className='space-y-1.5'>
                       <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#F97316]/40 shadow-xs'>
-                        <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.3</div>
+                        <div className='text-xs font-semibold text-[#1C1917]'>
+                          {t('featureSuite.kanban.page143')}
+                        </div>
                         <div className='mt-1 text-xs text-[#F97316] font-medium'>
-                          2/3 khung xong
+                          {t('featureSuite.kanban.inkProgress')}
                         </div>
                       </div>
-                      {['Trang 14.4', 'Trang 14.5'].map((p) => (
-                        <div
-                          key={p}
-                          className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'
-                        >
-                          <div className='text-xs font-semibold text-[#1C1917]'>{p}</div>
-                        </div>
-                      ))}
+                      {[t('featureSuite.kanban.page144'), t('featureSuite.kanban.page145')].map(
+                        (p, idx) => (
+                          <div
+                            key={idx}
+                            className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'
+                          >
+                            <div className='text-xs font-semibold text-[#1C1917]'>{p}</div>
+                          </div>
+                        ),
+                      )}
                     </div>
                   </div>
 
@@ -2485,7 +2514,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <div className='min-w-[190px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                     <div className='flex items-center justify-between mb-2'>
                       <span className='text-xs font-bold text-[#57534E] uppercase tracking-wider font-mono'>
-                        Xét duyệt
+                        {t('featureSuite.kanban.colReview')}
                       </span>
                       <span className='text-xs text-[#57534E] font-mono font-bold tabular-nums'>
                         2
@@ -2493,13 +2522,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     </div>
                     <div className='space-y-1.5'>
                       <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                        <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.1</div>
+                        <div className='text-xs font-semibold text-[#1C1917]'>
+                          {t('featureSuite.kanban.page141')}
+                        </div>
                         <div className='text-xs text-[#1C1917] mt-0.5 font-medium inline-block bg-[#EAE5DC] px-1.5 py-0.5 rounded'>
-                          1 lưu ý AI
+                          {t('featureSuite.kanban.aiNoteBadge')}
                         </div>
                       </div>
                       <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                        <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.2</div>
+                        <div className='text-xs font-semibold text-[#1C1917]'>
+                          {t('featureSuite.kanban.page142')}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2508,21 +2541,26 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   <div className='min-w-[190px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                     <div className='flex items-center justify-between mb-2'>
                       <span className='text-xs font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
-                        Hoàn tất
+                        {t('featureSuite.kanban.colDone')}
                       </span>
                       <span className='text-xs text-[#1C1917] font-mono font-bold tabular-nums'>
                         24
                       </span>
                     </div>
                     <div className='space-y-1.5'>
-                      {['Trang 13.8', 'Trang 13.7', 'Trang 13.6'].map((p) => (
+                      {[
+                        t('featureSuite.kanban.page138'),
+                        t('featureSuite.kanban.page137'),
+                        t('featureSuite.kanban.page136'),
+                      ].map((p, idx) => (
                         <div
-                          key={p}
+                          key={idx}
                           className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'
                         >
                           <div className='text-xs font-semibold text-[#57534E]'>{p}</div>
                           <div className='text-xs text-[#1C1917] mt-0.5 flex items-center gap-1 font-medium'>
-                            <Check className='w-2.5 h-2.5 text-[#F97316]' /> Đã duyệt
+                            <Check className='w-2.5 h-2.5 text-[#F97316]' />{' '}
+                            {t('featureSuite.kanban.approvedBadge')}
                           </div>
                         </div>
                       ))}
@@ -2532,7 +2570,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
                 {/* Mobile scroll hint */}
                 <div className='md:hidden mt-2 text-center text-xs text-[#57534E] flex items-center justify-center gap-1.5'>
-                  <span>Vuốt ngang để xem đủ 4 công đoạn</span>
+                  <span>{t('featureSuite.kanban.mobileSwipeHint')}</span>
                   <span aria-hidden='true'>→</span>
                 </div>
               </div>
@@ -2550,21 +2588,20 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       <section
         id='block-workflow'
         className='py-16 md:py-24 relative scroll-mt-20 bg-[#F3F0E9]'
-        aria-label='Quy trình sản xuất'
+        aria-label={t('sections.workflowAria')}
       >
         <div className='relative max-w-[1780px] mx-auto px-[clamp(20px,4.2vw,72px)] w-full'>
           <div className='text-center w-full max-w-4xl mx-auto mb-14 animate-on-scroll'>
             <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
-              03 / Quy trình sản xuất
+              {t('workflow.tag')}
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
             </div>
             <h2 className='font-serif text-3xl sm:text-4xl md:text-5xl font-medium leading-[1.1] tracking-tight text-[#1C1917] [text-wrap:balance]'>
-              Từ kịch bản đến trang truyện hoàn thiện.
+              {t('workflow.title')}
             </h2>
             <p className='mt-4 text-base sm:text-lg text-[#57534E] leading-relaxed [text-wrap:pretty] max-w-[65ch] mx-auto'>
-              Kịch bản, phác thảo, đi nét và tô màu: mỗi trang qua bốn công đoạn, có cổng duyệt
-              trước khi sang công đoạn kế tiếp.
+              {t('workflow.subtitle')}
             </p>
           </div>
 
@@ -2574,10 +2611,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className='flex flex-col rounded-2xl bg-[#FFFEFA] border border-[#D8D2C5] shadow-xs p-5 sm:p-6 select-none hover:border-[#1C1917]/40 transition-colors'>
               <div className='flex items-center justify-between mb-3.5'>
                 <span className='text-xs font-bold text-[#1C1917] font-mono uppercase tracking-wider'>
-                  01 / Kịch bản
+                  {t('workflow.step1Tag')}
                 </span>
                 <span className='text-xs font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] border border-[#D8D2C5]'>
-                  Biên kịch
+                  {t('workflow.roles.writer')}
                 </span>
               </div>
 
@@ -2585,30 +2622,33 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className='aspect-[4/5] w-full rounded-xl bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-5 flex flex-col justify-between overflow-hidden relative shadow-2xs'>
                 <div className='space-y-2.5 text-left'>
                   <div className='flex items-center justify-between pb-2 border-b border-[#E2DDD2]'>
-                    <span className='text-xs font-mono text-[#57534E]'>Cảnh 04 · Khung 02</span>
-                    <span className='text-xs font-mono font-bold text-[#F97316]'>TẬP 3</span>
+                    <span className='text-xs font-mono text-[#57534E]'>
+                      {t('workflow.docketScenePanel')}
+                    </span>
+                    <span className='text-xs font-mono font-bold text-[#F97316]'>
+                      {t('workflow.docketVolume')}
+                    </span>
                   </div>
                   <div className='text-xs text-[#57534E] leading-relaxed'>
-                    <span className='font-semibold text-[#1C1917]'>[Bối cảnh]:</span> Xưởng vẽ gác
-                    mái về đêm. Đèn bàn vàng ấm soi rọi trang bản thảo.
+                    <span className='font-semibold text-[#1C1917]'>
+                      {t('workflow.docketSettingLabel')}
+                    </span>{' '}
+                    {t('workflow.docketSettingBody')}
                   </div>
                   <div className='text-xs text-[#1C1917] font-serif italic bg-[#FFFEFA] p-2.5 rounded-lg border border-[#D8D2C5]'>
-                    « Bản thảo này... câu chuyện bắt đầu ở đây. »
+                    {t('workflow.docketDialogue')}
                   </div>
-                  <div className='text-xs font-mono text-stone-500'>
-                    SFX: xoẹt nhẹ ngòi bút G-Pen
-                  </div>
+                  <div className='text-xs font-mono text-stone-500'>{t('workflow.docketSfx')}</div>
                 </div>
 
                 <div className='pt-2 border-t border-[#E2DDD2] flex items-center justify-between text-xs font-mono text-[#57534E]'>
-                  <span>Trạng thái: Đã duyệt thoại</span>
+                  <span>{t('workflow.docketStatus')}</span>
                   <span>v1.0</span>
                 </div>
               </div>
 
               <div className='mt-3.5 text-xs text-[#57534E] leading-relaxed'>
-                Soạn kịch bản phân khung có cấu trúc, gắn lời thoại, SFX và ghi chú mỹ thuật cho họa
-                sĩ.
+                {t('workflow.step1Desc')}
               </div>
             </div>
 
@@ -2616,10 +2656,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className='flex flex-col rounded-2xl bg-[#FFFEFA] border border-[#D8D2C5] shadow-xs p-5 sm:p-6 select-none hover:border-[#1C1917]/40 transition-colors'>
               <div className='flex items-center justify-between mb-3.5'>
                 <span className='text-xs font-bold text-[#1C1917] font-mono uppercase tracking-wider'>
-                  02 / Phác thảo
+                  {t('workflow.step2Tag')}
                 </span>
                 <span className='text-xs font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] border border-[#D8D2C5]'>
-                  Họa sĩ
+                  {t('workflow.roles.artist')}
                 </span>
               </div>
 
@@ -2627,15 +2667,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className='aspect-[4/5] w-full rounded-xl overflow-hidden border border-[#D8D2C5] bg-[#FAF8F5] relative shadow-2xs'>
                 <img
                   src='/images/landing/journey-sketch.webp'
-                  alt='Công đoạn phác thảo khung truyện (Sketch)'
+                  alt={t('workflow.images.sketch')}
                   loading='lazy'
                   className='w-full h-full object-cover object-center'
                 />
               </div>
 
               <div className='mt-3.5 text-xs text-[#57534E] leading-relaxed'>
-                Dựng bố cục khung tranh thô, góc nhìn phối cảnh và cử chỉ nhân vật theo mạch kịch
-                bản.
+                {t('workflow.step2Desc')}
               </div>
             </div>
 
@@ -2643,10 +2682,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className='flex flex-col rounded-2xl bg-[#FFFEFA] border border-[#D8D2C5] shadow-xs p-5 sm:p-6 select-none hover:border-[#1C1917]/40 transition-colors'>
               <div className='flex items-center justify-between mb-3.5'>
                 <span className='text-xs font-bold text-[#1C1917] font-mono uppercase tracking-wider'>
-                  03 / Đi nét
+                  {t('workflow.step3Tag')}
                 </span>
                 <span className='text-xs font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] border border-[#D8D2C5]'>
-                  Họa sĩ
+                  {t('workflow.roles.artist')}
                 </span>
               </div>
 
@@ -2654,15 +2693,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className='aspect-[4/5] w-full rounded-xl overflow-hidden border border-[#D8D2C5] bg-[#FAF8F5] relative shadow-2xs'>
                 <img
                   src='/images/landing/journey-ink.webp'
-                  alt='Công đoạn đi nét mực đen (Inking)'
+                  alt={t('workflow.images.ink')}
                   loading='lazy'
                   className='w-full h-full object-cover object-center'
                 />
               </div>
 
               <div className='mt-3.5 text-xs text-[#57534E] leading-relaxed'>
-                Đi nét mực đen chi tiết, tả chất liệu vải áo, nếp gấp, tóc và các đường speedline
-                manga.
+                {t('workflow.step3Desc')}
               </div>
             </div>
 
@@ -2670,10 +2708,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className='flex flex-col rounded-2xl bg-[#FFFEFA] border border-[#D8D2C5] shadow-xs p-5 sm:p-6 select-none hover:border-[#1C1917]/40 transition-colors'>
               <div className='flex items-center justify-between mb-3.5'>
                 <span className='text-xs font-bold text-[#F97316] font-mono uppercase tracking-wider'>
-                  04 / Hoàn thiện
+                  {t('workflow.step4Tag')}
                 </span>
                 <span className='text-xs font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#F97316] border border-[#F97316]/30 font-semibold'>
-                  Biên tập & Màu
+                  {t('workflow.roles.editor')}
                 </span>
               </div>
 
@@ -2681,15 +2719,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className='aspect-[4/5] w-full rounded-xl overflow-hidden border border-[#D8D2C5] bg-[#FAF8F5] relative shadow-2xs'>
                 <img
                   src='/images/landing/journey-color.webp'
-                  alt='Công đoạn hoàn thiện màu sắc và ánh sáng (Color)'
+                  alt={t('workflow.images.color')}
                   loading='lazy'
                   className='w-full h-full object-cover object-center'
                 />
               </div>
 
               <div className='mt-3.5 text-xs text-[#57534E] leading-relaxed'>
-                Đổ màu, chiếu sáng ấm áp góc đèn bàn, trau chuốt biểu cảm và kiểm tra tính nhất
-                quán.
+                {t('workflow.step4Desc')}
               </div>
             </div>
           </div>
@@ -2708,7 +2745,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   {/* Bottom Layer: Hoàn thiện (Color) */}
                   <img
                     src='/images/landing/journey-color.webp'
-                    alt='Bản màu hoàn thiện'
+                    alt={t('workflow.images.coloredDraft')}
                     className='absolute inset-0 w-full h-full object-contain object-center pointer-events-none select-none'
                     loading='lazy'
                     draggable={false}
@@ -2723,7 +2760,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   >
                     <img
                       src='/images/landing/journey-sketch.webp'
-                      alt='Bản phác thảo thô'
+                      alt={t('workflow.images.rawSketch')}
                       className='absolute inset-0 w-full h-full object-contain object-center select-none'
                       loading='lazy'
                       draggable={false}
@@ -2743,12 +2780,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   {/* Badges on Top of Slider */}
                   <div className='absolute top-3.5 left-3.5 z-10 pointer-events-none'>
                     <span className='px-3 py-1 rounded-md bg-[#1C1917]/85 backdrop-blur-xs text-white text-xs font-mono font-medium shadow-xs'>
-                      Phác thảo (Sketch)
+                      {t('workflow.comparison.badgeSketch')}
                     </span>
                   </div>
                   <div className='absolute top-3.5 right-3.5 z-10 pointer-events-none'>
                     <span className='px-3 py-1 rounded-md bg-[#F97316]/90 backdrop-blur-xs text-white text-xs font-mono font-medium shadow-xs'>
-                      Hoàn thiện (Color)
+                      {t('workflow.comparison.badgeColor')}
                     </span>
                   </div>
 
@@ -2759,18 +2796,18 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     max='100'
                     value={comparisonSliderPos}
                     onChange={(e) => setComparisonSliderPos(Number(e.target.value))}
-                    aria-label='Thanh so sánh bản phác thảo và bản hoàn thiện'
+                    aria-label={t('workflow.images.sliderAria')}
                     className='absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-20 focus-visible:opacity-20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-stone-900'
                   />
                 </div>
 
                 {/* Sub-label aligned with image width */}
                 <div className='w-full max-w-[420px] xl:max-w-[440px] flex items-center justify-between text-xs font-mono text-stone-500 mt-3 px-1'>
-                  <span>← Kéo sang trái (xem màu)</span>
+                  <span>{t('workflow.comparison.dragLeft')}</span>
                   <span className='tabular-nums font-semibold text-stone-700'>
                     {comparisonSliderPos}%
                   </span>
-                  <span>Kéo sang phải (xem phác thảo) →</span>
+                  <span>{t('workflow.comparison.dragRight')}</span>
                 </div>
               </div>
 
@@ -2778,21 +2815,19 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className='flex flex-col items-start text-left w-full'>
                 <div className='inline-flex items-center gap-2 text-xs font-mono font-semibold text-[#F97316] uppercase tracking-[0.2em] mb-3 select-none'>
                   <span className='w-7 h-px bg-[#F97316]' aria-hidden='true' />
-                  Đối chiếu công đoạn
+                  {t('workflow.comparison.tag')}
                 </div>
                 <h3 className='font-serif text-3xl sm:text-4xl font-medium text-[#1C1917] leading-tight mb-4 [text-wrap:balance] max-w-[28ch]'>
-                  Thanh so sánh: Phác thảo & Hoàn thiện
+                  {t('workflow.comparison.title')}
                 </h3>
                 <p className='text-base text-[#57534E] leading-relaxed mb-6 [text-wrap:pretty] max-w-[55ch]'>
-                  Kéo con trượt để trực tiếp quan sát sự chuyển dịch từ nét vẽ phác thảo thô sơ sang
-                  bản màu hoàn thiện. Hai công đoạn minh họa cùng một phân cảnh với ánh sáng và chi
-                  tiết được trau chuốt tỉ mỉ.
+                  {t('workflow.comparison.desc')}
                 </p>
 
                 {/* Preset Quick Buttons */}
                 <div className='flex flex-wrap items-center gap-2.5 mb-6 select-none'>
                   <span className='text-xs font-mono text-[#57534E] font-medium mr-1'>
-                    Chế độ xem:
+                    {t('workflow.comparison.viewModeLabel')}
                   </span>
                   <button
                     type='button'
@@ -2803,7 +2838,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         : 'bg-[#FFFEFA] text-[#57534E] border-[#D8D2C5] hover:border-[#1C1917]'
                     }`}
                   >
-                    100% Phác thảo
+                    {t('workflow.comparison.presetSketch')}
                   </button>
                   <button
                     type='button'
@@ -2814,7 +2849,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         : 'bg-[#FFFEFA] text-[#57534E] border-[#D8D2C5] hover:border-[#1C1917]'
                     }`}
                   >
-                    50 / 50 Đối chiếu
+                    {t('workflow.comparison.presetSplit')}
                   </button>
                   <button
                     type='button'
@@ -2825,7 +2860,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         : 'bg-[#FFFEFA] text-[#57534E] border-[#D8D2C5] hover:border-[#1C1917]'
                     }`}
                   >
-                    100% Hoàn thiện
+                    {t('workflow.comparison.presetColor')}
                   </button>
                 </div>
 
@@ -2833,22 +2868,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <div className='space-y-3 w-full max-w-[55ch] pt-5 border-t border-[#D8D2C5]/80 text-xs sm:text-[13px] text-[#57534E]'>
                   <div className='flex items-start gap-2.5'>
                     <Check className='w-4 h-4 text-[#F97316] shrink-0 mt-0.5' />
-                    <span>
-                      Bản phác thảo định hình chuyển động nhân vật và góc nhìn phối cảnh ban đầu.
-                    </span>
+                    <span>{t('workflow.comparison.bullet1')}</span>
                   </div>
                   <div className='flex items-start gap-2.5'>
                     <Check className='w-4 h-4 text-[#F97316] shrink-0 mt-0.5' />
-                    <span>
-                      Bản hoàn thiện phủ màu điện ảnh, ánh sáng vàng ấm và tả chất liệu chi tiết.
-                    </span>
+                    <span>{t('workflow.comparison.bullet2')}</span>
                   </div>
                   <div className='flex items-start gap-2.5'>
                     <Check className='w-4 h-4 text-[#F97316] shrink-0 mt-0.5' />
-                    <span>
-                      Trực quan hóa tiến trình sáng tác, giúp biên tập viên đối chiếu nhanh khi xét
-                      duyệt.
-                    </span>
+                    <span>{t('workflow.comparison.bullet3')}</span>
                   </div>
                 </div>
               </div>
@@ -2866,21 +2894,20 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       <section
         id='block-showcase'
         className='py-16 md:py-24 relative overflow-hidden scroll-mt-20 bg-[#F3F0E9]'
-        aria-label='Trưng bày không gian làm việc'
+        aria-label={t('sections.showcaseAria')}
       >
         <div className='relative max-w-[1780px] mx-auto px-[clamp(20px,4.2vw,72px)] w-full'>
           <div className='text-center w-full max-w-4xl mx-auto mb-12 animate-on-scroll'>
             <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
-              04 / Không gian làm việc
+              {t('showcase.tag')}
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
             </div>
             <h2 className='font-serif text-3xl sm:text-4xl md:text-5xl font-medium leading-[1.08] tracking-tight text-[#1C1917] [text-wrap:balance]'>
-              Một không gian cho mọi vai trò.
+              {t('showcase.title')}
             </h2>
             <p className='mt-4 text-base sm:text-lg text-[#57534E] leading-relaxed [text-wrap:pretty] max-w-[65ch] mx-auto'>
-              Biên kịch, họa sĩ, biên tập viên và đội ngũ quản lý cùng làm việc trên một nguồn dữ
-              liệu có cấu trúc.
+              {t('showcase.subtitle')}
             </p>
           </div>
 
@@ -2902,7 +2929,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 </div>
                 <div className='ml-auto flex items-center gap-2'>
                   <span className='text-xs font-mono px-2 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] font-medium border border-[#D8D2C5]'>
-                    Dữ liệu minh họa
+                    {t('showcase.sampleDataBadge')}
                   </span>
                 </div>
               </div>
@@ -2910,15 +2937,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               {/* Accessible Tab Bar */}
               <div
                 role='tablist'
-                aria-label='Không gian làm việc minh họa'
+                aria-label={t('sections.workspaceIlloAria')}
                 className='flex items-center gap-2 px-4 sm:px-6 py-2.5 border-b border-[#D8D2C5] bg-[#F3F0E9]/80 overflow-x-auto scrollbar-thin'
               >
                 {[
-                  { key: 'pipeline', label: 'Quy trình sản xuất' },
-                  { key: 'script', label: 'Kịch bản phân khung' },
-                  { key: 'bible', label: 'Hồ sơ bộ truyện' },
-                  { key: 'events', label: 'Nhật ký thay đổi' },
-                  { key: 'references', label: 'Tài liệu tham chiếu' },
+                  { key: 'pipeline', label: t('showcase.tabs.pipeline') },
+                  { key: 'script', label: t('showcase.tabs.script') },
+                  { key: 'bible', label: t('showcase.tabs.bible') },
+                  { key: 'events', label: t('showcase.tabs.events') },
+                  { key: 'references', label: t('showcase.tabs.references') },
                 ].map(({ key, label }) => {
                   const isActive = activeShowcaseTab === key;
                   return (
@@ -2960,7 +2987,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <div className='min-w-[210px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-2.5'>
                           <span className='text-xs font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
-                            Kịch bản
+                            {t('featureSuite.kanban.colScript')}
                           </span>
                           <span className='text-xs text-[#57534E] font-mono font-bold tabular-nums'>
                             3
@@ -2969,18 +2996,18 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         <div className='space-y-2'>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
                             <div className='text-xs font-semibold text-[#1C1917]'>
-                              Cảnh 04: Studio về đêm
+                              {t('showcase.pipeline.scene04Title')}
                             </div>
                             <div className='text-xs text-[#57534E] mt-0.5'>
-                              « Bối cảnh: Thành phố lên đèn »
+                              {t('showcase.pipeline.scene04Desc')}
                             </div>
                           </div>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
                             <div className='text-xs font-semibold text-[#1C1917]'>
-                              Cảnh 05: Phố mưa
+                              {t('showcase.pipeline.scene05Title')}
                             </div>
                             <div className='text-xs text-[#57534E] mt-0.5'>
-                              « Hành động: An nhìn lại »
+                              {t('showcase.pipeline.scene05Desc')}
                             </div>
                           </div>
                         </div>
@@ -2990,7 +3017,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <div className='min-w-[210px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-2.5'>
                           <span className='text-xs font-bold text-[#F97316] uppercase tracking-wider font-mono'>
-                            Đi nét
+                            {t('featureSuite.kanban.colInk')}
                           </span>
                           <span className='text-xs text-[#F97316] font-mono font-bold tabular-nums'>
                             5
@@ -2999,18 +3026,24 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         <div className='space-y-2'>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#F97316]/40 shadow-xs'>
                             <div className='flex items-center justify-between'>
-                              <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.3</div>
+                              <div className='text-xs font-semibold text-[#1C1917]'>
+                                {t('featureSuite.kanban.page143')}
+                              </div>
                               <span className='text-xs px-1.5 py-0.5 rounded bg-[#FAF8F5] text-[#F97316] font-bold border border-[#F97316]/30'>
-                                Đang vẽ
+                                {t('showcase.pipeline.drawingBadge')}
                               </span>
                             </div>
                             <div className='text-xs text-[#57534E] mt-0.5'>
-                              Họa sĩ: An · 3/4 khung hoàn tất
+                              {t('showcase.pipeline.artistProgress')}
                             </div>
                           </div>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                            <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.4</div>
-                            <div className='text-xs text-[#57534E] mt-0.5'>Chờ dựng phối cảnh</div>
+                            <div className='text-xs font-semibold text-[#1C1917]'>
+                              {t('featureSuite.kanban.page144')}
+                            </div>
+                            <div className='text-xs text-[#57534E] mt-0.5'>
+                              {t('showcase.pipeline.waitingPerspective')}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -3019,7 +3052,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <div className='min-w-[210px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-2.5'>
                           <span className='text-xs font-bold text-[#57534E] uppercase tracking-wider font-mono'>
-                            Xét duyệt
+                            {t('featureSuite.kanban.colReview')}
                           </span>
                           <span className='text-xs text-[#57534E] font-mono font-bold tabular-nums'>
                             2
@@ -3027,10 +3060,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         </div>
                         <div className='space-y-2'>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                            <div className='text-xs font-semibold text-[#1C1917]'>Trang 14.1</div>
+                            <div className='text-xs font-semibold text-[#1C1917]'>
+                              {t('featureSuite.kanban.page141')}
+                            </div>
                             <div className='text-xs text-[#1C1917] mt-0.5 font-medium inline-flex items-center gap-1 bg-[#EAE5DC] px-1.5 py-0.5 rounded'>
-                              <Sparkles className='w-2.5 h-2.5 text-[#F97316]' /> AI: Kiểm tra vết
-                              sẹo
+                              <Sparkles className='w-2.5 h-2.5 text-[#F97316]' />{' '}
+                              {t('showcase.pipeline.aiScarCheck')}
                             </div>
                           </div>
                         </div>
@@ -3040,7 +3075,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <div className='min-w-[210px] md:min-w-0 snap-start flex-1 shrink-0 bg-[#FAF8F5] rounded-xl p-3 border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-2.5'>
                           <span className='text-xs font-bold text-[#1C1917] uppercase tracking-wider font-mono'>
-                            Đã duyệt
+                            {t('showcase.pipeline.colApproved')}
                           </span>
                           <span className='text-xs text-[#1C1917] font-mono font-bold tabular-nums'>
                             24
@@ -3048,9 +3083,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         </div>
                         <div className='space-y-2'>
                           <div className='bg-[#FFFEFA] rounded-lg p-2.5 border border-[#D8D2C5] shadow-xs'>
-                            <div className='text-xs font-semibold text-[#1C1917]'>Trang 13.8</div>
+                            <div className='text-xs font-semibold text-[#1C1917]'>
+                              {t('featureSuite.kanban.page138')}
+                            </div>
                             <div className='text-xs text-[#1C1917] mt-0.5 flex items-center gap-1 font-medium'>
-                              <Check className='w-2.5 h-2.5 text-[#F97316]' /> Đã đóng gói xuất bản
+                              <Check className='w-2.5 h-2.5 text-[#F97316]' />{' '}
+                              {t('showcase.pipeline.packagedPublish')}
                             </div>
                           </div>
                         </div>
@@ -3058,7 +3096,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     </div>
 
                     <div className='md:hidden mt-2 text-center text-xs text-[#57534E]'>
-                      Vuốt ngang để xem đủ 4 công đoạn →
+                      {t('showcase.pipeline.mobileSwipeHint')}
                     </div>
                   </div>
                 )}
@@ -3075,12 +3113,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-2 text-xs'>
                       <div>
                         <span className='font-semibold text-[#1C1917]'>
-                          Phân cảnh 04: Studio về đêm
+                          {t('showcase.script.headerTitle')}
                         </span>
-                        <span className='text-[#57534E] ml-2'>· Tập 3, Chương 14</span>
+                        <span className='text-[#57534E] ml-2'>
+                          {t('showcase.script.headerMeta')}
+                        </span>
                       </div>
                       <span className='text-xs font-mono text-[#57534E]'>
-                        Soạn thảo kịch bản phân khung
+                        {t('showcase.script.headerRight')}
                       </span>
                     </div>
 
@@ -3088,44 +3128,58 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-1'>
                           <span className='text-xs font-bold text-[#1C1917] font-mono'>
-                            Khung #01 (Toàn cảnh)
+                            {t('showcase.script.panel1Title')}
                           </span>
-                          <span className='text-xs font-mono text-[#57534E]'>1/3 trang</span>
+                          <span className='text-xs font-mono text-[#57534E]'>
+                            {t('showcase.script.pageFraction')}
+                          </span>
                         </div>
                         <p className='text-xs text-[#57534E] leading-relaxed'>
-                          <strong className='text-[#1C1917]'>Bối cảnh:</strong> Thành phố lên đèn từ
-                          góc cao. Một ô cửa sổ xưởng vẽ gác mái vẫn sáng ánh đèn vàng.
+                          <strong className='text-[#1C1917]'>
+                            {t('showcase.script.settingLabel')}
+                          </strong>{' '}
+                          {t('showcase.script.panel1Desc')}
                         </p>
                       </div>
 
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-1'>
                           <span className='text-xs font-bold text-[#1C1917] font-mono'>
-                            Khung #02 (Cận cảnh)
+                            {t('showcase.script.panel2Title')}
                           </span>
-                          <span className='text-xs font-mono text-[#57534E]'>1/3 trang</span>
+                          <span className='text-xs font-mono text-[#57534E]'>
+                            {t('showcase.script.pageFraction')}
+                          </span>
                         </div>
                         <p className='text-xs text-[#57534E] leading-relaxed'>
-                          <strong className='text-[#1C1917]'>Hành động:</strong> An cúi xuống bản
-                          thảo, tay cầm bút vẽ G-Pen. Ánh mắt kiên định.
+                          <strong className='text-[#1C1917]'>
+                            {t('showcase.script.actionLabel')}
+                          </strong>{' '}
+                          {t('showcase.script.panel2Desc')}
                         </p>
                         <p className='text-xs text-[#1C1917] mt-1 italic'>
-                          « Thoại: "Bản thảo này... câu chuyện bắt đầu ở đây." »
+                          {t('showcase.script.panel2Dialogue')}
                         </p>
                       </div>
 
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
                         <div className='flex items-center justify-between mb-1'>
                           <span className='text-xs font-bold text-[#1C1917] font-mono'>
-                            Khung #03 (Chi tiết tay)
+                            {t('showcase.script.panel3Title')}
                           </span>
-                          <span className='text-xs font-mono text-[#57534E]'>1/3 trang</span>
+                          <span className='text-xs font-mono text-[#57534E]'>
+                            {t('showcase.script.pageFraction')}
+                          </span>
                         </div>
                         <p className='text-xs text-[#57534E] leading-relaxed'>
-                          <strong className='text-[#1C1917]'>Chi tiết:</strong> Ngòi bút chạm nhẹ
-                          trang giấy bản thảo. Lọ mực đen mở nắp phản chiếu ánh đèn bàn.
+                          <strong className='text-[#1C1917]'>
+                            {t('showcase.script.detailLabel')}
+                          </strong>{' '}
+                          {t('showcase.script.panel3Desc')}
                         </p>
-                        <div className='text-xs text-[#57534E] mt-1 font-mono'>SFX: xoẹt nhẹ</div>
+                        <div className='text-xs text-[#57534E] mt-1 font-mono'>
+                          {t('showcase.script.panel3Sfx')}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3143,12 +3197,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-2 text-xs'>
                       <div>
                         <span className='font-semibold text-[#1C1917]'>
-                          Hồ sơ bộ truyện đã khóa
+                          {t('showcase.bible.headerTitle')}
                         </span>
-                        <span className='text-[#57534E] ml-2'>· Chuẩn mực tác phẩm</span>
+                        <span className='text-[#57534E] ml-2'>
+                          {t('showcase.bible.headerMeta')}
+                        </span>
                       </div>
                       <span className='text-xs font-mono text-[#1C1917] bg-[#EAE5DC] px-2 py-0.5 rounded border border-[#D8D2C5]'>
-                        Quy tắc nhất quán v3.2
+                        {t('showcase.bible.headerBadge')}
                       </span>
                     </div>
 
@@ -3160,17 +3216,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                           </span>
                           <div>
                             <div className='text-xs font-bold text-[#1C1917]'>
-                              Nhân vật: An (Họa sĩ chính)
+                              {t('showcase.bible.charTitle')}
                             </div>
                             <div className='text-xs text-[#57534E]'>
-                              Đặc điểm nhận diện & trang phục
+                              {t('showcase.bible.charSubtitle')}
                             </div>
                           </div>
                         </div>
                         <ul className='text-xs text-[#57534E] space-y-1 list-disc list-inside'>
-                          <li>Trang phục: Áo khoác xám dài có ghim cài studio ở vạt trái.</li>
-                          <li>Tóc đen đánh rối tự nhiên, ánh mắt tập trung cao độ.</li>
-                          <li>Dụng cụ quen thuộc: Bút vẽ G-Pen ngòi vàng thủ công.</li>
+                          <li>{t('showcase.bible.charRule1')}</li>
+                          <li>{t('showcase.bible.charRule2')}</li>
+                          <li>{t('showcase.bible.charRule3')}</li>
                         </ul>
                       </div>
 
@@ -3181,17 +3237,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                           </span>
                           <div>
                             <div className='text-xs font-bold text-[#1C1917]'>
-                              Quy tắc AI đối chiếu nhất quán
+                              {t('showcase.bible.aiTitle')}
                             </div>
                             <div className='text-xs text-[#57534E]'>
-                              Gợi ý rà soát khi nộp trang vẽ
+                              {t('showcase.bible.aiSubtitle')}
                             </div>
                           </div>
                         </div>
                         <ul className='text-xs text-[#57534E] space-y-1 list-disc list-inside'>
-                          <li>Kiểm tra hướng nguồn sáng đèn bàn vàng ấm góc 45 độ.</li>
-                          <li>Đối chiếu cấu trúc bàn tay cầm bút đúng tư thế manga thực tế.</li>
-                          <li>Cảnh báo ngay nếu phục trang nhân vật lệch khỏi hồ sơ.</li>
+                          <li>{t('showcase.bible.aiRule1')}</li>
+                          <li>{t('showcase.bible.aiRule2')}</li>
+                          <li>{t('showcase.bible.aiRule3')}</li>
                         </ul>
                       </div>
                     </div>
@@ -3209,31 +3265,37 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   >
                     <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-2 text-xs'>
                       <div>
-                        <span className='font-semibold text-[#1C1917]'>Nhật ký thay đổi</span>
-                        <span className='text-[#57534E] ml-2'>· Lưu trữ từng phiên bản</span>
+                        <span className='font-semibold text-[#1C1917]'>
+                          {t('showcase.events.headerTitle')}
+                        </span>
+                        <span className='text-[#57534E] ml-2'>
+                          {t('showcase.events.headerMeta')}
+                        </span>
                       </div>
-                      <span className='text-xs font-mono text-[#57534E]'>Không thể ghi đè</span>
+                      <span className='text-xs font-mono text-[#57534E]'>
+                        {t('showcase.events.headerRight')}
+                      </span>
                     </div>
 
                     <div className='space-y-2 text-xs'>
                       {[
                         {
-                          time: '14:42 · Jiro (Biên tập)',
-                          action: 'Đã phê duyệt trang 14.1',
-                          detail: 'Đối chiếu hồ sơ nhân vật An đạt chuẩn',
-                          tag: 'Phê duyệt',
+                          time: t('showcase.events.ev1Time'),
+                          action: t('showcase.events.ev1Action'),
+                          detail: t('showcase.events.ev1Detail'),
+                          tag: t('showcase.events.ev1Tag'),
                         },
                         {
-                          time: '14:38 · An (Họa sĩ)',
-                          action: 'Nộp bản vẽ v3 cho khung #02 và #03',
-                          detail: 'Bổ sung màu và ánh sáng đổ bóng',
-                          tag: 'Cập nhật',
+                          time: t('showcase.events.ev2Time'),
+                          action: t('showcase.events.ev2Action'),
+                          detail: t('showcase.events.ev2Detail'),
+                          tag: t('showcase.events.ev2Tag'),
                         },
                         {
-                          time: '14:21 · AI Trợ lý',
-                          action: 'Gợi ý kiểm tra chi tiết nhân vật',
-                          detail: 'Nhắc nhở đối chiếu vết sẹo theo hồ sơ v3.2',
-                          tag: 'AI Gợi ý',
+                          time: t('showcase.events.ev3Time'),
+                          action: t('showcase.events.ev3Action'),
+                          detail: t('showcase.events.ev3Detail'),
+                          tag: t('showcase.events.ev3Tag'),
                         },
                       ].map((item, idx) => (
                         <div
@@ -3267,65 +3329,77 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-2 text-xs'>
                       <div>
                         <span className='font-semibold text-[#1C1917]'>
-                          Tài liệu tham chiếu chương 14
+                          {t('showcase.references.headerTitle')}
                         </span>
-                        <span className='text-[#57534E] ml-2'>· Bảng màu & tư liệu phối cảnh</span>
+                        <span className='text-[#57534E] ml-2'>
+                          {t('showcase.references.headerMeta')}
+                        </span>
                       </div>
-                      <span className='text-xs font-mono text-[#57534E]'>Đã gắn vào kịch bản</span>
+                      <span className='text-xs font-mono text-[#57534E]'>
+                        {t('showcase.references.headerRight')}
+                      </span>
                     </div>
 
                     <div className='grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs'>
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
                         <div className='text-xs font-bold text-[#57534E] uppercase tracking-wider mb-1 flex items-center gap-1 font-mono'>
-                          <Palette className='w-3 h-3 text-[#F97316]' /> Bảng màu chính
+                          <Palette className='w-3 h-3 text-[#F97316]' />{' '}
+                          {t('showcase.references.paletteTitle')}
                         </div>
                         <div className='flex gap-1.5 mt-2'>
                           <div
                             className='w-6 h-6 rounded-md bg-[#1C1917]'
-                            title='Đen mực #1C1917'
+                            title={t('showcase.references.swatchInk')}
                           />
                           <div
                             className='w-6 h-6 rounded-md bg-[#F97316]'
-                            title='Cam PanelForge #F97316'
+                            title={t('showcase.references.swatchOrange')}
                           />
                           <div
                             className='w-6 h-6 rounded-md bg-[#FAF8F5] border border-[#D8D2C5]'
-                            title='Giấy ngà #FAF8F5'
+                            title={t('showcase.references.swatchIvory')}
                           />
                           <div
                             className='w-6 h-6 rounded-md bg-[#57534E]'
-                            title='Xám chì #57534E'
+                            title={t('showcase.references.swatchGraphite')}
                           />
                         </div>
                       </div>
 
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
                         <div className='text-xs font-bold text-[#57534E] uppercase tracking-wider mb-1 flex items-center gap-1 font-mono'>
-                          <BookMarked className='w-3 h-3 text-[#1C1917]' /> Bối cảnh
+                          <BookMarked className='w-3 h-3 text-[#1C1917]' />{' '}
+                          {t('showcase.references.settingTitle')}
                         </div>
-                        <div className='font-semibold text-[#1C1917] mt-1'>Studio gác mái</div>
+                        <div className='font-semibold text-[#1C1917] mt-1'>
+                          {t('showcase.references.settingName')}
+                        </div>
                         <div className='text-xs text-[#57534E] mt-0.5'>
-                          Cửa sổ nhìn ra đường chân trời đô thị
+                          {t('showcase.references.settingDesc')}
                         </div>
                       </div>
 
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
                         <div className='text-xs font-bold text-[#57534E] uppercase tracking-wider mb-1 font-mono'>
-                          Đạo cụ tham chiếu
+                          {t('showcase.references.propTitle')}
                         </div>
-                        <div className='font-semibold text-[#1C1917] mt-1'>Bút vẽ G-Pen</div>
+                        <div className='font-semibold text-[#1C1917] mt-1'>
+                          {t('showcase.references.propName')}
+                        </div>
                         <div className='text-xs text-[#57534E] mt-0.5'>
-                          Góc cầm 45 độ, ngòi kim loại ánh vàng
+                          {t('showcase.references.propDesc')}
                         </div>
                       </div>
 
                       <div className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5]'>
                         <div className='text-xs font-bold text-[#57534E] uppercase tracking-wider mb-1 font-mono'>
-                          Ánh sáng chủ đạo
+                          {t('showcase.references.lightingTitle')}
                         </div>
-                        <div className='font-semibold text-[#1C1917] mt-1'>Đèn bàn ấm</div>
+                        <div className='font-semibold text-[#1C1917] mt-1'>
+                          {t('showcase.references.lightingName')}
+                        </div>
                         <div className='text-xs text-[#57534E] mt-0.5'>
-                          Tương phản cao với bầu trời đêm ngoài cửa
+                          {t('showcase.references.lightingDesc')}
                         </div>
                       </div>
                     </div>
@@ -3346,7 +3420,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       <section
         id='block-faq'
         className='py-16 md:py-24 relative scroll-mt-20 bg-[#F3F0E9]'
-        aria-label='Hỏi đáp thường gặp'
+        aria-label={t('sections.faqAria')}
       >
         <div className='max-w-[1780px] mx-auto px-[clamp(20px,4.2vw,72px)] w-full'>
           <div className='grid grid-cols-1 lg:grid-cols-[minmax(0,38%)_minmax(0,62%)] gap-10 lg:gap-14 xl:gap-20 items-start w-full animate-on-scroll'>
@@ -3354,50 +3428,30 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className='text-left w-full'>
               <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
                 <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
-                05 / Giải đáp thắc mắc
+                {t('faq.tag')}
               </div>
               <h2 className='font-serif text-3xl sm:text-4xl lg:text-[2.65rem] font-medium leading-[1.12] tracking-tight text-[#1C1917] [text-wrap:balance] max-w-[22ch]'>
-                Câu hỏi thường gặp về PanelForge.
+                {t('faq.title')}
               </h2>
               <p className='mt-4 text-base sm:text-lg text-[#57534E] leading-relaxed [text-wrap:pretty] max-w-[42ch]'>
-                Những thắc mắc phổ biến về vai trò thành viên, quy trình studio và lưu trữ dữ liệu
-                bản thảo trong quá trình sáng tác.
+                {t('faq.subtitle')}
               </p>
 
               <div className='mt-8 p-5 rounded-2xl bg-[#FFFEFA] border border-[#D8D2C5] max-w-[42ch]'>
                 <div className='text-xs font-mono font-semibold text-[#1C1917] uppercase tracking-wider mb-1'>
-                  Hỗ trợ studio trực tiếp
+                  {t('faq.supportTitle')}
                 </div>
-                <div className='text-xs text-[#57534E] leading-relaxed'>
-                  Bạn đang xây dựng quy trình sáng tác cho đội ngũ lớn? Các quản trị viên có thể
-                  thiết lập phân quyền và lưu vết theo yêu cầu của từng bộ truyện.
-                </div>
+                <div className='text-xs text-[#57534E] leading-relaxed'>{t('faq.supportDesc')}</div>
               </div>
             </div>
 
             {/* Right Column (62%): Accordion List */}
             <div className='space-y-4 w-full'>
               {[
-                {
-                  question: 'Ai có thể sử dụng PanelForge?',
-                  answer:
-                    'PanelForge được thiết kế cho các đội ngũ sáng tác truyện tranh, studio và nhóm tác giả độc lập gồm biên kịch, họa sĩ, biên tập viên và trưởng dự án. Nền tảng phân quyền rõ ràng theo từng vai trò công việc để việc cộng tác luôn trật tự.',
-                },
-                {
-                  question: 'Tài khoản mới có thể tự tạo studio không?',
-                  answer:
-                    'Có. Sau khi đăng ký tài khoản, bạn có thể tự khởi tạo studio sản xuất mới của riêng mình hoặc được thêm vào studio của đội ngũ khác qua email mời của thành viên quản trị.',
-                },
-                {
-                  question: 'AI hỗ trợ đội ngũ ở bước nào?',
-                  answer:
-                    'AI đóng vai trò như một trợ lý rà soát kịch bản và phân cảnh, đối chiếu các chi tiết trong kịch bản với thông tin đã thiết lập trong Hồ sơ bộ truyện (đặc điểm nhân vật, trang phục, quy tắc thế giới) để nhắc nhở đội ngũ giữ tính nhất quán.',
-                },
-                {
-                  question: 'Các phiên bản cũ được quản lý thế nào?',
-                  answer:
-                    'Mỗi lượt cập nhật kịch bản hoặc gửi bản vẽ mới đều được hệ thống ghi nhận thành các mốc riêng kèm thời gian và người thực hiện. Đội ngũ có thể xem lại lịch sử các lần nộp để đối chiếu và theo dõi tiến độ hoàn thiện của từng trang.',
-                },
+                { question: t('faq.q1'), answer: t('faq.a1') },
+                { question: t('faq.q2'), answer: t('faq.a2') },
+                { question: t('faq.q3'), answer: t('faq.a3') },
+                { question: t('faq.q4'), answer: t('faq.a4') },
               ].map(({ question, answer }, idx) => (
                 <details
                   key={idx}
@@ -3421,25 +3475,24 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       <section
         id='block-cta'
         className='py-16 md:py-24 relative scroll-mt-20 bg-[#F3F0E9] border-t border-[#D8D2C5]'
-        aria-label='Bắt đầu sáng tác'
+        aria-label={t('sections.ctaAria')}
       >
         <div className='relative max-w-[1780px] mx-auto px-[clamp(20px,4.2vw,72px)] w-full text-center'>
           <div className='animate-on-scroll max-w-3xl mx-auto'>
             <div className='inline-flex items-center gap-2 text-xs font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-4 select-none'>
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
-              Bắt đầu sáng tác
+              {t('cta.tag')}
               <span className='w-8 h-px bg-[#F97316]' aria-hidden='true' />
             </div>
             <h2 className='font-serif text-3xl sm:text-4xl md:text-5xl font-medium leading-[1.12] tracking-tight text-[#1C1917] [text-wrap:balance]'>
-              Cùng tạo nên câu chuyện{' '}
+              {t('cta.titleLead')}{' '}
               <span className='relative inline-block'>
-                <span>tiếp theo.</span>
+                <span>{t('cta.titleHighlight')}</span>
                 <span className='absolute bottom-1 left-0 w-full h-[3px] bg-[#F97316]/40 -z-10 rounded-full' />
               </span>
             </h2>
             <p className='mt-5 text-base sm:text-lg text-[#57534E] max-w-xl mx-auto leading-relaxed [text-wrap:pretty]'>
-              Đưa đội ngũ, kịch bản và quy trình của bạn vào PanelForge. Biến những tháng ngày làm
-              việc rời rạc thành một chu trình sáng tác có cấu trúc và đáng tin cậy.
+              {t('cta.subtitle')}
             </p>
 
             {/* Action buttons */}
@@ -3448,7 +3501,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 onClick={handleRegisterClick}
                 className='w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#1C1917] hover:bg-black active:scale-[0.98] motion-reduce:transform-none text-[#FAF8F5] font-medium text-base shadow-soft-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900'
               >
-                <span>Tạo tài khoản ngay</span>
+                <span>{t('cta.primaryBtn')}</span>
                 <ArrowRight className='w-4 h-4' />
               </button>
               <a
@@ -3456,7 +3509,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 onClick={handleScrollToWorkflow}
                 className='w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-[#FFFEFA] border border-[#D8D2C5] text-[#1C1917] font-medium text-base hover:border-[#1C1917] hover:bg-[#F3F0E9] active:scale-[0.98] motion-reduce:transform-none transition-all shadow-soft-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900'
               >
-                <span>Xem quy trình hoạt động</span>
+                <span>{t('cta.secondaryBtn')}</span>
                 <ArrowRight className='w-4 h-4' />
               </a>
             </div>
@@ -3464,13 +3517,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             {/* Trust feature pills */}
             <div className='mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#57534E]'>
               <div className='flex items-center gap-1.5'>
-                <Check className='w-3.5 h-3.5 text-[#F97316]' /> Kịch bản phân khung có cấu trúc
+                <Check className='w-3.5 h-3.5 text-[#F97316]' /> {t('cta.pill1')}
               </div>
               <div className='flex items-center gap-1.5'>
-                <Check className='w-3.5 h-3.5 text-[#F97316]' /> Lưu dấu toàn bộ lịch sử phiên bản
+                <Check className='w-3.5 h-3.5 text-[#F97316]' /> {t('cta.pill2')}
               </div>
               <div className='flex items-center gap-1.5'>
-                <Check className='w-3.5 h-3.5 text-[#F97316]' /> Đối chiếu nhất quán với AI
+                <Check className='w-3.5 h-3.5 text-[#F97316]' /> {t('cta.pill3')}
               </div>
             </div>
           </div>
@@ -3487,7 +3540,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 href='#hero-section'
                 onClick={(e) => handleNavScroll(e, 'hero-section')}
                 className='inline-flex items-center gap-2.5 group'
-                aria-label='PanelForge - Về đầu trang'
+                aria-label={t('nav.homeAria')}
               >
                 <BrandMark
                   size={30}
@@ -3499,15 +3552,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 </span>
               </a>
               <p className='mt-4 text-sm text-[#A8A29E] max-w-md leading-relaxed [text-wrap:pretty]'>
-                Nền tảng cộng tác sản xuất truyện tranh có cấu trúc. Đồng bộ kịch bản, nét vẽ, xét
-                duyệt và lịch sử phiên bản trong một không gian duy nhất.
+                {t('footer.desc')}
               </p>
             </div>
 
             {/* Navigation links */}
             <div className='md:col-span-3'>
               <div className='text-xs uppercase tracking-[0.18em] text-[#D6D3D1] font-semibold mb-4 font-mono'>
-                Khám phá
+                {t('footer.exploreTitle')}
               </div>
               <ul className='space-y-2.5 text-sm text-[#A8A29E]'>
                 <li>
@@ -3516,7 +3568,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     onClick={(e) => handleNavScroll(e, 'block-features')}
                     className='hover:text-[#FAF8F5] transition-colors focus-visible:outline-none focus-visible:underline'
                   >
-                    Tính năng nổi bật
+                    {t('footer.linkFeatures')}
                   </a>
                 </li>
                 <li>
@@ -3525,7 +3577,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     onClick={(e) => handleNavScroll(e, 'block-workflow')}
                     className='hover:text-[#FAF8F5] transition-colors focus-visible:outline-none focus-visible:underline'
                   >
-                    Quy trình 4 công đoạn
+                    {t('footer.linkWorkflow')}
                   </a>
                 </li>
                 <li>
@@ -3534,7 +3586,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     onClick={(e) => handleNavScroll(e, 'block-showcase')}
                     className='hover:text-[#FAF8F5] transition-colors focus-visible:outline-none focus-visible:underline'
                   >
-                    Trưng bày không gian làm việc
+                    {t('footer.linkShowcase')}
                   </a>
                 </li>
                 <li>
@@ -3543,7 +3595,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     onClick={(e) => handleNavScroll(e, 'block-faq')}
                     className='hover:text-[#FAF8F5] transition-colors focus-visible:outline-none focus-visible:underline'
                   >
-                    Hỏi đáp thường gặp
+                    {t('footer.linkFaq')}
                   </a>
                 </li>
                 <li>
@@ -3552,7 +3604,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     onClick={(e) => handleNavScroll(e, 'hero-section')}
                     className='hover:text-[#FAF8F5] transition-colors focus-visible:outline-none focus-visible:underline'
                   >
-                    Về đầu trang ↑
+                    {t('footer.linkBackToTop')}
                   </a>
                 </li>
               </ul>
@@ -3561,7 +3613,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             {/* Account links */}
             <div className='md:col-span-3'>
               <div className='text-xs uppercase tracking-[0.18em] text-[#D6D3D1] font-semibold mb-4 font-mono'>
-                Tài khoản
+                {t('footer.accountTitle')}
               </div>
               <ul className='space-y-2.5 text-sm text-[#A8A29E]'>
                 <li>
@@ -3569,7 +3621,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     onClick={handleLoginClick}
                     className='hover:text-[#FAF8F5] transition-colors text-left cursor-pointer focus-visible:outline-none focus-visible:underline'
                   >
-                    Đăng nhập
+                    {t('footer.linkLogin')}
                   </button>
                 </li>
                 <li>
@@ -3577,7 +3629,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     onClick={handleRegisterClick}
                     className='hover:text-[#FAF8F5] transition-colors text-left cursor-pointer focus-visible:outline-none focus-visible:underline'
                   >
-                    Tạo tài khoản mới
+                    {t('footer.linkRegister')}
                   </button>
                 </li>
               </ul>
@@ -3586,8 +3638,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
           {/* Bottom Bar */}
           <div className='pt-6 border-t border-[#292524] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#78716C]'>
-            <div>© 2026 PanelForge. Nền tảng hỗ trợ sáng tác truyện tranh.</div>
-            <div className='text-[#78716C]'>Bản quyền thuộc về PanelForge Studio</div>
+            <div>{t('footer.copyright')}</div>
+            <div className='text-[#78716C]'>{t('footer.rights')}</div>
           </div>
         </div>
       </footer>

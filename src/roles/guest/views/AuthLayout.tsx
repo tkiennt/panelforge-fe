@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { VersionedBlueprintVisual } from '../components/VersionedBlueprintVisual';
 import { LandingPageView } from './LandingPageView';
+import { useTranslation } from '@/lib/i18n';
 
 export interface AuthLayoutProps {
   mode: 'login' | 'register';
@@ -10,6 +11,7 @@ export interface AuthLayoutProps {
 }
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({ mode, children }) => {
+  const { t } = useTranslation('landing');
   const location = useLocation();
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -124,10 +126,10 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ mode, children }) => {
           <button
             type='button'
             onClick={handleClose}
-            aria-label='Đóng'
+            aria-label={t('auth.close')}
             data-testid='auth-close-btn'
             className='absolute top-3 right-3 sm:top-3.5 sm:right-3.5 z-40 p-1.5 rounded-full text-[#1F1B16] bg-[#EDE6DA]/80 hover:bg-[#DFD7C7] border border-[#D6CCBC] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#F97316]/40 shadow-xs'
-            title='Đóng (Esc)'
+            title={t('auth.closeEsc')}
           >
             <X className='w-4 h-4' />
           </button>

@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslation } from '@/lib/i18n';
 
 export interface VersionedBlueprintVisualProps {
   mode: 'login' | 'register';
 }
 
 export const VersionedBlueprintVisual: React.FC<VersionedBlueprintVisualProps> = ({ mode }) => {
+  const { t } = useTranslation('landing');
   const isLogin = mode === 'login';
 
   return (
@@ -224,11 +226,11 @@ export const VersionedBlueprintVisual: React.FC<VersionedBlueprintVisualProps> =
             <div
               className='relative w-full h-full rounded-lg sm:rounded-xl bg-[#FFFEFA] border border-[#D6CCBC] shadow-[0_18px_42px_rgba(28,25,23,0.15)] overflow-hidden motion-reduce:transform-none'
               role='region'
-              aria-label='Bản thảo manga hoàn thiện: phân chia trắng đen và màu'
+              aria-label={t('auth.blueprintAria')}
             >
               <img
                 src='/images/auth-manga-finished.jpg'
-                alt='Bản thảo manga hoàn thiện: phân chia trắng đen và màu'
+                alt={t('auth.blueprintAria')}
                 className='w-full h-full object-contain pointer-events-none select-none'
                 width={768}
                 height={1024}

@@ -164,32 +164,32 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
 
     const cleanFullName = fullName.trim();
     if (!cleanFullName) {
-      errors.fullName = 'Họ và tên là bắt buộc.';
+      errors.fullName = t('landing.auth.errFullNameRequired');
     } else if (cleanFullName.length > 100) {
-      errors.fullName = 'Họ và tên không được vượt quá 100 ký tự.';
+      errors.fullName = t('landing.auth.errFullNameMaxLength');
     }
 
     const cleanEmail = email.trim();
     if (!cleanEmail) {
-      errors.email = 'Email là bắt buộc.';
+      errors.email = t('landing.auth.errEmailRequired');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      errors.email = 'Email không đúng định dạng.';
+      errors.email = t('landing.auth.errEmailInvalid');
     }
 
     if (!password) {
-      errors.password = 'Mật khẩu là bắt buộc.';
+      errors.password = t('landing.auth.errPasswordRequired');
     } else if (!isPasswordValid) {
-      errors.password = 'Mật khẩu chưa đáp ứng đủ 3 tiêu chuẩn bên dưới.';
+      errors.password = t('landing.auth.errPasswordCriteria');
     }
 
     if (!confirmPassword) {
-      errors.confirmPassword = 'Vui lòng xác nhận mật khẩu.';
+      errors.confirmPassword = t('landing.auth.errConfirmPasswordRequired');
     } else if (confirmPassword !== password) {
-      errors.confirmPassword = 'Mật khẩu xác nhận không khớp.';
+      errors.confirmPassword = t('common.auth.errPasswordMismatch');
     }
 
     if (phoneNumber.trim() && !/^[0-9+() -]{8,16}$/.test(phoneNumber.trim())) {
-      errors.phoneNumber = 'Số điện thoại không hợp lệ.';
+      errors.phoneNumber = t('landing.auth.errPhoneInvalid');
     }
 
     if (Object.keys(errors).length > 0) {
@@ -208,14 +208,12 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
         phoneNumber.trim() || undefined,
       );
 
-      setSuccessNotice(
-        res.message || 'Đăng ký thành công! Vui lòng nhập mã PIN 6 số đã được gửi đến email.',
-      );
+      setSuccessNotice(res.message || t('landing.auth.registerSuccessPinNotice'));
       setStep('verify_pin');
       setResendCooldown(60);
     } catch (err: any) {
       console.error('Lỗi đăng ký:', err);
-      setServerError(err.message || 'Đăng ký tài khoản thất bại. Vui lòng thử lại.');
+      setServerError(err.message || t('landing.auth.errRegisterFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -228,7 +226,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
 
     const cleanPin = pinCode.trim();
     if (cleanPin.length !== 6) {
-      setServerError('Vui lòng nhập đầy đủ mã PIN gồm 6 chữ số.');
+      setServerError(t('landing.auth.errPinLength'));
       return;
     }
 
@@ -236,13 +234,13 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
 
     try {
       const authResponse = await authService.verifyEmail(email.trim(), cleanPin);
-      setSuccessNotice('Xác thực tài khoản thành công! Đang chuyển hướng vào studio…');
+      setSuccessNotice(t('landing.auth.verifySuccessRedirect'));
       setTimeout(() => {
         handleAuthTransition(authResponse);
       }, 600);
     } catch (err: any) {
       console.error('Lỗi xác thực mã PIN:', err);
-      setServerError(err.message || 'Mã PIN không chính xác hoặc đã hết hạn.');
+      setServerError(err.message || t('landing.auth.errPinInvalid'));
     } finally {
       setIsLoading(false);
     }
@@ -257,11 +255,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
     setIsLoading(true);
     try {
       const res = await authService.resendVerification(email.trim());
-      setSuccessNotice(res.message || 'Mã PIN mới đã được gửi tới email của bạn!');
+      setSuccessNotice(res.message || t('landing.auth.resendPinSuccess'));
       setResendCooldown(60);
     } catch (err: any) {
       console.error('Lỗi gửi lại PIN:', err);
-      setServerError(err.message || 'Không thể gửi lại mã PIN. Vui lòng thử lại sau.');
+      setServerError(err.message || t('landing.auth.errResendPinFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -283,7 +281,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
         return;
       }
       console.error('Lỗi đăng ký qua Google:', err);
-      setServerError(err.message || 'Đăng ký qua Google thất bại.');
+      setServerError(err.message || t('landing.auth.errGoogleRegisterFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -333,11 +331,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               </h1>
             </div>
             <p className='text-xs text-[#777169] mt-1 leading-relaxed'>
-              {t(
-                'common.auth.checkEmailDesc',
-                { email },
-                `Nhập mã PIN 6 số đã được gửi đến hộp thư: ${email}`,
-              )}
+              {t('common.auth.checkEmailDesc', { email })}
             </p>
           </div>
         )}
@@ -548,10 +542,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 onBlur={handleConfirmPasswordBlur}
-                placeholder={t(
-                  'common.auth.confirmPasswordPlaceholder',
-                  'Nhập lại mật khẩu vừa tạo',
-                )}
+                placeholder={t('common.auth.confirmPasswordPlaceholder')}
                 required
                 aria-describedby={
                   fieldErrors.confirmPassword ? 'register-confirm-error' : undefined
@@ -741,12 +732,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
               <span>
                 {resendCooldown > 0
-                  ? t(
-                      'common.auth.resendPinCountdown',
-                      { seconds: resendCooldown },
-                      `Gửi lại mã sau (${resendCooldown}s)`,
-                    )
-                  : t('common.auth.resendPinPrompt', 'Chưa nhận được mã? Gửi lại')}
+                  ? t('common.auth.resendPinCountdown', { seconds: resendCooldown })
+                  : t('common.auth.resendPinPrompt')}
               </span>
             </button>
           </div>

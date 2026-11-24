@@ -200,18 +200,12 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
             id='hero-manuscript-card'
             className='relative w-full h-full rounded-xl bg-[#FFFEFA] border border-stone-300 shadow-[0_20px_50px_rgba(28,25,23,0.14)] overflow-hidden motion-reduce:transform-none'
             role='region'
-            aria-label={t(
-              'hero.manuscriptRegionAria',
-              'Bản thảo manga PanelForge: Trắng đen và Truyện màu',
-            )}
+            aria-label={t('hero.manuscriptRegionAria')}
           >
             {/* Main HD Artwork Image */}
             <img
               src='/images/hero-manga-main.jpg'
-              alt={t(
-                'hero.manuscriptImageAlt',
-                'Bản thảo truyện tranh PanelForge phân chia chéo trắng đen và truyện màu hoàn chỉnh. Lời thoại: Câu chuyện vẫn tiếp diễn. Họa sĩ: v3',
-              )}
+              alt={t('hero.manuscriptImageAlt')}
               className='w-full h-full object-contain pointer-events-none select-none'
               width={896}
               height={1200}

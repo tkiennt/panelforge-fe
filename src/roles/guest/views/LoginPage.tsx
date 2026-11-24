@@ -200,9 +200,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     const cleanCode = twoFactorCode.trim();
     if (cleanCode.length !== 6) {
-      setServerError(
-        t('common.auth.errTwoFactorCodeLength', 'Vui lòng nhập đầy đủ mã xác thực gồm 6 chữ số.'),
-      );
+      setServerError(t('common.auth.errTwoFactorCodeLength'));
       return;
     }
 
@@ -225,10 +223,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       await handleAuthTransition(response);
     } catch (err: any) {
       console.error('Lỗi xác thực 2FA:', err);
-      setServerError(
-        err.message ||
-          t('common.auth.errTwoFactorInvalid', 'Mã xác thực 2FA không chính xác hoặc đã hết hạn.'),
-      );
+      setServerError(err.message || t('common.auth.errTwoFactorInvalid'));
     } finally {
       setIsLoading(false);
     }
@@ -239,12 +234,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     const targetEmail = forgotEmail.trim() || email.trim();
     if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
-      setServerError(
-        t(
-          'common.auth.errForgotEmailRequired',
-          'Vui lòng nhập địa chỉ email hợp lệ để nhận mã OTP.',
-        ),
-      );
+      setServerError(t('common.auth.errForgotEmailRequired'));
       return;
     }
 
@@ -255,18 +245,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       await authService.forgotPassword(targetEmail);
       setForgotEmail(targetEmail);
       setStep('reset');
-      setSuccessNotice(
-        t(
-          'common.auth.otpSentNotice',
-          { email: targetEmail },
-          `Mã OTP 6 chữ số đã được gửi đến email ${targetEmail}. Vui lòng kiểm tra hộp thư.`,
-        ),
-      );
+      setSuccessNotice(t('common.auth.otpSentNotice', { email: targetEmail }));
     } catch (err: any) {
       console.error('Lỗi yêu cầu quên mật khẩu:', err);
-      setServerError(
-        err.message || t('common.auth.errForgotFailed', 'Không thể gửi yêu cầu đặt lại mật khẩu.'),
-      );
+      setServerError(err.message || t('common.auth.errForgotFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -277,28 +259,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     const targetEmail = forgotEmail.trim() || email.trim();
     if (!targetEmail) {
-      setServerError(t('common.auth.errEmailRequired', 'Vui lòng nhập email tài khoản.'));
+      setServerError(t('common.auth.errEmailRequired'));
       return;
     }
 
     if (resetOtp.trim().length !== 6) {
-      setServerError(t('common.auth.errOtpLength', 'Mã OTP phải gồm đúng 6 chữ số.'));
+      setServerError(t('common.auth.errOtpLength'));
       return;
     }
 
     if (newPassword !== confirmNewPassword) {
-      setServerError(t('common.auth.errPasswordMismatch', 'Mật khẩu xác nhận không khớp.'));
+      setServerError(t('common.auth.errPasswordMismatch'));
       return;
     }
 
     const pwdRegex = /^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{6,}$/;
     if (!pwdRegex.test(newPassword)) {
-      setServerError(
-        t(
-          'common.auth.errPasswordComplexity',
-          'Mật khẩu mới phải có ít nhất 6 ký tự, chứa ít nhất 1 chữ hoa và 1 ký tự đặc biệt.',
-        ),
-      );
+      setServerError(t('common.auth.errPasswordComplexity'));
       return;
     }
 
@@ -316,21 +293,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       setEmail(targetEmail);
       setPassword('');
       setStep('login');
-      setSuccessNotice(
-        t(
-          'common.auth.resetSuccessNotice',
-          'Kích hoạt tài khoản / Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.',
-        ),
-      );
+      setSuccessNotice(t('common.auth.resetSuccessNotice'));
     } catch (err: any) {
       console.error('Lỗi đặt lại mật khẩu:', err);
-      setServerError(
-        err.message ||
-          t(
-            'common.auth.errLoginFailed',
-            'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.',
-          ),
-      );
+      setServerError(err.message || t('common.auth.errLoginFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -352,7 +318,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         return;
       }
       console.error('Lỗi đăng nhập Google:', err);
-      setServerError(err.message || 'Đăng nhập Google thất bại. Vui lòng thử lại.');
+      setServerError(err.message || t('landing.auth.errGoogleLoginFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -429,12 +395,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 {t('common.auth.twoFactorTitle', 'Xác thực hai bước (2FA)')}
               </h1>
             </div>
-            <p className='text-xs text-[#777169] mt-1'>
-              {t(
-                'common.auth.twoFactorDesc',
-                'Nhập mã 6 chữ số từ ứng dụng Authenticator của bạn.',
-              )}
-            </p>
+            <p className='text-xs text-[#777169] mt-1'>{t('common.auth.twoFactorDesc')}</p>
           </div>
         )}
 
@@ -848,10 +809,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 type={showNewPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder={t(
-                  'common.auth.newPasswordHint',
-                  'Tối thiểu 6 ký tự, 1 hoa, 1 ký tự đặc biệt',
-                )}
+                placeholder={t('common.auth.newPasswordHint')}
                 required
                 disabled={isLoading}
                 className='w-full pl-3.5 pr-10 py-2 bg-white border border-[#E7E5E4] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 rounded-xl text-xs text-[#171717] outline-none'
