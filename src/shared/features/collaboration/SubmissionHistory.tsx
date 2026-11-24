@@ -7,9 +7,9 @@ interface SubmissionHistoryProps {
 }
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
-  Pending: { label: 'Chờ duyệt', className: 'bg-purple-50 text-purple-700 border-purple-200' },
+  Pending: { label: 'Chờ duyệt', className: 'bg-amber-50 text-amber-800 border-amber-200' },
   Approved: { label: 'Đã duyệt', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  Rejected: { label: 'Bị trả về', className: 'bg-red-50 text-red-700 border-red-200' },
+  Rejected: { label: 'Bị trả về', className: 'bg-rose-50 text-rose-700 border-rose-200' },
   Superseded: { label: 'Đã thay thế', className: 'bg-stone-100 text-stone-600 border-stone-200' },
 };
 
@@ -17,7 +17,7 @@ const STATUS_STYLE: Record<string, { label: string; className: string }> = {
 export const SubmissionHistory: React.FC<SubmissionHistoryProps> = ({ submissions }) => {
   if (submissions.length === 0) {
     return (
-      <p className='text-[11px] text-[#888888]' data-testid='submission-history-empty'>
+      <p className='text-xs text-stone-400' data-testid='submission-history-empty'>
         Chưa có lần nộp nào.
       </p>
     );
@@ -25,8 +25,8 @@ export const SubmissionHistory: React.FC<SubmissionHistoryProps> = ({ submission
 
   return (
     <div className='space-y-2' data-testid='submission-history'>
-      <div className='flex items-center gap-1.5 text-[11px] font-bold text-[#171717]'>
-        <History className='w-3.5 h-3.5 text-[#F97316]' />
+      <div className='flex items-center gap-1.5 text-xs font-bold text-stone-900'>
+        <History className='w-3.5 h-3.5 text-orange-600' />
         <span>Lịch sử nộp ({submissions.length})</span>
       </div>
       <ol className='space-y-1.5'>
@@ -35,35 +35,35 @@ export const SubmissionHistory: React.FC<SubmissionHistoryProps> = ({ submission
           return (
             <li
               key={s.id}
-              className='p-2 rounded-lg bg-[#FAF8F5] border border-[#F0ECE1] text-[11px] space-y-1'
+              className='p-2 rounded-lg bg-[#FAF9F5] border border-stone-200/80 text-xs space-y-1'
             >
               <div className='flex items-center justify-between gap-2'>
-                <span className='font-mono font-semibold'>Lần {s.attemptNumber}</span>
+                <span className='font-mono font-semibold text-stone-900'>Lần {s.attemptNumber}</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded border font-semibold text-[10px] ${style.className}`}
+                  className={`px-1.5 py-0.5 rounded border font-semibold text-xs ${style.className}`}
                 >
                   {style.label}
                 </span>
               </div>
-              <div className='text-[#737373] font-mono'>
+              <div className='text-stone-500 font-mono text-xs'>
                 Nộp {new Date(s.submittedAt).toLocaleString('vi-VN')}
                 {s.decidedAt && <> · Quyết định {new Date(s.decidedAt).toLocaleString('vi-VN')}</>}
               </div>
               {s.decisionComment && (
-                <div className='text-[#333333]'>
+                <div className='text-stone-800 text-xs'>
                   <strong>Lý do trả về:</strong> {s.decisionComment}
                 </div>
               )}
               {s.scriptRevisionIds && s.scriptRevisionIds.length > 0 && (
                 <div
-                  className='flex items-center gap-1.5 flex-wrap text-[10px] text-stone-600 pt-0.5'
+                  className='flex items-center gap-1.5 flex-wrap text-xs text-stone-600 pt-0.5'
                   data-testid='submission-script-revisions'
                 >
                   <span className='font-semibold'>Revisions kịch bản:</span>
                   {s.scriptRevisionIds.map((revId) => (
                     <span
                       key={revId}
-                      className='px-1.5 py-0.5 bg-stone-100 border border-stone-200 rounded font-mono text-[9px] text-stone-700'
+                      className='px-1.5 py-0.5 bg-stone-100 border border-stone-200 rounded font-mono text-xs text-stone-700'
                       title={revId}
                     >
                       {revId.length > 8 ? `${revId.slice(0, 8)}…` : revId}

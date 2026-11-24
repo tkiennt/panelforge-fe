@@ -28,8 +28,14 @@ import {
 } from 'lucide-react';
 import { chapterService, ChapterDto, ChapterLockGateDto } from '@/services/chapter.service';
 import { workspaceService } from '@/services/workspace.service';
-import { seriesService, SeriesDetailDto, SeriesMemberDto, SeriesProgressDto } from '@/services/series.service';
+import {
+  seriesService,
+  SeriesDetailDto,
+  SeriesMemberDto,
+  SeriesProgressDto,
+} from '@/services/series.service';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
+import { ProducerSharedHeader } from './ProducerSharedHeader';
 
 export interface WorkspaceViewProps {
   currentUserRole?: WorkspaceRole | null;
@@ -258,9 +264,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         <div className='w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 mb-4'>
           <ShieldAlert className='w-8 h-8' />
         </div>
-        <h2 className='text-xl font-serif font-semibold text-stone-900 mb-2'>
-          Khu vực giới hạn
-        </h2>
+        <h2 className='text-xl font-serif font-semibold text-stone-900 mb-2'>Khu vực giới hạn</h2>
         <p className='text-sm text-stone-500 max-w-md mb-4'>
           Không có quyền truy cập sản xuất. Quay lại danh mục truyện để đọc bản phát hành.
         </p>
@@ -285,23 +289,27 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   // Filtered chapters for chapter overview tab
   const filteredChapters = chapters.filter((c) => {
     if (chapterFilter === 'inProd') return c.status === 'InProduction';
-    if (chapterFilter === 'published') return c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved';
+    if (chapterFilter === 'published')
+      return c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved';
     return true;
   });
 
   // Filtered crew members
   const filteredMembers = seriesMembers.filter((m) => {
     const role = String(m.seriesRole || '').toLowerCase();
-    if (crewRoleFilter === 'artist') return role.includes('artist') || role.includes('pencil') || role.includes('ink');
+    if (crewRoleFilter === 'artist')
+      return role.includes('artist') || role.includes('pencil') || role.includes('ink');
     if (crewRoleFilter === 'tech') return role.includes('letter') || role.includes('editor');
     return true;
   });
 
-  const totalPanels = seriesProgress?.chapters?.reduce((sum, c) => sum + (c.panelCount || 0), 0) || 0;
-  const approvedPanels = seriesProgress?.chapters?.reduce(
-    (sum, c) => sum + (c.stages?.[c.stages.length - 1]?.approved || 0),
-    0,
-  ) || 0;
+  const totalPanels =
+    seriesProgress?.chapters?.reduce((sum, c) => sum + (c.panelCount || 0), 0) || 0;
+  const approvedPanels =
+    seriesProgress?.chapters?.reduce(
+      (sum, c) => sum + (c.stages?.[c.stages.length - 1]?.approved || 0),
+      0,
+    ) || 0;
   const completionPercent = totalPanels > 0 ? Math.round((approvedPanels / totalPanels) * 100) : 0;
 
   return (
@@ -310,153 +318,27 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
       <h1 className='sr-only'>Quy trình sản xuất</h1>
 
       {/* SUB-HEADER PIPELINE & CHAPTER BAR */}
-      <div className='w-full bg-white border-b border-stone-200 sticky top-0 md:top-16 z-30 px-4 sm:px-6 lg:px-8 py-3 shadow-2xs'>
-        <div className='max-w-[1640px] mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4'>
-          {/* Left: Back Link, Title, Subtitle, Status Pill */}
-          <div className='flex flex-wrap items-center gap-3'>
-            <div>
-              <button
-                type='button'
-                onClick={() => handleSwitchSubtab('chapters')}
-                className='inline-flex items-center gap-1 text-xs font-semibold text-orange-700 hover:text-orange-800 hover:underline mb-1 transition-colors cursor-pointer'
-              >
-                <ArrowLeft className='w-3.5 h-3.5' aria-hidden='true' />
-                <span>{t('workbench.backToChapters', 'Quay lại Tổng quan chương')}</span>
-              </button>
-              <h2 className='text-base font-bold text-stone-900 leading-tight'>
-                {seriesTitle || 'Series'} : {currentChapterFormattedTitle}
-              </h2>
-              <p className='text-xs text-stone-500'>
-                {seriesDetail?.format || t('workbench.shonenFormat', 'Quy chuẩn Shonen')}
-              </p>
-            </div>
-            {statusMeta && (
-              <span
-                className={`px-2.5 py-0.5 rounded-full border text-xs font-semibold ${statusMeta.cls}`}
-              >
-                {statusMeta.label}
-              </span>
-            )}
-          </div>
-
-          {/* Right: Chapter Selector, Subtab Bar, Action CTA */}
-          <div className='flex flex-wrap items-center gap-2.5'>
-            {/* Chapter Selector Dropdown */}
-            <div className='relative flex items-center'>
-              <label htmlFor='pipeline-chapter-select' className='sr-only'>
-                Chương:
-              </label>
-              <select
-                id='pipeline-chapter-select'
-                aria-label='Chương:'
-                value={currentChapterId}
-                onChange={handleChapterChange}
-                disabled={loadingChapters || chapters.length === 0}
-                className='px-3 py-1.5 rounded-lg bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium focus:outline-none focus:border-stone-400 cursor-pointer shadow-2xs'
-              >
-                {chapters.length === 0 ? (
-                  <option value=''>Đang nạp danh sách chương...</option>
-                ) : (
-                  chapters.map((chap) => (
-                    <option key={chap.id} value={chap.id}>
-                      {formatChapterLabel(chap.chapterNumber, chap.title || 'Bản thảo')}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-
-            {/* Sub-tabs Navigation */}
-            <div
-              className='inline-flex p-1 rounded-lg bg-stone-100 border border-stone-200'
-              id='subtab-bar'
-            >
-              <button
-                type='button'
-                data-subtab='progress'
-                id='subtab-progress'
-                onClick={() => handleSwitchSubtab('progress')}
-                className={`subtab-btn px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                  activeSubtab === 'progress'
-                    ? 'bg-white text-stone-900 font-semibold shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 font-medium'
-                }`}
-              >
-                {t('workbench.subtabs.progress', 'Ma trận trang')}
-              </button>
-              <button
-                type='button'
-                data-subtab='chapters'
-                id='subtab-chapters'
-                onClick={() => handleSwitchSubtab('chapters')}
-                className={`subtab-btn px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                  activeSubtab === 'chapters'
-                    ? 'bg-white text-stone-900 font-semibold shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 font-medium'
-                }`}
-              >
-                {t('workbench.subtabs.chapters', 'Tổng quan chương')}
-              </button>
-              <button
-                type='button'
-                data-subtab='crew'
-                id='subtab-crew'
-                onClick={() => handleSwitchSubtab('crew')}
-                className={`subtab-btn px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                  activeSubtab === 'crew'
-                    ? 'bg-white text-stone-900 font-semibold shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 font-medium'
-                }`}
-              >
-                {t('workbench.subtabs.crew', 'Quản lý Ê-kíp')}
-              </button>
-              <button
-                type='button'
-                data-subtab='script'
-                id='subtab-script'
-                onClick={() =>
-                  navigate(
-                    `/workspaces/${workspaceId}/series/${seriesId}/script${
-                      currentChapterId ? `?chapterId=${currentChapterId}` : ''
-                    }`,
-                  )
-                }
-                className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-              >
-                {t('workbench.subtabs.script', 'Kịch bản')}
-              </button>
-              <button
-                type='button'
-                data-subtab='reader'
-                id='subtab-reader'
-                onClick={() =>
-                  navigate(
-                    `/workspaces/${workspaceId}/series/${seriesId}/editor/desk${
-                      currentChapterId ? `?chapterId=${currentChapterId}` : ''
-                    }`,
-                  )
-                }
-                className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-              >
-                {t('workbench.subtabs.reader', 'Đọc thử & Soát trang')}
-              </button>
-              <button
-                type='button'
-                data-subtab='handoff'
-                id='subtab-handoff'
-                onClick={() =>
-                  navigate(
-                    `/workspaces/${workspaceId}/series/${seriesId}/export${
-                      currentChapterId ? `?chapterId=${currentChapterId}` : ''
-                    }`,
-                  )
-                }
-                className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-              >
-                {t('workbench.subtabs.handoff', 'Bàn giao')}
-              </button>
-            </div>
-
+      <ProducerSharedHeader
+        workspaceId={workspaceId}
+        seriesId={seriesId}
+        currentChapterId={currentChapterId}
+        chapters={chapters}
+        seriesTitle={seriesTitle}
+        seriesFormat={seriesDetail?.format}
+        currentChapter={currentChapter}
+        activeTab={activeSubtab}
+        onChapterChange={(nextId) => {
+          setCurrentChapterId(nextId);
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('chapterId', nextId);
+            return next;
+          });
+        }}
+        onBackToChapters={() => handleSwitchSubtab('chapters')}
+        loadingChapters={loadingChapters}
+        actionCta={
+          <div className='flex items-center gap-2'>
             {/* Refresh Button */}
             <button
               type='button'
@@ -494,8 +376,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               <span>{t('workbench.startProduction', 'Bắt đầu sản xuất')}</span>
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* CONTENT BODY CONTAINER */}
       <div className='w-full max-w-[1640px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6'>
@@ -598,9 +480,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </span>
                   <button
                     type='button'
-                    onClick={() =>
-                      navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible`)
-                    }
+                    onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible`)}
                     className='text-orange-700 hover:underline text-xs font-medium cursor-pointer'
                   >
                     {t('workbench.readiness.checkBible', 'Kiểm tra ngay →')}
@@ -715,7 +595,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       })}
                     </h3>
                     <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-xs font-semibold'>
-                      {seriesDetail?.format || t('workbench.chaptersOverview.bannerBadge', 'Khối Shonen')}
+                      {seriesDetail?.format ||
+                        t('workbench.chaptersOverview.bannerBadge', 'Khối Shonen')}
                     </span>
                   </div>
                   <p className='text-xs text-stone-500 mt-0.5'>
@@ -754,7 +635,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 </div>
                 <div className='text-xs text-stone-500 pt-1 border-t border-stone-100'>
                   {t('workbench.chaptersOverview.kpiSummary', {
-                    published: chapters.filter((c) => c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved').length,
+                    published: chapters.filter(
+                      (c) => c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved',
+                    ).length,
                     inProd: chapters.filter((c) => c.status === 'InProduction').length,
                     defaultValue: `${chapters.filter((c) => c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved').length} Đã xuất bản, ${chapters.filter((c) => c.status === 'InProduction').length} Đang thực hiện`,
                   })}
@@ -764,16 +647,16 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               {/* KPI 2: Tổng số trang hoàn tất */}
               <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs space-y-2'>
                 <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>
-                  <span>{t('workbench.chaptersOverview.kpiCompletedPages', 'Tổng số trang hoàn tất')}</span>
+                  <span>
+                    {t('workbench.chaptersOverview.kpiCompletedPages', 'Tổng số trang hoàn tất')}
+                  </span>
                   <CheckCircle2 className='w-4 h-4 text-emerald-600' />
                 </div>
                 <div className='flex items-baseline gap-2'>
                   <span className='text-2xl font-bold text-emerald-700'>
                     {approvedPanels} / {totalPanels || 196}
                   </span>
-                  <span className='text-xs text-emerald-700 font-medium'>
-                    {completionPercent}%
-                  </span>
+                  <span className='text-xs text-emerald-700 font-medium'>{completionPercent}%</span>
                 </div>
                 <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden'>
                   <div
@@ -786,12 +669,17 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               {/* KPI 3: Chương trọng tâm Sprint */}
               <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs space-y-2'>
                 <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>
-                  <span>{t('workbench.chaptersOverview.kpiSprintFocus', 'Chương trọng tâm Sprint')}</span>
+                  <span>
+                    {t('workbench.chaptersOverview.kpiSprintFocus', 'Chương trọng tâm Sprint')}
+                  </span>
                   <Clock className='w-4 h-4 text-orange-600' />
                 </div>
                 <div className='flex items-baseline gap-2'>
                   <span className='text-2xl font-bold text-stone-900'>
-                    CH.{currentChapter?.chapterNumber ? String(currentChapter.chapterNumber).padStart(2, '0') : '01'}
+                    CH.
+                    {currentChapter?.chapterNumber
+                      ? String(currentChapter.chapterNumber).padStart(2, '0')
+                      : '01'}
                   </span>
                   <span className='text-xs text-orange-700 font-semibold'>
                     {currentChapter?.title || 'Thức Tỉnh'} (58%)
@@ -805,7 +693,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               {/* KPI 4: Hạn bàn giao NXB kế tiếp */}
               <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs space-y-2'>
                 <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>
-                  <span>{t('workbench.chaptersOverview.kpiNextDeadline', 'Hạn bàn giao NXB kế tiếp')}</span>
+                  <span>
+                    {t('workbench.chaptersOverview.kpiNextDeadline', 'Hạn bàn giao NXB kế tiếp')}
+                  </span>
                   <Calendar className='w-4 h-4 text-stone-400' />
                 </div>
                 <div className='flex items-baseline gap-2'>
@@ -869,7 +759,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   }`}
                 >
                   {t('workbench.chaptersOverview.filterPublished', {
-                    count: chapters.filter((c) => c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved').length,
+                    count: chapters.filter(
+                      (c) => c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved',
+                    ).length,
                     defaultValue: `Đã xuất bản (${chapters.filter((c) => c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved').length})`,
                   })}
                 </button>
@@ -880,7 +772,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4'>
               {filteredChapters.map((chap) => {
                 const isCurrent = chap.id === currentChapterId;
-                const isPublished = chap.status === 'HandedOffAndPublished' || chap.status === 'ChapterApproved';
+                const isPublished =
+                  chap.status === 'HandedOffAndPublished' || chap.status === 'ChapterApproved';
                 const isInProd = chap.status === 'InProduction';
 
                 return (
@@ -975,7 +868,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                         onClick={() => handleSwitchSubtab('progress')}
                         className='w-full py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer'
                       >
-                        <span>{t('workbench.chaptersOverview.enterChapterBtn', 'Vào chi tiết chương →')}</span>
+                        <span>
+                          {t('workbench.chaptersOverview.enterChapterBtn', 'Vào chi tiết chương →')}
+                        </span>
                       </button>
                     ) : isPublished ? (
                       <button
@@ -987,7 +882,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                         }
                         className='w-full py-2 rounded-lg bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer'
                       >
-                        <span>{t('workbench.chaptersOverview.viewPrintBtn', 'Xem lại bản in')}</span>
+                        <span>
+                          {t('workbench.chaptersOverview.viewPrintBtn', 'Xem lại bản in')}
+                        </span>
                         <ChevronRight className='w-3.5 h-3.5' />
                       </button>
                     ) : (
@@ -999,7 +896,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                         }}
                         className='w-full py-2 rounded-lg bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer'
                       >
-                        <span>{t('workbench.chaptersOverview.enterChapterBtn', 'Vào chi tiết chương →')}</span>
+                        <span>
+                          {t('workbench.chaptersOverview.enterChapterBtn', 'Vào chi tiết chương →')}
+                        </span>
                         <ChevronRight className='w-3.5 h-3.5' />
                       </button>
                     )}
@@ -1044,7 +943,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               <div className='flex items-center gap-2.5'>
                 <button
                   type='button'
-                  onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`)}
+                  onClick={() =>
+                    navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`)
+                  }
                   className='px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer'
                 >
                   <Users className='w-3.5 h-3.5' />
@@ -1062,7 +963,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   <Users className='w-4 h-4 text-stone-400' />
                 </div>
                 <div className='flex items-baseline gap-2'>
-                  <span className='text-2xl font-bold text-stone-900'>{seriesMembers.length || 5}</span>
+                  <span className='text-2xl font-bold text-stone-900'>
+                    {seriesMembers.length || 5}
+                  </span>
                   <span className='text-xs text-stone-500'>
                     {t('workbench.crewOverview.kpiSizeUnit', 'nhân sự cốt lõi')}
                   </span>
@@ -1093,7 +996,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               {/* KPI 3: Khối lượng công việc */}
               <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs space-y-2'>
                 <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>
-                  <span>{t('workbench.crewOverview.kpiWorkload', 'Khối lượng công việc (Cap)')}</span>
+                  <span>
+                    {t('workbench.crewOverview.kpiWorkload', 'Khối lượng công việc (Cap)')}
+                  </span>
                   <Clock className='w-4 h-4 text-stone-400' />
                 </div>
                 <div className='flex items-baseline gap-2'>
@@ -1110,7 +1015,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               {/* KPI 4: Nhiệm vụ tuần hoàn tất */}
               <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs space-y-2'>
                 <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>
-                  <span>{t('workbench.crewOverview.kpiWeeklyTasks', 'Nhiệm vụ tuần hoàn tất')}</span>
+                  <span>
+                    {t('workbench.crewOverview.kpiWeeklyTasks', 'Nhiệm vụ tuần hoàn tất')}
+                  </span>
                   <Check className='w-4 h-4 text-stone-400' />
                 </div>
                 <div className='flex items-baseline gap-2'>
@@ -1184,12 +1091,24 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 <table className='w-full text-left border-collapse text-xs'>
                   <thead className='bg-stone-50/70 border-b border-stone-200 text-stone-600 uppercase tracking-wider font-semibold'>
                     <tr>
-                      <th className='py-3 px-4'>{t('workbench.crewOverview.colMember', 'Thành viên & Hồ sơ')}</th>
-                      <th className='py-3 px-4'>{t('workbench.crewOverview.colRole', 'Vai trò chính')}</th>
-                      <th className='py-3 px-4'>{t('workbench.crewOverview.colScope', 'Phạm vi phụ trách')}</th>
-                      <th className='py-3 px-4'>{t('workbench.crewOverview.colStatus', 'Trạng thái tiến độ')}</th>
-                      <th className='py-3 px-4'>{t('workbench.crewOverview.colLoad', 'Tải công việc')}</th>
-                      <th className='py-3 px-4 text-right'>{t('workbench.crewOverview.colActions', 'Thao tác')}</th>
+                      <th className='py-3 px-4'>
+                        {t('workbench.crewOverview.colMember', 'Thành viên & Hồ sơ')}
+                      </th>
+                      <th className='py-3 px-4'>
+                        {t('workbench.crewOverview.colRole', 'Vai trò chính')}
+                      </th>
+                      <th className='py-3 px-4'>
+                        {t('workbench.crewOverview.colScope', 'Phạm vi phụ trách')}
+                      </th>
+                      <th className='py-3 px-4'>
+                        {t('workbench.crewOverview.colStatus', 'Trạng thái tiến độ')}
+                      </th>
+                      <th className='py-3 px-4'>
+                        {t('workbench.crewOverview.colLoad', 'Tải công việc')}
+                      </th>
+                      <th className='py-3 px-4 text-right'>
+                        {t('workbench.crewOverview.colActions', 'Thao tác')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className='divide-y divide-stone-200 text-stone-800'>
@@ -1207,7 +1126,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                         const isLeader = idx === 0 || member.seriesRole === 'Producer';
 
                         return (
-                          <tr key={member.userId || idx} className='hover:bg-stone-50/60 transition-colors'>
+                          <tr
+                            key={member.userId || idx}
+                            className='hover:bg-stone-50/60 transition-colors'
+                          >
                             <td className='py-3 px-4'>
                               <div className='flex items-center gap-3'>
                                 <div className='w-9 h-9 rounded-full bg-stone-900 text-white font-bold flex items-center justify-center text-xs shrink-0'>
@@ -1218,7 +1140,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                                     {member.fullName || 'Thành viên'}
                                   </div>
                                   <div className='text-xs text-stone-500 font-mono'>
-                                    {member.userId ? `${member.userId.slice(0, 8)}...` : 'user@panelforge.io'}
+                                    {member.userId
+                                      ? `${member.userId.slice(0, 8)}...`
+                                      : 'user@panelforge.io'}
                                   </div>
                                 </div>
                               </div>

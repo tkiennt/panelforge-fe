@@ -52,7 +52,19 @@
     "reviewDesk": "Review desk",
     "bibleReview": "Bible design review",
     "readerStats": "Reader stats",
-    "revenue": "Revenue"
+    "revenue": "Revenue",
+    "progressAndTasks": "Progress & Assignments",
+    "scriptAndReview": "Script & Review Gate",
+    "artworkReview": "Artwork Review",
+    "packagingAndExport": "Packaging & Publishing",
+    "library": "Library",
+    "revenueAndReads": "Revenue & Reads",
+    "chapterScript": "Chapter Script",
+    "characterProfilesAndLore": "Character Profiles & Lore",
+    "panelCanvasDesk": "Panel Canvas",
+    "scriptReadOnly": "Script (Read-only)",
+    "letteringAndBalloons": "Lettering & Balloons",
+    "editorReviewDesk": "Review & Proofing"
   },
   "header": {
     "searchPlaceholder": "Search frames, dialogues, assets...",
@@ -71,7 +83,8 @@
     "studios": "Studio",
     "series": "Series",
     "chapters": "Chapter",
-    "pages": "Page"
+    "pages": "Page",
+    "scriptSuffix": "(Script)"
   },
   "sidebar": {
     "collapse": "Collapse navigation",
@@ -92,6 +105,7 @@
     "activeSeriesLabel": "OPEN SERIES",
     "activeWorkspaceLabel": "CURRENT WORKSPACE",
     "chapterProduction": "CHAPTER PRODUCTION",
+    "chapterWriting": "CHAPTER CREATION",
     "seriesOverview": "OVERVIEW",
     "crew": "Crew",
     "themes": {

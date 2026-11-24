@@ -449,5 +449,23 @@
       "btnAssignPages": "Assign Pages",
       "btnPermissions": "Permissions"
     }
+  },
+  "revenueView": {
+    "title": "Revenue & Reader Analytics",
+    "subtitle": "Reads come from the PanelForge reader portal. Revenue shows — until payment data exists.",
+    "totalRevenue": "Total Period Revenue",
+    "printRevenue": "Print Revenue (Tankōbon)",
+    "digitalRevenue": "Digital & Rights Revenue",
+    "globalReads": "Global Online Reads",
+    "chapterAnalysis": "Chapter Breakdown: Revenue & Reads",
+    "currencyUnit": "Currency: VND (₫)",
+    "thChapter": "Chapter / Title",
+    "thViews": "Cumulative Views",
+    "thCompletion": "Completion Rate",
+    "thPrint": "Print Revenue",
+    "thDigital": "Digital Revenue",
+    "thTotal": "Total Revenue (VND)",
+    "thStatus": "Review & Status",
+    "cumulativeTotal": "Cumulative Total"
   }
 }

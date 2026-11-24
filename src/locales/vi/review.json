@@ -98,7 +98,23 @@
     "tabs": {
       "notes": "Nhận xét ({count})",
       "checks": "Kiểm tra",
-      "changes": "Thay đổi"
+      "changes": "Thay đổi",
+      "entities": "Thực thể"
+    },
+    "entities": {
+      "title": "Thực thể trong kịch bản",
+      "subtitle": "Kiểm tra tính sẵn sàng của bản vẽ & hồ sơ nhân vật",
+      "filterMain": "Chính",
+      "filterCrowd": "Quần chúng",
+      "empty": "Không có thực thể nào phù hợp",
+      "statusLocked": "Đã khóa chuẩn",
+      "statusApproved": "Đã duyệt thiết kế",
+      "statusInReview": "Chờ duyệt vẽ",
+      "statusExempt": "Miễn trừ",
+      "statusMissing": "Chưa có bản vẽ",
+      "typeMain": "Chính",
+      "typeCrowd": "Quần chúng",
+      "blockerTitle": "Kịch bản đang bị chặn duyệt sản xuất:"
     },
     "composer": {
       "label": "Nhận xét cho Writer",
@@ -477,7 +493,6 @@
     "statusReviewing": "Khung #{number} · Đang soát",
     "toolPan": "Di chuyển",
     "toolCrop": "Soi & Ghim Panel",
-    "manuscriptSpec": "B5 Manuscript • 600 DPI",
     "feedbackTitle": "Nhận xét & Góp ý",
     "itemsCount": "{count} mục",
     "selectedPanelBadge": "Đang chọn: Khung #{number}",
@@ -487,17 +502,12 @@
     "btnRequestRework": "Yêu cầu vẽ lại",
     "threadsTitle": "Danh sách trao đổi ({count})",
     "waitingArtist": "Chờ họa sĩ sửa lại",
-    "passedStandard": "Đã đạt chuẩn in",
     "shortcutsHint": "Phím tắt: 1 2 3 chuyển khung tranh"
   },
   "handoffView": {
     "title": "Đóng gói bản thảo gửi nhà xuất bản",
     "subtitle": "Chuẩn file PDF/X-1a xuất bản tiêu chuẩn.",
     "createPackage": "Tạo gói gửi",
-    "printSpecTitle": "Thông số kỹ thuật in",
-    "printSpecItem1": "• Định dạng: Xuất bản in",
-    "printSpecItem2": "• Trame: 60 LPI chuẩn Shonen",
-    "printSpecItem3": "• Hệ màu: Greyscale K-100%",
     "securityTitle": "Bảo mật bản quyền",
     "securityDesc": "Đóng dấu chìm mã biên tập viên tự động khi xem trước.",
     "readinessTitle": "Tình trạng sẵn sàng",

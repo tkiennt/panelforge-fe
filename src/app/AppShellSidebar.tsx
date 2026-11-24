@@ -270,9 +270,6 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 </span>
               </button>
               <div className='flex items-center gap-1.5 shrink-0 ml-2'>
-                <span className='text-xs font-mono px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 font-semibold border border-stone-200'>
-                  v3.2
-                </span>
                 {handleToggle && !isMobileDrawer && (
                   <button
                     type='button'
@@ -500,6 +497,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                       key={`${item.href}-${i}`}
                       href={`#${item.href}`}
                       currentPath={location.pathname}
+                      active={item.isActive}
                       icon={item.icon}
                       label={item.label}
                       badge={item.badge ? renderBadge(item.badge) : undefined}

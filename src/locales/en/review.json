@@ -98,7 +98,23 @@
     "tabs": {
       "notes": "Notes ({count})",
       "checks": "Checks",
-      "changes": "Changes"
+      "changes": "Changes",
+      "entities": "Entities"
+    },
+    "entities": {
+      "title": "Entities in Script",
+      "subtitle": "Verify readiness of character designs & profiles",
+      "filterMain": "Main",
+      "filterCrowd": "Crowd",
+      "empty": "No matching entities",
+      "statusLocked": "Canon Locked",
+      "statusApproved": "Design Approved",
+      "statusInReview": "Awaiting Art Review",
+      "statusExempt": "Exempt",
+      "statusMissing": "No Model Sheet",
+      "typeMain": "Main",
+      "typeCrowd": "Crowd",
+      "blockerTitle": "Script is blocked from starting production:"
     },
     "composer": {
       "label": "Note for the writer",
@@ -477,7 +493,6 @@
     "statusReviewing": "Panel #{number} · Reviewing",
     "toolPan": "Pan",
     "toolCrop": "Focus & Pin Panel",
-    "manuscriptSpec": "B5 Manuscript • 600 DPI",
     "feedbackTitle": "Review & Comments",
     "itemsCount": "{count} items",
     "selectedPanelBadge": "Selected: Panel #{number}",
@@ -487,17 +502,12 @@
     "btnRequestRework": "Request rework",
     "threadsTitle": "Discussion threads ({count})",
     "waitingArtist": "Waiting for artist fix",
-    "passedStandard": "Print quality verified",
     "shortcutsHint": "Shortcuts: 1 2 3 switch panels"
   },
   "handoffView": {
     "title": "Package manuscript for publisher",
     "subtitle": "Standard PDF/X-1a publisher file standard.",
     "createPackage": "Create package",
-    "printSpecTitle": "Print specifications",
-    "printSpecItem1": "• Format: Print publication",
-    "printSpecItem2": "• Halftone: 60 LPI Shonen standard",
-    "printSpecItem3": "• Color: Greyscale K-100%",
     "securityTitle": "Copyright security",
     "securityDesc": "Automatic editor watermark on previews.",
     "readinessTitle": "Readiness status",

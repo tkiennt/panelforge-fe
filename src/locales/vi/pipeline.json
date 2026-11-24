@@ -449,5 +449,23 @@
       "btnAssignPages": "Giao trang",
       "btnPermissions": "Phân quyền"
     }
+  },
+  "revenueView": {
+    "title": "Doanh thu & Thống kê độc giả",
+    "subtitle": "Lượt đọc lấy từ cổng đọc của PanelForge. Doanh thu hiển thị — khi chưa có dữ liệu thanh toán.",
+    "totalRevenue": "Tổng doanh thu kỳ",
+    "printRevenue": "Doanh thu bản in (Tankōbon)",
+    "digitalRevenue": "Doanh thu đọc số & bản quyền",
+    "globalReads": "Lượt đọc trực tuyến toàn cầu",
+    "chapterAnalysis": "Bảng phân tích doanh thu & lượt đọc theo từng chương",
+    "currencyUnit": "Đơn vị tiền tệ: VNĐ (₫)",
+    "thChapter": "Chương / Tựa đề",
+    "thViews": "Lượt xem tích lũy",
+    "thCompletion": "Tỷ lệ đọc hết",
+    "thPrint": "Doanh thu bản in",
+    "thDigital": "Doanh thu đọc số",
+    "thTotal": "Tổng doanh thu (VNĐ)",
+    "thStatus": "Đánh giá & Tình trạng",
+    "cumulativeTotal": "Tổng tích lũy"
   }
 }

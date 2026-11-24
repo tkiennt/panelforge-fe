@@ -64,6 +64,8 @@ export interface SidebarItemProps extends Omit<
   label: string;
   href?: string;
   currentPath?: string;
+  /** Overrides the path-based match, e.g. when two items share a path and differ by query. */
+  active?: boolean;
   badge?: React.ReactNode;
   badgeLabel?: string;
   collapsed?: boolean;
@@ -78,6 +80,7 @@ export const SidebarItem = forwardRef<HTMLAnchorElement | HTMLButtonElement, Sid
       label,
       href,
       currentPath,
+      active: activeOverride,
       badge,
       badgeLabel,
       collapsed,
@@ -92,10 +95,13 @@ export const SidebarItem = forwardRef<HTMLAnchorElement | HTMLButtonElement, Sid
     const normalizedPath = currentPath?.split('?')[0].replace(/\/$/, '') ?? '';
     const normalizedHref = href?.replace(/^#/, '').split('?')[0].replace(/\/$/, '') ?? '';
     const active =
-      !!normalizedHref &&
-      (normalizedPath === normalizedHref ||
-        normalizedPath.endsWith(normalizedHref) ||
-        (normalizedHref !== '' && normalizedHref !== '/' && normalizedPath.includes(normalizedHref)));
+      activeOverride ??
+      (!!normalizedHref &&
+        (normalizedPath === normalizedHref ||
+          normalizedPath.endsWith(normalizedHref) ||
+          (normalizedHref !== '' &&
+            normalizedHref !== '/' &&
+            normalizedPath.includes(normalizedHref))));
     const classes = cn(
       'pf-sb-item group relative flex items-center text-xs transition-colors cursor-pointer rounded-xl focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-orange-500',
       collapsed ? 'size-10 justify-center mx-auto' : 'gap-2.5 px-3 py-2 min-h-9',

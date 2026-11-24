@@ -34,7 +34,9 @@ export function parseScenePanelRange(summary?: string | null): ParsedScenePanelR
   }
 
   // 3. Format: Từ Panel 1 đến Panel 4: Note text
-  const textMatch = summary.match(/^Từ\s+Panel\s*(\d+)\s*(?:đến|-)\s*(?:Panel\s*)?(\d+)(?:\s*:\s*|\s+)?(.*)$/i);
+  const textMatch = summary.match(
+    /^Từ\s+Panel\s*(\d+)\s*(?:đến|-)\s*(?:Panel\s*)?(\d+)(?:\s*:\s*|\s+)?(.*)$/i,
+  );
   if (textMatch) {
     return {
       fromPanel: parseInt(textMatch[1], 10),

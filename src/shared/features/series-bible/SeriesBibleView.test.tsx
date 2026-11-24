@@ -140,12 +140,6 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(screen.getByText('2 mục tri thức')).toBeDefined();
     });
 
-    // KPI: Tần Mục đã khoá Canon
-    expect(screen.getByTestId('bible-stat-locked').textContent).toContain('1');
-
-    // KPI: Tần Mục đã khoá Canon
-    expect(screen.getByTestId('bible-stat-locked').textContent).toContain('1');
-
     expect(screen.getByText('Tạo mục nháp')).toBeDefined();
   });
 

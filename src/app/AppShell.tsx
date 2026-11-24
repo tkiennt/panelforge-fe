@@ -47,6 +47,7 @@ import {
   CreditCard,
   Download,
   Plus,
+  FileCheck,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
@@ -300,7 +301,7 @@ export function AppShell({
             items: [
               {
                 icon: Kanban,
-                label: t('navigation.menu.production'),
+                label: t('navigation.menu.progressAndTasks', 'Tiến độ & Giao việc'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
                 badge: chapterNumberLabel
                   ? {
@@ -311,33 +312,22 @@ export function AppShell({
                   : undefined,
               },
               {
-                icon: FileText,
-                label: t('navigation.menu.script'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+                icon: FileCheck,
+                label: t('navigation.menu.scriptAndReview', 'Kịch bản & Cổng duyệt'),
+                href: chapterId
+                  ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapterId}/script/review`
+                  : `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
               },
               {
                 icon: BookOpen,
-                label: 'Quản lý chương',
-                href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
-              },
-              {
-                icon: LayoutTemplate,
-                label: t('navigation.menu.desk'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
-              },
-              {
-                icon: Type,
-                label: t('navigation.menu.lettering'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
-              },
-              {
-                icon: Send,
-                label: t('navigation.menu.publishingGate'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
+                label: t('navigation.menu.artworkReview', 'Đọc duyệt tranh'),
+                href: chapterId
+                  ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapterId}/reader`
+                  : `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
               },
               {
                 icon: Download,
-                label: t('navigation.menu.exportHandoff'),
+                label: t('navigation.menu.packagingAndExport', 'Đóng gói & Xuất bản'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/export`,
               },
             ],
@@ -346,30 +336,19 @@ export function AppShell({
             section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
             items: [
               {
-                icon: LayoutDashboard,
-                label: t('navigation.menu.seriesDashboard'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
-              },
-              {
                 icon: BookMarked,
-                label: t('navigation.menu.bible'),
+                label: t('navigation.menu.library', 'Thư viện'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
-                badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
-              },
-              {
-                icon: Layers,
-                label: t('navigation.menu.workAndReview'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
               },
               {
                 icon: Eye,
-                label: t('navigation.menu.readerStats'),
-                href: `/workspaces/${workspaceId}/reader-stats`,
+                label: t('navigation.menu.revenueAndReads', 'Doanh thu & Lượt đọc'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/revenue`,
               },
               {
                 icon: Users,
                 label: t('navigation.sidebar.crew', 'Đội ngũ'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace?tab=crew`,
                 badge: { type: 'count', count: 5 },
               },
             ],
@@ -426,48 +405,39 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sections.desk'),
+            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
             items: [
               {
-                icon: ShieldCheck,
-                label: t('navigation.menu.reviewDesk'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk`,
-              },
-              {
-                icon: FileText,
-                label: t('navigation.menu.script'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
-              },
-              {
                 icon: Layers,
-                label: t('navigation.menu.workAndReview'),
+                label: t('navigation.menu.myWork', 'Việc của tôi'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
-              },
-              {
-                icon: BookMarked,
-                label: t('navigation.menu.bible'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
-                badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
+                badge: { type: 'count', count: 3 },
               },
             ],
           },
           {
-            section: t('navigation.sections.productionUtilities', 'TIẾN ĐỘ & PHÂN CÔNG'),
+            section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
             items: [
               {
-                icon: LayoutDashboard,
-                label: t('navigation.menu.seriesDashboard'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
+                icon: ShieldCheck,
+                label: t('navigation.menu.editorReviewDesk', 'Kiểm tra & Hiệu đính'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk`,
               },
               {
-                icon: BookOpen,
-                label: 'Quản lý chương',
-                href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
+                icon: FileText,
+                label: t('navigation.menu.script', 'Kịch bản'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
               },
+            ],
+          },
+          {
+            section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+            items: [
               {
-                icon: Kanban,
-                label: t('navigation.menu.production'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
+                icon: BookMarked,
+                label: t('navigation.menu.bible', 'Series Bible'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+                badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
               },
             ],
           },
@@ -498,7 +468,7 @@ export function AppShell({
       }
     }
 
-    if (effectiveRole === 'WRITER' || effectiveRole === 'ARTIST' || effectiveRole === 'LETTERER') {
+    if (effectiveRole === 'WRITER') {
       if (isSeriesContext) {
         return [
           {
@@ -506,39 +476,20 @@ export function AppShell({
             items: [
               {
                 icon: Layers,
-                label: t('navigation.menu.myWork'),
+                label: t('navigation.menu.myWork', 'Việc của tôi'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
                 badge: { type: 'count', count: 3 },
               },
             ],
           },
           {
-            section: t('navigation.sidebar.chapterProduction', 'SÁNG TÁC CHƯƠNG'),
+            section: t('navigation.sidebar.chapterWriting', 'SÁNG TÁC CHƯƠNG'),
             items: [
               {
                 icon: FileText,
-                label: t('navigation.menu.script'),
+                label: t('navigation.menu.chapterScript', 'Kịch bản Chương'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
               },
-              // Màn làm việc riêng theo vai trò (route artist/letterer đã có trong routes.tsx)
-              ...(effectiveRole === 'ARTIST'
-                ? [
-                    {
-                      icon: LayoutTemplate,
-                      label: t('navigation.menu.desk'),
-                      href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
-                    },
-                  ]
-                : []),
-              ...(effectiveRole === 'LETTERER'
-                ? [
-                    {
-                      icon: Type,
-                      label: t('navigation.menu.lettering'),
-                      href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
-                    },
-                  ]
-                : []),
             ],
           },
           {
@@ -546,14 +497,126 @@ export function AppShell({
             items: [
               {
                 icon: BookMarked,
-                label: t('navigation.menu.bible'),
+                label: t('navigation.menu.bible', 'Series Bible'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
                 badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
               },
               {
-                icon: Kanban,
-                label: t('navigation.menu.production'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
+                icon: Users,
+                label: t('navigation.menu.characterProfilesAndLore', 'Hồ sơ Nhân vật & Lore'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/bible?tab=entities`,
+              },
+            ],
+          },
+        ];
+      } else {
+        return [
+          {
+            section: t('navigation.sections.desk'),
+            items: [
+              {
+                icon: LayoutDashboard,
+                label: t('navigation.menu.studioWorkspaces'),
+                href: seriesListHref,
+              },
+            ],
+          },
+        ];
+      }
+    }
+
+    if (effectiveRole === 'ARTIST') {
+      if (isSeriesContext) {
+        return [
+          {
+            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+            items: [
+              {
+                icon: Layers,
+                label: t('navigation.menu.myWork', 'Việc của tôi'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+                badge: { type: 'count', count: 4 },
+              },
+            ],
+          },
+          {
+            section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+            items: [
+              {
+                icon: LayoutTemplate,
+                label: t('navigation.menu.panelCanvasDesk', 'Bàn vẽ Khung tranh'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
+              },
+              {
+                icon: FileText,
+                label: t('navigation.menu.scriptReadOnly', 'Kịch bản (chỉ đọc)'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+              },
+            ],
+          },
+          {
+            section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+            items: [
+              {
+                icon: BookMarked,
+                label: t('navigation.menu.bible', 'Series Bible'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+              },
+            ],
+          },
+        ];
+      } else {
+        return [
+          {
+            section: t('navigation.sections.desk'),
+            items: [
+              {
+                icon: LayoutDashboard,
+                label: t('navigation.menu.studioWorkspaces'),
+                href: seriesListHref,
+              },
+            ],
+          },
+        ];
+      }
+    }
+
+    if (effectiveRole === 'LETTERER') {
+      if (isSeriesContext) {
+        return [
+          {
+            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+            items: [
+              {
+                icon: Layers,
+                label: t('navigation.menu.myWork', 'Việc của tôi'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+                badge: { type: 'count', count: 2 },
+              },
+            ],
+          },
+          {
+            section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+            items: [
+              {
+                icon: Type,
+                label: t('navigation.menu.letteringAndBalloons', 'Chèn chữ & Bóng thoại'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
+              },
+              {
+                icon: FileText,
+                label: t('navigation.menu.scriptReadOnly', 'Kịch bản (chỉ đọc)'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+              },
+            ],
+          },
+          {
+            section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+            items: [
+              {
+                icon: BookMarked,
+                label: t('navigation.menu.bible', 'Series Bible'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
               },
             ],
           },
@@ -605,6 +668,19 @@ export function AppShell({
       window.clearInterval(interval);
     };
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        if (onOpenCommandPalette) {
+          onOpenCommandPalette();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onOpenCommandPalette]);
 
   const handleOpenNotifications = () => {
     setIsMobileDrawerOpen(false);
@@ -713,20 +789,33 @@ export function AppShell({
     }
   };
 
-  // Set isActive based on location pathname: ưu tiên route khớp chính xác nhất/dài nhất để tránh nhiều mục cùng active ngoài chủ đích
+  // Set isActive based on location pathname & tab query: phân biệt rõ tab=crew và trang chính không có tab
   let bestMatch: any = null;
-  let bestMatchLength = 0;
+  let bestScore = -1;
+  const currentTab = searchParams.get('tab');
 
   navSections.forEach((section) => {
     section.items.forEach((item: any) => {
-      // So theo pathname: href có thể mang query (vd. Quy trình sản xuất ?chapterId=...)
-      const itemPath = String(item.href).split('?')[0];
-      const isMatch =
+      const [itemPath, itemQuery] = String(item.href).split('?');
+      const itemSearchParams = new URLSearchParams(itemQuery || '');
+      const itemTab = itemSearchParams.get('tab');
+
+      // Kiểm tra khớp pathname
+      const isPathMatch =
         location.pathname === itemPath ||
         (itemPath !== '/' && location.pathname.startsWith(`${itemPath}/`));
-      if (isMatch && itemPath.length > bestMatchLength) {
+
+      if (!isPathMatch) return;
+
+      // Kiểm tra khớp tab: nếu item có tab thì tab hiện tại phải khớp; nếu URL có tab=crew thì item không được là item không tab
+      if (itemTab && itemTab !== currentTab) return;
+      if (!itemTab && currentTab === 'crew') return;
+
+      // Điểm ưu tiên: khớp tab cụ thể > khớp path dài hơn
+      const score = itemPath.length + (itemTab === currentTab && itemTab ? 1000 : 0);
+      if (score > bestScore) {
         bestMatch = item;
-        bestMatchLength = itemPath.length;
+        bestScore = score;
       }
     });
   });
@@ -941,7 +1030,7 @@ export function AppShell({
                       <BookOpen className='w-4 h-4 text-orange-600' />
                       <span className='truncate'>{activeSeries?.title || 'Active Series'}</span>
                     </button>
-                    {chapterId && (
+                    {chapterNumberLabel && (
                       <>
                         <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
                           /
@@ -952,55 +1041,7 @@ export function AppShell({
                           title={`${t('navigation.header.currentChapter', 'Chương đang mở')}: ${chapterId}`}
                         >
                           <FileText className='w-3.5 h-3.5 text-orange-600' />
-                          <span className='truncate'>
-                            {chapterId.toLowerCase().startsWith('ch') || !isNaN(Number(chapterId))
-                              ? `Chapter ${chapterId.replace(/^chapter-?/i, '')}`
-                              : 'Chapter'}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                    {isArtistDesk && (
-                      <>
-                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
-                          /
-                        </span>
-                        <div
-                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
-                          data-testid='header-artist-breadcrumb'
-                        >
-                          <LayoutTemplate className='w-3.5 h-3.5 text-orange-600' />
-                          <span className='truncate'>
-                            {t('navigation.menu.desk', 'Bàn vẽ Khung tranh')}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                    {isScriptDesk && (
-                      <>
-                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
-                          /
-                        </span>
-                        <div
-                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
-                          data-testid='header-script-breadcrumb'
-                        >
-                          <FileText className='w-3.5 h-3.5 text-orange-600' />
-                          <span className='truncate'>Quản lý Kịch bản</span>
-                        </div>
-                      </>
-                    )}
-                    {isLettererDesk && (
-                      <>
-                        <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>
-                          /
-                        </span>
-                        <div
-                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-stone-800 truncate bg-stone-100 rounded border border-stone-200 shrink-0'
-                          data-testid='header-letterer-breadcrumb'
-                        >
-                          <Type className='w-3.5 h-3.5 text-orange-600' />
-                          <span className='truncate'>Bàn làm việc Chữ & Thoại</span>
+                          <span className='truncate'>{`Chapter ${chapterNumberLabel}`}</span>
                         </div>
                       </>
                     )}
@@ -1042,35 +1083,6 @@ export function AppShell({
           )}
 
           <div className='flex items-center gap-3 shrink-0'>
-            {!isReader && !isStudioHome && (
-              <button
-                type='button'
-                onClick={() => {
-                  if (onOpenCommandPalette) {
-                    onOpenCommandPalette();
-                  } else {
-                    window.dispatchEvent(
-                      new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
-                    );
-                  }
-                }}
-                className='relative flex items-center text-left cursor-pointer group'
-                title={t(
-                  'navigation.header.quickSearch',
-                  'Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)',
-                )}
-                data-testid='header-command-palette-trigger'
-              >
-                <Search className='w-3.5 h-3.5 text-stone-400 absolute left-3 pointer-events-none stroke-[2] group-hover:text-stone-700 transition-colors' />
-                <div className='pl-8 pr-10 py-1.5 bg-stone-50 group-hover:bg-white text-xs text-stone-600 rounded-lg border border-stone-200 group-hover:border-orange-500 shadow-2xs w-60 transition-all truncate select-none'>
-                  {t('navigation.header.searchPlaceholder')}
-                </div>
-                <span className='absolute right-2 px-1.5 py-0.5 text-xs font-mono text-stone-400 bg-stone-200/60 rounded select-none'>
-                  ⌘K
-                </span>
-              </button>
-            )}
-
             {/* Chuyển đổi ngôn ngữ VI / EN */}
             <LanguageSwitcher />
 
